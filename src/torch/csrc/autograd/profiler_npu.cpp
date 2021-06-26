@@ -17,6 +17,7 @@
 #include <torch/csrc/autograd/profiler.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/NPUGuard.h>
+#include <c10/npu/interface/AclInterface.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
 #include <sstream>
 
@@ -46,7 +47,7 @@ struct NPUMethods : public CUDAStubs {
   void npu_record(int* device, aclrtEvent* event, int64_t* cpu_ns) {
     TORCH_NPU_CHECK(aclrtGetDevice(device));
     // TORCH_NPU_CHECK(aclrtCreateEvent(event));
-    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event, ACL_EVENT_TIME_LINE));
+    TORCH_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(event, ACL_EVENT_TIME_LINE));
     auto stream = c10::npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event, stream));

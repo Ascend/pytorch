@@ -72,14 +72,6 @@ bool OptionsManager::CheckSwitchMMOutputEnable() {
   return (switchMMOutputEnable == 1);
 }
 
-bool OptionsManager::CheckBmmV2Enable() {
-  static int bmmV2Enable = -1;
-  if (bmmV2Enable == -1) {
-    bmmV2Enable = GetBoolTypeOption("BMMV2_ENABLE");
-  }
-  return (bmmV2Enable == 1);
-}
-
 int OptionsManager::GetBoolTypeOption(const char* env_str) {
   char* env_val = std::getenv(env_str);
   int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;

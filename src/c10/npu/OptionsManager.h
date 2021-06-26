@@ -33,7 +33,6 @@ class OptionsManager {
   static bool CheckDynamicEnable();
   static bool CheckAclDumpDateEnable();
   static bool CheckSwitchMMOutputEnable();
-  static bool CheckBmmV2Enable();
   static bool CheckDynamicLogEnable();
   static bool CheckDynamicOptimizer(const char* op);
   static bool CheckUseNpuLogEnable();
