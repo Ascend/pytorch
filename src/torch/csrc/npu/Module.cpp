@@ -385,37 +385,6 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
     pybind11::gil_scoped_release no_gil;
     c10::npu::SetOption(option);
   }
-  
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_initDump(PyObject* _unused, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  C10_NPU_CHECK(aclmdlInitDump());
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_setDump(PyObject* _unused, PyObject* arg) {
-  HANDLE_TH_ERRORS
-  if (!THPUtils_checkString(arg)) {
-    THPUtils_setError("npu set dump error, cfg_file must string");
-  }
-  std::string cfg_file = THPUtils_unpackString(arg);
-  {
-    pybind11::gil_scoped_release no_gil;
-    C10_NPU_CHECK(aclmdlSetDump(cfg_file.c_str()));
-  }
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  C10_NPU_CHECK(aclmdlFinalizeDump());
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -442,9 +411,6 @@ static struct PyMethodDef _THNPModule_methods[] = {
     {"_npu_lock_mutex",   (PyCFunction)THNPModule_npuLockMutex,   METH_NOARGS,  nullptr},
     {"_npu_unlock_mutex", (PyCFunction)THNPModule_npuUnlockMutex, METH_NOARGS,  nullptr},
     {"_npu_setOption", (PyCFunction)THNPModule_setOption_wrap, METH_O, nullptr},
-    {"_npu_initDump", (PyCFunction)THNPModule_initDump, METH_NOARGS, nullptr},
-    {"_npu_setDump", (PyCFunction)THNPModule_setDump, METH_O, nullptr},
-    {"_npu_finalizeDump", (PyCFunction)THNPModule_finalizeDump, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_methods() {

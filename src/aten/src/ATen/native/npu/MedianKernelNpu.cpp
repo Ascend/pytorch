@@ -109,7 +109,7 @@ std::tuple<Tensor&, Tensor&> median_out_npu(
   OpPreparation::CheckOut(
     {self}, 
     indices, 
-    ACL_FORMAT_NCHW, 
+    ACL_FORMAT_ND, 
     ScalarType::Int, 
     outputSize);
 

@@ -16,6 +16,7 @@
 
 #include "AclInterface.h"
 #include "c10/npu/register/FunctionLoader.h"
+#include "c10/util/Exception.h"
 #include <iostream>
 
 namespace c10 {
@@ -30,6 +31,7 @@ namespace acl {
 
 REGISTER_LIBRARY(libascendcl)
 LOAD_FUNCTION(aclGetRecentErrMsg)
+LOAD_FUNCTION(aclrtCreateEventWithFlag)
 
 const char *AclGetErrMsg()
 {
@@ -43,6 +45,17 @@ const char *AclGetErrMsg()
   }
   return "";
 }
+
+aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
+  typedef aclError(*AclrtCreateEventWithFlagFunc)(aclrtEvent*, uint32_t);
+  static AclrtCreateEventWithFlagFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtCreateEventWithFlagFunc)GET_FUNC(aclrtCreateEventWithFlag);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtCreateEventWithFlag");
+  return func(event, flag);
+}
+
 } // namespace acl
 } // namespace npu
 } // namespace c10

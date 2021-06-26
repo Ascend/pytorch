@@ -396,17 +396,6 @@ ACL_FUNC_VISIBILITY aclError aclrtCreateEvent(aclrtEvent *event);
 
 /**
  * @ingroup AscendCL
- * @brief create event instance
- *
- * @param event [OUT]   created event
- * @param flag [IN]     event flag
- * @retval ACL_ERROR_NONE The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
-
-/**
- * @ingroup AscendCL
  * @brief destroy event instance
  *
  * @par Function

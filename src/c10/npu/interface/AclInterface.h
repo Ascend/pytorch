@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <third_party/acl/inc/acl/acl.h>
 
 namespace c10 {
 namespace npu {
@@ -22,6 +23,16 @@ namespace acl {
   */
 const char *AclGetErrMsg();
 
+/**
+ * @ingroup AscendCL
+ * @brief create event instance
+ *
+ * @param event [OUT]   created event
+ * @param flag [IN]     event flag
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
 } // namespace acl
 } // namespace npu
 } // namespace c10

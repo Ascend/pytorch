@@ -291,15 +291,24 @@ if not hasattr(torch._C, '_NPUStreamBase'):
 
 def init_dump():
     _lazy_init()
-    return torch._C._npu_initDump()
+    option = {}
+    option["mdldumpswitch"] = "init"
+    torch._C._npu_setOption(option)
 
 def set_dump(cfg_file):
+    if not os.path.exists(cfg_file):
+        raise AssertionError("cfg_file %s path not exists."%(cfg_file))
+    cfg_file = os.path.abspath(cfg_file)
     _lazy_init()
-    return torch._C._npu_setDump(cfg_file)
+    option = {}
+    option["mdldumpconfigpath"] = cfg_file
+    torch._C._npu_setOption(option)
 
 def finalize_dump():
     _lazy_init()
-    return torch._C._npu_finalizeDump()
+    option = {}
+    option["mdldumpswitch"] = "finalize"
+    torch._C._npu_setOption(option)
 
 from .memory import *
 

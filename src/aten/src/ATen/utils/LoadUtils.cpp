@@ -32,6 +32,7 @@ namespace at {
 
   void SetLoadPath(string path) {
     LoadUtil::GetInstance()->SetLoadFilePath(path);
+    LoadUtil::GetInstance()->LoadLazyInit();
     return;
   }
 
@@ -102,7 +103,11 @@ namespace at {
     }
   }
 
-  void MaybeMapName(CommDesc& commDesc) {
+  void MaybeMapName(CommDesc& commDesc, const H5File* file) {
+    std::string h5IRPath = "/" + commDesc.nameIr;
+    if (file->nameExists(h5IRPath)) {
+      return ;
+    }
     if (IrNameMapper.find(commDesc.nameIr) != IrNameMapper.end()) {
       auto oriNameIr = commDesc.nameIr;
       commDesc.nameIr = IrNameMapper[commDesc.nameIr];
@@ -337,7 +342,11 @@ namespace at {
         //1.dtype
         Attribute attr = dataset.openAttribute(ATTR_DATA_TYPE_NAME);
         attr.read(attr.getDataType(), &dtypeValue);
-        if (dtypeValue != ScalarTypeToDumpType((*it).tensor.scalar_type())) {
+        // some ops on npu only support int32 while those ops support long on GPU
+        // need more tests to verify these cases
+        if (dtypeValue == ScalarTypeToDumpType(c10::kLong) && (*it).tensor.scalar_type() == c10::kInt) {
+          ;
+        } else if (dtypeValue != ScalarTypeToDumpType((*it).tensor.scalar_type())) {
           is_matched = false;
           break;
         }
@@ -345,7 +354,6 @@ namespace at {
         //2.stride
         attr = dataset.openAttribute("Stride");
         int h5StrideSize = static_cast<int>(attr.getSpace().getSimpleExtentNpoints());
-
         if (h5StrideSize == (*it).tensor.strides().size()) {
           int64_t* stride = new int64_t[h5StrideSize];
           attr.read(attr.getDataType(), stride);
@@ -639,7 +647,6 @@ namespace at {
       return -1;
     }
 
-
     Group curGroup = file->openGroup(h5IRPath);
     int numCurGroup = curGroup.getNumObjs();
     int i = 0;
@@ -651,7 +658,6 @@ namespace at {
         i++;
         continue;
       }
-
       is_matched = true;
 
       if (!ExhaustedMatchingTorchType(seqH5, file, nameIr, commDesc)) {
@@ -683,6 +689,20 @@ namespace at {
 
   }
 
+  // when the stride of some dim is zero, the tensor may has been "expand", copy should only
+  // process on any axis of that dim
+  // To do: is this kind of copy matches other zero stride cases?
+  void CopyMaybeWithZeroStride(Tensor dst, Tensor src) {
+    auto strides = dst.strides().vec();
+    for (int i = 0; i < strides.size(); i++) {
+      if (strides[i] == 0) {
+        dst = dst.select(i, 0);
+        src = src.select(i, 0);
+      }
+    }
+    dst.copy_(src);
+  }
+
   void TensorCopying(const int & seqH5, const string nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.tensorDescVec.begin(); it != commDesc.tensorDescVec.end(); it++) {
@@ -708,16 +728,16 @@ namespace at {
       Attribute attr = dataset.openAttribute(ATTR_DEVICE_TYPE_NAME);
       attr.read(attr.getDataType(), &deviceTypeValue);
 
-      Tensor tharray;
+      Tensor thArray;
       if ((*it).tensor.scalar_type() != ScalarType::Half) {
         auto options = at::TensorOptions().dtype((*it).tensor.scalar_type());
         if (deviceTypeValue[0] == 10) {
-          tharray = at::from_blob(data, (*it).tensor.sizes(), options);
+          thArray = at::from_blob(data, (*it).tensor.sizes(), options);
         } else {
-          tharray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
+          thArray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
         }
         auto verCountBefore = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
-        (*it).tensor.detach().copy_(tharray);
+        CopyMaybeWithZeroStride((*it).tensor.detach(), thArray.to((*it).tensor.device()).to((*it).tensor.dtype()));
         auto verCountAfter = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
         if (verCountAfter > verCountBefore) {
           (*it).tensor.unsafeGetTensorImpl()->reduce_version();
@@ -725,12 +745,12 @@ namespace at {
       } else {
         auto options = at::TensorOptions().dtype(at::kFloat);
         if (deviceTypeValue[0] == 10) {
-          tharray = at::from_blob(data, (*it).tensor.sizes(), options);
+          thArray = at::from_blob(data, (*it).tensor.sizes(), options);
         } else {
-          tharray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
+          thArray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
         }
         auto verCountBefore = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
-        (*it).tensor.detach().copy_(tharray.to(at::kHalf).to((*it).tensor.device()));
+        CopyMaybeWithZeroStride((*it).tensor.detach(), thArray.to(at::kHalf).to((*it).tensor.device()));
         auto verCountAfter = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
         if (verCountAfter > verCountBefore) {
           (*it).tensor.unsafeGetTensorImpl()->reduce_version();
@@ -799,12 +819,10 @@ namespace at {
   }
 
   void LoadUtil::Process() {
-    MaybeMapName(commDesc);
+    MaybeMapName(commDesc, file);
     int seqH5 = ProcessMatching(file, commDesc.nameIr, commDesc, visitedSeq);
     if (seqH5 > -1) {
-
       ProcessCopying(seqH5, commDesc.nameIr, file, commDesc);
-
     }
     commDesc.tensorDescVec.clear();
     commDesc.int64DescVec.clear();

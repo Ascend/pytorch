@@ -63,6 +63,7 @@ static std::map<const at::ScalarType, const string> AT_SCALAR_TYPE_NAME_MAP = {
 static std::map<const string, const aclDataType>
     STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
         {"uint16", ACL_UINT16},
+        {"uint8", ACL_UINT8}
 };
 
 string GetAtScalarTypeName(const ScalarType data_type) {

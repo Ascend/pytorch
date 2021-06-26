@@ -17,6 +17,7 @@
 #include "H5Cpp.h"
 #include "torch/csrc/autograd/VariableTypeUtils.h"
 #include <ATen/TypeDefault.h>
+#include <mutex>
 
 using std::string;
 using std::vector;
@@ -51,15 +52,25 @@ enum class SaveType:int32_t {
   PAIR = 15,
   AR_LONG_INT = 16,
   OPT_MEM_FMT = 17,
+  TENSOR_OPTS = 18,
 };
 
 template <typename T>
 struct ArgDes {
 public:
   explicit ArgDes(string name, const T& value): name_(move(name)), value_(value) {}
-  const string& Name() const {return name_;}
-  const T& GetValue() const {return value_;}
-  void SetValue(const T &value) {value_ = value;}
+
+  const string& Name() const {
+    return name_;
+  }
+
+  const T& GetValue() const {
+    return value_;
+  }
+
+  void SetValue(const T &value) {
+    value_ = value;
+  }
 private:
   string name_;
   T value_;
@@ -180,21 +191,38 @@ class DumpUtil {
     return dumpSeqId;
   }
 
-  bool CanDumpNow() {
-    return !isDumping && isDumpSwitchOn;
+  bool IsDumping() {
+    return isDumping;
+  }
+
+  bool IsDumpSwitchOn() {
+    return isDumpSwitchOn;
   }
 
   void SetDumpFlag(bool flag) {
     isDumping = flag;
     return;
   }
+
   void SetDumpSwitch(bool flag) {
     isDumpSwitchOn = flag;
     return;
   }
 
-  void SetDumpFilePath(const string& filePath) {dumpFilePath = filePath;};
+  void SetDumpFilePath(const string& filePath) {
+    dumpFilePath = filePath;
+  }
+
   void DumpLazyInit();
+
+  void Lock() {
+    mu_.lock();
+  }
+
+  void Unlock() {
+    mu_.unlock();
+  }
+
  private:
   DumpUtil();
   H5::H5File* file = nullptr;
@@ -203,6 +231,7 @@ class DumpUtil {
   bool isDumpSwitchOn = false;
   string dumpFilePath = "dump.h5";
   bool dumpInit = false;
+  std::recursive_mutex mu_;
 };
 
 } // namespace c10

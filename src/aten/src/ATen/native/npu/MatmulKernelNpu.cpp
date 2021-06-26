@@ -15,6 +15,7 @@
 // limitations under the License.
 #include <ATen/NamedTensorUtils.h>
 #include "c10/npu/OptionsManager.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 #include "ATen/native/npu/common/InnerNpuNativeFunction.h"
 namespace at {
 namespace native {
@@ -27,7 +28,7 @@ Tensor matmul_npu(
   Tensor out = out_opt.value_or(Tensor());
   if (tensor1.is_npu() && tensor2.is_npu() && 
     tensor1.scalar_type() == kHalf && tensor2.scalar_type() == kHalf && 
-    c10::npu::OptionsManager::CheckBmmV2Enable()) {
+    npu::env::CheckBmmV2Enable()) {
       auto res = matmul_by_bmmV2(tensor1, tensor2);
       return has_out ? out.set_(res) : res;
   }
