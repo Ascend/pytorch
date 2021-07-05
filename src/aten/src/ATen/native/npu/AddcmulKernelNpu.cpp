@@ -50,8 +50,7 @@ Tensor& addcmul_out_npu(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
+      self,
       outputSize);
 
   OpPipeWithDefinedOut pipe;
@@ -81,10 +80,7 @@ Tensor& addcmul_npu_(
     const Tensor& tensor1,
     const Tensor& tensor2,
     Scalar value) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = addcmul_out_npu_nocheck(

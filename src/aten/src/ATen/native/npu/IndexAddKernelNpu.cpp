@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include<ATen/NamedTensorUtils.h>
 
 namespace at {
 namespace native {
@@ -51,10 +52,7 @@ Tensor& index_add_npu_(
     int64_t dim,
     const Tensor& index,
     const Tensor& source) {
-  SmallVector<Tensor, N> inputs = {self, index, source};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self, index, source}, {self});
   if (!NpuUtils::check_match(&self)) {
       Tensor contiguousSelf = NpuUtils::format_contiguous(self);
       Tensor result = index_add_out_npu(contiguousSelf, contiguousSelf, dim, index, source);

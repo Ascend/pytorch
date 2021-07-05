@@ -15,10 +15,60 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at { 
 namespace native {
 using namespace at::native::npu;
+
+tuple<Tensor&, Tensor&> std_mean_out_npu_nocheck(
+    Tensor& resultStd, 
+    Tensor& resultMean, 
+    const Tensor& self, 
+    IntArrayRef dim, 
+    bool unbiased, 
+    bool keepdim) {
+  // executing the NPU operator 
+  if (!c10::npu::OptionsManager::CheckDynamicEnable()) { 
+    OpCommand cmd;
+    cmd.Name("ReduceStd")
+        .Input(self)
+        .Output(resultStd)
+        .Output(resultMean)
+        .Attr("dim", dim)
+        .Attr("unbiased", unbiased)
+        .Attr("keepdim", keepdim)
+        .Run();
+  } else {
+    OpCommand cmd1;
+    cmd1.Name("ReduceMeanD")
+        .Input(self)
+        .Output(resultMean)
+        .Attr("axes", dim)
+        .Attr("keep_dims", keepdim)
+        .Run();
+    Tensor resultMeanCopy = resultMean;
+    if (resultMean.dim() != 0 && keepdim == false) {
+      auto dimVector = array_to_small_vector(dim);
+      std::sort(dimVector.begin(), dimVector.end());
+      for (int64_t i = 0; i < dimVector.size(); i++) {
+        resultMeanCopy = resultMeanCopy.unsqueeze(dimVector[i]);
+      }
+    }
+    resultMeanCopy = resultMeanCopy.expand(self.sizes());
+    OpCommand cmd2;
+    cmd2.Name("ReduceStdWithMean")
+        .Input(self)
+        .Input(resultMeanCopy)
+        .Output(resultStd)
+        .Attr("dim", dim)
+        .Attr("unbiased", unbiased)
+        .Attr("keepdim", keepdim)
+        .Run();
+  }
+
+  return std::tie(resultStd, resultMean);
+}
 
 Tensor& std_out_npu(
     Tensor& result, 
@@ -35,42 +85,17 @@ Tensor& std_out_npu(
     IntArrayRef dim, 
     bool unbiased, 
     bool keepdim) {
-  auto outputSize = std_npu_output_size(self, dim, keepdim);
-  Tensor meanResult = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  Tensor meanResult = OpPreparation::ApplyTensor(self, outputSize);
+
+  OpPreparation::CheckOut(
+      {self}, 
+      result, 
+      self,
+      outputSize);
 
   // executing the NPU operator
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("ReduceStd")
-        .Input(self)
-        .Output(result)
-        .Output(meanResult)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
-  } else {
-    OpCommand cmd1;
-    cmd1.Name("ReduceMeanD")
-        .Input(self)
-        .Output(meanResult)
-        .Attr("axes", dim)
-        .Attr("keep_dims", keepdim)
-        .Run();
-    if (meanResult.dim() != 0 && keepdim == false) {
-      meanResult = meanResult.unsqueeze(dim[0]);
-    }
-    Tensor meanResult2 = meanResult.expand(self.sizes());
-    OpCommand cmd2;
-    cmd2.Name("ReduceStdWithMean")
-        .Input(self)
-        .Input(meanResult2)
-        .Output(result)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
-  }
+  std_mean_out_npu_nocheck(result, meanResult, self, dim, unbiased, keepdim);
 
   return result;
 }
@@ -82,40 +107,21 @@ tuple<Tensor&, Tensor&> std_mean_out_npu(
     IntArrayRef dim, 
     bool unbiased, 
     bool keepdim) {
-  // executing the NPU operator 
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) { 
-    OpCommand cmd;
-    cmd.Name("ReduceStd")
-        .Input(self)
-        .Output(result1)
-        .Output(result2)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
-  } else {
-    OpCommand cmd1;
-    cmd1.Name("ReduceMeanD")
-        .Input(self)
-        .Output(result2)
-        .Attr("axes", dim)
-        .Attr("keep_dims", keepdim)
-        .Run();
-    Tensor result2_copy = result2;
-    if (result2.dim() != 0 && keepdim == false) {
-      result2_copy = result2.unsqueeze(dim[0]);
-    }
-    result2_copy = result2_copy.expand(self.sizes());
-    OpCommand cmd2;
-    cmd2.Name("ReduceStdWithMean")
-        .Input(self)
-        .Input(result2_copy)
-        .Output(result1)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
-  }
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+
+  OpPreparation::CheckOut(
+      {self}, 
+      result1, 
+      self,
+      outputSize);
+  OpPreparation::CheckOut(
+      {self}, 
+      result2, 
+      self,
+      outputSize);
+      
+  // executing the NPU operator
+  std_mean_out_npu_nocheck(result1, result2, self, dim, unbiased, keepdim);
 
   return std::tie(result1, result2);
 }
@@ -126,11 +132,11 @@ Tensor std_dim_npu(
     bool unbiased, 
     bool keepdim) {
   // calculate the output size
-  auto outputSize = std_npu_output_size(self, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
 
   // construct the output tensor of the NPU
-  Tensor result1 = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  Tensor result2 = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
+  Tensor result1 = OpPreparation::ApplyTensor(self, outputSize);
+  Tensor result2 = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   std_mean_out_npu(result1, result2, self, dim, unbiased, keepdim);
@@ -157,11 +163,11 @@ tuple <Tensor, Tensor> std_mean_dim_npu(
     bool unbiased, 
     bool keepdim) {
   // calculate the output size
-  auto outputSize = std_npu_output_size(self, dim, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
 
   // construct the output tensor of the NPU
-  Tensor result1 = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  Tensor result2 = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
+  Tensor result1 = OpPreparation::ApplyTensor(self, outputSize);
+  Tensor result2 = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   std_mean_out_npu(result1, result2, self, dim, unbiased, keepdim);

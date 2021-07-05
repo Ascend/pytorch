@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -46,9 +45,7 @@ Tensor addcdiv_npu(
     Scalar value) {
   auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   addcdiv_out_npu(result, self, tensor1, tensor2, value);
 
   return result;
@@ -59,9 +56,7 @@ Tensor& addcdiv_npu_(
     const Tensor& tensor1,
     const Tensor& tensor2,
     Scalar value) {
-  SmallVector<Tensor, N> inputs = {self, tensor1, tensor2};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, tensor1, tensor2}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = addcdiv_out_npu(contiguousSelf, contiguousSelf, tensor1, tensor2, value);

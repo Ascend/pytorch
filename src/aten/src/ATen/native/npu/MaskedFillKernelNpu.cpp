@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -80,10 +80,7 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
 }
 
 Tensor& masked_fill_npu_(Tensor& self, const Tensor& mask, const Tensor& value) {
-  SmallVector<Tensor, N> inputs = {self, mask, value};
-  SmallVector<Tensor, N> outputs = {self};
-
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, mask, value}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = masked_fill_out_npu(contiguousSelf, contiguousSelf, mask, value);
@@ -95,10 +92,7 @@ Tensor& masked_fill_npu_(Tensor& self, const Tensor& mask, const Tensor& value) 
 }
 
 Tensor& masked_fill_npu_(Tensor& self, const Tensor& mask, Scalar value) {
-  SmallVector<Tensor, N> inputs = {self, mask};
-  SmallVector<Tensor, N> outputs = {self};
-
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, mask}, {self});
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);

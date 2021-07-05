@@ -63,7 +63,7 @@ struct LeakyStreamInternals {
 
 // Global stream state and constants
 static DeviceIndex num_npus = -1;
-static constexpr int kStreamsPerPoolBits = 5;
+static constexpr int kStreamsPerPoolBits = 3;
 static constexpr int kStreamsPerPool = 1 << kStreamsPerPoolBits;
 // static constexpr unsigned int kDefaultFlags = npuStreamNonBlocking;
 

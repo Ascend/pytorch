@@ -55,6 +55,10 @@ public:
       const std::initializer_list<Tensor>& inputs,
       Tensor& output, Tensor dst);
   static void CheckOut(
+      const std::initializer_list<Tensor>& inputs,
+      Tensor& output, Tensor dst,
+      IntArrayRef shape);
+  static void CheckOut(
       const std::initializer_list<Tensor>& input,
       Tensor& output, int64_t format,
       ScalarType dtype, IntArrayRef shape);

@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
@@ -64,15 +63,8 @@ Tensor _addr_npu(
     const Tensor& vec2,
     Scalar beta,
     Scalar alpha) {
-
-  // calculate the output size
   auto outputSize = addr_npu_output_size(self, vec1, vec2, beta, alpha);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   _addr_out_npu(result, self, vec1, vec2, beta, alpha);
 
   return result;
@@ -95,9 +87,7 @@ Tensor& _addr_npu_(
     const Tensor& vec2,
     Scalar beta,
     Scalar alpha) {
-  SmallVector<Tensor, N> inputs = {self, vec1, vec2};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, vec1, vec2}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result =

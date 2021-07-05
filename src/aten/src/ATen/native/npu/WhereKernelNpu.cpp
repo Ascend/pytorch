@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -49,13 +48,7 @@ Tensor _s_where_npu(
     const Tensor& condition,
     const Tensor& self,
     const Tensor& other) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-  
+  Tensor result = OpPreparation::ApplyTensor(self);
   // maskrcnn need dynamicshape function of op "SelectV2"
   string opName = c10::npu::OptionsManager::CheckDynamicEnable() ? "SelectV2" : "Select";
   OpCommand cmd;

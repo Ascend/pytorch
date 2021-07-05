@@ -40,10 +40,7 @@ Tensor sinh_npu(const Tensor& self) {
 }
 
 Tensor& sinh_npu_(Tensor& self) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = sinh_out_npu(contiguousSelf, contiguousSelf);

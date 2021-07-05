@@ -14,7 +14,7 @@
 // limitations under the License.
 
 #include "OpTemplate.h"
-#include "ATen/native/GlobalStep.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 #include "ATen/native/npu/frame/OpCmdHelper.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
@@ -36,7 +36,7 @@ TransDataOpCommand& TransDataOpCommand::AddInputAndOutput(const Tensor& input, c
   std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> in;
   std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> out;
 
-   if (!c10::npu::OptionsManager::CheckDynamicEnable() && check_fuzz_enable()) {
+   if (!c10::npu::OptionsManager::CheckDynamicEnable() && env::CheckFuzzyEnable()) {
     in = OpCmdHelper::CovertTensorToAclInput(input, c10::nullopt, "", "");
     out = OpCmdHelper::CovertTensorToAclInput(output, c10::nullopt, "", "");
   } else {

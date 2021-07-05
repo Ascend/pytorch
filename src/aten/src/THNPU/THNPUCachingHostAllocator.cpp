@@ -171,13 +171,17 @@ struct HostAllocator {
     while (!npu_events.empty()) {
       auto& e = npu_events.front();
       aclrtEvent event = e.first;
-      aclrtEventStatus status = ACL_EVENT_STATUS_COMPLETE;
-      aclError err = aclrtQueryEvent(event, &status);
-      if (status == ACL_EVENT_STATUS_NOT_READY) {
-        break;
-      } else if (err != ACL_ERROR_NONE) {
-        return err;
+      c10::npu::acl::aclrtEventWaitStatus waitStatus = c10::npu::acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+      aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
+      aclError err = c10::npu::acl::AclQueryEventStatus(event, &waitStatus, &recordStatus);
+      if (err != ACL_ERROR_NONE) {
+          return err;
       }
+      if ((waitStatus != c10::npu::acl::ACL_EVENT_WAIT_STATUS_COMPLETE) &&
+        (recordStatus != ACL_EVENT_STATUS_COMPLETE)) {
+        break;
+      }
+
       err = aclrtDestroyEvent(event);
       if (err != ACL_ERROR_NONE) {
         return err;

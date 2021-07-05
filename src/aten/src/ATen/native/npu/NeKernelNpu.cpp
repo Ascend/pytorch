@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -125,9 +126,7 @@ Tensor ne_npu(const Tensor& self, Scalar other) {
 Tensor& ne_npu_(Tensor& self, const Tensor& other) {
   OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CastBackToOriFormat(other);
-  SmallVector<Tensor, N> inputs = {self, other};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, other}, {self});
 
   Tensor result = at::empty_with_format(
     self.sizes(),
@@ -149,10 +148,7 @@ Tensor& ne_npu_(Tensor& self, const Tensor& other) {
 
 Tensor& ne_npu_(Tensor& self, Scalar other) {
   OpPreparation::CastBackToOriFormat(self);
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   Tensor result = at::empty_with_format(
     self.sizes(),
     self.options().dtype(ScalarType::Byte),

@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -81,12 +78,7 @@ Tensor _cdist_backward_npu(
 
   //Executing the NPU operator.
   auto outputSize = input_same_output_size(x1);
-
-  Tensor result = at::empty_with_format(
-    outputSize,
-    tensor1_broadcast.options(),
-    CalcuOpUtil::get_tensor_npu_format(tensor1_broadcast));
-  
+  Tensor result = OpPreparation::ApplyTensor(tensor1_broadcast, outputSize);
   OpCommand cmd;
   cmd.Name("CdistGrad")
       .Input(grad_broadcast)

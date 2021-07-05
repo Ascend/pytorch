@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include <c10/npu/OptionsManager.h>
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {

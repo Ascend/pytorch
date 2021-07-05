@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -116,7 +117,7 @@ Tensor& sum_out_npu(
   OpPreparation::CheckOut(
       {self}, 
       result, 
-      CalcuOpUtil::get_tensor_npu_format(self),
+      ACL_FORMAT_ND,
       dstType,
       outputSize);
 

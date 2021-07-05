@@ -111,6 +111,19 @@ void OpPreparation::CheckOut(
 }
 
 void OpPreparation::CheckOut(
+    const std::initializer_list<Tensor>& inputs,
+    Tensor& output,
+    Tensor dst,
+    IntArrayRef shape) {
+  CheckOut(
+      inputs,
+      output, 
+      CalcuOpUtil::get_tensor_npu_format(dst),
+      dst.scalar_type(),
+      shape);
+}
+
+void OpPreparation::CheckOut(
     const std::initializer_list<Tensor>& input,
     Tensor& output,
     int64_t format,

@@ -116,8 +116,7 @@ class OpPipeWithMultiOut {
     OpPreparation::CheckOut(
         inputs,
         std::get<index>(this->funcParams),
-        CalcuOpUtil::get_tensor_npu_format(src),
-        src.scalar_type(),
+        src,
         size);
     return *this;
   }

@@ -15,8 +15,8 @@
 // limitations under the License.
 
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -51,12 +51,7 @@ Tensor& adaptive_avg_pool3d_backward_out_npu(
 }
 
 Tensor adaptive_avg_pool3d_backward_npu(const Tensor& grad_output, const Tensor& self){
-  // calcul the output size
-  auto outputsize = input_same_output_size(self);
-  
-  Tensor result = at::empty_with_format(
-      outputsize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-  
+  Tensor result = OpPreparation::ApplyTensor(self);
   adaptive_avg_pool3d_backward_out_npu(result, grad_output, self);
   return result;
 }

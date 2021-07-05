@@ -32,10 +32,10 @@ Tensor argmin_npu(const Tensor& self, optional<int64_t> dim, bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(input, realDim, realKeepDim);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
+  Tensor result = OpPreparation::ApplyTensor(
       outputSize,
       self.options().dtype(at::kInt),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
   SmallVector<int64_t, N> DimVec = {realDim};
   // calculate the output result of the NPU
   OpCommand cmd;

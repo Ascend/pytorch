@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -33,13 +33,8 @@ std::tuple<Tensor, Tensor> random_choice_with_mask_npu(
       self.dim());
   TORCH_CHECK(count > 0, "The count must greater than 0, but get", count);
 
-  Tensor result = at::empty_with_format(
-      {count, self.dim()},
-      self.options().dtype(kInt),
-      CalcuOpUtil::get_tensor_npu_format(self));
-  Tensor mask = at::empty_with_format(
-      {count}, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor({count, self.dim()}, self.options().dtype(kInt), self);
+  Tensor mask = OpPreparation::ApplyTensor(self, {count});
   OpCommand cmd;
   cmd.Name("RandomChoiceWithMask")
       .Input(self)

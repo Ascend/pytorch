@@ -26,6 +26,8 @@ namespace env {
   */
 bool AutoTuneEnabled();
 bool CheckBmmV2Enable();
+bool CheckFuzzyEnable();
+bool CheckProfilingEnable();
 
 } // namespace env
 } // namespace npu

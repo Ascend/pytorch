@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -27,16 +26,8 @@ Tensor _log_softmax_backward_npu(
     int64_t dim,
     const Tensor& self) {
   SmallVector<int64_t, N> dimList = {dim};
-  // calculate the output size
-  auto outputSize = input_same_output_size(grad_output);
+  Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
 
-  // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
-      outputSize,
-      grad_output.options(),
-      CalcuOpUtil::get_tensor_npu_format(grad_output));
-
-  // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("LogSoftmaxGrad")
       .Input(grad_output)

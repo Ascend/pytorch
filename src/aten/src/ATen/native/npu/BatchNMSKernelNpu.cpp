@@ -28,25 +28,24 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> batch_nms_npu(
     bool change_coordinate_frame,
     bool transpose_box) {
   // construct the output tensor of the NPU
-  Tensor nmsed_boxes = at::empty_with_format(
+  Tensor nmsed_boxes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size, 4},
       self.options().dtype(at::kHalf),
-      CalcuOpUtil::get_tensor_npu_format(self));
-
-  Tensor nmsed_scores = at::empty_with_format(
+      self);
+  Tensor nmsed_scores = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
       self.options().dtype(at::kHalf),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
 
-  Tensor nmsed_classes = at::empty_with_format(
+  Tensor nmsed_classes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
       self.options().dtype(at::kHalf),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
 
-  Tensor nmsed_num = at::empty_with_format(
+  Tensor nmsed_num = OpPreparation::ApplyTensor(
       {self.size(0)},
       self.options().dtype(at::kInt),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
 
   OpCommand cmd;
   cmd.Name("BatchMultiClassNonMaxSuppression")

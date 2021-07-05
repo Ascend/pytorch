@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -27,13 +26,12 @@ Tensor leaky_relu_backward_out_npu(
     const Tensor& self,
     Scalar negval,
     bool is_result) {
-  float negvalValue = CalcuOpUtil::get_scalar_float_value(negval);
   OpCommand cmd;
   cmd.Name("LeakyReluGrad")
       .Input(grad_output)
       .Input(self)
       .Output(result)
-      .Attr("negative_slope", negvalValue)
+      .Attr("negative_slope", negval)
       .Run();
   return result;
 }
@@ -43,14 +41,7 @@ Tensor leaky_relu_backward_npu(
     const Tensor& self,
     Scalar negval,
     bool is_result) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   leaky_relu_backward_out_npu(result, grad_output, self, negval, is_result);
   return result;
 }

@@ -38,9 +38,7 @@ Tensor& bitwise_not_out_npu(Tensor& result, const Tensor& self) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})

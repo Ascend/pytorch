@@ -28,12 +28,15 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
   while (!npu_events_.empty())
   {
     aclrtEvent event = npu_events_.front();
-    aclrtEventStatus status;
-    aclError err = aclrtQueryEvent(event, &status);
-    if (status != ACL_EVENT_STATUS_COMPLETE) {
-      break;
-    } else if (err != ACL_ERROR_NONE) {
+    acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+    aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
+    aclError err = acl::AclQueryEventStatus(event, &waitStatus, &recordStatus);
+    if (err != ACL_ERROR_NONE) {
         return err;
+    }
+    if ((waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) &&
+      (recordStatus != ACL_EVENT_STATUS_COMPLETE)) {
+      break;
     }
     err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {

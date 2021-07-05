@@ -44,12 +44,11 @@ Tensor& fill_out_npu(Tensor& result, Tensor& self, const Tensor& other) {
 Tensor& fills_out_npu(Tensor& result, Tensor& self, Scalar value) {
   AT_DISPATCH_ALL_TYPES_AND3(kHalf, kBool, kBFloat16, self.scalar_type(), "fills_out_npu", [&]() {
     auto value_converted = value.to<scalar_t>();}); 
-  float scalar = CalcuOpUtil::get_scalar_float_value(value);
   OpCommand cmd;
   cmd.Name("Fills")
       .Input(self)
       .Output(result)
-      .Attr("value", scalar)
+      .Attr("value", value)
       .Run();
 
   return result;

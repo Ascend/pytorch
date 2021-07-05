@@ -73,8 +73,7 @@ Tensor& diag_out_npu(Tensor& result, const Tensor& self, int64_t diagonal) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
+      self,
       outputSize);
 
   OpPipeWithDefinedOut pipe;

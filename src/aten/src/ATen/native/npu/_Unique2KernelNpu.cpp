@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -49,9 +48,9 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
     bool return_inverse,
     bool return_counts) {
   if(self.numel() == 0){
-    Tensor result= at::empty_with_format({0}, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-    Tensor yInverse = at::empty_with_format({0}, self.options().dtype(kLong), CalcuOpUtil::get_tensor_npu_format(self));
-    Tensor yCounts = at::empty_with_format({0}, self.options().dtype(kLong), CalcuOpUtil::get_tensor_npu_format(self));
+    Tensor result= OpPreparation::ApplyTensor(self, {0});
+    Tensor yInverse = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
+    Tensor yCounts = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
     return std::tie(result, yInverse, yCounts);
   }
   
@@ -64,7 +63,7 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
     selfCopy = self.to(ScalarType::Float);
   }
  
-  Tensor y = at::empty_with_format(std::get<0>(outputSizes), selfCopy.options(), CalcuOpUtil::get_tensor_npu_format(selfCopy));
+  Tensor y = OpPreparation::ApplyTensor(selfCopy, std::get<0>(outputSizes));
   Tensor yOutputSize = at::empty_with_format(std::get<1>(outputSizes), self.options().dtype(kLong), ACL_FORMAT_ND);
   Tensor yInverse = at::empty_with_format(std::get<2>(outputSizes), self.options().dtype(kLong), ACL_FORMAT_ND);
   Tensor yCounts = at::empty_with_format(std::get<0>(outputSizes), self.options().dtype(kLong), ACL_FORMAT_ND);

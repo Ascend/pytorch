@@ -1679,9 +1679,9 @@
 - name: npu_confusion_transpose(Tensor self, int[] perm, int[] shape, bool transpose_first) -> Tensor
   self: npu_confusion_transpose_backward(grad, perm, self.sizes(), !transpose_first)
 
-- name: npu_bmmV2(Tensor self, Tensor mat2) -> Tensor
-  self: grad.npu_bmmV2(mat2.transpose(-2, -1))
-  mat2: npu_bmmV2_mat2_backward(grad, self, mat2.sizes())
+- name: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
+  self: npu_bmm_v2_mat1_backward(grad, self, mat2, self.sizes())
+  mat2: npu_bmm_v2_mat2_backward(grad, self, mat2, mat2.sizes())
 
 - name: npu_deformable_conv2d(Tensor input, Tensor weight, Tensor offset, Tensor? bias, int[2] kernel_size, int[] stride, int[] padding, int[] dilation=[1,1,1,1], int groups=1, int deformable_groups=1, bool modulated=True) -> (Tensor, Tensor)
   input, weight, offset, bias: npu_deformable_conv2dbk(input, grad, result1, weight, offset, kernel_size, stride, padding, dilation, groups, deformable_groups, modulated)

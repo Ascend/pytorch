@@ -61,7 +61,6 @@ class TestUnbindToContiguous(TestCase):
             cpu_time += cpu_end - cpu_start
             npu_time += npu_end - npu_start
             self.assertRtolEqual(cpu_output, npu_output)
-        self.assertTrue(npu_time < 15, f"execute time:{npu_time:.2f}s should be less than 15s")
         print(f"unbind to contiguous use: {cpu_time:.5f} s (CPU)")
         print(f"unbind to contiguous use: {npu_time:.5f} s (NPU)")
         print(f"TBE Ops used: Slice")

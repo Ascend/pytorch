@@ -34,9 +34,7 @@ Tensor& exp_out_npu(Tensor& result, const Tensor& self) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -51,11 +49,7 @@ Tensor& exp_npu_(Tensor& self) {
 }
 
 Tensor exp_npu(const Tensor& self) {
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   exp_out_npu_nocheck(result, self);
   return result;
 }

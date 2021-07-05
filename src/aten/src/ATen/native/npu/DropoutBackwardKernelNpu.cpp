@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
 
 namespace at {
 namespace native {
@@ -31,12 +30,8 @@ Tensor dropout_backward_npu(
   TORCH_CHECK(
       mask.scalar_type() == at::ScalarType::Byte,
       "mask should be torch.uint8 dtype");
-  auto outputSize = input_same_output_size(grad_output);
   double retain =  1. - scale;
-  Tensor result = at::empty_with_format(
-      outputSize,
-      grad_output.options(),
-      CalcuOpUtil::get_tensor_npu_format(grad_output));
+  Tensor result = OpPreparation::ApplyTensor(grad_output);
   Tensor prob =
       CalcuOpUtil::CopyScalarToDevice(retain, grad_output.scalar_type());
 
