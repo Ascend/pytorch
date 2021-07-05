@@ -26,7 +26,7 @@
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
-#include "ATen/native/GlobalStep.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
 namespace native {
@@ -602,7 +602,6 @@ void CalcuOpUtil::execute_npu_operate(
     SmallVector<NPUTensorDesc, N>& inputs,
     SmallVector<NPUTensorDesc, N>& outputs,
     const SmallVector<NPUAttrDesc, N>& attrs) {
-  NpuUtils::SetCompileOptOnce();
   if (c10::npu::OptionsManager::CheckQueueEnable() ||
       c10::npu::OptionsManager::CheckDynamicEnable()) {
     ExecuteParas cur_paras;
@@ -631,7 +630,7 @@ void CalcuOpUtil::execute_npu_operate(
   auto stream = c10::npu::getCurrentNPUStream();
   RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
   bool reset_flag = false;
-  if (check_fuzz_enable() &&
+  if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {
     aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;

@@ -38,7 +38,6 @@ class OptionsManager {
   static bool CheckUseNpuLogEnable();
   static bool CheckDynamicOnly();
   static std::string CheckDisableDynamicPath();
-
  private:
   static int GetBoolTypeOption(const char* env_str);
 };

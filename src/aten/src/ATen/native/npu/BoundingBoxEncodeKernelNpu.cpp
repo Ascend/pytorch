@@ -51,11 +51,7 @@ Tensor bounding_box_encode_npu(
     double stds2,
     double stds3) {
   // construct the output tensor of the NPU
-  Tensor delats = at::empty_with_format(
-      {anchor_box.size(0), 4},
-      anchor_box.options(),
-      CalcuOpUtil::get_tensor_npu_format(anchor_box));
-
+  Tensor delats = OpPreparation::ApplyTensor(anchor_box, {anchor_box.size(0), 4});
   SmallVector<float, SIZE> means = {
       static_cast<float>(means0),
       static_cast<float>(means1),

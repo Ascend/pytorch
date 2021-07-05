@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include<ATen/NamedTensorUtils.h>
 
 namespace at {
 namespace native {

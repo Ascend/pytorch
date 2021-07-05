@@ -53,5 +53,4 @@ class TestPooling(TestCase):
         
 instantiate_device_type_tests(TestPooling, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:2")
     run_tests()

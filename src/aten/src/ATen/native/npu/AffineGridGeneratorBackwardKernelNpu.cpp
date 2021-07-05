@@ -35,8 +35,7 @@ Tensor& affine_grid_generator_backward_nocheck(
     const Tensor& grad,   
     IntArrayRef size,
     bool align_corners) {
-  Tensor assist = at::empty_with_format(    
-      {size[0], size[2], size[3], 3}, grad.options(), CalcuOpUtil::get_tensor_npu_format(grad));
+  Tensor assist = OpPreparation::ApplyTensor(grad, {size[0], size[2], size[3], 3});
   assist.select(-1, 0).copy_(_linspace_from_neg_one(grad, size[3], align_corners));
   assist.select(-1, 1).copy_(_linspace_from_neg_one(grad, size[2], align_corners).unsqueeze_(-1));
   assist.select(-1, 2).fill_(1);

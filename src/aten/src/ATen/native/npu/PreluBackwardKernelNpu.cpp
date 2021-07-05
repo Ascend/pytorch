@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -41,14 +40,9 @@ tuple<Tensor, Tensor> prelu_backward_npu(
     const Tensor& grad_output, 
     const Tensor& self, 
     const Tensor& weight) {
-  // calculate the output size
-  auto outputSizes1 = input_same_output_size(self);
-  auto outputSizes2 = input_same_output_size(weight);  
   // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
-    outputSizes1, self.options(), CalcuOpUtil::get_tensor_npu_format(self));  
-  Tensor grad_weight = at::empty_with_format(
-    outputSizes2, weight.options(), CalcuOpUtil::get_tensor_npu_format(weight));
+  Tensor grad_input = OpPreparation::ApplyTensor(self);
+  Tensor grad_weight = OpPreparation::ApplyTensor(weight);
   // calculate the output result of the NPU
   prelu_backward_out_npu(grad_input, grad_weight, grad_output, self, weight);
   return std::tie<Tensor, Tensor>(grad_input, grad_weight);

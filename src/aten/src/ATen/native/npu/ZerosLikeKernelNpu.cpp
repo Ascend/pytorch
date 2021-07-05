@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -39,13 +38,7 @@ Tensor zeros_like_npu(
     auto result = at::empty_like(self, options, optional_memory_format);
     return result.fill_(0);
   }
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, options, CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self, options);
   // calculate the output result of the NPU
   return result.zero_();
 }

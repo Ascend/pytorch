@@ -15,8 +15,7 @@
 // limitations under the License.
 
 #include <limits.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -42,9 +41,7 @@ Tensor& random_npu_(Tensor& self, int64_t from, int64_t to, Generator* gen_) {
     selfCopy = self.npu_dtype_cast(ScalarType::Float);
   }
 
-  SmallVector<Tensor, N> inputs = {selfCopy};
-  SmallVector<Tensor, N> outputs = {selfCopy};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({selfCopy}, {selfCopy});
 
   if (!NpuUtils::check_match(&selfCopy)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);

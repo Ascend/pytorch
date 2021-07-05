@@ -66,5 +66,4 @@ class TestResize(TestCase):
 
 instantiate_device_type_tests(TestResize, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:3")
     run_tests()

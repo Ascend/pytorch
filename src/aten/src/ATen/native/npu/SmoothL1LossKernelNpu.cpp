@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -69,8 +69,7 @@ Tensor smooth_l1_loss_npu(
   auto outputSize = smooth_l1_loss_npu_output_size(self, target, reduction);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   smooth_l1_loss_out_npu_nocheck(result, self, target, reduction);

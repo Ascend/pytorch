@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -52,12 +51,7 @@ Tensor soft_margin_loss_backward_npu(
     const Tensor& input,
     const Tensor& target,
     int64_t reduction) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(input);
-
-  // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
-      outputSize, input.options(), CalcuOpUtil::get_tensor_npu_format(input));
+  Tensor grad_input = OpPreparation::ApplyTensor(input);
   soft_margin_loss_backward_out_npu(
       grad_input, grad_output, input, target, reduction);
   return grad_input;

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -37,9 +37,7 @@ Tensor& uniform_out_npu(
 }
 
 Tensor& uniform_npu_(Tensor& self, double from, double to, Generator* gen_) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self}, {self});
 
   // TODO: The operator needs to use fp32 for calculation.
   Tensor selfCopy = self;

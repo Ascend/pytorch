@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include<ATen/NamedTensorUtils.h>
 
 namespace at {
 namespace native {
@@ -51,11 +51,7 @@ Tensor& scatter_add_npu_(
     int64_t dim,
     const Tensor& index,
     const Tensor& src) {
-
-  SmallVector<Tensor, N> inputs = {self, index, src};
-  SmallVector<Tensor, N> outputs = {self};
-
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self, index, src}, {self});
 
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;

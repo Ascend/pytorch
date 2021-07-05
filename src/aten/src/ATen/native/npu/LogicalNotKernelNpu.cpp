@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -49,15 +48,8 @@ Tensor logical_not_npu(const Tensor& self) {
 }
 
 Tensor& logical_not_npu_(Tensor& self) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
-  Tensor result = at::empty_with_format(
-      self.sizes(),
-      self.options().dtype(ScalarType::Byte),
-      CalcuOpUtil::get_tensor_npu_format(self));
-
+  OpPreparation::CheckMemory({self}, {self});
+  Tensor result = OpPreparation::ApplyTensor(self, self.options().dtype(ScalarType::Byte));
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     logical_not_out_npu(result, contiguousSelf);

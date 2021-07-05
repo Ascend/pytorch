@@ -56,10 +56,10 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
   auto outputSize = array_to_small_vector(self.sizes());
   outputSize.emplace_back(depth);
 
-  Tensor result = at::empty_with_format(
+  Tensor result = OpPreparation::ApplyTensor(
       outputSize,
       self.options().dtype(ScalarType::Int),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
 
   SmallVector<int64_t, N> depthList = {depth};
   

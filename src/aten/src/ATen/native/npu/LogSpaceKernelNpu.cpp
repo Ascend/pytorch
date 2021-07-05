@@ -40,8 +40,6 @@ Tensor& logspace_out_npu(
     inputs = at::arange(0, steps, at::device(at::kNPU).dtype(at::kFloat));
   }
 
-  float startAttr = CalcuOpUtil::get_scalar_float_value(start);
-  float endAttr = CalcuOpUtil::get_scalar_float_value(end);
   int64_t dtype = 0;
   if (result.scalar_type() == at::ScalarType::Half) {
     dtype = 0;
@@ -55,8 +53,8 @@ Tensor& logspace_out_npu(
   cmd.Name("LogSpaceD")
       .Input(inputs)
       .Output(result)
-      .Attr("start", startAttr)
-      .Attr("end", endAttr)
+      .Attr("start", start)
+      .Attr("end", end)
       .Attr("steps", steps)
       .Attr("base", static_cast<float>(base))
       .Attr("dtype", dtype)

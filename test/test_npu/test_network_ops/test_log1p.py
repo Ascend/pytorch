@@ -92,6 +92,5 @@ class TestLog1p(TestCase):
 
 instantiate_device_type_tests(TestLog1p, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:5")
     run_tests()
         

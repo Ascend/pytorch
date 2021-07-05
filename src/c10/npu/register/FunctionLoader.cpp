@@ -57,7 +57,6 @@ void* FunctionLoader::Get(const std::string& name) {
 
   auto func = dlsym(this->handle, name.c_str());
   if (func == nullptr) {
-    AT_ERROR(dlerror());
     return nullptr;
   }
   this->registry[name] = func;

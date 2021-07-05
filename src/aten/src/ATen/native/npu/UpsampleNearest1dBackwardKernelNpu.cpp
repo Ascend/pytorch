@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -51,8 +50,7 @@ Tensor upsample_nearest1d_backward_npu(
     grads = grad_output.to(at::kFloat);
   }
 
-  Tensor grad_input = at::empty_with_format(
-      input_size, grads.options(), CalcuOpUtil::get_tensor_npu_format(grad_output));
+  Tensor grad_input = OpPreparation::ApplyTensor(input_size, grads.options(), grad_output);
 
   upsample_nearest1d_backward_out_npu(
       grad_input, grads, output_size, input_size, scales);

@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -40,9 +39,7 @@ Tensor& scatter_out_npu(
 }
 
 Tensor scatter_npu(const Tensor& self, const Tensor& indices, const Tensor& updates, int64_t dim) {
-  Tensor outputs = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor outputs = OpPreparation::ApplyTensor(self);
   scatter_out_npu(outputs, self, indices, updates, dim);
 
   return outputs;

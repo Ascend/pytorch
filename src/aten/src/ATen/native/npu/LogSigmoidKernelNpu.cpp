@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -33,11 +32,8 @@ tuple<Tensor&, Tensor&> log_sigmoid_forward_out_npu(
 }
 
 tuple<Tensor, Tensor> log_sigmoid_forward_npu(const Tensor& self) {
-  // construct the output tensor of the NPU
-  Tensor output = at::empty_with_format(
-        self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor output = OpPreparation::ApplyTensor(self);
   Tensor buffer = at::empty({0}, self.options());
-
   // calculate the output result of the NPU
   log_sigmoid_forward_out_npu(output, buffer, self);
   return tuple<Tensor, Tensor>(output, buffer);

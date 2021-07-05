@@ -17,14 +17,130 @@
 #include <c10/npu/OptionsManager.h>
 #include "c10/npu/NPUQueue.h"
 #include <torch/csrc/autograd/record_function.h>
-#include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/aoe/AutoTune.h"
+#include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
-#include "ATen/native/GlobalStep.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
 namespace native {
 namespace npu {
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, bool value) {
+  aclopSetAttrBool(attr, name.c_str(), value);
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, int64_t value) {
+  aclopSetAttrInt(attr, name.c_str(), value);
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, float value) {
+  aclopSetAttrFloat(attr, name.c_str(), value);
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, string value) {
+  aclopSetAttrString(attr, name.c_str(), value.c_str());
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, IntArrayRef value) {
+  auto vec = value.vec();
+  aclopSetAttrListInt(attr, name.c_str(), vec.size(), vec.data());
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, at::ArrayRef<float> value) {
+  auto vec = value.vec();
+  aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
+}
+
+void OpAttrMaker::Set(aclopAttr* attr, string name, Scalar value) {
+  float val = CalcuOpUtil::get_scalar_float_value(value);
+  aclopSetAttrFloat(attr, name.c_str(), val);
+}
+
+
+void OpAttrMaker::Set(
+      aclopAttr* attr,
+      string name,
+      at::ArrayRef<IntArrayRef> value) {
+  // Pointer to values of each listInt.
+  SmallVector<int64_t*, N> attrValue;
+  // Pointer to number of each listInt.
+  SmallVector<int, N> eachListIntNum;
+  // Value of each listInt.
+  SmallVector<SmallVector<int64_t, N>, N> eachListIntVal;
+  for (int i = 0; i < value.size(); i++) {
+    SmallVector<int64_t, N> listInt;
+    int64_t valueSize = value[i].size();
+    listInt.resize(valueSize);
+    std::copy(value[i].begin(), value[i].end(), listInt.begin());
+    eachListIntVal.emplace_back(listInt);
+    attrValue.emplace_back(eachListIntVal.back().data());
+    eachListIntNum.emplace_back(valueSize);
+  }
+
+  aclopSetAttrListListInt(
+        attr,
+        name.c_str(),
+        attrValue.size(),
+        eachListIntNum.data(),
+        attrValue.data());
+}
+
+
+void AttrInfoMaker::Add(bool value, string& attrInfo) {
+  attrInfo += to_string(value) + "-";
+}
+
+void AttrInfoMaker::Add(int64_t value, string& attrInfo) {
+  attrInfo += to_string(value) + "-";
+}
+
+void AttrInfoMaker::Add(float value, string& attrInfo) {
+  attrInfo += to_string(value) + "-";
+}
+
+void AttrInfoMaker::Add(string value, string& attrInfo) {
+  attrInfo += value + "-";
+}
+
+void AttrInfoMaker::Add(IntArrayRef value, string& attrInfo) {
+  auto vec = value.vec();
+  for (unsigned i = 0; i < vec.size(); i++)
+    attrInfo += to_string(vec.at(i)) + ",";
+  attrInfo += "-";
+}
+
+void AttrInfoMaker::Add(
+      at::ArrayRef<float> value,
+      string& attrInfo) {
+  auto vec = value.vec();
+  for (unsigned i = 0; i < vec.size(); i++)
+    attrInfo += to_string(vec.at(i)) + ",";
+  attrInfo += "-";
+}
+
+void AttrInfoMaker::Add(Scalar value, string& attrInfo) {
+  float val = CalcuOpUtil::get_scalar_float_value(value);
+  attrInfo += to_string(val) + "-";
+}
+
+void AttrInfoMaker::Add(
+    at::ArrayRef<IntArrayRef> value,
+    string& attrInfo) {
+  // Pointer to values of each listInt.
+  SmallVector<int64_t*, N> attrValue;
+  // Pointer to number of each listInt.
+  SmallVector<int, N> eachListIntNum;
+  // Value of each listInt.
+  SmallVector<SmallVector<int64_t, N>, N> eachListIntVal;
+  for (int i = 0; i < value.size(); i++) {
+    int64_t valueSize = value[i].size();
+    attrInfo += to_string(valueSize) + ",";
+  }
+  attrInfo += "-";
+}
+
 
 void OpCommandImpl::Run() {
   InitAttr();
@@ -40,7 +156,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   auto inputSize = params.inBuffer.size();
   auto outputSize = params.outBuffer.size();
   bool reset_flag = false;
-  if (check_fuzz_enable() &&
+  if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name)) {
     aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;
@@ -73,7 +189,7 @@ int ExecFunc(void* in, aclrtStream stream) {
     ret = DynamicRun(*cur_paras, stream);
   } else {
     bool reset_flag = false;
-    if (check_fuzz_enable() &&
+    if (env::CheckFuzzyEnable() &&
         FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType)) {
       aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;

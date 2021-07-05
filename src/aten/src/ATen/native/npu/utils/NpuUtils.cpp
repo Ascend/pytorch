@@ -24,43 +24,12 @@
 #include "ATen/native/npu/frame/StorageDescHelper.h"
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
-#include "NpuFuzzyBlacklist.h"
-#include "ATen/native/GlobalStep.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 #include <set>
 
 namespace at {
 namespace native {
 namespace npu {
-namespace{
-  std::once_flag CompileOptOnceFlag;
-}
-
-void NpuUtils::SetCompileOptOnce() {
-  std::call_once(CompileOptOnceFlag, [](){
-    static std::map<const string, const aclCompileOpt> STRING_TYPE_TO_ACL_COMPILE_OPTION_MAP = {
-        {"ACL_OP_DEBUG_LEVEL", ACL_OP_DEBUG_LEVEL},
-        {"ACL_DEBUG_DIR", ACL_DEBUG_DIR},
-        {"ACL_OP_COMPILER_CACHE_MODE", ACL_OP_COMPILER_CACHE_MODE},
-        {"ACL_OP_COMPILER_CACHE_DIR", ACL_OP_COMPILER_CACHE_DIR},
-    };
-    for (const auto &iter : STRING_TYPE_TO_ACL_COMPILE_OPTION_MAP) {
-      auto key = iter.second;
-      auto val = c10::npu::GetOption(iter.first);
-      if (val.has_value()) {
-        aclSetCompileopt(key, val.value().c_str());
-      }
-    }
-    static std::set<std::string> STRING_COMPILE_OPTION_SET = {
-        {"NPU_FUZZY_COMPILE_BLACKLIST"},
-    };
-    for (const auto &iter : STRING_COMPILE_OPTION_SET) {
-      auto val = c10::npu::GetOption(iter);
-      if(check_fuzz_enable() && val.has_value())
-        FuzzyCompileBlacklist::GetInstance().RegisterBlacklist(val.value());
-    }
-    
-  });
-}
 
 void NpuUtils::format_fresh_view(
     Tensor& x,

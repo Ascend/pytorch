@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -36,8 +35,7 @@ Tensor& inverse_out_npu(
 }
 
 Tensor inverse_npu(const Tensor& self) {
-  Tensor result = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self);
 
   inverse_out_npu(result, self);
 

@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h" 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -34,9 +31,8 @@ Tensor& dot_out_npu(Tensor& result, const Tensor& self, const Tensor& tensor) {
   return result;
 }
 Tensor dot_npu(const Tensor& self, const Tensor& tensor) {
-  // calculate the output size
   SmallVector<int64_t, SIZE> outputSize = dot_npu_output_size(self, tensor);
-  Tensor result = at::empty_with_format(outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   dot_out_npu(result, self, tensor);
   return result;
 }

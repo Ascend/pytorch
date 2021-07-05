@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -73,6 +74,7 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
       .Input(target)
       .Input(weight_tensor)
       .Attr("reduction", reductionStr)
+      .Attr("ignore_index", ignore_index)
       .Output(result)
       .Output(total_weight)
       .Run();

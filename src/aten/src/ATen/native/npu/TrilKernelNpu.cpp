@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpTemplate.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -42,19 +41,13 @@ Tensor tril_npu(const Tensor& self, int64_t diagonal){
   };
   
   TORCH_CHECK(is_last_two_dims(), "tril require tensor should be last two dims");
-  
-  auto outputSize = input_same_output_size(selfCopy);
-  Tensor result = at::empty_with_format(outputSize,selfCopy.options(),
-                      CalcuOpUtil::get_tensor_npu_format(selfCopy));
+  Tensor result = OpPreparation::ApplyTensor(selfCopy);
   tril_out_npu(result, selfCopy, diagonal);
   return result;
 }
 
 Tensor& tril_npu_(Tensor& self, int64_t diagonal){
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};  
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-  
+  OpPreparation::CheckMemory({self}, {self});  
   self.npu_format_cast_(ACL_FORMAT_NCHW);
   if(!NpuUtils::check_match(&self)){
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);

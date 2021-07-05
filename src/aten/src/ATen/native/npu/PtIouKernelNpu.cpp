@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -25,12 +24,8 @@ Tensor ptiou_npu(
     const Tensor& bboxes,
     const Tensor& gtboxes,
     int64_t mode) {
-  // calculate the output size
   auto outputSize = {gtboxes.size(0), bboxes.size(0)};
-
-  // construct the output tensor of the NPU
-  Tensor overlap = at::empty_with_format(outputSize, bboxes.options(), CalcuOpUtil::get_tensor_npu_format(bboxes));
-
+  Tensor overlap = OpPreparation::ApplyTensor(bboxes, outputSize);
   string modeStr = "iou";
   if (mode == 1) {
     modeStr = "iof";

@@ -36,9 +36,12 @@ static inline void npuCheck(aclError result, const char * file, int line) {
 
 struct NPUMethods : public CUDAStubs {
   void npu_destroy_event(aclrtEvent event) {
-    aclrtEventStatus status;
-    TORCH_NPU_CHECK(aclrtQueryEvent(event, &status));
-    if (status == ACL_EVENT_STATUS_COMPLETE) {
+    c10::npu::acl::aclrtEventWaitStatus waitStatus = c10::npu::acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+    aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
+    TORCH_NPU_CHECK(c10::npu::acl::AclQueryEventStatus(event, &waitStatus, &recordStatus));
+
+    if ((waitStatus == c10::npu::acl::ACL_EVENT_WAIT_STATUS_COMPLETE) ||
+      (recordStatus == ACL_EVENT_STATUS_COMPLETE)) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
     } else {
         std::cout << "Warning! NPU destroy event error, status is not completed." << std::endl;

@@ -33,24 +33,13 @@ Tensor& ceil_out_npu(Tensor& result, const Tensor& self) {
 }
 
 Tensor ceil_npu(const Tensor& self) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   ceil_out_npu(result, self);
-
   return result;
 }
 
 Tensor& ceil_npu_(Tensor& self) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = ceil_out_npu(contiguousSelf, contiguousSelf);

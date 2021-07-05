@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -71,25 +71,14 @@ Tensor __and___npu(const Tensor& self, const Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize,
-      outputTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(outputTensor));
-
+  Tensor result = OpPreparation::ApplyTensor(outputTensor, outputSize);
   // calculate the output result of the NPU
   __and___out_npu(result, self, other);
   return result;
 }
 
 Tensor __and___npu(const Tensor& self, Scalar other) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   __and___out_npu(result, self, other);
 
   return result;
