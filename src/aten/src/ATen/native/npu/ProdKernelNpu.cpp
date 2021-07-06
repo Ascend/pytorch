@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -73,14 +74,18 @@ Tensor& prod_out_npu(
   // fp16 transform：fp32 for precise
   if (self.scalar_type() == ScalarType::Half) {
     Tensor result_tmp  = prod_npu(self, dim, keepdim, dtype);
-    OpPreparation::CheckOut({result_tmp}, result, result_tmp);
+    OpPreparation::CheckOut(
+        {result_tmp}, 
+        result, 
+        ACL_FORMAT_ND, 
+        result_tmp.scalar_type(), 
+        result_tmp.sizes());
     result.copy_(result_tmp);
     return result;
   } else {
     auto outputSize = prod_npu_output_size(self, dim, keepdim);
     ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
-    int64_t npu_format = calculate_prod_output_format(self, outputSize);
-    OpPreparation::CheckOut({self}, result, npu_format, dstType, outputSize);
+    OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, dstType, outputSize);
 
     prod_out_npu_nocheck(result, self, {dim}, keepdim, dtype);
     return result;

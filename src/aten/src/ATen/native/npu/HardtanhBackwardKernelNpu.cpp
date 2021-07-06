@@ -27,15 +27,13 @@ Tensor& hardtanh_backward_out_npu(
     const Tensor& self,
     Scalar min_val,
     Scalar max_val) {
-  float max_value = CalcuOpUtil::get_scalar_float_value(max_val);
-  float min_value = CalcuOpUtil::get_scalar_float_value(min_val);
   OpCommand cmd;
   cmd.Name("HardtanhGrad")
       .Input(self)
       .Input(grad_output)
       .Output(grad_input)
-      .Attr("max_val", max_value)
-      .Attr("min_val", min_value)
+      .Attr("max_val", max_val)
+      .Attr("min_val", min_val)
       .Run();
 
   return grad_input;
@@ -46,13 +44,7 @@ Tensor hardtanh_backward_npu(
     const Tensor& self,
     Scalar min_val,
     Scalar max_val) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor grad_input = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   hardtanh_backward_out_npu(grad_input, grad_output, self, min_val, max_val);
 

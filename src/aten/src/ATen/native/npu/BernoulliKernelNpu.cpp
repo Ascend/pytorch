@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -44,10 +43,7 @@ Tensor& bernoulli_out_npu(Tensor& result, const Tensor& self, const Tensor& p) {
 }
 
 Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self}, {self});
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
   if (self.scalar_type() == ScalarType::Half) {
@@ -70,10 +66,7 @@ Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
 }
 
 Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+  OpPreparation::CheckMemory({self}, {self});
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
   Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);;

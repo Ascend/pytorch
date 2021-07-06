@@ -76,10 +76,18 @@ Tensor& add_out_npu_nocheck(
         TORCH_WARN_ONCE("The oprator of add is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
           "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
       }
+
+      std::string real_type = "";
+      if (self.scalar_type() == c10::ScalarType::Bool && other.scalar_type() == c10::ScalarType::Bool) {
+        unified_result.common_type = c10::ScalarType::Byte;
+        unified_result.result_type_defined = true;
+        cmd.Expect(unified_result);
+        real_type = "uint8";
+      }
       cmd.Name("Add")
           .Input(self)
           .Input(other)
-          .Output(result)
+          .Output(result, real_type)
           .Run();
     } else {
       if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD")) {

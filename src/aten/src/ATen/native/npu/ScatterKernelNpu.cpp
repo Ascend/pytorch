@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -73,15 +72,12 @@ Tensor& scatter_npu_(
     index = index.npu_dtype_cast(ScalarType::Float);
   }
 
-  // get float from scalar
-  float src_value = CalcuOpUtil::get_scalar_float_value(src);
-
   OpCommand cmd;
   cmd.Name("ScatterScalar")
      .Input(index)
      .Output(self)
      .Attr("dim", dim)
-     .Attr("value", src_value)
+     .Attr("value", src)
      .Run();
 
   if(self.scalar_type() != selfType){

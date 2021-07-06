@@ -25,7 +25,6 @@ aclError aclrtSynchronizeStream(aclrtStream stream){return 0;}
 // Event
 aclError aclrtQueryEvent(aclrtEvent event, aclrtEventStatus *status){return 0;}
 aclError aclrtCreateEvent(aclrtEvent *event){return 0;}
-aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag){return 0;}
 aclError aclrtDestroyEvent(aclrtEvent event){return 0;}
 aclError aclrtRecordEvent(aclrtEvent event, aclrtStream stream){return 0;}
 aclError aclrtStreamWaitEvent(aclrtStream stream, aclrtEvent event){return 0;}
@@ -68,6 +67,4 @@ aclFormat aclGetTensorDescFormat(const aclTensorDesc *desc) {return ACL_FORMAT_N
 const char *aclGetTensorDescName(aclTensorDesc *desc) {return NULL;}
 
 aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type) {return 0;};
-
-const char *aclGetRecentErrMsg() {return NULL;}
 }

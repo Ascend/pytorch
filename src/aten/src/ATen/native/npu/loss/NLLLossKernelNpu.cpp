@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -51,9 +51,16 @@ tuple<Tensor&, Tensor&> nll_loss_forward_out_npu(
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
 
   Tensor targetCast = target;
-  if (target.scalar_type() == at::kLong || target.scalar_type() == at::kFloat) {
+  auto scalar_type = target.scalar_type();
+  if (scalar_type == at::kLong) {
     targetCast = target.to(at::kInt);
-  }  
+  }  else if (scalar_type == at::kInt) {
+    ;
+  } 
+  else {
+    AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+          " for argument 'target'  in call to nll_loss_forward");
+  }
 
   OpCommand cmd;
   cmd.Name("NLLLoss")

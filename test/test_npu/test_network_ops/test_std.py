@@ -16,7 +16,7 @@
 
 import torch
 import numpy as np
-
+import random
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -159,6 +159,17 @@ class TestStd(TestCase):
                 cpu_output1 = cpu_output1.astype(np.float16)
             self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.002)
 
+            random_outputshape = [random.randint(1, 100)]
+            cpu_output, npu_output = self.create_output_tensor(0, 1, random_outputshape,item[1],item[0])
+            if item[0] == np.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+                cpu_output = cpu_output.to(torch.float32)
+            cpu_output1 = self.cpu_op_dim_out_exec(cpu_input1, item[3], cpu_output, item[4], item[5])
+            npu_output1 = self.npu_op_dim_out_exec(npu_input1, item[3], npu_output, item[4], item[5])
+            if item[0] == np.float16:
+                cpu_output1 = cpu_output1.astype(np.float16)
+            self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.002)
+
     def test_std_dim_out_shape_format_fp32(self, device):
         format_list = [0]
         shape_list = [[1024], [32, 24], [32, 8, 24], [12, 32, 8, 24]]
@@ -176,6 +187,12 @@ class TestStd(TestCase):
             cpu_output1 = self.cpu_op_dim_out_exec(cpu_input1, item[3], cpu_output, item[4], item[5])
             npu_output1 = self.npu_op_dim_out_exec(npu_input1, item[3], npu_output, item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1)
+
+            random_outputshape = [random.randint(1, 100)]
+            cpu_output, npu_output = self.create_output_tensor(0, 1, random_outputshape, item[1], item[0])
+            cpu_output2 = self.cpu_op_dim_out_exec(cpu_input1, item[3], cpu_output.clone(), item[4], item[5])
+            npu_output2 = self.npu_op_dim_out_exec(npu_input1, item[3], npu_output, item[4], item[5])
+            self.assertRtolEqual(cpu_output2, npu_output2)
 
     def test_std_dim_name_fp16(self, device):
         shape = (1024, 8, 32)
@@ -228,6 +245,40 @@ class TestStd(TestCase):
         cpu_output = torch.std(cpu_input, dim=dim,out=cpu_output)
         npu_output = torch.std(npu_input, dim=dim,out=npu_output)
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+    
+    def test_std_n_dim_shape_format_fp16(self, device):
+        format_list = [0]
+        shape_list = [[128, 32, 8, 1023]]
+        dim_list = [(3, 1)]
+        unbiased_list = [True, False]
+        keepdim_list = [True, False]
+        shape_format = [
+            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list 
+            for k in dim_list for l in unbiased_list for m in keepdim_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input1 = cpu_input1.to(torch.float32)
+            cpu_output1 = self.cpu_op_dim_exec(cpu_input1, item[3], item[4], item[5])
+            cpu_output1 = cpu_output1.astype(np.float16)
+            npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
+            self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.003)
+
+    def test_std_n_dim_shape_format_fp32(self, device):
+        format_list = [0]
+        shape_list = [[128, 32, 8, 1023]]
+        dim_list = [(3, 1)]
+        unbiased_list = [True, False]
+        keepdim_list = [True, False]
+        shape_format = [
+            [np.float32, i, j, k, l, m] for i in format_list for j in shape_list
+            for k in dim_list for l in unbiased_list for m in keepdim_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_output1 = self.cpu_op_dim_exec(cpu_input1, item[3], item[4], item[5])
+            npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
+            self.assertRtolEqual(cpu_output1, npu_output1)
     
 instantiate_device_type_tests(TestStd, globals(), except_for="cpu")
 if __name__ == "__main__":

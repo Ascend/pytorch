@@ -12,71 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
-SmallVector<NPUTensorDesc, N> conv_tbc_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  SmallVector<Tensor, N> inputTensors;
-  for (int i = 0; i < inputTensor.size(); i++) {
-    if (inputTensor[i].defined()) {
-      inputTensors.emplace_back(inputTensor[i]);
-    }
-  }
-
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensors);
-}
-
-SmallVector<NPUTensorDesc, N> conv_tbc_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> conv_tbc_npu_attr(int64_t pad) {
-  SmallVector<int64_t, N> paddings = {0, 0, pad, pad};
-  SmallVector<int64_t, N> stridesSize = {1, 1, 1, 1};
-  SmallVector<int64_t, N> dilations = {1, 1, 1, 1};
-
-  string dataFormat = "NCHW";
-
-  NPUAttrDesc npuAttrPads = NPUAttrDesc("pads", paddings);
-  NPUAttrDesc npuAttrStrides = NPUAttrDesc("strides", stridesSize);
-  NPUAttrDesc npuAttrDilations = NPUAttrDesc("dilations", dilations);
-  NPUAttrDesc npuAttrDataFormat = NPUAttrDesc("data_format", dataFormat);
-
-  SmallVector<NPUAttrDesc, N> attrs = {
-      npuAttrPads, npuAttrStrides, npuAttrDilations, npuAttrDataFormat};
-
-  return attrs;
-}
-
-Tensor& conv_tbc_out_npu(
-    Tensor& result,
-    const Tensor& self,
-    const Tensor& weight,
-    const Tensor& bias,
-    int64_t pad) {
-  // constructs the input and output NPUTensorDesc
-
-  auto inputs = conv_tbc_npu_input(
-      {self.transpose(0, 2).transpose(0, 1).unsqueeze(2),
-       weight.transpose(0, 2).unsqueeze(2),
-       bias});
-
-  auto outputs = conv_tbc_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = conv_tbc_npu_attr(pad);
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Conv2D", inputs, outputs, attrs);
-
-  return result;
-}
 
 Tensor conv_tbc_npu(
     const Tensor& self,
@@ -101,14 +41,32 @@ Tensor conv_tbc_npu(
       "the weight tensor (output channels).");
 
   // calculate the output size
-  auto outputSize = conv_tbc_npu_output_size(self, weight, bias, pad);
+  int64_t Co = weight.size(2);
+  int64_t Wo = (self.size(0) + 2 * pad - (weight.size(0) - 1) - 1) + 1;
+
+  SmallVector<int64_t, SIZE> outputSize = {self.size(1), Co, 1, Wo};
 
   // construct the output tensor of the NPU
-  Tensor result =
-      at::empty_with_format(outputSize, self.options(), ACL_FORMAT_NCHW);
+  Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NCHW);
 
-  // calculate the output result of the NPU
-  conv_tbc_out_npu(result, self, weight, bias, pad);
+  SmallVector<int64_t, N> paddings = {0, 0, pad, pad};
+  SmallVector<int64_t, N> stridesSize = {1, 1, 1, 1};
+  SmallVector<int64_t, N> dilations = {1, 1, 1, 1};
+
+  Tensor self_tensor = self.transpose(0, 2).transpose(0, 1).unsqueeze(2);
+  Tensor weight_tensor = weight.transpose(0, 2).unsqueeze(2);
+
+  OpCommand cmd;
+  cmd.Name("Conv2D")
+    .Input(self_tensor)
+    .Input(weight_tensor)
+    .Input(bias)
+    .Output(result)
+    .Attr("pads", paddings)
+    .Attr("strides", stridesSize)
+    .Attr("dilations", dilations)
+    .Attr("data_format", (string)"NCHW")
+    .Run();
 
   result = result.squeeze(2).transpose(0, 2).transpose(1, 2);
   return result;

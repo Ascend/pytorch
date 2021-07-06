@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -33,12 +33,18 @@ std::tuple<Tensor, Tensor> ctc_loss_npu(
     logProbsNeed = logProbsNeed.to(ScalarType::Float);
   }
   
+  //Aicore supports only the int type
+  Tensor targetsCast = targets;
+  if(targets.scalar_type() == ScalarType::Long){
+    targetsCast = targetsCast.to(ScalarType::Int);
+  }
+  
   // IntArrayRef to Tensor
-  auto inputLengthsTensor = at::tensor(inputLengths, targets.options().dtype(at::kLong));
-  auto targetLengthsTensor = at::tensor(targetLengths, targets.options().dtype(at::kLong));
+  auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options());
+  auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options());
   
   // calculate the output size
-  auto outputSizes = ctc_loss_npu_output_size(logProbs, targets, targetLengths);
+  auto outputSizes = ctc_loss_npu_output_size(logProbs, targetsCast, targetLengths);
 
   // construct the output tensor of the NPU
   Tensor negLogLikelihood = at::empty_with_format(
@@ -55,7 +61,7 @@ std::tuple<Tensor, Tensor> ctc_loss_npu(
   OpCommand cmd;
   cmd.Name("CTCLossV2")
       .Input(logProbsNeed)
-      .Input(targets)
+      .Input(targetsCast)
       .Input(inputLengthsTensor)
       .Input(targetLengthsTensor)
       .Output(negLogLikelihood)

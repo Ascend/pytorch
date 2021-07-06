@@ -34,9 +34,7 @@ Tensor& reciprocal_out_npu(Tensor& result, const Tensor& self) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -46,9 +44,7 @@ Tensor& reciprocal_out_npu(Tensor& result, const Tensor& self) {
 
 Tensor reciprocal_npu(const Tensor& self) {
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   reciprocal_out_npu_nocheck(result, self);
 

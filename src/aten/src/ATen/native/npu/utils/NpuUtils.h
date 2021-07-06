@@ -49,10 +49,7 @@ typedef enum MemoryType{
 
 class NpuUtils {
  public:
-  /**
-    This API is used to set compile option.
-    */
-  CAFFE2_API static void SetCompileOptOnce();
+
   static bool check_match(const Tensor* tensor);
   static Tensor format_contiguous(const Tensor& src);
   static Tensor format_contiguous_add_copy_optimize(const Tensor& src);

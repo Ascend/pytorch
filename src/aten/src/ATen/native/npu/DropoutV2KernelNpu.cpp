@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -46,11 +45,8 @@ tuple <Tensor, Tensor, Tensor> dropout_v2_npu(const Tensor& self, Tensor& seed, 
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   Tensor formatCastOfSeed = OpPreparation::CastBackToOriFormat(seed);
   
-  Tensor result = at::empty_with_format(
-      formatCastOfSelf.sizes(), formatCastOfSelf.options(), CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf));
-  Tensor mask = at::empty_with_format(
-      formatCastOfSelf.sizes(), formatCastOfSeed.options(), CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf));
-
+  Tensor result = OpPreparation::ApplyTensor(formatCastOfSelf);
+  Tensor mask = OpPreparation::ApplyTensor(formatCastOfSelf, formatCastOfSeed.options());
   dropout_v2_out_npu(result, mask, formatCastOfSeed, formatCastOfSelf, formatCastOfSeed, p);
   NpuUtils::format_fresh_view(seed, formatCastOfSeed);
   return std::tuple<Tensor, Tensor, Tensor>(result, mask, seed);

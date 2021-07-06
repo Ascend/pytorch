@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -37,9 +38,8 @@ Tensor& index_put_nocheck(
     }
   }
 
-  Tensor masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
+  auto masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
       from_blob(masks.data(), {masks.size()}, dtype(ScalarType::Long)));
-
 
   OpCommand cmd;
   cmd.Name("IndexPut")
@@ -78,10 +78,7 @@ Tensor& _index_put_impl_npu_(
     const Tensor& value,
     const bool accumulate,
     const bool unsafe) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   OpPreparation::CastBackToOriFormat(self);
 
   Tensor valueCopy = value;

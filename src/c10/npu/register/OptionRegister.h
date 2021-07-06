@@ -26,11 +26,16 @@
 namespace c10 {
 namespace npu {
 
+typedef void(*OptionCallBack) (const std::string&);
 /**
   This class is used to storage env value, and provide Set and Get to
   */
 class OptionInterface {
  public:
+  /**
+    dctr
+    */
+    OptionInterface(OptionCallBack callback=nullptr);
   /**
     This API is used to store value.
     */
@@ -40,10 +45,15 @@ class OptionInterface {
     */
   std::string Get();
  private:
+/**
+  Its used to store hook.
+  */
+  OptionCallBack callback = nullptr; 
   std::string val;
 };
 
 namespace register_options {
+
 /**
   This class is used to register OptionInterface
   */
@@ -80,10 +90,7 @@ class OptionRegister {
   */
 class OptionInterfaceBuilder {
  public:
-  /**
-    ctr
-    */
-  OptionInterfaceBuilder(const std::string& name, ::std::unique_ptr<OptionInterface>& ptr);
+  OptionInterfaceBuilder(const std::string& name, ::std::unique_ptr<OptionInterface>& ptr, const std::string& type = "cli");
 };
 
 } // namespace register_options
@@ -102,12 +109,25 @@ void SetOption(const std::string& key, const std::string& val);
 c10::optional<std::string> GetOption(const std::string& key);
 
 #define REGISTER_OPTION(name)                                       \
-  REGISTER_OPTION_UNIQ(name, name)
+  REGISTER_OPTION_UNIQ(name, name, cli)
 
-#define REGISTER_OPTION_UNIQ(id, name)                              \
+#define REGISTER_OPTION_INIT_BY_ENV(name)                           \
+  REGISTER_OPTION_UNIQ(name, name, env)
+
+#define REGISTER_OPTION_UNIQ(id, name, type)                        \
   auto options_interface_##id =                                     \
       ::std::unique_ptr<c10::npu::OptionInterface>(new c10::npu::OptionInterface());    \
   static c10::npu::register_options::OptionInterfaceBuilder                             \
+      register_options_interface_##id(#name, options_interface_##id, #type);
+
+#define REGISTER_OPTION_HOOK(name, ...)                                       \
+  REGISTER_OPTION_HOOK_UNIQ(name, name, __VA_ARGS__)
+
+#define REGISTER_OPTION_HOOK_UNIQ(id, name, ...)                                \
+  auto options_interface_##id =                                                 \
+      ::std::unique_ptr<c10::npu::OptionInterface>(                             \
+        new c10::npu::OptionInterface(c10::npu::OptionCallBack(__VA_ARGS__)));  \
+  static c10::npu::register_options::OptionInterfaceBuilder                     \
       register_options_interface_##id(#name, options_interface_##id);
 
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal)  \

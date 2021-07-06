@@ -131,14 +131,7 @@ Tensor normal_npu(
     const Tensor& mean, 
     double std, 
     Generator* generator) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(mean);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, mean.options(), CalcuOpUtil::get_tensor_npu_format(mean));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(mean);
   normal_out_npu(result, mean, std, generator);
 
   return result;
@@ -148,14 +141,7 @@ Tensor normal_npu(
     double mean, 
     const Tensor& std, 
     Generator* generator) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(std);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, std.options(), CalcuOpUtil::get_tensor_npu_format(std));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(std);
   normal_out_npu(result, mean, std, generator);
 
   return result;
@@ -165,14 +151,7 @@ Tensor normal_npu(
     const Tensor& mean, 
     const Tensor& std, 
     Generator* generator) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(mean);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, mean.options(), CalcuOpUtil::get_tensor_npu_format(mean));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(mean);
   normal_out_npu(result, mean, std, generator);
 
   return result;
@@ -199,10 +178,7 @@ Tensor& normal_npu_(
     double mean,
     double std,
     Generator* generator) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = normal_out_npu(contiguousSelf, mean, std, contiguousSelf.sizes(), generator);

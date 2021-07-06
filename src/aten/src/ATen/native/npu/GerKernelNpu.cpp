@@ -54,8 +54,7 @@ Tensor& ger_out_npu(Tensor& result, const Tensor& self , const Tensor& vec2) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
+      self,
       outputSize);
 
   OpPipeWithDefinedOut pipe;

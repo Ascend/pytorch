@@ -33,19 +33,13 @@ Tensor& pad_out_npu(
       .Input(paddingsVector)
       .Output(output)
       .Run();
-
   return output;
 }
 
 Tensor pad_npu(const Tensor& input, IntArrayRef paddings) {
-  // calculate the output size
   auto outputSize = pad_npu_output_size(input, paddings);
-  
-  // construct the output tensor of the NPU
-  Tensor output = at::empty_with_format(outputSize, input.options(), CalcuOpUtil::get_tensor_npu_format(input));
-
+  Tensor output = OpPreparation::ApplyTensor(input, outputSize);
   pad_out_npu(output, input, paddings);
-
   return output;
 }
 

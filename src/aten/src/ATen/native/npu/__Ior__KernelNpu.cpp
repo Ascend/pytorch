@@ -41,10 +41,7 @@ Tensor& __ior___out_npu(Tensor& result, const Tensor& self, Scalar other) {
 }
 
 Tensor& __ior___npu(Tensor& self, const Tensor& other) { 
-  SmallVector<Tensor, N> inputs = {self, other};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-    
+  OpPreparation::CheckMemory({self, other}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = __ior___out_npu(contiguousSelf, contiguousSelf, other);

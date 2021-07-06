@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -62,13 +61,7 @@ Tensor binary_cross_entropy_backward_npu(
     const Tensor& target,
     const Tensor& weight,
     int64_t reduction) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor gradInput = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor gradInput = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   binary_cross_entropy_backward_out_npu(
       gradInput, grad_output, self, target, weight, reduction);

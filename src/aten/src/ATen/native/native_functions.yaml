@@ -606,7 +606,7 @@
   dispatch:
     CPU: bernoulli_scalar_cpu_
     CUDA: bernoulli_scalar_cuda_
-  supports_named_tensor: True 
+  supports_named_tensor: True
   npu_dispatch:
     NPU: bernoulli_npu_
 
@@ -1040,7 +1040,7 @@
     CUDA: _cosh_out_cuda
   npu_dispatch:
     NPU: cosh_out_npu
-    
+
 - func: cosine_embedding_loss(Tensor input1, Tensor input2, Tensor target, float margin=0.0, int reduction=Mean) -> Tensor
   use_c10_dispatcher: full
 
@@ -1271,7 +1271,7 @@
 - func: det(Tensor self) -> Tensor
   use_c10_dispatcher: full
   variants: function, method
-    
+
 - func: diag_embed(Tensor self, int offset=0, int dim1=-2, int dim2=-1) -> Tensor
   use_c10_dispatcher: full
   variants: function, method
@@ -1381,7 +1381,7 @@
     CUDA: embedding_renorm_cuda_
   npu_dispatch:
     NPU: embedding_renorm_npu_
-  
+
 - func: embedding_sparse_backward(Tensor grad, Tensor indices, int num_weights, int padding_idx, bool scale_grad_by_freq) -> Tensor
   use_c10_dispatcher: full
 
@@ -1657,7 +1657,7 @@
     SparseCPU: floor_divide_sparse
     SparseCUDA: floor_divide_sparse
   supports_named_tensor: True
-  npu_dispatch: 
+  npu_dispatch:
     NPU: floor_divide_npu
 
 - func: floor_divide_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
@@ -1668,7 +1668,7 @@
     SparseCPU: floor_divide_sparse_
     SparseCUDA: floor_divide_sparse_
   supports_named_tensor: True
-  npu_dispatch: 
+  npu_dispatch:
     NPU: floor_divide_npu_
 
 - func: floor_divide.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
@@ -1678,13 +1678,13 @@
     SparseCPU: floor_divide_out_sparse_zerodim
     SparseCUDA: floor_divide_out_sparse_zerodim
   supports_named_tensor: True
-  npu_dispatch: 
+  npu_dispatch:
     NPU: floor_divide_out_npu
 
 - func: floor_divide.Scalar(Tensor self, Scalar other) -> Tensor
   variants: function, method
   supports_named_tensor: True
-  npu_dispatch: 
+  npu_dispatch:
     NPU: floor_divide_npu
 
 - func: floor_divide_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
@@ -1793,15 +1793,15 @@
 - func: hamming_window.periodic(int window_length, bool periodic, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   npu_dispatch:
     NPU: hamming_window_npu
-     
+
 - func: hamming_window.periodic_alpha(int window_length, bool periodic, float alpha, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   npu_dispatch:
     NPU: hamming_window_npu
-     
+
 - func: hamming_window.periodic_alpha_beta(int window_length, bool periodic, float alpha, float beta, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   npu_dispatch:
     NPU: hamming_window_npu
-    
+
 - func: hinge_embedding_loss(Tensor self, Tensor target, float margin=1.0, int reduction=Mean) -> Tensor
   use_c10_dispatcher: full
 
@@ -1995,7 +1995,7 @@
   dispatch:
     CPU: kthvalue_out_cpu
     CUDA: kthvalue_out_cuda
-  npu_dispatch: 
+  npu_dispatch:
     NPU: kthvalue_out_npu
 
 - func: kthvalue.dimname(Tensor self, int k, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
@@ -2006,7 +2006,7 @@
 
 - func: kthvalue.dimname_out(Tensor self, int k, Dimname dim, bool keepdim=False, *, Tensor(a!) values, Tensor(b!) indices) -> (Tensor(a!) values, Tensor(b!) indices)
   supports_named_tensor: True
-  npu_dispatch: 
+  npu_dispatch:
     NPU: kthvalue_out_npu
 
 - func: layer_norm(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05, bool cudnn_enable=True) -> Tensor
@@ -2090,16 +2090,22 @@
   use_c10_dispatcher: full
   supports_named_tensor: True
   variants: function, method
+  npu_dispatch:
+    NPU: log10_npu
 
 - func: log10_(Tensor(a!) self) -> Tensor(a!)
   supports_named_tensor: True
   variants: function, method
+  npu_dispatch:
+    NPU: log10_npu_
 
 - func: log10.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   supports_named_tensor: True
   dispatch:
     CPU: log10_out
     CUDA: log10_out
+  npu_dispatch:
+    NPU: log10_out_npu
 
 - func: log1p(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -2730,14 +2736,14 @@
   use_c10_dispatcher: full
   npu_dispatch:
     NPU: _pdist_forward_npu
-    
+
 - func: _pdist_backward(Tensor grad, Tensor self, float p, Tensor pdist) -> Tensor
   use_c10_dispatcher: full
 
 - func: cosine_similarity(Tensor input, Tensor input2, int dim=1, float eps=1e-08) -> Tensor
   use_c10_dispatcher: full
   variants: function
-  
+
 - func: permute(Tensor(a) self, int[] dims) -> Tensor(a)
   variants: method # This is method-only to match the previous tensor API. In the future we could make this a function too.
 
@@ -2753,7 +2759,7 @@
 
 - func: pixel_shuffle(Tensor self, int upscale_factor) -> Tensor
   use_c10_dispatcher: full
-    
+
 - func: is_pinned(Tensor self) -> bool
   use_c10_dispatcher: full
   variants: method
@@ -2770,7 +2776,7 @@
 - func: poisson_nll_loss(Tensor input, Tensor target, bool log_input, bool full, float eps, int reduction) -> Tensor
   use_c10_dispatcher: full
   variants: function
- 
+
 - func: scalar_tensor(Scalar s, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
 
 - func: rand.names(int[] size, *, Dimname[]? names, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
@@ -3011,7 +3017,7 @@
     CUDA: gelu_cuda
   npu_dispatch:
      NPU: gelu_npu
-     
+
 - func: gelu_backward(Tensor grad, Tensor self) -> Tensor
   use_c10_dispatcher: full
   python_module: nn
@@ -3075,8 +3081,12 @@
 
 - func: celu(Tensor self, Scalar alpha=1.0) -> Tensor
   use_c10_dispatcher: full
+  npu_dispatch:
+    NPU: celu_npu
 
 - func: celu_(Tensor(a!) self, Scalar alpha=1.0) -> Tensor(a!)
+  npu_dispatch:
+    NPU: celu_npu_
 
 - func: sigmoid(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -3423,14 +3433,14 @@
   npu_dispatch:
     NPU: prod_out_npu
     #NPU: prod_out_npu_ext
-    
+
 - func: prod.dim_Dimname(Tensor self, Dimname dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
   variants: function, method
   supports_named_tensor: True
   npu_dispatch:
     NPU: prod_npu
     #NPU: prod_npu_ext
-    
+
 - func: prod.Dimname_out(Tensor self, Dimname dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
   supports_named_tensor: True
   npu_dispatch:
@@ -3799,7 +3809,7 @@
 
 - func: norm_except_dim(Tensor v, int pow=2, int dim=0) -> Tensor
   variants: function
-  
+
 # VariableType::_weight_norm does not want to be given a gap in the autograd graph,
 # so we don't define "dispatch" variants for it.
 - func: _weight_norm(Tensor v, Tensor g, int dim=0) -> Tensor
@@ -5005,12 +5015,12 @@
   variants: method, function
   npu_dispatch:
     NPU: bitwise_and_npu
-  
+
 - func: bitwise_and_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
   variants: method
   npu_dispatch:
     NPU: bitwise_and_npu_
-  
+
 - func: bitwise_and_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
   variants: method
   npu_dispatch:
@@ -5315,14 +5325,14 @@
     CPU: legacy::cpu::_th_addbmm_
     CUDA: legacy::cuda::_th_addbmm_
   npu_dispatch:
-    NPU: addbmm_npu_  
+    NPU: addbmm_npu_
 
 - func: addbmm.out(Tensor self, Tensor batch1, Tensor batch2, *, Scalar beta=1, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
   dispatch:
     CPU: legacy::cpu::_th_addbmm_out
     CUDA: legacy::cuda::_th_addbmm_out
   npu_dispatch:
-    NPU: addbmm_out_npu  
+    NPU: addbmm_out_npu
 
 - func: addbmm(Tensor self, Tensor batch1, Tensor batch2, *, Scalar beta=1, Scalar alpha=1) -> Tensor
   use_c10_dispatcher: full
@@ -5331,7 +5341,7 @@
     CPU: legacy::cpu::_th_addbmm
     CUDA: legacy::cuda::_th_addbmm
   npu_dispatch:
-    NPU: addbmm_npu  
+    NPU: addbmm_npu
 
 - func: addcdiv_(Tensor(a!) self, Tensor tensor1, Tensor tensor2, *, Scalar value=1) -> Tensor(a!)
   variants: method
@@ -5794,7 +5804,7 @@
 - func: gather.dimname_out(Tensor self, Dimname dim, Tensor index, *, bool sparse_grad=False, Tensor(a!) out) -> Tensor(a!)
   npu_dispatch:
     NPU: gather_out_npu
-    
+
 - func: gather.dimname(Tensor self, Dimname dim, Tensor index, *, bool sparse_grad=False) -> Tensor
   variants: method, function
   npu_dispatch:
@@ -6752,8 +6762,6 @@
   dispatch:
     CPU: multilabel_margin_loss_backward_cpu_out
     CUDA: legacy::cuda::_thnn_multilabel_margin_loss_backward_out
-  npu_dispatch:
-    NPU: multilabel_margin_loss_backward_npu_out
 
 - func: multilabel_margin_loss_backward(Tensor grad_output, Tensor self, Tensor target, int reduction, Tensor is_target) -> Tensor
   use_c10_dispatcher: full
@@ -6761,8 +6769,6 @@
   dispatch:
     CPU: multilabel_margin_loss_backward_cpu
     CUDA: legacy::cuda::_thnn_multilabel_margin_loss_backward
-  npu_dispatch:
-    NPU: multilabel_margin_loss_backward_npu
 
 - func: nll_loss.out(Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean, int ignore_index=-100, *, Tensor(a!) out) -> Tensor(a!)
   python_module: nn
@@ -7757,7 +7763,7 @@
     CUDA: upsample_bicubic2d_out_cuda
   npu_dispatch:
     NPU: upsample_bicubic2d_out_npu
-  
+
 - func: upsample_bicubic2d(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
   python_module: nn
   dispatch:
@@ -7765,7 +7771,7 @@
     CUDA: upsample_bicubic2d_cuda
   npu_dispatch:
     NPU: upsample_bicubic2d_npu
-  
+
 - func: upsample_bicubic2d_backward.grad_input(Tensor grad_output, int[2] output_size, int[4] input_size, bool align_corners, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
   dispatch:
@@ -7787,24 +7793,32 @@
   dispatch:
     CPU: upsample_trilinear3d_out_cpu
     CUDA: upsample_trilinear3d_out_cuda
+  npu_dispatch:
+    NPU: upsample_trilinear3d_out_npu
 
 - func: upsample_trilinear3d(Tensor self, int[3] output_size, bool align_corners, float? scales_d=None, float? scales_h=None, float? scales_w=None) -> Tensor
   python_module: nn
   dispatch:
     CPU: upsample_trilinear3d_cpu
     CUDA: upsample_trilinear3d_cuda
+  npu_dispatch:
+    NPU: upsample_trilinear3d_npu
 
 - func: upsample_trilinear3d_backward.grad_input(Tensor grad_output, int[3] output_size, int[5] input_size, bool align_corners, float? scales_d=None, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
   dispatch:
     CPU: upsample_trilinear3d_backward_out_cpu
     CUDA: upsample_trilinear3d_backward_out_cuda
+  npu_dispatch:
+    NPU: upsample_trilinear3d_backward_out_npu
 
 - func: upsample_trilinear3d_backward(Tensor grad_output, int[3] output_size, int[5] input_size, bool align_corners, float? scales_d=None, float? scales_h=None, float? scales_w=None) -> Tensor
   python_module: nn
   dispatch:
     CPU: upsample_trilinear3d_backward_cpu
     CUDA: upsample_trilinear3d_backward_cuda
+  npu_dispatch:
+    NPU: upsample_trilinear3d_backward_npu
 
 - func: upsample_nearest1d.out(Tensor self, int[1] output_size, float? scales=None, *, Tensor(a!) out) -> Tensor(a!)
   python_module: nn
@@ -7876,6 +7890,8 @@
   dispatch:
     CPU: upsample_nearest3d_out_cpu
     CUDA: upsample_nearest3d_out_cuda
+  npu_dispatch:
+    NPU: upsample_nearest3d_out_npu
 
 - func: upsample_nearest3d(Tensor self, int[3] output_size, float? scales_d=None, float? scales_h=None, float? scales_w=None) -> Tensor
   python_module: nn
@@ -7883,18 +7899,24 @@
     CPU: upsample_nearest3d_cpu
     CUDA: upsample_nearest3d_cuda
     QuantizedCPU: quantized_upsample_nearest3d_cpu
+  npu_dispatch:
+    NPU: upsample_nearest3d_npu
 
 - func: upsample_nearest3d_backward.grad_input(Tensor grad_output, int[3] output_size, int[5] input_size, float? scales_d=None, float? scales_h=None, float? scales_w=None, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
   dispatch:
     CPU: upsample_nearest3d_backward_out_cpu
     CUDA: upsample_nearest3d_backward_out_cuda
+  npu_dispatch:
+    NPU: upsample_nearest3d_backward_out_npu
 
 - func: upsample_nearest3d_backward(Tensor grad_output, int[3] output_size, int[5] input_size, float? scales_d=None, float? scales_h=None, float? scales_w=None) -> Tensor
   python_module: nn
   dispatch:
     CPU: upsample_nearest3d_backward_cpu
     CUDA: upsample_nearest3d_backward_cuda
+  npu_dispatch:
+    NPU: upsample_nearest3d_backward_npu
 
 - func: sigmoid_backward.grad_input(Tensor grad_output, Tensor output, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
@@ -8333,7 +8355,7 @@
   npu_dispatch_only:
     NPU: ptiou_npu
 
-- func: npu_nms_with_mask(Tensor input, Scalar iou_threshold) -> (Tensor, Tensor, Tensor) 
+- func: npu_nms_with_mask(Tensor input, Scalar iou_threshold) -> (Tensor, Tensor, Tensor)
   variants: function
   npu_dispatch_only:
     NPU: nms_with_mask_npu
@@ -8406,7 +8428,7 @@
   variants: function, method
   npu_dispatch_only:
     NPU: indexing_npu
-  
+
 - func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, *, Tensor(a!) out) -> Tensor(a!)
   npu_dispatch_only:
     NPU: indexing_out_npu
@@ -8435,7 +8457,7 @@
 - func: npu_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: apply_adam_npu
-    
+
 - func: npu_layer_norm_eval(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05) -> Tensor
   npu_dispatch_only:
     NPU: layer_norm_eval_npu
@@ -8464,7 +8486,7 @@
   npu_dispatch_only:
     NPU: confusion_transpose_backward_npu
 
-- func: npu_bmmV2(Tensor self, Tensor mat2) -> Tensor
+- func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
   variants: function, method
   npu_dispatch_only:
     NPU: bmm_v2_npu
@@ -8512,14 +8534,6 @@
   npu_dispatch_only:
     NPU: grid_assign_positive_npu
 
-- func: global_step_inc() -> ()
-  variants: function
-  use_c10_dispatcher: full
-
-- func: set_start_fuzz_compile_step(int step) -> ()
-  variants: function
-  use_c10_dispatcher: full
-
 - func: npu_mish_backward(Tensor grad, Tensor input) -> Tensor
   npu_dispatch_only:
     NPU: mish_backward_npu
@@ -8528,3 +8542,8 @@
   variants: function, method
   npu_dispatch_only:
     NPU: normalize_batch_npu
+
+- func: npu_masked_fill_range(Tensor self, Tensor start, Tensor end, Tensor value, int axis=-1) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: masked_fill_range_npu

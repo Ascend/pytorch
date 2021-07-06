@@ -89,6 +89,7 @@ namespace at {
   const H5std_string ATTR_FORMAT_NAME("FormatType");
   const H5std_string ATTR_TYPE_NAME("Type");
   const H5std_string ATTR_STRIDE_NAME("Stride");
+  const H5std_string ATTR_REQUIRES_GRAD_NAME("RequiresGrad");
 
   DumpUtil::DumpUtil() {
   }
@@ -276,7 +277,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<vector<at::Tensor>>& input) {
-
     int i = 0;
     for (auto& tensor : input.GetValue()) {
       string h5Path = GetValHdf5Path(irName, seqId, true, input.Name(), i);
@@ -286,7 +286,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<vector<int64_t>>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     WriteValToHdf5Dataset(
         h5Path,
@@ -299,7 +298,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<int64_t>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     WriteValToHdf5Dataset(
         h5Path,
@@ -312,7 +310,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<bool>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     int8_t data = input.GetValue();
     WriteValToHdf5Dataset(
@@ -326,7 +323,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<double>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     double data = input.GetValue();
     WriteValToHdf5Dataset(
@@ -340,7 +336,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<double>>& input) {
-
     if (!input.GetValue()) {
       return;
     }
@@ -357,7 +352,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<at::Scalar>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
 
     void* dataAddr = nullptr;
@@ -389,7 +383,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<int64_t>>& input) {
-
     if (!input.GetValue()) {
       return;
     }
@@ -406,7 +399,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<at::Scalar>>& input) {
-
     if (!input.GetValue()) {
       return;
     }
@@ -442,7 +434,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<size_t>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     WriteValToHdf5Dataset(
         h5Path,
@@ -455,7 +446,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::ScalarType>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     int data = ScalarTypeToDumpType(input.GetValue());
     WriteValToHdf5Dataset(
@@ -469,7 +459,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<std::pair<size_t, size_t>>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     int64_t data[2];
     data[0]= input.GetValue().first;
@@ -485,7 +474,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::ArrayRef<at::Tensor>>& input) {
-
     int i = 0;
     for (auto& tensor : input.GetValue()) {
       string h5Path = GetValHdf5Path(irName, seqId, true, input.Name(), i);
@@ -495,7 +483,6 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::ArrayRef<long int>>& input) {
-
     string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
     WriteValToHdf5Dataset(
         h5Path,
@@ -508,27 +495,52 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::Storage>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<at::Generator*>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::ArrayRef<at::Dimname>>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<at::Dimname>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::TensorOptions>& input) {
+    string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
+    // create dataset
+    DataSpace dataspace = DataSpace();
+    DataSet* dataset = nullptr;
+    dataset = new DataSet(file->createDataSet(h5Path, PredType::IEEE_F32LE, dataspace));
 
+    // prepare device type attribute
+    int deviceType = static_cast<int16_t>(input.GetValue().device().type());
+    PrepareSimpleHdf5Attr(dataset, ATTR_DEVICE_TYPE_NAME, PredType::STD_I32LE, &deviceType);
+
+    // prepare dtype attribute
+    int dumpType = ScalarTypeToDumpType(at::typeMetaToScalarType(input.GetValue().dtype()));
+    if (dumpType == -1) {
+      // the dtype can not be recognized
+      delete dataset;
+      return;
+    }
+    PrepareSimpleHdf5Attr(dataset, ATTR_DATA_TYPE_NAME, PredType::STD_I32LE, &dumpType);
+
+    // preare requires grad attribute
+    int32_t requiresGrad = static_cast<int32_t>(input.GetValue().requires_grad());
+    PrepareSimpleHdf5Attr(dataset, ATTR_REQUIRES_GRAD_NAME, PredType::STD_I32LE, &requiresGrad);
+
+    // ommit layout ,for only support kStrided, but not kSparse
+
+    // prepare type attribute
+    int typeData = static_cast<int>(SaveType::TENSOR_OPTS);
+    PrepareSimpleHdf5Attr(dataset, ATTR_TYPE_NAME, PredType::STD_I32LE, &typeData);
+
+    delete dataset;
+    return;
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<c10::MemoryFormat>>& input) {
-
     // check the optional value
     if (!input.GetValue()) {
       return;
@@ -546,11 +558,23 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::MemoryFormat>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<c10::ScalarType>>& input) {
-
+    // check the optional value
+    if (!input.GetValue()) {
+      return;
+    }
+    string h5Path = GetValHdf5Path(irName, seqId, true, input.Name());
+    int data = ScalarTypeToDumpType(input.GetValue().value());
+    WriteValToHdf5Dataset(
+        h5Path,
+        0,
+        1,
+        SaveType::ScalarType,
+        &data,
+        PredType::STD_I32LE,
+        PredType::STD_I32LE);
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, 
@@ -558,35 +582,27 @@ namespace at {
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::Device>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<c10::optional<bool>>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<std::array<bool, 2>>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<std::array<bool, 3>>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<std::array<bool, 4>>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<string>& input) {
-
   }
 
   void DumpUtil::DumpOneInput(const string& irName, int seqId, const ArgDes<ConstQuantizerPtr>& input) {
-
   }
 
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<vector<at::Tensor>>& output) {
-
     int i = 0;
     for (auto& tensor : output.GetValue()) {
       string h5Path = GetValHdf5Path(irName, seqId, false, output.Name(), i);
@@ -596,17 +612,14 @@ namespace at {
   }
 
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<at::Tensor>& output) {
-
     string h5Path = GetValHdf5Path(irName, seqId, false, output.Name());
     DumpUtil::GetInstance()->DumpTensor(h5Path, output.GetValue());
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<double>& output) {
-
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<int64_t>& output) {
-
     string h5Path = GetValHdf5Path(irName, seqId, false, output.Name());
     WriteValToHdf5Dataset(
         h5Path,
@@ -619,7 +632,6 @@ namespace at {
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<bool>& output) {
-
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<c10::Scalar>& output) {
@@ -651,10 +663,8 @@ namespace at {
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<c10::QScheme>& output) {
-
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<c10::ScalarType>& output) {
-
   }
 }

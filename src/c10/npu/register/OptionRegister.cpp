@@ -13,14 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include "OptionRegister.h"
 #include "c10/util/Exception.h"
 
 namespace c10 {
 namespace npu {
 
+OptionInterface::OptionInterface(OptionCallBack callback) {
+  this->callback = callback;
+}
+
 void OptionInterface::Set(const std::string& in) {
   this->val = in;
+  if (this->callback != nullptr) {
+    this->callback(in);
+  }
 }
 
 std::string OptionInterface::Get() {
@@ -59,8 +67,20 @@ c10::optional<std::string> OptionRegister::Get(const std::string& name) {
 
 OptionInterfaceBuilder::OptionInterfaceBuilder(
     const std::string& name,
-    ::std::unique_ptr<OptionInterface>& ptr) {
+    ::std::unique_ptr<OptionInterface>& ptr,
+    const std::string& type) {
   OptionRegister::GetInstance()->Register(name, ptr);
+
+  // init the value if env variable.
+  if (type == "env") {
+    std::string env_name = name;
+    std::transform(env_name.begin(), env_name.end(), env_name.begin(), ::toupper);
+    char* env_val = std::getenv(env_name.c_str());
+    if (env_val != nullptr) {
+      std::string val(env_val);
+      OptionRegister::GetInstance()->Set(name, val);
+    }
+  }
 }
 } // namespace register_options
 

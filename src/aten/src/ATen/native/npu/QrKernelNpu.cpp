@@ -76,14 +76,12 @@ std::tuple<Tensor&, Tensor&> qr_out_npu(
  OpPreparation::CheckOut(
      {self},
      Q,
-     CalcuOpUtil::get_tensor_npu_format(self),
-     self.scalar_type(),
+     self,
      std::get<0>(sizes));
   OpPreparation::CheckOut(
      {self},
      R,
-     CalcuOpUtil::get_tensor_npu_format(self),
-     self.scalar_type(),
+     self,
      std::get<1>(sizes));
   return qr_out_npu_nocheck(Q, R, self, some);
 }

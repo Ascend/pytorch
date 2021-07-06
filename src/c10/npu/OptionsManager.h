@@ -33,13 +33,11 @@ class OptionsManager {
   static bool CheckDynamicEnable();
   static bool CheckAclDumpDateEnable();
   static bool CheckSwitchMMOutputEnable();
-  static bool CheckBmmV2Enable();
   static bool CheckDynamicLogEnable();
   static bool CheckDynamicOptimizer(const char* op);
   static bool CheckUseNpuLogEnable();
   static bool CheckDynamicOnly();
   static std::string CheckDisableDynamicPath();
-
  private:
   static int GetBoolTypeOption(const char* env_str);
 };

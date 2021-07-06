@@ -21,16 +21,13 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& log_out_npu_nocheck(Tensor& result, const Tensor& self) {
-  float baseValue = CalcuOpUtil::get_scalar_float_value(-1);
-  float scaleValue = CalcuOpUtil::get_scalar_float_value(1);
-  float shiftValue = CalcuOpUtil::get_scalar_float_value(0);
   OpCommand cmd;
   cmd.Name("Log")
       .Input(self)
       .Output(result)
-      .Attr("base", baseValue)
-      .Attr("scale", scaleValue)
-      .Attr("shift", shiftValue)
+      .Attr("base", (float)-1)
+      .Attr("scale", (float)1)
+      .Attr("shift", (float)0)
       .Run();
 
   return result;
@@ -40,9 +37,7 @@ Tensor& log_out_npu(Tensor& result, const Tensor& self) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})

@@ -16,8 +16,6 @@
 
 #include <climits>
 #include <float.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
@@ -40,14 +38,11 @@ Tensor& clamp_min_out_npu_nocheck(
     max = NPU_HALF_MAX;
   }
 
-  Tensor minTensor = CalcuOpUtil::CopyScalarToDevice(min, self.scalar_type());
-  Tensor maxTensor = CalcuOpUtil::CopyScalarToDevice(max, self.scalar_type());
-  
   OpCommand cmd;
   cmd.Name("ClipByValue")
       .Input(self)
-      .Input(minTensor)
-      .Input(maxTensor)
+      .Input(min, self.scalar_type())
+      .Input(max, self.scalar_type())
       .Output(result)
       .Run();
   return result;
@@ -60,9 +55,7 @@ Tensor& clamp_min_out_npu(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -84,15 +77,12 @@ Tensor& clamp_max_out_npu(Tensor& result, const Tensor& self, Scalar max) {
   } else {
     min = NPU_HALF_MIN;
   }
-  
-  Tensor minTensor = CalcuOpUtil::CopyScalarToDevice(min, self.scalar_type());
-  Tensor maxTensor = CalcuOpUtil::CopyScalarToDevice(max, self.scalar_type());
-  
+
   OpCommand cmd;
   cmd.Name("ClipByValue")
       .Input(self)
-      .Input(minTensor)
-      .Input(maxTensor)
+      .Input(min, self.scalar_type())
+      .Input(max, self.scalar_type())
       .Output(result)
       .Run();
   return result;
@@ -111,15 +101,12 @@ Tensor& clamp_out_npu_nocheck(
     Scalar minScalar = min.value();
     clamp_min_out_npu(result, self, minScalar);
 
-  } else {   
-    Tensor minTensor = CalcuOpUtil::CopyScalarToDevice(min.value(), self.scalar_type());
-    Tensor maxTensor = CalcuOpUtil::CopyScalarToDevice(max.value(), self.scalar_type());
-    
+  } else {
     OpCommand cmd;
     cmd.Name("ClipByValue")
         .Input(self)
-        .Input(minTensor)
-        .Input(maxTensor)
+        .Input(min.value(), self.scalar_type())
+        .Input(max.value(), self.scalar_type())
         .Output(result)
         .Run();   
   }
@@ -135,9 +122,7 @@ Tensor& clamp_out_npu(
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -148,16 +133,8 @@ Tensor& clamp_out_npu(
 }
 
 Tensor clamp_min_npu(const Tensor& self, Scalar min) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   clamp_min_out_npu_nocheck(result, self, min);
-
   return result;
 }
 
@@ -168,24 +145,14 @@ Tensor& clamp_min_npu_(Tensor& self, Scalar min) {
 }
 
 Tensor clamp_max_npu(const Tensor& self, Scalar max) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   clamp_max_out_npu(result, self, max);
 
   return result;
 }
 
 Tensor& clamp_max_npu_(Tensor& self, Scalar max) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = clamp_max_out_npu(contiguousSelf, contiguousSelf, max);
@@ -201,22 +168,13 @@ Tensor clamp_npu(
     const Tensor& self,
     optional<Scalar> min,
     optional<Scalar> max) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   clamp_out_npu_nocheck(result, self, min, max);
-
   return result;
 }
 
 Tensor& clamp_npu_(Tensor& self, optional<Scalar> min, optional<Scalar> max) {
   clamp_out_npu(self, self, min, max);
-
   return self;
 }
 

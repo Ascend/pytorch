@@ -29,13 +29,8 @@ Tensor ones_like_npu(
     auto result = at::empty_like(self, options, optional_memory_format);
     return result.fill_(1.);
   }
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, options, CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self, options);
   // calculate the output result of the NPUc
   return result.one_();
 }

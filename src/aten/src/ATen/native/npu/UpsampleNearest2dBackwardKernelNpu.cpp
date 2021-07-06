@@ -51,8 +51,8 @@ Tensor upsample_nearest2d_backward_npu(
     grads = grad_output.to(at::kFloat);
   }
 
-  Tensor grad_input = at::empty_with_format(
-      input_size, grads.options(), CalcuOpUtil::get_tensor_npu_format(grad_output));
+  Tensor grad_input = OpPreparation::ApplyTensor(
+      input_size, grads.options(), grad_output);
 
   upsample_nearest2d_backward_out_npu(
       grad_input, grads, output_size, input_size, scales_h, scales_w);

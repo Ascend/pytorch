@@ -20,9 +20,7 @@ using namespace at::native::npu;
 
 Tensor sub_sample_npu(const Tensor &self, int64_t per_images,
                       double positive_fraction) {
-  Tensor result = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self);
   OpCommand cmd;
   cmd.Name("SubSample")
       .Input(self)
@@ -30,7 +28,6 @@ Tensor sub_sample_npu(const Tensor &self, int64_t per_images,
       .Attr("batch_size_per_images", per_images)
       .Attr("positive_fraction", (float)positive_fraction)
       .Run();
-
   return result;
 }
 

@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -53,9 +52,7 @@ Tensor dropout_v2_backward_npu(const Tensor& grad_output, const Tensor& mask, do
   if (maskCopy.scalar_type() == ScalarType::Byte){
     maskCopy = maskCopy.to(ScalarType::Half);
   }
-  auto outputSize = input_same_output_size(grad_output);
-  auto result = at::empty_with_format(
-      outputSize, grad_output.options(), CalcuOpUtil::get_tensor_npu_format(grad_output));
+  auto result = OpPreparation::ApplyTensor(grad_output);
   dropout_v2_backward_out_npu(result, grad_output, maskCopy, p);
 
   return result;

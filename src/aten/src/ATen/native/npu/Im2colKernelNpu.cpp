@@ -124,8 +124,7 @@ Tensor& im2col_out_npu(Tensor& result, const Tensor &self, IntArrayRef kernel_si
   OpPreparation::CheckOut(
     {self},
     result,
-    CalcuOpUtil::get_tensor_npu_format(self),
-    self.scalar_type(),
+    self,
     image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding));
 
   OpPipeWithDefinedOut pipe;
@@ -139,10 +138,7 @@ Tensor im2col_npu(const Tensor &self, IntArrayRef kernel_size, IntArrayRef dilat
   // calculate the output size
   auto outputSize =
       image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding);
-
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   im2col_out_npu(result, self, kernel_size, dilation, padding, stride);
 
   return result;

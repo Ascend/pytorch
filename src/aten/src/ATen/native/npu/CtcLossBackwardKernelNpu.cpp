@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -50,30 +49,29 @@ Tensor ctc_loss_backward_npu(
   if (logAlpha.scalar_type() == ScalarType::Half) {
     logAlphaNeed = logAlphaNeed.to(ScalarType::Float);
   }
+  
+  Tensor targetsCast = targets;
+  if(targets.scalar_type() == ScalarType::Long){
+    targetsCast = targetsCast.to(ScalarType::Int);
+  }
+  
+  auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options().dtype(at::kInt));
+  auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options().dtype(at::kInt));
 
-  // IntArrayRef to Tensor
-  auto inputLengthsTensor = at::tensor(inputLengths, targets.options().dtype(at::kLong));
-  auto targetLengthsTensor = at::tensor(targetLengths, targets.options().dtype(at::kLong));
-
-  // calculate the output size
-  auto outputSize = input_same_output_size(logProbs);
+  auto outputSize = {logProbs.size(1), logProbs.size(0), logProbs.size(2)};
 
   // construct the output tensor of the NPU
-  Tensor grad = at::empty_with_format(
-      outputSize,
-      logProbsNeed.options(),
-      CalcuOpUtil::get_tensor_npu_format(logProbsNeed));
-
+  Tensor grad = OpPreparation::ApplyTensor(logProbsNeed, outputSize);
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("CTCLossV2Grad")
       .Input(gradOutNeed)
       .Input(logProbsNeed)
-      .Input(targets)
-      .Input(negLogLikelihoodNeed)
-      .Input(logAlphaNeed)
+      .Input(targetsCast)
       .Input(inputLengthsTensor)
-      .Input(targetLengthsTensor)
+      .Input(targetLengthsTensor)      
+      .Input(negLogLikelihoodNeed)
+      .Input(logAlphaNeed)      
       .Output(grad)
       .Attr("blank", blank)
       .Attr("zero_infinity", zeroInfinity)
@@ -82,8 +80,9 @@ Tensor ctc_loss_backward_npu(
   if (gradOut.scalar_type() == ScalarType::Half) {
     grad = grad.to(ScalarType::Half);
   }
-
-  return grad;
+  
+  //return grad;
+  return grad.permute({1,0,2});
 }
 } // namespace native
 } // namespace at

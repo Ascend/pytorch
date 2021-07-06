@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include <torch/csrc/autograd/record_function.h>
 
 namespace at {
@@ -49,14 +50,8 @@ Tensor& transpose_out_npu(
 }
 
 Tensor transpose_npu(const Tensor& self, IntArrayRef perm) {
-  // calculate the output size
   auto outputSize = transpose_npu_output_size(self, perm);
- 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   transpose_out_npu(result, self, perm);
 
   return result;

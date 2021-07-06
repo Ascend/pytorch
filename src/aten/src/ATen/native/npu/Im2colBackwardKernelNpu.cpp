@@ -71,8 +71,7 @@ Tensor& im2col_backward_out_npu(
   OpPreparation::CheckOut(
       {grad_output},
       grad_input,
-      CalcuOpUtil::get_tensor_npu_format(grad_output),
-      grad_output.scalar_type(),
+      grad_output,
       outputSize);
 
   OpPipeWithDefinedOut pipe;

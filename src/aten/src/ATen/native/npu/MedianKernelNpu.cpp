@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -109,7 +109,7 @@ std::tuple<Tensor&, Tensor&> median_out_npu(
   OpPreparation::CheckOut(
     {self}, 
     indices, 
-    ACL_FORMAT_NCHW, 
+    ACL_FORMAT_ND, 
     ScalarType::Int, 
     outputSize);
 

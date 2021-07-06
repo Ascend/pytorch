@@ -17,7 +17,7 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -62,9 +62,7 @@ Tensor affine_grid_generator_npu(
   }
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, theta.options(), CalcuOpUtil::get_tensor_npu_format(theta));
-
+  Tensor result = OpPreparation::ApplyTensor(theta, outputSize);
   // calculate the output result of the NPU
   affine_grid_generator_npu_nocheck(
       result, 

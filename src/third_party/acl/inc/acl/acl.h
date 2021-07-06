@@ -60,15 +60,6 @@ ACL_FUNC_VISIBILITY aclError aclFinalize();
  */
 ACL_FUNC_VISIBILITY aclError aclrtGetVersion(int32_t *majorVersion, int32_t *minorVersion, int32_t *patchVersion);
 
-/**
- * @ingroup AscendCL
- * @brief get recent error message
- *
- * @retval null for failed
- * @retval OtherValues success
-*/
-ACL_FUNC_VISIBILITY const char *aclGetRecentErrMsg();
-
 #ifdef __cplusplus
 }
 #endif

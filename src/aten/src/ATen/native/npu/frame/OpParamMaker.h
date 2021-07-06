@@ -18,8 +18,7 @@
 
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_op_compiler.h>
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/frame/NPUDefine.h"
 #include "ATen/native/npu/interface/Graph.h"
 #include "c10/npu/NPUStream.h"
 
@@ -31,120 +30,29 @@ namespace npu {
 //
 class OpAttrMaker {
  public:
-  static void Set(aclopAttr* attr, string name, bool value) {
-    aclopSetAttrBool(attr, name.c_str(), value);
-  }
-
-  static void Set(aclopAttr* attr, string name, int64_t value) {
-    aclopSetAttrInt(attr, name.c_str(), value);
-  }
-
-  static void Set(aclopAttr* attr, string name, float value) {
-    aclopSetAttrFloat(attr, name.c_str(), value);
-  }
-
-  static void Set(aclopAttr* attr, string name, string value) {
-    aclopSetAttrString(attr, name.c_str(), value.c_str());
-  }
-
-  static void Set(aclopAttr* attr, string name, IntArrayRef value) {
-    auto vec = value.vec();
-    aclopSetAttrListInt(attr, name.c_str(), vec.size(), vec.data());
-  }
-
-  static void Set(aclopAttr* attr, string name, at::ArrayRef<float> value) {
-    auto vec = value.vec();
-    aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
-  }
-
-  static void Set(aclopAttr* attr, string name, Scalar value) {
-    float val = CalcuOpUtil::get_scalar_float_value(value);
-    aclopSetAttrFloat(attr, name.c_str(), val);
-  }
-
+  static void Set(aclopAttr* attr, string name, bool value);
+  static void Set(aclopAttr* attr, string name, int64_t value);
+  static void Set(aclopAttr* attr, string name, float value);
+  static void Set(aclopAttr* attr, string name, string value);
+  static void Set(aclopAttr* attr, string name, IntArrayRef value);
+  static void Set(aclopAttr* attr, string name, at::ArrayRef<float> value);
+  static void Set(aclopAttr* attr, string name, Scalar value);
   static void Set(
       aclopAttr* attr,
       string name,
-      at::ArrayRef<IntArrayRef> value) {
-    // Pointer to values of each listInt.
-    SmallVector<int64_t*, N> attrValue;
-    // Pointer to number of each listInt.
-    SmallVector<int, N> eachListIntNum;
-    // Value of each listInt.
-    SmallVector<SmallVector<int64_t, N>, N> eachListIntVal;
-    for (int i = 0; i < value.size(); i++) {
-      SmallVector<int64_t, N> listInt;
-      int64_t valueSize = value[i].size();
-      listInt.resize(valueSize);
-      std::copy(value[i].begin(), value[i].end(), listInt.begin());
-      eachListIntVal.emplace_back(listInt);
-      attrValue.emplace_back(eachListIntVal.back().data());
-      eachListIntNum.emplace_back(valueSize);
-    }
-
-    aclopSetAttrListListInt(
-        attr,
-        name.c_str(),
-        attrValue.size(),
-        eachListIntNum.data(),
-        attrValue.data());
-  }
+      at::ArrayRef<IntArrayRef> value);
 }; // class OpAttrMaker
 
 class AttrInfoMaker {
  public:
-  static void Add(bool value, string& attrInfo) {
-    attrInfo += to_string(value) + "-";
-  }
-
-  static void Add(int64_t value, string& attrInfo) {
-    attrInfo += to_string(value) + "-";
-  }
-
-  static void Add(float value, string& attrInfo) {
-    attrInfo += to_string(value) + "-";
-  }
-
-  static void Add(string value, string& attrInfo) {
-    attrInfo += value + "-";
-  }
-
-  static void Add(IntArrayRef value, string& attrInfo) {
-    auto vec = value.vec();
-    for (unsigned i = 0; i < vec.size(); i++)
-      attrInfo += to_string(vec.at(i)) + ",";
-    attrInfo += "-";
-  }
-
-  static void Add(
-      at::ArrayRef<float> value,
-      string& attrInfo) {
-    auto vec = value.vec();
-    for (unsigned i = 0; i < vec.size(); i++)
-      attrInfo += to_string(vec.at(i)) + ",";
-    attrInfo += "-";
-  }
-
-  static void Add(Scalar value, string& attrInfo) {
-    float val = CalcuOpUtil::get_scalar_float_value(value);
-    attrInfo += to_string(val) + "-";
-  }
-
-  static void Add(
-      at::ArrayRef<IntArrayRef> value,
-      string& attrInfo) {
-    // Pointer to values of each listInt.
-    SmallVector<int64_t*, N> attrValue;
-    // Pointer to number of each listInt.
-    SmallVector<int, N> eachListIntNum;
-    // Value of each listInt.
-    SmallVector<SmallVector<int64_t, N>, N> eachListIntVal;
-    for (int i = 0; i < value.size(); i++) {
-      int64_t valueSize = value[i].size();
-      attrInfo += to_string(valueSize) + ",";
-    }
-    attrInfo += "-";
-  }
+  static void Add(bool value, string& attrInfo);
+  static void Add(int64_t value, string& attrInfo);
+  static void Add(float value, string& attrInfo);
+  static void Add(string value, string& attrInfo);
+  static void Add(IntArrayRef value, string& attrInfo);
+  static void Add(at::ArrayRef<float> value,string& attrInfo);
+  static void Add(Scalar value, string& attrInfo);
+  static void Add(at::ArrayRef<IntArrayRef> value, string& attrInfo);
 };
 
 //

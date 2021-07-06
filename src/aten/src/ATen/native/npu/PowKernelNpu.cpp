@@ -57,28 +57,13 @@ Tensor& pow_out_npu(Tensor& result, Scalar self, const Tensor& exp) {
 Tensor pow_npu(const Tensor& self, const Tensor& exp) {
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(self, exp);
-  
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-         outputSize,    
-         self.options(), 
-         CalcuOpUtil::get_tensor_npu_format(self));
-  
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   pow_out_npu(result, self, exp);
   return result;
 }
 
 Tensor pow_npu(const Tensor& self, Scalar exp) {
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-         outputSize, 
-         self.options(), 
-         CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   pow_out_npu(result, self, exp);
   return result;
 }
@@ -95,10 +80,7 @@ Tensor pow_npu(Scalar self, const Tensor& exp) {
 }
 
 Tensor& pow_npu_(Tensor& self, const Tensor& exp) {
-  SmallVector<Tensor, N> inputs = {self, exp};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self, exp}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     pow_out_npu(contiguousSelf, contiguousSelf, exp);
@@ -111,10 +93,7 @@ Tensor& pow_npu_(Tensor& self, const Tensor& exp) {
 }
 
 Tensor& pow_npu_(Tensor& self, Scalar exp) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     pow_out_npu(contiguousSelf, contiguousSelf, exp);

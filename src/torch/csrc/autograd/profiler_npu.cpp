@@ -17,6 +17,7 @@
 #include <torch/csrc/autograd/profiler.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/NPUGuard.h>
+#include <c10/npu/interface/AclInterface.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
 #include <sstream>
 
@@ -35,9 +36,12 @@ static inline void npuCheck(aclError result, const char * file, int line) {
 
 struct NPUMethods : public CUDAStubs {
   void npu_destroy_event(aclrtEvent event) {
-    aclrtEventStatus status;
-    TORCH_NPU_CHECK(aclrtQueryEvent(event, &status));
-    if (status == ACL_EVENT_STATUS_COMPLETE) {
+    c10::npu::acl::aclrtEventWaitStatus waitStatus = c10::npu::acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+    aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
+    TORCH_NPU_CHECK(c10::npu::acl::AclQueryEventStatus(event, &waitStatus, &recordStatus));
+
+    if ((waitStatus == c10::npu::acl::ACL_EVENT_WAIT_STATUS_COMPLETE) ||
+      (recordStatus == ACL_EVENT_STATUS_COMPLETE)) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
     } else {
         std::cout << "Warning! NPU destroy event error, status is not completed." << std::endl;
@@ -46,7 +50,7 @@ struct NPUMethods : public CUDAStubs {
   void npu_record(int* device, aclrtEvent* event, int64_t* cpu_ns) {
     TORCH_NPU_CHECK(aclrtGetDevice(device));
     // TORCH_NPU_CHECK(aclrtCreateEvent(event));
-    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event, ACL_EVENT_TIME_LINE));
+    TORCH_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(event, ACL_EVENT_TIME_LINE));
     auto stream = c10::npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event, stream));

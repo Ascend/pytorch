@@ -42,18 +42,24 @@ def run_tests():
         import HTMLTestRunner
         with open(htmlFileName, "wb") as report_file:
             runner=HTMLTestRunner.HTMLTestRunner(stream=report_file, title='AllTest', description='all npu test case', verbosity=2)
-            runner.run(load_local_case(test_case_path))
+            result = runner.run(load_local_case(test_case_path))
+            if not result.wasSuccessful():
+                raise RuntimeError("Some cases of HTML unittest testset failed")
         print('report files path', htmlFileName)
     elif ENABLE_HTML_MX:
         print('start pytorch Multi HTML unittest testset...')
         import HtmlTestRunner
         runner=HtmlTestRunner.HTMLTESTRunner(output=test_report_path, verbosity=2)
-        runner=run(load_local_case(test_case_path))
+        result=runner.run(load_local_case(test_case_path))
+        if not result.wasSuccessful():
+            raise RuntimeError("Some cases of Multi HTML unittest testset failed")
     else:
         print('start pytorch TEXT unittest testset...')
         with open(txtFileName, "a") as report_file:
             runner=unittest.TextTestRunner(stream=report_file, verbosity=2)
-            runner.run(load_local_case(test_case_path))
+            result=runner.run(load_local_case(test_case_path))
+            if not result.wasSuccessful():
+                raise RuntimeError("Some cases TEXT unittest failed")
         print('report files path', txtFileName)
 
 if __name__=="__main__":

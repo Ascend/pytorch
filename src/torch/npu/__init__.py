@@ -161,14 +161,6 @@ def is_available():
         return False
     return device_count() > 0
 
-def set_option(option):
-    if not isinstance(option, dict):
-        raise TypeError("npu option must be a dict.")
-
-    for option_name, option_value in option.items():
-        option[option_name] = str(option_value)
-
-    torch._C._npu_setOption(option)
 
 class device(object):
     r"""Context-manager that changes the selected device.
@@ -288,19 +280,7 @@ if not hasattr(torch._C, '_NPUStreamBase'):
     torch._C.__dict__['_NPUStreamBase'] = _dummy_type('NPUStreamBase')
     torch._C.__dict__['_NPUEventBase'] = _dummy_type('NPUEventBase')
 
-
-def init_dump():
-    _lazy_init()
-    return torch._C._npu_initDump()
-
-def set_dump(cfg_file):
-    _lazy_init()
-    return torch._C._npu_setDump(cfg_file)
-
-def finalize_dump():
-    _lazy_init()
-    return torch._C._npu_finalizeDump()
-
 from .memory import *
 
 from .streams import Stream, Event
+from .npu_frontend_enhance import *

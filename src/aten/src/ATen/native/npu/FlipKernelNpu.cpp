@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
 
@@ -21,12 +20,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor flip_npu(const Tensor& self, IntArrayRef dims){
-    // calculate the output size
-    auto outputSize = input_same_output_size(self);
-    
-    // construct the output tensor of the NPU
-    Tensor result = at::empty_with_format(outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+    Tensor result = OpPreparation::ApplyTensor(self);
     SmallVector<int64_t,N> dimVec = array_to_small_vector(dims);
     if (!c10::npu::OptionsManager::CheckDynamicEnable()) {  
       OpCommand cmd;

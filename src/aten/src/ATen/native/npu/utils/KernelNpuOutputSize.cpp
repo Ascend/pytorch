@@ -200,23 +200,6 @@ SmallVector<int64_t, SIZE> cdist_npu_output_size(
   return output_shape;
 }
 
-SmallVector<int64_t, SIZE> conv_tbc_npu_output_size(
-    const Tensor& self,
-    const Tensor& weight,
-    const Tensor& bias,
-    int64_t pad) {
-  int64_t N = self.size(1);
-  int64_t H = 1;
-  int64_t W = self.size(0);
-  int64_t Co = weight.size(2);
-  int64_t Ho = 1;
-  int64_t Wo = (W + 2 * pad - (weight.size(0) - 1) - 1) + 1;
-
-  SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
-
-  return outputSize;
-}
-
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
 conv2d_backward_npu_output_size(
     const Tensor& input,
@@ -267,7 +250,7 @@ SmallVector<int64_t, SIZE> convolution_transpose_npu_output_size(
   int64_t N = input.size(0);
   int64_t H = input.size(2);
   int64_t W = input.size(3);
-  int64_t Co = weight.size(1);
+  int64_t Co = weight.size(1) * groups;
   auto kernel_size = weight.sizes().slice(2);
 
   int64_t Ho = (H - 1) * stride[0] - 2 * padding[0] +
@@ -327,12 +310,7 @@ ctc_loss_npu_output_size(
 
   SmallVector<int64_t, SIZE> negLogLikelihoodSize = {batchSize};
   
-  // tSize = 2*max(target_lengths)+1
-  int64_t maxLength = 0;
-  for(int i = 0; i < targetLengths.size(); i++) {
-    maxLength = targetLengths[i] > maxLength? targetLengths[i]: maxLength;
-  }
-  
+  int64_t maxLength = targets.size(1);
   int64_t tSize = 2 * maxLength + 1;  
   SmallVector<int64_t, SIZE> logAlphaSize = {batchSize, maxInputLength, tSize};
 
@@ -908,15 +886,6 @@ softmax_cross_entropy_with_logits_impl_npu_output_size(const Tensor& self) {
 
   return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
       resultSize, backpropSize);
-}
-
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> std_npu_output_size(const Tensor & self, IntArrayRef dim, bool keepdim)
-{
-    SmallVector<int64_t, SIZE> outputSize;
-    SmallVector<int64_t, SIZE> meanSize;
-    outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-    meanSize = reduce_ops_npu_output_size(self, dim, keepdim);
-    return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(outputSize, meanSize);
 }
 
 SmallVector<int64_t, SIZE> sum_npu_output_size(

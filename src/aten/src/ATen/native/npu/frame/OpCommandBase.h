@@ -20,7 +20,6 @@
 #include "ATen/native/npu/frame/OpCmdHelper.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
 namespace at {
@@ -121,7 +120,6 @@ class OpCommandBase {
   }
 
   void Run(){
-    NpuUtils::SetCompileOptOnce();
     if (c10::npu::OptionsManager::CheckQueueEnable()) {
       ExecuteParas params;
       aclCmd->ExportParams(params);
@@ -211,11 +209,19 @@ class OpCommandBase {
     return storage.back();
   }
   Tensor CopyHostToDevice(const Scalar& scalar, ScalarType type) {
-    storage.emplace_back(CalcuOpUtil::CopyScalarToDevice(scalar, type));
-    return storage.back();
+    auto tensor = scalar_to_tensor(scalar).to(type);
+    return CopyHostToDevice(tensor);
   }
   Tensor CopyHostToDevice(const Tensor& cpuTensor) {
-    storage.emplace_back(CalcuOpUtil::copy_tensor_host_to_device(cpuTensor));
+    Tensor cpuPinMemTensor = cpuTensor.pin_memory();
+    int deviceIndex = 0;
+    AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+    auto tensor = cpuPinMemTensor.to(
+      c10::Device(DeviceType::NPU, deviceIndex),
+      cpuPinMemTensor.scalar_type(),
+      true,
+      true);
+    storage.emplace_back(tensor);
     return storage.back();
   }
   Tensor CreateHostTensor(void* data, IntArrayRef sizes,

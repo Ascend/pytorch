@@ -90,16 +90,9 @@ Tensor &conv3d_out_npu(Tensor &result, const Tensor &input,
 Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const Tensor &bias,
                   IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
                   int64_t groups) {
-  // calculate the output size
-
   auto outputSize = conv3d_npu_output_size(
       input, weight, bias, stride, padding, dilation, groups);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, input.options(), CalcuOpUtil::get_tensor_npu_format(input));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(input, outputSize);
   conv3d_out_npu(result, input, weight, bias, stride, padding, dilation, groups);
 
   return result;
