@@ -11,13 +11,6 @@ function main()
     cd $PT_DIR
     patch -p1 < npu.patch
     cp -r $ROOT_DIR/src/* $PT_DIR
-    
-    if [[ $1 = "gen" ]];then
-        exit 0
-    fi
-    # build
-    bash build.sh
-    cp $PT_DIR/dist/torch-* $ROOT_DIR/dist
 }
 
 main $@

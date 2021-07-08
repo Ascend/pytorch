@@ -36,28 +36,39 @@ pip3 install -r requirements.txt
 
 # 使用方式 --生成全量代码并编译
 
-## 获取PyTorch源代码和third_party代码
+## 获取原生PyTorch源代码和third_party代码
 
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 
-cd pytorch 
+进入到pytorch目录下
 
 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
 
 git submodule sync
 
-git submodule update --init --recursive 
+git submodule update --init --recursive
+
+完成没有报错之后就生成了PyTorch及其依赖的三方代码
 
 ## 生成适配昇腾AI处理器的PyTorch代码。
 
 进入到build目录，执行
 
 ```sh
+bash gen.sh
+```
+
+会在当前根目录下pytorch目录中生成npu适配全量代码
+
+## 编译torch的二进制包
+
+进入到pytorch目录，执行
+
+```sh
 bash build.sh
 ```
 
-会在当前根目录下pytorch目录中生成npu适配全量代码，编译之后的二进制在dist目录下
-
+生成的二进制包在当前的dist目录下
 
 # 安装
 
