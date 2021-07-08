@@ -4,50 +4,6 @@
 # 项目简介
 本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
 
-
-# 使用方式 --生成全量代码
-
-## Linux（联网）
-
-进入到build目录，执行
-
-```sh
-bash build.sh gen
-```
-
-会在当前根目录下pytorch目录中生成npu适配全量代码
-
-## Linux（未联网）
-
-访问如下链接，下载PyTorch原生代码压缩包，并将该压缩包放置到当前代码仓的根目录
-
-https://ascend-ptadapter.obs.cn-north-4.myhuaweicloud.com/pytorch-v1.5.0/pytorch-v1.5.0.tar.gz
-
-进入到build目录，执行
-
-```sh
-bash build.sh gen
-```
-
-会在当前根目录下pytorch目录中生成npu适配全量代码
-
-## Windows
-
-
-访问如下链接，下载PyTorch原生代码压缩包，并将该压缩包放置到当前代码仓的根目录,解压
-
-https://ascend-ptadapter.obs.cn-north-4.myhuaweicloud.com/pytorch-v1.5.0/pytorch-v1.5.0.tar.gz
-
-
-进入到解压生成的pytorch目录中，打开git bash并执行
-
-```sh
-patch -p1 < ../patch/npu.patch
-```
-
-并将src目录下的文件，覆盖拷贝到pytorch目录中，即可生成全量可编译代码
-
-
 # 编译/执行约束
 
 gcc版本: 7.3.0（只在编译场景要求）
@@ -78,23 +34,21 @@ pip3 install -r requirements.txt
 ```
 
 
-# 编译
+# 使用方式 --生成全量代码并编译
 
-## Linux（联网）
+## 获取PyTorch源代码和third_party代码
 
-进入到build目录，执行
+git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 
-```sh
-bash build.sh
-```
+cd pytorch 
 
-会将PyTorch原生代码的压缩包下载和解压，将npu的patch合入并进行编译，最后在代码根目录中的dist目录中生成编译好的二进制包。
+获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
 
-## Linux（未联网）
+git submodule sync
 
-访问如下链接，下载PyTorch原生代码压缩包，并将该压缩包放置到当前代码仓的根目录
+git submodule update --init --recursive 
 
-https://ascend-ptadapter.obs.cn-north-4.myhuaweicloud.com/pytorch-v1.5.0/pytorch-v1.5.0.tar.gz
+## 生成适配昇腾AI处理器的PyTorch代码。
 
 进入到build目录，执行
 
@@ -102,12 +56,10 @@ https://ascend-ptadapter.obs.cn-north-4.myhuaweicloud.com/pytorch-v1.5.0/pytorch
 bash build.sh
 ```
 
-会将PyTorch原生代码的压缩包解压，将npu的patch合入并进行编译，最后在代码根目录中的dist目录中生成编译好的二进制包。
+会在当前根目录下pytorch目录中生成npu适配全量代码，编译之后的二进制在dist目录下
 
 
 # 安装
-
-编译完成后会在dist目录生成whl包：
 
 **x86_64:**
 
