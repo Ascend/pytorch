@@ -24,11 +24,11 @@ static inline void grid_assign_positive_check(
     const Tensor& argmax_overlaps,
     const Tensor& gt_argmax_overlaps){
   TORCH_CHECK(
-      at::isIntegralType(argmax_overlaps.scalar_type()) && argmax_overlaps.scalar_type() != ScalarType::Long,
+      at::isIntegralType(argmax_overlaps.scalar_type(), true) && argmax_overlaps.scalar_type() != ScalarType::Long,
       "int32 argmax_overlaps tensor expected but got a tensor with dtype: ",
       argmax_overlaps.scalar_type());
   TORCH_CHECK(
-      at::isIntegralType(gt_argmax_overlaps.scalar_type()) && gt_argmax_overlaps.scalar_type() != ScalarType::Long,
+      at::isIntegralType(gt_argmax_overlaps.scalar_type(), true) && gt_argmax_overlaps.scalar_type() != ScalarType::Long,
       "int32 gt_argmax_overlaps tensor expected but got a tensor with dtype: ",
       gt_argmax_overlaps.scalar_type());
 }

@@ -92,7 +92,8 @@ class TestSoftMarginLoss(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_soft_margin_loss_float16_sum(self, device):
-        npu_input1, npu_input2 = self.generate_data(-2, 2, (37, 8, 20, 20, 5, 8, 10, 8), (37, 8, 20, 20, 1, 1, 1, 1), np.float16)
+        npu_input1, npu_input2 = self.generate_data(-2, 2, (1, 8, 2, 2, 5, 8, 2, 8), 
+                                                   (1, 8, 2, 2, 1, 1, 1, 1), np.float16)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
         self.assertRtolEqual(cpu_output, npu_output)

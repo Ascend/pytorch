@@ -16,7 +16,6 @@
 
 #include <mutex>
 #include "NpuUtils.h"
-#include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/register/OptionRegister.h"
 
 #include "CalcuOpUtil.h"
@@ -312,7 +311,20 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   return src;
 }
 
-
+bool NpuUtils::IsOomError(aclError ret, int index)
+{
+  if (ret == ACL_ERROR_GE_DEVICE_MEMORY_ALLOCATION_FAILED) {
+    int deviceId = 0;
+    // free devcie cached memory when return value of the first op execution is oom
+    if (index == 1) {
+      C10_NPU_CHECK(aclrtGetDevice(&deviceId));
+      c10::npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
+      return true;
+    }
+    AT_ERROR("NPU out of memory. device id: ", deviceId);
+  }
+  return false;
+}
 } // namespace npu
 } // namespace native
 } // namespace at

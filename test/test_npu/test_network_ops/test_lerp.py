@@ -167,7 +167,7 @@ class TestLerp(TestCase):
             return output
 
         shape_format = [
-            [[np.float16, -1, (100, 4, 5, 5)], 1,2],
+            [[np.float16, -1, (100, 4, 5, 5)], 1.2],
             [[np.float16, -1, (100, 5, 5, 4)], 1.2],
         ]
 
@@ -178,7 +178,7 @@ class TestLerp(TestCase):
             npu_input3 = item[1]
             cpu_output = cpu_op_scalar_exec_fp16(cpu_input1, cpu_input2, cpu_input3)
             npu_output = self.npu_op_exec(npu_input1, npu_input2, npu_input3)
-            self.assertRtolEqual(cpu_output, npu_output, prec=0.003, prec16=0.003)
+            self.assertRtolEqual(cpu_output, npu_output, prec16=0.02)
 
     
     def test_lerp_scalar_out_common_shape_format(self, device):
@@ -218,7 +218,7 @@ class TestLerp(TestCase):
             npu_input3 = item[1]
             cpu_output = cpu_op_scalar_out_exec_fp16(cpu_input1, cpu_input2, cpu_input3)
             npu_output = self.npu_op_scalar_out_exec(npu_input1, npu_input2, npu_input3)
-            self.assertRtolEqual(cpu_output, npu_output, prec=0.003, prec16=0.003)
+            self.assertRtolEqual(cpu_output, npu_output, prec16=0.02)
      
 instantiate_device_type_tests(TestLerp, globals(), except_for='cpu')
 if __name__ == '__main__': 

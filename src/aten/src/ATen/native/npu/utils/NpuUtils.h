@@ -18,10 +18,12 @@
 #define __NATIVE_NPU_UTILS_NUP_UTILS__
 
 #include <stdint.h>
+#include "c10/npu/NPUCachingAllocator.h"
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_op_compiler.h>
 #include <third_party/acl/inc/acl/acl_op.h>
+#include <third_party/acl/inc/ge/ge_error_codes.h>
 #include <string>
 #include <vector>
 #include "ATen/ATen.h"
@@ -41,6 +43,7 @@ const int SHAPE_SIZE = 8;
 // HALF_MAX and HALF_MIN of NPU support
 const int NPU_HALF_MAX = 65504;
 const int NPU_HALF_MIN = -65504;
+const int NPU_MAX_OP_EXEC_TRY_NUM = 2;
 
 typedef enum MemoryType{
   MEMORY_DEVICE,
@@ -59,6 +62,7 @@ class NpuUtils {
       const Tensor& y);
 
   static bool check_5d_5d_match(const Tensor& tensor);
+  static bool IsOomError(aclError ret, int index);
 };
 } // namespace npu
 } // namespace native

@@ -51,7 +51,7 @@ class TestCummin(TestCase):
     def npu_op_exec_out(self, input_x, dim, output_value, output_argmin):
         input_x = input_x.to("npu")
         output_value = output_value.to("npu")
-        output_argmin = output_argmin.to("npu")
+        output_argmin = output_argmin.to("npu").to(torch.long)
         torch.cummin(input_x, dim, out=(output_value, output_argmin))
         output_value = output_value.to("cpu")
         output_value = output_value.numpy()

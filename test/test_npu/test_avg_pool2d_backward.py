@@ -56,7 +56,7 @@ class TestAvgPool2dBackward(TestCase):
                 [np.float32, 0, (64, 10, 16, 14)],
                 [np.float32, 3, (256, 2048, 8, 8)],
                 [np.float32, 4, (32, 1, 2, 2)],
-                [np.float32, 29, (10, 128, 16, 16)]
+                [np.float32, 0, (10, 128, 16, 16)]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 1, 100)

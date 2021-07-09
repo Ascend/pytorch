@@ -23,11 +23,19 @@ using namespace at::native::npu;
 
 Tensor& gt_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& other) {
   auto unified_result = OpPreparation::comparison_op_check(result, self, other, true);
+
+  Tensor selfCast = self;
+  Tensor otherCast = other;
+  if(self.dtype() == ScalarType::Bool || other.dtype() == ScalarType::Bool){
+    selfCast = self.to(ScalarType::Float);
+    otherCast = other.to(ScalarType::Float);
+  }
+
   OpCommand cmd;
   cmd.Name("Greater")
      .Expect(unified_result)
-     .Input(self)
-     .Input(other)
+     .Input(selfCast)
+     .Input(otherCast)
      .Output(result)
      .Run();
 
@@ -51,10 +59,15 @@ Tensor& gt_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
 }
 
 Tensor& gt_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
+  Tensor selfCast = self;
+  if(self.dtype() == ScalarType::Bool){
+    selfCast = self.to(ScalarType::Float);
+  }
+
   OpCommand cmd;
   cmd.Name("Greater")
-     .Input(self)
-     .Input(other, self.scalar_type())
+     .Input(selfCast)
+     .Input(other, selfCast.scalar_type())
      .Output(result)
      .Run();
 

@@ -441,6 +441,7 @@ struct THNCachingAllocator {
   void emptyCache() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     synchronize_and_free_events(nullopt);
+    c10::npu::npuSynchronizeDevice();
     free_blocks(large_blocks, large_blocks.begin(), large_blocks.end());
     free_blocks(small_blocks, small_blocks.begin(), small_blocks.end());
   }
@@ -774,6 +775,7 @@ struct THNCachingAllocator {
     Block lower_bound(device, nullptr, 0);
     Block upper_bound(device + 1, nullptr, 0);
 
+    c10::npu::npuSynchronizeDevice();
     free_blocks(
         large_blocks,
         large_blocks.lower_bound(&lower_bound),
@@ -1195,6 +1197,11 @@ void raw_delete(void* ptr) {
   caching_allocator.free(ptr);
 }
 
+void FreeDeviceCachedMemory(int device)
+{
+  caching_allocator.free_cached_blocks(device);
+
+}
 } // namespace NPUCachingAllocator
 
 } // namespace npu

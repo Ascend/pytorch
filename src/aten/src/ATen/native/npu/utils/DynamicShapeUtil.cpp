@@ -17,6 +17,7 @@
 #include "DynamicShapeUtil.h"
 #include <Python.h>
 #include <unordered_set>
+#include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/dynamicstrategy/Strategy.h"
 #include "ATen/native/npu/frame/OpDynamicCmdHelper.h"
 #include "ATen/native/npu/frame/OpDynamicParamMaker.h"
@@ -331,7 +332,10 @@ aclError DynamicShapeUtil::ExecuteDynamic(
     ExecuteParas& cur_paras,
     aclrtStream stream) {
   auto params = OpDynamicCmdHelper::CreateDynamicRunParams(cur_paras);
-  return aclopExecuteV2(
+  aclError ret;
+  int index = 0;
+  do {
+    ret = aclopExecuteV2(
       std::get<0>(params).c_str(),
       std::get<1>(params),
       const_cast<aclTensorDesc**>(std::get<2>(params)),
@@ -341,6 +345,10 @@ aclError DynamicShapeUtil::ExecuteDynamic(
       std::get<6>(params),
       const_cast<aclopAttr*>(std::get<7>(params)),
       stream);
+    ++index;
+  } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+
+  return ret;
 }
 
 void DynamicShapeUtil::staticCompileAndExecute(
@@ -349,9 +357,11 @@ void DynamicShapeUtil::staticCompileAndExecute(
     aclrtStream stream) {
   std::string opName = cur_paras.opType;
   NPU_LOGD(" Op %s aclopCompileAndExecute Run.", opName.c_str());
-  aclError ret;
   logUtil.SetStartTime();
-  ret = aclopCompileAndExecute(
+  aclError ret;
+  int index = 0;
+  do {
+    ret = aclopCompileAndExecute(
       opName.c_str(),
       cur_paras.paras.input_num,
       cur_paras.paras.input_desc,
@@ -364,7 +374,8 @@ void DynamicShapeUtil::staticCompileAndExecute(
       ACL_COMPILE_SYS,
       NULL,
       stream);
-
+    ++index;
+  } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (ret != 0) {
     C10_NPU_SHOW_ERR_MSG();
     logUtil.PrintLog(steps_, key, "Static Compile And Execute Failed");

@@ -42,7 +42,7 @@ class TestAdaptiveAvgPool3dBackward(TestCase):
 
     def test_adaptiveAvgPool3d_backward(self, device):
         dtype_list = [np.float16, np.float32]
-        format_list = [0, 29]
+        format_list = [-1]
         shape_list = [
             [2, 3, 7, 7],
             [1, 2, 3, 6, 6],

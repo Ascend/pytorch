@@ -142,6 +142,24 @@ class TestGt(TestCase):
 
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
+    def test_gt_bool(self, device):
+        format_list = [0]
+        shape_list = [(5, 3), (2, 3, 4)]
+        scalar_list = [True, False]
+        shape_format = [
+            [[np.int32, i, j], k] for i in format_list for j in shape_list 
+            for k in scalar_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[0], 0, 100)
+            cpu_output1 = self.cpu_op_exec_scalar(cpu_input1 > 50, item[1])
+            npu_output1 = self.npu_op_exec_scalar(npu_input1 > 50, item[1])
+            cpu_output2 = self.cpu_op_exec(cpu_input1 > 50, cpu_input2 > 50)
+            npu_output2 = self.npu_op_exec(npu_input1 > 50, npu_input2 > 50)
+            self.assertEqual(cpu_output1, npu_output1)
+            self.assertEqual(cpu_output2, npu_output2)
+
     def test_gt_tensor_out(self, device):
         shape_format = [
             [[np.float16, 0, [128, 116, 14, 14]], [np.float16, 0, [256, 116, 1, 1]]],
