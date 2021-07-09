@@ -16,11 +16,13 @@
 #include "OpParamMaker.h"
 #include <c10/npu/OptionsManager.h>
 #include "c10/npu/NPUQueue.h"
+#include "c10/npu/NPUCachingAllocator.h"
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/aoe/AutoTune.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
@@ -161,19 +163,24 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
     aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;
   }
-  auto ret = aclopCompileAndExecute(
-    name.c_str(),
-    inputSize,
-    params.inDesc.data(),
-    params.inBuffer.data(),
-    outputSize,
-    params.outDesc.data(),
-    params.outBuffer.data(),
-    params.attr,
-    ACL_ENGINE_SYS,
-    ACL_COMPILE_SYS,
-    NULL,
-    stream);
+  aclError ret;
+  int index = 0;
+  do {
+    ret = aclopCompileAndExecute(
+      name.c_str(),
+      inputSize,
+      params.inDesc.data(),
+      params.inBuffer.data(),
+      outputSize,
+      params.outDesc.data(),
+      params.outBuffer.data(),
+      params.attr,
+      ACL_ENGINE_SYS,
+      ACL_COMPILE_SYS,
+      NULL,
+      stream);
+    ++index;
+  } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (reset_flag) {
     aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   }
@@ -194,7 +201,9 @@ int ExecFunc(void* in, aclrtStream stream) {
       aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;
     }
-    ret = aclopCompileAndExecute(
+    int index = 0;
+    do {
+      ret = aclopCompileAndExecute(
         (cur_paras->opType).c_str(),
         cur_paras->paras.input_num,
         cur_paras->paras.input_desc,
@@ -207,6 +216,8 @@ int ExecFunc(void* in, aclrtStream stream) {
         ACL_COMPILE_SYS,
         nullptr,
         stream);
+      ++index;
+    } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     if (reset_flag) {
       aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
     }

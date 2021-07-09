@@ -37,7 +37,7 @@ static inline void normalize_batch_check(
       "self num ",
       self.size(0));
   TORCH_CHECK(
-      1 >= normalize_type >= 0,
+      normalize_type >= 0 && normalize_type <= 1,
       "normalize_type expected to be in range [0, 1], but got ",
       normalize_type);
 }

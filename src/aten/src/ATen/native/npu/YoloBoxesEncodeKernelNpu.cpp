@@ -47,7 +47,7 @@ static inline void yolo_boxes_encode_check(
       "gt_bboxes num ",
       gt_bboxes.size(0));
   TORCH_CHECK(
-      at::isIntegralType(stride.scalar_type()) && stride.scalar_type() != ScalarType::Long,
+      at::isIntegralType(stride.scalar_type(), true) && stride.scalar_type() != ScalarType::Long,
       "int32 strdie tensor expected but got a tensor with dtype: ",
       stride.scalar_type());
 }

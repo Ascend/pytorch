@@ -211,8 +211,8 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
 
   // construct the output tensor of the NPU
   Tensor grad_input = OpPreparation::ApplyTensor(self_4d.sizes(), self_4d.options(), self_4d);
-  Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor.sizes(), weight_tensor.options(), weight_tensor);
-  Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor.sizes(), weight_tensor.options(), weight_tensor);
+  Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
+  Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
 
   // calculate the output result of the NPU
   batch_norm_backward_impl(

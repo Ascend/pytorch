@@ -29,43 +29,31 @@ tuple<Tensor&, Tensor&> std_mean_out_npu_nocheck(
     bool unbiased, 
     bool keepdim) {
   // executing the NPU operator 
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) { 
-    OpCommand cmd;
-    cmd.Name("ReduceStd")
-        .Input(self)
-        .Output(resultStd)
-        .Output(resultMean)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
-  } else {
-    OpCommand cmd1;
-    cmd1.Name("ReduceMeanD")
-        .Input(self)
-        .Output(resultMean)
-        .Attr("axes", dim)
-        .Attr("keep_dims", keepdim)
-        .Run();
-    Tensor resultMeanCopy = resultMean;
-    if (resultMean.dim() != 0 && keepdim == false) {
-      auto dimVector = array_to_small_vector(dim);
-      std::sort(dimVector.begin(), dimVector.end());
-      for (int64_t i = 0; i < dimVector.size(); i++) {
-        resultMeanCopy = resultMeanCopy.unsqueeze(dimVector[i]);
-      }
+  OpCommand cmd1;
+  cmd1.Name("ReduceMeanD")
+      .Input(self)
+      .Output(resultMean)
+      .Attr("axes", dim)
+      .Attr("keep_dims", keepdim)
+      .Run();
+  Tensor resultMeanCopy = resultMean;
+  if (resultMean.dim() != 0 && keepdim == false) {
+    auto dimVector = array_to_small_vector(dim);
+    std::sort(dimVector.begin(), dimVector.end());
+    for (int64_t i = 0; i < dimVector.size(); i++) {
+      resultMeanCopy = resultMeanCopy.unsqueeze(dimVector[i]);
     }
-    resultMeanCopy = resultMeanCopy.expand(self.sizes());
-    OpCommand cmd2;
-    cmd2.Name("ReduceStdWithMean")
-        .Input(self)
-        .Input(resultMeanCopy)
-        .Output(resultStd)
-        .Attr("dim", dim)
-        .Attr("unbiased", unbiased)
-        .Attr("keepdim", keepdim)
-        .Run();
   }
+  resultMeanCopy = resultMeanCopy.expand(self.sizes());
+  OpCommand cmd2;
+  cmd2.Name("ReduceStdWithMean")
+      .Input(self)
+      .Input(resultMeanCopy)
+      .Output(resultStd)
+      .Attr("dim", dim)
+      .Attr("unbiased", unbiased)
+      .Attr("keepdim", keepdim)
+      .Run();
 
   return std::tie(resultStd, resultMean);
 }

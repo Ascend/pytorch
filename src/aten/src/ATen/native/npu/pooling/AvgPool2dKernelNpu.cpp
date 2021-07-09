@@ -20,8 +20,8 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& avg_pool2d_out_npu(
-    Tensor& out,
+Tensor& avg_pool2d_out_npu_nocheck(
+  Tensor& result,
     const Tensor& self,
     IntArrayRef kernel_size,
     IntArrayRef stride,
@@ -29,29 +29,74 @@ Tensor& avg_pool2d_out_npu(
     bool ceil_mode,
     bool count_include_pad,
     c10::optional<int64_t> divisor_override) {
-  string padding_str = ceil_mode ? "SAME" : "VALID";
+  if (padding.size() == 1) {
+    SmallVector<int64_t, SIZE> paddings = {padding[0], padding[0]};
+    padding = IntArrayRef(paddings);
+  }
 
+  // required attr
   int64_t strideH = 1;
   int64_t strideW = 1;
-
   if (!stride.empty()) {
     strideH = stride[0];
     strideW = stride[1];
   }
-
   SmallVector<int64_t, N> kernelSize = {1, 1, kernel_size[0], kernel_size[1]};
   SmallVector<int64_t, N> stridesSize = {1, 1, strideH, strideW};
-  OpCommand cmd;
-  cmd.Name("AvgPool")
-      .Input(self)
-      .Output(out)
-      .Attr("ksize", kernelSize)
-      .Attr("strides", stridesSize)
-      .Attr("padding", padding_str)
-      .Attr("data_format", (string)"NCHW")
-      .Run();
+  SmallVector<int64_t, N> pads = {padding[0], padding[0], padding[1], padding[1]};
 
-  return out;
+  OpCommand cmd;
+  cmd.Name("AvgPoolV2")
+     .Input(self)
+     .Output(result)
+     .Attr("ksize", kernelSize)
+     .Attr("strides", stridesSize)
+     .Attr("padding_mode", (string)"CALCULATED")
+     .Attr("pads", pads)
+     .Attr("data_format", (string)"NCHW")
+     .Attr("global_pooling", false)
+     .Attr("ceil_mode", ceil_mode)
+     .Attr("exclusive", true)
+     .Run();
+
+  return result;
+}
+
+Tensor& avg_pool2d_out_npu(
+    Tensor& result,
+    const Tensor& self,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    bool ceil_mode,
+    bool count_include_pad,
+    c10::optional<int64_t> divisor_override) {
+  auto outputSize = avg_pool2d_npu_output_size(
+      self,
+      kernel_size,
+      stride,
+      padding,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+  
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      outputSize);
+  
+  avg_pool2d_out_npu_nocheck(
+      result,
+      self,
+      kernel_size,
+      stride,
+      padding,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
+
+  return result;
 }
 
 Tensor avg_pool2d_npu(

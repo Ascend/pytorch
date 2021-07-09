@@ -143,6 +143,7 @@ C10_NPU_API std::mutex* getFreeMutex();
 
 C10_NPU_API std::shared_ptr<void> getIpcDevPtr(std::string handle);
 
+C10_NPU_API void FreeDeviceCachedMemory(int device);
 } // namespace NPUCachingAllocator
 
 } // namespace npu

@@ -1644,7 +1644,7 @@
 - name: nonzero(Tensor self) -> Tensor
   output_differentiability: [False]
 
-- name: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+- name: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
   output_differentiability: [True, True, True, False, False, False, False, False]
   input, weight, bias, h, c: npu_lstm_backward(grads[0], grads[1], grads[2], input, weight, bias, h, c, result0, result1, result2, result3, result4, result5, result6, result7)
 
@@ -1688,3 +1688,7 @@
 
 - name: npu_mish(Tensor self) -> Tensor
   self: npu_mish_backward(grad, self)
+
+- name: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
+  input, weight: npu_linear_backward(grad, input, weight)
+  bias: maybe_multiply(grad, 1)

@@ -2302,8 +2302,6 @@
   requires_tensor: True
   dispatch:
     QuantizedCPU: quantized_max_pool2d
-  npu_dispatch:
-    NPU: quantized_max_pool2d_npu
 
 - func: max_pool3d(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, int[3] dilation=1, bool ceil_mode=False) -> Tensor
   supports_named_tensor: True
@@ -2511,13 +2509,9 @@
 - func: mode(Tensor self, int dim=-1, bool keepdim=False) -> (Tensor values, Tensor indices)
   supports_named_tensor: True
   variants: function, method
-  npu_dispatch:
-    NPU: mode_npu
 
 - func: mode.values(Tensor self, int dim=-1, bool keepdim=False, *, Tensor(a!) values, Tensor(b!) indices) -> (Tensor(a!) values, Tensor(b!) indices)
   supports_named_tensor: True
-  npu_dispatch:
-    NPU: mode_out_npu
 
 - func: mode.dimname(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   variants: function, method
@@ -6169,8 +6163,6 @@
   dispatch:
     CPU: legacy::cpu::_th_histc_out
     CUDA: _histc_out_cuda
-  npu_dispatch:
-    NPU: histc_out_npu
 
 - func: histc(Tensor self, int bins=100, Scalar min=0, Scalar max=0) -> Tensor
   use_c10_dispatcher: full
@@ -6178,8 +6170,6 @@
   dispatch:
     CPU: legacy::cpu::_th_histc
     CUDA: _histc_cuda
-  npu_dispatch:
-    NPU: histc_npu
 
 - func: fmod.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
   dispatch:
@@ -6538,7 +6528,9 @@
   dispatch:
     CPU: legacy::cpu::_th_index_copy_
     CUDA: legacy::cuda::_th_index_copy_
-
+  npu_dispatch:
+    NPU: index_copy_npu_
+    
 - func: _cumsum(Tensor self, int dim) -> Tensor
   use_c10_dispatcher: full
   dispatch:
@@ -8338,7 +8330,7 @@
   npu_dispatch_only:
     NPU: nms_v4_npu
 
-- func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+- func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
   variants: function
   npu_dispatch_only:
     NPU: lstm_npu
@@ -8547,3 +8539,11 @@
   variants: function, method
   npu_dispatch_only:
     NPU: masked_fill_range_npu
+
+- func: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
+  npu_dispatch_only:
+    NPU: linear_npu
+
+- func: npu_linear_backward(Tensor grad, Tensor input, Tensor weight) -> (Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: linear_backward_npu

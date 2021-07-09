@@ -603,7 +603,15 @@ SmallVector<int64_t, SIZE> nonzero_npu_output_size(const Tensor& self){
   int64_t dim = self.dim();
   Tensor boolSelf = self.npu_dtype_cast(ScalarType::Bool);
   Tensor intSelf  = boolSelf.npu_dtype_cast(ScalarType::Int);
-  Tensor coutNonzeroSelf = at::sum(intSelf, ScalarType::Int);
+
+  Tensor coutNonzeroSelf = intSelf;
+  if (self.numel() > 10000000) {
+    //Ensure outputsize correctly in large shape case
+    coutNonzeroSelf = at::sum(intSelf, ScalarType::Long);
+  } else {
+    coutNonzeroSelf = at::sum(intSelf, ScalarType::Int);
+  }
+
   int64_t nonzeroNum = coutNonzeroSelf.item().toInt(); 
   SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
   return outputSize;   

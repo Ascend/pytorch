@@ -72,14 +72,15 @@ Tensor& im2col_out_npu_nocheck(Tensor& result, const Tensor &self, IntArrayRef k
   
   TORCH_CHECK(padding.empty() || padding.size() == 1 || padding.size() == 2,
     "im2col: padding must either be omitted, a single int, or a tuple of two ints");
-  padding = padding.empty() ? IntArrayRef({0}) : padding;
-  if (padding.size() == 1) {
-    SmallVector<int64_t, SIZE> pads = {padding[0], padding[0], padding[0], padding[0]};
-    padding = IntArrayRef(pads);
-  } else if (padding.size() == 2) {
-    SmallVector<int64_t, SIZE> pads = {padding[0], padding[0], padding[1], padding[1]};
-    padding = IntArrayRef(pads);
+  auto padding_ = padding.empty() ? IntArrayRef({0}) : padding;
+  SmallVector<int64_t, SIZE> pads;
+  if (padding_.size() == 1) {
+    pads = {padding_[0], padding_[0], padding_[0], padding_[0]};
+  } else if (padding_.size() == 2) {
+    pads = {padding_[0], padding_[0], padding_[1], padding_[1]};
   }
+
+  auto padding_4d = IntArrayRef(pads);
 
   int64_t strideH = 1;
   int64_t strideW = 1;
@@ -100,10 +101,11 @@ Tensor& im2col_out_npu_nocheck(Tensor& result, const Tensor &self, IntArrayRef k
     dilationH = dilation[0];
     dilationW = dilation[1];
   }
+
   SmallVector<int64_t, N> kernelSize = {kernel_size[0], kernel_size[1]};
   SmallVector<int64_t, N> stridesSize = {strideH, strideW};
   SmallVector<int64_t, N> dilationsSize = {dilationH, dilationW};
-  SmallVector<int64_t, N> padsSize = {padding[0], padding[1], padding[2], padding[3]};
+  SmallVector<int64_t, N> padsSize = {padding_4d[0], padding_4d[1], padding_4d[2], padding_4d[3]};
   string padding_mode = "CALCULATED";
 
   OpCommand cmd;
@@ -135,12 +137,10 @@ Tensor& im2col_out_npu(Tensor& result, const Tensor &self, IntArrayRef kernel_si
 
 Tensor im2col_npu(const Tensor &self, IntArrayRef kernel_size, IntArrayRef dilation,
                   IntArrayRef padding, IntArrayRef stride) {
-  // calculate the output size
   auto outputSize =
       image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding);
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   im2col_out_npu(result, self, kernel_size, dilation, padding, stride);
-
   return result;
 }
 
