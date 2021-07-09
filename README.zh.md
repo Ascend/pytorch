@@ -52,7 +52,7 @@ git submodule update --init --recursive
 
 ## 生成适配昇腾AI处理器的PyTorch代码。
 
-进入到build目录，执行
+进入到scripts目录，执行
 
 ```sh
 bash gen.sh
