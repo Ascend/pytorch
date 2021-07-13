@@ -48,7 +48,7 @@ Tensor& lt_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      ACL_FORMAT_ND,
       result.scalar_type(),
       outputSize);
 
@@ -77,7 +77,7 @@ Tensor& lt_out_npu(Tensor& result, const Tensor& self, Scalar other) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      ACL_FORMAT_ND,
       result.scalar_type(),
       outputSize);
 

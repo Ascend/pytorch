@@ -60,9 +60,9 @@ class TestBaddBmm(TestCase):
         ] 
 
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 100)
-            cpu_input3, npu_input3 = create_common_tensor(item[2], 1, 100)
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 10)
+            cpu_input3, npu_input3 = create_common_tensor(item[2], 1, 10)
             scalar1 = self.generate_scalar(item[3], 0, 10)
             scalar2 = self.generate_scalar(item[3], 0, 10)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)
@@ -90,9 +90,9 @@ class TestBaddBmm(TestCase):
         ] 
 
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 100)
-            cpu_input3, npu_input3 = create_common_tensor(item[2], 1, 100)
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 10)
+            cpu_input3, npu_input3 = create_common_tensor(item[2], 1, 10)
             scalar1 = self.generate_scalar(item[3], 0, 10)
             scalar2 = self.generate_scalar(item[3], 0, 10)
             cpu_output = cpu_op_exec_fp16(cpu_input1, cpu_input2, cpu_input3, scalar1, scalar2)

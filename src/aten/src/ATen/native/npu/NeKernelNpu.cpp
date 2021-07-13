@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -70,8 +69,8 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   OpPreparation::CheckOut(
     {self, other}, 
     result, 
-    CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-    ScalarType::Bool, 
+    ACL_FORMAT_ND,
+    result.scalar_type(), 
     IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
   return result;
@@ -83,8 +82,8 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, Scalar other) {
   OpPreparation::CheckOut(
     {self}, 
     result, 
-    CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-    ScalarType::Bool, 
+    ACL_FORMAT_ND,
+    result.scalar_type(), 
     outputSize);
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;

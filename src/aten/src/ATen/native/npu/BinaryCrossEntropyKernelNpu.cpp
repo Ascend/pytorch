@@ -68,6 +68,12 @@ Tensor binary_cross_entropy_npu(
 
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  if (self.numel() == 0) {
+    // In this scenario, needs to return nan. And the nan of the NPU can only be fp32.
+    result = result.to(at::kFloat).fill_(0);
+    result = result / 0;
+    return result;
+  }
 
   // calculate the output result of the NPU
   binary_cross_entropy_out_npu(result, self, target, weight, reduction);

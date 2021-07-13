@@ -53,7 +53,7 @@ class TestSmoothL1loss(TestCase):
         shape_list = [[256, 10], [256, 1000], [256, 10000],
                       [64, 10, 10], [64, 100, 100], [64, 200, 200],
                       [32, 3, 10, 10], [32, 3, 100, 100], [32, 3, 200, 200]]
-        reduction_list = ['none', 'mean', 'sum']
+        reduction_list = ['none', 'mean']
         shape_format = [
             [[np.float16, i, j], [np.float16, 0, j], k] for i in format_list
              for j in shape_list for k in reduction_list

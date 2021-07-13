@@ -79,7 +79,8 @@ Tensor& std_out_npu(
   OpPreparation::CheckOut(
       {self}, 
       result, 
-      self,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
       outputSize);
 
   // executing the NPU operator
@@ -100,12 +101,14 @@ tuple<Tensor&, Tensor&> std_mean_out_npu(
   OpPreparation::CheckOut(
       {self}, 
       result1, 
-      self,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
       outputSize);
   OpPreparation::CheckOut(
       {self}, 
       result2, 
-      self,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
       outputSize);
       
   // executing the NPU operator

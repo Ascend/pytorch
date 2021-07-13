@@ -87,6 +87,24 @@ class TestSplit(TestCase):
         shape_format = [[np.float32, i, [64, 112, 7, 7]] for i in format_list]
         self.split_result(shape_format)
 
+    def test_split_common_shape_format(self, device):
+        shape_format = [
+                [[np.float32, 0 , (1, 4, 2, 3)], 3, 1],
+                [[np.float32, 0, (8,4)], [1,2,1,2,2],0],
+                [[np.float16, 0 , (1, 4, 2, 3)], 3, 1],
+                [[np.float16, 0, (8,4)], [1,2,1,2,2],0],
+                [[np.int32, 0 , (1, 4, 2, 3)], 3, 1],
+                [[np.int32, 0, (8,4)], [1,2,1,2,2],0],
+                [[np.int64, 0 , (1, 4, 2, 3)], 3, 1],
+                [[np.int64, 0, (8,4)], [1,2,1,2,2],0],
+                ]
+        for item in shape_format:            
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            cpu_output = self.cpu_op_exec(cpu_input1, item[1], item[2])
+            npu_output = self.npu_op_exec(npu_input1, item[1], item[2])
+            for i in range(len(cpu_output)):
+                self.assertRtolEqual(cpu_output[i], npu_output[i])       
+
 
 instantiate_device_type_tests(TestSplit, globals(), except_for="cpu")
 if __name__ == "__main__":

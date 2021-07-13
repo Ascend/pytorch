@@ -2246,8 +2246,6 @@
 - func: matrix_power(Tensor self, int n) -> Tensor
   use_c10_dispatcher: full
   variants: function, method
-  npu_dispatch:
-    NPU: matrix_power_npu
 
 - func: max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   variants: function, method
@@ -8166,7 +8164,7 @@
     CPU: col2im_backward_out_cpu
     CUDA: col2im_backward_out_cuda
   npu_dispatch:
-     NPU: col2im_backward_out_npu
+     NPU: im2col_out_npu
 
 - func: col2im_backward(Tensor grad_output, int[2] kernel_size, int[2] dilation, int[2] padding, int[2] stride) -> Tensor
   python_module: nn
@@ -8174,7 +8172,7 @@
     CPU: col2im_backward_cpu
     CUDA: col2im_backward_cuda
   npu_dispatch:
-     NPU: col2im_backward_npu
+     NPU: im2col_npu
 
 - func: im2col.out(Tensor self, int[2] kernel_size, int[2] dilation, int[2] padding, int[2] stride, *, Tensor(a!) out) -> Tensor(a!)
   python_module: nn
@@ -8547,3 +8545,7 @@
 - func: npu_linear_backward(Tensor grad, Tensor input, Tensor weight) -> (Tensor, Tensor)
   npu_dispatch_only:
     NPU: linear_backward_npu
+
+- func: npu_bert_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  npu_dispatch_only:
+    NPU: bert_apply_adam_npu

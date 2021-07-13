@@ -94,7 +94,7 @@ class TestCudnnConvolutionBackwardInput(TestCase):
                                                       item[4], item[5])
             cpu_output = cpu_output.astype(npu_output.dtype)
             cpu_dinput = npu_dinput.to(npu_dinput.dtype)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output, 1e-2)
             self.assertRtolEqual(cpu_dinput, npu_dinput)
 
 
@@ -102,5 +102,4 @@ instantiate_device_type_tests(TestCudnnConvolutionBackwardInput,
                               globals(),
                               except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:1")
     run_tests()
