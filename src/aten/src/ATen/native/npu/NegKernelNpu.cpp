@@ -33,7 +33,12 @@ Tensor& neg_out_npu_nocheck(Tensor& result, const Tensor& self) {
 }
 
 Tensor& neg_out_npu(Tensor& result, const Tensor& self) {
-  OpPreparation::CheckOut({self}, result, self);
+  OpPreparation::CheckOut(
+      {self}, 
+      result, 
+      ACL_FORMAT_ND,
+      self.scalar_type(), 
+      self.sizes());
   neg_out_npu_nocheck(result, self);
 
   return result;

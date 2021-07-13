@@ -11,9 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+
 namespace at {
 namespace native {
 using namespace at::native::npu;
@@ -47,7 +48,8 @@ Tensor& baddbmm_out_npu(
     const Tensor& tensor2,
     Scalar beta,
     Scalar alpha) {
-  Tensor BatchMatMulTensor = result;
+  auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
+  Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
   
   auto inputs = baddbmm_npu_input(tensor1, tensor2);
   auto outputs = baddbmm_npu_output({BatchMatMulTensor});

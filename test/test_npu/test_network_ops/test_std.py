@@ -147,8 +147,6 @@ class TestStd(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             outputshape = self.output_shape(item[2],item[3],item[4],item[5])
-            print(outputshape)
-            print(item[2])
             cpu_output,npu_output = self.create_output_tensor(0,1,outputshape,item[1],item[0])
             if item[0] == np.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
@@ -279,6 +277,24 @@ class TestStd(TestCase):
             cpu_output1 = self.cpu_op_dim_exec(cpu_input1, item[3], item[4], item[5])
             npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1)
+    
+    def test_std_dim_shape_format_5d_fp16(self, device):
+        format_list = [-1]
+        shape_list = [[2, 94, 4, 52, 192]]
+        dim_list = [0]
+        unbiased_list = [True, False]
+        keepdim_list = [True, False]
+        shape_format = [
+            [np.float16, i, j, k, l, m] for i in format_list for j in shape_list 
+            for k in dim_list for l in unbiased_list for m in keepdim_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input1 = cpu_input1.to(torch.float32)
+            cpu_output1 = self.cpu_op_dim_exec(cpu_input1, item[3], item[4], item[5])
+            cpu_output1 = cpu_output1.astype(np.float16)
+            npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
+            self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.006)
     
 instantiate_device_type_tests(TestStd, globals(), except_for="cpu")
 if __name__ == "__main__":

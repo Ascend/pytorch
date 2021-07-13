@@ -60,8 +60,8 @@ Tensor& eq_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   OpPreparation::CheckOut(
     {self, other}, 
     result, 
-    CalcuOpUtil::get_tensor_npu_format(self), 
-    ScalarType::Bool, 
+    ACL_FORMAT_ND, 
+    result.scalar_type(), 
     IntArrayRef(outputSize));
   eq_out_npu_nocheck(result, self, other);
   return result;
@@ -71,8 +71,8 @@ Tensor& eq_out_npu(Tensor& result, const Tensor& self, Scalar other) {
   OpPreparation::CheckOut(
     {self}, 
     result, 
-    CalcuOpUtil::get_tensor_npu_format(self), 
-    ScalarType::Bool, 
+    ACL_FORMAT_ND,
+    result.scalar_type(), 
     self.sizes());
   eq_out_npu_nocheck(result, self, other);
   return result;

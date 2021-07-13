@@ -34,10 +34,14 @@ Tensor& log_out_npu_nocheck(Tensor& result, const Tensor& self) {
 }
 
 Tensor& log_out_npu(Tensor& result, const Tensor& self) {
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
+  if (!result.is_same(self)) {
+    OpPreparation::CheckOut(
+        {self},
+        result,
+        ACL_FORMAT_ND,
+        self.scalar_type(),
+        self.sizes());
+  }
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})

@@ -22,21 +22,6 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-static inline tuple<SmallVector<int64_t, SIZE>, int64_t> min_output_calc(
-    const Tensor& self,
-    IntArrayRef dims,
-    bool keepdim) {
-  SmallVector<int64_t, SIZE> outputSize =
-      reduce_ops_npu_output_size(self, dims, keepdim);
-
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
-  if (outputSize.empty()) {
-    npu_format = ACL_FORMAT_ND; // scalar tensor use default format
-  }
-  
-  return std::tie(outputSize, npu_format);
-}
-
 tuple<Tensor&, Tensor&> min_out_npu_nocheck(
     Tensor& output,
     Tensor& indices,
@@ -62,10 +47,9 @@ tuple<Tensor&, Tensor&> min_out_npu(
     const Tensor& self,
     int64_t dim,
     bool keepdim) {
-  auto params = min_output_calc(self, {dim}, keepdim);
-  auto outputSize = std::get<0>(params);
-  auto indicesSize = std::get<0>(params);
-  auto npu_format = std::get<1>(params);
+  SmallVector<int64_t, SIZE> dims = {dim};
+  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  SmallVector<int64_t, SIZE> indicesSize = outputSize;
 
   auto func = [&self, dim, keepdim](Tensor& output, Tensor& indices) {
     min_out_npu_nocheck(output, indices, self, dim, keepdim);
@@ -73,19 +57,19 @@ tuple<Tensor&, Tensor&> min_out_npu(
 
   Tensor indices_tmp;
   OpPipeWithMultiOut<Tensor&, Tensor&> pipe(output, indices_tmp);
-  return pipe.FixOutputSizeAndFormat<0>({self}, self, npu_format, outputSize)
-            .ApplyOutputWithSpecailParams<1>(indicesSize, self.options().dtype(ScalarType::Int), ACL_FORMAT_NCHW) // indices must be nchw format
+  return pipe.FixOutputSizeAndFormat<0>({self}, self, ACL_FORMAT_ND, outputSize)
+            .ApplyOutputWithSpecailParams<1>(indicesSize, self.options().dtype(ScalarType::Int), ACL_FORMAT_ND)
             .Call(func)
             .ReflushOutputDtype<1>(ScalarType::Long)
+            .FixOutputExceptDtype<1>({self}, ACL_FORMAT_ND, ScalarType::Long, indicesSize)
             .FixOutputWithReplace<1>(indices)
             .ReturnRef<Tensor&, Tensor&>();
 }
 
 tuple<Tensor, Tensor> min_npu(const Tensor& self, int64_t dim, bool keepdim) {
-  auto params = min_output_calc(self, {dim}, keepdim);
-  auto outputSize = std::get<0>(params);
-  auto indicesSize = std::get<0>(params);
-  auto npu_format = std::get<1>(params);
+  SmallVector<int64_t, SIZE> dims = {dim};
+  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  SmallVector<int64_t, SIZE> indicesSize = outputSize;
 
   auto func = [&self, dim, keepdim](Tensor outputs, Tensor indices) {
     min_out_npu_nocheck(outputs, indices, self, dim, keepdim);
@@ -93,7 +77,7 @@ tuple<Tensor, Tensor> min_npu(const Tensor& self, int64_t dim, bool keepdim) {
 
   Tensor outputs, indices;
   OpPipeWithDefinedMultiOut<Tensor, Tensor> pipe(outputs, indices);
-  return pipe.ApplyOutputWithSpecailParams<0>(outputSize, self.options(), npu_format)
+  return pipe.ApplyOutputWithSpecailParams<0>(outputSize, self.options(), ACL_FORMAT_ND)
             .ApplyOutputWithSpecailParams<1>(indicesSize, self.options().dtype(ScalarType::Int), ACL_FORMAT_NCHW)
             .Call(func)
             .ReflushOutputDtype<1>(ScalarType::Long)
@@ -144,7 +128,12 @@ Tensor& min_out_npu(
     Tensor& result,
     const Tensor& self,
     const Tensor& other) {
-  OpPreparation::CheckOut({self}, result, self);
+  OpPreparation::CheckOut(
+      {self}, 
+      result, 
+      ACL_FORMAT_ND,
+      self.scalar_type(), 
+      self.sizes());
   min_out_npu_nocheck(result, self, other);
 
   return result;

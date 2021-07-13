@@ -374,5 +374,4 @@ class Testcdist(TestCase):
 
 instantiate_device_type_tests(Testcdist, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:3")
     run_tests()
