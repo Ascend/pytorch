@@ -18,8 +18,6 @@
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/common/InnerNpuNativeFunction.h"
-#include "ATen/native/npu/frame/StorageDescHelper.h"
 
 namespace at {
 namespace native {
@@ -28,7 +26,7 @@ using namespace at::native::npu;
 // Flexible transpose judgement for view+transpose+Matmul, 
 // i.e., tensors with dim=2 and base_size_.size=3 can also be Matmul directly!
 bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
-  if (tensor.dim() != 2) {
+  if (tensor.dim() < 2 || tensor.dim() > 3) {
     return false;
   }
   int64_t numel = 1;
@@ -115,17 +113,10 @@ Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   // Matmul cannot directly deal with view+transposed tensor with NZ format, so Transdata is necessary
   if (self.sizes().size() != self_desc.base_sizes_.size()) {
     selfFormatCast = OpPreparation::CastBackToOriFormat(self);
-    // refresh storage desc info [origin shape and storage shape] of reshaped Tensor
-    if (is_transpose_last_two_dims_flex(selfFormatCast)) {
-      StorageDescHelper::ReflushDescBySelf(selfFormatCast.transpose(-2, -1));
-    }
   }
   
   if (mat2.sizes().size() != mat2_desc.base_sizes_.size()) {
     mat2FormatCast = OpPreparation::CastBackToOriFormat(mat2);
-    if (is_transpose_last_two_dims_flex(mat2FormatCast)) {
-      StorageDescHelper::ReflushDescBySelf(mat2FormatCast.transpose(-2, -1));
-    }
   }
   
   // construct the output tensor of the NPU
