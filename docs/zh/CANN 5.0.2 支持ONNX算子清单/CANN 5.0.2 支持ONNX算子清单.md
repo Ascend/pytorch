@@ -1,142 +1,150 @@
 # ONNX算子规格清单
--   [Abs](#Abs.md)
--   [Acos](#Acos.md)
--   [Acosh](#Acosh.md)
--   [AdaptiveMaxPool2D](#AdaptiveMaxPool2D.md)
--   [Add](#Add.md)
--   [Addcmul](#Addcmul.md)
--   [AffineGrid](#AffineGrid.md)
--   [And](#And.md)
--   [Argmax](#Argmax.md)
--   [Argmin](#Argmin.md)
--   [AscendRequantS16](#AscendRequantS16.md)
--   [AscendRequant](#AscendRequant.md)
--   [AscendQuant](#AscendQuant.md)
--   [AscendDequantS16](#AscendDequantS16.md)
--   [AscendDequant](#AscendDequant.md)
--   [AscendAntiQuant](#AscendAntiQuant.md)
--   [Asin](#Asin.md)
--   [Asinh](#Asinh.md)
--   [Atan](#Atan.md)
--   [Atanh](#Atanh.md)
--   [AveragePool](#AveragePool.md)
--   [BatchNormalization](#BatchNormalization.md)
--   [BatchMatMul](#BatchMatMul.md)
--   [BatchMultiClassNMS](#BatchMultiClassNMS.md)
--   [Cast](#Cast.md)
--   [Ceil](#Ceil.md)
--   [Celu](#Celu.md)
--   [Concat](#Concat.md)
--   [Clip](#Clip.md)
--   [ConvTranspose](#ConvTranspose.md)
--   [Cumsum](#Cumsum.md)
--   [Conv](#Conv.md)
--   [Constant](#Constant.md)
--   [ConstantOfShape](#ConstantOfShape.md)
--   [Cos](#Cos.md)
--   [Cosh](#Cosh.md)
--   [Det](#Det.md)
--   [DepthToSpace](#DepthToSpace.md)
--   [Div](#Div.md)
--   [Dropout](#Dropout.md)
--   [elu](#elu.md)
--   [EmbeddingBag](#EmbeddingBag.md)
--   [Equal](#Equal.md)
--   [Erf](#Erf.md)
--   [Exp](#Exp.md)
--   [Expand](#Expand.md)
--   [Flatten](#Flatten.md)
--   [Floor](#Floor.md)
--   [Gather](#Gather.md)
--   [GatherND](#GatherND.md)
--   [GatherElements](#GatherElements.md)
--   [Gemm](#Gemm.md)
--   [GlobalAveragePool](#GlobalAveragePool.md)
--   [GlobalMaxPool](#GlobalMaxPool.md)
--   [Greater](#Greater.md)
--   [GreaterOrEqual](#GreaterOrEqual.md)
--   [Gru](#Gru.md)
--   [HardSigmoid](#HardSigmoid.md)
--   [hardmax](#hardmax.md)
--   [Identity](#Identity.md)
--   [If](#If.md)
--   [Less](#Less.md)
--   [LeakyRelu](#LeakyRelu.md)
--   [LessOrEqual](#LessOrEqual.md)
--   [Log](#Log.md)
--   [LogSoftMax](#LogSoftMax.md)
--   [LpNormalization](#LpNormalization.md)
--   [LRN](#LRN.md)
--   [LSTM](#LSTM.md)
--   [MatMul](#MatMul.md)
--   [Max](#Max.md)
--   [MaxPool](#MaxPool.md)
--   [MaxRoiPool](#MaxRoiPool.md)
--   [Mean](#Mean.md)
--   [MeanVarianceNormalization](#MeanVarianceNormalization.md)
--   [Min](#Min.md)
--   [Mod](#Mod.md)
--   [Mul](#Mul.md)
--   [Multinomial](#Multinomial.md)
--   [Neg](#Neg.md)
--   [NonMaxSuppression](#NonMaxSuppression.md)
--   [NonZero](#NonZero.md)
--   [Not](#Not.md)
--   [OneHot](#OneHot.md)
--   [Or](#Or.md)
--   [randomUniform](#randomUniform.md)
--   [Range](#Range.md)
--   [Reciprocal](#Reciprocal.md)
--   [ReduceL1](#ReduceL1.md)
--   [ReduceL2](#ReduceL2.md)
--   [ReduceMin](#ReduceMin.md)
--   [ReduceMean](#ReduceMean.md)
--   [ReduceProd](#ReduceProd.md)
--   [ReduceSumSquare](#ReduceSumSquare.md)
--   [Resize](#Resize.md)
--   [Relu](#Relu.md)
--   [ReduceSum](#ReduceSum.md)
--   [ReduceMax](#ReduceMax.md)
--   [Reshape](#Reshape.md)
--   [ReverseSequence](#ReverseSequence.md)
--   [RoiExtractor](#RoiExtractor.md)
--   [RoiAlign](#RoiAlign.md)
--   [Round](#Round.md)
--   [PRelu](#PRelu.md)
--   [ScatterND](#ScatterND.md)
--   [Selu](#Selu.md)
--   [Shape](#Shape.md)
--   [Sigmoid](#Sigmoid.md)
--   [Slice](#Slice.md)
--   [Softmax](#Softmax.md)
--   [Softsign](#Softsign.md)
--   [Softplus](#Softplus.md)
--   [SpaceToDepth](#SpaceToDepth.md)
--   [Split](#Split.md)
--   [Sqrt](#Sqrt.md)
--   [Squeeze](#Squeeze.md)
--   [Sub](#Sub.md)
--   [Sign](#Sign.md)
--   [Sin](#Sin.md)
--   [Sinh](#Sinh.md)
--   [Size](#Size.md)
--   [Sum](#Sum.md)
--   [Tanh](#Tanh.md)
--   [Tile](#Tile.md)
--   [ThresholdedRelu](#ThresholdedRelu.md)
--   [TopK](#TopK.md)
--   [Transpose](#Transpose.md)
--   [pad](#pad.md)
--   [Pow](#Pow.md)
--   [Unsqueeze](#Unsqueeze.md)
--   [Where](#Where.md)
-<h2 id="Abs.md">Abs</h2>
 
-## 功能<a name="section12725193815114"></a>
+
+
+
+
+
+
+
+-   [Abs](#Abs)
+-   [Acos](#Acos)
+-   [Acosh](#Acosh)
+-   [AdaptiveMaxPool2D](#AdaptiveMaxPool2D)
+-   [Add](#Add)
+-   [Addcmul](#Addcmul)
+-   [AffineGrid](#AffineGrid)
+-   [And](#And)
+-   [Argmax](#Argmax)
+-   [Argmin](#Argmin)
+-   [AscendRequantS16](#AscendRequantS16)
+-   [AscendRequant](#AscendRequant)
+-   [AscendQuant](#AscendQuant)
+-   [AscendDequantS16](#AscendDequantS16)
+-   [AscendDequant](#AscendDequant)
+-   [AscendAntiQuant](#AscendAntiQuant)
+-   [Asin](#Asin)
+-   [Asinh](#Asinh)
+-   [Atan](#Atan)
+-   [Atanh](#Atanh)
+-   [AveragePool](#AveragePool)
+-   [BatchNormalization](#BatchNormalization)
+-   [BatchMatMul](#BatchMatMul)
+-   [BatchMultiClassNMS](#BatchMultiClassNMS)
+-   [Cast](#Cast)
+-   [Ceil](#Ceil)
+-   [Celu](#Celu)
+-   [Concat](#Concat)
+-   [Clip](#Clip)
+-   [ConvTranspose](#ConvTranspose)
+-   [Cumsum](#Cumsum)
+-   [Conv](#Conv)
+-   [Constant](#Constant)
+-   [ConstantOfShape](#ConstantOfShape)
+-   [Cos](#Cos)
+-   [Cosh](#Cosh)
+-   [Det](#Det)
+-   [DepthToSpace](#DepthToSpace)
+-   [Div](#Div)
+-   [Dropout](#Dropout)
+-   [elu](#elu)
+-   [EmbeddingBag](#EmbeddingBag)
+-   [Equal](#Equal)
+-   [Erf](#Erf)
+-   [Exp](#Exp)
+-   [Expand](#Expand)
+-   [Flatten](#Flatten)
+-   [Floor](#Floor)
+-   [Gather](#Gather)
+-   [GatherND](#GatherND)
+-   [GatherElements](#GatherElements)
+-   [Gemm](#Gemm)
+-   [GlobalAveragePool](#GlobalAveragePool)
+-   [GlobalMaxPool](#GlobalMaxPool)
+-   [Greater](#Greater)
+-   [GreaterOrEqual](#GreaterOrEqual)
+-   [Gru](#Gru)
+-   [HardSigmoid](#HardSigmoid)
+-   [hardmax](#hardmax)
+-   [Identity](#Identity)
+-   [If](#If)
+-   [Less](#Less)
+-   [LeakyRelu](#LeakyRelu)
+-   [LessOrEqual](#LessOrEqual)
+-   [Log](#Log)
+-   [LogSoftMax](#LogSoftMax)
+-   [LpNormalization](#LpNormalization)
+-   [LRN](#LRN)
+-   [LSTM](#LSTM)
+-   [MatMul](#MatMul)
+-   [Max](#Max)
+-   [MaxPool](#MaxPool)
+-   [MaxRoiPool](#MaxRoiPool)
+-   [Mean](#Mean)
+-   [MeanVarianceNormalization](#MeanVarianceNormalization)
+-   [Min](#Min)
+-   [Mod](#Mod)
+-   [Mul](#Mul)
+-   [Multinomial](#Multinomial)
+-   [Neg](#Neg)
+-   [NonMaxSuppression](#NonMaxSuppression)
+-   [NonZero](#NonZero)
+-   [Not](#Not)
+-   [OneHot](#OneHot)
+-   [Or](#Or)
+-   [randomUniform](#randomUniform)
+-   [Range](#Range)
+-   [Reciprocal](#Reciprocal)
+-   [ReduceL1](#ReduceL1)
+-   [ReduceL2](#ReduceL2)
+-   [ReduceMin](#ReduceMin)
+-   [ReduceMean](#ReduceMean)
+-   [ReduceProd](#ReduceProd)
+-   [ReduceSumSquare](#ReduceSumSquare)
+-   [Resize](#Resize)
+-   [Relu](#Relu)
+-   [ReduceSum](#ReduceSum)
+-   [ReduceMax](#ReduceMax)
+-   [Reshape](#Reshape)
+-   [ReverseSequence](#ReverseSequence)
+-   [RoiExtractor](#RoiExtractor)
+-   [RoiAlign](#RoiAlign)
+-   [Round](#Round)
+-   [PRelu](#PRelu)
+-   [ScatterND](#ScatterND)
+-   [Selu](#Selu)
+-   [Shape](#Shape)
+-   [Sigmoid](#Sigmoid)
+-   [Slice](#Slice)
+-   [Softmax](#Softmax)
+-   [Softsign](#Softsign)
+-   [Softplus](#Softplus)
+-   [SpaceToDepth](#SpaceToDepth)
+-   [Split](#Split)
+-   [Sqrt](#Sqrt)
+-   [Squeeze](#Squeeze)
+-   [Sub](#Sub)
+-   [Sign](#Sign)
+-   [Sin](#Sin)
+-   [Sinh](#Sinh)
+-   [Size](#Size)
+-   [Sum](#Sum)
+-   [Tanh](#Tanh)
+-   [Tile](#Tile)
+-   [ThresholdedRelu](#ThresholdedRelu)
+-   [TopK](#TopK)
+-   [Transpose](#Transpose)
+-   [pad](#pad)
+-   [Pow](#Pow)
+-   [Unsqueeze](#Unsqueeze)
+-   [Where](#Where)
+## Abs<a name="Abs"></a>
+
+### 功能<a name="section12725193815114"></a>
 
 对输入张量取绝对值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -150,17 +158,17 @@ x：一个tensor，数据类型：float16、float32、double、int8、int16、in
 
 y：一个tensor，数据类型和shape与输入一致"	
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Acos.md">Acos</h2>
+## Acos<a name="Acos"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的反余弦值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -174,17 +182,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Acosh.md">Acosh</h2>
+## Acosh<a name="Acosh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的反双曲余弦值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -198,17 +206,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="AdaptiveMaxPool2D.md">AdaptiveMaxPool2D</h2>
+## AdaptiveMaxPool2D<a name="AdaptiveMaxPool2D"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入进行2d自适应最大池化计算
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -230,17 +238,17 @@ y：一个tensor，数据类型：与x类型一致
 
 argmax:一个tensor，数据类型：int
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="Add.md">Add</h2>
+## Add<a name="Add"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 按元素求和按元素求和
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -254,17 +262,17 @@ B：一个张量，数据类型与A相同
 
 C：一个张量，数据类型与A相同
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Addcmul.md">Addcmul</h2>
+## Addcmul<a name="Addcmul"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 元素级计算\(x2 \* x3\) \* value + input\_data
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -284,17 +292,17 @@ value: 一个tensor，类型与inpu\_data相同
 
 y：一个tensor，数据类型：y与输入相同
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AffineGrid.md">AffineGrid</h2>
+## AffineGrid<a name="AffineGrid"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 给定一批矩阵，生成采样网络
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -316,17 +324,17 @@ align\_corners:bool型
 
 y：一个tensor，数据类型：int
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="And.md">And</h2>
+## And<a name="And"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 逻辑与
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -342,17 +350,17 @@ x2：一个tensor，数据类型：bool
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Argmax.md">Argmax</h2>
+## Argmax<a name="Argmax"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 返回指定轴上最大值所对应的索引
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -376,17 +384,17 @@ keep\_dim：可选，keep\_dim默认为1，支持1或0。
 
 算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Argmin.md">Argmin</h2>
+## Argmin<a name="Argmin"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 返回输入张量指定轴上最小值对应的索引
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -408,17 +416,17 @@ axis：数据类型为int，含义：指定计算轴；取值范围：\[-r, r-1\
 
 算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="AscendRequantS16.md">AscendRequantS16</h2>
+## AscendRequantS16<a name="AscendRequantS16"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 重新量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -446,17 +454,17 @@ y0：一个tensor，数据类型：int8
 
 y1：一个tensor，数据类型：int16
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AscendRequant.md">AscendRequant</h2>
+## AscendRequant<a name="AscendRequant"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 重新量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -478,17 +486,17 @@ relu\_flag:bool型
 
 y：一个tensor，数据类型：int8
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AscendQuant.md">AscendQuant</h2>
+## AscendQuant<a name="AscendQuant"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -514,17 +522,17 @@ round\_mode: string
 
 y：一个tensor，数据类型：int8
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AscendDequantS16.md">AscendDequantS16</h2>
+## AscendDequantS16<a name="AscendDequantS16"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 反量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -548,17 +556,17 @@ relu\_flag:bool型
 
 y：一个tensor，数据类型：int16
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AscendDequant.md">AscendDequant</h2>
+## AscendDequant<a name="AscendDequant"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 反量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -584,17 +592,17 @@ dtype：float
 
 y：一个tensor，数据类型：float16，float
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="AscendAntiQuant.md">AscendAntiQuant</h2>
+## AscendAntiQuant<a name="AscendAntiQuant"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 反量化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -620,17 +628,17 @@ round\_mode: string
 
 y：一个tensor，数据类型：float16，float
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="Asin.md">Asin</h2>
+## Asin<a name="Asin"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的反正弦
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -644,17 +652,17 @@ x1：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Asinh.md">Asinh</h2>
+## Asinh<a name="Asinh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量双曲反正弦
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -666,17 +674,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tenso，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Atan.md">Atan</h2>
+## Atan<a name="Atan"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的反正切值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -690,17 +698,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Atanh.md">Atanh</h2>
+## Atanh<a name="Atanh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的双曲反正切
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -714,17 +722,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="AveragePool.md">AveragePool</h2>
+## AveragePool<a name="AveragePool"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 平均池化层
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -780,17 +788,17 @@ ceil\_mode参数仅在auto\_pad='NOTSET'时生效；
 
 auto\_pad属性值SAME\_UPPER, SAME\_LOWER统一使用的TBE的SAME属性，即TBE算子没有根据这个属性区分pad的填充位置，可能会带来精度问题
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="BatchNormalization.md">BatchNormalization</h2>
+## BatchNormalization<a name="BatchNormalization"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 标准化张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -826,17 +834,17 @@ epsilon：可选，数据类型：float32，指定一个小值与var相加，以
 
 momentum：float32，该参数暂不支持
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="BatchMatMul.md">BatchMatMul</h2>
+## BatchMatMul<a name="BatchMatMul"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将两个输入执行矩阵乘
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -860,17 +868,17 @@ adj\_x2:bool型
 
 y：一个tensor，数据类型：float16，float，int32
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="BatchMultiClassNMS.md">BatchMultiClassNMS</h2>
+## BatchMultiClassNMS<a name="BatchMultiClassNMS"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 为输入boxes和输入score计算nms
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -912,17 +920,17 @@ nmsed\_classes：一个tensor，数据类型：float16
 
 nmsed\_num：一个tensor，数据类型：float16
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="Cast.md">Cast</h2>
+## Cast<a name="Cast"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入数据的type转换为指定的type
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -938,17 +946,17 @@ y：一个tensor，输出的数据类型为属性指定的类型，数据类型�
 
 to：数据类型：int，必选，指定目标数据类型，取值范围：在指定的数据类型范围内
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Ceil.md">Ceil</h2>
+## Ceil<a name="Ceil"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量向上取整
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -962,19 +970,19 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Celu.md">Celu</h2>
+## Celu<a name="Celu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 连续可微的指数线性单位:对输入张量X按元素执行线性单位，使用公式:
 
 max\(0,x\) + min\(0,alpha\*\(exp\(x/alpha\)-1\)\)
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -988,17 +996,17 @@ Y：tensor\(float\)
 
 alpha：float，默认值：1.0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Concat.md">Concat</h2>
+## Concat<a name="Concat"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对多个张量Concat
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1012,17 +1020,17 @@ concat\_result：张量，与输入张量类型一致
 
 axis：指定哪一个轴进行concat操作，负数表示从后往前对维度计数，取值范围为\[-r, r - 1\]，r=rank\(inputs\)
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Clip.md">Clip</h2>
+## Clip<a name="Clip"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将张量值剪辑到指定的最小值和最大值之间
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1040,17 +1048,17 @@ max：一个scalar
 
 Y：一个张量，剪辑后的输出，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ConvTranspose.md">ConvTranspose</h2>
+## ConvTranspose<a name="ConvTranspose"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 转置卷积
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1098,17 +1106,17 @@ output\_shape支持限制：实现部分功能。现在支持output shape的大�
 
 属性auto\_pad不支持 "SAME\_UPPER"，"SAME\_LOWER"
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Cumsum.md">Cumsum</h2>
+## Cumsum<a name="Cumsum"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量在给定axis上面的累加和
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1130,17 +1138,17 @@ exclusive：int，默认为0，含义：是否返回不包括顶层元素的和
 
 reverse：int，默认为0，含义：是否反方向求和
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Conv.md">Conv</h2>
+## Conv<a name="Conv"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 卷积
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1178,17 +1186,17 @@ strides：4个整数的列表，指定沿高度H和宽度W的卷积步长。H和
 
 不支持atc工具--precision\_mode=must\_keep\_origin\_dtype参数时输入类型为fp32和fp64
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Constant.md">Constant</h2>
+## Constant<a name="Constant"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 构建constant节点张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1208,17 +1216,17 @@ value：输出张量的值
 
 sparse\_value：不支持
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ConstantOfShape.md">ConstantOfShape</h2>
+## ConstantOfShape<a name="ConstantOfShape"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 用给定的值和shape生成张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1236,17 +1244,17 @@ value：指定输出tensor的数据和类型
 
 x：1<=len\(shape\)<=8
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Cos.md">Cos</h2>
+## Cos<a name="Cos"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的余弦值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1260,17 +1268,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Cosh.md">Cosh</h2>
+## Cosh<a name="Cosh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的双曲余弦
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1284,17 +1292,17 @@ X1：一个tensor，数据类型：float16、float、double
 
 y：一个张量，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Det.md">Det</h2>
+## Det<a name="Det"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算方形矩阵行列式
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1308,17 +1316,17 @@ x：tensor，数据类型：float16、float32
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="DepthToSpace.md">DepthToSpace</h2>
+## DepthToSpace<a name="DepthToSpace"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将数据由深度重排到空间数据块
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1338,17 +1346,17 @@ blocksize：int，必选 指定被移动的块的大小
 
 mode: string 指定是depth-column-row还是column-row-depth排列，默认DCR
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Div.md">Div</h2>
+## Div<a name="Div"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 按元素进行除法运算
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1368,17 +1376,17 @@ y：一个tensor，数据类型和输入一致
 
 输入、输出的type相同
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Dropout.md">Dropout</h2>
+## Dropout<a name="Dropout"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 拷贝或者屏蔽输入数据
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1398,17 +1406,17 @@ output：一个张量
 
 mask: 一个张量
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="elu.md">elu</h2>
+## elu<a name="elu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 elu激活函数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1426,17 +1434,17 @@ y：一个张量，和输入x同样的type和shape
 
 alpha：float，默认为1.0，含义：系数
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="EmbeddingBag.md">EmbeddingBag</h2>
+## EmbeddingBag<a name="EmbeddingBag"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算embedding函数的反向输出
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1468,17 +1476,17 @@ include\_last\_offset：bool型
 
 y：一个tensor，数据类型：float32
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="Equal.md">Equal</h2>
+## Equal<a name="Equal"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 判断两个输入张量对应位置是否相等
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1498,17 +1506,17 @@ y：一个tensor ，数据类型：bool
 
 输入X1、X2的数据类型和格式相同，支持如下数据类型：bool、uint8、int8、int16、int32、int64、float16、float32、double
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Erf.md">Erf</h2>
+## Erf<a name="Erf"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 高斯误差函数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1522,17 +1530,17 @@ x：一个tensor，数据类型：float16、float32
 
 y：一个tensor，数据类型和格式与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Exp.md">Exp</h2>
+## Exp<a name="Exp"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的指数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1546,17 +1554,17 @@ x：一个tensor，数据类型：float16、float32
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Expand.md">Expand</h2>
+## Expand<a name="Expand"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入tensor广播到指定shape
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1576,17 +1584,17 @@ y：一个张量，和输入x同样的type和shape
 
 需要修改模型将输入shape由placeholder改为const类型，可以使用onnxsimplifier简化模型
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Flatten.md">Flatten</h2>
+## Flatten<a name="Flatten"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将张量展平
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1600,17 +1608,17 @@ input：多维张量，数据类型：int8、uint8、int16、uint16、int32、ui
 
 axis：int，该参数暂不支持负值索引
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Floor.md">Floor</h2>
+## Floor<a name="Floor"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量向下取整
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1624,17 +1632,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Gather.md">Gather</h2>
+## Gather<a name="Gather"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 根据相应的轴从“x”中收集切片
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1658,17 +1666,17 @@ axis：数据类型：int，指定gather的轴，取值范围为\[-r, r-1\]（r�
 
 不支持indices为负值的索引
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="GatherND.md">GatherND</h2>
+## GatherND<a name="GatherND"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入数据切片输出
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1692,17 +1700,17 @@ batch\_dims：int，默认为0 批处理轴的数量
 
 不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时double的输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v11/v12/v13
 
-<h2 id="GatherElements.md">GatherElements</h2>
+## GatherElements<a name="GatherElements"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 获取索引位置的元素产生输出
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1722,17 +1730,17 @@ output：一个张量,与indices的shape相同
 
 axis：int，默认为0 指定聚集的轴
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Gemm.md">Gemm</h2>
+## Gemm<a name="Gemm"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 全连接层
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1760,17 +1768,17 @@ beta：float，该参数暂不支持
 
 v8/v9/v10版本不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="GlobalAveragePool.md">GlobalAveragePool</h2>
+## GlobalAveragePool<a name="GlobalAveragePool"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 全局平均池化
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1780,17 +1788,17 @@ X：一个张量，数据类型：float16、float32，格式为NCHW
 
 Y：池化输出张量，数据类型与X相同，格式为NCHW
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="GlobalMaxPool.md">GlobalMaxPool</h2>
+## GlobalMaxPool<a name="GlobalMaxPool"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 全局最大池化算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1804,17 +1812,17 @@ x:前一个节点的输出tensor，类型：float16, float32, double
 
 output：池化后的张量
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Greater.md">Greater</h2>
+## Greater<a name="Greater"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 按元素比较输入x1和x2的大小，若x1\>x2，对应位置返回true
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1830,17 +1838,17 @@ x2：一个tensor，数据类型：float16、float32、int32、int8、uint8
 
 y：一个tensor，数据类型：bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="GreaterOrEqual.md">GreaterOrEqual</h2>
+## GreaterOrEqual<a name="GreaterOrEqual"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 按元素比较输入x1和x2的大小，若x1\>=x2，对应位置返回true
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1856,17 +1864,17 @@ x2：一个tensor，数据类型：float16、float32、int32、int8、uint8等
 
 y：一个tensor，数据类型：bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v12
 
-<h2 id="Gru.md">Gru</h2>
+## Gru<a name="Gru"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算单层GRU
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1910,17 +1918,17 @@ layout:
 
 linear\_before\_reset:
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="HardSigmoid.md">HardSigmoid</h2>
+## HardSigmoid<a name="HardSigmoid"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 HardSigmoid接受一个输入数据\(张量\)并生成一个输出数据\(张量\)，HardSigmoid函数y = max\(0, min\(1, alpha \* x + beta\)\)应用于张量元素方面。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1940,17 +1948,17 @@ alpha：float，默认值：0.2
 
 beta：float，默认值：0.2
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v1/v6/v8/v9/v10/v11/v12/v13
 
-<h2 id="hardmax.md">hardmax</h2>
+## hardmax<a name="hardmax"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算hardmax结果，如果元素是指定axis的最大元素则设为1，否则为0
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1968,17 +1976,17 @@ y：一个张量，和输入x同样的type和shape
 
 axis：int，默认为-1，含义：指定计算轴
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Identity.md">Identity</h2>
+## Identity<a name="Identity"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 恒等操作
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -1992,17 +2000,17 @@ x：tensor，数据类型：float16、float32
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="If.md">If</h2>
+## If<a name="If"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 逻辑控制判断算子
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2022,17 +2030,17 @@ then\_branch：条件为真的分支
 
 y：tensor或者tensor序列
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Less.md">Less</h2>
+## Less<a name="Less"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 按元素比较输入x1和x2的大小，若x1<x2，对应位置返回true
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2048,17 +2056,17 @@ x2：一个tensor，数据类型：float16、float32、int32、int8、uint8
 
 y：一个tensor，数据类型：bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="LeakyRelu.md">LeakyRelu</h2>
+## LeakyRelu<a name="LeakyRelu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量用leakrelu函数激活
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2076,17 +2084,17 @@ y： 一个tensor，数据类型和shape与输入一致
 
 alpha：数据类型为float，默认0.01，表示leakage系数
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="LessOrEqual.md">LessOrEqual</h2>
+## LessOrEqual<a name="LessOrEqual"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 小于等于计算
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2102,17 +2110,17 @@ y：tensor，数据类型：float16、float32
 
 y：一个张量，和输入x同样的shape,数据类型:bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v12/v13
 
-<h2 id="Log.md">Log</h2>
+## Log<a name="Log"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入的自然对数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2126,17 +2134,17 @@ x：一个tensor，数据类型：float16、float32
 
 y：一个tensor，数据类型与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="LogSoftMax.md">LogSoftMax</h2>
+## LogSoftMax<a name="LogSoftMax"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量计算logsoftmax值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2154,17 +2162,17 @@ y：一个tensor，数据类型和shape与输入一致
 
 axis：数据类型为int；指定计算的轴，取值范围：\[-r, r-1\]，r为输入的秩
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="LpNormalization.md">LpNormalization</h2>
+## LpNormalization<a name="LpNormalization"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 给定一个矩阵，沿给定的轴应用LpNormalization。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2184,17 +2192,17 @@ axis：int，默认值：-1
 
 p：int，默认值：2
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v1/v8/v9/v10/v11/v12/v13
 
-<h2 id="LRN.md">LRN</h2>
+## LRN<a name="LRN"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量做局部响应归一化
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2218,17 +2226,17 @@ bias：float
 
 size：int，求和的通道数，只支持奇数
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="LSTM.md">LSTM</h2>
+## LSTM<a name="LSTM"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算单层LSTM。这个操作符通常通过一些自定义实现\(如CuDNN\)来支持。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入3-8】
 
@@ -2274,17 +2282,17 @@ input\_forget: int，默认值：0
 
 layout: int，默认值：0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="MatMul.md">MatMul</h2>
+## MatMul<a name="MatMul"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 矩阵乘
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2306,17 +2314,17 @@ y：一个2D的tensor，数据类型：float16
 
 只支持ND和2D的矩阵乘
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Max.md">Max</h2>
+## Max<a name="Max"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 元素级比较输入tensor的大小
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2330,17 +2338,17 @@ data\_0:tensor的列表，类型：float16、float32,int8,int16,int32等
 
 max：一个张量，和输入x同样的type和shape（广播后的shape）
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="MaxPool.md">MaxPool</h2>
+## MaxPool<a name="MaxPool"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 最大池化
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2389,17 +2397,17 @@ kernel\_shape\_H或kernel\_shape\_W取值超过\[1,255\]，或者ksizeH \* ksize
 
 auto\_pad属性是VALID时，ceil\_mode属性值必须为0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="MaxRoiPool.md">MaxRoiPool</h2>
+## MaxRoiPool<a name="MaxRoiPool"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 ROI最大池消耗一个输入张量X和感兴趣区域\(ROI\)，以便在每个ROI上应用最大池，从而产生输出的4-D形状张量\(num\_roi, channels, pooled\_shape\[0\]， pooled\_shape\[1\]\)。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2423,17 +2431,17 @@ spatial\_scale: float，默认值：1.0
 
 不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/13
 
-<h2 id="Mean.md">Mean</h2>
+## Mean<a name="Mean"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 每个输入张量的元素均值\(支持numpy风格的广播\)。所有输入和输出必须具有相同的数据类型。该操作符支持多向\(即numpy风格\)广播。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入1-∞】
 
@@ -2443,17 +2451,17 @@ data\_0：，类型：tensor\(float16\), tensor\(float\), tensor\(double\), tens
 
 mean：，类型：tensor\(float16\), tensor\(float\), tensor\(double\), tensor\(bfloat16\)
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="MeanVarianceNormalization.md">MeanVarianceNormalization</h2>
+## MeanVarianceNormalization<a name="MeanVarianceNormalization"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 一个均值标准化函数:使用公式对输入张量X进行均值方差标准化：\(X-EX\)/sqrt\(E\(X-EX\)^2\)
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2467,17 +2475,17 @@ Y：，类型：tensor\(float16\), tensor\(float\), tensor\(bfloat16\)
 
 axes: list of ints，默认值：\['0', '2', '3'\]
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Min.md">Min</h2>
+## Min<a name="Min"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入tensors的最小值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2491,17 +2499,17 @@ x：tensor列表，数据类型：float16、float32
 
 y：计算出最小值的tensor
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Mod.md">Mod</h2>
+## Mod<a name="Mod"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 执行元素二进制模数\(支持numpy风格的广播\)。余数的符号与除数的符号相同。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2521,17 +2529,17 @@ fmod：，类型：int，默认值：0
 
 当输入类型为浮点时，fmod不支持为0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12/v13
 
-<h2 id="Mul.md">Mul</h2>
+## Mul<a name="Mul"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 矩阵点乘
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2543,17 +2551,17 @@ B：一个张量，数据类型：float16、float32、uint8、int8、int16、int
 
 C：一个张量，数据类型与输入张量一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Multinomial.md">Multinomial</h2>
+## Multinomial<a name="Multinomial"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 返回Multinomial采样结果矩阵
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2575,17 +2583,17 @@ sample\_size：int，默认为1，含义：采样次数
 
 seed：float，随机数种子
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Neg.md">Neg</h2>
+## Neg<a name="Neg"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 求输入的负数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2599,17 +2607,17 @@ x：一个tensor，数据类型：float16、float32、int32
 
 y：一个tensor，数据类型与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="NonMaxSuppression.md">NonMaxSuppression</h2>
+## NonMaxSuppression<a name="NonMaxSuppression"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 过滤掉与先前选定的框有较高重叠的“交集-并集”\(IOU\)框。移除得分小于score\_threshold的边界框。边界框格式由属性center\_point\_box表示。注意，该算法不知道原点在坐标系中的位置，更普遍地说，它对坐标系的正交变换和平移是不变的;因此，平移或反射坐标系统的结果在相同的方框被算法选择。selected\_indices输出是一组整数，索引到表示所选框的边界框的输入集合中。然后，可以使用Gather或gatherd操作获得与所选索引对应的边框坐标。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入2-5】
 
@@ -2631,17 +2639,17 @@ selected\_indices: tensor\(int64\)
 
 center\_point\_box: int 默认值：0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12/v13
 
-<h2 id="NonZero.md">NonZero</h2>
+## NonZero<a name="NonZero"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 返回非零元素的索引（按行大顺序-按维）
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2655,17 +2663,17 @@ x：一个tensor，数据类型：float16、float32、int32、int8、uint8等
 
 y：一个tensor，数据类型：int64
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Not.md">Not</h2>
+## Not<a name="Not"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 逻辑非
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2679,17 +2687,17 @@ x：一个tensor，数据类型：bool
 
 y：一个tensor，数据类型：bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="OneHot.md">OneHot</h2>
+## OneHot<a name="OneHot"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 根据输入生成一热编码张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2717,17 +2725,17 @@ y：一个tensor，数据类型与value输入的类型一致
 
 算子属性不支持axis<-1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="Or.md">Or</h2>
+## Or<a name="Or"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 逻辑或
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2743,17 +2751,17 @@ X2：一个tensor，数据类型：bool
 
 y：一个tensor，数据类型：bool
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="randomUniform.md">randomUniform</h2>
+## randomUniform<a name="randomUniform"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 生成具有从均匀分布绘制的随机值的张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【属性】
 
@@ -2775,17 +2783,17 @@ shape：输出的形状
 
 y：一个tensor，数据类型与dtype属性指定类型一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Range.md">Range</h2>
+## Range<a name="Range"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 产生一个连续序列的tensor
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2803,17 +2811,17 @@ delta：scalar，数据类型：float16、float32
 
 y：一个张量，和输入x同样的type
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Reciprocal.md">Reciprocal</h2>
+## Reciprocal<a name="Reciprocal"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入张量取倒数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2827,17 +2835,17 @@ lx：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceL1.md">ReduceL1</h2>
+## ReduceL1<a name="ReduceL1"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 沿所提供的轴计算输入张量元素的L1范数。如果keepdim等于1，得到的张量的秩与输入的相同。如果keepdim等于0，那么得到的张量就会被精简维数。上述行为与numpy类似，只是numpy默认keepdim为False而不是True。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2853,17 +2861,17 @@ axes: list of ints
 
 keepdims: int，默认值：1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceL2.md">ReduceL2</h2>
+## ReduceL2<a name="ReduceL2"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 沿所提供的轴计算输入张量元素的L2范数。如果keepdim等于1，得到的张量的秩与输入的相同。如果keepdim等于0，那么得到的张量就会被精简维数。上述行为与numpy类似，只是numpy默认keepdim为False而不是True。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2879,17 +2887,17 @@ axes: list of ints
 
 keepdims: int，默认值：1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceMin.md">ReduceMin</h2>
+## ReduceMin<a name="ReduceMin"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量指定方向的最小值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2909,17 +2917,17 @@ axes：数据类型为listInt；含义：指定计算轴；取值范围：\[-r, 
 
 keepdims：数据类型为int；含义：是否保留缩减后的维度；默认为1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceMean.md">ReduceMean</h2>
+## ReduceMean<a name="ReduceMean"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的指定维度的元素的均值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2939,17 +2947,17 @@ axes：一个1D的整数列表，含义：指定精减的维度，取值范围�
 
 keepdims：数据类型为int，默认为1，含义：是否保留缩减后的维度
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceProd.md">ReduceProd</h2>
+## ReduceProd<a name="ReduceProd"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的元素沿所提供的轴的乘积。如果keepdim等于1，得到的张量的秩与输入的相同。如果keepdim等于0，那么得到的张量就会被精简维数。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2965,17 +2973,17 @@ axes: list of ints
 
 keepdims: int，默认值：1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceSumSquare.md">ReduceSumSquare</h2>
+## ReduceSumSquare<a name="ReduceSumSquare"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 沿所提供的轴计算输入张量元素的平方和。如果keepdim等于1，得到的张量的秩与输入的相同。如果keepdim等于0，那么得到的张量就会被精简维数。上述行为与numpy类似，只是numpy默认keepdim为False而不是True。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -2991,17 +2999,17 @@ axes: list of ints
 
 keepdims: int，默认值：1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v1/v8/v9/v10/v11/v12/v13
 
-<h2 id="Resize.md">Resize</h2>
+## Resize<a name="Resize"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 调整输入tensor大小
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3037,17 +3045,17 @@ nearest\_mode：str，默认为round\_prefer\_floor，含义：最近邻算子�
 
 目前仅支持nearest和linear插值方式来处理图片，并且需要修改模型将输入scales或sizes由placeholder改为const类型，可以使用onnxsimplifier简化模型
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12
 
-<h2 id="Relu.md">Relu</h2>
+## Relu<a name="Relu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 整流线性单位函数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3057,17 +3065,17 @@ X：输入张量，数据类型：float32、int32、uint8、int16、int8、uint1
 
 Y：输出张量，数据类型与X一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceSum.md">ReduceSum</h2>
+## ReduceSum<a name="ReduceSum"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量指定维度的元素的和
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3087,17 +3095,17 @@ axes：一个1D的整数列表，含义：指定精减的维度，取值范围�
 
 keepdims：数据类型为int，默认为1，含义：是否保留缩减后的维度
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReduceMax.md">ReduceMax</h2>
+## ReduceMax<a name="ReduceMax"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量指定方向的最大值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3117,17 +3125,17 @@ axes：数据类型为listInt；含义：指定计算轴；取值范围：\[-r, 
 
 keepdims：数据类型为int；含义：是否保留缩减后的维度；默认为1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Reshape.md">Reshape</h2>
+## Reshape<a name="Reshape"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 改变输入维度
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3141,17 +3149,17 @@ shape：一个张量，定义了输出张量的形状，int64
 
 reshaped：一个张量
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ReverseSequence.md">ReverseSequence</h2>
+## ReverseSequence<a name="ReverseSequence"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 根据指定长度对batch序列进行排序
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3173,17 +3181,17 @@ batch\_axis：int，默认为1，含义：指定batch轴
 
 time\_axis：int，默认为1，含义：指定time轴
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12/v13
 
-<h2 id="RoiExtractor.md">RoiExtractor</h2>
+## RoiExtractor<a name="RoiExtractor"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 从特征映射列表中获取ROI特征矩阵
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3219,17 +3227,17 @@ aligned：bool型
 
 y：一个tensor，数据类型：float32,float16
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 自定义算子，无对应onnx版本
 
-<h2 id="RoiAlign.md">RoiAlign</h2>
+## RoiAlign<a name="RoiAlign"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 在每个roi区域进行池化处理
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3265,17 +3273,17 @@ batch\_indices数据类型只能写int32不能写int64
 
 不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32，fp64的输入
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12/v13
 
-<h2 id="Round.md">Round</h2>
+## Round<a name="Round"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入张量做四舍五入的运算
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3289,17 +3297,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="PRelu.md">PRelu</h2>
+## PRelu<a name="PRelu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 PRelu激活函数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3319,17 +3327,17 @@ y：一个张量，和输入x同样的type和shape
 
 slope必须是1维，当输入x的shape是1维时，slope的维度值必须为1；输入x的shape是其他维度时，slope的维度值可以为1或者为输入x的shape\[1\]
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ScatterND.md">ScatterND</h2>
+## ScatterND<a name="ScatterND"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 创建data的拷贝，同时在指定indices处根据updates更新
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3347,17 +3355,17 @@ updates：tensor，rank = q + r - indices\_shape\[-1\] - 1，数据类型：floa
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v11
 
-<h2 id="Selu.md">Selu</h2>
+## Selu<a name="Selu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 在元素级别使用指数线性单位函数y = gamma \* \(alpha \* e^x - alpha\) for x <= 0, y = gamma \* x for x \> 0 生成张量
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3377,17 +3385,17 @@ gamma：乘数因子
 
 y：与输入类型相同的tensor
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Shape.md">Shape</h2>
+## Shape<a name="Shape"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 获取输入tensor的shape
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3399,17 +3407,17 @@ x：一个tensor
 
 y：输入tensor的shape，数据类型为int64的tensor
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sigmoid.md">Sigmoid</h2>
+## Sigmoid<a name="Sigmoid"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入做sigmoid
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3423,17 +3431,17 @@ x：数据类型支持float16、float32
 
 y：数据类型和输入x一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Slice.md">Slice</h2>
+## Slice<a name="Slice"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 获取输入tensor的切片
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3457,17 +3465,17 @@ y：切片后的张量数据，数据类型和输入一致
 
 x：输入tensor维度不能为1
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Softmax.md">Softmax</h2>
+## Softmax<a name="Softmax"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入进行softmax
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3485,17 +3493,17 @@ y：一个tensor，类型和shape与输入x一致
 
 axis：Int，可选，表示进行softmax的方向，默认值为-1，范围为\[ -len\(x.shape\), len\(x.shape\)-1\]
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Softsign.md">Softsign</h2>
+## Softsign<a name="Softsign"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的softsign\(x/\(1+|x|\)\)
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3509,17 +3517,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Softplus.md">Softplus</h2>
+## Softplus<a name="Softplus"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算softplus
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3539,17 +3547,17 @@ Y：1D的张量
 
 输入、输出的数据类型一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="SpaceToDepth.md">SpaceToDepth</h2>
+## SpaceToDepth<a name="SpaceToDepth"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 SpaceToDepth将空间数据块重新排列成深度。更具体地说，这个op输出一个输入张量的副本，其中高度和宽度维度的值移动到深度维度。
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3563,17 +3571,17 @@ output：tensor\(uint8\), tensor\(uint16\), tensor\(uint32\), tensor\(uint64\), 
 
 blocksize: int
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Split.md">Split</h2>
+## Split<a name="Split"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入切分成多个输出
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3601,17 +3609,17 @@ split的所有元素之和必须等于axis指定的切分方向的size
 
 axis在\[ -len\(x.shape\), len\(x.shape\)-1\] 之间
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sqrt.md">Sqrt</h2>
+## Sqrt<a name="Sqrt"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算元素的平方根
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3631,17 +3639,17 @@ y：一个tensor
 
 如果x小于0，返回Nan
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Squeeze.md">Squeeze</h2>
+## Squeeze<a name="Squeeze"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 从输入中去除尺寸为1的维度
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3657,17 +3665,17 @@ y：一个tensor，数据类型和输入一致
 
 axes：一个数据类型为int32或者int64的整形列表，指定维度的维度值需要为1；取值范围为\[-r, r-1\]（r表示输入张量的秩，负数表示从后面计算维度）；含义：指定要去除的维度
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sub.md">Sub</h2>
+## Sub<a name="Sub"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 进行张量的减法运算
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3687,17 +3695,17 @@ y：一个张量，数据类型和输入一致
 
 输入、输出的shape和dtype相同，支持的数据类型：int32、float16、float32
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sign.md">Sign</h2>
+## Sign<a name="Sign"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 逐元素计算输入tensor的符号
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3711,17 +3719,17 @@ x：tensor，数据类型：float16、float32
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sin.md">Sin</h2>
+## Sin<a name="Sin"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量的正弦值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3735,17 +3743,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sinh.md">Sinh</h2>
+## Sinh<a name="Sinh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入张量双曲正弦值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3759,17 +3767,17 @@ x：一个tensor，数据类型：float16、float32、double
 
 y：一个tensor，数据类型和shape与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Size.md">Size</h2>
+## Size<a name="Size"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入tensor的元素个数
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3783,17 +3791,17 @@ x：tensor，数据类型：float16、float32
 
 y：一个int64的scalar
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Sum.md">Sum</h2>
+## Sum<a name="Sum"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 求和
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3807,17 +3815,17 @@ x：tensor序列，数据类型：float16、float32
 
 y：一个张量，和输入x同样的type和shape
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Tanh.md">Tanh</h2>
+## Tanh<a name="Tanh"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入的双曲正切值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3831,17 +3839,17 @@ x：一个tensor，数据类型：float16、float32
 
 y：一个tensor，数据类型与输入一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Tile.md">Tile</h2>
+## Tile<a name="Tile"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 将输入张量沿指定维度重复
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3857,17 +3865,17 @@ repeats：一个1D的int64的tensor，size和输入的维度数一样
 
 y：输出的tensor，type和维度与输入一致，output\_dim\[i\] = input\_dim\[i\] \* repeats\[i\]
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="ThresholdedRelu.md">ThresholdedRelu</h2>
+## ThresholdedRelu<a name="ThresholdedRelu"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 当x \> alpha时y = x，否则y=0
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3885,17 +3893,17 @@ y：一个张量，和输入x同样的type和shape
 
 alpha：float，默认为1.0，含义：阈值
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v10/v11/v12/v13
 
-<h2 id="TopK.md">TopK</h2>
+## TopK<a name="TopK"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 返回指定轴的k个最大或最小值
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3921,17 +3929,17 @@ largest：int，默认为1，含义：返回k个最大/最小值
 
 sorted：int，默认为1，含义：是否升序
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Transpose.md">Transpose</h2>
+## Transpose<a name="Transpose"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 转置
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3945,17 +3953,17 @@ transposed：转置之后的张量
 
 perm：整数列表， 张量data的维度排列
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="pad.md">pad</h2>
+## pad<a name="pad"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 对输入tensor做填充
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -3975,17 +3983,17 @@ y：数据类型和输入x一致
 
 当mode值为constant时，目前仅支持constant\_value=0
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Pow.md">Pow</h2>
+## Pow<a name="Pow"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 计算输入x1的x2次幂
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -4001,17 +4009,17 @@ x2：一个tensor，数据类型和输入x1一致
 
 y：数据类型和输入x1一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 
-<h2 id="Unsqueeze.md">Unsqueeze</h2>
+## Unsqueeze<a name="Unsqueeze"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 在输入张量（数据）的形状中插入一维项
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -4029,17 +4037,17 @@ y：一个tensor，数据类型和输入x一致
 
 axes：ListInt，表示在指定的维度进行插1维项，取值范围为\[-input\_rank, input\_rank\]，input\_rank为输入张量的秩，axes的内容不可以重复
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/10/v11/v12
 
-<h2 id="Where.md">Where</h2>
+## Where<a name="Where"></a>
 
-## 功能<a name="section12725193815114"></a>
+### 功能<a name="section12725193815114"></a>
 
 根据条件从两个输入中选择元素
 
-## 边界<a name="section9981612134"></a>
+### 边界<a name="section9981612134"></a>
 
 【输入】
 
@@ -4055,7 +4063,7 @@ y：一个tensor，条件为false时从y中选取元素，和x的数据类型一
 
 一个tensor，数据类型和输入x一致
 
-## 支持的ONNX版本<a name="section13311501226"></a>
+### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
 

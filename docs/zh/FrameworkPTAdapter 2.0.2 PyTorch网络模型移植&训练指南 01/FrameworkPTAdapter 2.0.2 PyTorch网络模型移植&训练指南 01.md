@@ -6,7 +6,7 @@
 -   [环境准备](#环境准备.md)
     -   [简介](#简介.md)
     -   [手动编译安装](#手动编译安装.md)
-        -   [获取软件包](#获取软件包.md)
+        -   [前提条件](#前提条件.md)
         -   [安装PyTorch框架](#安装PyTorch框架.md)
         -   [配置环境变量](#配置环境变量.md)
         -   [安装混合精度模块](#安装混合精度模块.md)
@@ -31,21 +31,21 @@
         -   [（可选）安装指定版本OpenCV库](#（可选）安装指定版本OpenCV库.md)
 -   [模型训练](#模型训练.md)
 -   [性能调优和分析](#性能调优和分析.md)
-    -   [前提条件](#前提条件.md)
+    -   [前提条件](#前提条件-2.md)
     -   [调测过程](#调测过程.md)
         -   [总体思路](#总体思路.md)
         -   [采集训练过程相关数据](#采集训练过程相关数据.md)
-        -   [性能优化](#性能优化-2.md)
+        -   [性能优化](#性能优化-3.md)
     -   [亲和库](#亲和库.md)
         -   [来源介绍](#来源介绍.md)
-        -   [功能介绍](#功能介绍-3.md)
+        -   [功能介绍](#功能介绍-4.md)
 -   [精度调测](#精度调测.md)
-    -   [前提条件](#前提条件-4.md)
-    -   [调测过程](#调测过程-5.md)
-        -   [总体思路](#总体思路-6.md)
+    -   [前提条件](#前提条件-5.md)
+    -   [调测过程](#调测过程-6.md)
+        -   [总体思路](#总体思路-7.md)
         -   [精度调优方法](#精度调优方法.md)
 -   [模型保存与转换](#模型保存与转换.md)
-    -   [简介](#简介-7.md)
+    -   [简介](#简介-8.md)
     -   [模型保存](#模型保存.md)
     -   [导出ONNX模型](#导出ONNX模型.md)
 -   [样例说明](#样例说明.md)
@@ -56,7 +56,7 @@
             -   [分布式训练修改](#分布式训练修改.md)
         -   [脚本执行](#脚本执行.md)
     -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例.md)
-        -   [样例获取](#样例获取-8.md)
+        -   [样例获取](#样例获取-9.md)
         -   [模型评估](#模型评估.md)
         -   [网络迁移](#网络迁移.md)
         -   [网络调测](#网络调测.md)
@@ -94,6 +94,7 @@
         -   [加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-error.md)
     -   [模型分布式训练常见问题](#模型分布式训练常见问题.md)
         -   [在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found.md)
+        -   [在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect&#40;&#41;-timed-out.md)
 <h2 id="概述.md">概述</h2>
 
 当前阶段针对PyTorch框架实现的对接适配昇腾AI处理器的方案为在线对接方案。
@@ -107,7 +108,7 @@
 
 ![](figures/pytorch适配逻辑结构图-优化.png)
 
-当前选择在线对接适配方案的主要原因有一下几点：
+当前选择在线对接适配方案的主要原因有以下几点：
 
 1.  最大限度的继承PyTorch框架动态图的特性。
 2.  最大限度的继承GPU在PyTorch上的使用方式，可以使用户在将模型移植到昇腾AI处理器设备进行训练时，在开发方式和代码重用方面做到最小的改动。
@@ -236,7 +237,7 @@
 
 <h2 id="手动编译安装.md">手动编译安装</h2>
 
--   **[获取软件包](#获取软件包.md)**  
+-   **[前提条件](#前提条件.md)**  
 
 -   **[安装PyTorch框架](#安装PyTorch框架.md)**  
 
@@ -245,49 +246,27 @@
 -   **[安装混合精度模块](#安装混合精度模块.md)**  
 
 
-<h2 id="获取软件包.md">获取软件包</h2>
+<h2 id="前提条件.md">前提条件</h2>
 
 ## 前提条件<a name="zh-cn_topic_0275872734_section108914373254"></a>
 
 -   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
 -   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南》中的“安装7.3.0版本gcc”章节。
--   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下:
+-   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下:
     -   Ubuntu系统
+
+        **apt-get install patch**
 
         **apt-get install git**
 
     -   CentOS系统
 
+        **yum install patch**
+
         **yum install git**
 
 
-
-## 获取软件包<a name="section31431838191314"></a>
-
-当前适配昇腾AI处理器的PyTorch及混合精度模块Apex是通过patch化解耦方式发布，需要先获取对应的patch文件。另外Apex提供了包含融合优化功能的whl包，需和patch方式发布的Apex配合使用。请先获取ascend-pytorch-master.zip和ascend-apex-npu-master.zip，解压后得到源码文件。，其它证书文件请详阅下载包。
-
-**表 1**  获取软件包
-
-<a name="table5213131831010"></a>
-<table><thead align="left"><tr id="row192131018201018"><th class="cellrowborder" valign="top" width="50%" id="mcps1.2.3.1.1"><p id="p4101123812102"><a name="p4101123812102"></a><a name="p4101123812102"></a>软件包</p>
-</th>
-<th class="cellrowborder" valign="top" width="50%" id="mcps1.2.3.1.2"><p id="p457084016100"><a name="p457084016100"></a><a name="p457084016100"></a>获取链接</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="row0213201841016"><td class="cellrowborder" valign="top" width="50%" headers="mcps1.2.3.1.1 "><p id="p421301811016"><a name="p421301811016"></a><a name="p421301811016"></a>ascend-pytorch-master.zip</p>
-</td>
-<td class="cellrowborder" valign="top" width="50%" headers="mcps1.2.3.1.2 "><p id="p921316182108"><a name="p921316182108"></a><a name="p921316182108"></a><a href="https://gitee.com/ascend/pytorch/repository/archive/master.zip" target="_blank" rel="noopener noreferrer">获取链接</a></p>
-</td>
-</tr>
-<tr id="row5213018171011"><td class="cellrowborder" valign="top" width="50%" headers="mcps1.2.3.1.1 "><p id="p72142180103"><a name="p72142180103"></a><a name="p72142180103"></a>ascend-apex-npu-master.zip</p>
-</td>
-<td class="cellrowborder" valign="top" width="50%" headers="mcps1.2.3.1.2 "><p id="p2214418181019"><a name="p2214418181019"></a><a name="p2214418181019"></a><a href="https://gitee.com/ascend/apex/repository/archive/master.zip" target="_blank" rel="noopener noreferrer">获取链接</a></p>
-</td>
-</tr>
-</tbody>
-</table>
 
 <h2 id="安装PyTorch框架.md">安装PyTorch框架</h2>
 
@@ -305,44 +284,92 @@
 
     若以上过程报错，请参考[FAQ](#FAQ.md)尝试解决问题。
 
-3.  将源码包ascend-pytorch-master.zip上传至服务器并解压，源码主要目录结构如下。
+3.  获取PyTorch源代码。
 
-    ```
-    pytorch
-    │ ├─build             # 编译构建目录
-    │    ├─build.sh
-    │ ├─dist              # 编译结果文件存放目录
-    │ ├─patch             # 
-    │    ├─npu.patch
-    │ ├─src               # 源码目录
-    │ ├─test              # 测试用例存放目录
-    │ ├─README.md
-    ```
-
-4.  编译安装PyTorch。
-    1.  进入“build“文件夹目录，执行以下命令，将DOS格式的脚本文件转换成UNIX格式。
+    1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码。
 
         ```
-        dos2unix *.sh
+        git clone https://gitee.com/ascend/pytorch.git
         ```
 
-    2.  执行如下命令编译PyTorch，编译完成后将在“dist“文件夹下生成“.whl”格式的安装文件。
+        下载的源码主要目录结构如下所示：
 
         ```
+        pytorch
+        │ ├─patch             # 昇腾AI处理器适配补丁目录
+        │    ├─npu.patch
+        │ ├─scripts           # 编译构建目录
+        │    ├─gen.sh
+        │ ├─src               # 源码目录
+        │ ├─test              # 测试用例存放目录
+        │ ├─README.md
+        ```
+
+    2.  运行如下命令，进入“pytorch“目录，并获取原生PyTorch源代码。
+
+        ```
+        cd pytorch
+        git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
+        ```
+
+        下载原生pytorch源码后，代码主要目录结构如下所示：
+
+        ```
+        pytorch
+        │ ├─patch             # 昇腾AI处理器适配补丁目录
+        │    ├─npu.patch
+        │ ├─pytorch           # 原生pytorch代码目录
+        │ ├─scripts           # 编译构建目录
+        │    ├─gen.sh
+        │ ├─src               # 源码目录
+        │ ├─test              # 测试用例存放目录
+        │ ├─README.md
+        ```
+
+    3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
+
+        ```
+        cd  pytorch
+        git submodule sync
+        git submodule update --init --recursive
+        ```
+
+
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
+
+4.  编译生成适配昇腾AI处理器的PyTorch安装包。
+    1.  进入“pytorch/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
+
+        ```
+        cd ../scripts
+        bash gen.sh
+        ```
+
+        将在"pytorch/pytorch"目录中生成适配昇腾AI处理器的全量代码。
+
+    2.  进入适配后的全量代码目录，即“pytorch/pytorch“目录，编译生成pytorch的二进制安装包。
+
+        ```
+        cd ../pytorch
         bash build.sh
         ```
 
-    3.  进入“dist“文件夹目录，执行如下命令安装。
+        生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
 
-        ```
-        pip3 install --upgrade torch-1.5.0+ascend.post2-cp37-cp37m-linux_{arch}.whl
-        ```
 
-        _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
+5.  <a name="li49671667141"></a>安装PyTorch。
 
-        >![](public_sys-resources/icon-note.gif) **说明：** 
-        >若环境中已安装了PyTorch或需要对PyTorch进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[\#ZH-CN\_TOPIC\_0000001152776301/li1017121316306](#li1017121316306)。
+    进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
 
+    ```
+    pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_{arch}.whl
+    ```
+
+    _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
+
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >若环境中已安装了PyTorch或需要对PyTorch进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[5. 安装PyTorch。](#li49671667141)。
 
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
@@ -389,15 +416,18 @@ print(result)"""
 export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib/:${path_lib}:$LD_LIBRARY_PATH
 export TASK_QUEUE_ENABLE=1 
 
+# （可选）当系统为openeuler时，需设置此命令，取消CPU绑核。
+# unset GOMP_CPU_AFFINITY
+
 # 请依据实际，在下列场景中选择合适的HCCL初始化方式，并配置相应环境变量。具体如下：
 # 场景一：单机场景
 export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
 # 场景二：多机场景。
 export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-export HCCL_IF_IP="10.136.181.111"  # “10.136.181.111”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
+export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
 ```
 
-相关参数介绍参见下表。
+相关参数介绍参见下[表1](#table42017516135)。
 
 **表 1**  环境变量说明
 
@@ -459,6 +489,11 @@ export HCCL_IF_IP="10.136.181.111"  # “10.136.181.111”为示例使用的host
 <p id="p1167163719217"><a name="p1167163719217"></a><a name="p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡(网卡名字字典序升序排列) &gt;docker 网卡 &gt; local网卡</p>
 </td>
 </tr>
+<tr id="row1371356152313"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p16711563237"><a name="p16711563237"></a><a name="p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p0711356152317"><a name="p0711356152317"></a><a name="p0711356152317"></a>（可选）当系统为openeuler时，需设置此命令，取消CPU绑核。</p>
+</td>
+</tr>
 </tbody>
 </table>
 
@@ -472,44 +507,92 @@ export HCCL_IF_IP="10.136.181.111"  # “10.136.181.111”为示例使用的host
 ## 安装流程<a name="section11880164819567"></a>
 
 1.  以root或非root用户登录服务器。
-2.  将源码包ascend-apex-npu-master.zip上传至服务器并解压，源码主要目录结构如下。
+2.  获取apex源代码。
+
+    1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
+
+        ```
+        git clone https://gitee.com/ascend/apex.git
+        ```
+
+        下载的源码主要目录结构如下所示：
+
+        ```
+        apex
+        │ ├─patch             # 昇腾AI处理器适配补丁目录
+        │    ├─npu.patch
+        │ ├─scripts           # 编译构建目录
+        │    ├─gen.sh
+        │ ├─src               # 源码目录
+        │ ├─tests              # 测试用例存放目录
+        │ ├─README.md
+        ```
+
+    2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
+
+        ```
+        cd apex
+        git clone https://github.com/NVIDIA/apex.git
+        ```
+
+        下载原生apex源码后，代码主要目录结构如下所示：
+
+        ```
+        apex
+        │ ├─apex              # 原生apex代码目录
+        │ ├─patch             # 昇腾AI处理器适配补丁目录
+        │    ├─npu.patch
+        │ ├─scripts           # 编译构建目录
+        │    ├─gen.sh
+        │ ├─src               # 源码目录
+        │ ├─tests              # 测试用例存放目录
+        │ ├─README.md
+        ```
+
+    3.  进入原生pytorch代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
+
+        ```
+        cd apex
+        git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
+        cd ..
+        ```
+
+
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
+
+3.  编译生成适配昇腾AI处理器的apex安装包。
+    1.  进入“apex/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
+
+        ```
+        cd ../scripts
+        bash gen.sh
+        ```
+
+        将在"apex/apex"目录中生成适配昇腾AI处理器的全量代码。
+
+    2.  进入适配后的全量代码目录，即“apex/apex“目录，编译生成apex的二进制安装包。
+
+        ```
+        cd ../apex
+        python3 setup.py --cpp_ext --npu_float_status bdist_wheel
+        ```
+
+        生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
+
+
+4.  <a name="li425495374416"></a>安装apex。
+
+    进入“apex/apex/dist“文件夹目录，执行如下命令安装。
 
     ```
-    apex-npu
-    │ ├─build             # 编译构建目录
-    │    ├─build.sh
-    │ ├─dist              # 编译结果文件存放目录
-    │ ├─patch             
-    │    ├─npu.patch
-    │ ├─src               # 源码目录
-    │ ├─tests             # 测试用例存放目录
-    │ ├─README.zh.md      
+    pip3.7 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
     ```
 
-3.  编译安装apex。
-    1.  进入“build“文件夹目录，执行以下命令，将DOS格式的脚本文件转换成UNIX格式。
+    _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
 
-        ```
-        dos2unix *.sh
-        ```
-
-    2.  执行如下命令编译apex，编译完成后将在“dist“文件夹下生成“.whl”格式的安装文件。
-
-        ```
-        bash build.sh
-        ```
-
-    3.  <a name="li9608181712216"></a>进入“dist“文件夹目录，执行如下命令安装。
-
-        ```
-        pip3.7 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
-        ```
-
-        _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
-
-        >![](public_sys-resources/icon-note.gif) **说明：** 
-        >若环境中已安装了Apex或需要对Apex进行升级时，需要先卸载环境中已安装的Apex软件包再执行[3](#li9608181712216)。
-
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >若环境中已安装了Apex或需要对Apex进行升级时，需要先卸载环境中已安装的Apex软件包再执行[4](#li425495374416)。
 
 
 <h2 id="使用Ascend-Hub镜像.md">使用Ascend Hub镜像</h2>
@@ -1074,7 +1157,7 @@ def main():
 </tr>
 <tr id="row871733813317"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p1550303243417"><a name="p1550303243417"></a><a name="p1550303243417"></a>动态Loss Scale功能</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p15400143963412"><a name="p15400143963412"></a><a name="p15400143963412"></a>动态计算loss Scale值并判读是否溢出。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p15400143963412"><a name="p15400143963412"></a><a name="p15400143963412"></a>动态计算loss Scale值并判断是否溢出。</p>
 </td>
 </tr>
 </tbody>
@@ -1210,7 +1293,7 @@ def main():
     </tr>
     <tr id="row55441320113810"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p8377142203913"><a name="p8377142203913"></a><a name="p8377142203913"></a>conservative</p>
     </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>按需快速动态调整CPU频率， 比 ondemand 的调整更保守。</p>
+    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>按需快速动态调整CPU频率， 比ondemand的调整更保守。</p>
     </td>
     </tr>
     <tr id="row5544620123817"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p13377154273919"><a name="p13377154273919"></a><a name="p13377154273919"></a>schedutil</p>
@@ -1339,14 +1422,14 @@ def main():
 
 <h2 id="性能调优和分析.md">性能调优和分析</h2>
 
--   **[前提条件](#前提条件.md)**  
+-   **[前提条件](#前提条件-2.md)**  
 
 -   **[调测过程](#调测过程.md)**  
 
 -   **[亲和库](#亲和库.md)**  
 
 
-<h2 id="前提条件.md">前提条件</h2>
+<h2 id="前提条件-2.md">前提条件</h2>
 
 1.  参见[样例说明](#样例说明.md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
 2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
@@ -1358,7 +1441,7 @@ def main():
 
 -   **[采集训练过程相关数据](#采集训练过程相关数据.md)**  
 
--   **[性能优化](#性能优化-2.md)**  
+-   **[性能优化](#性能优化-3.md)**  
 
 
 <h2 id="总体思路.md">总体思路</h2>
@@ -1461,7 +1544,7 @@ def main():
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
 
-<h2 id="性能优化-2.md">性能优化</h2>
+<h2 id="性能优化-3.md">性能优化</h2>
 
 ## 算子瓶颈优化<a name="section8727652134111"></a>
 
@@ -1509,14 +1592,14 @@ def main():
 
 -   **[来源介绍](#来源介绍.md)**  
 
--   **[功能介绍](#功能介绍-3.md)**  
+-   **[功能介绍](#功能介绍-4.md)**  
 
 
 <h2 id="来源介绍.md">来源介绍</h2>
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
-<h2 id="功能介绍-3.md">功能介绍</h2>
+<h2 id="功能介绍-4.md">功能介绍</h2>
 
 <a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>函数名</p>
@@ -1563,23 +1646,23 @@ def main():
 
 <h2 id="精度调测.md">精度调测</h2>
 
--   **[前提条件](#前提条件-4.md)**  
+-   **[前提条件](#前提条件-5.md)**  
 
--   **[调测过程](#调测过程-5.md)**  
+-   **[调测过程](#调测过程-6.md)**  
 
 
-<h2 id="前提条件-4.md">前提条件</h2>
+<h2 id="前提条件-5.md">前提条件</h2>
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h2 id="调测过程-5.md">调测过程</h2>
+<h2 id="调测过程-6.md">调测过程</h2>
 
--   **[总体思路](#总体思路-6.md)**  
+-   **[总体思路](#总体思路-7.md)**  
 
 -   **[精度调优方法](#精度调优方法.md)**  
 
 
-<h2 id="总体思路-6.md">总体思路</h2>
+<h2 id="总体思路-7.md">总体思路</h2>
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
@@ -1678,14 +1761,14 @@ def main():
 
 <h2 id="模型保存与转换.md">模型保存与转换</h2>
 
--   **[简介](#简介-7.md)**  
+-   **[简介](#简介-8.md)**  
 
 -   **[模型保存](#模型保存.md)**  
 
 -   **[导出ONNX模型](#导出ONNX模型.md)**  
 
 
-<h2 id="简介-7.md">简介</h2>
+<h2 id="简介-8.md">简介</h2>
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
@@ -1701,7 +1784,7 @@ def main():
 
 Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件，根据模型文件的后续用途会保存为两种格式的模型文件：
 
--   .pth或.pt扩展名的文件：用于在线推理或导出ONNX格式模型，仅保存模型参数，不保存模型结构，以便压缩文件的体积，可以用Netron等可视化工具打开，一般如下图所示。
+-   .pth或.pt扩展名的文件：用于在线推理或导出ONNX格式模型，仅保存模型参数，不保存模型结构，以便压缩文件的体积，可以用Netron等可视化工具打开，一般如[图1](#fig315704722610)所示。
 
     **图 1**  Pth文件<a name="fig315704722610"></a>  
     ![](figures/Pth文件.jpg "Pth文件")
@@ -2454,7 +2537,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 
 <h2 id="ShuffleNet模型调优示例.md">ShuffleNet模型调优示例</h2>
 
--   **[样例获取](#样例获取-8.md)**  
+-   **[样例获取](#样例获取-9.md)**  
 
 -   **[模型评估](#模型评估.md)**  
 
@@ -2463,7 +2546,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 -   **[网络调测](#网络调测.md)**  
 
 
-<h2 id="样例获取-8.md">样例获取</h2>
+<h2 id="样例获取-9.md">样例获取</h2>
 
 ## 样例获取<a name="section1155115015182"></a>
 
@@ -2565,13 +2648,13 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 
 详细说明如下：
 
-1.  由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#性能优化-2.md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
+1.  由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#性能优化-3.md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
 
-2.  由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#性能优化-2.md)所描述Copy瓶颈。
+2.  由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#性能优化-3.md)所描述Copy瓶颈。
 
 3.  适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
 
-4.  设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#性能优化-2.md)所描述框架瓶颈。
+4.  设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#性能优化-3.md)所描述框架瓶颈。
 
 5.  修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
 
@@ -3438,7 +3521,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-一般可通过重启服务器和所有npu device解决该问题；若重启后仍然存在该问题，检查安装的driver和fireware版本是否匹配，更换正确版本的driver和fireware或者向华为工程师报告求助解决。
+一般可通过重启服务器和所有npu device解决该问题；若重启后仍然存在该问题，检查安装的driver和firmware版本是否匹配，更换正确版本的driver和firmware或者向华为工程师报告求助解决。
 
 <h2 id="在模型运行时遇到报错-TVM-te-cce-error.md">在模型运行时遇到报错“TVM/te/cce error.”</h2>
 
@@ -3818,6 +3901,8 @@ return result
 
 -   **[在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found.md)**  
 
+-   **[在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-out.md)**  
+
 
 <h2 id="在进行模型分布式训练时遇到报错-host-not-found.md">在进行模型分布式训练时遇到报错“host not found.”</h2>
 
@@ -3832,4 +3917,18 @@ return result
 ## 处理方法<a name="section8970834202112"></a>
 
 在运行脚本中设置正确的IP地址，对于单机情况，设置为本机的IP即可；对于多机情况，每个服务器上脚本中的IP需要设置为master节点的IP。
+
+<h2 id="在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-out.md">在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”</h2>
+
+## 现象描述<a name="section1785905019184"></a>
+
+![](figures/1234.png)
+
+## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+
+模型进行分布式训练时，系统防火墙可能会阻截HCCL的集合通信端口的通信。需要根据报错信息，排查通信端口的开放情况，并进行相应设置。
+
+## 理方法<a name="section8970834202112"></a>
+
+查询出被系统防火墙阻截的集合通信端口，并开放相应端口。
 

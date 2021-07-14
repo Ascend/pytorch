@@ -173,21 +173,21 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1391052114017"><a name="p1391052114017"></a><a name="p1391052114017"></a>torch.linspace</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1491019204011"><a name="p1491019204011"></a><a name="p1491019204011"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1491019204011"><a name="p1491019204011"></a><a name="p1491019204011"></a>是</p>
 </td>
 </tr>
 <tr id="row63881302531"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p24621823163717"><a name="p24621823163717"></a><a name="p24621823163717"></a>23</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p39104264014"><a name="p39104264014"></a><a name="p39104264014"></a>torch.logspace</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p29104214017"><a name="p29104214017"></a><a name="p29104214017"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p29104214017"><a name="p29104214017"></a><a name="p29104214017"></a>是</p>
 </td>
 </tr>
 <tr id="row1038913095310"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p134621323173719"><a name="p134621323173719"></a><a name="p134621323173719"></a>24</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p17910162104012"><a name="p17910162104012"></a><a name="p17910162104012"></a>torch.eye</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19108254016"><a name="p19108254016"></a><a name="p19108254016"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19108254016"><a name="p19108254016"></a><a name="p19108254016"></a>是</p>
 </td>
 </tr>
 <tr id="row1738918085317"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p54628235371"><a name="p54628235371"></a><a name="p54628235371"></a>25</p>
@@ -229,7 +229,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1091013217405"><a name="p1091013217405"></a><a name="p1091013217405"></a>torch.quantize_per_tensor</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1891072184019"><a name="p1891072184019"></a><a name="p1891072184019"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1891072184019"><a name="p1891072184019"></a><a name="p1891072184019"></a>是</p>
 </td>
 </tr>
 <tr id="row63901504535"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p154631423143719"><a name="p154631423143719"></a><a name="p154631423143719"></a>31</p>
@@ -481,14 +481,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p127184309457"><a name="p127184309457"></a><a name="p127184309457"></a>torch.bernoulli</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p167181308456"><a name="p167181308456"></a><a name="p167181308456"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p167181308456"><a name="p167181308456"></a><a name="p167181308456"></a>是</p>
 </td>
 </tr>
 <tr id="row93863095319"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p16205517123920"><a name="p16205517123920"></a><a name="p16205517123920"></a>8</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1371873074520"><a name="p1371873074520"></a><a name="p1371873074520"></a>torch.multinomial</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7718103014515"><a name="p7718103014515"></a><a name="p7718103014515"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7718103014515"><a name="p7718103014515"></a><a name="p7718103014515"></a>是</p>
 </td>
 </tr>
 <tr id="row53861002533"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p020512176391"><a name="p020512176391"></a><a name="p020512176391"></a>9</p>
@@ -915,7 +915,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p3871632907"><a name="p3871632907"></a><a name="p3871632907"></a>torch.log10</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p14871143219012"><a name="p14871143219012"></a><a name="p14871143219012"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p14871143219012"><a name="p14871143219012"></a><a name="p14871143219012"></a>是</p>
 </td>
 </tr>
 <tr id="row339017014538"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p10621242164017"><a name="p10621242164017"></a><a name="p10621242164017"></a>35</p>
@@ -1216,7 +1216,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p78741932907"><a name="p78741932907"></a><a name="p78741932907"></a>torch.allclose</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p208746327017"><a name="p208746327017"></a><a name="p208746327017"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p208746327017"><a name="p208746327017"></a><a name="p208746327017"></a>是</p>
 </td>
 </tr>
 <tr id="row153957075319"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p26237429405"><a name="p26237429405"></a><a name="p26237429405"></a>78</p>
@@ -1279,7 +1279,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p128757327017"><a name="p128757327017"></a><a name="p128757327017"></a>torch.kthvalue</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1487593212011"><a name="p1487593212011"></a><a name="p1487593212011"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1487593212011"><a name="p1487593212011"></a><a name="p1487593212011"></a>是</p>
 </td>
 </tr>
 <tr id="row103961903533"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p5624124224011"><a name="p5624124224011"></a><a name="p5624124224011"></a>87</p>
@@ -1433,7 +1433,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1487819321201"><a name="p1487819321201"></a><a name="p1487819321201"></a>torch.cross</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p78783323016"><a name="p78783323016"></a><a name="p78783323016"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p78783323016"><a name="p78783323016"></a><a name="p78783323016"></a>是</p>
 </td>
 </tr>
 <tr id="row17399307538"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1462594284015"><a name="p1462594284015"></a><a name="p1462594284015"></a>109</p>
@@ -1447,7 +1447,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p78781832607"><a name="p78781832607"></a><a name="p78781832607"></a>torch.cummin</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19878183219019"><a name="p19878183219019"></a><a name="p19878183219019"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19878183219019"><a name="p19878183219019"></a><a name="p19878183219019"></a>是</p>
 </td>
 </tr>
 <tr id="row13996015537"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p14625144214010"><a name="p14625144214010"></a><a name="p14625144214010"></a>111</p>
@@ -1461,7 +1461,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p138781032100"><a name="p138781032100"></a><a name="p138781032100"></a>torch.cumsum</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p198788321707"><a name="p198788321707"></a><a name="p198788321707"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p198788321707"><a name="p198788321707"></a><a name="p198788321707"></a>是</p>
 </td>
 </tr>
 <tr id="row103996085310"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p762534234011"><a name="p762534234011"></a><a name="p762534234011"></a>113</p>
@@ -1482,7 +1482,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p178788321201"><a name="p178788321201"></a><a name="p178788321201"></a>torch.diagflat</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p5879183213013"><a name="p5879183213013"></a><a name="p5879183213013"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p5879183213013"><a name="p5879183213013"></a><a name="p5879183213013"></a>是</p>
 </td>
 </tr>
 <tr id="row204001504538"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p16625104224013"><a name="p16625104224013"></a><a name="p16625104224013"></a>116</p>
@@ -1538,7 +1538,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p7879123213016"><a name="p7879123213016"></a><a name="p7879123213016"></a>torch.renorm</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p287919321105"><a name="p287919321105"></a><a name="p287919321105"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p287919321105"><a name="p287919321105"></a><a name="p287919321105"></a>是</p>
 </td>
 </tr>
 <tr id="row18400009533"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1962654254018"><a name="p1962654254018"></a><a name="p1962654254018"></a>124</p>
@@ -1720,7 +1720,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p16881632902"><a name="p16881632902"></a><a name="p16881632902"></a>torch.slogdet</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p9881133215014"><a name="p9881133215014"></a><a name="p9881133215014"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p9881133215014"><a name="p9881133215014"></a><a name="p9881133215014"></a>是</p>
 </td>
 </tr>
 <tr id="row24061102533"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p13627164217405"><a name="p13627164217405"></a><a name="p13627164217405"></a>150</p>
@@ -1783,7 +1783,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p188219321603"><a name="p188219321603"></a><a name="p188219321603"></a>torch.mv</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p208821432407"><a name="p208821432407"></a><a name="p208821432407"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p126884235428"><a name="p126884235428"></a><a name="p126884235428"></a>是</p>
 </td>
 </tr>
 <tr id="row34071203537"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p5628342184015"><a name="p5628342184015"></a><a name="p5628342184015"></a>159</p>
@@ -1811,7 +1811,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1488253220014"><a name="p1488253220014"></a><a name="p1488253220014"></a>torch.qr</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p20882432402"><a name="p20882432402"></a><a name="p20882432402"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p20882432402"><a name="p20882432402"></a><a name="p20882432402"></a>是</p>
 </td>
 </tr>
 <tr id="row64071004534"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p3628042144017"><a name="p3628042144017"></a><a name="p3628042144017"></a>163</p>
@@ -1860,7 +1860,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p2088319328011"><a name="p2088319328011"></a><a name="p2088319328011"></a>torch.trapz</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p168837321706"><a name="p168837321706"></a><a name="p168837321706"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p168837321706"><a name="p168837321706"></a><a name="p168837321706"></a>是</p>
 </td>
 </tr>
 <tr id="row11408180115316"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p7628164214408"><a name="p7628164214408"></a><a name="p7628164214408"></a>170</p>
@@ -2147,7 +2147,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p85239393819"><a name="p85239393819"></a><a name="p85239393819"></a>torch.Tensor.addcmul_</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p165231398810"><a name="p165231398810"></a><a name="p165231398810"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p165231398810"><a name="p165231398810"></a><a name="p165231398810"></a>是</p>
 </td>
 </tr>
 <tr id="row1495382217720"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1773140104313"><a name="p1773140104313"></a><a name="p1773140104313"></a>24</p>
@@ -2196,7 +2196,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1252313917816"><a name="p1252313917816"></a><a name="p1252313917816"></a>torch.Tensor.allclose</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p752416391887"><a name="p752416391887"></a><a name="p752416391887"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p752416391887"><a name="p752416391887"></a><a name="p752416391887"></a>是</p>
 </td>
 </tr>
 <tr id="row1195411220715"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p17470194316"><a name="p17470194316"></a><a name="p17470194316"></a>31</p>
@@ -2539,7 +2539,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p25271539781"><a name="p25271539781"></a><a name="p25271539781"></a>torch.Tensor.cross</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p85272391881"><a name="p85272391881"></a><a name="p85272391881"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p85272391881"><a name="p85272391881"></a><a name="p85272391881"></a>是</p>
 </td>
 </tr>
 <tr id="row3957132217714"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p177190184318"><a name="p177190184318"></a><a name="p177190184318"></a>80</p>
@@ -2560,7 +2560,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p65281639289"><a name="p65281639289"></a><a name="p65281639289"></a>torch.Tensor.cummin</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p12528139088"><a name="p12528139088"></a><a name="p12528139088"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p12528139088"><a name="p12528139088"></a><a name="p12528139088"></a>是</p>
 </td>
 </tr>
 <tr id="row16957522876"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p14770013438"><a name="p14770013438"></a><a name="p14770013438"></a>83</p>
@@ -2574,7 +2574,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1552811398810"><a name="p1552811398810"></a><a name="p1552811398810"></a>torch.Tensor.cumsum</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p17528133918810"><a name="p17528133918810"></a><a name="p17528133918810"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p17528133918810"><a name="p17528133918810"></a><a name="p17528133918810"></a>是</p>
 </td>
 </tr>
 <tr id="row119577224716"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p177714018434"><a name="p177714018434"></a><a name="p177714018434"></a>85</p>
@@ -2623,7 +2623,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p952811392813"><a name="p952811392813"></a><a name="p952811392813"></a>torch.Tensor.diagflat</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p05281639389"><a name="p05281639389"></a><a name="p05281639389"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p05281639389"><a name="p05281639389"></a><a name="p05281639389"></a>是</p>
 </td>
 </tr>
 <tr id="row095772218711"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p87817014316"><a name="p87817014316"></a><a name="p87817014316"></a>92</p>
@@ -2749,14 +2749,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p053011391483"><a name="p053011391483"></a><a name="p053011391483"></a>torch.Tensor.erfc</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p45301639887"><a name="p45301639887"></a><a name="p45301639887"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p45301639887"><a name="p45301639887"></a><a name="p45301639887"></a>是</p>
 </td>
 </tr>
 <tr id="row16959132214716"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p187918094316"><a name="p187918094316"></a><a name="p187918094316"></a>110</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1553013910815"><a name="p1553013910815"></a><a name="p1553013910815"></a>torch.Tensor.erfc_</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p853033913811"><a name="p853033913811"></a><a name="p853033913811"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p853033913811"><a name="p853033913811"></a><a name="p853033913811"></a>是</p>
 </td>
 </tr>
 <tr id="row5959922375"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1679403434"><a name="p1679403434"></a><a name="p1679403434"></a>111</p>
@@ -3022,14 +3022,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p75331639881"><a name="p75331639881"></a><a name="p75331639881"></a>torch.Tensor.index_copy_</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p553383914815"><a name="p553383914815"></a><a name="p553383914815"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p553383914815"><a name="p553383914815"></a><a name="p553383914815"></a>是</p>
 </td>
 </tr>
 <tr id="row5961172211719"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p128340114315"><a name="p128340114315"></a><a name="p128340114315"></a>149</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p13533143911819"><a name="p13533143911819"></a><a name="p13533143911819"></a>torch.Tensor.index_copy</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p185334391187"><a name="p185334391187"></a><a name="p185334391187"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p185334391187"><a name="p185334391187"></a><a name="p185334391187"></a>是</p>
 </td>
 </tr>
 <tr id="row179613221674"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p383604430"><a name="p383604430"></a><a name="p383604430"></a>150</p>
@@ -3169,7 +3169,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p10534539788"><a name="p10534539788"></a><a name="p10534539788"></a>torch.Tensor.kthvalue</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1453417394816"><a name="p1453417394816"></a><a name="p1453417394816"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1453417394816"><a name="p1453417394816"></a><a name="p1453417394816"></a>是</p>
 </td>
 </tr>
 <tr id="row189621022177"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1085130154314"><a name="p1085130154314"></a><a name="p1085130154314"></a>170</p>
@@ -3239,14 +3239,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p12535113920816"><a name="p12535113920816"></a><a name="p12535113920816"></a>torch.Tensor.log10</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p753519392080"><a name="p753519392080"></a><a name="p753519392080"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p753519392080"><a name="p753519392080"></a><a name="p753519392080"></a>是</p>
 </td>
 </tr>
 <tr id="row109631622570"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p186160154311"><a name="p186160154311"></a><a name="p186160154311"></a>180</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p17535183910816"><a name="p17535183910816"></a><a name="p17535183910816"></a>torch.Tensor.log10_</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19535103911815"><a name="p19535103911815"></a><a name="p19535103911815"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p19535103911815"><a name="p19535103911815"></a><a name="p19535103911815"></a>是</p>
 </td>
 </tr>
 <tr id="row1296322217716"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p11864044318"><a name="p11864044318"></a><a name="p11864044318"></a>181</p>
@@ -3512,7 +3512,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p553817391788"><a name="p553817391788"></a><a name="p553817391788"></a>torch.Tensor.mv</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p95380391882"><a name="p95380391882"></a><a name="p95380391882"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p95380391882"><a name="p95380391882"></a><a name="p95380391882"></a>是</p>
 </td>
 </tr>
 <tr id="row149660221070"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p11908011433"><a name="p11908011433"></a><a name="p11908011433"></a>219</p>
@@ -3701,7 +3701,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1654283915817"><a name="p1654283915817"></a><a name="p1654283915817"></a>torch.Tensor.qr</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p254220391781"><a name="p254220391781"></a><a name="p254220391781"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p254220391781"><a name="p254220391781"></a><a name="p254220391781"></a>是</p>
 </td>
 </tr>
 <tr id="row149681222179"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p4948014317"><a name="p4948014317"></a><a name="p4948014317"></a>246</p>
@@ -4905,7 +4905,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p959911141519"><a name="p959911141519"></a><a name="p959911141519"></a>torch.nn.Conv3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p759912115154"><a name="p759912115154"></a><a name="p759912115154"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p759912115154"><a name="p759912115154"></a><a name="p759912115154"></a>是</p>
 </td>
 </tr>
 <tr id="row470965801214"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p91281653134312"><a name="p91281653134312"></a><a name="p91281653134312"></a>60</p>
@@ -4940,14 +4940,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p1559911114150"><a name="p1559911114150"></a><a name="p1559911114150"></a>torch.nn.Fold</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p1459915117151"><a name="p1459915117151"></a><a name="p1459915117151"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p1459915117151"><a name="p1459915117151"></a><a name="p1459915117151"></a>是</p>
 </td>
 </tr>
 <tr id="row770925815121"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p2128195324310"><a name="p2128195324310"></a><a name="p2128195324310"></a>65</p>
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p15599410156"><a name="p15599410156"></a><a name="p15599410156"></a>torch.nn.MaxPool1d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p7599131181511"><a name="p7599131181511"></a><a name="p7599131181511"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p7599131181511"><a name="p7599131181511"></a><a name="p7599131181511"></a>是</p>
 </td>
 </tr>
 <tr id="row16709758121219"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p15128453164319"><a name="p15128453164319"></a><a name="p15128453164319"></a>66</p>
@@ -4961,7 +4961,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p360015115159"><a name="p360015115159"></a><a name="p360015115159"></a>torch.nn.MaxPool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4600212159"><a name="p4600212159"></a><a name="p4600212159"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4600212159"><a name="p4600212159"></a><a name="p4600212159"></a>是</p>
 </td>
 </tr>
 <tr id="row87091258121218"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p1712855315438"><a name="p1712855315438"></a><a name="p1712855315438"></a>68</p>
@@ -4975,7 +4975,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p17600191111510"><a name="p17600191111510"></a><a name="p17600191111510"></a>torch.nn.MaxUnpool2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p46001814159"><a name="p46001814159"></a><a name="p46001814159"></a>是</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p935153282615"><a name="p935153282615"></a><a name="p935153282615"></a>否</p>
 </td>
 </tr>
 <tr id="row1770915813123"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p812835394314"><a name="p812835394314"></a><a name="p812835394314"></a>70</p>
@@ -5003,7 +5003,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p1760021201512"><a name="p1760021201512"></a><a name="p1760021201512"></a>torch.nn.AvgPool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p860019181515"><a name="p860019181515"></a><a name="p860019181515"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p860019181515"><a name="p860019181515"></a><a name="p860019181515"></a>是</p>
 </td>
 </tr>
 <tr id="row187109589121"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p19129195310433"><a name="p19129195310433"></a><a name="p19129195310433"></a>74</p>
@@ -5381,7 +5381,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p96047151511"><a name="p96047151511"></a><a name="p96047151511"></a>torch.nn.InstanceNorm3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p186041113155"><a name="p186041113155"></a><a name="p186041113155"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p186041113155"><a name="p186041113155"></a><a name="p186041113155"></a>是</p>
 </td>
 </tr>
 <tr id="row371325810126"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p813645384319"><a name="p813645384319"></a><a name="p813645384319"></a>128</p>
@@ -5395,7 +5395,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p3604915151"><a name="p3604915151"></a><a name="p3604915151"></a>torch.nn.LocalResponseNorm</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4604513155"><a name="p4604513155"></a><a name="p4604513155"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4604513155"><a name="p4604513155"></a><a name="p4604513155"></a>是</p>
 </td>
 </tr>
 <tr id="row371315881214"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p51361953194313"><a name="p51361953194313"></a><a name="p51361953194313"></a>130</p>
@@ -5563,21 +5563,21 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p13606161151517"><a name="p13606161151517"></a><a name="p13606161151517"></a>torch.nn.Dropout2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p196066118158"><a name="p196066118158"></a><a name="p196066118158"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p196066118158"><a name="p196066118158"></a><a name="p196066118158"></a>是</p>
 </td>
 </tr>
 <tr id="row19714195881218"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p14137195315432"><a name="p14137195315432"></a><a name="p14137195315432"></a>154</p>
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p1606171201516"><a name="p1606171201516"></a><a name="p1606171201516"></a>torch.nn.Dropout3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p17606713159"><a name="p17606713159"></a><a name="p17606713159"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p17606713159"><a name="p17606713159"></a><a name="p17606713159"></a>是</p>
 </td>
 </tr>
 <tr id="row187146583127"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p1113715538433"><a name="p1113715538433"></a><a name="p1113715538433"></a>155</p>
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p560611110151"><a name="p560611110151"></a><a name="p560611110151"></a>torch.nn.AlphaDropout</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p176066113156"><a name="p176066113156"></a><a name="p176066113156"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p176066113156"><a name="p176066113156"></a><a name="p176066113156"></a>是</p>
 </td>
 </tr>
 <tr id="row1071495811212"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p191374537437"><a name="p191374537437"></a><a name="p191374537437"></a>156</p>
@@ -5612,7 +5612,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p56071215156"><a name="p56071215156"></a><a name="p56071215156"></a>torch.nn.CosineSimilarity</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p06074111515"><a name="p06074111515"></a><a name="p06074111515"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p06074111515"><a name="p06074111515"></a><a name="p06074111515"></a>是</p>
 </td>
 </tr>
 <tr id="row187151589123"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p713775364320"><a name="p713775364320"></a><a name="p713775364320"></a>161</p>
@@ -5647,7 +5647,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p2607151161510"><a name="p2607151161510"></a><a name="p2607151161510"></a>torch.nn.CTCLoss</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p260721121515"><a name="p260721121515"></a><a name="p260721121515"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p260721121515"><a name="p260721121515"></a><a name="p260721121515"></a>是</p>
 </td>
 </tr>
 <tr id="row19715358171219"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p1713865317437"><a name="p1713865317437"></a><a name="p1713865317437"></a>166</p>
@@ -5661,7 +5661,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p26071410155"><a name="p26071410155"></a><a name="p26071410155"></a>torch.nn.PoissonNLLLoss</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p12607111181517"><a name="p12607111181517"></a><a name="p12607111181517"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p12607111181517"><a name="p12607111181517"></a><a name="p12607111181517"></a>是</p>
 </td>
 </tr>
 <tr id="row107158582124"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p18138105314315"><a name="p18138105314315"></a><a name="p18138105314315"></a>168</p>
@@ -6739,7 +6739,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p182921654151714"><a name="p182921654151714"></a><a name="p182921654151714"></a>torch.nn.functional.conv3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p142921854111710"><a name="p142921854111710"></a><a name="p142921854111710"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p142921854111710"><a name="p142921854111710"></a><a name="p142921854111710"></a>是</p>
 </td>
 </tr>
 <tr id="row149120516169"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p2025115375442"><a name="p2025115375442"></a><a name="p2025115375442"></a>4</p>
@@ -6774,7 +6774,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1929214548179"><a name="p1929214548179"></a><a name="p1929214548179"></a>torch.nn.functional.fold</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p629265415170"><a name="p629265415170"></a><a name="p629265415170"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p629265415170"><a name="p629265415170"></a><a name="p629265415170"></a>是</p>
 </td>
 </tr>
 <tr id="row1591213519165"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p152521637174419"><a name="p152521637174419"></a><a name="p152521637174419"></a>9</p>
@@ -6795,14 +6795,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p329225481715"><a name="p329225481715"></a><a name="p329225481715"></a>torch.nn.functional.avg_pool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7292165420176"><a name="p7292165420176"></a><a name="p7292165420176"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7292165420176"><a name="p7292165420176"></a><a name="p7292165420176"></a>是</p>
 </td>
 </tr>
 <tr id="row29128516164"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p825283716449"><a name="p825283716449"></a><a name="p825283716449"></a>12</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p429220540178"><a name="p429220540178"></a><a name="p429220540178"></a>torch.nn.functional.max_pool1d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p829210544176"><a name="p829210544176"></a><a name="p829210544176"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p829210544176"><a name="p829210544176"></a><a name="p829210544176"></a>是</p>
 </td>
 </tr>
 <tr id="row10912051121618"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p7252133794418"><a name="p7252133794418"></a><a name="p7252133794418"></a>13</p>
@@ -6816,7 +6816,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1229385410170"><a name="p1229385410170"></a><a name="p1229385410170"></a>torch.nn.functional.max_pool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p3293554181716"><a name="p3293554181716"></a><a name="p3293554181716"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p3293554181716"><a name="p3293554181716"></a><a name="p3293554181716"></a>是</p>
 </td>
 </tr>
 <tr id="row2912195191612"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p42521237134411"><a name="p42521237134411"></a><a name="p42521237134411"></a>15</p>
@@ -6865,7 +6865,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p429318545177"><a name="p429318545177"></a><a name="p429318545177"></a>torch.nn.functional.adaptive_max_pool2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p152931454201719"><a name="p152931454201719"></a><a name="p152931454201719"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p152931454201719"><a name="p152931454201719"></a><a name="p152931454201719"></a>是</p>
 </td>
 </tr>
 <tr id="row1991316512169"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p162521378441"><a name="p162521378441"></a><a name="p162521378441"></a>22</p>
@@ -6893,7 +6893,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1629395461716"><a name="p1629395461716"></a><a name="p1629395461716"></a>torch.nn.functional.adaptive_avg_pool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p8294125417172"><a name="p8294125417172"></a><a name="p8294125417172"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p8294125417172"><a name="p8294125417172"></a><a name="p8294125417172"></a>是</p>
 </td>
 </tr>
 <tr id="row1591365115165"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p425233734418"><a name="p425233734418"></a><a name="p425233734418"></a>26</p>
@@ -6991,7 +6991,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1029525413170"><a name="p1029525413170"></a><a name="p1029525413170"></a>torch.nn.functional.prelu</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p18295105416171"><a name="p18295105416171"></a><a name="p18295105416171"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p18295105416171"><a name="p18295105416171"></a><a name="p18295105416171"></a>是</p>
 </td>
 </tr>
 <tr id="row19914155119169"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p4256143764412"><a name="p4256143764412"></a><a name="p4256143764412"></a>40</p>
@@ -7012,7 +7012,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p7295155413171"><a name="p7295155413171"></a><a name="p7295155413171"></a>torch.nn.functional.glu</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p182951654191715"><a name="p182951654191715"></a><a name="p182951654191715"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p182951654191715"><a name="p182951654191715"></a><a name="p182951654191715"></a>是</p>
 </td>
 </tr>
 <tr id="row19149515164"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1625610377441"><a name="p1625610377441"></a><a name="p1625610377441"></a>43</p>
@@ -7033,7 +7033,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p11295254111710"><a name="p11295254111710"></a><a name="p11295254111710"></a>torch.nn.functional.hardshrink</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0295554111710"><a name="p0295554111710"></a><a name="p0295554111710"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0295554111710"><a name="p0295554111710"></a><a name="p0295554111710"></a>是</p>
 </td>
 </tr>
 <tr id="row169141951171620"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1425619370443"><a name="p1425619370443"></a><a name="p1425619370443"></a>46</p>
@@ -7054,7 +7054,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p5295125416173"><a name="p5295125416173"></a><a name="p5295125416173"></a>torch.nn.functional.softplus</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0295125412171"><a name="p0295125412171"></a><a name="p0295125412171"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0295125412171"><a name="p0295125412171"></a><a name="p0295125412171"></a>是</p>
 </td>
 </tr>
 <tr id="row291425113164"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p52571037184414"><a name="p52571037184414"></a><a name="p52571037184414"></a>49</p>
@@ -7124,14 +7124,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p13297115417174"><a name="p13297115417174"></a><a name="p13297115417174"></a>torch.nn.functional.layer_norm</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1029735415179"><a name="p1029735415179"></a><a name="p1029735415179"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1029735415179"><a name="p1029735415179"></a><a name="p1029735415179"></a>是</p>
 </td>
 </tr>
 <tr id="row11915151151610"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p19257173774419"><a name="p19257173774419"></a><a name="p19257173774419"></a>59</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p829718543174"><a name="p829718543174"></a><a name="p829718543174"></a>torch.nn.functional.local_response_norm</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p82971454151710"><a name="p82971454151710"></a><a name="p82971454151710"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p82971454151710"><a name="p82971454151710"></a><a name="p82971454151710"></a>是</p>
 </td>
 </tr>
 <tr id="row17915155118164"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p8257437194418"><a name="p8257437194418"></a><a name="p8257437194418"></a>60</p>
@@ -7201,7 +7201,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p15297454131710"><a name="p15297454131710"></a><a name="p15297454131710"></a>torch.nn.functional.one_hot</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p192981054161719"><a name="p192981054161719"></a><a name="p192981054161719"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p192981054161719"><a name="p192981054161719"></a><a name="p192981054161719"></a>是</p>
 </td>
 </tr>
 <tr id="row09161651151613"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1925843713448"><a name="p1925843713448"></a><a name="p1925843713448"></a>70</p>
@@ -7215,14 +7215,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p162985549179"><a name="p162985549179"></a><a name="p162985549179"></a>torch.nn.functional.cosine_similarity</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1429835471711"><a name="p1429835471711"></a><a name="p1429835471711"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p1429835471711"><a name="p1429835471711"></a><a name="p1429835471711"></a>是</p>
 </td>
 </tr>
 <tr id="row139161251191612"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p82581376444"><a name="p82581376444"></a><a name="p82581376444"></a>72</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p122981154181713"><a name="p122981154181713"></a><a name="p122981154181713"></a>torch.nn.functional.pdist</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p3298105415175"><a name="p3298105415175"></a><a name="p3298105415175"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p3298105415175"><a name="p3298105415175"></a><a name="p3298105415175"></a>是</p>
 </td>
 </tr>
 <tr id="row16916151171616"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p192582371445"><a name="p192582371445"></a><a name="p192582371445"></a>73</p>
@@ -7257,7 +7257,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p14298185416176"><a name="p14298185416176"></a><a name="p14298185416176"></a>torch.nn.functional.cross_entropy</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p172981454151714"><a name="p172981454151714"></a><a name="p172981454151714"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p172981454151714"><a name="p172981454151714"></a><a name="p172981454151714"></a>是</p>
 </td>
 </tr>
 <tr id="row991635120169"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p20258237134414"><a name="p20258237134414"></a><a name="p20258237134414"></a>78</p>
@@ -7306,7 +7306,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p8299175491720"><a name="p8299175491720"></a><a name="p8299175491720"></a>torch.nn.functional.multilabel_margin_loss</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7299175421711"><a name="p7299175421711"></a><a name="p7299175421711"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p7299175421711"><a name="p7299175421711"></a><a name="p7299175421711"></a>是</p>
 </td>
 </tr>
 <tr id="row179161751131619"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1725917372441"><a name="p1725917372441"></a><a name="p1725917372441"></a>85</p>
@@ -7341,7 +7341,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1629955416178"><a name="p1629955416178"></a><a name="p1629955416178"></a>torch.nn.functional.soft_margin_loss</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p42991454101717"><a name="p42991454101717"></a><a name="p42991454101717"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p42991454101717"><a name="p42991454101717"></a><a name="p42991454101717"></a>是</p>
 </td>
 </tr>
 <tr id="row691785121618"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p72591937164412"><a name="p72591937164412"></a><a name="p72591937164412"></a>90</p>
