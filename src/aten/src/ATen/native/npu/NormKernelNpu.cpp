@@ -38,7 +38,7 @@ int64_t calculate_p(optional<Scalar> p) {
 
 
 // norm.dtype_out
-Tensor& norm_out_npu(
+Tensor& norm_out_npu_nocheck(
     Tensor& out,
     const Tensor& self,
     optional<Scalar> p,
@@ -80,11 +80,36 @@ Tensor& norm_out_npu(
     optional<Scalar> p,
     IntArrayRef dim,
     bool keepdim) {
-  norm_out_npu(out, self, p, dim, keepdim, self.scalar_type());
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  OpPreparation::CheckOut(
+    {self}, 
+    out, 
+    ACL_FORMAT_ND, 
+    self.scalar_type(), 
+    outputSize); 
+  norm_out_npu_nocheck(out, self, p, dim, keepdim, self.scalar_type());
 
   return out;
 }
 
+Tensor& norm_out_npu(
+    Tensor& out,
+    const Tensor& self,
+    optional<Scalar> p,
+    IntArrayRef dim,
+    bool keepdim,
+    ScalarType dtype) {
+  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
+  OpPreparation::CheckOut(
+    {self}, 
+    out, 
+    ACL_FORMAT_ND, 
+    self.scalar_type(), 
+    outputSize); 
+  norm_out_npu_nocheck(out, self, p, dim, keepdim, dtype);
+
+  return out;
+}
 // norm.ScalarOpt_dim_dtype
 Tensor norm_npu(
     const Tensor& self,
@@ -99,7 +124,7 @@ Tensor norm_npu(
   Tensor out = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(dtype));
 
   // calculate the output result of the NPU
-  norm_out_npu(out, self, p, dim, keepdim, dtype);
+  norm_out_npu_nocheck(out, self, p, dim, keepdim, dtype);
   
   return out;
 }

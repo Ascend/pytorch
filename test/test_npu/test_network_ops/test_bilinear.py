@@ -33,7 +33,7 @@ class test_bilinear(TestCase):
         outputs = outputs.cpu().detach().numpy()
         return outputs
 
-    def test_add_common_shape_format1(self, device):
+    def test_bilinear_common_shape_format1(self, device):
         shape_format = [  
                   [[np.float32, -1, (10,30)], [np.float32, -1, (10, 40)], [np.float32, -1, (5, 30, 40)],
                     [np.float32, -1, (5,)]],
@@ -43,12 +43,12 @@ class test_bilinear(TestCase):
                   [[np.float32, -1, (10, 30, 40, 30)], [np.float32, -1, (10, 30, 40, 30)], 
                     [np.float32, -1, (30, 30, 30)],
                       [np.float32, -1, (30,)]],
-                  [[np.float32, -1, (100,3)], [np.float32, -1, (1000, 4)], [np.float32, -1, (5, 3, 4)],
+                  [[np.float32, -1, (100,3)], [np.float32, -1, (100, 4)], [np.float32, -1, (5, 3, 4)],
                     [np.float32, -1, (5,)]],
                   [[np.float16, -1, (2, 1, 1, 1)], [np.float16, -1, (2, 1, 1, 1)], [np.float16, -1, (5, 1, 1)],
                     [np.float16, -1, (5,)]],
                   [[np.float16, -1, (2, 50)], [np.float16, -1, (2, 50)], [np.float16, -1, (5, 50, 50)],
-                    [np.float16, -1, (2, 4)]],
+                    [np.float16, -1, (5)]],
                   [[np.float16, -1, (2, 3)], [np.float16, -1, (2, 4)], [np.float16, -1, (2, 3, 4)],],
                   [[np.float16, -1, (2, 3)], [np.float16, -1, (2, 4)], [np.float16, -1, (4, 3, 4)],
                   [np.float16, -1, (4,)]],
@@ -61,11 +61,19 @@ class test_bilinear(TestCase):
             if len(item)>3:
               cpu_input4, npu_input4 = create_common_tensor(item[3], 0, 1)
               bias = [cpu_input4, npu_input4]
-            cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
+            if cpu_input1.dtype == torch.float16:
+              if bias[0] != None:
+                cpu_outputs = self.cpu_op_exec(
+                  cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0].float()).astype(np.float16)
+              else:
+                cpu_outputs = self.cpu_op_exec(
+                  cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0]).astype(np.float16)
+            else:
+              cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
             npu_outputs = self.npu_op_exec(npu_input1, npu_input2, npu_input3, bias[1])
             self.assertRtolEqual(cpu_outputs, npu_outputs)
     
-    def test_add_common_shape_format2(self, device):
+    def test_bilinear_common_shape_format2(self, device):
         shape_format = [  
                   [[np.int32, -1, (10,30)], [np.int32, -1, (10, 40)], [np.int32, -1, (5, 30, 40)],
                     [np.int32, -1, (5,)]],
@@ -87,7 +95,7 @@ class test_bilinear(TestCase):
             npu_outputs = self.npu_op_exec(npu_input1, npu_input2, npu_input3, bias[1])
             self.assertRtolEqual(cpu_outputs, npu_outputs)
        
-    def test_add_common_shape_format3(self, device):
+    def test_bilinear_common_shape_format3(self, device):
         shape_format = [  
                 [[np.float32, 0, (10,30)], [np.float32, 0, (10, 40)], [np.float32, 0, (5, 30, 40)],
                   [np.float32, 0, (5,)]],
@@ -97,12 +105,12 @@ class test_bilinear(TestCase):
                 [[np.float32, 0, (10, 30, 40, 30)], [np.float32, 0, (10, 30, 40, 30)], 
                   [np.float32, 0, (30, 30, 30)],
                     [np.float32, 0, (30,)]],
-                [[np.float32, 0, (100,3)], [np.float32, 0, (1000, 4)], [np.float32, 0, (5, 3, 4)],
+                [[np.float32, 0, (100,3)], [np.float32, 0, (100, 4)], [np.float32, 0, (5, 3, 4)],
                   [np.float32, 0, (5,)]],
                 [[np.float16, 0, (2, 1, 1, 1)], [np.float16, 0, (2, 1, 1, 1)], [np.float16, 0, (5, 1, 1)],
                   [np.float16, 0, (5,)]],
                 [[np.float16, 0, (2, 50)], [np.float16, 0, (2, 50)], [np.float16, 0, (5, 50, 50)],
-                  [np.float16, 0, (2, 4)]],
+                  [np.float16, 0, (5)]],
                 [[np.float16, 0, (2, 3)], [np.float16, 0, (2, 4)], [np.float16, 0, (2, 3, 4)],],
                 [[np.float16, 0, (2, 3)], [np.float16, 0, (2, 4)], [np.float16, 0, (4, 3, 4)],
                 [np.float16, 0, (4,)]],
@@ -115,11 +123,19 @@ class test_bilinear(TestCase):
           if len(item)>3:
             cpu_input4, npu_input4 = create_common_tensor(item[3], 0, 1)
             bias = [cpu_input4, npu_input4]
-          cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
+          if cpu_input1.dtype == torch.float16:
+            if bias[0] != None:
+              cpu_outputs = self.cpu_op_exec(
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0].float()).astype(np.float16)
+            else:
+              cpu_outputs = self.cpu_op_exec(
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0]).astype(np.float16)
+          else:
+            cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
           npu_outputs = self.npu_op_exec(npu_input1, npu_input2, npu_input3, bias[1])
           self.assertRtolEqual(cpu_outputs, npu_outputs)
 
-    def test_add_common_shape_format4(self, device):
+    def test_bilinear_common_shape_format4(self, device):
         shape_format = [  
                 [[np.float32, 3, (10,30)], [np.float32, 3, (10, 40)], [np.float32, 3, (5, 30, 40)],
                   [np.float32, 3, (5,)]],
@@ -129,15 +145,15 @@ class test_bilinear(TestCase):
                 [[np.float32, 3, (10, 30, 40, 30)], [np.float32, 3, (10, 30, 40, 30)], 
                   [np.float32, 3, (30, 30, 30)],
                     [np.float32, 3, (30,)]],
-                [[np.float32, 29, (100,3)], [np.float32, 29, (1000, 4)], [np.float32, 29, (5, 3, 4)],
-                  [np.float32, 29, (5,)]],
-                [[np.float16, 29, (2, 1, 1, 1)], [np.float16, 29, (2, 1, 1, 1)], [np.float16, 29, (5, 1, 1)],
-                  [np.float16, 29, (5,)]],
-                [[np.float16, 29, (2, 50)], [np.float16, 29, (2, 50)], [np.float16, 29, (5, 50, 50)],
-                  [np.float16, 29, (2, 4)]],
-                [[np.float16, 29, (2, 3)], [np.float16, 29, (2, 4)], [np.float16, 29, (2, 3, 4)],],
-                [[np.float16, 29, (2, 3)], [np.float16, 29, (2, 4)], [np.float16, 29, (4, 3, 4)],
-                [np.float16, 29, (4,)]],
+                [[np.float32, 2, (100,3)], [np.float32, 2, (100, 4)], [np.float32, 2, (5, 3, 4)],
+                  [np.float32, 2, (5,)]],
+                [[np.float16, 2, (2, 1, 1, 1)], [np.float16, 2, (2, 1, 1, 1)], [np.float16, 2, (5, 1, 1)],
+                  [np.float16, 2, (5,)]],
+                [[np.float16, 2, (2, 50)], [np.float16, 2, (2, 50)], [np.float16, 2, (5, 50, 50)],
+                  [np.float16, 2, (5)]],
+                [[np.float16, 2, (2, 3)], [np.float16, 2, (2, 4)], [np.float16, 2, (2, 3, 4)],],
+                [[np.float16, 2, (2, 3)], [np.float16, 2, (2, 4)], [np.float16, 2, (4, 3, 4)],
+                [np.float16, 2, (4,)]],
               ]
         for item in shape_format:
           bias = [None, None]
@@ -147,11 +163,18 @@ class test_bilinear(TestCase):
           if len(item)>3:
             cpu_input4, npu_input4 = create_common_tensor(item[3], 0, 1)
             bias = [cpu_input4, npu_input4]
-          cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
+          if cpu_input1.dtype == torch.float16:
+            if bias[0] != None:
+              cpu_outputs = self.cpu_op_exec(
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0].float()).astype(np.float16)
+            else:
+              cpu_outputs = self.cpu_op_exec(
+                cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), bias[0]).astype(np.float16)
+          else:
+            cpu_outputs = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, bias[0])
           npu_outputs = self.npu_op_exec(npu_input1, npu_input2, npu_input3, bias[1])
           self.assertRtolEqual(cpu_outputs, npu_outputs)
           
 instantiate_device_type_tests(test_bilinear, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:5")
     run_tests()

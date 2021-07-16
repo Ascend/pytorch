@@ -154,6 +154,20 @@ Tensor& _cat_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
 }
 
 Tensor& cat_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
+  SmallVector<Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
+
+  int64_t dim_post_expr = 0;
+  if (inputTensors.size() > 0) {
+    dim_post_expr = inputTensors[0].dim();
+  }
+  dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
+  auto outputSize = cat_npu_output_size(inputTensors, dim);
+  OpPreparation::CheckOut(
+    {tensors[0]}, 
+    result, 
+    ACL_FORMAT_ND, 
+    tensors[0].scalar_type(), 
+    outputSize); 
   return at::_cat_out(result, tensors, dim);
 }
 

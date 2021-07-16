@@ -33,7 +33,7 @@ class TestGeluBackward(TestCase):
         z = output.sum()
         z.backward()
         res = input1.grad        
-        return res.detach()
+        return res.detach().numpy()
 
     def npu_op_exec(self, input1):
         input1 = input1.to("npu")
@@ -42,41 +42,34 @@ class TestGeluBackward(TestCase):
         z = output.sum()
         z.backward()
         res = input1.grad.to("cpu")        
-        return res.detach()
+        return res.detach().numpy()
         
     def test_gelu_backward_float32_1(self, device):
-        input1= self.generate_single_data(0, 100, (4,3,1,1), np.float32)
+        input1= self.generate_single_data(0, 100, (4, 3, 1, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
         
     def test_gelu_backward_float32_2(self, device):
-        input1= self.generate_single_data(0, 100, (4,3,10), np.float32)
+        input1= self.generate_single_data(0, 100, (15, 3, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_gelu_backward_float32_3(self, device):
-        input1= self.generate_single_data(0, 100, (400,30,10), np.float32)
-        cpu_input1 = copy.deepcopy(input1)
-        cpu_output = self.cpu_op_exec(cpu_input1)
-        npu_output = self.npu_op_exec(input1)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-    def test_gelu_backward_float32_4(self, device):
-        input1= self.generate_single_data(-30, 0, (4,4), np.float32)
+        input1= self.generate_single_data(0, 100, (4, 4), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)       
 
     def test_gelu_backward_float16(self, device):
-        input1 = self.generate_single_data(0, 100, (5, 10, 100) , np.float16)
-        input1 =  input1.to(torch.float32)
-        cpu_input1 = copy.deepcopy(input1)
+        input1 = self.generate_single_data(0, 100, (5, 10, 100), np.float16)
+        cpu_input1 =  input1.to(torch.float32)
         cpu_output = self.cpu_op_exec(cpu_input1)
+        cpu_output = cpu_output.astype(np.float16)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output) 
         

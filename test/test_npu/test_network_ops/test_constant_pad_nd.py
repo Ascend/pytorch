@@ -35,7 +35,6 @@ class TestConstantPadNd(TestCase):
         
     def constant_pad_nd_shape_format(self, shape_format):
         for item in shape_format:
-          print(item)
           input_cpu, input_npu = create_common_tensor(item[0], 1, 1)
           pad_shape = item[1]
           if input_cpu.dtype == torch.float16:

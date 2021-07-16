@@ -333,12 +333,6 @@ SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
   return {num_weights, grad_output.size(-1)};
 }
 
-SmallVector<int64_t, SIZE> embedding_renorm_mid_npu_output_size(
-    const Tensor& self,
-    const Tensor& indices){
-  return {indices.size(0), self.size(1)};
-}
-
 SmallVector<int64_t, SIZE> equal_npu_output_size(void) {
   int64_t outputshape = 1;
   SmallVector<int64_t, SIZE> outputSize = {outputshape};

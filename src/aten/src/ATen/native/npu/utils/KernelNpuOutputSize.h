@@ -182,10 +182,6 @@ SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
     int64_t padding_idx, 
     bool scale_grad_by_freq);
 
-SmallVector<int64_t, SIZE> embedding_renorm_mid_npu_output_size(
-    const Tensor& self,
-    const Tensor& indices);
-
 SmallVector<int64_t, SIZE> index_npu_output_size(
   const Tensor& self, 
   TensorList indices);

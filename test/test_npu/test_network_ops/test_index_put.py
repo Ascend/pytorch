@@ -127,6 +127,16 @@ class TestIndexPut(TestCase):
         self.case_exec_fp16(shape_format)
         self.case_inp_exec_fp16(shape_format)
 
+    def test_index_put_null(self, device):
+        cpu_input1 = torch.rand(2, 2)
+        cpu_input2 = torch.rand(2, 2)
+        cpu_mask_index = torch.tensor([[False, False], [False, False]])
+        npu_mask_index = cpu_mask_index.to("npu")
+        npu_input1 = cpu_input1.to("npu")
+        npu_input2 = cpu_input2.to("npu")
+        cpu_input1[cpu_mask_index] = cpu_input2.detach()[cpu_mask_index]
+        npu_input1[npu_mask_index] = npu_input2.detach()[npu_mask_index]
+        self.assertEqual(cpu_input1, npu_input1.to("cpu"))
 
 instantiate_device_type_tests(TestIndexPut, globals(), except_for="cpu")
 

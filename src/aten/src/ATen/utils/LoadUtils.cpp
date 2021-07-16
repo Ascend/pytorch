@@ -89,9 +89,11 @@ namespace at {
   using stringmap = std::unordered_map<string, string>;
   stringmap IrNameMapper = {
     {"NpuConvolutionBackward", "CudnnConvolutionBackward"},
+    {"NativeBatchNormBackward", "CudnnBatchNormBackward"},
   };
   std::unordered_map<string, stringmap> IrParamNameMapper = {
     {"NpuConvolutionBackward", {{"input", "self"},}},
+    {"NativeBatchNormBackward", {{"eps", "epsilon"},}},
   };
 
   void MaybeMapTensorName(const string& irName, std::vector<TensorDesc>& tensorDescVec) {
@@ -99,6 +101,26 @@ namespace at {
       auto tensorName = (*it).nameTensor;
       if (IrParamNameMapper[irName].find(tensorName) != IrParamNameMapper[irName].end()) {
         (*it).nameTensor = IrParamNameMapper[irName][tensorName];
+      }
+    }
+  }
+
+  template <typename T>
+  void MaybeMapValueName(const string& irName, T& value) {
+    for (auto it = value.begin(); it != value.end(); it++) {
+      auto valueName = (*it).Name();
+      if (IrParamNameMapper[irName].find(valueName) != IrParamNameMapper[irName].end()) {
+        (*it).SetName(IrParamNameMapper[irName][valueName]);
+      }
+    }
+  }
+
+  template <typename T>
+  void MaybeMapScalarName(const string& irName, T& value) {
+    for (auto it = value.begin(); it != value.end(); it++) {
+      auto valueName = (*it)->Name();
+      if (IrParamNameMapper[irName].find(valueName) != IrParamNameMapper[irName].end()) {
+        (*it)->SetName(IrParamNameMapper[irName][valueName]);
       }
     }
   }
@@ -112,6 +134,17 @@ namespace at {
       auto oriNameIr = commDesc.nameIr;
       commDesc.nameIr = IrNameMapper[commDesc.nameIr];
       MaybeMapTensorName(oriNameIr, commDesc.tensorDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.int64VecDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.int64DescVec);
+      MaybeMapValueName(oriNameIr, commDesc.boolDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.doubleDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.optionalDoubleDescVec);
+      MaybeMapScalarName(oriNameIr, commDesc.scalarDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.optionalInt64DescVec);
+      MaybeMapScalarName(oriNameIr, commDesc.optionalScalarDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.scalarTypeDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.sizePairDescVec);
+      MaybeMapValueName(oriNameIr, commDesc.longIntArrayDescVec);
     }
   }
 
@@ -689,17 +722,23 @@ namespace at {
 
   }
 
+  void ZeroStrideClear(Tensor& dst, Tensor& src) {
+    auto strides = dst.strides().vec();
+    auto position = std::find(strides.begin(), strides.end(), 0);
+    if (position != strides.end()) {
+      dst = dst.select(position - strides.begin(), 0);
+      src = src.select(position - strides.begin(), 0);
+    } else {
+      return;
+    }
+    ZeroStrideClear(dst, src);
+  }
+
   // when the stride of some dim is zero, the tensor may has been "expand", copy should only
   // process on any axis of that dim
   // To do: is this kind of copy matches other zero stride cases?
   void CopyMaybeWithZeroStride(Tensor dst, Tensor src) {
-    auto strides = dst.strides().vec();
-    for (int i = 0; i < strides.size(); i++) {
-      if (strides[i] == 0) {
-        dst = dst.select(i, 0);
-        src = src.select(i, 0);
-      }
-    }
+    ZeroStrideClear(dst, src);
     dst.copy_(src);
   }
 
