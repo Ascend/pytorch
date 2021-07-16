@@ -71,6 +71,10 @@ public:
   void SetValue(const T &value) {
     value_ = value;
   }
+
+  void SetName(const string& newName) {
+    name_ = newName;
+  }
 private:
   string name_;
   T value_;

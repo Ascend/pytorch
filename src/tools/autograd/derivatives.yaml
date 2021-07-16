@@ -1692,3 +1692,6 @@
 - name: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
   input, weight: npu_linear_backward(grad, input, weight)
   bias: maybe_multiply(grad, 1)
+
+- name: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+  self, gtboxes: npu_giou_backward(grad, self, gtboxes, trans, is_cross, mode)

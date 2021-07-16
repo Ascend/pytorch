@@ -42,9 +42,7 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string& val) {
   aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
  })
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string& val) { 
-  if (CheckFuzzyEnable()) {
     FuzzyCompileBlacklist::GetInstance().RegisterBlacklist(val);
-  }
  })
 
  REGISTER_OPTION_INIT_BY_ENV(PROFILING_MODE)

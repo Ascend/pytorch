@@ -7584,16 +7584,12 @@
   dispatch:
     CPU: reflection_pad2d_out_cpu
     CUDA: reflection_pad2d_out_cuda
-  npu_dispatch:
-    NPU: reflection_pad2d_out_npu
 
 - func: reflection_pad2d(Tensor self, int[4] padding) -> Tensor
   python_module: nn
   dispatch:
     CPU: reflection_pad2d_cpu
     CUDA: reflection_pad2d_cuda
-  npu_dispatch:
-    NPU: reflection_pad2d_npu
 
 - func: reflection_pad2d_backward.grad_input(Tensor grad_output, Tensor self, int[4] padding, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
@@ -8549,3 +8545,11 @@
 - func: npu_bert_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: bert_apply_adam_npu
+
+- func: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+  npu_dispatch_only:
+    NPU: giou_npu
+
+- func: npu_giou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> (Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: giou_backward_npu

@@ -28,18 +28,6 @@ constexpr int output_channels_dim = 1;
 constexpr int weight_output_channels_dim = 0;
 constexpr int weight_input_channels_dim = 1;
 
-bool is_depthwise(
-    const at::Tensor& input,
-    const at::Tensor& weight,
-    int64_t groups,
-    bool transposed) {
-  return input.is_npu() && !transposed && input.ndimension() == 4 &&
-      input.size(1) == groups &&
-      groups > 1 && // no point if there is only a single group
-      weight.size(0) % input.size(1) ==
-      0; // output channels must be a multiple of input channels
-}
-
 inline SmallVector<int64_t, N> expand_dim_if_needed(
     IntArrayRef list_param,
     const char* param_name,
@@ -261,17 +249,7 @@ Tensor _convolution_npu(
   }
 
   Tensor output;
-  if (is_depthwise(input, weight, groups, transposed)) {
-    auto kernel_size = weight.sizes().slice(2);
-    output = at::thnn_conv_depthwise2d(
-        input.contiguous(),
-        weight,
-        kernel_size,
-        bias,
-        stride,
-        padding,
-        dilation);
-  } else if (!transposed) {
+  if (!transposed) {
     output = at::npu_convolution(
         input, weight, bias, stride, padding, dilation, groups);
   } else {

@@ -67,21 +67,32 @@ tuple<Tensor&, Tensor&> min_out_npu(
 }
 
 tuple<Tensor, Tensor> min_npu(const Tensor& self, int64_t dim, bool keepdim) {
+  Tensor selfCast = self;
+  if(self.dtype() == ScalarType::Bool){
+    selfCast = self.to(ScalarType::Float);
+  }
+
   SmallVector<int64_t, SIZE> dims = {dim};
-  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(selfCast, dims, keepdim);
   SmallVector<int64_t, SIZE> indicesSize = outputSize;
 
-  auto func = [&self, dim, keepdim](Tensor outputs, Tensor indices) {
-    min_out_npu_nocheck(outputs, indices, self, dim, keepdim);
+  auto func = [&selfCast, dim, keepdim](Tensor outputs, Tensor indices) {
+    min_out_npu_nocheck(outputs, indices, selfCast, dim, keepdim);
   };
 
   Tensor outputs, indices;
   OpPipeWithDefinedMultiOut<Tensor, Tensor> pipe(outputs, indices);
-  return pipe.ApplyOutputWithSpecailParams<0>(outputSize, self.options(), ACL_FORMAT_ND)
-            .ApplyOutputWithSpecailParams<1>(indicesSize, self.options().dtype(ScalarType::Int), ACL_FORMAT_NCHW)
-            .Call(func)
-            .ReflushOutputDtype<1>(ScalarType::Long)
-            .Return<Tensor, Tensor>();
+  std::tie(outputs, indices) = pipe.ApplyOutputWithSpecailParams<0>(outputSize, selfCast.options(), ACL_FORMAT_ND)
+      .ApplyOutputWithSpecailParams<1>(indicesSize, selfCast.options().dtype(ScalarType::Int), ACL_FORMAT_NCHW)
+      .Call(func)
+      .ReflushOutputDtype<1>(ScalarType::Long)
+      .Return<Tensor, Tensor>();
+
+  if(self.dtype() == ScalarType::Bool){
+    outputs = outputs.to(ScalarType::Bool);
+  }
+
+  return std::tie(outputs, indices);
 }
 
 tuple<Tensor&, Tensor&> min_out_npu(

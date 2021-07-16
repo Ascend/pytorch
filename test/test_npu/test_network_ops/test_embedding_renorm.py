@@ -26,7 +26,7 @@ class TestEmbeddingRenorm(TestCase):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.LongTensor(np.random.uniform(0,shape[0], int(shape[0]/2,)).astype(np.int32))
-        #npu_input2=torch.LongTensor([[0,1,1,0,1],[0,1,1,0,1],[1,0,1,1,2]])
+        
         return npu_input1, npu_input2
 
     def cpu_op_exec(self, input1, input2, max_norm, norm_type):
@@ -36,7 +36,6 @@ class TestEmbeddingRenorm(TestCase):
         output = torch.embedding_renorm_(input1, input2, max_norm=max_norm, norm_type=norm_type)
         if stype == torch.float16:
             output = output.half()
-        output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, input2, max_norm,norm_type):
@@ -44,7 +43,6 @@ class TestEmbeddingRenorm(TestCase):
         input2 = input2.to("npu")
         output = torch.embedding_renorm_(input1, input2, max_norm=max_norm, norm_type=norm_type)
         output = output.to("cpu")
-        output = output.numpy()
         return output
 
     def test_embedding_renorm_float16_2(self, device):
@@ -60,7 +58,7 @@ class TestEmbeddingRenorm(TestCase):
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_input2 = copy.deepcopy(npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2, 0.2, 0)
-        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, 0.2, 0)       
+        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, 0.2, 0)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_embedding_renorm_float16_1(self, device):

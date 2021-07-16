@@ -88,12 +88,20 @@ Tensor constant_pad_nd_npu(const Tensor& self, IntArrayRef pad, Scalar value){
   }
 
   if (is_backward(pad)) {
-    TORCH_CHECK(self.dim() == 4, "only support 4D now, but self.dim is",self.dim());
-    TORCH_CHECK(pad.size()  == 4, "Length of pad must is 4 now, but pad.size() is", pad.size());
+    TORCH_CHECK(self.dim() == 4 || self.dim() == 5,
+        "Only support 4D and 5D now, but self.dim is",self.dim());
+    TORCH_CHECK(pad.size()  == 4 || pad.size()  == 6,
+        "Length of pad must is 4 or 6 now, but pad.size() is", pad.size());
 
     SmallVector<int64_t, SIZE> begin_list = {0, 0, -pad[2], -pad[0]};
     SmallVector<int64_t, SIZE> end_list = {self.size(0), self.size(1), self.size(-2) + pad[3], self.size(-1) + pad[1]};
     SmallVector<int64_t, SIZE> strides = {1, 1, 1, 1};
+
+    if (self.dim() == 5) {
+      begin_list = {0, 0, -pad[4], -pad[2], -pad[0]};
+      end_list = {self.size(0), self.size(1), self.size(-3) + pad[5], self.size(-2) + pad[3], self.size(-1) + pad[1]};
+      strides = {1, 1, 1, 1, 1};
+    }
 
     return at::npu_indexing(self, begin_list, end_list, strides);
   }

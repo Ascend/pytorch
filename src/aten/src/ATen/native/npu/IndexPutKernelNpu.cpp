@@ -26,6 +26,9 @@ Tensor& index_put_nocheck(
     const TensorList& indices,
     const Tensor& value,
     bool accumulate) {
+  if (value.numel() == 0) {
+    return result;
+  }
   // masks corresponds to indices. 0 indicates undefined tensor.
   SmallVector<int64_t, N> masks;
   std::vector<Tensor> allDefinedIndices;
