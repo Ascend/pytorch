@@ -59,6 +59,22 @@ std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::info = {
   {ACL_FRACTAL_Z_3D,        (FormatInfo){ACL_FRACTAL_Z_3D,      ACL_FORMAT_NCDHW,   InferShapeOfFZ3D,       "FRACTAL_Z_3D", true}},
 };
 
+std::unordered_map<aclFormat, std::unordered_map<aclFormat, baseFormatConverter>> FormatHelper::base_format_convert_info = {
+  {ACL_FORMAT_ND,      {
+                          {ACL_FORMAT_NCHW,    InferShapeNDToNCHW},
+                          {ACL_FORMAT_NCDHW,    InferShapeNDToNCDHW},
+                       }
+  },
+  {ACL_FORMAT_NCHW,    {
+                          {ACL_FORMAT_ND,      InferShapeNCHWToND},
+                       }
+  },
+  {ACL_FORMAT_NCDHW,    {
+                          {ACL_FORMAT_ND,      InferShapeNCDHWToND},
+                       }
+  },
+};
+
 bool FormatHelper::IsPadded(const Tensor* tensor) {
   auto format = tensor->storage().unsafeGetStorageImpl()->npu_desc_.npu_format_;
   return IsPadded(format);
@@ -118,6 +134,20 @@ FormatShape FormatHelper::GetStorageSizes(NPUStorageDesc desc) {
   auto ori_size = desc.base_sizes_;
   auto format = desc.npu_format_;
   return GetStorageSizes(format, ori_size);
+}
+
+FormatShape FormatHelper::GetSizeOfBaseFormat(const Tensor& src, aclFormat dst_format) {
+  auto src_format = GetBaseFormat(src);
+  auto itr = base_format_convert_info.find(src_format);
+  if (itr != base_format_convert_info.end()) {
+    auto next_itr = itr->second.find(dst_format);
+    if (next_itr != itr->second.end()) {
+      auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+      return next_itr->second(src_desc.storage_sizes_, src_desc.base_sizes_);
+    }
+  }
+  AT_ERROR("unsupport InferShape from ", GetFormatName(src_format), " to ", GetFormatName(dst_format));
+  return {};
 }
 
 // 

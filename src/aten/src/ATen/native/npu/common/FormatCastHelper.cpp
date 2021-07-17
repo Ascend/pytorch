@@ -36,6 +36,7 @@ void FormatCastHelper::format_cast_as_base_format(const Tensor& src, aclFormat f
   AT_ASSERT(FormatHelper::IsBaseFormatType(src), "src format must be base format");
   
   auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  src_desc.storage_sizes_ = FormatHelper::GetSizeOfBaseFormat(src, format);
   src_desc.origin_format_ = format;
   src_desc.npu_format_ = format;
   return;

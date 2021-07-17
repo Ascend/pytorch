@@ -107,11 +107,17 @@ aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus,
 {
   typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *status);
   static aclQueryEventWaitStatus func = nullptr;
+  aclError result = ACL_ERROR_NONE;
   if (func == nullptr) {
     func = (aclQueryEventWaitStatus)GET_FUNC(aclrtQueryEventWaitStatus);
   }
   if (func != nullptr) {
-    return func(event, waitStatus);
+    result = func(event, waitStatus);
+    if (result == ACL_ERROR_RT_PARAM_INVALID) {
+      *waitStatus = c10::npu::acl::ACL_EVENT_WAIT_STATUS_COMPLETE;
+      result = ACL_ERROR_NONE;
+    }
+    return result;
   } else {
     return aclrtQueryEvent(event, recordStatus);
   }
