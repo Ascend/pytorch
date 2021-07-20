@@ -102,10 +102,10 @@ class TestNpuGiou(TestCase):
     def _test_npu_giou_shape_format(self, dtype):
         shape_list = [
             [10, 10],
-            [12, 10],
+            [12, 12],
             [100, 100]
         ]
-        is_trans_list = [False]
+        is_trans_list = [True]
         mode_list = ["iou"]
         # TODO(Ascend): 反向只支持 mode=="iof", is_cross==False,
         # is_trans==Fasle场景，这里同步验证相同场景

@@ -58,7 +58,7 @@ Tensor ctc_loss_backward_npu(
   auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options().dtype(at::kInt));
   auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options().dtype(at::kInt));
 
-  auto outputSize = {logProbs.size(1), logProbs.size(0), logProbs.size(2)};
+  auto outputSize = input_same_output_size(logProbs);
 
   // construct the output tensor of the NPU
   Tensor grad = OpPreparation::ApplyTensor(logProbsNeed, outputSize);
@@ -81,8 +81,7 @@ Tensor ctc_loss_backward_npu(
     grad = grad.to(ScalarType::Half);
   }
   
-  //return grad;
-  return grad.permute({1,0,2});
+  return grad;
 }
 } // namespace native
 } // namespace at

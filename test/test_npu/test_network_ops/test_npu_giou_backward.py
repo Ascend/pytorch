@@ -55,7 +55,7 @@ class TestNpuGiouBackward(TestCase):
         shape_list = [
             [1, 1]
         ]
-        is_trans_list = [False]
+        is_trans_list = [True]
         mode_list = ["iou"]
         # TODO(Ascend): only support mode=="iof", is_cross==False, 
         # is_trans==Fasle currently
@@ -67,14 +67,14 @@ class TestNpuGiouBackward(TestCase):
         for item in shape_format:
             mode_digit = 0 if item[-1] == "iou" else 1
             is_cross = False if item[0][0] == item[0][1] else True
-            expected_cpu_grad1 = np.array([[0.51091206],
-                                           [-0.70909655],
-                                           [0.3726323],
-                                           [0.349545]], dtype=np.float32)
-            expected_cpu_grad2 = np.array([[-0.51091206],
-                                           [0.70909655],
-                                           [0.3599837],
-                                           [0.47306436]], dtype=np.float32)
+            expected_cpu_grad1 = np.array([[1.0218241],
+                                           [-1.4181931],
+                                           [0.18631615],
+                                           [0.1747725]], dtype=np.float32)
+            expected_cpu_grad2 = np.array([[-1.0218241],
+                                           [1.4181931],
+                                           [0.17999186],
+                                           [0.23653218]], dtype=np.float32)
             _, _, npu_input1, npu_input2 = self.generate_giou_data(*item[0], np.float32)
             _, npu_grad1, npu_grad2 = self.npu_op_exec(npu_input1, npu_input2, item[1], is_cross, mode_digit)
             self.assertRtolEqual(expected_cpu_grad1, npu_grad1)

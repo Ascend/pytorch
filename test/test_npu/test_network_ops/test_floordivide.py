@@ -117,7 +117,12 @@ class TestFloorDivide(TestCase):
         npu_output = self.npu_op_exec_scalar(npu_input1, 1) 
         self.assertRtolEqual(cpu_output, npu_output)
      
-     
+    def test_floor_divide_scalar_bool(self, device): 
+        npu_input1, _= self.generate_data(1, 10, (2, 5), np.float32) 
+        cpu_output = self.cpu_op_exec(npu_input1 > 5, 1.0) 
+        npu_output = self.npu_op_exec_scalar(npu_input1 > 5, 1.0) 
+        self.assertRtolEqual(cpu_output, npu_output) 
+
     def npu_uncontiguous_op_exec_scalar(self, input1, input2): #
         input1 = input1.to("npu") 
         input1 = input1.as_strided([2,2], [1,2], 1) 
