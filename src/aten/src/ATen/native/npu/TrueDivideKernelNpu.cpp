@@ -122,10 +122,10 @@ Tensor true_divide_npu(const Tensor& self, const Tensor& other) {
   // calculate the output size
   Tensor  selftemp=self;
   Tensor  othertemp = other;
-  if (self.scalar_type() == ScalarType::Int){
+  if (self.scalar_type() == ScalarType::Int || self.scalar_type() == ScalarType::Bool){
     selftemp = self.to(ScalarType::Float);
   }
-  if (other.scalar_type() == ScalarType::Int||other.scalar_type() == ScalarType::Bool){
+  if (other.scalar_type() == ScalarType::Int || other.scalar_type() == ScalarType::Bool){
     othertemp = other.to(ScalarType::Float);
   }
 
@@ -147,7 +147,7 @@ Tensor true_divide_npu(const Tensor& self, const Tensor& other) {
 Tensor true_divide_npu(const Tensor& self, Scalar other) {
   // calculate the output size
   Tensor selftemp =self;
-  if (self.scalar_type() == ScalarType::Int){
+  if (self.scalar_type() == ScalarType::Int || self.scalar_type() == ScalarType::Bool){
     selftemp = self.to(ScalarType::Float);
   }
   auto outputSize = input_same_output_size(selftemp);

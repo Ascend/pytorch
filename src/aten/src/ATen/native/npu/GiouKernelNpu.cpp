@@ -66,20 +66,30 @@ Tensor giou_npu(
     bool trans,
     bool is_cross,
     int64_t mode){
-  TORCH_CHECK(!trans && !is_cross &&  mode == 0,
-            "giou backward only support trans==False, ",
+  TORCH_CHECK(trans && !is_cross &&  mode == 0,
+            "giou backward only support trans==True, ",
             "is_cross==False, ",
             "mode==0('iou') current version ",
             "if you need to back propagation, ",
             "please ensure your parameter is correct!");
   // Op need form of [n, 4], but pass should be [4, n];
+  // Note: temp avoid! it'll be removed while op deal with fp16 issue!
   Tensor selfCp = self.permute({1, 0});
+  if(selfCp.scalar_type() == at::kHalf){
+    selfCp = selfCp.npu_dtype_cast(at::kFloat);
+  }
   Tensor gtboxesCp = gtboxes.permute({1, 0});
+  if(gtboxesCp.scalar_type() == at::kHalf){
+    gtboxesCp = gtboxesCp.npu_dtype_cast(at::kFloat);
+  }
   auto output_size = giou_output_size(selfCp, gtboxesCp, is_cross);
   Tensor result = OpPreparation::ApplyTensor(selfCp, output_size);
 
   giou_inner_out_npu(result, selfCp, gtboxesCp, trans, is_cross, mode);
   result = result.permute({1, 0});
+  if(self.scalar_type() == at::kHalf || gtboxes.scalar_type() == at::kHalf){
+    result = result.npu_dtype_cast(at::kHalf);
+  }
   return result;
 }
 

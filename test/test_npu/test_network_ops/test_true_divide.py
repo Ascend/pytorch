@@ -23,13 +23,10 @@ class TestTrueDivide(TestCase):
     def generate_data(self,min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         input2 = np.random.uniform(min_d, max_d, shape).astype(dtype)
-
         # modify from numpy.ndarray to torch.tensor
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
-
         return npu_input1, npu_input2
-
 
     def generate_single_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
@@ -40,7 +37,7 @@ class TestTrueDivide(TestCase):
         input1 = np.random.uniform(min_d, max_d, shape)
         input1 = input1.reshape(-1)
         for i in range(len(input1)):
-            if input1[i]<0.5:
+            if input1[i] < 0.5:
              input1[i] = 0
         input1 = input1.astype(np.bool)
         input1 = input1.reshape(shape)
@@ -60,7 +57,6 @@ class TestTrueDivide(TestCase):
         output = output.numpy()
         return output
 
-
     def npu_op_exec_scalar(self, input1, input2):
         input1 = input1.to("npu")
         output = torch.true_divide(input1,input2)
@@ -69,12 +65,11 @@ class TestTrueDivide(TestCase):
         return output
 
     def test_true_divide_float32_broadcast(self,device):
-        npu_input1 = self.generate_single_data(0, 100, (2,2), np.float32)
+        npu_input1 = self.generate_single_data(0, 100, (2, 2), np.float32)
         npu_input2 = self.generate_single_data(0, 100, (2), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
-
 
     def test_true_divide_float32(self,device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4, 3), np.float32)
@@ -89,21 +84,27 @@ class TestTrueDivide(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_true_divide_bool(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (2,2), np.float32)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (2, 2), np.float32)
         npu_input3 = self.generate_single_bool_data(1, 1, (2, 2))
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
         npu_output = self.npu_op_exec(npu_input1, npu_input3)
-        print(cpu_output, npu_output)
         self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_true_divide_tensor_bool(self, device):
+        npu_input1, npu_input2 = self.generate_data(0, 10, (2, 2), np.float32)
+        npu_input3 = self.generate_single_bool_data(1, 1, (2, 2))
+        cpu_output1 = self.cpu_op_exec(npu_input1 > 5, npu_input3)
+        npu_output1 = self.npu_op_exec(npu_input1 > 5, npu_input3)
+        cpu_output2 = self.cpu_op_exec(npu_input1 > 5, 1.2)
+        npu_output2 = self.npu_op_exec_scalar(npu_input1 > 5, 1.2)
+        self.assertRtolEqual(cpu_output1, npu_output1)
+        self.assertRtolEqual(cpu_output2, npu_output2)
 
     def test_true_divide_bool_scalar(self, device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (2, 2), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1,True)
         npu_output = self.npu_op_exec_scalar(npu_input1, True)
         self.assertRtolEqual(cpu_output, npu_output)
-
-
 
     def test_true_divide_scalar_int32_1(self,device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (2, 3), np.float32)
@@ -117,7 +118,6 @@ class TestTrueDivide(TestCase):
         npu_output = self.npu_op_exec_scalar(npu_input1, 2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-
     def test_true_divide_scalar_float32(self,device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (2, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, 2.0)
@@ -126,6 +126,5 @@ class TestTrueDivide(TestCase):
 
 
 instantiate_device_type_tests(TestTrueDivide, globals() , except_for='cpu')
-
 if __name__ == "__main__":
     run_tests()

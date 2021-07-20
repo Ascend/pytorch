@@ -32,12 +32,14 @@ Tensor& floor_divide_out_npu(Tensor& result, const Tensor& self, Scalar other) {
 }
 
 Tensor& floor_divide_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
+  auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   // executing the NPU operator
   if (other.dim() == 0) {
     floor_divide_out_npu(result, self, other.item());
   } else {
     OpCommand cmd;
     cmd.Name("FloorDiv")
+        .Expect(unified_result)
         .Input(self)
         .Input(other)
         .Output(result)
@@ -48,30 +50,34 @@ Tensor& floor_divide_out_npu(Tensor& result, const Tensor& self, const Tensor& o
 }
 
 Tensor floor_divide_npu(const Tensor& self, const Tensor& other) {
-    Tensor temp = other;
-    if (other.scalar_type() == ScalarType::Double) {
-      temp = other.to(ScalarType::Float);
-    }
-    if (other.scalar_type() == ScalarType::Long) {
-      temp = other.to(ScalarType::Int);
-    }
-    
-    // calculate the output size
-    bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
-    Tensor outputTensor = isSelfWrapped ? temp : self;
+  Tensor selfCast = self;
+  if(self.dtype() == ScalarType::Bool){
+    selfCast = self.to(ScalarType::Float);
+  }
+  Tensor temp = other;
+  if (other.scalar_type() == ScalarType::Double) {
+    temp = other.to(ScalarType::Float);
+  }
+  if (other.scalar_type() == ScalarType::Long) {
+    temp = other.to(ScalarType::Int);
+  }
+  
+  // calculate the output size
+  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfCast);
+  Tensor outputTensor = isSelfWrapped ? temp : selfCast;
 
-    auto outputSize = broadcast_ops_npu_output_size(self, temp);
+  auto outputSize = broadcast_ops_npu_output_size(selfCast, temp);
 
-    // construct the output tensor of the NPU
-    Tensor result = at::empty_with_format(
-        outputSize,
-        outputTensor.options(),
-        CalcuOpUtil::get_tensor_npu_format(self));
+  // construct the output tensor of the NPU
+  Tensor result = at::empty_with_format(
+      outputSize,
+      outputTensor.options(),
+      CalcuOpUtil::get_tensor_npu_format(selfCast));
 
-    // calculate the output result of the NPU
-    floor_divide_out_npu(result, self, temp);
+  // calculate the output result of the NPU
+  floor_divide_out_npu(result, selfCast, temp);
 
-    return result;
+  return result;
 }
 
 Tensor floor_divide_npu(const Tensor& self, Scalar other) {

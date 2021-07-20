@@ -54,18 +54,34 @@ giou_backward_npu(
     bool trans,
     bool is_cross,
     int64_t mode){
-  TORCH_CHECK(!trans && !is_cross &&  mode == 0,
-            "giou backward only support trans==False, ",
+  TORCH_CHECK(trans && !is_cross &&  mode == 0,
+            "giou backward only support trans==True, ",
             "is_cross==False, ",
             "mode==0('iou') current version ",
             "if you need to back propagation, ",
             "please ensure your parameter is correct!");
   // Op need form of [n] grad
+  // Note: temp avoid! it'll be remove while op deal with fp16 issue!
   Tensor gradCp = at::squeeze(grad, 0);
-  Tensor dbboxes = OpPreparation::ApplyTensor(bboxes);
-  Tensor dgtboxes = OpPreparation::ApplyTensor(gtboxes);
+  if(gradCp.scalar_type() == at::kHalf){
+    gradCp = gradCp.npu_dtype_cast(at::kFloat);
+  }
+  Tensor bboxesCp = bboxes;
+  if(bboxesCp.scalar_type() == at::kHalf){
+    bboxesCp = bboxesCp.npu_dtype_cast(at::kFloat);
+  }
+  Tensor gtboxesCp = gtboxes;
+  if(gtboxesCp.scalar_type() == at::kHalf){
+    gtboxesCp = gtboxesCp.npu_dtype_cast(at::kFloat);
+  }
+  Tensor dbboxes = OpPreparation::ApplyTensor(bboxesCp);
+  Tensor dgtboxes = OpPreparation::ApplyTensor(gtboxesCp);
 
-  giou_backward_inner_out_npu(dbboxes, dgtboxes, gradCp, bboxes, gtboxes, trans, is_cross, mode);
+  giou_backward_inner_out_npu(dbboxes, dgtboxes, gradCp, bboxesCp, gtboxesCp, trans, is_cross, mode);
+  if(bboxes.scalar_type() == at::kHalf || gtboxes.scalar_type() == at::kHalf){
+    dbboxes = dbboxes.npu_dtype_cast(at::kHalf);
+    dgtboxes = dgtboxes.npu_dtype_cast(at::kHalf);
+  }
   return std::tie(dbboxes, dgtboxes);
 }
 

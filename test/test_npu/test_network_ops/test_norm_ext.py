@@ -38,8 +38,8 @@ class TestNorm(TestCase):
     
     def npu_out_exec(self, input, p1, dim1, keepdim1, dtype1):
         output_size = self.norm_output_size(input, dim1, keepdim1)
-        npu_out = torch.randn(output_size).npu()
-        output1 = torch.norm(input, p = p1, dim = dim1 , keepdim = keepdim1, out = npu_out, dtype = dtype1)
+        npu_out = torch.randn(output_size).npu().to(input.dtype)
+        output1 = torch.norm(input, p = p1, dim = dim1 , keepdim = keepdim1, out = npu_out, dtype = input.dtype)
         output = output1.to("cpu")
         return output
         
@@ -87,7 +87,7 @@ class TestNorm(TestCase):
             
     def test_norm_shape_format_3(self, device):
         shape_format = [
-                # [[np.float16, 0, (10, 24, 56, 2048)]], # result error
+                [[np.float16, 0, (10, 24, 56, 2048)]], # result error
                 [[np.float32, 0, (10, 24, 56, 2048)]],
         ] 
         for item in shape_format:
