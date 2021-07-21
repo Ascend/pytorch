@@ -51,6 +51,22 @@ class TestIsfinite(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_isfinite_common_shape_format(self, device):
+        shape_format = [
+            [[np.bool, -1, (4, 3, 1)]],
+            [[np.int32, -1, (4, 3, 1)]],
+            [[np.int8, -1, (2, 3)]],
+            [[np.int16, -1, (2, 3)]],
+            [[np.int64, -1, (2, 3)]],
+            [[np.float32, -1, (4, 3, 1)]],
+            #[[np.float64, -1, (4, 3, 1)]], ACL,不支持
+            [[np.uint8, -1, (4, 3, 1)]]
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
+            cpu_output = self.cpu_op_exec(cpu_input1)
+            npu_output = self.npu_op_exec(npu_input1)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestIsfinite, globals(), except_for="cpu")
 if __name__ == "__main__":

@@ -25,14 +25,47 @@ Tensor scatter_add_out_npu(
     int64_t dim,
     const Tensor& index,
     const Tensor& src) {
+  int64_t index_dim = index.dim();
+  auto index_sizes = index.sizes();
+  auto self_dim = self.dim();
+  TORCH_CHECK(index.scalar_type() == ScalarType::Long, "index.scalar_type() != ScalarType::Long");
+  TORCH_CHECK(dim < index_dim, "dim must smaller than index.dim()");
+  TORCH_CHECK(index_dim == self_dim, "index.dim() must eq to self.dim()");
+  TORCH_CHECK(src.dim() == self_dim, "src.dim() must eq to self.dim()");
+
+  Tensor src_flatten = src.reshape(-1);
+  Tensor index_flatten = index.cpu().reshape(-1);
+  std::vector<int64_t> index_sizes_new(index_sizes.begin(), index_sizes.end());
+  index_sizes_new.push_back(index_dim);
+  Tensor new_index = at::empty(index_sizes_new, index_flatten.options());
+  new_index = new_index.reshape({-1, index_dim}).fill_(0);
+  int64_t numel_num = index.numel();
+  int64_t stride = 1;
+  int64_t data_stride = index_dim;
+  int64_t* org_data_ptr = index_flatten.data_ptr<int64_t>();
+  int64_t* data_ptr = new_index.data_ptr<int64_t>();
+
+  for (--index_dim; index_dim >= 0; index_dim--) {
+    int64_t dim_size = index.size(index_dim);
+    for (int64_t i = 0; i < numel_num; i++) {
+      if (dim != index_dim) {
+        if (i >= stride) {
+          data_ptr[i * data_stride + index_dim] = (i / stride) % dim_size;
+        }
+      } else {
+        data_ptr[i * data_stride + index_dim] = org_data_ptr[i];
+      }
+    }
+    stride = stride * dim_size;
+  }
+
   OpCommand cmd;
-  cmd.Name("PTScatterAdd")
+  cmd.Name("ScatterNdAdd")
      .Input(self)
-     .Input(index)
-     .Input(src)
+     .Input(new_index.to("npu"))
+     .Input(src_flatten)
      .Output(result)
-     .Attr("dim", dim)
-     .Attr("kernel_name", "PTScatterAdd")
+     .Attr("use_locking", false)
      .Run();
 
   return result;
