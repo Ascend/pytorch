@@ -39,10 +39,9 @@ Tensor isfinite_npu(const Tensor& self_ex) {
 
   // calculate the output result of the NPU
   OpCommand cmd;
-  cmd.Name("PTIsfinite")
+  cmd.Name("IsFinite")
       .Input(self)
       .Output(result)
-      .Attr("kernel_name", "PTIsfinite")
       .Run();
   return result;
 }

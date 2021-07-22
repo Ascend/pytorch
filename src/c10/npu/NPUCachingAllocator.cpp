@@ -893,14 +893,12 @@ struct THNCachingAllocator {
       aclrtEvent event = e.first;
       Block* block = e.second;
 
-      acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
-      aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
-      aclError err = acl::AclQueryEventStatus(event, &waitStatus, &recordStatus);
+      aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
+      aclError err = aclrtQueryEvent(event, &status);
       if (err != ACL_ERROR_NONE) {
            C10_NPU_CHECK(err);
       }
-      if ((waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) &&
-        (recordStatus != ACL_EVENT_STATUS_COMPLETE)) {
+      if (status != ACL_EVENT_STATUS_COMPLETE) {
         break;
       }
 

@@ -23,7 +23,7 @@ using namespace at::native::npu;
 
 Tensor& triu_out_npu(Tensor& result, const Tensor& self, int64_t k) {
   OpCommand cmd;
-  cmd.Name("PTTriu")
+  cmd.Name("Triu")
     .Input(self)
     .Output(result)
     .Attr("diagonal", k)
