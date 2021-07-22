@@ -5442,11 +5442,15 @@
   dispatch:
     CPU: tril_indices_cpu
     CUDA: tril_indices_cuda
+  npu_dispatch:
+    NPU: tril_indices_npu
 
 - func: triu_indices(int row, int col, int offset=0, *, ScalarType? dtype=long, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   dispatch:
     CPU: triu_indices_cpu
     CUDA: triu_indices_cuda
+  npu_dispatch:
+    NPU: triu_indices_npu
 
 - func: trace(Tensor self) -> Tensor
   use_c10_dispatcher: full
