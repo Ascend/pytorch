@@ -21,7 +21,7 @@
 #include "c10/npu/NPUCachingAllocator.h"
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 #include <third_party/acl/inc/ge/ge_error_codes.h>
 #include <string>

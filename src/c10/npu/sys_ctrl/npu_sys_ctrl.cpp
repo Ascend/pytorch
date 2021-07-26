@@ -18,7 +18,6 @@
 #include <c10/npu/npu_log.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/OptionsManager.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
 
 namespace c10 {
 namespace npu {

@@ -16,8 +16,8 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/frame/OpDynamicParamMaker.h"
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
 #include "c10/npu/NPUStream.h"
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 
 namespace at {
 namespace native {

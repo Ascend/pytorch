@@ -68,8 +68,3 @@ aclError aclSetCompileopt(
   return 0;
 }
 
-// Dynamic shape相关
-aclError aclopSetCompileFlag(
-  aclOpCompileFlag flag) {
-  return 0;
-};
