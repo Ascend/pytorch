@@ -17,7 +17,7 @@
 #include "CalcuOpUtil.h"
 #include <Python.h>
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/frame/InferFormat.h"
 #include "ATen/native/npu/mirror/NPUMemoryOverlap.h"
@@ -632,7 +632,7 @@ void CalcuOpUtil::execute_npu_operate(
   bool reset_flag = false;
   if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {
-    aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;
   }
   NPU_LOGD("Op %s aclopCompileAndExecute Run.", opName.c_str());
@@ -680,7 +680,7 @@ void CalcuOpUtil::execute_npu_operate(
     ACL_REQUIRE_OK_OP(ret, opName.c_str());
   }
   if (reset_flag) {
-    aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   }
   aclopDestroyAttr(attr);
   NPUStatus ret = DestroyAclParams(params);

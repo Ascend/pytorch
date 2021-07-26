@@ -17,6 +17,7 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -87,6 +88,96 @@ inline SmallVector<int64_t, N> conv_input_size(
   return input_size;
 }
 
+SmallVector<int64_t, SIZE> convolution_transpose3d_npu_output_size(
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  int64_t N = input.size(0);
+  int64_t D = input.size(2);
+  int64_t H = input.size(3);
+  int64_t W = input.size(4);
+  int64_t Co = weight.size(1) * groups;
+  auto kernel_size = weight.sizes().slice(2);
+
+  int64_t Do = (D - 1) * stride[0] - 2 * padding[0] +
+      dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
+  int64_t Ho = (H - 1) * stride[1] - 2 * padding[1] +
+      dilation[1] * (kernel_size[1] - 1) + output_padding[1] + 1;
+  int64_t Wo = (W - 1) * stride[2] - 2 * padding[2] +
+      dilation[2] * (kernel_size[2] - 1) + output_padding[2] + 1;
+
+  SmallVector<int64_t, SIZE> outputSize = {N, Co, Do, Ho, Wo};
+
+  return outputSize;
+}
+
+Tensor& convolution_transpose3d_out_npu_nocheck(
+    Tensor& result,
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  SmallVector<int64_t, N> paddings = {
+      padding[0], padding[0], padding[1], padding[1], padding[2], padding[2]};
+  SmallVector<int64_t, N> outputpadding = {0, 0, 0, 0, 0};
+  SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
+  SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1], dilation[2]};
+  string dataFormat = "NCDHW";
+
+  SmallVector<int64_t, N> sizeVec = array_to_small_vector(result.sizes());
+  OpCommand cmd;
+  cmd.Name("Conv3DTranspose")
+      .Input(sizeVec, at::kInt)
+      .Input(input)
+      .Input(weight);
+  if (bias.defined()){
+    cmd.Input(bias);
+  }
+  cmd.Output(result)
+      .Attr("pads", paddings)
+      .Attr("output_padding", outputpadding)
+      .Attr("strides", stridesSize)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
+
+  return result;
+}
+
+Tensor convolution_transpose3d_npu(
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  // calculate the output size
+  auto outputSize = convolution_transpose3d_npu_output_size(
+      input, weight, bias, padding, output_padding, stride, dilation, groups);
+
+  // construct the output tensor of the NPU
+  Tensor result = 
+      OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NDC1HWC0);
+
+  // calculate the output result of the NPU
+  convolution_transpose3d_out_npu_nocheck(
+      result, input, weight, bias, padding, output_padding, stride, dilation, groups);
+
+  return result;
+}
+
 void view1d_as_2d(
     SmallVector<int64_t, N>& stride,
     SmallVector<int64_t, N>& padding,
@@ -143,6 +234,27 @@ Tensor _conv3d_npu(
 }
 
 Tensor conv_transpose2d_npu_(
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    int64_t groups,
+    IntArrayRef dilation) {
+  return at::convolution(
+      input,
+      weight,
+      bias,
+      stride,
+      padding,
+      dilation,
+      true,
+      output_padding,
+      groups);
+}
+
+Tensor conv_transpose3d_npu_(
     const Tensor& input,
     const Tensor& weight,
     const Tensor& bias,
@@ -302,6 +414,11 @@ Tensor npu_convolution_transpose(
   Tensor output;
   if (dim == 4) {
     output = at::npu_conv_transpose2d(
+        input, weight, bias, padding, output_padding, stride, dilation, groups);
+  }
+
+  if (dim == 5) {
+    output = convolution_transpose3d_npu(
         input, weight, bias, padding, output_padding, stride, dilation, groups);
   }
 

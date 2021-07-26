@@ -17,7 +17,7 @@
 #define __NATIVE_NPU_UTILS_OP_DYNAMIC_PARAM_MAKER__
 
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
 #include "c10/npu/NPUStream.h"
 

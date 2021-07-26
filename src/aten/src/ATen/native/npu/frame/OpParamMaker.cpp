@@ -160,7 +160,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   bool reset_flag = false;
   if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name)) {
-    aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;
   }
   aclError ret;
@@ -182,7 +182,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (reset_flag) {
-    aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   }
   return ret;
 }
@@ -198,7 +198,7 @@ int ExecFunc(void* in, aclrtStream stream) {
     bool reset_flag = false;
     if (env::CheckFuzzyEnable() &&
         FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType)) {
-      aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+      AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;
     }
     int index = 0;
@@ -219,7 +219,7 @@ int ExecFunc(void* in, aclrtStream stream) {
       ++index;
     } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     if (reset_flag) {
-      aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+      AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
     }
     if (ret != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();

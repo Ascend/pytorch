@@ -980,6 +980,8 @@
     NPU: conv_transpose2d_npu_
 
 - func: conv_transpose3d.input(Tensor input, Tensor weight, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] output_padding=0, int groups=1, int[3] dilation=1) -> Tensor
+  npu_dispatch:
+    NPU: conv_transpose3d_npu_
 
 - func: copy_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
   manual_kernel_registration: True
@@ -1508,6 +1510,8 @@
   use_c10_dispatcher: full
   supports_named_tensor: True
   variants: function, method
+  npu_dispatch:
+    NPU: erfc_npu
 
 - func: erfc_(Tensor(a!) self) -> Tensor(a!)
   supports_named_tensor: True
@@ -1515,12 +1519,16 @@
   dispatch:
     CPU: _erfc__cpu
     CUDA: _erfc__cuda
+  npu_dispatch:
+    NPU: erfc_npu_
 
 - func: erfc.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   supports_named_tensor: True
   dispatch:
     CPU: _erfc_out_cpu
     CUDA: _erfc_out_cuda
+  npu_dispatch:
+    NPU: erfc_out_npu
 
 - func: exp(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -5860,6 +5868,8 @@
   dispatch:
     CPU: _triangular_solve_helper_cpu
     CUDA: _triangular_solve_helper_cuda
+  npu_dispatch:
+    NPU: _triangular_solve_helper_npu
 
 - func: symeig.e(Tensor self, bool eigenvectors=False, bool upper=True, *, Tensor(a!) e, Tensor(b!) V) -> (Tensor(a!) eigenvalues, Tensor(b!) eigenvectors)
 

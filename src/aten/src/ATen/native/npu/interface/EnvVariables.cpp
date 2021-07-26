@@ -5,7 +5,7 @@
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "ATen/native/npu/utils/NpuProfilingDispatch.h"
 #include <third_party/acl/inc/acl/acl_mdl.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 namespace at {
 namespace native {
 namespace npu {
@@ -24,8 +24,8 @@ REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string& val) {
 REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string& val) { aclmdlSetDump(val.c_str()); })
 
 REGISTER_OPTION_HOOK(fuzzycompileswitch, [](const std::string& val) {
-  if (val == "enable") { aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ); }
-  else { aclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT); }
+  if (val == "enable") { AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ); }
+  else { AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT); }
  })
 REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, fuzzycompileswitch, "disable", "enable")
 

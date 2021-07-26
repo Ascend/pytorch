@@ -105,17 +105,6 @@ ACL_FUNC_VISIBILITY aclError aclopCompileAndExecute(const char *opType,
  */
 ACL_FUNC_VISIBILITY aclError aclSetCompileopt(aclCompileOpt opt, const char *value);
 
-/**
- * @ingroup AscendCL
- * @brief an interface set compile flag
- *
- * @param flag [IN]     flag: ACL_OPCOMPILE_DEFAULT represent static compile while ACL_OPCOMPILE_FUZZ represent dynamic compile
- *        
- * @retval ACL_ERROR_NONE The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclopSetCompileFlag(aclOpCompileFlag flag);
-
 #ifdef __cplusplus
 }
 #endif
