@@ -62,6 +62,7 @@ bash gen.sh
 ```
 
 会在pytorch/pytorch/目录中生成npu适配全量代码
+(执行脚本过程中会出现install.bat、install_cuda.bat、build_windows.bat、proto.ps1、von_mises.py、transformer.pyi.in等文件打patch失败错误，该错误是由于这些文件是dos编码格式导致，文件本身无需修改，可忽略该错误)
 
 ## 编译torch的二进制包
 
