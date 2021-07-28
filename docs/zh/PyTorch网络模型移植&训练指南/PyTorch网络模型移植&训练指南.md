@@ -4,15 +4,8 @@
 -   [迁移流程](#迁移流程.md)
 -   [模型移植评估](#模型移植评估.md)
 -   [环境准备](#环境准备.md)
-    -   [简介](#简介.md)
-    -   [手动编译安装](#手动编译安装.md)
-        -   [前提条件](#前提条件.md)
-        -   [安装PyTorch框架](#安装PyTorch框架.md)
-        -   [配置环境变量](#配置环境变量.md)
-        -   [安装混合精度模块](#安装混合精度模块.md)
-    -   [使用Ascend Hub镜像](#使用Ascend-Hub镜像.md)
-        -   [Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像.md)
-        -   [配置环境变量](#配置环境变量-0.md)
+    -   [准备运行环境](#准备运行环境.md)
+    -   [配置环境变量](#配置环境变量.md)
 -   [模型迁移](#模型迁移.md)
     -   [工具迁移](#工具迁移.md)
         -   [功能介绍](#功能介绍.md)
@@ -24,28 +17,28 @@
         -   [PyTorch接口替换](#PyTorch接口替换.md)
     -   [混合精度](#混合精度.md)
     -   [性能优化](#性能优化.md)
-        -   [概述](#概述-1.md)
+        -   [概述](#概述-0.md)
         -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式（X86服务器）.md)
         -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式（ARM服务器）.md)
         -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库（X86服务器）.md)
         -   [（可选）安装指定版本OpenCV库](#（可选）安装指定版本OpenCV库.md)
 -   [模型训练](#模型训练.md)
 -   [性能调优和分析](#性能调优和分析.md)
-    -   [前提条件](#前提条件-2.md)
+    -   [前提条件](#前提条件.md)
     -   [调测过程](#调测过程.md)
         -   [总体思路](#总体思路.md)
         -   [采集训练过程相关数据](#采集训练过程相关数据.md)
-        -   [性能优化](#性能优化-3.md)
+        -   [性能优化](#性能优化-1.md)
     -   [亲和库](#亲和库.md)
         -   [来源介绍](#来源介绍.md)
-        -   [功能介绍](#功能介绍-4.md)
+        -   [功能介绍](#功能介绍-2.md)
 -   [精度调测](#精度调测.md)
-    -   [前提条件](#前提条件-5.md)
-    -   [调测过程](#调测过程-6.md)
-        -   [总体思路](#总体思路-7.md)
+    -   [前提条件](#前提条件-3.md)
+    -   [调测过程](#调测过程-4.md)
+        -   [总体思路](#总体思路-5.md)
         -   [精度调优方法](#精度调优方法.md)
 -   [模型保存与转换](#模型保存与转换.md)
-    -   [简介](#简介-8.md)
+    -   [简介](#简介.md)
     -   [模型保存](#模型保存.md)
     -   [导出ONNX模型](#导出ONNX模型.md)
 -   [样例说明](#样例说明.md)
@@ -56,7 +49,7 @@
             -   [分布式训练修改](#分布式训练修改.md)
         -   [脚本执行](#脚本执行.md)
     -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例.md)
-        -   [样例获取](#样例获取-9.md)
+        -   [样例获取](#样例获取-6.md)
         -   [模型评估](#模型评估.md)
         -   [网络迁移](#网络迁移.md)
         -   [网络调测](#网络调测.md)
@@ -65,11 +58,10 @@
     -   [单算子dump方法](#单算子dump方法.md)
     -   [常用环境变量说明](#常用环境变量说明.md)
     -   [dump op方法](#dump-op方法.md)
-    -   [CMake安装方法](#CMake安装方法.md)
+    -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
 -   [FAQ](#FAQ.md)
     -   [软件安装常见问题](#软件安装常见问题.md)
         -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)
-        -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
     -   [模型和算子运行常见问题](#模型和算子运行常见问题.md)
         -   [在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md)
         -   [在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs.md)
@@ -78,7 +70,9 @@
         -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize.md)
         -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error.md)
         -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)
         -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭&#40;export-TASK_QUEUE_ENABLE-0&#41;后仍然遇到报错-HelpACLExecute.md)
+        -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1&#40;failed&#41;.md)
     -   [模型调测常见问题](#模型调测常见问题.md)
         -   [在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5.md)
         -   [在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend.md)
@@ -114,21 +108,20 @@
 2.  最大限度的继承GPU在PyTorch上的使用方式，可以使用户在将模型移植到昇腾AI处理器设备进行训练时，在开发方式和代码重用方面做到最小的改动。
 3.  最大限度的继承PyTorch原生的体系结构，保留框架本身出色的特性，比如自动微分、动态分发、Debug、Profiling、Storage共享机制以及设备侧的动态内存管理等。
 4.  扩展性好。在打通流程的通路之上，对于新增的网络类型或结构，只需涉及相关计算类算子的开发和实现。框架类算子，反向图建立和实现机制等结构可保持复用。
-5.  与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，只需在Python侧和Device相关操作中，指定device为昇腾AI处理器，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试，用户无需额外进一步关注昇腾AI处理器具体的底层细节。这样可以确保用户的最小化修改及完成平台迁移，迁移成本较低。
+5.  与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，只需在Python侧和Device相关操作中，指定device为昇腾AI处理器，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试，用户无需进一步关注昇腾AI处理器具体的底层细节。这样可以确保用户的最小化修改，迁移成本较低。
 
 <h2 id="约束与限制.md">约束与限制</h2>
 
-1.  infershape阶段算子不支持unknowshape的推导。
-2.  cube计算的算子只支持fp16。
-3.  不支持inf/nan类型的输入。
-4.  出现4D以上的format时不能降维。
-5.  Apex当前版本的实现方式为python实现，不支持APEX中的自定义优化CUDA Kernel。
-6.  Apex当前版本只支持适配昇腾AI处理器的混合精度计算和多种融合优化器功能，其他功能暂未支持。
-7.  集合通信约束：
+-   infershape阶段算子不支持unknowshape的推导。
+-   cube计算的算子只支持float16。
+-   不支持float16类型的inf/nan数据输入输出 。
+-   出现4D以上的format时不能降维。
+-   Apex当前版本的实现方式为python实现，不支持APEX中的自定义优化CUDA Kernel。
+-   Apex当前版本只支持适配昇腾AI处理器的混合精度计算和多种融合优化器功能，其他功能暂未支持。
+-   集合通信约束：
     -   数据并行模式中不同device上执行的图相同。
     -   只支持1/2/4/8P粒度的分配。
     -   只支持int8，int32，float16和float32数据类型。
-    -   服务器网卡名称要求以eth开头。
 
 
 <h2 id="迁移流程.md">迁移流程</h2>
@@ -179,7 +172,7 @@
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>错误分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph92061657112415"><a name="ph92061657112415"></a><a name="ph92061657112415"></a>《CANN 日志参考》</span>和<span id="ph4109111816191"><a name="ph4109111816191"></a><a name="ph4109111816191"></a>《CANN 开发辅助工具指南 (训练)》</span>中“AI Core Error分析工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph92061657112415"><a name="ph92061657112415"></a><a name="ph92061657112415"></a>《CANN 日志参考》</span>和<span id="ph4109111816191"><a name="ph4109111816191"></a><a name="ph4109111816191"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>性能调优和分析</p>
@@ -194,7 +187,7 @@
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>模型保存与转换</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换.md">模型保存与转换</a>和<span id="ph1834334902411"><a name="ph1834334902411"></a><a name="ph1834334902411"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a>《CANN 开发辅助工具指南 (推理)》</span></span>中“ATC工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换.md">模型保存与转换</a>和<span id="ph1834334902411"><a name="ph1834334902411"></a><a name="ph1834334902411"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a>《CANN 开发辅助工具指南》</span></span>中“ATC工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>应用软件开发</p>
@@ -216,165 +209,23 @@
 2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与《PyTorch适配算子清单》算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法.md)，当有不支持算子时参见《PyTorch算子开发指南》进行算子开发。
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
-    >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器进行训练来查看报错信息，迁移方法参见下文。一般会提示不能在昇腾AI处理器的backend下运行某个算子。
+    >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
 
 
 <h2 id="环境准备.md">环境准备</h2>
 
--   **[简介](#简介.md)**  
-
--   **[手动编译安装](#手动编译安装.md)**  
-
--   **[使用Ascend Hub镜像](#使用Ascend-Hub镜像.md)**  
-
-
-<h2 id="简介.md">简介</h2>
-
-用户在准备相关环境进行PyTorch模型的移植及训练时，可以选择在训练服务器中手动编译安装PyTorch框架相关模块，也可使用Ascend Hub镜像中心提供的基础镜像（镜像中已安装PyTorch模块和混合精度模块），进行模型的移植与训练。
-
-**图 1**  环境准备流程图<a name="fig1938918396117"></a>  
-![](figures/环境准备流程图.png "环境准备流程图")
-
-<h2 id="手动编译安装.md">手动编译安装</h2>
-
--   **[前提条件](#前提条件.md)**  
-
--   **[安装PyTorch框架](#安装PyTorch框架.md)**  
+-   **[准备运行环境](#准备运行环境.md)**  
 
 -   **[配置环境变量](#配置环境变量.md)**  
 
--   **[安装混合精度模块](#安装混合精度模块.md)**  
 
+<h2 id="准备运行环境.md">准备运行环境</h2>
 
-<h2 id="前提条件.md">前提条件</h2>
-
-## 前提条件<a name="zh-cn_topic_0275872734_section108914373254"></a>
-
--   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
--   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
--   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南》中的“安装7.3.0版本gcc”章节。
--   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下:
-    -   Ubuntu系统
-
-        **apt-get install patch**
-
-        **apt-get install git**
-
-    -   CentOS系统
-
-        **yum install patch**
-
-        **yum install git**
-
-
-
-<h2 id="安装PyTorch框架.md">安装PyTorch框架</h2>
-
-## 安装流程<a name="section1611810384557"></a>
-
-1.  以root或非root用户登录服务器。
-2.  依次执行如下命令安装PyTorch依赖环境。
-
-    如果使用非root用户安装Python及其依赖，用户需要在本步骤中的每句命令结尾加上**--user**，命令示例为：**pip3.7 install pyyaml --user**
-
-    ```
-    pip3.7 install pyyaml
-    pip3.7 install wheel
-    ```
-
-    若以上过程报错，请参考[FAQ](#FAQ.md)尝试解决问题。
-
-3.  获取PyTorch源代码。
-
-    1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码。
-
-        ```
-        git clone https://gitee.com/ascend/pytorch.git
-        ```
-
-        下载的源码主要目录结构如下所示：
-
-        ```
-        pytorch
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─test              # 测试用例存放目录
-        │ ├─README.md
-        ```
-
-    2.  运行如下命令，进入“pytorch“目录，并获取原生PyTorch源代码。
-
-        ```
-        cd pytorch
-        git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-        ```
-
-        下载原生pytorch源码后，代码主要目录结构如下所示：
-
-        ```
-        pytorch
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─pytorch           # 原生pytorch代码目录
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─test              # 测试用例存放目录
-        │ ├─README.md
-        ```
-
-    3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
-
-        ```
-        cd  pytorch
-        git submodule sync
-        git submodule update --init --recursive
-        ```
-
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
-
-4.  编译生成适配昇腾AI处理器的PyTorch安装包。
-    1.  进入“pytorch/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
-
-        ```
-        cd ../scripts
-        bash gen.sh
-        ```
-
-        将在"pytorch/pytorch"目录中生成适配昇腾AI处理器的全量代码。
-
-    2.  进入适配后的全量代码目录，即“pytorch/pytorch“目录，编译生成pytorch的二进制安装包。
-
-        ```
-        cd ../pytorch
-        bash build.sh
-        ```
-
-        生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
-
-
-5.  <a name="li49671667141"></a>安装PyTorch。
-
-    进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
-
-    ```
-    pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_{arch}.whl
-    ```
-
-    _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >若环境中已安装了PyTorch或需要对PyTorch进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[5. 安装PyTorch。](#li49671667141)。
-
+请参见《PyTorch安装指南》进行PyTorch相关运行环境搭建。
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
 
-安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下。
+安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径为例）。
 
 ```
 cpu_type=$(echo $HOSTTYPE)
@@ -427,218 +278,74 @@ export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
 export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
 ```
 
-相关参数介绍参见下[表1](#table42017516135)。
+相关参数介绍参见[表1](#zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_table42017516135)。
 
 **表 1**  环境变量说明
 
-<a name="table42017516135"></a>
-<table><thead align="left"><tr id="row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="p51981251161315"><a name="p51981251161315"></a><a name="p51981251161315"></a>配置项</p>
+<a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_table42017516135"></a>
+<table><thead align="left"><tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p51981251161315"></a>配置项</p>
 </th>
-<th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="p9198135114133"><a name="p9198135114133"></a><a name="p9198135114133"></a>说明</p>
+<th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p9198135114133"></a>说明</p>
 </th>
 </tr>
 </thead>
-<tbody><tr id="row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p688241953218"><a name="p688241953218"></a><a name="p688241953218"></a>LD_LIBRARY_PATH</p>
+<tbody><tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1888291915322"><a name="p1888291915322"></a><a name="p1888291915322"></a><span>动态库的查找路径，</span>参考上述举例配置。</p>
-</td>
-</tr>
-<tr id="row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p16195185523019"><a name="p16195185523019"></a><a name="p16195185523019"></a>PYTHONPATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p19637083322"><a name="p19637083322"></a><a name="p19637083322"></a><span>Python搜索路径，</span>参考上述举例配置。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a><span>动态库的查找路径，</span>参考上述举例配置。</p>
+<p id="zh-cn_topic_0000001134654416_p1292181892120"><a name="zh-cn_topic_0000001134654416_p1292181892120"></a><a name="zh-cn_topic_0000001134654416_p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="zh-cn_topic_0000001134654416_parmname795020446318"><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#zh-cn_topic_0000001181522175.md#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
 </td>
 </tr>
-<tr id="row2954102119329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p195452113218"><a name="p195452113218"></a><a name="p195452113218"></a>PATH</p>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p964914893211"><a name="p964914893211"></a><a name="p964914893211"></a><span>可执行程序的查找路径，</span>参考上述举例配置。</p>
-</td>
-</tr>
-<tr id="row58592816294"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1886016892913"><a name="p1886016892913"></a><a name="p1886016892913"></a>ASCEND_OPP_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p28608892915"><a name="p28608892915"></a><a name="p28608892915"></a>算子根目录，参考上述举例配置。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a><span>Python搜索路径，</span>参考上述举例配置。</p>
 </td>
 </tr>
-<tr id="row144592037903"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p104601373014"><a name="p104601373014"></a><a name="p104601373014"></a>OPTION_EXEC_EXTERN_PLUGIN_PATH</p>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row2954102119329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"></a>PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1046013716017"><a name="p1046013716017"></a><a name="p1046013716017"></a>算子信息库路径。</p>
-</td>
-</tr>
-<tr id="row16184379493"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p131851873492"><a name="p131851873492"></a><a name="p131851873492"></a>ASCEND_AICPU_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p181851575497"><a name="p181851575497"></a><a name="p181851575497"></a>aicpu算子包路径。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a><span>可执行程序的查找路径，</span>参考上述举例配置。</p>
 </td>
 </tr>
-<tr id="row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p2034724894619"><a name="p2034724894619"></a><a name="p2034724894619"></a>TASK_QUEUE_ENABLE</p>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row58592816294"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"></a>ASCEND_OPP_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p53477489462"><a name="p53477489462"></a><a name="p53477489462"></a>使用异步任务下发，异步调用acl接口。建议开启，开启设置为1。</p>
-</td>
-</tr>
-<tr id="row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p4809112415207"><a name="p4809112415207"></a><a name="p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p952814428206"><a name="p952814428206"></a><a name="p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
-<p id="p19723745202014"><a name="p19723745202014"></a><a name="p19723745202014"></a>1：关闭白名单，需校验HCCL通信白名单。</p>
-<p id="p09971654112118"><a name="p09971654112118"></a><a name="p09971654112118"></a>0：开启白名单，无需校验HCCL通信白名单。</p>
-<p id="p5809162416201"><a name="p5809162416201"></a><a name="p5809162416201"></a>缺省值为0，默认开启白名单。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p28608892915"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p28608892915"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p28608892915"></a>算子根目录，参考上述举例配置。</p>
 </td>
 </tr>
-<tr id="row0671137162115"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p4671203792114"><a name="p4671203792114"></a><a name="p4671203792114"></a>HCCL_IF_IP</p>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row144592037903"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p104601373014"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p104601373014"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p104601373014"></a>OPTION_EXEC_EXTERN_PLUGIN_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1822165982114"><a name="p1822165982114"></a><a name="p1822165982114"></a>配置HCCL的初始化通信网卡IP。</p>
-<p id="p1322320442210"><a name="p1322320442210"></a><a name="p1322320442210"></a>- ip格式为点分十进制。</p>
-<p id="p1251913102214"><a name="p1251913102214"></a><a name="p1251913102214"></a>- 暂只支持host网卡。</p>
-<p id="p1167163719217"><a name="p1167163719217"></a><a name="p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡(网卡名字字典序升序排列) &gt;docker 网卡 &gt; local网卡</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1046013716017"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1046013716017"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1046013716017"></a>算子信息库路径。</p>
 </td>
 </tr>
-<tr id="row1371356152313"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p16711563237"><a name="p16711563237"></a><a name="p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row16184379493"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p131851873492"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p131851873492"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p131851873492"></a>ASCEND_AICPU_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p0711356152317"><a name="p0711356152317"></a><a name="p0711356152317"></a>（可选）当系统为openeuler时，需设置此命令，取消CPU绑核。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p181851575497"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p181851575497"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p181851575497"></a>aicpu算子包路径。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p2034724894619"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p2034724894619"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p2034724894619"></a>TASK_QUEUE_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p53477489462"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p53477489462"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p53477489462"></a>使用异步任务下发，异步调用acl接口。建议开启，开启设置为1。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
+<a name="zh-cn_topic_0000001134654416_ul928845132310"></a><a name="zh-cn_topic_0000001134654416_ul928845132310"></a><ul id="zh-cn_topic_0000001134654416_ul928845132310"><li>0：开启白名单，无需校验HCCL通信白名单。</li><li>1：关闭白名单，需校验HCCL通信白名单。</li></ul>
+<p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a>缺省值为0，默认开启白名单。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row0671137162115"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4671203792114"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4671203792114"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4671203792114"></a>HCCL_IF_IP</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1822165982114"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1822165982114"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1822165982114"></a>配置HCCL的初始化通信网卡IP。</p>
+<a name="zh-cn_topic_0000001134654416_ul2676102292415"></a><a name="zh-cn_topic_0000001134654416_ul2676102292415"></a><ul id="zh-cn_topic_0000001134654416_ul2676102292415"><li>ip格式为点分十进制。</li><li>暂只支持host网卡。</li></ul>
+<p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1167163719217"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1167163719217"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡（网卡名字字典序升序排列）&gt;docker 网卡 &gt; local网卡</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row1371356152313"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）当系统为openeuler时，需设置此命令，取消CPU绑核。</p>
 </td>
 </tr>
 </tbody>
 </table>
-
-<h2 id="安装混合精度模块.md">安装混合精度模块</h2>
-
-## 前提条件<a name="section3225481020"></a>
-
-1.  请确保运行环境中适配昇腾AI处理器的PyTorch框架能正常使用。
-2.  编译安装Apex前，需参见[配置环境变量](#配置环境变量.md)配置好编译过程依赖的环境变量。
-
-## 安装流程<a name="section11880164819567"></a>
-
-1.  以root或非root用户登录服务器。
-2.  获取apex源代码。
-
-    1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
-
-        ```
-        git clone https://gitee.com/ascend/apex.git
-        ```
-
-        下载的源码主要目录结构如下所示：
-
-        ```
-        apex
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─tests              # 测试用例存放目录
-        │ ├─README.md
-        ```
-
-    2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
-
-        ```
-        cd apex
-        git clone https://github.com/NVIDIA/apex.git
-        ```
-
-        下载原生apex源码后，代码主要目录结构如下所示：
-
-        ```
-        apex
-        │ ├─apex              # 原生apex代码目录
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─tests              # 测试用例存放目录
-        │ ├─README.md
-        ```
-
-    3.  进入原生pytorch代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
-
-        ```
-        cd apex
-        git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
-        cd ..
-        ```
-
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
-
-3.  编译生成适配昇腾AI处理器的apex安装包。
-    1.  进入“apex/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
-
-        ```
-        cd ../scripts
-        bash gen.sh
-        ```
-
-        将在"apex/apex"目录中生成适配昇腾AI处理器的全量代码。
-
-    2.  进入适配后的全量代码目录，即“apex/apex“目录，编译生成apex的二进制安装包。
-
-        ```
-        cd ../apex
-        python3 setup.py --cpp_ext --npu_float_status bdist_wheel
-        ```
-
-        生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
-
-
-4.  <a name="li425495374416"></a>安装apex。
-
-    进入“apex/apex/dist“文件夹目录，执行如下命令安装。
-
-    ```
-    pip3.7 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
-    ```
-
-    _**\{arch\}**_表示架构信息，为aarch64或x86\_64。
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >若环境中已安装了Apex或需要对Apex进行升级时，需要先卸载环境中已安装的Apex软件包再执行[4](#li425495374416)。
-
-
-<h2 id="使用Ascend-Hub镜像.md">使用Ascend Hub镜像</h2>
-
--   **[Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像.md)**  
-
--   **[配置环境变量](#配置环境变量-0.md)**  
-
-
-<h2 id="Ascend-Hub获取PyTorch镜像.md">Ascend Hub获取PyTorch镜像</h2>
-
-## 前提条件<a name="zh-cn_topic_0275872734_section108914373254"></a>
-
--   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
--   宿主机上已安装Docker。
-
-## 获取并使用镜像<a name="section108941734162613"></a>
-
-用户可登录[Ascend Hub](https://ascendhub.huawei.com/#/home)获取相应镜像（首次申请需要激活账号）。
-
-当前支持的镜像列表如[表1](#zh-cn_topic_0000001074498056_table1519011227314)所示。用户可根据实际选择所需的镜像进行下载并使用。
-
-**表 1**  镜像列表
-
-<a name="zh-cn_topic_0000001074498056_table1519011227314"></a>
-<table><thead align="left"><tr id="zh-cn_topic_0000001074498056_row0190152218319"><th class="cellrowborder" valign="top" width="55.00000000000001%" id="mcps1.2.4.1.1"><p id="zh-cn_topic_0000001074498056_p1419132211315"><a name="zh-cn_topic_0000001074498056_p1419132211315"></a><a name="zh-cn_topic_0000001074498056_p1419132211315"></a>镜像名称</p>
-</th>
-<th class="cellrowborder" valign="top" width="20%" id="mcps1.2.4.1.2"><p id="zh-cn_topic_0000001074498056_p75071327115313"><a name="zh-cn_topic_0000001074498056_p75071327115313"></a><a name="zh-cn_topic_0000001074498056_p75071327115313"></a>镜像版本</p>
-</th>
-<th class="cellrowborder" valign="top" width="25%" id="mcps1.2.4.1.3"><p id="zh-cn_topic_0000001074498056_p1024411406234"><a name="zh-cn_topic_0000001074498056_p1024411406234"></a><a name="zh-cn_topic_0000001074498056_p1024411406234"></a>配套CANN版本</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001074498056_row71915221134"><td class="cellrowborder" valign="top" width="55.00000000000001%" headers="mcps1.2.4.1.1 "><a name="zh-cn_topic_0000001074498056_ul81691515131910"></a><a name="zh-cn_topic_0000001074498056_ul81691515131910"></a><ul id="zh-cn_topic_0000001074498056_ul81691515131910"><li>ARM架构：<a href="https://ascendhub.huawei.com/#/detail?name=ascend-pytorch-arm" target="_blank" rel="noopener noreferrer">ascend-pytorch-arm</a></li><li>x86架构：<a href="https://ascendhub.huawei.com/#/detail?name=ascend-pytorch-x86" target="_blank" rel="noopener noreferrer">ascend-pytorch-x86</a></li></ul>
-</td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001074498056_p14648161414516"><a name="zh-cn_topic_0000001074498056_p14648161414516"></a><a name="zh-cn_topic_0000001074498056_p14648161414516"></a>21.0.2</p>
-</td>
-<td class="cellrowborder" valign="top" width="25%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001074498056_p1264815147514"><a name="zh-cn_topic_0000001074498056_p1264815147514"></a><a name="zh-cn_topic_0000001074498056_p1264815147514"></a><a href="https://support.huawei.com/enterprise/zh/ascend-computing/cann-pid-251168373" target="_blank" rel="noopener noreferrer">5.0.2</a></p>
-</td>
-</tr>
-</tbody>
-</table>
-
-<h2 id="配置环境变量-0.md">配置环境变量</h2>
-
-启动并进入镜像容器后，请参见[配置环境变量](#配置环境变量.md)配置模型训练依赖的环境变量。
 
 <h2 id="模型迁移.md">模型迁移</h2>
 
@@ -669,12 +376,301 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 昇腾NPU是AI算力的后起之秀，但目前训练和在线推理脚本大多是基于GPU的。由于NPU与GPU的架构差异，基于GPU的训练和在线推理脚本不能直接在NPU上使用，脚本转换工具提供了将基于GPU的脚本转换为基于NPU的脚本的自动化方法，节省了人工手动进行脚本迁移的学习成本与工作量，大幅提升了迁移效率。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。但转换结果仅供参考，仍需用户根据实际情况做少量适配。
->-   脚本转换工具当前仅支持PyTorch训练脚本转换。
+>-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。除使用[表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换成功后可直接运行外，其他脚本的转换结果仅供参考，仍需用户根据实际情况做少量适配。
+>-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的原脚本需要在GPU环境下且基于python3能够跑通。
+>-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换后的执行逻辑与转换前保持一致。
+>-   此脚本转换工具当前仅支持PyTorch训练脚本转换。
+
+**表 1**  模型支持列表
+
+<a name="zh-cn_topic_0000001133095885_table4705239194613"></a>
+<table><thead align="left"><tr id="zh-cn_topic_0000001133095885_row1270543910462"><th class="cellrowborder" valign="top" width="27.41%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001133095885_p670613914465"><a name="zh-cn_topic_0000001133095885_p670613914465"></a><a name="zh-cn_topic_0000001133095885_p670613914465"></a>序号</p>
+</th>
+<th class="cellrowborder" valign="top" width="72.59%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001133095885_p57061739124611"><a name="zh-cn_topic_0000001133095885_p57061739124611"></a><a name="zh-cn_topic_0000001133095885_p57061739124611"></a>模型名称</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="zh-cn_topic_0000001133095885_row11706239134617"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18706163918464"><a name="zh-cn_topic_0000001133095885_p18706163918464"></a><a name="zh-cn_topic_0000001133095885_p18706163918464"></a>1</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3573354194212"><a name="zh-cn_topic_0000001133095885_p3573354194212"></a><a name="zh-cn_topic_0000001133095885_p3573354194212"></a>3D AttentionNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row67061939194612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17706143917468"><a name="zh-cn_topic_0000001133095885_p17706143917468"></a><a name="zh-cn_topic_0000001133095885_p17706143917468"></a>2</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1957314543423"><a name="zh-cn_topic_0000001133095885_p1957314543423"></a><a name="zh-cn_topic_0000001133095885_p1957314543423"></a>3D Nested_UNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row197069395460"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p207061639194612"><a name="zh-cn_topic_0000001133095885_p207061639194612"></a><a name="zh-cn_topic_0000001133095885_p207061639194612"></a>3</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15573155434213"><a name="zh-cn_topic_0000001133095885_p15573155434213"></a><a name="zh-cn_topic_0000001133095885_p15573155434213"></a>Advanced East</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1706103914467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2706163911464"><a name="zh-cn_topic_0000001133095885_p2706163911464"></a><a name="zh-cn_topic_0000001133095885_p2706163911464"></a>4</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731454144217"><a name="zh-cn_topic_0000001133095885_p125731454144217"></a><a name="zh-cn_topic_0000001133095885_p125731454144217"></a>AlexNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row9706739124610"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5706739114611"><a name="zh-cn_topic_0000001133095885_p5706739114611"></a><a name="zh-cn_topic_0000001133095885_p5706739114611"></a>5</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1357319544426"><a name="zh-cn_topic_0000001133095885_p1357319544426"></a><a name="zh-cn_topic_0000001133095885_p1357319544426"></a>DeeplabV3+(Xception-JFT)</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row177079399465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p147072039184612"><a name="zh-cn_topic_0000001133095885_p147072039184612"></a><a name="zh-cn_topic_0000001133095885_p147072039184612"></a>6</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657315454213"><a name="zh-cn_topic_0000001133095885_p657315454213"></a><a name="zh-cn_topic_0000001133095885_p657315454213"></a>DeepMar</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row15707173954611"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13707103984614"><a name="zh-cn_topic_0000001133095885_p13707103984614"></a><a name="zh-cn_topic_0000001133095885_p13707103984614"></a>7</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1057345444220"><a name="zh-cn_topic_0000001133095885_p1057345444220"></a><a name="zh-cn_topic_0000001133095885_p1057345444220"></a>Densenet121</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row2707739124612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707839114617"><a name="zh-cn_topic_0000001133095885_p18707839114617"></a><a name="zh-cn_topic_0000001133095885_p18707839114617"></a>8</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p175731454114210"><a name="zh-cn_topic_0000001133095885_p175731454114210"></a><a name="zh-cn_topic_0000001133095885_p175731454114210"></a>DenseNet161</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1270714392464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p197072397468"><a name="zh-cn_topic_0000001133095885_p197072397468"></a><a name="zh-cn_topic_0000001133095885_p197072397468"></a>9</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05731654204218"><a name="zh-cn_topic_0000001133095885_p05731654204218"></a><a name="zh-cn_topic_0000001133095885_p05731654204218"></a>DenseNet169</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row17707113914468"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707339144611"><a name="zh-cn_topic_0000001133095885_p18707339144611"></a><a name="zh-cn_topic_0000001133095885_p18707339144611"></a>10</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731254154212"><a name="zh-cn_topic_0000001133095885_p125731254154212"></a><a name="zh-cn_topic_0000001133095885_p125731254154212"></a>DenseNet201</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1707439204614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2707153974611"><a name="zh-cn_topic_0000001133095885_p2707153974611"></a><a name="zh-cn_topic_0000001133095885_p2707153974611"></a>11</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p12573354164210"><a name="zh-cn_topic_0000001133095885_p12573354164210"></a><a name="zh-cn_topic_0000001133095885_p12573354164210"></a>EAST</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row67083391464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1070883911466"><a name="zh-cn_topic_0000001133095885_p1070883911466"></a><a name="zh-cn_topic_0000001133095885_p1070883911466"></a>12</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1157312542426"><a name="zh-cn_topic_0000001133095885_p1157312542426"></a><a name="zh-cn_topic_0000001133095885_p1157312542426"></a>FCN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row127085393465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p4708133911464"><a name="zh-cn_topic_0000001133095885_p4708133911464"></a><a name="zh-cn_topic_0000001133095885_p4708133911464"></a>13</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857395417429"><a name="zh-cn_topic_0000001133095885_p857395417429"></a><a name="zh-cn_topic_0000001133095885_p857395417429"></a>FD-GAN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row570863914618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17708143904620"><a name="zh-cn_topic_0000001133095885_p17708143904620"></a><a name="zh-cn_topic_0000001133095885_p17708143904620"></a>14</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p14573185411425"><a name="zh-cn_topic_0000001133095885_p14573185411425"></a><a name="zh-cn_topic_0000001133095885_p14573185411425"></a>FOTS</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row11708839174619"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1670883917466"><a name="zh-cn_topic_0000001133095885_p1670883917466"></a><a name="zh-cn_topic_0000001133095885_p1670883917466"></a>15</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157355416428"><a name="zh-cn_topic_0000001133095885_p157355416428"></a><a name="zh-cn_topic_0000001133095885_p157355416428"></a>GENet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row87085397467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p16708439164618"><a name="zh-cn_topic_0000001133095885_p16708439164618"></a><a name="zh-cn_topic_0000001133095885_p16708439164618"></a>16</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p4574254164219"><a name="zh-cn_topic_0000001133095885_p4574254164219"></a><a name="zh-cn_topic_0000001133095885_p4574254164219"></a>GoogleNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row5708839174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11708113914462"><a name="zh-cn_topic_0000001133095885_p11708113914462"></a><a name="zh-cn_topic_0000001133095885_p11708113914462"></a>17</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105743542421"><a name="zh-cn_topic_0000001133095885_p105743542421"></a><a name="zh-cn_topic_0000001133095885_p105743542421"></a>GRU</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row170933914612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1170963974615"><a name="zh-cn_topic_0000001133095885_p1170963974615"></a><a name="zh-cn_topic_0000001133095885_p1170963974615"></a>18</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574054104214"><a name="zh-cn_topic_0000001133095885_p20574054104214"></a><a name="zh-cn_topic_0000001133095885_p20574054104214"></a>Inception V4</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row670913934612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p270993924620"><a name="zh-cn_topic_0000001133095885_p270993924620"></a><a name="zh-cn_topic_0000001133095885_p270993924620"></a>19</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11574135411427"><a name="zh-cn_topic_0000001133095885_p11574135411427"></a><a name="zh-cn_topic_0000001133095885_p11574135411427"></a>InceptionV2</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row15709939174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2709133914614"><a name="zh-cn_topic_0000001133095885_p2709133914614"></a><a name="zh-cn_topic_0000001133095885_p2709133914614"></a>20</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105741754124219"><a name="zh-cn_topic_0000001133095885_p105741754124219"></a><a name="zh-cn_topic_0000001133095885_p105741754124219"></a>LPRNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row3709143917462"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p0709193913461"><a name="zh-cn_topic_0000001133095885_p0709193913461"></a><a name="zh-cn_topic_0000001133095885_p0709193913461"></a>21</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25745540427"><a name="zh-cn_topic_0000001133095885_p25745540427"></a><a name="zh-cn_topic_0000001133095885_p25745540427"></a>LSTM</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row177091639184618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p157091239164617"><a name="zh-cn_topic_0000001133095885_p157091239164617"></a><a name="zh-cn_topic_0000001133095885_p157091239164617"></a>22</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157485414422"><a name="zh-cn_topic_0000001133095885_p157485414422"></a><a name="zh-cn_topic_0000001133095885_p157485414422"></a>MNASNet0_5</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row18709173944613"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p177091739124615"><a name="zh-cn_topic_0000001133095885_p177091739124615"></a><a name="zh-cn_topic_0000001133095885_p177091739124615"></a>23</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p9574205454219"><a name="zh-cn_topic_0000001133095885_p9574205454219"></a><a name="zh-cn_topic_0000001133095885_p9574205454219"></a>MNASNet0_75</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row187101039144614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1371023914612"><a name="zh-cn_topic_0000001133095885_p1371023914612"></a><a name="zh-cn_topic_0000001133095885_p1371023914612"></a>24</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p357475415426"><a name="zh-cn_topic_0000001133095885_p357475415426"></a><a name="zh-cn_topic_0000001133095885_p357475415426"></a>MNASNet1_0</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1471033917465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3710939164613"><a name="zh-cn_topic_0000001133095885_p3710939164613"></a><a name="zh-cn_topic_0000001133095885_p3710939164613"></a>25</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15741754144213"><a name="zh-cn_topic_0000001133095885_p15741754144213"></a><a name="zh-cn_topic_0000001133095885_p15741754144213"></a>MNASNet1_3</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row8710163924614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p8710143914614"><a name="zh-cn_topic_0000001133095885_p8710143914614"></a><a name="zh-cn_topic_0000001133095885_p8710143914614"></a>26</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574135464217"><a name="zh-cn_topic_0000001133095885_p2574135464217"></a><a name="zh-cn_topic_0000001133095885_p2574135464217"></a>MobileNetV1</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1471063944618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11710203910465"><a name="zh-cn_topic_0000001133095885_p11710203910465"></a><a name="zh-cn_topic_0000001133095885_p11710203910465"></a>27</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574254104215"><a name="zh-cn_topic_0000001133095885_p20574254104215"></a><a name="zh-cn_topic_0000001133095885_p20574254104215"></a>MobileNetV2</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row171010393463"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p47101339154613"><a name="zh-cn_topic_0000001133095885_p47101339154613"></a><a name="zh-cn_topic_0000001133095885_p47101339154613"></a>28</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557415444214"><a name="zh-cn_topic_0000001133095885_p1557415444214"></a><a name="zh-cn_topic_0000001133095885_p1557415444214"></a>PNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row7611556191918"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p12611156171919"><a name="zh-cn_topic_0000001133095885_p12611156171919"></a><a name="zh-cn_topic_0000001133095885_p12611156171919"></a>29</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757435454213"><a name="zh-cn_topic_0000001133095885_p1757435454213"></a><a name="zh-cn_topic_0000001133095885_p1757435454213"></a>PSENet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row5477004202"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1847770182017"><a name="zh-cn_topic_0000001133095885_p1847770182017"></a><a name="zh-cn_topic_0000001133095885_p1847770182017"></a>30</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p165741254194213"><a name="zh-cn_topic_0000001133095885_p165741254194213"></a><a name="zh-cn_topic_0000001133095885_p165741254194213"></a>RAFT</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row67255202017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9725728202"><a name="zh-cn_topic_0000001133095885_p9725728202"></a><a name="zh-cn_topic_0000001133095885_p9725728202"></a>31</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757465464214"><a name="zh-cn_topic_0000001133095885_p1757465464214"></a><a name="zh-cn_topic_0000001133095885_p1757465464214"></a>RecVAE</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row83941035161019"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p173949354104"><a name="zh-cn_topic_0000001133095885_p173949354104"></a><a name="zh-cn_topic_0000001133095885_p173949354104"></a>32</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057435444220"><a name="zh-cn_topic_0000001133095885_p2057435444220"></a><a name="zh-cn_topic_0000001133095885_p2057435444220"></a>ResNet101</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row14021731181017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13402231171018"><a name="zh-cn_topic_0000001133095885_p13402231171018"></a><a name="zh-cn_topic_0000001133095885_p13402231171018"></a>33</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05741554194217"><a name="zh-cn_topic_0000001133095885_p05741554194217"></a><a name="zh-cn_topic_0000001133095885_p05741554194217"></a>ResNet152</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row106426081116"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p06426017111"><a name="zh-cn_topic_0000001133095885_p06426017111"></a><a name="zh-cn_topic_0000001133095885_p06426017111"></a>34</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p19574145464214"><a name="zh-cn_topic_0000001133095885_p19574145464214"></a><a name="zh-cn_topic_0000001133095885_p19574145464214"></a>ResNet18</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row13947174191112"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p894715491110"><a name="zh-cn_topic_0000001133095885_p894715491110"></a><a name="zh-cn_topic_0000001133095885_p894715491110"></a>35</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25741754204213"><a name="zh-cn_topic_0000001133095885_p25741754204213"></a><a name="zh-cn_topic_0000001133095885_p25741754204213"></a>ResNet34</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1359519811113"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p059516861111"><a name="zh-cn_topic_0000001133095885_p059516861111"></a><a name="zh-cn_topic_0000001133095885_p059516861111"></a>36</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957475454218"><a name="zh-cn_topic_0000001133095885_p957475454218"></a><a name="zh-cn_topic_0000001133095885_p957475454218"></a>ResNet50</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row10740141321119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p27401713131114"><a name="zh-cn_topic_0000001133095885_p27401713131114"></a><a name="zh-cn_topic_0000001133095885_p27401713131114"></a>37</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574125415422"><a name="zh-cn_topic_0000001133095885_p2574125415422"></a><a name="zh-cn_topic_0000001133095885_p2574125415422"></a>Resnext101_32x8d</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row667112181118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p146715124119"><a name="zh-cn_topic_0000001133095885_p146715124119"></a><a name="zh-cn_topic_0000001133095885_p146715124119"></a>38</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15574135484218"><a name="zh-cn_topic_0000001133095885_p15574135484218"></a><a name="zh-cn_topic_0000001133095885_p15574135484218"></a>Resnext50</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row4738182913104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p107383299102"><a name="zh-cn_topic_0000001133095885_p107383299102"></a><a name="zh-cn_topic_0000001133095885_p107383299102"></a>39</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857445444218"><a name="zh-cn_topic_0000001133095885_p857445444218"></a><a name="zh-cn_topic_0000001133095885_p857445444218"></a>RNet</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row328451021115"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p928461019117"><a name="zh-cn_topic_0000001133095885_p928461019117"></a><a name="zh-cn_topic_0000001133095885_p928461019117"></a>40</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p6574175464211"><a name="zh-cn_topic_0000001133095885_p6574175464211"></a><a name="zh-cn_topic_0000001133095885_p6574175464211"></a>Shufflenetv2</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row128999641118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p198995621117"><a name="zh-cn_topic_0000001133095885_p198995621117"></a><a name="zh-cn_topic_0000001133095885_p198995621117"></a>41</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p13575125419422"><a name="zh-cn_topic_0000001133095885_p13575125419422"></a><a name="zh-cn_topic_0000001133095885_p13575125419422"></a>SqueezeNet1_0</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row136314218119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p53631028119"><a name="zh-cn_topic_0000001133095885_p53631028119"></a><a name="zh-cn_topic_0000001133095885_p53631028119"></a>42</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p757535410428"><a name="zh-cn_topic_0000001133095885_p757535410428"></a><a name="zh-cn_topic_0000001133095885_p757535410428"></a>SqueezeNet1_1</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row156190549108"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p106191454141012"><a name="zh-cn_topic_0000001133095885_p106191454141012"></a><a name="zh-cn_topic_0000001133095885_p106191454141012"></a>43</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657545410427"><a name="zh-cn_topic_0000001133095885_p657545410427"></a><a name="zh-cn_topic_0000001133095885_p657545410427"></a>U-Net</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row9370164720106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9370144741015"><a name="zh-cn_topic_0000001133095885_p9370144741015"></a><a name="zh-cn_topic_0000001133095885_p9370144741015"></a>44</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957585415426"><a name="zh-cn_topic_0000001133095885_p957585415426"></a><a name="zh-cn_topic_0000001133095885_p957585415426"></a>VAE+GAN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row453116573102"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p95311557151018"><a name="zh-cn_topic_0000001133095885_p95311557151018"></a><a name="zh-cn_topic_0000001133095885_p95311557151018"></a>45</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957525454210"><a name="zh-cn_topic_0000001133095885_p957525454210"></a><a name="zh-cn_topic_0000001133095885_p957525454210"></a>VGG11</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1478625141010"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3786195151010"><a name="zh-cn_topic_0000001133095885_p3786195151010"></a><a name="zh-cn_topic_0000001133095885_p3786195151010"></a>46</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557565434218"><a name="zh-cn_topic_0000001133095885_p1557565434218"></a><a name="zh-cn_topic_0000001133095885_p1557565434218"></a>VGG11_BN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row129701341121014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p199701641141016"><a name="zh-cn_topic_0000001133095885_p199701641141016"></a><a name="zh-cn_topic_0000001133095885_p199701641141016"></a>47</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957517542420"><a name="zh-cn_topic_0000001133095885_p957517542420"></a><a name="zh-cn_topic_0000001133095885_p957517542420"></a>VGG13</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1286634916106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5866124917105"><a name="zh-cn_topic_0000001133095885_p5866124917105"></a><a name="zh-cn_topic_0000001133095885_p5866124917105"></a>48</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p10575115416421"><a name="zh-cn_topic_0000001133095885_p10575115416421"></a><a name="zh-cn_topic_0000001133095885_p10575115416421"></a>VGG13_BN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row269355152015"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p469385122011"><a name="zh-cn_topic_0000001133095885_p469385122011"></a><a name="zh-cn_topic_0000001133095885_p469385122011"></a>49</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557519545422"><a name="zh-cn_topic_0000001133095885_p557519545422"></a><a name="zh-cn_topic_0000001133095885_p557519545422"></a>VGG16</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1874673971014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p674693981017"><a name="zh-cn_topic_0000001133095885_p674693981017"></a><a name="zh-cn_topic_0000001133095885_p674693981017"></a>50</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11575454114215"><a name="zh-cn_topic_0000001133095885_p11575454114215"></a><a name="zh-cn_topic_0000001133095885_p11575454114215"></a>VGG16_BN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row149883820103"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9982038151018"><a name="zh-cn_topic_0000001133095885_p9982038151018"></a><a name="zh-cn_topic_0000001133095885_p9982038151018"></a>51</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657585417429"><a name="zh-cn_topic_0000001133095885_p657585417429"></a><a name="zh-cn_topic_0000001133095885_p657585417429"></a>VGG19</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row154671633171013"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p114677333101"><a name="zh-cn_topic_0000001133095885_p114677333101"></a><a name="zh-cn_topic_0000001133095885_p114677333101"></a>52</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557535415426"><a name="zh-cn_topic_0000001133095885_p557535415426"></a><a name="zh-cn_topic_0000001133095885_p557535415426"></a>VGG19_BN</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row054412715104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p954482714105"><a name="zh-cn_topic_0000001133095885_p954482714105"></a><a name="zh-cn_topic_0000001133095885_p954482714105"></a>53</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p95752543424"><a name="zh-cn_topic_0000001133095885_p95752543424"></a><a name="zh-cn_topic_0000001133095885_p95752543424"></a>VIT-base</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row53891311191318"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1438911115138"><a name="zh-cn_topic_0000001133095885_p1438911115138"></a><a name="zh-cn_topic_0000001133095885_p1438911115138"></a>54</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3575654184213"><a name="zh-cn_topic_0000001133095885_p3575654184213"></a><a name="zh-cn_topic_0000001133095885_p3575654184213"></a>Wide_ResNet101_2</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001133095885_row1928912911311"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p182893901310"><a name="zh-cn_topic_0000001133095885_p182893901310"></a><a name="zh-cn_topic_0000001133095885_p182893901310"></a>55</p>
+</td>
+<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057525424213"><a name="zh-cn_topic_0000001133095885_p2057525424213"></a><a name="zh-cn_topic_0000001133095885_p2057525424213"></a>Wide_ResNet50_2</p>
+</td>
+</tr>
+</tbody>
+</table>
 
 ## 系统要求<a name="zh-cn_topic_0000001133095885_section1055723118446"></a>
 
-脚本转换工具支持Ubuntu 18.04、Centos 7.6或EulerOS 2.8。
+脚本转换工具支持Ubuntu 18.04、CentOS 7.6或EulerOS 2.8。
 
 ## 环境准备<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
 
@@ -758,7 +754,8 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
         "ModuleNameModifyRule": [
             {
                 "old_name": "module",
-                "new_name": "new_module"
+                "new_name": "new_module",
+                "parent_module":"parent_module"
             }
         ]
     }
@@ -814,6 +811,11 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p87431931133212"><a name="zh-cn_topic_0000001086713630_p87431931133212"></a><a name="zh-cn_topic_0000001086713630_p87431931133212"></a>新名称</p>
 </td>
 </tr>
+<tr id="zh-cn_topic_0000001086713630_row4677165715235"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p2434071544"><a name="zh-cn_topic_0000001086713630_p2434071544"></a><a name="zh-cn_topic_0000001086713630_p2434071544"></a>parent_module</p>
+</td>
+<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p443419713418"><a name="zh-cn_topic_0000001086713630_p443419713418"></a><a name="zh-cn_topic_0000001086713630_p443419713418"></a>父级模块名称</p>
+</td>
+</tr>
 </tbody>
 </table>
 
@@ -828,7 +830,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 2.  执行脚本转换工具。
 
     ```
-    python3.7.5 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径]
+    python3 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径]
     ```
 
 3.  完成脚本转换。
@@ -839,7 +841,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 ```
 ├── xxx_msft                // 脚本转换结果输出目录，默认为原始脚本路径。xxx为原始脚本所在文件夹名称。
-│   ├── 生成脚本文件                 // 与转换前的脚本文件目录结构一致
+│   ├── 生成脚本文件                 // 与转换前的脚本文件目录结构一致。
 │   ├── msFmkTranspltlog.txt                 // 脚本转换过程日志文件。
 │   ├── unsupported_op.xlsx                // 不支持算子列表文件。
 ```
@@ -855,7 +857,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 <h2 id="单P训练模型迁移.md">单P训练模型迁移</h2>
 
-当前在线对接方案优点在于保证在昇腾AI处理器上训练与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，**只需在Python侧和Device相关操作中，指定device为昇腾AI处理器**，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试。针对单P模型训练，主要迁移改动如下：
+当前在线对接方案优点在于保证在昇腾AI处理器上训练与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，**只需在Python侧和Device相关操作中，指定device为昇腾AI处理器**，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试。针对单P模型训练，主要迁移改动如下。
 
 迁移前GPU代码：
 
@@ -913,7 +915,7 @@ def main():
 
 <h2 id="PyTorch接口替换.md">PyTorch接口替换</h2>
 
-1.  为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口参见：
+1.  为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
 
     **表 1**  设备接口替换
 
@@ -1114,7 +1116,7 @@ def main():
 
 ## 概述<a name="section166113311599"></a>
 
-基于NPU芯片的架构特性，会涉及到混合精度训练，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下一些好处：
+基于NPU芯片的架构特性，会涉及到混合精度训练，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
 -   对于中间变量的内存占用更少，节省内存的使用。
 -   因内存使用会减少，所以数据传出的时间也会减半。
@@ -1124,12 +1126,12 @@ def main():
 
 适配昇腾AI处理器的混合精度模块Apex除了上述优点外，还能提升运算性能。具体如下：
 
--   Apex在进行混合精度运算时，会对模型的grad进行运算，开启combine\_grad开关，可以加速这些运算。具体为将amp.initialize\(\)接口参数combine\_grad设置为True；
+-   Apex在混合精度运算过程中，会对模型的grad进行运算。开启combine\_grad开关，可以加速这些运算。具体为将amp.initialize\(\)接口参数combine\_grad设置为True；
 -   适配后的Apex针对adadelta/adam/sgd/lamb做了昇腾AI处理器亲和性优化，得到的NPU融合优化器与原生算法保持一致，但运算速度更快。使用时只需将原有优化器替换为apex.optimizers.\*（“\*”为优化器名称，例如NpuFusedSGD）。
 
 ## 特性支持<a name="section723462915303"></a>
 
-混合精度模块功能和优化描述如[表1](#table10717173813332)所示：
+混合精度模块功能和优化描述如[表1](#table10717173813332)所示。
 
 **表 1**  混合精度模块功能
 
@@ -1142,10 +1144,10 @@ def main():
 </thead>
 <tbody><tr id="row1571763813334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p4502732153412"><a name="p4502732153412"></a><a name="p4502732153412"></a>O1配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv, Matmal等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv，Matmal等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
 </td>
 </tr>
-<tr id="row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p11503103210344"><a name="p11503103210344"></a><a name="p11503103210344"></a>O2配置</p>
+<tr id="row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p11503103210344"><a name="p11503103210344"></a><a name="p11503103210344"></a>O2配置模式</p>
 </td>
 <td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p164001639143419"><a name="p164001639143419"></a><a name="p164001639143419"></a>除了BN使用<span>float32</span>外，其他绝大部分使用<span>float16</span>。</p>
 </td>
@@ -1178,7 +1180,7 @@ def main():
 2.  导入amp模块后，需要初始化amp，使其能对模型、优化器以及PyTorch内部函数进行必要的改动，初始化代码如下：
 
     ```
-    model, optimizer = amp.initialize(model, optimizer)
+    model, optimizer = amp.initialize(model, optimizer，combine_grad=True)
     ```
 
 3.  标记反向传播.backward\(\)发生的位置，这样Amp就可以进行Loss Scaling并清除每次迭代的状态，代码如下：
@@ -1203,7 +1205,7 @@ def main():
 
 <h2 id="性能优化.md">性能优化</h2>
 
--   **[概述](#概述-1.md)**  
+-   **[概述](#概述-0.md)**  
 
 -   **[修改CPU性能模式（X86服务器）](#修改CPU性能模式（X86服务器）.md)**  
 
@@ -1214,7 +1216,7 @@ def main():
 -   **[（可选）安装指定版本OpenCV库](#（可选）安装指定版本OpenCV库.md)**  
 
 
-<h2 id="概述-1.md">概述</h2>
+<h2 id="概述-0.md">概述</h2>
 
 在进行PyTorch模型迁移训练时，部分网络模型会出现1秒内识别的图像数（fps）较低、性能不达标的情况。此时需要针对服务器进行以下优化。
 
@@ -1227,7 +1229,7 @@ def main():
 
 提升网络性能需要在X86服务器BIOS设置中将电源策略设为高性能模式，具体操作如下。
 
-1.  登录ibmc界面，启动虚拟控制台，远程控制选择HTML5集成远程控制台，如[图1](#fig15869135420288)。
+1.  登录iBMC界面，启动虚拟控制台，远程控制选择HTML5集成远程控制台，如[图1](#fig15869135420288)。
 
     **图 1**  远程登录控制台<a name="fig15869135420288"></a>  
     ![](figures/远程登录控制台.png "远程登录控制台")
@@ -1260,7 +1262,7 @@ def main():
     cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     ```
 
-    执行以上命令会输出当前CPU模式，参见[表1](#table354392019384)。
+    执行以上命令会输出当前CPU模式，CPU模式说明请参见[表1](#table354392019384)。如果当前CPU模式不是performance模式，请执行以下操作设置CPU为performance模式。否则请跳过以下步骤。
 
     **表 1**  CPU模式
 
@@ -1288,12 +1290,12 @@ def main():
     </tr>
     <tr id="row165438202382"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p7377142113915"><a name="p7377142113915"></a><a name="p7377142113915"></a>ondemand</p>
     </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p237794283917"><a name="p237794283917"></a><a name="p237794283917"></a>按需快速动态调整CPU频率， 一有cpu计算量的任务，就会立即达到最大频率运行，空闲时间增加就降低频率。</p>
+    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p237794283917"><a name="p237794283917"></a><a name="p237794283917"></a>按需快速动态调整CPU频率，一有CPU计算量的任务，就会立即达到最大频率运行，空闲时间增加就降低频率。</p>
     </td>
     </tr>
     <tr id="row55441320113810"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p8377142203913"><a name="p8377142203913"></a><a name="p8377142203913"></a>conservative</p>
     </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>按需快速动态调整CPU频率， 比ondemand的调整更保守。</p>
+    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>按需快速动态调整CPU频率，比ondemand的调整更保守。</p>
     </td>
     </tr>
     <tr id="row5544620123817"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p13377154273919"><a name="p13377154273919"></a><a name="p13377154273919"></a>schedutil</p>
@@ -1305,21 +1307,21 @@ def main():
     </table>
 
 2.  安装工具，使用如下命令安装。
+    -   以“ubuntu/debian“系统为例。
 
-    ubuntu/debian：
+        ```
+        apt-get install linux-tools-$(uname -r)
+        ```
 
-    ```
-    apt-get install linux-tools-$(uname -r)
-    ```
+    -   以“centos/bclinux/euler“系统为例：
 
-    centos/bclinux/euler：
+        ```
+        yum install kernel-tools -y
+        systemctl daemon-reload 
+        systemctl enable cpupower 
+        systemctl start cpupower
+        ```
 
-    ```
-    yum install kernel-tools -y
-    systemctl daemon-reload 
-    systemctl enable cpupower 
-    systemctl start cpupower
-    ```
 
 3.  设置CPU为performance模式。
 
@@ -1327,7 +1329,7 @@ def main():
     cpupower frequency-set -g performance
     ```
 
-4.  再次执行[步骤1](#li158435131344)查看是否已修改。
+4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
 <h2 id="修改CPU性能模式（ARM服务器）.md">修改CPU性能模式（ARM服务器）</h2>
 
@@ -1413,8 +1415,8 @@ def main():
 
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
-1.  获取源码：_[获取地址](https://opencv.org/releases/)_。
-2.  安装指导：_[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)_。
+1.  获取源码：[获取地址](https://opencv.org/releases/)。
+2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
 <h2 id="模型训练.md">模型训练</h2>
 
@@ -1422,14 +1424,14 @@ def main():
 
 <h2 id="性能调优和分析.md">性能调优和分析</h2>
 
--   **[前提条件](#前提条件-2.md)**  
+-   **[前提条件](#前提条件.md)**  
 
 -   **[调测过程](#调测过程.md)**  
 
 -   **[亲和库](#亲和库.md)**  
 
 
-<h2 id="前提条件-2.md">前提条件</h2>
+<h2 id="前提条件.md">前提条件</h2>
 
 1.  参见[样例说明](#样例说明.md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
 2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
@@ -1441,7 +1443,7 @@ def main():
 
 -   **[采集训练过程相关数据](#采集训练过程相关数据.md)**  
 
--   **[性能优化](#性能优化-3.md)**  
+-   **[性能优化](#性能优化-1.md)**  
 
 
 <h2 id="总体思路.md">总体思路</h2>
@@ -1544,7 +1546,7 @@ def main():
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
 
-<h2 id="性能优化-3.md">性能优化</h2>
+<h2 id="性能优化-1.md">性能优化</h2>
 
 ## 算子瓶颈优化<a name="section8727652134111"></a>
 
@@ -1560,8 +1562,8 @@ def main():
 1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#采集训练过程相关数据.md)。
 2.  分析Profiling数据分析整网中的D2DCopywithStreamSynchronize/PTCopy/format\_contiguous的耗时。
 3.  若发现耗时较大，则需参照以下两种方案解决。
-    -   规避方案：PyTorch中View类型框架类算子会导致非连续转连续操作。优化思路为尽量使用计算类算子代替View类框架算子，常见的View类框架算子如View、Permute、Transpose等。更多View类框架算子可参考[https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html)。
-    -   解决方案：加速转连续操作。
+    -   方案一：（规避方案）PyTorch中View类型框架类算子会导致非连续转连续操作。优化思路为尽量使用计算类算子代替View类框架算子，常见的View类框架算子如View、Permute、Transpose等。更多View类框架算子可参考[https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html)。
+    -   方案二：（解决方案）加速转连续操作。
 
 
 ## 框架瓶颈优化<a name="section1391981014420"></a>
@@ -1585,21 +1587,21 @@ def main():
 2.  查看INFO日志，观察第一个step以后的aclopCompile::aclOp关键字，如果后续接了Match op iunputs/type failed或To compile op则说明该算子存在动态编译，需要优化。
 3.  需参照以下两种方案解决。
     -   规避方案：在理解模型语义和相关API基础上，使用固定Shape的方式代替动态Shape。
-    -   解决方案：减少编译或不需要编译该算子
+    -   解决方案：减少编译或不需要编译该算子。
 
 
 <h2 id="亲和库.md">亲和库</h2>
 
 -   **[来源介绍](#来源介绍.md)**  
 
--   **[功能介绍](#功能介绍-4.md)**  
+-   **[功能介绍](#功能介绍-2.md)**  
 
 
 <h2 id="来源介绍.md">来源介绍</h2>
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
-<h2 id="功能介绍-4.md">功能介绍</h2>
+<h2 id="功能介绍-2.md">功能介绍</h2>
 
 <a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>函数名</p>
@@ -1646,23 +1648,23 @@ def main():
 
 <h2 id="精度调测.md">精度调测</h2>
 
--   **[前提条件](#前提条件-5.md)**  
+-   **[前提条件](#前提条件-3.md)**  
 
--   **[调测过程](#调测过程-6.md)**  
+-   **[调测过程](#调测过程-4.md)**  
 
 
-<h2 id="前提条件-5.md">前提条件</h2>
+<h2 id="前提条件-3.md">前提条件</h2>
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h2 id="调测过程-6.md">调测过程</h2>
+<h2 id="调测过程-4.md">调测过程</h2>
 
--   **[总体思路](#总体思路-7.md)**  
+-   **[总体思路](#总体思路-5.md)**  
 
 -   **[精度调优方法](#精度调优方法.md)**  
 
 
-<h2 id="总体思路-7.md">总体思路</h2>
+<h2 id="总体思路-5.md">总体思路</h2>
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
@@ -1721,7 +1723,7 @@ def main():
     print(compute_result)
     ```
 
-    因昇腾AI处理器硬件架构与cpu不同，计算结果会略有不同。若运算结果较为接近\(一般不高于1e-4\)，则认为运算结果正常。
+    因昇腾AI处理器硬件架构与cpu不同，计算结果会略有不同。若运算结果较为接近（一般不高于1e-4），则认为运算结果正常。
 
 2.  通过Pytorch的hook机制来打印正向反向传播中module的输入和输出来分析。
 
@@ -1761,20 +1763,20 @@ def main():
 
 <h2 id="模型保存与转换.md">模型保存与转换</h2>
 
--   **[简介](#简介-8.md)**  
+-   **[简介](#简介.md)**  
 
 -   **[模型保存](#模型保存.md)**  
 
 -   **[导出ONNX模型](#导出ONNX模型.md)**  
 
 
-<h2 id="简介-8.md">简介</h2>
+<h2 id="简介.md">简介</h2>
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
-本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考《CANN 开发辅助工具指南 \(推理\)》手册中“ATC工具使用指南”章节。
+本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考《CANN 开发辅助工具指南》手册中“ATC工具使用指南”章节。
 
-如果想使用Auto Tune优化功能，请参考《CANN 开发辅助工具指南 \(推理\)》手册中“Auto Tune工具使用指导”章节。
+如果想使用Auto Tune优化功能，请参考《CANN 开发辅助工具指南》手册中“Auto Tune工具使用指导”章节。
 
 离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)》。整体流程如下：
 
@@ -1784,10 +1786,10 @@ def main():
 
 Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件，根据模型文件的后续用途会保存为两种格式的模型文件：
 
--   .pth或.pt扩展名的文件：用于在线推理或导出ONNX格式模型，仅保存模型参数，不保存模型结构，以便压缩文件的体积，可以用Netron等可视化工具打开，一般如[图1](#fig315704722610)所示。
+-   .pth或.pt扩展名的文件：用于在线推理或导出ONNX格式模型，仅保存模型参数，不保存模型结构，以便压缩文件的体积，可以用Netron等可视化工具打开，一般如[图1 .pth文件](#fig315704722610)所示。
 
-    **图 1**  Pth文件<a name="fig315704722610"></a>  
-    ![](figures/Pth文件.jpg "Pth文件")
+    **图 1**  .pth文件<a name="fig315704722610"></a>  
+    ![](figures/pth文件.jpg "pth文件")
 
     通过**state\_dict**来保存和加载模型，示例如下：
 
@@ -1812,7 +1814,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         ```
 
 
-    >![](public_sys-resources/icon-caution.gif) **注意：** 
+    >![](public_sys-resources/icon-notice.gif) **须知：** 
     >保存.pth或.pt文件扩展名的文件时要提供模型定义文件，否则无法部署。
 
 -   .pth.tar扩展名的文件：可用于在线推理或重新加载后继续训练。保存多个组件，以字典形式保存，常见的组件包括模型和优化器的state\_dict、停止时的epoch、最新记录的训练损失以及外部的torch.nn.Embedding层等。如果仅用于部署推理模型，推荐只在.pth.tar扩展名的文件中保存权重信息即模型的state\_dict。
@@ -1851,7 +1853,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
 
 
 
->![](public_sys-resources/icon-caution.gif) **注意：** 
+>![](public_sys-resources/icon-notice.gif) **须知：** 
 >通常情况下，训练图和推理图中对同一个算子处理方式不同（例如BatchNorm和dropout等算子），在输入格式上也有差别，因此在运行推理或导出ONNX模型之前，必须调用model.eval\(\) 来将dropout和batch normalization层设置为推理模式。
 
 <h2 id="导出ONNX模型.md">导出ONNX模型</h2>
@@ -2033,9 +2035,9 @@ if __name__ == "__main__":
         global best_acc1
         # 原代码为使用GPU进行训练，原代码如下：
         # args.gpu = gpu
-    ############## npu modify begin #############
+        ############## npu modify begin #############
         args.gpu = None
-    ############## npu modify end #############
+        ############## npu modify end #############
         if args.gpu is not None:
             print("Use GPU: {} for training".format(args.gpu))
     
@@ -2113,7 +2115,7 @@ if __name__ == "__main__":
                 # if torch.cuda.is_available():
                     # target = target.cuda(args.gpu, non_blocking=True)
                 ############## npu modify begin #############
-                # 将数据集迁移到NPU上进行计算并修改target数据类型
+                # 将数据集迁移到NPU上进行计算并修改target数据类型，以提升性能
                 if 'npu' in CALCULATE_DEVICE:     
                     target = target.to(torch.int32)                      
                 images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
@@ -2346,7 +2348,7 @@ if __name__ == "__main__":
         # cudnn.benchmark = True
     ```
 
-10. 数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。由于是使用昇腾AI处理器进行训练，因此需要将**pin\_memory**设置为**False**；由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将**drop\_last**设置为**True**；另外需要将验证部分数据集**shuffle**设置为**True**。
+10. 数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。使用昇腾AI处理器进行训练，需要将**pin\_memory**设置为**False**；由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将**drop\_last**设置为**True**；另外需要将验证部分数据集**shuffle**设置为**True**。
 
     代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
 
@@ -2523,13 +2525,35 @@ if __name__ == "__main__":
 单卡:
 
 ```
-python3.7 main.py /home/data/resnet50/imagenet --batch-size 128 --lr 0.1  --epochs 90 --arch resnet50 --world-size 1 --rank 0 --workers 40 --momentum 0.9 --weight-decay 1e-4 
+python3.7 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
+                                               --lr 0.1 \               # 学习率
+                                               --epochs 90 \            # 训练迭代轮数
+                                               --arch resnet50 \        # 模型架构
+                                               --world-size 1 \
+                                               --rank 0 \         
+                                               --workers 40 \           # 加载数据进程数
+                                               --momentum 0.9 \         # 动量  
+                                               --weight-decay 1e-4      # 权重衰减
 ```
 
 分布式：
 
 ```
-python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49  --workers 160 --lr 0.8 --print-freq 1 --arch resnet50 --dist-url 'tcp://127.0.0.1:50000' --dist-backend 'hccl' --multiprocessing-distributed --world-size 1 --batch-size 2048 --epochs 90 --rank 0 --device-list '0,1,2,3,4,5,6,7' --amp 
+python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
+                                               --seed 49  \                      # 随机种子
+                                               --workers 160 \                   # 加载数据进程数
+                                               --lr 0.8 \
+                                               --print-freq 1 \
+                                               --arch resnet50 \                 # 模型架构
+                                               --dist-url 'tcp://127.0.0.1:50000' \                   
+                                               --dist-backend 'hccl' \
+                                               --multiprocessing-distributed \   # 使用多卡训练
+                                               --world-size 1 \
+                                               --batch-size 2048 \               # 训练批次大小
+                                               --epochs 90 \                     # 训练迭代轮数
+                                               --rank 0 \
+                                               --device-list '0,1,2,3,4,5,6,7' \
+                                               --amp                             # 使用混合精度训练
 ```
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -2537,7 +2561,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 
 <h2 id="ShuffleNet模型调优示例.md">ShuffleNet模型调优示例</h2>
 
--   **[样例获取](#样例获取-9.md)**  
+-   **[样例获取](#样例获取-6.md)**  
 
 -   **[模型评估](#模型评估.md)**  
 
@@ -2546,7 +2570,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 -   **[网络调测](#网络调测.md)**  
 
 
-<h2 id="样例获取-9.md">样例获取</h2>
+<h2 id="样例获取-6.md">样例获取</h2>
 
 ## 样例获取<a name="section1155115015182"></a>
 
@@ -2640,7 +2664,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 </td>
 <td class="cellrowborder" valign="top" width="11.35%" headers="mcps1.2.5.1.3 "><p id="p5327304206"><a name="p5327304206"></a><a name="p5327304206"></a>512</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.84%" headers="mcps1.2.5.1.4 "><p id="p132710016204"><a name="p132710016204"></a><a name="p132710016204"></a>修复了DWCONV没有指定输出格式为5HD的问题</p>
+<td class="cellrowborder" valign="top" width="71.84%" headers="mcps1.2.5.1.4 "><p id="p132710016204"><a name="p132710016204"></a><a name="p132710016204"></a>修复了DWCONV没有指定输出格式为5HD的问题。</p>
 </td>
 </tr>
 </tbody>
@@ -2648,16 +2672,11 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 
 详细说明如下：
 
-1.  由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#性能优化-3.md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
-
-2.  由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#性能优化-3.md)所描述Copy瓶颈。
-
-3.  适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
-
-4.  设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#性能优化-3.md)所描述框架瓶颈。
-
-5.  修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
-
+-   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#性能优化-1.md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
+-   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#性能优化-1.md)所描述Copy瓶颈。
+-   适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
+-   设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#性能优化-1.md)所描述框架瓶颈。
+-   修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
 
 ## 整网排查<a name="section1261194410241"></a>
 
@@ -2846,7 +2865,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='10.174.216.194' --seed 49
 15. 使用针对ShufflenetV2场景再次优化后的Gatherv3算子后，整体性能还能继续提升。
 
 
-## python侧优化细节<a name="section18548161019295"></a>
+## Python侧优化细节<a name="section18548161019295"></a>
 
 Python侧优化主要是通过一些同等语义的修改，使网络在NPU上边的更加亲和。当前非连续转连续容易成为性能瓶颈，而ShufflenetV2中的channel\_shuffle操作就涉及了permute后转连续的操作，导致整网性能在NPU上较差。通过对channel\_shuffle操作进行同等语义的修改，加上和concat操作的融合，使得整网性能得到飞升。采用的是torchvision版本参见[开源链接](https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py)。
 
@@ -3091,7 +3110,7 @@ for group in [2, 4, 8]:
 
 -   **[dump op方法](#dump-op方法.md)**  
 
--   **[CMake安装方法](#CMake安装方法.md)**  
+-   **[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)**  
 
 
 <h2 id="单算子样例编写说明.md">单算子样例编写说明</h2>
@@ -3221,34 +3240,35 @@ torch.npu.finalize_dump()
 **dump.json**字段解释如下。
 
 <a name="table97610004010"></a>
-<table><thead align="left"><tr id="row7771809407"><th class="cellrowborder" valign="top" width="32.76%" id="mcps1.1.3.1.1"><p id="p107700114017"><a name="p107700114017"></a><a name="p107700114017"></a>字段名</p>
+<table><thead align="left"><tr id="row7771809407"><th class="cellrowborder" valign="top" width="32.72%" id="mcps1.1.3.1.1"><p id="p107700114017"><a name="p107700114017"></a><a name="p107700114017"></a>字段名</p>
 </th>
-<th class="cellrowborder" valign="top" width="67.24%" id="mcps1.1.3.1.2"><p id="p197718014407"><a name="p197718014407"></a><a name="p197718014407"></a>说明</p>
+<th class="cellrowborder" valign="top" width="67.28%" id="mcps1.1.3.1.2"><p id="p197718014407"><a name="p197718014407"></a><a name="p197718014407"></a>说明</p>
 </th>
 </tr>
 </thead>
-<tbody><tr id="row146948317485"><td class="cellrowborder" valign="top" width="32.76%" headers="mcps1.1.3.1.1 "><p id="p62831031184315"><a name="p62831031184315"></a><a name="p62831031184315"></a>dump_list</p>
+<tbody><tr id="row146948317485"><td class="cellrowborder" valign="top" width="32.72%" headers="mcps1.1.3.1.1 "><p id="p62831031184315"><a name="p62831031184315"></a><a name="p62831031184315"></a>dump_list</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.24%" headers="mcps1.1.3.1.2 "><p id="p82827315430"><a name="p82827315430"></a><a name="p82827315430"></a>待dump数据的算子模型。为空，无需配置。</p>
+<td class="cellrowborder" valign="top" width="67.28%" headers="mcps1.1.3.1.2 "><p id="p82827315430"><a name="p82827315430"></a><a name="p82827315430"></a>待dump数据的算子模型。为空，无需配置。</p>
 </td>
 </tr>
-<tr id="row37740184015"><td class="cellrowborder" valign="top" width="32.76%" headers="mcps1.1.3.1.1 "><p id="p13281133117438"><a name="p13281133117438"></a><a name="p13281133117438"></a>dump_path</p>
+<tr id="row37740184015"><td class="cellrowborder" valign="top" width="32.72%" headers="mcps1.1.3.1.1 "><p id="p13281133117438"><a name="p13281133117438"></a><a name="p13281133117438"></a>dump_path</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.24%" headers="mcps1.1.3.1.2 "><p id="p146394521491"><a name="p146394521491"></a><a name="p146394521491"></a>dump数据文件存储到运行环境的目录，支持配置绝对路径或相对路径：</p>
+<td class="cellrowborder" valign="top" width="67.28%" headers="mcps1.1.3.1.2 "><p id="p146394521491"><a name="p146394521491"></a><a name="p146394521491"></a>dump数据文件存储到运行环境的目录，支持配置绝对路径或相对路径：</p>
 <a name="ul1163911521496"></a><a name="ul1163911521496"></a><ul id="ul1163911521496"><li>绝对路径配置以“/”开头，例如：/home/HwHiAiUser/output。</li><li>相对路径配置直接以目录名开始，例如：output。</li></ul>
 <p id="p2063995219490"><a name="p2063995219490"></a><a name="p2063995219490"></a>例如：dump_path配置为/home/HwHiAiUser/output，则dump数据文件存储到运行环境的/home/HwHiAiUser/output目录下。</p>
 </td>
 </tr>
-<tr id="row2773094012"><td class="cellrowborder" valign="top" width="32.76%" headers="mcps1.1.3.1.1 "><p id="p12841429175217"><a name="p12841429175217"></a><a name="p12841429175217"></a>dump_mode</p>
+<tr id="row2773094012"><td class="cellrowborder" valign="top" width="32.72%" headers="mcps1.1.3.1.1 "><p id="p12841429175217"><a name="p12841429175217"></a><a name="p12841429175217"></a>dump_mode</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.24%" headers="mcps1.1.3.1.2 "><p id="p984122918526"><a name="p984122918526"></a><a name="p984122918526"></a>dump数据模式，配置如下。</p>
-<a name="ul18387936175418"></a><a name="ul18387936175418"></a><ul id="ul18387936175418"><li>input：dump算子的输入数据。</li><li>output：dump算子的输出数据，默认取值output。</li><li>all：dump算子的输入、输出数据</li></ul>
+<td class="cellrowborder" valign="top" width="67.28%" headers="mcps1.1.3.1.2 "><p id="p984122918526"><a name="p984122918526"></a><a name="p984122918526"></a>dump数据模式，配置如下。</p>
+<a name="ul18387936175418"></a><a name="ul18387936175418"></a><ul id="ul18387936175418"><li>output：dump算子的输出数据，默认取值output。</li><li>input：dump算子的输入数据。</li><li>all：dump算子的输入、输出数据。</li></ul>
 </td>
 </tr>
-<tr id="row777102409"><td class="cellrowborder" valign="top" width="32.76%" headers="mcps1.1.3.1.1 "><p id="p16131622553"><a name="p16131622553"></a><a name="p16131622553"></a>dump_op_switch</p>
+<tr id="row777102409"><td class="cellrowborder" valign="top" width="32.72%" headers="mcps1.1.3.1.1 "><p id="p16131622553"><a name="p16131622553"></a><a name="p16131622553"></a>dump_op_switch</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.24%" headers="mcps1.1.3.1.2 "><p id="p9138225516"><a name="p9138225516"></a><a name="p9138225516"></a>单算子模型dump数据开关，配置如下。</p>
-<a name="ul14294625155518"></a><a name="ul14294625155518"></a><ul id="ul14294625155518"><li>on：开启单算子模型dump。</li><li>off：关闭单算子模型dump，默认取值off</li></ul>
+<td class="cellrowborder" valign="top" width="67.28%" headers="mcps1.1.3.1.2 "><p id="p9138225516"><a name="p9138225516"></a><a name="p9138225516"></a>单算子模型dump数据开关，配置如下。</p>
+<a name="ul113761601828"></a><a name="ul113761601828"></a><ul id="ul113761601828"><li>off：关闭单算子模型dump，默认取值off。</li></ul>
+<a name="ul14294625155518"></a><a name="ul14294625155518"></a><ul id="ul14294625155518"><li>on：开启单算子模型dump。</li></ul>
 </td>
 </tr>
 </tbody>
@@ -3276,7 +3296,7 @@ torch.npu.finalize_dump()
 
 3.  执行msaccucmp.pyc脚本，转换dump文件为numpy文件。举例：
 
-    **python3.7.5 msaccucmp.pyc convert -d /home/HwHiAiUser/dump -out /home/HwHiAiUser/dumptonumpy -v 2**
+    **python3 msaccucmp.pyc convert -d /home/HwHiAiUser/dump -out /home/HwHiAiUser/dumptonumpy -v 2**
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >-d参数支持传入单个文件，对单个dump文件进行转换，也支持传入目录，对整个path下所有的dump文件进行转换。
@@ -3329,43 +3349,86 @@ torch.npu.finalize_dump()
 
 2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
 
-<h2 id="CMake安装方法.md">CMake安装方法</h2>
+<h2 id="安装7-3-0版本gcc.md">安装7.3.0版本gcc</h2>
 
-CMake版本升级为3.12.1的方法
+以下步骤请在root用户下执行。
 
-1.  获取Cmake软件包。
-
-    ```
-    wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz --no-check-certificate
-    ```
-
-2.  解压并进入软件包目录。
+1.  下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
+2.  安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
 
     ```
-    tar -xf cmake-3.12.1.tar.gz
-    cd cmake-3.12.1/
+    sudo rm -rf /tmp/*
     ```
 
-3.  执行配置、编译和安装命令。
+3.  安装依赖。
+
+    centos/bclinux执行如下命令安装。
 
     ```
-    ./configure --prefix=/usr/local/cmake
-    make && make install
+    yum install bzip2    
     ```
 
-4.  设置软连接。
+    ubuntu/debian执行如下命令安装。
 
     ```
-    ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+    apt-get install bzip2    
     ```
 
-5.  执行如下命令验证是否安装成功。
+4.  编译安装gcc。
+    1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
+
+        ```
+        tar -zxvf gcc-7.3.0.tar.gz
+        ```
+
+    2.  进入解压后的文件夹，执行如下命令下载gcc依赖包：
+
+        ```
+        cd gcc-7.3.0
+        ./contrib/download_prerequisites
+        ```
+
+        如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
+
+        ```
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+        ```
+
+        下载好上述依赖包后，重新执行以下命令：
+
+        ```
+        ./contrib/download_prerequisites
+        ```
+
+        如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+
+    3.  <a name="zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
+
+        ```
+        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+        make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
+        make install    
+        ```
+
+        >![](public_sys-resources/icon-caution.gif) **注意：** 
+        >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
+
+
+5.  配置环境变量。
+
+    当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
 
     ```
-    cmake --version
+    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
     ```
 
-    如显示“cmake version 3.12.1”则表示安装成功。
+    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
 
 <h2 id="FAQ.md">FAQ</h2>
@@ -3384,8 +3447,6 @@ CMake版本升级为3.12.1的方法
 <h2 id="软件安装常见问题.md">软件安装常见问题</h2>
 
 -   **[pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)**  
-
--   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
 
 
 <h2 id="pip3-7-install-Pillow-5-3-0安装失败.md">pip3.7 install Pillow==5.3.0安装失败</h2>
@@ -3411,22 +3472,6 @@ pip3.7 install pillow==5.3.0安装失败。
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-<h2 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h2>
-
-## 现象描述<a name="zh-cn_topic_0175549220_section197270431505"></a>
-
-安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
-
-![](figures/zh-cn_image_0000001106176216.png)
-
-## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
-
-安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
-
-## 处理方法<a name="section108142031907"></a>
-
-对实际结果无影响，无需处理。
-
 <h2 id="模型和算子运行常见问题.md">模型和算子运行常见问题</h2>
 
 -   **[在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md)**  
@@ -3443,7 +3488,11 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)**  
 
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)**  
+
 -   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecute.md)**  
+
+-   **[在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed).md)**  
 
 
 <h2 id="在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md">在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”</h2>
@@ -3454,7 +3503,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-目前在一个线程内，只能调用一个npu设备，当切换不同的npu device时，出现上述错误。
+目前在一个线程内，只能调用一个NPU设备，当切换不同的npu device时，出现上述错误。
 
 ## 处理方法<a name="section8970834202112"></a>
 
@@ -3468,11 +3517,11 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-在torch初始化时，若未通过torch.npu.device\(id\)指定npu设备，则默认使用device 0设备。若直接使用其他npu设备，如指定在device 1上创建tensor，那么在运行时会出现上述错误。
+在torch初始化时，若未通过torch.npu.device\(id\)指定npu设备，则默认使用device 0设备。若直接使用其他NPU设备，如指定在device 1上创建tensor，那么在运行时会出现上述错误。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-在调用npu设备之前，通过torch.npu.set\_device\(device\)指定需要使用的npu设备即可。
+在调用NPU设备之前，通过torch.npu.set\_device\(device\)指定需要使用的NPU设备即可。
 
 <h2 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecute.md">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”</h2>
 
@@ -3503,7 +3552,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-将hccl模块的路径添加到环境变量中即可，一般hccl库文件路径为安装包下的.../fwkacllib/python/site-packages/hccl。
+将hccl模块的路径添加到环境变量中，一般情况下hccl库文件路径为安装包下的.../fwkacllib/python/site-packages/hccl。
 
 <h2 id="在模型运行时遇到报错-RuntimeError-Initialize.md">在模型运行时遇到报错“RuntimeError: Initialize.”</h2>
 
@@ -3521,7 +3570,27 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-一般可通过重启服务器和所有npu device解决该问题；若重启后仍然存在该问题，检查安装的driver和firmware版本是否匹配，更换正确版本的driver和firmware或者向华为工程师报告求助解决。
+可通过以下步骤解决该问题。
+
+1.  重启服务器和所有npu device。
+
+    如果问题解决，处理完毕。
+
+    如果问题未解决，请执行[2](#li77121667913)。
+
+2.  <a name="li77121667913"></a>检查安装的driver和firmware版本是否匹配。
+
+    如果不匹配，请执行[3](#li967615545918)。
+
+    如果匹配，请执行[4](#li475615212912)。
+
+3.  <a name="li967615545918"></a>更换正确版本的driver和firmware。
+
+    如果问题解决，处理完毕。
+
+    如果问题未解决，执行步骤四
+
+4.  <a name="li475615212912"></a>联系华为工程师。
 
 <h2 id="在模型运行时遇到报错-TVM-te-cce-error.md">在模型运行时遇到报错“TVM/te/cce error.”</h2>
 
@@ -3535,11 +3604,80 @@ pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch�
 
 ## 处理方法<a name="section8970834202112"></a>
 
-更新te等组件版本，具体需要更新te-_.whl和topi-_.whl安装包。在安装的toolkit或者nnae的fwkacllib子目录下（默认安装路径在/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64目录下，更新安装包即可。在该目录下有安装包topi-0.4.0-py3-none-any.whl和te-0.4.0-py3-none-any.whl，分别执行pip install --upgrade topi-0.4.0-py3-none-any.whl，pip install --upgrade te-0.4.0-py3-none-any.whl。
+更新te等组件版本，具体需要更新te-_\*.whl和topi-\*_.whl安装包。在安装的toolkit或者nnae的fwkacllib子目录下（以root安装用户为例：默认安装路径在/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64目录下，更新安装包即可。在该目录下有安装包topi-0.4.0-py3-none-any.whl和te-0.4.0-py3-none-any.whl，分别执行pip3 install --upgrade topi-0.4.0-py3-none-any.whl，pip install --upgrade te-0.4.0-py3-none-any.whl。
 
 ![](figures/FAQ10-1.png)
 
 <h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
+
+## 现象描述<a name="section1785905019184"></a>
+
+脚本：
+
+```
+    import torch
+
+    def test_sum():
+        xs_shape = [22400, 8]
+        ys_shape = [22400, 8]
+        gt_bboxes_shape = [22400, 8,4]
+        xs = torch.rand(xs_shape).npu()
+        ys = torch.rand(ys_shape).npu()
+        gt_bboxes = torch.rand(gt_bboxes_shape).npu().half()
+        left = xs - gt_bboxes[..., 0]
+        right = gt_bboxes[..., 2] - xs
+        top = ys - gt_bboxes[..., 1]
+        bottom = gt_bboxes[..., 3] - ys
+        # stream = torch.npu.current_stream()
+        # stream.synchronize()
+        # left, top 结果是fp32，  right, bottom 结果是fp16，
+        # print(left.dtype, top.dtype, right.dtype, bottom.dtype)
+        bbox_targets = torch.stack((left, top, right, bottom), -1)  #报错位置在这里
+        # stream.synchronize()
+
+        bbox_targets = torch.sum(bbox_targets)
+```
+
+shell报错信息：
+
+```
+    RuntimeError: Run:/usr1/workspace/PyTorch_Apex_Daily_c20tr5/CODE/aten/src/ATen/native/npu/utils/OpParamMaker.h:280 NPU error,NPU error code is:500002
+    [ERROR] RUNTIME(160809)kernel task happen error, retCode=0x28, [aicpu timeout].
+    [ERROR] RUNTIME(160809)aicpu kernel execute failed, device_id=0, stream_id=512, task_id=24, fault so_name=, fault kernel_name=, extend_info=.
+    Error in atexit._run_exitfuncs:
+    Traceback (most recent call last):
+    File "/usr/local/python3.7.5/lib/python3.7/site-packages/torch/__init__.py", line 429, in _npu_shutdown
+        torch._C._npu_shutdown()
+    RuntimeError: npuSynchronizeDevice:/usr1/workspace/PyTorch_Apex_Daily_c20tr5/CODE/c10/npu/NPUStream.cpp:806 NPU error, error code is 0
+```
+
+日志信息：
+
+```
+    [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.679 [../../../../../../runtime/feature/src/npu_driver.cc:1408]12828 MemCopySync:drvMemcpy failed: dst=0x108040288000, destMax=1240, src=0x7fe7649556d0, size=1240, kind=1, drvRetCode=17!
+    [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.698 [../../../../../../runtime/feature/src/logger.cc:113]12828 KernelLaunch:launch kernel failed, kernel=140631803535760/ArgMinWithValue_tvmbin, dim=32, stream=0x55b22b3def50
+    [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.717 [../../../../../../runtime/feature/src/api_c.cc:224]12828 rtKernelLaunch:ErrCode=207001, desc=[module new memory error], InnerCode=0x70a0002
+```
+
+## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+
+根据shell和日志报错信息，两者报错信息不匹配。
+
+shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在min算子（内部调用ArgMinWithValue\_tvmbin），二者报错信息不对应。一般这类问题出现的原因是由于日志生成的报错信息滞后。
+
+报错信息滞后可能是由于AI CPU算子的异步执行，导致报错信息滞后。
+
+## 处理方法<a name="section8970834202112"></a>
+
+对于该报错需要根据实际的错误来定位，可参考如下步骤进行处理：
+
+1.  通过关闭多任务算子下发后发现结果不变，推断在shell脚本报错位置和日志报错算子之前就已出现错误。
+2.  根据报错加上stream同步操作，缩小错误范围，定位错误算子。stream同步操作的作用在于其要求代码所运行到的位置之前的所有计算必须为完成状态，从而定位错误位置。
+3.  通过在代码中加上stream同步操作，确定报错算子为stack。
+4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
+5.  将stack入参数据类型转换为一致即可临时规避问题。
+
+<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3628,6 +3766,22 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 在模型代码中查找topk算子调用位置，确定该算子是否可由其他算子代替，若可由其他算子报错，暂时使用代替方案，并将算子报错信息报告华为工程师。若无替代算子，请将算子报错信息通知华为工程师解决。
 
+<h2 id="在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed).md">在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”</h2>
+
+## 现象描述<a name="section170419711269"></a>
+
+模型训练过程中，查看host训练日志（路径：“/root/ascend/log/plog/“），可能出现如下报错信息。
+
+![](figures/20210720-102720(WeLinkPC).png)
+
+## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+
+该报错信息是由于调用某一公共API接口导致。
+
+## 处理方法<a name="section8970834202112"></a>
+
+该报错信息不影响训练功能与性能，可忽略该报错信息。
+
 <h2 id="模型调测常见问题.md">模型调测常见问题</h2>
 
 -   **[在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5.md)**  
@@ -3647,7 +3801,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-对于NPUCachingAllocator中malloc类型的错误原因一般为npu显存不足，所需显存大于npu上可用显存。
+对于NPUCachingAllocator中malloc类型的错误原因一般为NPU显存不足，所需显存大于npu上可用显存。
 
 ## 处理方法<a name="section8970834202112"></a>
 
@@ -3703,11 +3857,11 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-首先确定报错位置，上述报错路径为.../code/pytorch/torch/init.py，而当前运行路径在.../code/pytorch下，在执行import torch时，默认首先在当前目录下查找torch文件夹，因此报错。此处应是调用在系统目录下安装的torch包，而不是当前目录下的torch。
+首先确定报错位置，上述报错路径为.../code/pytorch/torch/\_\_init\_\_.py，而当前运行路径在.../code/pytorch下，在执行import torch时，默认首先在当前目录下查找torch文件夹，因此报错。此处应是调用在系统目录下安装的torch包，而不是当前目录下的torch。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-切换到其他目录执行脚本即可。
+切换到其他目录执行脚本。
 
 <h2 id="其他操作相关问题.md">其他操作相关问题</h2>
 
@@ -3738,7 +3892,7 @@ npu未使用npu的流同步方法。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-使用npu的流同步方法：
+使用NPU的流同步方法：
 
 ```
 stream = torch.npu.current_stream()
@@ -3753,11 +3907,11 @@ stream.synchronize()
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-未导入AICPU
+未导入AICPU。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-导入AICPU：
+导入AICPU（以root用户安装Toolkit软件包，安装路径为默认路径为例）：
 
 ```
 export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest
@@ -3775,7 +3929,7 @@ python进程残留，需要kill。
 
 ## 处理方法<a name="section8970834202112"></a>
 
-杀死python进程：
+终止python进程：
 
 ```
 pkill -9 python
@@ -3789,7 +3943,7 @@ pkill -9 python
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-PTIndexPut编译的算子和输入的shape对不上， 并有acl\_dynamic\_shape\_op打头的日志字样，确定为动态shape报错。
+PTIndexPut编译的算子和输入的shape不一致， 并有acl\_dynamic\_shape\_op打头的日志字样，确定为动态shape报错。
 
 ## 处理方法<a name="section8970834202112"></a>
 
@@ -3884,7 +4038,7 @@ return result
 
 加载权重时先遍历state\_dict字典，修改key值，并使用新建的字典，具体用例参考demo.py。
 
-脚本：
+脚本如下：
 
 ```
    ckpt = torch.load("checkpoint.pth", map_location=loc)
@@ -3916,7 +4070,7 @@ return result
 
 ## 处理方法<a name="section8970834202112"></a>
 
-在运行脚本中设置正确的IP地址，对于单机情况，设置为本机的IP即可；对于多机情况，每个服务器上脚本中的IP需要设置为master节点的IP。
+在运行脚本中设置正确的IP地址，对于单机情况，设置为本机的IP地址即可；对于多机情况，每个服务器上脚本中的IP需要设置为master节点的IP。
 
 <h2 id="在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-out.md">在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”</h2>
 
@@ -3928,7 +4082,7 @@ return result
 
 模型进行分布式训练时，系统防火墙可能会阻截HCCL的集合通信端口的通信。需要根据报错信息，排查通信端口的开放情况，并进行相应设置。
 
-## 理方法<a name="section8970834202112"></a>
+## 处理方法<a name="section8970834202112"></a>
 
 查询出被系统防火墙阻截的集合通信端口，并开放相应端口。
 
