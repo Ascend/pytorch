@@ -7,14 +7,10 @@
     -   [样例参考](#样例参考.md)
 -   [专题](#专题.md)
     -   [混合精度](#混合精度.md)
-    -   [权重更新](#权重更新.md)
--   [FAQ](#FAQ.md)
-    -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)
-    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
 -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
 <h2 id="使用场景.md">使用场景</h2>
 
-在线推理是在AI框架内执行推理的场景，例如在PyTorch框架上，加载模型后，通过model.eval\(\)执行推理。
+在线推理是在AI框架内执行推理的场景，例如在PyTorch框架上，加载模型后，通过“model.eval\(\)“将模型切换为推理模式。
 
 相比于离线推理场景，使用在线推理可以方便将原来基于PyTorch框架做推理的应用快速迁移到昇腾AI处理器，适用于数据中心推理场景。
 
@@ -37,38 +33,27 @@
 
 <h2 id="前提条件.md">前提条件</h2>
 
-已完成PyTorch框架及混合精度模块的安装，详情请参考《PyTorch网络模型移植&训练指南》的"环境准备"章节。
+已完成PyTorch框架及混合精度模块的安装，详情请参见《PyTorch安装指南》进行PyTorch相关运行环境搭建。
 
 <h2 id="在线推理流程.md">在线推理流程</h2>
 
-在线推理流程如[图1](#fig13802941161818)所示：
+在线推理流程如[图1](#fig13802941161818)所示。
 
 **图 1**  在线推理流程图<a name="fig13802941161818"></a>  
 ![](figures/在线推理流程图.png "在线推理流程图")
 
 <h2 id="环境变量配置.md">环境变量配置</h2>
 
-Pytorch在线推理进程启动所依赖的环境变量：
-
-根据环境实际安装的软件包（toolkit或nnae），在下列场景中选择一个并运行对应的环境变量配置脚本。
+PyTorch在线推理进程启动所依赖的环境变量：
 
 ```
-# 场景一：昇腾设备安装部署开发套件包Ascend-cann-toolkit(此时开发环境可进行推理任务)，可根据不同安装用户执行相应脚本。
-  # 以root用户安装toolkit包
-  . /usr/local/Ascend/ascend-toolkit/set_env.sh 
-  # 以非root用户安装toolkit包
-  . ${HOME}/Ascend/ascend-toolkit/set_env.sh 
-# 场景二：昇腾设备安装部署软件包Ascend-cann-nnae，可根据不同安装用户执行相应脚本。
-  # 以root用户安装nnae包 
-  . /usr/local/Ascend/nnae/set_env.sh 
-  # 以非root用户安装nnae包
-  . ${HOME}/Ascend/nnae/set_env.sh
-```
+# 请依据实际在下列场景中选择其一，进行在线推理依赖包安装路径的环境变量设置。具体如下（以HwHiAiUser用户安装，安装路径为默认路径为例）：
+# 场景一：昇腾设备安装部署开发套件包Ascend-cann-toolkit(此时开发环境可进行推理任务)。
+. /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
+# 场景二：昇腾设备安装部署软件包Ascend-cann-nnae。
+. /home/HwHiAiUser/Ascend/nnae/set_env.sh 
 
-其他环境变量配置。
-
-```
-# 若参见《PyTorch网络模型移植&训练指南》的"环境准备"章节进行环境搭建时安装python3.7.5，或存在多个python3版本时，需要在环境变量中配置python3.7.5的安装路径。
+# 若运行环境中存在多个python3版本时，需要在环境变量中配置python3.7.5的安装路径。
 export PATH=/usr/local/python3.7.5/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib:$LD_LIBRARY_PATH
 
@@ -78,63 +63,65 @@ export ASCEND_DEVICE_ID=0
 # 输出日志信息,可根据实际修改
 export ASCEND_SLOG_PRINT_TO_STDOUT=1
 export ASCEND_GLOBAL_LOG_LEVEL=0
+
+# TASK多线程下发
 export TASK_QUEUE_ENABLE=0
 ```
 
-**表 1** 
+**表 1**  环境变量说明
 
 <a name="table2072027194819"></a>
-<table><thead align="left"><tr id="row1173527114812"><th class="cellrowborder" valign="top" width="46.75467546754676%" id="mcps1.2.4.1.1"><p id="p073027114816"><a name="p073027114816"></a><a name="p073027114816"></a>配置项</p>
+<table><thead align="left"><tr id="row1173527114812"><th class="cellrowborder" valign="top" width="35.51355135513551%" id="mcps1.2.4.1.1"><p id="p073027114816"><a name="p073027114816"></a><a name="p073027114816"></a>配置项</p>
 </th>
-<th class="cellrowborder" valign="top" width="43.18431843184319%" id="mcps1.2.4.1.2"><p id="p157362712480"><a name="p157362712480"></a><a name="p157362712480"></a>说明</p>
+<th class="cellrowborder" valign="top" width="54.42544254425443%" id="mcps1.2.4.1.2"><p id="p157362712480"><a name="p157362712480"></a><a name="p157362712480"></a>说明</p>
 </th>
 <th class="cellrowborder" valign="top" width="10.061006100610062%" id="mcps1.2.4.1.3"><p id="p187392714485"><a name="p187392714485"></a><a name="p187392714485"></a>必选/可选</p>
 </th>
 </tr>
 </thead>
-<tbody><tr id="row2732273481"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p57382719481"><a name="p57382719481"></a><a name="p57382719481"></a>LD_LIBRARY_PATH</p>
+<tbody><tr id="row2732273481"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p57382719481"><a name="p57382719481"></a><a name="p57382719481"></a>LD_LIBRARY_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="p07319271480"><a name="p07319271480"></a><a name="p07319271480"></a>动态库的查找路径，参考上述举例配置。</p>
-<div class="note" id="note119943144912"><a name="note119943144912"></a><a name="note119943144912"></a><span class="notetitle"> 说明： </span><div class="notebody"><p id="p49933104915"><a name="p49933104915"></a><a name="p49933104915"></a>若系统环境升级了gcc版本（例如Centos、Debian和BClinux系统），需要配置gcc相关环境变量，详情请参见<a href="#安装7-3-0版本gcc.md#zh-cn_topic_0000001146754749_zh-cn_topic_0000001072593337_l5e5c9395407d46439788b12f0e6342bc">5</a>。</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="p07319271480"><a name="p07319271480"></a><a name="p07319271480"></a>动态库的查找路径，参考上述举例配置。</p>
+<div class="note" id="note119943144912"><a name="note119943144912"></a><a name="note119943144912"></a><span class="notetitle"> 说明： </span><div class="notebody"><p id="p49933104915"><a name="p49933104915"></a><a name="p49933104915"></a>若系统环境安装了gcc7.3.0（例如CentOS7.6、Debian和BClinux系统），需要配置gcc相关环境变量，详情请参见<a href="#安装7-3-0版本gcc.md#zh-cn_topic_0000001146754749_zh-cn_topic_0000001072593337_l5e5c9395407d46439788b12f0e6342bc">5</a>。</p>
 </div></div>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p187352744817"><a name="p187352744817"></a><a name="p187352744817"></a>必选</p>
 </td>
 </tr>
-<tr id="row17342744812"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p4731227184818"><a name="p4731227184818"></a><a name="p4731227184818"></a>PATH</p>
+<tr id="row17342744812"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p4731227184818"><a name="p4731227184818"></a><a name="p4731227184818"></a>PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="p97310276484"><a name="p97310276484"></a><a name="p97310276484"></a>可执行程序的查找路径，参考上述举例配置。</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="p97310276484"><a name="p97310276484"></a><a name="p97310276484"></a>可执行程序的查找路径，参考上述举例配置。</p>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p1573142711483"><a name="p1573142711483"></a><a name="p1573142711483"></a>必选</p>
 </td>
 </tr>
-<tr id="row95241840165613"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p15242404566"><a name="p15242404566"></a><a name="p15242404566"></a>ASCEND_DEVICE_ID</p>
+<tr id="row95241840165613"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p15242404566"><a name="p15242404566"></a><a name="p15242404566"></a>ASCEND_DEVICE_ID</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="p688447526"><a name="p688447526"></a><a name="p688447526"></a>指定芯片的逻辑ID。</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="p688447526"><a name="p688447526"></a><a name="p688447526"></a>指定芯片的逻辑ID。</p>
 <p id="p178824712212"><a name="p178824712212"></a><a name="p178824712212"></a>取值范围[0,N-1]，默认为0。其中N为当前物理机/虚拟机/容器内的设备总数。</p>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p105245400562"><a name="p105245400562"></a><a name="p105245400562"></a>可选</p>
 </td>
 </tr>
-<tr id="row203705529819"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p53705522810"><a name="p53705522810"></a><a name="p53705522810"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
+<tr id="row203705529819"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p53705522810"><a name="p53705522810"></a><a name="p53705522810"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001073203258_p763102116322"><a name="zh-cn_topic_0000001073203258_p763102116322"></a><a name="zh-cn_topic_0000001073203258_p763102116322"></a>是否开启日志打屏。取值：</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001073203258_p763102116322"><a name="zh-cn_topic_0000001073203258_p763102116322"></a><a name="zh-cn_topic_0000001073203258_p763102116322"></a>是否开启日志打屏。取值：</p>
 <a name="zh-cn_topic_0000001073203258_ul95291245104113"></a><a name="zh-cn_topic_0000001073203258_ul95291245104113"></a><ul id="zh-cn_topic_0000001073203258_ul95291245104113"><li>0或不配置：关闭日志打屏</li><li>1：开启日志打屏</li></ul>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p6370125217818"><a name="p6370125217818"></a><a name="p6370125217818"></a>可选</p>
 </td>
 </tr>
-<tr id="row188405280914"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p5840928594"><a name="p5840928594"></a><a name="p5840928594"></a>ASCEND_GLOBAL_LOG_LEVEL</p>
+<tr id="row188405280914"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p5840928594"><a name="p5840928594"></a><a name="p5840928594"></a>ASCEND_GLOBAL_LOG_LEVEL</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001073521184_p763102116322"><a name="zh-cn_topic_0000001073521184_p763102116322"></a><a name="zh-cn_topic_0000001073521184_p763102116322"></a>设置日志的全局日志级别。取值：</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001073521184_p763102116322"><a name="zh-cn_topic_0000001073521184_p763102116322"></a><a name="zh-cn_topic_0000001073521184_p763102116322"></a>设置日志的全局日志级别。取值：</p>
 <a name="zh-cn_topic_0000001073521184_u4d735da6e0494e55abbf5eb6aefe988d"></a><a name="zh-cn_topic_0000001073521184_u4d735da6e0494e55abbf5eb6aefe988d"></a><ul id="zh-cn_topic_0000001073521184_u4d735da6e0494e55abbf5eb6aefe988d"><li>0：对应DEBUG级别。</li><li>1：对应INFO级别。</li><li>2：对应WARNING级别。</li><li>3：对应ERROR级别。</li><li>4：对应NULL级别，不输出日志。</li><li>其他值为非法值。</li></ul>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p6841928598"><a name="p6841928598"></a><a name="p6841928598"></a>可选</p>
 </td>
 </tr>
-<tr id="row17638114219104"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p20638342191018"><a name="p20638342191018"></a><a name="p20638342191018"></a>TASK_QUEUE_ENABLE</p>
+<tr id="row17638114219104"><td class="cellrowborder" valign="top" width="35.51355135513551%" headers="mcps1.2.4.1.1 "><p id="p20638342191018"><a name="p20638342191018"></a><a name="p20638342191018"></a>TASK_QUEUE_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="p126381842151019"><a name="p126381842151019"></a><a name="p126381842151019"></a>s是否开启TASK多线程下发，绝大多数情况下，打开该功能会进一步提升整网训练性能。取值：</p>
+<td class="cellrowborder" valign="top" width="54.42544254425443%" headers="mcps1.2.4.1.2 "><p id="p126381842151019"><a name="p126381842151019"></a><a name="p126381842151019"></a>是否开启TASK多线程下发，绝大多数情况下，打开该功能会进一步提升整网训练性能。取值：</p>
 <a name="ul6194152711118"></a><a name="ul6194152711118"></a><ul id="ul6194152711118"><li>0或不配置：关闭TASK多线程下发。</li><li>1：开启TASK多线程下发。</li></ul>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p86386423103"><a name="p86386423103"></a><a name="p86386423103"></a>可选</p>
@@ -150,7 +137,9 @@ export TASK_QUEUE_ENABLE=0
 
 ## 样例代码<a name="section2017032418274"></a>
 
-在进行推理应用时，应尽量保证应用在生命周期内不频繁初始化。推理模式通过模型model.eval\(\)进行设置，并且推理过程要在“with torch.no\_grad\(\):”代码分支下运行。本例中，我们将使用Resnet50网络的python代码进行说明。
+在进行推理应用时，应尽量保证应用在生命周期内不频繁初始化。推理模式通过模型model.eval\(\)进行设置，并且推理过程要在“with torch.no\_grad\(\):”代码分支下运行。
+
+本例中，我们将使用Resnet50网络的python代码进行说明。
 
 样例代码 resnet50\_infer\_for\_pytorch.py：
 
@@ -246,7 +235,7 @@ def main_worker(npu, args):
     print("=> creating model '{}'".format(args.arch))
     model = models.__dict__[args.arch](zero_init_residual=True)
 
-    # 将模型数据置于昇腾AI处理器中
+    # 将模型数据复制到昇腾AI处理器中
     model = model.to(CALCULATE_DEVICE)
 
     optimizer = torch.optim.SGD([
@@ -256,12 +245,12 @@ def main_worker(npu, args):
         args.lr)
 
     # =========================================================================
-    # 初始化混合精度模型，使用后可加速运算，但推理结果的准确率可能会轻微降低。可根据实际场景选择使用
+    # 初始化混合精度模型，使用后可加速运算，但结果的准确率可能会轻微降低。可根据实际场景选择使用
     # =========================================================================
     model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=1024, verbosity=1)
 
     # =========================================================================
-    # 加载训练好的模型参数：通过命令行参数“--resume checkpoint文件”
+    # 加载训练好的模型参数
     # =========================================================================
     # 从模型文件中恢复模型参数
     if os.path.isfile(args.resume):
@@ -278,7 +267,7 @@ def main_worker(npu, args):
         print("=> no checkpoint found at '{}'".format(args.resume))
 
     # =========================================================================
-    # 初始化推理数据集
+    # 初始化数据集
     # =========================================================================
     # 图像数据加载与预处理
     valdir = os.path.join(args.data, 'val')
@@ -296,7 +285,7 @@ def main_worker(npu, args):
         num_workers=args.workers, pin_memory=True)
 
     # =========================================================================
-    # 进入在线推理模式
+    # 运行validate
     # =========================================================================
     validate(val_loader, model, args)
 
@@ -332,7 +321,7 @@ def validate(val_loader, model, args):
             # 计算输出
             output = model(images)
 
-            # 测量结果精度
+            # 统计结果精度
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             top1.update(acc1[0], images.size(0))
             top5.update(acc5[0], images.size(0))
@@ -344,7 +333,6 @@ def validate(val_loader, model, args):
             # 打印推理运算过程日志
             progress.display(i)
 
-        # TODO: this should also be done with the ProgressMeter
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1, top5=top5))
 
     return top1.avg
@@ -380,7 +368,7 @@ class AverageMeter(object):
 
 
 class ProgressMeter(object):
-    """记录模型运算过程"""
+    """记录模型运算过程信息"""
     def __init__(self, num_batches, meters, prefix=""):
         self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
         self.meters = meters
@@ -424,7 +412,7 @@ if __name__ == '__main__':
 
 1.  下载预训练模型。
 
-    打开ModelZoo中[ResNet50详情页](https://ascend.huawei.com/zh/#/software/modelzoo/detail/C/cf20ab8b8bea4032a6b056ab503112e4)，点击该页面的“下载模型“下载已训练好的模型文件。
+    打开ModelZoo中[ResNet50详情页](https://ascend.huawei.com/zh/#/software/modelzoo/detail/C/cf20ab8b8bea4032a6b056ab503112e4)，单击该页面的“下载模型“下载已训练好的模型文件。
 
 2.  编辑推理脚本。
 
@@ -435,8 +423,10 @@ if __name__ == '__main__':
     参考[环境变量配置](#环境变量配置.md)设置环境变量，并执行命令：
 
     ```
-    python3.7 pytorch-resnet50-apex.py --data /data/imagenet --npu 7 --epochs 90 --resume checkpoint_npu7_epoch53.pth.tar
-    # 参数'--resume'加载训练好的权重参数文件，用户可根据实际模型名称修改
+    python3 pytorch-resnet50-apex.py --data /data/imagenet \
+                                     --npu 7 \
+                                     --epochs 90 \
+                                     --resume ./checkpoint.pth.tar    # ./checkpoint.pth.tar为示例预训练模型文件路径
     ```
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -447,8 +437,6 @@ if __name__ == '__main__':
 
 -   **[混合精度](#混合精度.md)**  
 
--   **[权重更新](#权重更新.md)**  
-
 
 <h2 id="混合精度.md">混合精度</h2>
 
@@ -456,17 +444,15 @@ if __name__ == '__main__':
 
 基于NPU芯片的架构特性，模型运算会涉及到混合精度，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
-●对于中间变量的内存占用更少，节省内存的使用。
-
-●因内存使用会减少，所以数据传出的时间也会减半。
-
-●float16的计算单元可以提供更快的计算性能。
+-   对于中间变量的内存占用更少，节省内存的使用。
+-   因内存使用会减少，所以数据传出的时间也会减少。
+-   float16的计算单元可以提供更快的计算性能。
 
 但是，混合精度训练受限于float16表达的精度范围，单纯将float32转换成float16会影响训练收敛情况，为了保证部分计算使用float16来进行加速的同时能保证训练收敛，这里采用混合精度模块Apex来达到以上效果。混合精度模块Apex是一个集优化性能、精度收敛于一身的综合优化库。
 
 ## 特性支持<a name="section175201458521"></a>
 
-混合精度模块功能和优化描述如[表1](#zh-cn_topic_0278765773_table10717173813332)所示：
+混合精度模块功能和优化描述如[表1](#zh-cn_topic_0278765773_table10717173813332)所示。
 
 **表 1**  混合精度模块功能
 
@@ -479,12 +465,12 @@ if __name__ == '__main__':
 </thead>
 <tbody><tr id="zh-cn_topic_0278765773_row1571763813334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p4502732153412"><a name="zh-cn_topic_0278765773_p4502732153412"></a><a name="zh-cn_topic_0278765773_p4502732153412"></a>O1配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p640053920348"><a name="zh-cn_topic_0278765773_p640053920348"></a><a name="zh-cn_topic_0278765773_p640053920348"></a>Conv, Matmal等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p640053920348"><a name="zh-cn_topic_0278765773_p640053920348"></a><a name="zh-cn_topic_0278765773_p640053920348"></a>Conv, Matmul等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0278765773_row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p11503103210344"><a name="zh-cn_topic_0278765773_p11503103210344"></a><a name="zh-cn_topic_0278765773_p11503103210344"></a>O2配置</p>
+<tr id="zh-cn_topic_0278765773_row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p11503103210344"><a name="zh-cn_topic_0278765773_p11503103210344"></a><a name="zh-cn_topic_0278765773_p11503103210344"></a>O2配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p164001639143419"><a name="zh-cn_topic_0278765773_p164001639143419"></a><a name="zh-cn_topic_0278765773_p164001639143419"></a>除了BN使用<span>float32</span>外，其他绝大部分使用<span>float16</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p164001639143419"><a name="zh-cn_topic_0278765773_p164001639143419"></a><a name="zh-cn_topic_0278765773_p164001639143419"></a>BN使用<span>float32</span>，其他绝大部分使用<span>float16</span>。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0278765773_row14717193815334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p1950318328349"><a name="zh-cn_topic_0278765773_p1950318328349"></a><a name="zh-cn_topic_0278765773_p1950318328349"></a>静态Loss Scale功能</p>
@@ -517,12 +503,11 @@ if __name__ == '__main__':
     model, optimizer = amp.initialize(model, optimizer)
     ```
 
-    -   可参考[样例代码](#样例参考.md)中的“初始化混合精度模型”：
+    也可参考[样例代码](#样例参考.md)中的“初始化混合精度模型”：
 
-        ```
-        model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=1024, verbosity=1)
-        ```
-
+    ```
+    model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=1024, verbosity=1)
+    ```
 
 
 ## 混合精度推理<a name="section818071513288"></a>
@@ -531,100 +516,30 @@ if __name__ == '__main__':
 
 参考代码：可参考[样例代码](#样例参考.md)实现。
 
-<h2 id="权重更新.md">权重更新</h2>
-
-## 背景<a name="section67167596290"></a>
-
-推理进行的同时，训练服务器不断训练得到新的权重。
-
-如果希望使用最新的权重进行推理，可以采用在线推理方式，直接更新权重。
-
-## 整体流程<a name="section83461954103018"></a>
-
-**图 1**  权重更新流程示意图<a name="fig6243201383"></a>  
-![](figures/权重更新流程示意图.png "权重更新流程示意图")
-
-如[图1](#fig6243201383)所示，支持循环地更新权重与执行推理。主要流程：
-
-1.  模型初始化；
-2.  权重加载/更新：获取在线推理模型和权重信息，例如从ckpt文件中加载，实际更新用的权重则来自于外部的key-value；
-3.  加载数据；
-4.  执行推理图模型。
-
-## 样例参考<a name="section95391544013"></a>
-
-请参考[样例参考](#样例参考.md)。
-
-<h2 id="FAQ.md">FAQ</h2>
-
--   **[pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)**  
-
--   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
-
-
-<h2 id="pip3-7-install-Pillow-5-3-0安装失败.md">pip3.7 install Pillow==5.3.0安装失败</h2>
-
-## 现象描述<a name="zh-cn_topic_0277124533_zh-cn_topic_0175549220_section197270431505"></a>
-
-pip3.7 install pillow==5.3.0安装失败。
-
-## 可能原因<a name="zh-cn_topic_0277124533_zh-cn_topic_0175549220_section169499490501"></a>
-
-缺少必要的依赖，如：libjpeg、python-devel、 zlib-devel 、libjpeg-turbo-devel等等。
-
-## 处理方法<a name="zh-cn_topic_0277124533_section108142031907"></a>
-
-安装相关依赖，通过如下命令安装：
-
--   CentOS/EulerOS/Tlinux/BClinux/Suse
-
-    **yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
-
--   Ubuntu/Debian/UOS
-
-    **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
-
-
-<h2 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h2>
-
-## 现象描述<a name="zh-cn_topic_0277124535_zh-cn_topic_0175549220_section197270431505"></a>
-
-安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
-
-![](figures/zh-cn_image_0000001152776305.png)
-
-## 可能原因<a name="zh-cn_topic_0277124535_zh-cn_topic_0175549220_section169499490501"></a>
-
-安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功。
-
-## 处理方法<a name="zh-cn_topic_0277124535_section108142031907"></a>
-
-对实际结果无影响，无需处理。
-
 <h2 id="安装7-3-0版本gcc.md">安装7.3.0版本gcc</h2>
 
 以下步骤请在root用户下执行。
 
 1.  下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
-2.  安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
+2.  安装gcc时候会占用大量临时空间，请先执行下面的命令清空/tmp目录：
 
     ```
     sudo rm -rf /tmp/*
     ```
 
-3.  安装依赖。
+3.  安装依赖（以CentOS和Ubuntu系统为例）。
+    -   CentOS执行如下命令安装。
 
-    centos/bclinux执行如下命令安装。
+        ```
+        yum install bzip2    
+        ```
 
-    ```
-    yum install bzip2    
-    ```
+    -   Ubuntu执行如下命令安装。
 
-    ubuntu/debian执行如下命令安装。
+        ```
+        apt-get install bzip2    
+        ```
 
-    ```
-    apt-get install bzip2    
-    ```
 
 4.  编译安装gcc。
     1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
@@ -665,7 +580,7 @@ pip3.7 install pillow==5.3.0安装失败。
         make install    
         ```
 
-        >![](public_sys-resources/icon-caution.gif) **注意：** 
+        >![](public_sys-resources/icon-notice.gif) **须知：** 
         >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
 
 
@@ -677,7 +592,7 @@ pip3.7 install pillow==5.3.0安装失败。
     export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
     ```
 
-    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001146754749_zh-cn_topic_0000001072593337_l75d31a2874534a2092e80a5f865b46f0)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001146754749_zh-cn_topic_0000001072593337_l75d31a2874534a2092e80a5f865b46f0)中配置的gcc7.3.0安装路径，本示例为“/usr/local/linux\_gcc7.3.0/“。
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
