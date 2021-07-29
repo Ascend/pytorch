@@ -68,9 +68,6 @@ mv $SRC_DIR/torch/lib/c10d/ProcessGroupHCCL* src/torch/lib/c10d
 mv $SRC_DIR/env.sh src
 mv $SRC_DIR/build.sh src # where
 
-## fuzzy compile
-mv $SRC_DIR/aten/src/ATen/native/GlobalStep* src/aten/src/ATen/native
-
 ## dump util
 mv $SRC_DIR/aten/src/ATen/utils src/aten/src/ATen
 mv $SRC_DIR/torch/utils/dumper.py src/torch/utils
