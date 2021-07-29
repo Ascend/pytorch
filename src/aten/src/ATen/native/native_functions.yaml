@@ -5905,6 +5905,8 @@
   dispatch:
     CPU: _svd_helper_cpu
     CUDA: _svd_helper_cuda
+  npu_dispatch:
+    NPU: _svd_helper_npu
 
 - func: cholesky.out(Tensor self, bool upper=False, *, Tensor(a!) out) -> Tensor(a!)
 
