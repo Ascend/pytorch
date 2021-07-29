@@ -41,6 +41,17 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string& val) {
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string& val) { 
   aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
  })
+REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string& val) { 
+  if (val == "high_precision" || val == "high_performance") {
+    aclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
+  } else {
+    TORCH_CHECK(0, "ACL_OP_SELECT_IMPL_MODE only support `high_precision` or "
+      " `high_performance`, but got ", val);
+  }
+ })
+REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string& val) { 
+  aclSetCompileopt(aclCompileOpt::ACL_OPTYPELIST_FOR_IMPLMODE, val.c_str());
+ })
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string& val) { 
     FuzzyCompileBlacklist::GetInstance().RegisterBlacklist(val);
  })

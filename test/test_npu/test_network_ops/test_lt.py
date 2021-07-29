@@ -202,6 +202,25 @@ class TestLt(TestCase):
         shape_format = [[np.float32, i, [32, 3, 3, 3]] for i in format_list]
         self.lt_result(shape_format)
 
+    def test_lt_bool(self, device):
+        format_list = [0]
+        shape_list = [(5, 3), (2, 3, 4), (6, 8, 10, 12)]
+        scalar_list = [True, False]
+        shape_format = [
+            [[np.int32, i, j], k] for i in format_list for j in shape_list 
+            for k in scalar_list
+        ]
+        for item in shape_format:
+            print(item)
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[0], 0, 100)
+            cpu_output1 = self.cpu_op_exec_scalar(cpu_input1 > 50, item[1])
+            npu_output1 = self.npu_op_exec_scalar(npu_input1 > 50, item[1])
+            cpu_output2 = self.cpu_op_exec(cpu_input1 > 50, cpu_input2 > 50)
+            npu_output2 = self.npu_op_exec(npu_input1 > 50, npu_input2 > 50)
+            self.assertEqual(cpu_output1, npu_output1)
+            self.assertEqual(cpu_output2, npu_output2)
+
     # scalar-----------------------------------------------------------------------
     def test_lt_scalar_shape_format_fp16_1d(self, device):
         format_list = [-1, 0]

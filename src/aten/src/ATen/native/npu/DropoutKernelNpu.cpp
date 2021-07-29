@@ -44,12 +44,9 @@ Tensor dropout_gen_mask(const Tensor& self, const Tensor& prob) {
   Tensor mask = at::empty_with_format(
       {length / 8},
       self.options().dtype(at::kByte),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      ACL_FORMAT_ND);
 
-  Tensor cpu_shape =
-      from_blob((void*)self.sizes().data(), {self.dim()}, at::kLong)
-          .to(at::kInt);
-  Tensor npu_shape = CalcuOpUtil::copy_tensor_host_to_device(cpu_shape);
+  IntArrayRef selfShape = self.sizes();
 
   OpCommand cmd;
   // If either seed or seed2 are set to be non-zero, the random number generator
@@ -57,7 +54,7 @@ Tensor dropout_gen_mask(const Tensor& self, const Tensor& prob) {
   int64_t seed = 0;
   int64_t seed2 = 0;
   cmd.Name("DropOutGenMask")
-      .InputPair(npu_shape, /*cpu_input=*/cpu_shape)
+      .Input(selfShape)
       .Input(prob)
       .Output(mask)
       .Attr("seed", seed)
@@ -77,9 +74,6 @@ std::tuple<Tensor, Tensor> dropout_v1_npu_impl(
   TORCH_CHECK(
       at::isFloatingType(self.scalar_type()),
       "dropout only supports floating-point dtypes");
-
-  // dropout only supports NCHW foramt(aicpu restriction)
-  Tensor selfFormatCast = self.npu_format_cast(ACL_FORMAT_ND);
   
   double retain = 1. - p;
   Tensor prob;
@@ -91,25 +85,22 @@ std::tuple<Tensor, Tensor> dropout_v1_npu_impl(
     // same time, according to the one-stream-one-pool principle, memory is also
     // alloced from the pool of the secondary stream.
     c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-    prob = CalcuOpUtil::CopyScalarToDevice(retain, selfFormatCast.scalar_type());
-    mask = dropout_gen_mask(selfFormatCast, prob);
+    prob = scalar_to_tensor(retain).to(self.scalar_type());
+    mask = dropout_gen_mask(self, prob);
   }
   // When tasks on multiple streams read and write the same block of memory,
   // recordStream needs to be called to ensure the correctness of memory reuse.
   c10::npu::NPUCachingAllocator::recordStream(prob.storage().data_ptr(), original_stream);
   c10::npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
-  dropout_do_mask(result, selfFormatCast, mask, prob);
+  dropout_do_mask(result, self, mask, prob);
 
   return std::tie(result, mask);
 }
 std::tuple<Tensor, Tensor> _dropout_npu(
     const Tensor& self,
     double p) {
-  Tensor selfFormatCast = self.npu_format_cast(ACL_FORMAT_ND); 
-  auto outputSize = input_same_output_size(selfFormatCast);
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(selfFormatCast));
-  return dropout_v1_npu_impl(result, selfFormatCast, p);
+  Tensor result = OpPreparation::ApplyTensor(self);
+  return dropout_v1_npu_impl(result, self, p);
 }
 
 std::tuple<Tensor, Tensor> _dropout_npu_inplace(
