@@ -383,26 +383,6 @@ namespace at {
           is_matched = false;
           break;
         }
-
-        //2.stride
-        attr = dataset.openAttribute("Stride");
-        int h5StrideSize = static_cast<int>(attr.getSpace().getSimpleExtentNpoints());
-        if (h5StrideSize == (*it).tensor.strides().size()) {
-          int64_t* stride = new int64_t[h5StrideSize];
-          attr.read(attr.getDataType(), stride);
-          IntArrayRef tensorStride = (*it).tensor.strides();
-          for (int k = 0; k < h5StrideSize; k++) {
-            if (tensorStride[k] != stride[k]) {
-              is_matched = false;
-              break;
-            }
-          }
-          delete stride;
-        } else {
-          is_matched = false;
-          break;
-        }
-
       } 
     }
     return is_matched;
@@ -770,11 +750,7 @@ namespace at {
       Tensor thArray;
       if ((*it).tensor.scalar_type() != ScalarType::Half) {
         auto options = at::TensorOptions().dtype((*it).tensor.scalar_type());
-        if (deviceTypeValue[0] == 10) {
-          thArray = at::from_blob(data, (*it).tensor.sizes(), options);
-        } else {
-          thArray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
-        }
+        thArray = at::from_blob(data, (*it).tensor.sizes(), options);
         auto verCountBefore = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
         CopyMaybeWithZeroStride((*it).tensor.detach(), thArray.to((*it).tensor.device()).to((*it).tensor.dtype()));
         auto verCountAfter = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
@@ -783,11 +759,7 @@ namespace at {
         }
       } else {
         auto options = at::TensorOptions().dtype(at::kFloat);
-        if (deviceTypeValue[0] == 10) {
-          thArray = at::from_blob(data, (*it).tensor.sizes(), options);
-        } else {
-          thArray = at::from_blob(data, (*it).tensor.sizes(), (*it).tensor.strides(), options);
-        }
+        thArray = at::from_blob(data, (*it).tensor.sizes(), options);
         auto verCountBefore = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
         CopyMaybeWithZeroStride((*it).tensor.detach(), thArray.to(at::kHalf).to((*it).tensor.device()));
         auto verCountAfter = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();

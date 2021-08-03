@@ -1128,6 +1128,10 @@
   npu_dispatch_only:
     NPU: npu_convolution_backward
 
+- func: npu_convolution_double_backward(Tensor? ggI, Tensor? ggW, Tensor? ggb, Tensor input, Tensor gO, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: npu_convolution_double_backward
+
 - func: npu_conv2d(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   npu_dispatch_only:
     NPU: conv2d_npu

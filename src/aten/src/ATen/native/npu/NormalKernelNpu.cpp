@@ -86,7 +86,6 @@ Tensor& normal_out_npu(
   if (dtypeCastOfStd.scalar_type() == ScalarType::Half) {
     dtypeCastOfStd = dtypeCastOfStd.to(ScalarType::Float);
   }
-  
   OpCommand cmd;
   cmd.Name("Normal")
     .Input(dtypeCastOfMean)
@@ -112,8 +111,8 @@ Tensor& normal_out_npu(
   if (formatCastOfResult.scalar_type() == ScalarType::Half) {
     formatCastOfResult = formatCastOfResult.to(ScalarType::Float);
   }
-  
-  Tensor meanTensor = OpPreparation::ApplyTensor(size, result.options(), result);
+
+  Tensor meanTensor = OpPreparation::ApplyTensor(size, formatCastOfResult.options(), result);
   meanTensor.fill_(mean);
   OpCommand cmd;
   cmd.Name("Normal")

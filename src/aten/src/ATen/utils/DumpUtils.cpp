@@ -235,34 +235,37 @@ namespace at {
     int typeData = static_cast<int>(SaveType::TENSOR);
     PrepareSimpleHdf5Attr(dataset, ATTR_TYPE_NAME, PredType::STD_I32LE, &typeData);
 
+    // create contiguous cpu tensor
+    auto tensor_cpu = tensor.detach().cpu().clone();
+
     // prepare stride attribute
     rank = 1;
-    hsize_t dims[1] = {tensor.strides().size()};
+    hsize_t dims[1] = {tensor_cpu.strides().size()};
     DataSpace strideDataspace = DataSpace(rank, dims);
     Attribute attribute = dataset->createAttribute(ATTR_STRIDE_NAME, PredType::STD_I64LE, strideDataspace);
-    attribute.write(PredType::STD_I64LE, tensor.strides().data());
+    attribute.write(PredType::STD_I64LE, tensor_cpu.strides().data());
 
     // write to dataset
     if (tensor.device().type() == DeviceType::CPU) {
-      dataset->write(tensor.storage().data_ptr().get(), ScalarTypeToPredType(tensor.scalar_type()));
+      dataset->write(tensor_cpu.storage().data_ptr().get(), ScalarTypeToPredType(tensor_cpu.scalar_type()));
     } else if (tensor.device().type() == DeviceType::CUDA) {
       if (tensor.scalar_type() != ScalarType::Half) {
         dataset->write(
-            tensor.detach().cpu().storage().data_ptr().get(),
+            tensor_cpu.storage().data_ptr().get(),
             ScalarTypeToPredType(tensor.scalar_type()));
       } else {
         dataset->write(
-            tensor.detach().to(c10::kFloat).cpu().storage().data_ptr().get(),
+            tensor_cpu.to(c10::kFloat).storage().data_ptr().get(),
             PredType::IEEE_F32LE);
       }
     } else if (tensor.device().type() == DeviceType::NPU) {
       if (tensor.scalar_type() != ScalarType::Half) {
         dataset->write(
-            tensor.detach().cpu().storage().data_ptr().get(),
+            tensor_cpu.storage().data_ptr().get(),
             ScalarTypeToPredType(tensor.scalar_type()));
       } else {
         dataset->write(
-            tensor.detach().npu_dtype_cast(ScalarType::Float).cpu().storage().data_ptr().get(),
+            tensor_cpu.to(c10::kFloat).storage().data_ptr().get(),
             PredType::IEEE_F32LE);
       }
     }
