@@ -31,7 +31,7 @@ function main()
     # make clean
     export TORCH_PACKAGE_NAME=torch
     export PYTORCH_BUILD_VERSION='1.5.0+ascend'
-    export PYTORCH_BUILD_NUMBER=2
+    export PYTORCH_BUILD_NUMBER=3
     #for build GPU torch:DEBUG=0 USE_DISTRIBUTED=0 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 python3.7 setup.py build bdist_wheel
     DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3.7 setup.py build bdist_wheel
     if [ $? != 0 ]; then

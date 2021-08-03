@@ -13,15 +13,18 @@
 # limitations under the License.
 
 from .channel_shuffle import ChannelShuffle
-from .preloader import PreLoader
+from .prefetcher import Prefetcher
 from .dropout import DropoutV2
 from .crossentropy import LabelSmoothingCrossEntropy
 from .roi_align import ROIAlign
+from .deform_conv import ModulatedDeformConv, DCNv2
 
 __all__ = [
     "ChannelShuffle",
-    "PreLoader",
+    "Prefetcher",
     "DropoutV2",
     "LabelSmoothingCrossEntropy",
     "ROIAlign",
+    "DCNv2",
+    "ModulatedDeformConv",
 ]

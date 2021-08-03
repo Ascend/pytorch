@@ -12,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from function import pairwise_iou, fast_rcnn_inference_single_image, npu_multiclass_nms, npu_batched_multiclass_nms
-from module import ChannelShuffle, InvertedResidual, PreLoader
+from .function import iou, ptiou, npu_multiclass_nms, npu_batched_multiclass_nms
+from .module import ChannelShuffle, Prefetcher, DropoutV2, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
+    ModulatedDeformConv
 
 __all__ = [
-    "pairwise_iou",
-    "fast_rcnn_inference_single_image",
-    "ChannelShuffle",
-    "PreLoader",
+    "iou",
+    "ptiou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
+    "ChannelShuffle",
+    "Prefetcher",
+    "DropoutV2",
+    "LabelSmoothingCrossEntropy",
+    "ROIAlign",
+    "DCNv2",
+    "ModulatedDeformConv",
 ]

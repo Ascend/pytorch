@@ -20,14 +20,14 @@ import numpy as np
 class DropoutV2(nn.Module):
     r"""Applies an NPU compatible dropout operation.
 
-        This dropout method generates pseudo-random seed based on LCG(linear congruential generator) method.
-        Since Ascend910 does not have a hardware unit that can generate real random numbers,
-        we used the LCG method to generate pseudo-random seeds
+    This dropout method generates pseudo-random seed based on LCG(linear congruential generator) method.
+    Since Ascend910 does not have a hardware unit that can generate real random numbers,
+    we used the LCG method to generate pseudo-random seeds
 
-        .. note::
-            max_seed is a hyper-parameter strongly related to the underlying operator.
-            Please check the MAX(2 ** 31 - 1 / 2 ** 10 - 1) in dropout_v2.py in the opp package for matching settings.
-            By default, it is matched by the Pytorch and OPP packages.
+    .. note::
+        max_seed is a hyper-parameter strongly related to the underlying operator.
+        Please check the MAX(2 ** 31 - 1 / 2 ** 10 - 1) in dropout_v2.py in the opp package for matching settings.
+        By default, it is matched by the Pytorch and OPP packages.
 
     Args:
         p: probability of an element to be zeroed. Default: 0.5

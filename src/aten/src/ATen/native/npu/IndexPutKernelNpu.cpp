@@ -44,16 +44,27 @@ Tensor& index_put_nocheck(
   auto masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
       from_blob(masks.data(), {masks.size()}, dtype(ScalarType::Long)));
 
+  Tensor tempSelf = self;
+  Tensor tempValue = value;
+  if (self.scalar_type() == ScalarType::Half) {
+    tempSelf = self.npu_dtype_cast(ScalarType::Float);
+    tempValue = value.npu_dtype_cast(ScalarType::Float);
+    result = result.npu_dtype_cast(ScalarType::Float);
+  }
+
   OpCommand cmd;
   cmd.Name("IndexPut")
-      .Input(self)
-      .Input(value)
+      .Input(tempSelf)
+      .Input(tempValue)
       .Input(masksTensor)
       .Inputs(allDefinedIndices)
       .Output(result)
       .Attr("accumulate", accumulate)
       .Run();
 
+  if (self.scalar_type() == ScalarType::Half) {
+    result = result.npu_dtype_cast(ScalarType::Half);
+  }
   return result;
 }
 
