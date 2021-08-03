@@ -28,17 +28,13 @@ class TestDeformableConv2d(TestCase):
             npu_input = npu_input.npu_format_cast(format)
         return npu_input
 
-    def test_deformable_conv2d(self, device):
+    def test_deformable_conv2d_fp32(self, device):
         input = self.create_single_npu_tensor([np.float32, 0, (16, 32, 32, 32)], 0, 10)
         weight = self.create_single_npu_tensor([np.float32, 0, (32, 32, 5, 5)], 0, 10)
         offset = self.create_single_npu_tensor([np.float32, 0, (16, 75, 32, 32)], 0, 10)
-        input.requires_grad = True
-        weight.requires_grad = True
-        offset.requires_grad = True
 
         npu_output, offset_out = torch.npu_deformable_conv2d(
             input, weight, offset, None, kernel_size=[5, 5], stride = [1, 1, 1, 1], padding = [2, 2, 2, 2])
-        npu_output.backward(torch.ones_like(npu_output))
         npu_output = npu_output.cpu().detach()
 
         output = npu_output.select(1, 2).select(1, 2).select(1, 2)
@@ -46,29 +42,32 @@ class TestDeformableConv2d(TestCase):
                                       65504., 65504., 65504., 65504., 65504., 65504., 65504.])
         self.assertRtolEqual(expect_output, output)
 
-        input_grad = input.grad.select(1, 2).select(1, 2).select(1, 3)
-        expect_input_grad = torch.tensor([1018.5208, 1080.2323, 2533.2463, 1305.0685, 3977.8293, 2363.5681,
-                                          1414.5939, 2116.5427, 1401.0662, 2064.0400, 1945.2327, 2338.5208, 
-                                          300.2462, 2646.7798, 1899.1229, 2165.7280])
-        self.assertRtolEqual(expect_input_grad, input_grad.cpu())
+        offset_out_select = offset_out.select(1, 2).select(1, 2).select(1, 2)
+        expect_offset_out = torch.tensor([13.6374, 6.0295, 79.6111, 33.5996, 53.6248, 62.2289, 14.3497, 47.6463,
+                                          52.3312, 34.1246, 8.6705, 3.3515, 9.9513, 15.3604, 38.9772, 57.1306])
+        self.assertRtolEqual(expect_offset_out, offset_out_select.cpu().detach())
+    
 
-        offest_grad = offset.grad.select(1, 2).select(1, 2).select(1, 3)
-        expect_offest_grad = torch.tensor([-4708.0259, -139.2554, -2387.8149, 31017.8438, 19861.9528,
-                                           -1209.2686, -24085.7285, -3950.3850, -31044.7070, 4571.3936, 
-                                           582.9868, -5514.0459, 78401.6562, -1778.3700, -14311.4365,
-                                           -2065.9717])
-        self.assertRtolEqual(expect_offest_grad, offest_grad.cpu())
+    def test_deformable_conv2d_fp16(self, device):
+        input_fp16 = self.create_single_npu_tensor([np.float16, 0, (16, 32, 32, 32)], 0, 10)
+        weight = self.create_single_npu_tensor([np.float16, 0, (32, 32, 5, 5)], 0, 10)
+        offset = self.create_single_npu_tensor([np.float16, 0, (16, 75, 32, 32)], 0, 10)
 
-        weight_grad = weight.grad.select(1, 2).select(1, 2).select(1, 3)
-        expect_weight_grad = torch.tensor([279501.8438, 279501.8438, 279501.8438, 279501.8438, 279501.8125,
-                                           279501.8125, 279501.8125, 279501.8125, 279501.8438, 279501.8438,
-                                           279501.8438, 279501.8438, 279501.8438, 279501.8438, 279501.8438,
-                                           279501.8438, 279501.8438, 279501.8438, 279501.8438, 279501.8438,
-                                           279501.8438, 279501.8438, 279501.8438, 279501.8438, 279501.8125,
-                                           279501.8125, 279501.8125, 279501.8125, 279501.8438, 279501.8438,
-                                           279501.8438, 279501.8438])
-        self.assertRtolEqual(expect_weight_grad, weight_grad.cpu())
+        npu_output, offset_out = torch.npu_deformable_conv2d(
+            input_fp16, weight, offset, None, kernel_size=[5, 5], stride = [1, 1, 1, 1], padding = [2, 2, 2, 2])
+        npu_output = npu_output.cpu().detach()
 
+        output = npu_output.select(1, 2).select(1, 2).select(1, 2)
+        expect_output = torch.tensor([65504., 65504., 65504., 65504., 65504., 65504., 65504., 65504., 65504.,
+                                      65504., 65504., 65504., 65504., 65504., 65504., 65504.], dtype=torch.float16)
+        self.assertRtolEqual(expect_output, output)
+
+        offset_out_select = offset_out.select(1, 2).select(1, 2).select(1, 2)
+        expect_offset_out = torch.tensor([13.6562, 6.0352, 79.4375, 33.5938, 53.6875, 62.2188, 14.3438, 47.6562,
+                                          52.3750, 34.0938, 8.6797, 3.3516, 9.9531, 15.3750, 39.0625, 57.1875], 
+                                          dtype=torch.float16)
+        self.assertRtolEqual(expect_offset_out, offset_out_select.cpu().detach())
+                                    
 instantiate_device_type_tests(TestDeformableConv2d, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

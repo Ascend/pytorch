@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -37,16 +38,17 @@ Tensor& scatter_npu_(
   }
 
   Tensor src = src_ex;
-  if (src.scalar_type() == ScalarType::Half) {
-    src = src.npu_dtype_cast(ScalarType::Float);
+  if (src.scalar_type() != self.scalar_type()) {
+    src = src.npu_dtype_cast(self.scalar_type());
   }
 
   OpCommand cmd;
-  cmd.Name("ScatterTensor")
+  cmd.Name("ScatterElements")
+     .Input(self)
      .Input(index)
      .Input(src)
      .Output(self)
-     .Attr("dim", dim)
+     .Attr("axis", dim)
      .Run();
 
   if(self.scalar_type() != selfType){
@@ -71,13 +73,17 @@ Tensor& scatter_npu_(
   if (index.scalar_type() == ScalarType::Half) {
     index = index.npu_dtype_cast(ScalarType::Float);
   }
+  Tensor srcTensor = scalar_to_tensor(src).to(ScalarType::Float);
+  srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
+  Tensor srcTensor_broadcast = at::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
 
   OpCommand cmd;
-  cmd.Name("ScatterScalar")
+  cmd.Name("ScatterElements")
+     .Input(self)
      .Input(index)
+     .Input(srcTensor_broadcast)
      .Output(self)
-     .Attr("dim", dim)
-     .Attr("value", src)
+     .Attr("axis", dim)
      .Run();
 
   if(self.scalar_type() != selfType){

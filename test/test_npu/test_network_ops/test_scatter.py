@@ -61,8 +61,6 @@ class TestScatter(TestCase):
         shape_format = [
                 [0, [3,5], [np.float32, 0, [2,5]]],
                 [0, [3,5], [np.float32, 3, [2,5]]],
-                [1, [3,5], [np.int32, 0, [2,5]]],
-                [-1, [3,5], [np.int32, 0, [2,5]]],
                 [1, [3,5], [np.float16, 0, [2,5]]],
                 [-1, [3,5], [np.float16, 0, [2,5]]],
         ]
