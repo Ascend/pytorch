@@ -1,7 +1,7 @@
-# PyTorch适配算子清单
--   [PyTorch原生算子](#PyTorch原生算子.md)
--   [PyTorch算子\(由昇腾开发\)](#PyTorch算子\(由昇腾开发\).md)
-## PyTorch原生算子<a name="PyTorch原生算子.md"></a>
+# **PyTorch适配算子清单**
+-   **[PyTorch原生API昇腾算子对应表](#PyTorch原生API昇腾算子对应表.md)**
+-   **[PyTorch昇腾自定义算子](#PyTorch昇腾自定义算子.md)**
+<h2 id="PyTorch原生API昇腾算子对应表.md">PyTorch原生API昇腾算子对应表</h2>
 
 | 序号 | PyTorch 原生算子                            | 昇腾适配算子                                  |
 | ---- | ------------------------------------------- | --------------------------------------------- |
@@ -452,26 +452,26 @@
 | 445  | bitwise_and.Tensor                          | bitwise_and_npu                               |
 | 446  | bitwise_and_.Scalar                         | bitwise_and_npu_                              |
 | 447  | bitwise_and_.Tensor                         | bitwise_and_npu_                              |
-| 448  | __and__.Scalar                              | __and___npu                                   |
-| 449  | __and__.Tensor                              | __and___npu                                   |
+| 448  | and.Scalar                                  | and_npu                                       |
+| 449  | and.Tensor                                  | and_npu                                       |
 | 450  | bitwise_or.Tensor_out                       | bitwise_or_out_npu                            |
 | 451  | bitwise_or.Scalar_out                       | bitwise_or_out_npu                            |
 | 452  | bitwise_or.Scalar                           | bitwise_or_npu                                |
 | 453  | bitwise_or.Tensor                           | bitwise_or_npu                                |
 | 454  | bitwise_or_.Scalar                          | bitwise_or_npu_                               |
 | 455  | bitwise_or_.Tensor                          | bitwise_or_npu_                               |
-| 456  | __or__.Scalar                               | __or___npu                                    |
-| 457  | __or__.Tensor                               | __or___npu                                    |
-| 458  | __ior__.Scalar                              | __ior___npu                                   |
-| 459  | __ior__.Tensor                              | __ior___npu                                   |
+| 456  | or.Scalar                                   | or_npu                                        |
+| 457  | or.Tensor                                   | or_npu                                        |
+| 458  | ior.Scalar                                  | ior_npu                                       |
+| 459  | ior.Tensor                                  | ior_npu                                       |
 | 460  | bitwise_xor.Tensor_out                      | bitwise_xor_out_npu                           |
 | 461  | bitwise_xor.Scalar_out                      | bitwise_xor_out_npu                           |
 | 462  | bitwise_xor.Scalar                          | bitwise_xor_npu                               |
 | 463  | bitwise_xor.Tensor                          | bitwise_xor_npu                               |
 | 464  | bitwise_xor_.Scalar                         | bitwise_xor_npu_                              |
 | 465  | bitwise_xor_.Tensor                         | bitwise_xor_npu_                              |
-| 466  | __xor__.Scalar                              | __xor___npu                                   |
-| 467  | __xor__.Tensor                              | __xor___npu                                   |
+| 466  | xor.Scalar                                  | xor_npu                                       |
+| 467  | xor.Tensor                                  | xor_npu                                       |
 | 468  | atan2_                                      | atan2_npu_                                    |
 | 469  | tril_                                       | tril_npu_                                     |
 | 470  | triu_                                       | triu_npu_                                     |
@@ -777,93 +777,92 @@
 | 770  | isfinite                                    | isfinite_npu                                  |
 
 
-
-## PyTorch算子\(由昇腾开发\)<a name="PyTorch算子\(由昇腾开发\).md"></a>
+<h2 id="PyTorch昇腾自定义算子.md">PyTorch昇腾自定义算子</h2>
 
 | 序号 | PyTorch 算子（由昇腾开发）                     | 昇腾适配算子                                   |
-| :--: | ---------------------------------------------- | ---------------------------------------------- |
-|  1   | npu_convolution_transpose                      | npu_convolution_transpose                      |
-|  2   | npu_conv_transpose2d                           | convolution_transpose_npu                      |
-|  3   | npu_convolution_transpose_backward             | convolution_transpose_backward_npu             |
-|  4   | npu_convolution                                | npu_convolution                                |
-|  5   | npu_convolution_backward                       | npu_convolution_backward                       |
-|  6   | npu_conv2d                                     | conv2d_npu                                     |
-|  7   | npu_conv2d.out                                 | conv2d_out_npu                                 |
-|  8   | npu_conv2d_backward                            | conv2d_backward_npu                            |
-|  9   | npu_conv3d                                     | conv3d_npu                                     |
-|  10  | npu_conv3d.out                                 | conv3d_out_npu                                 |
-|  11  | npu_conv3d_backward                            | conv3d_backward_npu                            |
-|  12  | one_                                           | one_npu_                                       |
-|  13  | npu_sort_v2.out                                | sort_without_indices_out_npu                   |
-|  14  | npu_sort_v2                                    | sort_without_indices_npu                       |
-|  15  | npu_format_cast                                | format_cast_npu                                |
-|  16  | npu_format_cast_.acl_format                    | format_cast_npu_                               |
-|  17  | npu_format_cast_.src                           | format_cast_npu_                               |
-|  18  | npu_transpose_to_contiguous                    | transpose_to_contiguous_npu                    |
-|  19  | npu_transpose                                  | transpose_npu                                  |
-|  20  | npu_transpose.out                              | transpose_out_npu                              |
-|  21  | npu_broadcast                                  | broadcast_npu                                  |
-|  22  | npu_broadcast.out                              | broadcast_out_npu                              |
-|  23  | npu_dtype_cast                                 | dtype_cast_npu                                 |
-|  24  | npu_dtype_cast_.Tensor                         | dtype_cast_npu_                                |
-|  25  | npu_roi_alignbk                                | roi_align_backward_npu                         |
-|  26  | empty_with_format                              | empty_with_format_npu                          |
-|  27  | empty_with_format.names                        | empty_with_format_npu                          |
-|  28  | copy_memory_                                   | copy_memory_npu_                               |
-|  29  | npu_one_hot                                    | one_hot_npu                                    |
-|  30  | npu_stride_add                                 | stride_add_npu                                 |
-|  31  | npu_softmax_cross_entropy_with_logits          | softmax_cross_entropy_with_logits_npu          |
-|  32  | npu_softmax_cross_entropy_with_logits_backward | softmax_cross_entropy_with_logits_backward_npu |
-|  33  | npu_ps_roi_pooling                             | ps_roi_pooling_npu                             |
-|  34  | npu_ps_roi_pooling_backward                    | ps_roi_pooling_backward_npu                    |
-|  35  | npu_roi_align                                  | roi_align_npu                                  |
-|  36  | npu_nms_v4                                     | nms_v4_npu                                     |
-|  37  | npu_lstm                                       | lstm_npu                                       |
-|  38  | npu_lstm_backward                              | lstm_backward_npu                              |
-|  39  | npu_iou                                        | iou_npu                                        |
-|  40  | npu_ptiou                                      | ptiou_npu                                      |
-|  41  | npu_nms_with_mask                              | nms_with_mask_npu                              |
-|  42  | npu_pad                                        | pad_npu                                        |
-|  43  | npu_bounding_box_encode                        | bounding_box_encode_npu                        |
-|  44  | npu_bounding_box_decode                        | bounding_box_decode_npu                        |
-|  45  | npu_gru                                        | gru_npu                                        |
-|  46  | npu_gru_backward                               | gru_backward_npu                               |
-|  47  | npu_set_.source_Storage_storage_offset_format  | set_npu_                                       |
-|  48  | npu_random_choice_with_mask                    | random_choice_with_mask_npu                    |
-|  49  | npu_batch_nms                                  | batch_nms_npu                                  |
-|  50  | npu_slice                                      | slice_npu                                      |
-|  51  | npu_slice.out                                  | slice_out_npu                                  |
-|  52  | npu_dropoutV2                                  | dropout_v2_npu                                 |
-|  53  | npu_dropoutV2_backward                         | dropout_v2_backward_npu                        |
-|  54  | _npu_dropout                                   | _dropout_npu                                   |
-|  55  | _npu_dropout_inplace                           | _dropout_npu_inplace                           |
-|  56  | npu_dropout_backward                           | dropout_backward_npu                           |
-|  57  | npu_indexing                                   | indexing_npu                                   |
-|  58  | npu_indexing.out                               | indexing_out_npu                               |
-|  59  | npu_ifmr                                       | ifmr_npu                                       |
-|  60  | npu_max.dim                                    | max_v1_npu                                     |
-|  61  | npu_max.names_dim                              | max_v1_npu                                     |
-|  62  | npu_scatter                                    | scatter_npu                                    |
-|  63  | npu_max_backward                               | max_backward_npu                               |
-|  64  | npu_apply_adam                                 | apply_adam_npu                                 |
-|  65  | npu_layer_norm_eval                            | layer_norm_eval_npu                            |
-|  66  | npu_alloc_float_status                         | alloc_float_status_npu                         |
-|  67  | npu_get_float_status                           | get_float_status_npu                           |
-|  68  | npu_clear_float_status                         | clear_float_status_npu                         |
-|  69  | npu_confusion_transpose                        | confusion_transpose_npu                        |
-|  70  | npu_confusion_transpose_backward               | confusion_transpose_backward_npu               |
-|  71  | npu_bmmV2                                      | bmm_v2_npu                                     |
-|  72  | fast_gelu                                      | fast_gelu_npu                                  |
-|  73  | fast_gelu_backward                             | fast_gelu_backward_npu                         |
-|  74  | npu_sub_sample                                 | sub_sample_npu                                 |
-|  75  | npu_deformable_conv2d                          | deformable_conv2d_npu                          |
-|  76  | npu_deformable_conv2dbk                        | deformable_conv2d_backward_npu                 |
-|  77  | npu_mish                                       | mish_npu                                       |
-|  78  | npu_anchor_response_flags                      | anchor_response_flags_npu                      |
-|  79  | npu_yolo_boxes_encode                          | yolo_boxes_encode_npu                          |
-|  80  | npu_grid_assign_positive                       | grid_assign_positive_npu                       |
-|  81  | npu_mish_backward                              | mish_backward_npu                              |
-|  82  | npu_normalize_batch                            | normalize_batch_npu                            |
-|  83  | npu_masked_fill_range                          | masked_fill_range_npu                          |
+| ---- | ---------------------------------------------- | ---------------------------------------------- |
+| 1    | npu_convolution_transpose                      | npu_convolution_transpose                      |
+| 2    | npu_conv_transpose2d                           | convolution_transpose_npu                      |
+| 3    | npu_convolution_transpose_backward             | convolution_transpose_backward_npu             |
+| 4    | npu_convolution                                | npu_convolution                                |
+| 5    | npu_convolution_backward                       | npu_convolution_backward                       |
+| 6    | npu_conv2d                                     | conv2d_npu                                     |
+| 7    | npu_conv2d.out                                 | conv2d_out_npu                                 |
+| 8    | npu_conv2d_backward                            | conv2d_backward_npu                            |
+| 9    | npu_conv3d                                     | conv3d_npu                                     |
+| 10   | npu_conv3d.out                                 | conv3d_out_npu                                 |
+| 11   | npu_conv3d_backward                            | conv3d_backward_npu                            |
+| 12   | one_                                           | one_npu_                                       |
+| 13   | npu_sort_v2.out                                | sort_without_indices_out_npu                   |
+| 14   | npu_sort_v2                                    | sort_without_indices_npu                       |
+| 15   | npu_format_cast                                | format_cast_npu                                |
+| 16   | npu_format_cast_.acl_format                    | format_cast_npu_                               |
+| 17   | npu_format_cast_.src                           | format_cast_npu_                               |
+| 18   | npu_transpose_to_contiguous                    | transpose_to_contiguous_npu                    |
+| 19   | npu_transpose                                  | transpose_npu                                  |
+| 20   | npu_transpose.out                              | transpose_out_npu                              |
+| 21   | npu_broadcast                                  | broadcast_npu                                  |
+| 22   | npu_broadcast.out                              | broadcast_out_npu                              |
+| 23   | npu_dtype_cast                                 | dtype_cast_npu                                 |
+| 24   | npu_dtype_cast_.Tensor                         | dtype_cast_npu_                                |
+| 25   | npu_roi_alignbk                                | roi_align_backward_npu                         |
+| 26   | empty_with_format                              | empty_with_format_npu                          |
+| 27   | empty_with_format.names                        | empty_with_format_npu                          |
+| 28   | copy_memory_                                   | copy_memory_npu_                               |
+| 29   | npu_one_hot                                    | one_hot_npu                                    |
+| 30   | npu_stride_add                                 | stride_add_npu                                 |
+| 31   | npu_softmax_cross_entropy_with_logits          | softmax_cross_entropy_with_logits_npu          |
+| 32   | npu_softmax_cross_entropy_with_logits_backward | softmax_cross_entropy_with_logits_backward_npu |
+| 33   | npu_ps_roi_pooling                             | ps_roi_pooling_npu                             |
+| 34   | npu_ps_roi_pooling_backward                    | ps_roi_pooling_backward_npu                    |
+| 35   | npu_roi_align                                  | roi_align_npu                                  |
+| 36   | npu_nms_v4                                     | nms_v4_npu                                     |
+| 37   | npu_lstm                                       | lstm_npu                                       |
+| 38   | npu_lstm_backward                              | lstm_backward_npu                              |
+| 39   | npu_iou                                        | iou_npu                                        |
+| 40   | npu_ptiou                                      | ptiou_npu                                      |
+| 41   | npu_nms_with_mask                              | nms_with_mask_npu                              |
+| 42   | npu_pad                                        | pad_npu                                        |
+| 43   | npu_bounding_box_encode                        | bounding_box_encode_npu                        |
+| 44   | npu_bounding_box_decode                        | bounding_box_decode_npu                        |
+| 45   | npu_gru                                        | gru_npu                                        |
+| 46   | npu_gru_backward                               | gru_backward_npu                               |
+| 47   | npu_set_.source_Storage_storage_offset_format  | set_npu_                                       |
+| 48   | npu_random_choice_with_mask                    | random_choice_with_mask_npu                    |
+| 49   | npu_batch_nms                                  | batch_nms_npu                                  |
+| 50   | npu_slice                                      | slice_npu                                      |
+| 51   | npu_slice.out                                  | slice_out_npu                                  |
+| 52   | npu_dropoutV2                                  | dropout_v2_npu                                 |
+| 53   | npu_dropoutV2_backward                         | dropout_v2_backward_npu                        |
+| 54   | _npu_dropout                                   | _dropout_npu                                   |
+| 55   | _npu_dropout_inplace                           | _dropout_npu_inplace                           |
+| 56   | npu_dropout_backward                           | dropout_backward_npu                           |
+| 57   | npu_indexing                                   | indexing_npu                                   |
+| 58   | npu_indexing.out                               | indexing_out_npu                               |
+| 59   | npu_ifmr                                       | ifmr_npu                                       |
+| 60   | npu_max.dim                                    | max_v1_npu                                     |
+| 61   | npu_max.names_dim                              | max_v1_npu                                     |
+| 62   | npu_scatter                                    | scatter_npu                                    |
+| 63   | npu_max_backward                               | max_backward_npu                               |
+| 64   | npu_apply_adam                                 | apply_adam_npu                                 |
+| 65   | npu_layer_norm_eval                            | layer_norm_eval_npu                            |
+| 66   | npu_alloc_float_status                         | alloc_float_status_npu                         |
+| 67   | npu_get_float_status                           | get_float_status_npu                           |
+| 68   | npu_clear_float_status                         | clear_float_status_npu                         |
+| 69   | npu_confusion_transpose                        | confusion_transpose_npu                        |
+| 70   | npu_confusion_transpose_backward               | confusion_transpose_backward_npu               |
+| 71   | npu_bmmV2                                      | bmm_v2_npu                                     |
+| 72   | fast_gelu                                      | fast_gelu_npu                                  |
+| 73   | fast_gelu_backward                             | fast_gelu_backward_npu                         |
+| 74   | npu_sub_sample                                 | sub_sample_npu                                 |
+| 75   | npu_deformable_conv2d                          | deformable_conv2d_npu                          |
+| 76   | npu_deformable_conv2dbk                        | deformable_conv2d_backward_npu                 |
+| 77   | npu_mish                                       | mish_npu                                       |
+| 78   | npu_anchor_response_flags                      | anchor_response_flags_npu                      |
+| 79   | npu_yolo_boxes_encode                          | yolo_boxes_encode_npu                          |
+| 80   | npu_grid_assign_positive                       | grid_assign_positive_npu                       |
+| 81   | npu_mish_backward                              | mish_backward_npu                              |
+| 82   | npu_normalize_batch                            | normalize_batch_npu                            |
+| 83   | npu_masked_fill_range                          | masked_fill_range_npu                          |
 
 
