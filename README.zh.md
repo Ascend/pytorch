@@ -24,6 +24,12 @@ yum install -y cmake zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel g
 apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake dos2unix libopenblas-dev
 
 
+# Ascend配套软件
+
+| AscendPyTorch版本 | CANN版本 |
+| :------------ | :----------- |
+| 2.0.2 | CANN 5.0.2 |
+
 # python依赖库
 
 
