@@ -14,8 +14,12 @@
 
 import torch
 
+def box_dtype_check(box):
+    if box not in [torch.float, torch.half]:
+        return box.float()
 
-def ptiou(boxes1, boxes2):
+
+def npu_ptiou(boxes1, boxes2):
     """
     Given two lists of boxes of size N and M,
     compute the IoU (intersection over union)
@@ -25,17 +29,20 @@ def ptiou(boxes1, boxes2):
     Compute Function: insect_area / (union_area + 0.001)
 
     Args:
-        boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively.
+        boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
 
     Returns:
         Tensor: IoU, sized [N,M].
     """
 
+    boxes1 = box_dtype_check(boxes1)
+    boxes2 = box_dtype_check(boxes2)
+
     out = torch.npu_ptiou(boxes2, boxes1)
     return out
 
 
-def iou(boxes1, boxes2):
+def npu_iou(boxes1, boxes2):
     """
     Given two lists of boxes of size N and M,
     compute the IoU (intersection over union)
@@ -45,11 +52,41 @@ def iou(boxes1, boxes2):
     Compute Function: (insect_area + 0.001) / (union_area + 0.001)
 
     Args:
-        boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively.
+        boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
 
     Returns:
         Tensor: IoU, sized [N,M].
     """
 
+    boxes1 = box_dtype_check(boxes1)
+    boxes2 = box_dtype_check(boxes2)
+
     out = torch.npu_iou(boxes2, boxes1)
     return out
+
+
+if __name__ == "__main__":
+    torch.npu.set_device(0)
+
+    boxes1 = torch.FloatTensor([[10,55,85,160]])
+    boxes2 = torch.FloatTensor([[18,45,80,130], [38,85,70,230]])
+    boxes1 = boxes1.float().npu()
+    boxes2 = boxes2.float().npu()
+    iou1 = npu_iou(boxes1, boxes2)
+    iou2 = npu_ptiou(boxes1, boxes2)
+    print(iou1.shape, iou1.max(), iou1.min())
+    print(iou2.shape, iou2.max(), iou2.min())
+
+
+    N = 32
+    M = 32 * 32
+
+    boxes1 = torch.randint(0, 256, size=(N, 4))
+    boxes2 = torch.randint(0, 256, size=(M, 4))
+    boxes1 = boxes1.float().npu()
+    boxes2 = boxes2.float().npu()
+    iou1 = npu_iou(boxes1, boxes2)
+    iou2 = npu_ptiou(boxes1, boxes2)
+    print(iou1.shape, iou1.max(), iou1.min())
+    print(iou2.shape, iou2.max(), iou2.min())
+

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .iou import iou, ptiou
+from .iou import npu_iou, npu_ptiou
 from .nms import npu_multiclass_nms, npu_batched_multiclass_nms
+from .anchor_generator import npu_single_level_responsible_flags
 
 __all__ = [
-    "iou",
-    "ptiou",
+    "npu_iou",
+    "npu_ptiou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
+    "npu_single_level_responsible_flags",
 ]

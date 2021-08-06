@@ -56,6 +56,16 @@ class TestSymeig(TestCase):
         a = torch.randn(2, 10, 3, 5, 5, dtype = torch.float32)
         self.case_exec(a)
 
+    def test_symeig_out(self, device):
+        a = torch.randn(2, 3, 3, dtype = torch.float32)
+        a = a + a.transpose(-2, -1)
+        an = a.npu()
+        e = torch.zeros(2, 3)
+        v = torch.zeros(2, 3)
+        out = torch.symeig(an , eigenvectors = True, out = (e, v))
+        ret = torch.matmul(v, torch.matmul(e.diag_embed(), v.transpose(-2, -1)))
+        self.assertRtolEqual(ret.cpu(), a, prec = 1e-3)
+
 instantiate_device_type_tests(TestSymeig, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
