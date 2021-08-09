@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 CUR_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=$CUR_DIR/..
 PT_DIR=$ROOT_DIR/pytorch
