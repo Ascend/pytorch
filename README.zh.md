@@ -30,15 +30,6 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 | :------------ | :----------- |
 | 2.0.2 | CANN 5.0.2 |
 
-# python依赖库
-
-
-依赖库安装:
-
-```python3
-pip3 install -r requirements.txt
-```
-
 
 # 使用方式 --生成全量代码并编译
 
@@ -68,6 +59,16 @@ bash gen.sh
 ```
 
 会在pytorch/pytorch/目录中生成npu适配全量代码
+
+
+## python依赖库
+
+进入到pytorch/pytorch/目录，依赖库安装:
+
+```python3
+pip3 install -r requirements.txt
+```
+
 
 ## 编译torch的二进制包
 
