@@ -33,7 +33,7 @@
 
 <h2 id="前提条件.md">前提条件</h2>
 
-已完成PyTorch框架及混合精度模块的安装，详情请参见《PyTorch安装指南》进行PyTorch相关运行环境搭建。
+已完成PyTorch框架及混合精度模块的安装，详情请参见《PyTorch安装指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)》进行PyTorch相关运行环境搭建。
 
 <h2 id="在线推理流程.md">在线推理流程</h2>
 
@@ -131,7 +131,7 @@ export TASK_QUEUE_ENABLE=0
 </table>
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->更多日志信息，请参见《CANN 日志参考》。
+>更多日志信息，请参见《CANN 日志参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)》。
 
 <h2 id="样例参考.md">样例参考</h2>
 
@@ -445,7 +445,7 @@ if __name__ == '__main__':
 基于NPU芯片的架构特性，模型运算会涉及到混合精度，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
 -   对于中间变量的内存占用更少，节省内存的使用。
--   因内存使用会减少，所以数据传出的时间也会减少。
+-   因内存使用会减少，所以数据传出的时间也会相应减少。
 -   float16的计算单元可以提供更快的计算性能。
 
 但是，混合精度训练受限于float16表达的精度范围，单纯将float32转换成float16会影响训练收敛情况，为了保证部分计算使用float16来进行加速的同时能保证训练收敛，这里采用混合精度模块Apex来达到以上效果。混合精度模块Apex是一个集优化性能、精度收敛于一身的综合优化库。
@@ -539,7 +539,6 @@ if __name__ == '__main__':
         ```
         apt-get install bzip2    
         ```
-
 
 4.  编译安装gcc。
     1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
