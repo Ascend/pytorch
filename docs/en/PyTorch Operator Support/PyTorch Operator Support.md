@@ -1,14 +1,14 @@
-# PyTorch适配算子清单
--   [PyTorch原生算子与昇腾算子对应表](#PyTorch原生算子与昇腾算子对应表.md)
--   [PyTorch昇腾自定义算子](#PyTorch昇腾自定义算子.md)
-<h2 id="PyTorch原生算子与昇腾算子对应表.md">PyTorch原生算子与昇腾算子对应表</h2>
+# FrameworkPTAdapter 2.0.2 PyTorch Operator Support
+-   [Mapping Between PyTorch Native Operators and Ascend Adapted Operators](#mapping-between-pytorch-native-operators-and-ascend-adapted-operators.md)
+-   [PyTorch Operators Customized by Ascend](#pytorch-operators-customized-by-ascend.md)
+<h2 id="mapping-between-pytorch-native-operators-and-ascend-adapted-operators.md">Mapping Between PyTorch Native Operators and Ascend Adapted Operators</h2>
 
 <a name="table16733238131217"></a>
-<table><thead align="left"><tr id="row1869443913127"><th class="cellrowborder" valign="top" width="8.694379391100702%" id="mcps1.1.4.1.1"><p id="p354012516592"><a name="p354012516592"></a><a name="p354012516592"></a>序号</p>
+<table><thead align="left"><tr id="row1869443913127"><th class="cellrowborder" valign="top" width="8.694379391100702%" id="mcps1.1.4.1.1"><p id="p354012516592"><a name="p354012516592"></a><a name="p354012516592"></a>No.</p>
 </th>
-<th class="cellrowborder" valign="top" width="46.18462138953943%" id="mcps1.1.4.1.2"><p id="p1369433921218"><a name="p1369433921218"></a><a name="p1369433921218"></a>PyTorch 原生算子</p>
+<th class="cellrowborder" valign="top" width="46.18462138953943%" id="mcps1.1.4.1.2"><p id="p1369433921218"><a name="p1369433921218"></a><a name="p1369433921218"></a>PyTorch Native Operator</p>
 </th>
-<th class="cellrowborder" valign="top" width="45.120999219359874%" id="mcps1.1.4.1.3"><p id="p369493911218"><a name="p369493911218"></a><a name="p369493911218"></a>昇腾适配算子</p>
+<th class="cellrowborder" valign="top" width="45.120999219359874%" id="mcps1.1.4.1.3"><p id="p369493911218"><a name="p369493911218"></a><a name="p369493911218"></a>Ascend Adapted Operator</p>
 </th>
 </tr>
 </thead>
@@ -5405,14 +5405,14 @@
 </tbody>
 </table>
 
-<h2 id="PyTorch昇腾自定义算子.md">PyTorch昇腾自定义算子</h2>
+<h2 id="pytorch-operators-customized-by-ascend.md">PyTorch Operators Customized by Ascend</h2>
 
 <a name="table336910472136"></a>
-<table><thead align="left"><tr id="row145917478132"><th class="cellrowborder" valign="top" width="8.334944884935215%" id="mcps1.1.4.1.1"><p id="p1055148824"><a name="p1055148824"></a><a name="p1055148824"></a>序号</p>
+<table><thead align="left"><tr id="row145917478132"><th class="cellrowborder" valign="top" width="8.334944884935215%" id="mcps1.1.4.1.1"><p id="p1055148824"><a name="p1055148824"></a><a name="p1055148824"></a>No.</p>
 </th>
-<th class="cellrowborder" valign="top" width="46.954167472442464%" id="mcps1.1.4.1.2"><p id="p0459204781319"><a name="p0459204781319"></a><a name="p0459204781319"></a>PyTorch 算子（由昇腾开发）</p>
+<th class="cellrowborder" valign="top" width="46.954167472442464%" id="mcps1.1.4.1.2"><p id="p0459204781319"><a name="p0459204781319"></a><a name="p0459204781319"></a>PyTorch Operator (Developed by Ascend)</p>
 </th>
-<th class="cellrowborder" valign="top" width="44.71088764262232%" id="mcps1.1.4.1.3"><p id="p1145994714134"><a name="p1145994714134"></a><a name="p1145994714134"></a>昇腾适配算子</p>
+<th class="cellrowborder" valign="top" width="44.71088764262232%" id="mcps1.1.4.1.3"><p id="p1145994714134"><a name="p1145994714134"></a><a name="p1145994714134"></a>Ascend Adapted Operator</p>
 </th>
 </tr>
 </thead>

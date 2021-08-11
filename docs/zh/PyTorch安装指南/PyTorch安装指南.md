@@ -34,7 +34,7 @@
 
 ## 前提条件<a name="zh-cn_topic_0000001105856382_zh-cn_topic_0275872734_section108914373254"></a>
 
--   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+-   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》。
 -   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)。
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
@@ -118,7 +118,6 @@
         git submodule update --init --recursive
         ```
 
-
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
 
@@ -140,7 +139,6 @@
         ```
 
         生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
-
 
 5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch。
 
@@ -341,7 +339,6 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
         cd ..
         ```
 
-
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
 
@@ -363,7 +360,6 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
         ```
 
         生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
-
 
 4.  <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
 
@@ -391,7 +387,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 
 ## 前提条件<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0275872734_section108914373254"></a>
 
--   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+-   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》。
 -   宿主机上已安装Docker。
 
 ## 获取并使用镜像<a name="zh-cn_topic_0000001118701830_section108941734162613"></a>
@@ -496,7 +492,6 @@ CMake版本升级为3.12.1的方法
         ```
         apt-get install bzip2    
         ```
-
 
 4.  编译安装gcc。
     1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：

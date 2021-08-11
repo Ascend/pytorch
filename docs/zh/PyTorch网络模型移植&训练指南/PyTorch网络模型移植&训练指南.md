@@ -70,7 +70,7 @@
         -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize.md)
         -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error.md)
         -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)
         -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭&#40;export-TASK_QUEUE_ENABLE-0&#41;后仍然遇到报错-HelpACLExecute.md)
         -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1&#40;failed&#41;.md)
     -   [模型调测常见问题](#模型调测常见问题.md)
@@ -152,7 +152,7 @@
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>算子开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph07771712101117"><a name="ph07771712101117"></a><a name="ph07771712101117"></a>《PyTorch算子开发指南》</span></span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph07771712101117"><a name="ph07771712101117"></a><a name="ph07771712101117"></a>《<a href="#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch算子开发指南/PyTorch算子开发指南.md" target="_blank" rel="noopener noreferrer">PyTorch算子开发指南</a>》</span></span>。</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>环境准备</p>
@@ -172,7 +172,7 @@
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>错误分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph92061657112415"><a name="ph92061657112415"></a><a name="ph92061657112415"></a>《CANN 日志参考》</span>和<span id="ph4109111816191"><a name="ph4109111816191"></a><a name="ph4109111816191"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph92061657112415"><a name="ph92061657112415"></a><a name="ph92061657112415"></a>《<a href="https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424|251366513|22892968|251168373" target="_blank" rel="noopener noreferrer">CANN 日志参考</a>》</span>和<span id="ph4109111816191"><a name="ph4109111816191"></a><a name="ph4109111816191"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>性能调优和分析</p>
@@ -192,7 +192,7 @@
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>应用软件开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph10403111142311"><a name="ph10403111142311"></a><a name="ph10403111142311"></a><span id="ph16725185971512"><a name="ph16725185971512"></a><a name="ph16725185971512"></a>《CANN 应用软件开发指南(C&amp;C++, 推理)》</span></span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph10403111142311"><a name="ph10403111142311"></a><a name="ph10403111142311"></a><span id="ph16725185971512"><a name="ph16725185971512"></a><a name="ph16725185971512"></a>《<a href="https://support.huawei.com/enterprise/zh/doc/EDOC1100206685?idPath=23710424|251366513|22892968|251168373" target="_blank" rel="noopener noreferrer">CANN 应用软件开发指南(C&amp;C++, 推理)</a>》</span></span>。</p>
 </td>
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQ</p>
@@ -206,7 +206,7 @@
 <h2 id="模型移植评估.md">模型移植评估</h2>
 
 1.  在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
-2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与《PyTorch适配算子清单》算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法.md)，当有不支持算子时参见《PyTorch算子开发指南》进行算子开发。
+2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法.md)，当有不支持算子时参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子开发。
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
@@ -221,7 +221,7 @@
 
 <h2 id="准备运行环境.md">准备运行环境</h2>
 
-请参见《PyTorch安装指南》进行PyTorch相关运行环境搭建。
+请参见《PyTorch安装指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)》进行PyTorch相关运行环境搭建。
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
 
@@ -328,7 +328,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 <tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
-<a name="zh-cn_topic_0000001134654416_ul928845132310"></a><a name="zh-cn_topic_0000001134654416_ul928845132310"></a><ul id="zh-cn_topic_0000001134654416_ul928845132310"><li>0：开启白名单，无需校验HCCL通信白名单。</li><li>1：关闭白名单，需校验HCCL通信白名单。</li></ul>
+<a name="zh-cn_topic_0000001134654416_ul928845132310"></a><a name="zh-cn_topic_0000001134654416_ul928845132310"></a><ul id="zh-cn_topic_0000001134654416_ul928845132310"><li>0：开启白名单</li><li>1：关闭白名单</li></ul>
 <p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a>缺省值为0，默认开启白名单。</p>
 </td>
 </tr>
@@ -360,7 +360,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 
 <h2 id="工具迁移.md">工具迁移</h2>
 
-Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见《MindStudio 用户指南》。
+Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见《MindStudio 用户指南](https://support.huaweicloud.com/mindstudio302/)》。
 
 -   **[功能介绍](#功能介绍.md)**  
 
@@ -674,7 +674,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 ## 环境准备<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
 
-详情请参考《CANN 软件安装指南》安装开发环境。
+详情请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》安装开发环境。
 
 <h2 id="操作指南.md">操作指南</h2>
 
@@ -813,7 +813,8 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tr>
 <tr id="zh-cn_topic_0000001086713630_row4677165715235"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p2434071544"><a name="zh-cn_topic_0000001086713630_p2434071544"></a><a name="zh-cn_topic_0000001086713630_p2434071544"></a>parent_module</p>
 </td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p443419713418"><a name="zh-cn_topic_0000001086713630_p443419713418"></a><a name="zh-cn_topic_0000001086713630_p443419713418"></a>父级模块名称</p>
+<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p571992311016"><a name="zh-cn_topic_0000001086713630_p571992311016"></a><a name="zh-cn_topic_0000001086713630_p571992311016"></a>父级模块全名</p>
+<p id="zh-cn_topic_0000001086713630_p1065614314599"><a name="zh-cn_topic_0000001086713630_p1065614314599"></a><a name="zh-cn_topic_0000001086713630_p1065614314599"></a>例如torch.cuda.amp，amp的父级模块全名为torch.cuda。</p>
 </td>
 </tr>
 </tbody>
@@ -1110,7 +1111,7 @@ def main():
     </table>
 
 
-更多接口请参见《PyTorch API支持清单》。
+更多接口请参见《PyTorch API支持清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)》。
 
 <h2 id="混合精度.md">混合精度</h2>
 
@@ -1119,7 +1120,7 @@ def main():
 基于NPU芯片的架构特性，会涉及到混合精度训练，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
 -   对于中间变量的内存占用更少，节省内存的使用。
--   因内存使用会减少，所以数据传出的时间也会减半。
+-   因内存使用会减少，所以数据传出的时间也会相应减少。
 -   float16的计算单元可以提供更快的计算性能。
 
 但是，混合精度训练受限于float16表达的精度范围，单纯将float32转换成float16会影响训练收敛情况，为了保证部分计算使用float16来进行加速的同时能保证训练收敛，这里采用混合精度模块Apex来达到以上效果。混合精度模块Apex是一个集优化性能、精度收敛于一身的综合优化库。
@@ -1144,7 +1145,7 @@ def main():
 </thead>
 <tbody><tr id="row1571763813334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p4502732153412"><a name="p4502732153412"></a><a name="p4502732153412"></a>O1配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv，Matmal等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv，Matmul等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
 </td>
 </tr>
 <tr id="row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p11503103210344"><a name="p11503103210344"></a><a name="p11503103210344"></a>O2配置模式</p>
@@ -1322,7 +1323,6 @@ def main():
         systemctl start cpupower
         ```
 
-
 3.  设置CPU为performance模式。
 
     ```
@@ -1434,7 +1434,7 @@ def main():
 <h2 id="前提条件.md">前提条件</h2>
 
 1.  参见[样例说明](#样例说明.md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
-2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
+2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子适配开发。
 3.  优先打通单卡功能，再打通多卡功能。
 
 <h2 id="调测过程.md">调测过程</h2>
@@ -1536,7 +1536,7 @@ def main():
     export ASCEND_SLOG_PRINT_TO_STDOUT=1
     ```
 
-3.  设置日志级别为info，参考《CANN 日志参考》设置日志级别。
+3.  设置日志级别为info，参考《CANN 日志参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)》设置日志级别。
 4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
@@ -1675,14 +1675,12 @@ def main():
 
     -   解决方案：改进算子精度或功能问题。
 
-
 2.  <a name="li25281726103316"></a>loss计算错误。
     -   定位思路：由于Loss的特殊性和可以自定义，在判断Loss计算错误后建议dump网络中的loss的输入来测试而非随机同shape tensor，这样才能更好地复现证明。
 
     -   规避方案：使用同等语义其他算子替代。
 
     -   解决方案：改进算子精度或功能问题（loss也是由算子构成）。
-
 
 3.  参数更新错误。
 
@@ -1691,7 +1689,6 @@ def main():
     -   规避方案：使用同等语义其他算子替代。
 
     -   解决方案：改进计算grad的算子精度或功能问题。
-
 
 4.  多卡计算错误。
 
@@ -1778,7 +1775,7 @@ def main():
 
 如果想使用Auto Tune优化功能，请参考《CANN 开发辅助工具指南》手册中“Auto Tune工具使用指导”章节。
 
-离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)》。整体流程如下：
+离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)](https://support.huawei.com/enterprise/zh/doc/EDOC1100206685?idPath=23710424%7C251366513%7C22892968%7C251168373)》。整体流程如下：
 
 ![](figures/zh-cn_image_0000001106176222.png)
 
@@ -1802,7 +1799,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         torch.save(net.state_dict(), PATH)
         ```
 
-    2.  加载模型以用于在线推理，示例如下，详情请参见《PyTorch在线推理指南》。
+    2.  加载模型以用于在线推理，示例如下，详情请参见《PyTorch在线推理指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97.md)》。
 
         ```
         # 模型文件保存路径
@@ -1812,7 +1809,6 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         model.load_state_dict(torch.load(PATH))
         model.eval()
         ```
-
 
     >![](public_sys-resources/icon-notice.gif) **须知：** 
     >保存.pth或.pt文件扩展名的文件时要提供模型定义文件，否则无法部署。
@@ -2061,10 +2057,10 @@ if __name__ == "__main__":
         # if not torch.cuda.is_available():
             # print('using CPU, this will be slow')
         # elif args.distributed:
-    ############## npu modify begin #############
+        ############## npu modify begin #############
         # 迁移后为直接判断是否进行分布式训练，去掉判断是否在GPU上进行训练
         if args.distributed:
-    ############## npu modify end #############
+        ############## npu modify end #############
             # For multiprocessing distributed, DistributedDataParallel constructor
             # should always set the single device scope, otherwise,
             # DistributedDataParallel will use all available devices.
@@ -2122,7 +2118,6 @@ if __name__ == "__main__":
                 ############## npu modify end #############
         ```
 
-
     -   代码位置：main.py文件中的validate\(\)函数（修改部分为字体加粗部分）：
 
         ```
@@ -2141,7 +2136,6 @@ if __name__ == "__main__":
                   images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
                    ############## npu modify end #############
         ```
-
 
 6.  设置当前正在使用的device。
 
@@ -2595,7 +2589,7 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \               
 
 <h2 id="模型评估.md">模型评估</h2>
 
-模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与《PyTorch适配算子清单》算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见《PyTorch算子开发指南》进行算子开发。
+模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子开发。
 
 <h2 id="网络迁移.md">网络迁移</h2>
 
@@ -3326,7 +3320,7 @@ torch.npu.finalize_dump()
 
     **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=1**
 
-3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考《CANN 日志参考》设置日志级别。
+3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考《CANN 日志参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)》设置日志级别。
 4.  dump图，主要用于查看图结构。
 
     **export DUMP\_GE\_GRAPH=2**
@@ -3488,7 +3482,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)**  
 
--   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)**  
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)**  
 
 -   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecute.md)**  
 
@@ -3677,7 +3671,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
 5.  将stack入参数据类型转换为一致即可临时规避问题。
 
-<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1</h2>
+<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3884,7 +3878,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 ## 现象描述<a name="section1785905019184"></a>
 
-![](figures/FAQ12.png)
+![](figures/model_faq11_20210728.jpg)
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 

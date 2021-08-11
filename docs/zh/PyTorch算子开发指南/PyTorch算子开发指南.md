@@ -18,7 +18,6 @@
     -   [pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败.md)
     -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
     -   [如何查看测试的运行日志](#如何查看测试的运行日志.md)
-    -   [测试运行输出的NPU错误码是什么意思，有无对应的含义解释？](#测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md)
     -   [为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)
     -   [如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用.md)
     -   [PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status.md)
@@ -30,7 +29,7 @@
 
 ## 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
 
-为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。用户通过完成TBE自定义算子适配PyTorch框架，实现PyTorch框架中算子在昇腾AI处理器上运行。
+为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。
 
 <h2 id="算子开发流程.md">算子开发流程</h2>
 
@@ -38,7 +37,7 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 1.  TBE算子开发：昇腾AI软件栈中不包含相应的算子，需要先完成TBE算子的开发，再进行PyTorch框架下的算子适配。
 
-    TBE算子开发流程及方法请参见《CANN TBE自定义算子开发指南》。
+    TBE算子开发流程及方法请参见《CANN TBE自定义算子开发指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206660)》。
 
 2.  PyTorch框架下的算子适配：昇腾AI软件栈中已实现了相应的TBE算子，可直接进行PyTorch框架适配。
 
@@ -131,9 +130,9 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 ## 前提条件<a name="zh-cn_topic_0000001125736787_section12464163765320"></a>
 
--   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+-   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》。
 -   需安装3.12.0及以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
--   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南》中的“安装7.3.0版本gcc”章节。
+-   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》中的“安装7.3.0版本gcc”章节。
 -   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下:
     -   Ubuntu系统
 
@@ -173,10 +172,10 @@ pip3.7 install Pillow==5.3.0
 昇腾AI处理器和PyTorch适配的算子查询方式如下。
 
 -   当前昇腾AI处理器中支持的算子以及对应的算子约束可以通过以下两种方式查询。
-    -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)》进行离线查询。
-    -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南》中的“算子&模型速查”章节。
+    -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)](https://support.huawei.com/enterprise/zh/doc/EDOC1100206663)》进行离线查询。
+    -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南](https://support.huaweicloud.com/mindstudio302/)》中的“算子&模型速查”章节。
 
--   当前PyTorch适配的算子列表可以参见《PyTorch适配算子清单》。
+-   当前PyTorch适配的算子列表可以参见《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》。
 
 <h2 id="算子适配开发.md">算子适配开发</h2>
 
@@ -194,7 +193,7 @@ pip3.7 install Pillow==5.3.0
 <h2 id="前提条件.md">前提条件</h2>
 
 -   完成开发及运行环境准备及相关依赖的安装，详情请参见[环境准备](#环境准备.md)。
--   完成相关的TBE算子开发及部署，详情请参见《CANN TBE自定义算子开发指南》。
+-   完成相关的TBE算子开发及部署，详情请参见《CANN TBE自定义算子开发指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206660)》。
 
 <h2 id="获取PyTorch源码.md">获取PyTorch源码</h2>
 
@@ -234,7 +233,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
         - func：适配算子名称(输入参数信息) -> 返回类型
         ```
 
-
 3.  修改native\_functions.yaml文件，添加实现该算子相关函数的分发描述。
 
     yaml 文件编写规范：
@@ -252,7 +250,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
         npu_dispatch_only:
           NPU: NPU_Adapt_Fun_Name
         ```
-
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >NPU\_Adapt\_Fun\_Name的格式为 :
@@ -656,7 +653,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
-            ]        
+            ]
             self.add_result(shape_format)
     
     instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
@@ -685,8 +682,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 -   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
 
 -   **[如何查看测试的运行日志](#如何查看测试的运行日志.md)**  
-
--   **[测试运行输出的NPU错误码是什么意思，有无对应的含义解释？](#测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md)**  
 
 -   **[为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)**  
 
@@ -771,10 +766,6 @@ pip3.7 install torchvision --no-deps
     python3.7 test_add.py > test_log.txt
     ```
 
-
-<h2 id="测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md">测试运行输出的NPU错误码是什么意思，有无对应的含义解释？</h2>
-
-参考“[错误码定义](https://support.huaweicloud.com/adevg-A300_3000_3010/atlasdevelopment_01_0256.html)”。
 
 <h2 id="为什么我实现的-自定义TBE算子-无法调用到.md">为什么我实现的“自定义TBE算子”无法调用到？</h2>
 
