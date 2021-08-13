@@ -14,26 +14,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> masked_select_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
+SmallVector<int64_t, SIZE> masked_select_npu_output_size(
+    const Tensor& self,
+    const Tensor& mask) {
+  int64_t shape;
+  shape = mask.sum().item().toInt();
+  return {shape};
 }
 
-SmallVector<NPUTensorDesc, N> masked_select_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-Tensor& masked_select_out_npu(
+Tensor& masked_select_out_npu_nocheck(
     Tensor& result,
     const Tensor& self,
     const Tensor& mask) {
@@ -42,40 +37,72 @@ Tensor& masked_select_out_npu(
     maskBool = mask.to(at::kBool);
   }
 
-  // constructs the input and output NPUTensorDesc
-  auto inputs = masked_select_npu_input({self, maskBool});
-  auto outputs = masked_select_npu_output({result});
-
   // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("MaskedSelect", inputs, outputs, {});
+  OpCommand cmd;
+  cmd.Name("MaskedSelect")
+      .Input(self)
+      .Input(maskBool)
+      .Output(result)
+      .Run();
 
   return result;
 }
 
-Tensor masked_select_npu(const Tensor& self, const Tensor& mask) {
+Tensor& masked_select_out_npu(
+    Tensor& result,
+    const Tensor& self,
+    const Tensor& mask) {
   Tensor dtypeCastOfSelf = self;
   Tensor maskCast = mask;
-
   if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
     maskCast = broadcast_npu(mask, dtypeCastOfSelf.sizes());
   }
+  if (dtypeCastOfSelf.scalar_type() == ScalarType::Half) {
+    dtypeCastOfSelf = dtypeCastOfSelf.npu_dtype_cast(ScalarType::Float);
+    result = result.to(ScalarType::Float);
+  }
+  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
 
+  OpPreparation::CheckOut(
+      {dtypeCastOfSelf},
+      result,
+      dtypeCastOfSelf,
+      outputSize);
+
+  OpPipeWithDefinedOut pipe;
+  result = pipe.CheckMemory({dtypeCastOfSelf, maskCast}, {result})
+      .Func([&dtypeCastOfSelf, &maskCast](Tensor& result)
+      {masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);})
+      .Call(result);
+
+  if (result.scalar_type() != self.scalar_type()) {
+    result = result.npu_dtype_cast(ScalarType::Half);
+  }
+  return result;
+}
+
+Tensor masked_select_npu(
+    const Tensor& self,
+    const Tensor& mask) {
+  Tensor dtypeCastOfSelf = self;
+  Tensor maskCast = mask;
+  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
+    maskCast = broadcast_npu(mask, dtypeCastOfSelf.sizes());
+  }
   if (dtypeCastOfSelf.scalar_type() == ScalarType::Half) {
     dtypeCastOfSelf = dtypeCastOfSelf.npu_dtype_cast(ScalarType::Float);
   }
   auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
 
-  Tensor result = at::empty_with_format(
-      outputSize, dtypeCastOfSelf.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(dtypeCastOfSelf, outputSize);
 
-  masked_select_out_npu(result, dtypeCastOfSelf, maskCast);
+  masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);
+
   if (result.scalar_type() != self.scalar_type()) {
     result = result.npu_dtype_cast(ScalarType::Half);
   }
-
   return result;
 }
-
 
 } // namespace native
 } // namespace at

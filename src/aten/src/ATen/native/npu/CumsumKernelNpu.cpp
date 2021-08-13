@@ -20,13 +20,22 @@ using namespace at::native::npu;
 
 Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    SmallVector<int64_t, N> dimvec = {dim};
-    cmd.Name("Cumsum")
+  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
+    if (dim == 0) {
+      Scalar dimScalar(dim);
+      cmd.Name("Cumsum")
       .Input(self)
-      .Input(dimvec, at::kInt)
+      .Input(dimScalar, at::kInt)
       .Output(result)
       .Run();
+    } else {
+      SmallVector<int64_t, N> dimVec = {dim};
+      cmd.Name("Cumsum")
+      .Input(self)
+      .Input(dimVec, at::kInt)
+      .Output(result)
+      .Run();
+    }
   } else {
     cmd.Name("CumsumD")
       .Input(self)

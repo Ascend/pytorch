@@ -88,7 +88,7 @@ class TestStack(TestCase):
         self.stack_result(shape_format)
     
     def test_stack_shape_format_fp16_4d(self, device):
-        format_list = [0, 29]
+        format_list = [0, 3, 29]
         shape_format = [[[np.float16, i, [32, 32, 3, 3]], np.random.randint(0, 4)] for i in format_list]
         self.stack_result(shape_format)
 
@@ -108,7 +108,7 @@ class TestStack(TestCase):
         self.stack_result(shape_format)
     
     def test_stack_shape_format_fp32_4d(self, device):
-        format_list = [0, 29]
+        format_list = [0, 3, 29]
         shape_format = [[[np.float32, i, [32, 32, 3, 3]], np.random.randint(0, 4)] for i in format_list]
         self.stack_result(shape_format)
 

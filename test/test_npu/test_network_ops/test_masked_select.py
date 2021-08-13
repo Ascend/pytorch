@@ -34,6 +34,32 @@ class TestMaskedSelect(TestCase):
         output = output.numpy()
         return output
 
+    def npu_op_exec_out(self, input, mask, output):
+        output = torch.masked_select(input, mask, out=output)
+        return output.detach().to("cpu").numpy()
+
+    def test_maskedselect_out_result(self, device):
+        shape_format = [
+            [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [15, 15, 15, 16]]],
+            [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [3, 3, 7, 7]]],
+            [[np.float16, 0, [15, 15, 15, 16]], [np.float16, 0, [15, 15, 15, 16]]],
+            [[np.float16, 0, [15, 15, 15, 16]], [np.float16, 0, [116, 116, 1, 1]]],
+            [[np.float32, 2, [15, 15, 15, 16]], [np.float32, 2, [15, 15, 15, 16]]],
+            [[np.float32, 2, [15, 15, 15, 16]], [np.float32, 2, [3, 3, 7, 7]]],
+            [[np.float32, 0, [15, 15, 15, 16]], [np.float32, 0, [15, 15, 15, 16]]],
+            [[np.float32, 0, [15, 15, 15, 16]], [np.float32, 0, [232, 232, 1, 1]]],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -2, 2)
+            cpu_input2, npu_input2 = create_common_tensor(item[0], -2, 2)
+            cpu_input3, npu_input3 = create_common_tensor(item[1], -2, 2)
+            if cpu_input1.dtype == torch.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2.to(torch.int32)>0)
+            npu_output = self.npu_op_exec_out(npu_input1, npu_input2.to(torch.int32)>0, npu_input3)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
     def test_maskedselect_shape_format_maskdiff(self, device):
         dtype_list = [np.int64, np.int32, np.float32]
         format_list = [0]

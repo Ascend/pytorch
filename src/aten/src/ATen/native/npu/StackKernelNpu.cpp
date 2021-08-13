@@ -74,7 +74,7 @@ Tensor stack_npu(TensorList tensors, int64_t dim) {
   Tensor result = at::empty_with_format(
       outputSize,
       tensors[0].options(),
-      CalcuOpUtil::get_tensor_npu_format(tensors[0]));
+      ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
   stack_out_npu_nocheck(result, tensors, dim);

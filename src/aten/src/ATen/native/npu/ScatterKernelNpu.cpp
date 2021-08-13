@@ -76,6 +76,10 @@ Tensor& scatter_npu_(
   Tensor srcTensor = scalar_to_tensor(src).to(ScalarType::Float);
   srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
   Tensor srcTensor_broadcast = at::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
+  
+  if (srcTensor_broadcast.scalar_type() != self.scalar_type()) {
+    srcTensor_broadcast = srcTensor_broadcast.npu_dtype_cast(self.scalar_type());
+  }
 
   OpCommand cmd;
   cmd.Name("ScatterElements")

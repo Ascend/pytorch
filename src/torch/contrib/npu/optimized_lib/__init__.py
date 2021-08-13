@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .function import npu_iou, npu_ptiou, npu_multiclass_nms, npu_batched_multiclass_nms, \
-    npu_single_level_responsible_flags
+    npu_single_level_responsible_flags, npu_yolo_bbox_coder
 from .module import ChannelShuffle, Prefetcher, DropoutV2, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
     ModulatedDeformConv
 
@@ -24,6 +24,7 @@ __all__ = [
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",
+    "npu_yolo_bbox_coder",
 
     # from module
     "ChannelShuffle",

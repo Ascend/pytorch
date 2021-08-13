@@ -218,10 +218,6 @@ SmallVector<int64_t, SIZE> lstm_npu_output_size(
 	bool bidirectional,
 	bool batch_first);
 
-SmallVector<int64_t, SIZE> masked_select_npu_output_size(
-    const Tensor& self,
-    const Tensor& mask);
-
 SmallVector<int64_t, SIZE> mm_npu_output_size(
     const Tensor& self,
     const Tensor& mat2);
@@ -280,8 +276,6 @@ SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
     int64_t dim);
 
 SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,IntArrayRef padding);
-
-SmallVector<int64_t, SIZE> reflection_pad2d_npu_output_size(const Tensor& self,IntArrayRef padding);
 
 SmallVector<int64_t, SIZE> roi_align_npu_output_size(
     const Tensor& self,

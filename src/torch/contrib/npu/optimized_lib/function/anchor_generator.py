@@ -14,6 +14,9 @@
 
 import torch
 
+def box_dtype_check(box):
+    if box not in [torch.float, torch.half]:
+        return box.float()
 
 def npu_single_level_responsible_flags(featmap_size,
                                        gt_bboxes,
@@ -39,8 +42,7 @@ def npu_single_level_responsible_flags(featmap_size,
             feature map. Output size is [featmap_size[0] * featmap_size[1] * num_base_anchors].
     """
 
-    if gt_bboxes not in [torch.float, torch.half]:
-        gt_bboxes = gt_bboxes.float()
+    gt_bboxes = box_dtype_check(gt_bboxes)
 
     flags = torch.npu_anchor_response_flags(
         gt_bboxes,

@@ -48,6 +48,59 @@ class TestIndexSelect(TestCase):
         output = output.numpy()
         return output
 
+    def test_index_select_out(self, device):
+        shape_format = [
+            [[np.float32, 0, (3, )], torch.tensor(0, dtype=torch.int64), 0],
+            [[np.float32, 0, (3, )], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.float32, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.float32, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.float32, 3, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.float32, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.int8, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.int8, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.int8, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.int8, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.int8, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.uint8, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.uint8, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.uint8, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.uint8, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.uint8, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.int32, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.int32, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.int32, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.int32, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.int32, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.uint8, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.uint8, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.uint8, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.uint8, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.uint8, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.uint8, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.uint8, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.uint8, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.uint8, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.uint8, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+            [[np.int16, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
+            [[np.int16, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
+            [[np.int16, 0, (3, 4, 6)], torch.tensor([1, 2, 4], dtype=torch.int64), 2],
+            [[np.int16, 0, (4, 5, 6, 7)], torch.tensor([3, 5, 6], dtype=torch.int64), 3],
+            [[np.int16, -1, (3, 4, 8, 9, 12)], torch.tensor([2, 3, 5, 6], dtype=torch.int64), 4],
+
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[0], 1, 100)
+            cpu_output = self.cpu_op_exec(cpu_input1, item[2], item[1])
+            npu_output = self.npu_op_out_exec(npu_input1, item[2], item[1].to('npu'), npu_input2)
+            self.assertRtolEqual(cpu_output, npu_output)
+
     def test_index_select(self, device):
         shape_format = [
             [[np.float32, 0, (3, )], torch.tensor(0, dtype=torch.int64), 0],

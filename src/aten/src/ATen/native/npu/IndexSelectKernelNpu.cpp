@@ -22,7 +22,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& index_select_out_npu(
+Tensor& index_select_out_npu_nocheck(
     Tensor& result,
     const Tensor& self,
     int64_t dim,
@@ -61,6 +61,50 @@ Tensor& index_select_out_npu(
   return result;
 }
 
+Tensor& index_select_out_npu(
+    Tensor& result,
+    const Tensor& self,
+    int64_t dim,
+    const Tensor& index) {
+  Tensor indexTmp(index);
+  if (indexTmp.ndimension() == 0) {
+    indexTmp = index.unsqueeze(0);
+  }
+  // calculate the output size
+  auto outputSize = index_select_npu_output_size(self, dim, indexTmp);
+
+  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  // scalar scene no support nz
+  if (outputSize.empty()) {
+    npu_format = ACL_FORMAT_ND;
+  }
+
+  Tensor input = self;
+  if (self.dtype() == kBool) {
+    // bool to int dtype
+    input = input.npu_dtype_cast(at::kInt);
+  }
+
+  OpPreparation::CheckOut(
+      {input},
+      result,
+      npu_format,
+      input.scalar_type(),
+      outputSize);
+
+  OpPipeWithDefinedOut pipe;
+  result = pipe.CheckMemory({input, indexTmp}, {result})
+      .Func([&input, &dim, &indexTmp](Tensor& result)
+      {index_select_out_npu_nocheck(result, input, dim, indexTmp);})
+      .Call(result);
+
+  if (self.dtype() == kBool) {
+    result = result.to(kBool);
+  }
+
+  return result;
+}
+
 Tensor index_select_npu(const Tensor& self, int64_t dim, const Tensor& index) {
   Tensor indexTmp(index);
   if (indexTmp.ndimension() == 0) {
@@ -86,7 +130,7 @@ Tensor index_select_npu(const Tensor& self, int64_t dim, const Tensor& index) {
       at::empty_with_format(outputSize, input.options(), npu_format);
 
   // calculate the output result of the NPU
-  index_select_out_npu(result, input, dim, indexTmp);
+  index_select_out_npu_nocheck(result, input, dim, indexTmp);
 
   if (self.dtype() == kBool) {
     // int to bool dtype  这里不转变回bool也能通过测试的比较

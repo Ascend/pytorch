@@ -15,6 +15,7 @@
 from .iou import npu_iou, npu_ptiou
 from .nms import npu_multiclass_nms, npu_batched_multiclass_nms
 from .anchor_generator import npu_single_level_responsible_flags
+from .bbox_coder import npu_yolo_bbox_coder
 
 __all__ = [
     "npu_iou",
@@ -22,4 +23,5 @@ __all__ = [
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",
+    "npu_yolo_bbox_coder",
 ]

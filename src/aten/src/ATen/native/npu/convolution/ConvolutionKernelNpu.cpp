@@ -385,6 +385,7 @@ Tensor npu_convolution(
     IntArrayRef dilation,
     int64_t groups) {
   int64_t dim = input.ndimension();
+  auto kernel_size = weight.sizes().slice(2);
 
   Tensor output;
   if (dim == 4) {
@@ -393,8 +394,17 @@ Tensor npu_convolution(
   }
 
   if (dim == 5) {
-    output = at::npu_conv3d(
-        input, weight, bias, stride, padding, dilation, groups);
+    bool is_dilated = false;
+    for (int d : dilation) {
+      is_dilated |= (d != 1);
+    }
+    if (groups == 1 && !is_dilated) {
+      output = at::slow_conv3d(
+          input, weight, kernel_size, bias, stride, padding);
+    } else {
+      output = at::npu_conv3d(
+          input, weight, bias, stride, padding, dilation, groups);
+    }
   }
 
   return output;

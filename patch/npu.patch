@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/CMakeLists.txt pytorch-develop/aten/CMakeLists.txt
 --- pytorch-v1.5.0/aten/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/CMakeLists.txt	2021-08-06 16:45:27.794802890 +0800
++++ pytorch-develop/aten/CMakeLists.txt	2021-08-13 18:32:48.358985997 +0800
 @@ -22,8 +22,10 @@
  set(ATen_CPU_INCLUDE)
  set(ATen_THIRD_PARTY_INCLUDE)
@@ -51,7 +51,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_CPU_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/CMakeLists.txt pytorch-develop/aten/src/ATen/CMakeLists.txt
 --- pytorch-v1.5.0/aten/src/ATen/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/CMakeLists.txt	2021-08-06 16:45:27.794802890 +0800
++++ pytorch-develop/aten/src/ATen/CMakeLists.txt	2021-08-13 18:32:48.358985997 +0800
 @@ -67,6 +67,9 @@
  FILE(GLOB native_quantized_h "native/quantized/*.h" "native/quantized/cpu/*.h")
  FILE(GLOB native_cpu_h "native/cpu/*.h")
@@ -129,7 +129,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_QUANTIZED_SRCS ${ATen_QUANTIZED_SRCS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/core/dispatch/DispatchTable.h pytorch-develop/aten/src/ATen/core/dispatch/DispatchTable.h
 --- pytorch-v1.5.0/aten/src/ATen/core/dispatch/DispatchTable.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/core/dispatch/DispatchTable.h	2021-08-06 16:45:27.798802907 +0800
++++ pytorch-develop/aten/src/ATen/core/dispatch/DispatchTable.h	2021-08-13 18:32:48.366986005 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -170,7 +170,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/function_wrapper.py pytorch-develop/aten/src/ATen/function_wrapper.py
 --- pytorch-v1.5.0/aten/src/ATen/function_wrapper.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/function_wrapper.py	2021-08-06 16:45:27.806802938 +0800
++++ pytorch-develop/aten/src/ATen/function_wrapper.py	2021-08-13 18:32:48.374986013 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -354,7 +354,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          for option in declaration['options']:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/gen.py pytorch-develop/aten/src/ATen/gen.py
 --- pytorch-v1.5.0/aten/src/ATen/gen.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/gen.py	2021-08-06 16:45:27.806802938 +0800
++++ pytorch-develop/aten/src/ATen/gen.py	2021-08-13 18:32:48.374986013 +0800
 @@ -1,3 +1,18 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -512,7 +512,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      generate_outputs()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/BatchLinearAlgebra.cpp pytorch-develop/aten/src/ATen/native/BatchLinearAlgebra.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-08-06 16:45:27.806802938 +0800
++++ pytorch-develop/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-08-13 18:32:48.378986017 +0800
 @@ -680,7 +680,7 @@
  std::tuple<Tensor&, Tensor&> triangular_solve_out(Tensor& result, Tensor& clone_A, const Tensor& self, const Tensor& A,
                                                    bool upper, bool transpose, bool unitriangular) {
@@ -524,7 +524,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return std::tuple<Tensor&, Tensor&>(result, clone_A);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/cpu/Activation.cpp pytorch-develop/aten/src/ATen/native/cpu/Activation.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/cpu/Activation.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/cpu/Activation.cpp	2021-08-06 16:45:27.814802970 +0800
++++ pytorch-develop/aten/src/ATen/native/cpu/Activation.cpp	2021-08-13 18:32:48.394986034 +0800
 @@ -339,20 +339,20 @@
  
  void hardsigmoid_backward_kernel(TensorIterator& iter) {
@@ -552,7 +552,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    });
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/Memory.cpp pytorch-develop/aten/src/ATen/native/Memory.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/Memory.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/Memory.cpp	2021-08-06 16:45:27.810802955 +0800
++++ pytorch-develop/aten/src/ATen/native/Memory.cpp	2021-08-13 18:32:48.382986021 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -607,7 +607,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        detail::computeStorageSize(self.sizes(), self.strides()),
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/native_functions.yaml pytorch-develop/aten/src/ATen/native/native_functions.yaml
 --- pytorch-v1.5.0/aten/src/ATen/native/native_functions.yaml	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/native_functions.yaml	2021-08-06 16:45:27.826803018 +0800
++++ pytorch-develop/aten/src/ATen/native/native_functions.yaml	2021-08-13 18:32:48.410986050 +0800
 @@ -1,6 +1,5 @@
  # See README.md in this directory for more guidance
  
@@ -1479,7 +1479,13 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # NB: input is special cased in a way I don't quite understand
  - func: cudnn_grid_sampler(Tensor self, Tensor grid) -> Tensor output
    use_c10_dispatcher: full
-@@ -930,16 +1189,24 @@
+@@ -926,20 +1185,30 @@
+   dispatch:
+     CPU: cummax_helper_cpu
+     CUDA: cummax_helper_cuda
++  npu_dispatch:
++    NPU: cummax_helper_npu
+ 
  - func: cummin(Tensor self, int dim) -> (Tensor values, Tensor indices)
    supports_named_tensor: True
    variants: function, method
@@ -1504,7 +1510,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _cummin_helper(Tensor self, Tensor(a!) values, Tensor(b!) indices, int dim) -> ()
    variants: function
-@@ -950,16 +1217,24 @@
+@@ -950,16 +1219,24 @@
  - func: cumprod(Tensor self, int dim, *, ScalarType? dtype=None) -> Tensor
    supports_named_tensor: True
    variants: function, method
@@ -1529,7 +1535,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: cumsum(Tensor self, int dim, *, ScalarType? dtype=None) -> Tensor
    supports_named_tensor: True
-@@ -976,20 +1251,28 @@
+@@ -976,20 +1253,28 @@
    supports_named_tensor: True
  
  - func: ctc_loss.IntList(Tensor log_probs, Tensor targets, int[] input_lengths, int[] target_lengths, int blank=0, int reduction=Mean, bool zero_infinity=False) -> Tensor
@@ -1559,7 +1565,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: det(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -1013,6 +1296,8 @@
+@@ -1013,6 +1298,8 @@
  
  - func: fill_diagonal_(Tensor(a!) self, Scalar fill_value, bool wrap=False) -> Tensor(a!)
    variants: method
@@ -1568,7 +1574,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: div.Tensor(Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
-@@ -1022,6 +1307,8 @@
+@@ -1022,6 +1309,8 @@
      CUDA: div
      SparseCPU: div_sparse
      SparseCUDA: div_sparse
@@ -1577,7 +1583,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: div_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
-@@ -1031,6 +1318,8 @@
+@@ -1031,6 +1320,8 @@
      CUDA: div_
      SparseCPU: div_sparse_
      SparseCUDA: div_sparse_
@@ -1586,7 +1592,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: div.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
-@@ -1039,6 +1328,8 @@
+@@ -1039,6 +1330,8 @@
      CUDA: div_out
      SparseCPU: div_out_sparse_zerodim
      SparseCUDA: div_out_sparse_zerodim
@@ -1595,7 +1601,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  # For C++ only, until we have conversion from C++ numbers to Tensor
-@@ -1046,10 +1337,14 @@
+@@ -1046,10 +1339,14 @@
    use_c10_dispatcher: full
    variants: function, method
    supports_named_tensor: True
@@ -1610,7 +1616,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: dot(Tensor self, Tensor tensor) -> Tensor
    use_c10_dispatcher: full
-@@ -1057,29 +1352,41 @@
+@@ -1057,29 +1354,41 @@
    dispatch:
      CPU: legacy::cpu::_th_dot
      CUDA: legacy::cuda::_th_dot
@@ -1652,7 +1658,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: embedding_sparse_backward(Tensor grad, Tensor indices, int num_weights, int padding_idx, bool scale_grad_by_freq) -> Tensor
    use_c10_dispatcher: full
-@@ -1099,6 +1406,8 @@
+@@ -1099,6 +1408,8 @@
    dispatch:
      CPU: _embedding_bag_cpu
      CUDA: _embedding_bag_cuda
@@ -1661,7 +1667,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _embedding_bag_backward(Tensor grad, Tensor indices, Tensor offsets, Tensor offset2bag, Tensor bag_size, Tensor maximum_indices, int num_weights, bool scale_grad_by_freq, int mode, bool sparse, Tensor? per_sample_weights) -> Tensor
  
-@@ -1125,6 +1434,8 @@
+@@ -1125,6 +1436,8 @@
      MkldnnCPU: empty_mkldnn
      SparseCPU: empty_sparse
      SparseCUDA: empty_sparse
@@ -1670,7 +1676,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: new_empty(Tensor self, int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
    variants: method
-@@ -1154,6 +1465,8 @@
+@@ -1154,6 +1467,8 @@
    supports_named_tensor: True
    variants: method
    device_guard: False
@@ -1679,7 +1685,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: empty.out(int[] size, *, MemoryFormat? memory_format=None, Tensor(a!) out) -> Tensor(a!)
    device_guard: False
-@@ -1161,16 +1474,22 @@
+@@ -1161,16 +1476,22 @@
  - func: empty_like(Tensor self, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
    device_guard: False
    supports_named_tensor: True
@@ -1702,7 +1708,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: erf_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1178,17 +1497,25 @@
+@@ -1178,17 +1499,25 @@
    dispatch:
      CPU: _erf__cpu
      CUDA: _erf__cuda
@@ -1728,7 +1734,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: erfc_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1196,17 +1523,23 @@
+@@ -1196,17 +1525,23 @@
    dispatch:
      CPU: _erfc__cpu
      CUDA: _erfc__cuda
@@ -1752,7 +1758,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: exp_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1214,51 +1547,69 @@
+@@ -1214,51 +1549,69 @@
    dispatch:
      CPU: _exp__cpu
      CUDA: _exp__cuda
@@ -1824,7 +1830,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: flatten.using_ints(Tensor self, int start_dim=0, int end_dim=-1) -> Tensor
    use_c10_dispatcher: full
-@@ -1280,25 +1631,35 @@
+@@ -1280,25 +1633,35 @@
  - func: fill_.Scalar(Tensor(a!) self, Scalar value) -> Tensor(a!)
    supports_named_tensor: True
    variants: function, method
@@ -1860,7 +1866,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: floor_divide(Tensor self, Tensor other) -> Tensor
    variants: function, method
-@@ -1308,6 +1669,8 @@
+@@ -1308,6 +1671,8 @@
      SparseCPU: floor_divide_sparse
      SparseCUDA: floor_divide_sparse
    supports_named_tensor: True
@@ -1869,7 +1875,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: floor_divide_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
    variants: method
-@@ -1317,6 +1680,8 @@
+@@ -1317,6 +1682,8 @@
      SparseCPU: floor_divide_sparse_
      SparseCUDA: floor_divide_sparse_
    supports_named_tensor: True
@@ -1878,7 +1884,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: floor_divide.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    dispatch:
-@@ -1325,33 +1690,56 @@
+@@ -1325,33 +1692,56 @@
      SparseCPU: floor_divide_out_sparse_zerodim
      SparseCUDA: floor_divide_out_sparse_zerodim
    supports_named_tensor: True
@@ -1935,7 +1941,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: full_like(Tensor self, Scalar fill_value, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, MemoryFormat? memory_format=None) -> Tensor
    supports_named_tensor: True
-@@ -1373,6 +1761,8 @@
+@@ -1373,6 +1763,8 @@
  # `align_corners = True`.
  - func: grid_sampler(Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> Tensor
    use_c10_dispatcher: full
@@ -1944,7 +1950,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: grid_sampler_2d(Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> Tensor
    use_c10_dispatcher: full
-@@ -1390,23 +1780,39 @@
+@@ -1390,23 +1782,39 @@
    dispatch:
      CPU: grid_sampler_3d_cpu
      CUDA: grid_sampler_3d_cuda
@@ -1984,7 +1990,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: hinge_embedding_loss(Tensor self, Tensor target, float margin=1.0, int reduction=Mean) -> Tensor
    use_c10_dispatcher: full
-@@ -1414,8 +1820,13 @@
+@@ -1414,8 +1822,13 @@
  - func: ger(Tensor self, Tensor vec2) -> Tensor
    use_c10_dispatcher: full
    variants: function, method
@@ -1998,7 +2004,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: group_norm(Tensor input, int num_groups, Tensor? weight=None, Tensor? bias=None, float eps=1e-05, bool cudnn_enabled=True) -> Tensor
  
-@@ -1460,6 +1871,8 @@
+@@ -1460,6 +1873,8 @@
    # NB: The following functions are declared in aten/src/ATen/templates/TensorBody.h and defined in aten/src/ATen/TensorIndexing.cpp:
    # - Tensor Tensor::index(ArrayRef<TensorIndex> indices)
    # - Tensor Tensor::index(std::initializer_list<TensorIndex> indices)
@@ -2007,7 +2013,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: index_copy_(Tensor(a!) self, int dim, Tensor index, Tensor source) -> Tensor(a!)
    variants: method
-@@ -1476,17 +1889,23 @@
+@@ -1476,17 +1891,23 @@
  
  - func: index_put_(Tensor(a!) self, Tensor?[] indices, Tensor values, bool accumulate=False) -> Tensor(a!)
    variants: function, method
@@ -2032,7 +2038,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: instance_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool use_input_stats, float momentum, float eps, bool cudnn_enabled) -> Tensor
    variants: function
-@@ -1494,8 +1913,12 @@
+@@ -1494,8 +1915,12 @@
  - func: inverse(Tensor self) -> Tensor
    use_c10_dispatcher: full
    variants: function, method
@@ -2045,7 +2051,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _inverse_helper(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -1507,6 +1930,8 @@
+@@ -1507,6 +1932,8 @@
  - func: isclose(Tensor self, Tensor other, float rtol=1e-05, float atol=1e-08, bool equal_nan=False) -> Tensor
    use_c10_dispatcher: full
    variants: function, method
@@ -2054,7 +2060,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: isnan(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -1518,6 +1943,8 @@
+@@ -1518,6 +1945,8 @@
      CUDA: isnan
      SparseCPU: isnan_sparse
      SparseCUDA: isnan_sparse
@@ -2063,7 +2069,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: is_distributed(Tensor self) -> bool
    use_c10_dispatcher: full
-@@ -1541,6 +1968,8 @@
+@@ -1541,6 +1970,8 @@
    variants: function, method
    device_guard: False
    supports_named_tensor: True
@@ -2072,7 +2078,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: is_same_size(Tensor self, Tensor other) -> bool
    use_c10_dispatcher: full
-@@ -1556,29 +1985,41 @@
+@@ -1556,29 +1987,41 @@
  
  - func: kl_div(Tensor self, Tensor target, int reduction=Mean) -> Tensor
    use_c10_dispatcher: full
@@ -2114,7 +2120,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: layer_norm(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05, bool cudnn_enable=True) -> Tensor
  
-@@ -1586,11 +2027,15 @@
+@@ -1586,11 +2029,15 @@
    dispatch:
      CPU: layer_norm_cpu
      CUDA: layer_norm_cuda
@@ -2130,7 +2136,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
    python_module: nn
-@@ -1622,46 +2067,64 @@
+@@ -1622,46 +2069,64 @@
    use_c10_dispatcher: full
  
  - func: linspace(Scalar start, Scalar end, int steps=100, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
@@ -2195,7 +2201,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: log1p_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1671,6 +2134,8 @@
+@@ -1671,6 +2136,8 @@
      CUDA: log1p_
      SparseCPU: log1p_sparse_
      SparseCUDA: log1p_sparse_
@@ -2204,7 +2210,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: log1p.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1679,67 +2144,95 @@
+@@ -1679,67 +2146,95 @@
      CUDA: log1p_out
      SparseCPU: log1p_out_sparse
      SparseCUDA: log1p_out_sparse
@@ -2300,7 +2306,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: margin_ranking_loss(Tensor input1, Tensor input2, Tensor target, float margin=0.0, int reduction=Mean) -> Tensor
    use_c10_dispatcher: full
-@@ -1748,9 +2241,13 @@
+@@ -1748,9 +2243,13 @@
    use_c10_dispatcher: full
    variants: function, method
    supports_named_tensor: True
@@ -2314,7 +2320,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: matrix_rank.tol(Tensor self, float tol, bool symmetric=False) -> Tensor
    use_c10_dispatcher: full
-@@ -1765,22 +2262,34 @@
+@@ -1765,22 +2264,34 @@
  - func: max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
    variants: function, method
    supports_named_tensor: True
@@ -2349,7 +2355,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: max_pool1d_with_indices(Tensor self, int[1] kernel_size, int[1] stride=[], int[1] padding=0, int[1] dilation=1, bool ceil_mode=False) -> (Tensor, Tensor)
-@@ -1791,6 +2300,8 @@
+@@ -1791,6 +2302,8 @@
  
  - func: max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
    supports_named_tensor: True
@@ -2358,7 +2364,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mkldnn_max_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> Tensor
    requires_tensor: True
-@@ -1814,6 +2325,8 @@
+@@ -1814,6 +2327,8 @@
      CPU: mean_cpu_gpu
      CUDA: mean_cpu_gpu
      QuantizedCPU: quantized_mean_cpu
@@ -2367,7 +2373,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mean.dim(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
    variants: function, method
-@@ -1822,6 +2335,8 @@
+@@ -1822,6 +2337,8 @@
      CPU: mean_cpu_gpu
      CUDA: mean_cpu_gpu
      QuantizedCPU: quantized_mean_cpu
@@ -2376,7 +2382,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mean.out(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -1829,47 +2344,73 @@
+@@ -1829,47 +2346,73 @@
      CPU: mean_out_cpu_gpu
      CUDA: mean_out_cpu_gpu
      QuantizedCPU: quantized_mean_out_cpu
@@ -2450,7 +2456,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mkldnn_convolution(Tensor self, Tensor weight, Tensor? bias, int[] padding, int[] stride, int[] dilation, int groups) -> Tensor
  
-@@ -1958,6 +2499,8 @@
+@@ -1958,6 +2501,8 @@
      CUDA: legacy::cuda::_th_mm
      SparseCPU: _sparse_mm
      SparseCUDA: _sparse_mm
@@ -2459,7 +2465,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: mm.out(Tensor self, Tensor mat2, *, Tensor(a!) out) -> Tensor(a!)
-@@ -1966,6 +2509,8 @@
+@@ -1966,6 +2511,8 @@
      CUDA: legacy::cuda::_th_mm_out
      SparseCPU: _sparse_mm_out
      SparseCUDA: _sparse_mm_out
@@ -2468,7 +2474,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: _sparse_mm(Tensor sparse, Tensor dense) -> Tensor
-@@ -1994,6 +2539,8 @@
+@@ -1994,6 +2541,8 @@
      SparseCPU: mul_sparse
      SparseCUDA: mul_sparse
      MkldnnCPU: mkldnn_mul
@@ -2477,7 +2483,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: mul_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
-@@ -2004,6 +2551,8 @@
+@@ -2004,6 +2553,8 @@
      SparseCPU: mul_sparse_
      SparseCUDA: mul_sparse_
      MkldnnCPU: mkldnn_mul_
@@ -2486,7 +2492,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: mul.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
-@@ -2013,15 +2562,21 @@
+@@ -2013,15 +2564,21 @@
      SparseCPU: mul_out_sparse_cpu
      SparseCUDA: mul_out_sparse_cuda
      MkldnnCPU: mkldnn_mul_out
@@ -2508,7 +2514,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mv(Tensor self, Tensor vec) -> Tensor
    use_c10_dispatcher: full
-@@ -2030,12 +2585,16 @@
+@@ -2030,12 +2587,16 @@
      CPU: mv_cpu
      CUDA: legacy::cuda::_th_mv
    supports_named_tensor: True
@@ -2525,7 +2531,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mvlgamma(Tensor self, int p) -> Tensor
    use_c10_dispatcher: full
-@@ -2052,6 +2611,8 @@
+@@ -2052,6 +2613,8 @@
      CUDA: narrow_copy_dense
      SparseCPU: narrow_copy_sparse
      SparseCUDA: narrow_copy_sparse
@@ -2534,7 +2540,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: narrow(Tensor(a) self, int dim, int start, int length) -> Tensor(a)
    variants: function, method
-@@ -2068,6 +2629,8 @@
+@@ -2068,6 +2631,8 @@
      CPU: batch_norm_cpu
      CUDA: batch_norm_cuda
      MkldnnCPU: mkldnn_batch_norm
@@ -2543,7 +2549,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: native_batch_norm.out(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps, *, Tensor(a!) out, Tensor(b!) save_mean, Tensor(c!) save_invstd) -> (Tensor(a!), Tensor(b!), Tensor(c!))
    dispatch:
-@@ -2098,6 +2661,8 @@
+@@ -2098,6 +2663,8 @@
    dispatch:
      CPU: batch_norm_backward_cpu
      CUDA: batch_norm_backward_cuda
@@ -2552,7 +2558,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: batch_norm_backward_reduce(Tensor grad_out, Tensor input, Tensor mean, Tensor invstd, Tensor? weight, bool input_g, bool weight_g, bool bias_g) -> (Tensor, Tensor, Tensor, Tensor)
    dispatch:
-@@ -2117,6 +2682,8 @@
+@@ -2117,6 +2684,8 @@
  
  - func: _nnpack_spatial_convolution(Tensor input, Tensor weight, Tensor? bias, int[2] padding, int[2] stride=1) -> Tensor
    variants: function
@@ -2561,7 +2567,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _nnpack_spatial_convolution_backward(Tensor input, Tensor grad_output, Tensor weight, int[2] padding, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
    variants: function
-@@ -2129,42 +2696,60 @@
+@@ -2129,42 +2698,60 @@
  
  - func: ones.names(int[] size, *, Dimname[]? names, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
    device_guard: False
@@ -2624,7 +2630,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Only exposed from C++ -- in Python,
  # we expose it as an attribute `T`, not a function.
-@@ -2253,54 +2838,82 @@
+@@ -2253,54 +2840,82 @@
    supports_named_tensor: True
  
  - func: randperm(int n, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
@@ -2708,7 +2714,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: repeat_interleave.Tensor(Tensor repeats) -> Tensor
    use_c10_dispatcher: full
-@@ -2316,6 +2929,8 @@
+@@ -2316,6 +2931,8 @@
  - func: repeat_interleave.self_int(Tensor self, int repeats, int? dim=None) -> Tensor
    use_c10_dispatcher: full
    variants: function, method
@@ -2717,7 +2723,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: reshape(Tensor self, int[] shape) -> Tensor
    variants: function, method
-@@ -2337,16 +2952,22 @@
+@@ -2337,16 +2954,22 @@
    use_c10_dispatcher: full
    supports_named_tensor: True
    variants: function, method
@@ -2740,7 +2746,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: rrelu(Tensor self, Scalar lower=0.125, Scalar upper=0.3333333333333333, bool training=False, Generator? generator=None) -> Tensor
  
-@@ -2360,6 +2981,8 @@
+@@ -2360,6 +2983,8 @@
      CUDA: relu
      MkldnnCPU: mkldnn_relu
      QuantizedCPU: quantized_relu
@@ -2749,7 +2755,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: relu_(Tensor(a!) self) -> Tensor(a!)
-@@ -2370,6 +2993,8 @@
+@@ -2370,6 +2995,8 @@
      CUDA: relu_
      MkldnnCPU: mkldnn_relu_
      QuantizedCPU: quantized_relu_
@@ -2758,7 +2764,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: prelu(Tensor self, Tensor weight) -> Tensor
    use_c10_dispatcher: full
-@@ -2377,12 +3002,16 @@
+@@ -2377,12 +3004,16 @@
    dispatch:
      CPU: prelu_cpu
      CUDA: prelu_cuda
@@ -2775,7 +2781,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gelu(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -2390,6 +3019,8 @@
+@@ -2390,6 +3021,8 @@
    dispatch:
      CPU: gelu_cpu
      CUDA: gelu_cuda
@@ -2784,7 +2790,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gelu_backward(Tensor grad, Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -2397,29 +3028,41 @@
+@@ -2397,29 +3030,41 @@
    dispatch:
      CPU: gelu_backward_cpu
      CUDA: gelu_backward_cuda
@@ -2826,7 +2832,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: select.Dimname(Tensor(a) self, Dimname dim, int index) -> Tensor(a)
    variants: function, method
-@@ -2433,14 +3076,21 @@
+@@ -2433,14 +3078,21 @@
  
  - func: selu(Tensor self) -> Tensor
    use_c10_dispatcher: full
@@ -2849,7 +2855,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sigmoid(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -2451,6 +3101,8 @@
+@@ -2451,6 +3103,8 @@
      CUDA: sigmoid
      QuantizedCPU: quantized_sigmoid
      MkldnnCPU: mkldnn_sigmoid
@@ -2858,7 +2864,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sigmoid_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -2459,36 +3111,52 @@
+@@ -2459,36 +3113,52 @@
      CPU: sigmoid_
      CUDA: sigmoid_
      MkldnnCPU: mkldnn_sigmoid_
@@ -2911,7 +2917,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Returns a copy of this `Variable` that is detached from its autograd graph.
  # This method is OK to call if the `Variable` is a view.
-@@ -2533,6 +3201,8 @@
+@@ -2533,6 +3203,8 @@
  
  - func: slogdet(Tensor self) -> (Tensor sign, Tensor logabsdet)
    variants: function, method
@@ -2920,7 +2926,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: smm(Tensor self, Tensor mat2) -> Tensor
    use_c10_dispatcher: full
-@@ -2542,10 +3212,14 @@
+@@ -2542,10 +3214,14 @@
  - func: softmax.int(Tensor self, int dim, ScalarType? dtype=None) -> Tensor
    variants: function, method
    supports_named_tensor: True
@@ -2935,7 +2941,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _softmax(Tensor self, int dim, bool half_to_float) -> Tensor
    use_c10_dispatcher: full
-@@ -2553,12 +3227,16 @@
+@@ -2553,12 +3229,16 @@
      CPU: softmax_cpu
      CUDA: softmax_cuda
      MkldnnCPU: mkldnn_softmax
@@ -2952,7 +2958,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: split.Tensor(Tensor(a) self, int split_size, int dim=0) -> Tensor(a)[]
    variants: function, method
-@@ -2609,8 +3287,12 @@
+@@ -2609,8 +3289,12 @@
      SparseCUDA: _sspaddmm_out_cuda
  
  - func: stack(Tensor[] tensors, int dim=0) -> Tensor
@@ -2965,7 +2971,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # The signature is designed to be consistent with librosa except that it is
  # missing the `pad_mode` and `center` arguments, which are taken care of at
-@@ -2633,20 +3315,30 @@
+@@ -2633,20 +3317,30 @@
  - func: sum(Tensor self, *, ScalarType? dtype=None) -> Tensor
    variants: function, method
    supports_named_tensor: True
@@ -2996,7 +3002,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sum_to_size(Tensor self, int[] size) -> Tensor
    variants: method
-@@ -2656,13 +3348,19 @@
+@@ -2656,13 +3350,19 @@
    use_c10_dispatcher: full
    supports_named_tensor: True
    variants: function, method
@@ -3016,7 +3022,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: square(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -2677,51 +3375,81 @@
+@@ -2677,51 +3377,81 @@
    use_c10_dispatcher: full
    variants: function, method
    supports_named_tensor: True
@@ -3099,7 +3105,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: t(Tensor(a) self) -> Tensor(a)
    device_guard: False
-@@ -2736,6 +3464,8 @@
+@@ -2736,6 +3466,8 @@
    use_c10_dispatcher: full
    supports_named_tensor: True
    variants: function, method
@@ -3108,7 +3114,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: tan_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -2743,12 +3473,16 @@
+@@ -2743,12 +3475,16 @@
    dispatch:
      CPU: _tan__cpu
      CUDA: _tan__cuda
@@ -3125,7 +3131,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: tanh(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -2758,6 +3492,8 @@
+@@ -2758,6 +3494,8 @@
      CPU: tanh
      CUDA: tanh
      QuantizedCPU: quantized_tanh
@@ -3134,7 +3140,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: tanh_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -2765,12 +3501,16 @@
+@@ -2765,12 +3503,16 @@
    dispatch:
      CPU: _tanh__cpu
      CUDA: _tanh__cuda
@@ -3151,7 +3157,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: tensordot(Tensor self, Tensor other, int[] dims_self, int[] dims_other) -> Tensor
    variants: function
-@@ -2783,6 +3523,8 @@
+@@ -2783,6 +3525,8 @@
    dispatch:
      CPU: threshold
      CUDA: threshold_cuda
@@ -3160,7 +3166,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: threshold_(Tensor(a!) self, Scalar threshold, Scalar value) -> Tensor(a!)
    variants: function
-@@ -2790,12 +3532,16 @@
+@@ -2790,12 +3534,16 @@
    dispatch:
      CPU: threshold_
      CUDA: threshold__cuda
@@ -3177,7 +3183,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: threshold_backward(Tensor grad_output, Tensor self, Scalar threshold) -> Tensor
    use_c10_dispatcher: full
-@@ -2803,6 +3549,8 @@
+@@ -2803,6 +3551,8 @@
    dispatch:
      CPU: threshold_backward
      CUDA: threshold_backward_cuda
@@ -3186,7 +3192,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: transpose.int(Tensor(a) self, int dim0, int dim1) -> Tensor(a)
    variants: function, method
-@@ -2835,18 +3583,24 @@
+@@ -2835,18 +3585,24 @@
    use_c10_dispatcher: full
    python_module: nn
    variants: function
@@ -3211,7 +3217,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # default int[] value [0,1] should not add space after comma, since native_parse.py uses ', ' to split args
  
-@@ -2872,6 +3626,8 @@
+@@ -2872,6 +3628,8 @@
      CUDA: true_divide
      SparseCPU: true_divide_sparse
      SparseCUDA: true_divide_sparse
@@ -3220,7 +3226,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: true_divide_.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
-@@ -2881,6 +3637,8 @@
+@@ -2881,6 +3639,8 @@
      CUDA: true_divide_
      SparseCPU: true_divide_sparse_
      SparseCUDA: true_divide_sparse_
@@ -3229,7 +3235,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: true_divide.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
-@@ -2889,31 +3647,43 @@
+@@ -2889,31 +3649,43 @@
      CUDA: true_divide_out
      SparseCPU: true_divide_out_sparse_zerodim
      SparseCUDA: true_divide_out_sparse_zerodim
@@ -3273,7 +3279,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: type_as(Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
-@@ -2956,6 +3726,8 @@
+@@ -2956,6 +3728,8 @@
    dispatch:
      CPU: _unique2_cpu
      CUDA: _unique2_cuda
@@ -3282,7 +3288,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _unsafe_view(Tensor self, int[] size) -> Tensor
  
-@@ -2971,32 +3743,48 @@
+@@ -2971,32 +3745,48 @@
    use_c10_dispatcher: full
    variants: function, method
    supports_named_tensor: True
@@ -3331,7 +3337,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: view_as(Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
-@@ -3009,13 +3797,19 @@
+@@ -3009,13 +3799,19 @@
  - func: where.self(Tensor condition, Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
    variants: function, method
@@ -3351,7 +3357,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: norm_except_dim(Tensor v, int pow=2, int dim=0) -> Tensor
    variants: function
-@@ -3041,13 +3835,21 @@
+@@ -3041,13 +3837,21 @@
  
  - func: zeros.names(int[] size, *, Dimname[]? names, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
    device_guard: False
@@ -3373,7 +3379,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _standard_gamma_grad(Tensor self, Tensor output) -> Tensor
    use_c10_dispatcher: full
-@@ -3100,25 +3902,37 @@
+@@ -3100,25 +3904,37 @@
  
  - func: _sparse_sum_backward(Tensor grad, Tensor self, int[] dim) -> Tensor
    dispatch:
@@ -3413,7 +3419,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: norm.names_ScalarOpt_dim_dtype(Tensor self, Scalar? p, Dimname[1] dim, bool keepdim, *, ScalarType dtype) -> Tensor
    variants: function, method
-@@ -3162,12 +3976,16 @@
+@@ -3162,12 +3978,16 @@
      SparseCUDA: clone_sparse
      MkldnnCPU: mkldnn_clone
      QuantizedCPU: quantized_clone
@@ -3430,7 +3436,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow.Tensor_Scalar_out(Tensor self, Scalar exponent, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -3176,6 +3994,8 @@
+@@ -3176,6 +3996,8 @@
      CUDA: pow_out
      SparseCPU: pow_out_sparse_scalar
      SparseCUDA: pow_out_sparse_scalar
@@ -3439,7 +3445,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow.Tensor_Scalar(Tensor self, Scalar exponent) -> Tensor
    use_c10_dispatcher: full
-@@ -3186,6 +4006,8 @@
+@@ -3186,6 +4008,8 @@
      CUDA: pow
      SparseCPU: pow_sparse_scalar
      SparseCUDA: pow_sparse_scalar
@@ -3448,7 +3454,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: zero_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -3196,6 +4018,14 @@
+@@ -3196,6 +4020,14 @@
      SparseCPU: zero_sparse_
      SparseCUDA: zero_sparse_
      MkldnnCPU: mkldnn_zero_
@@ -3463,7 +3469,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sub.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
    dispatch:
-@@ -3204,6 +4034,8 @@
+@@ -3204,6 +4036,8 @@
      SparseCPU: sub_out_sparse
      SparseCUDA: sub_out_sparse
    supports_named_tensor: True
@@ -3472,7 +3478,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sub.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
    use_c10_dispatcher: full
-@@ -3213,6 +4045,8 @@
+@@ -3213,6 +4047,8 @@
      CUDA: sub
      SparseCPU: sub_sparse
      SparseCUDA: sub_sparse
@@ -3481,7 +3487,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: sub_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-@@ -3222,6 +4056,8 @@
+@@ -3222,6 +4058,8 @@
      CUDA: sub_
      SparseCPU: sub_sparse_
      SparseCUDA: sub_sparse_
@@ -3490,7 +3496,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  # For C++ only, until we have conversion from C++ numbers to Tensor
-@@ -3229,21 +4065,29 @@
+@@ -3229,21 +4067,29 @@
    use_c10_dispatcher: full
    variants: function, method
    supports_named_tensor: True
@@ -3520,7 +3526,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Functionally the same as addmm, but we give it a different derivative formula
  # that doesn't propagate gradients to non-present entries on sparse.
-@@ -3257,6 +4101,8 @@
+@@ -3257,6 +4103,8 @@
      CUDA: legacy::cuda::_th_addmm_out
      SparseCPU: addmm_out_sparse_dense_cpu
      SparseCUDA: addmm_out_sparse_dense_cuda
@@ -3529,7 +3535,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: addmm(Tensor self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1) -> Tensor
-@@ -3267,6 +4113,8 @@
+@@ -3267,6 +4115,8 @@
      CUDA: legacy::cuda::_th_addmm
      SparseCPU: addmm_sparse_dense_cpu
      SparseCUDA: addmm_sparse_dense_cuda
@@ -3538,7 +3544,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: addmm_(Tensor(a!) self, Tensor mat1, Tensor mat2, *, Scalar beta=1, Scalar alpha=1) -> Tensor(a!)
-@@ -3278,9 +4126,10 @@
+@@ -3278,9 +4128,10 @@
      # broadcasting
      SparseCPU: s_addmm_sparse_dense_cpu_
      SparseCUDA: s_addmm_sparse_dense_cuda_
@@ -3550,7 +3556,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # NOTE [ Sparse: autograd and API ]
  #
  #
-@@ -3396,7 +4245,6 @@
+@@ -3396,7 +4247,6 @@
  # shared. In other words, their outputs are non-differentiable views of the
  # sparse tensor.
  
@@ -3558,7 +3564,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # FIXME: would be nicer if TensorOptions was optional based; not adding default arguments for options given
  # the default would never make sense.
  - func: sparse_coo_tensor.size(int[] size, *, ScalarType dtype, Layout layout, Device device, bool pin_memory=False) -> Tensor
-@@ -3433,7 +4281,6 @@
+@@ -3433,7 +4283,6 @@
      SparseCUDA: sparse_resize_and_clear_
    requires_tensor: True
  
@@ -3566,7 +3572,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: sparse_mask(Tensor self, Tensor mask) -> Tensor
    use_c10_dispatcher: full
    variants: method
-@@ -3442,7 +4289,6 @@
+@@ -3442,7 +4291,6 @@
      SparseCUDA: sparse_mask_cuda
    requires_tensor: True
  
@@ -3574,7 +3580,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: to_dense(Tensor self) -> Tensor
    use_c10_dispatcher: full
    variants: method
-@@ -3474,7 +4320,6 @@
+@@ -3474,7 +4322,6 @@
    requires_tensor: True
    device_guard: False
  
@@ -3582,7 +3588,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: dense_dim(Tensor self) -> int
    use_c10_dispatcher: full
    variants: method
-@@ -3494,7 +4339,6 @@
+@@ -3494,7 +4341,6 @@
    requires_tensor: True
    device_guard: False
  
@@ -3590,7 +3596,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: _nnz(Tensor self) -> int
    use_c10_dispatcher: full
    variants: method
-@@ -3504,7 +4348,6 @@
+@@ -3504,7 +4350,6 @@
    requires_tensor: True
    device_guard: False
  
@@ -3598,7 +3604,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: coalesce(Tensor self) -> Tensor
    use_c10_dispatcher: full
    variants: method
-@@ -3513,7 +4356,6 @@
+@@ -3513,7 +4358,6 @@
      SparseCUDA: coalesce_sparse_cuda
    requires_tensor: True
  
@@ -3606,7 +3612,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: is_coalesced(Tensor self) -> bool
    use_c10_dispatcher: full
    variants: method
-@@ -3524,7 +4366,6 @@
+@@ -3524,7 +4368,6 @@
    device_guard: False
    supports_named_tensor: True
  
@@ -3614,7 +3620,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: _indices(Tensor(a) self) -> Tensor(a)
    variants: method
    dispatch:
-@@ -3568,7 +4409,6 @@
+@@ -3568,7 +4411,6 @@
    requires_tensor: True
    device_guard: False
  
@@ -3622,7 +3628,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  - func: hspmm.out(Tensor mat1, Tensor mat2, *, Tensor(a!) out) -> Tensor(a!)
    dispatch:
      SparseCPU: hspmm_out_sparse_cpu
-@@ -3630,11 +4470,15 @@
+@@ -3630,11 +4472,15 @@
    variants: function
    dispatch:
      CPU: quantize_per_tensor_cpu
@@ -3638,7 +3644,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: dequantize(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -3713,20 +4557,28 @@
+@@ -3713,20 +4559,28 @@
    variants: method
    device_guard: False
    supports_named_tensor: True
@@ -3667,7 +3673,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: meshgrid(Tensor[] tensors) -> Tensor[]
  
-@@ -3765,6 +4617,8 @@
+@@ -3765,6 +4619,8 @@
    dispatch:
      CPU: _local_scalar_dense_cpu
      CUDA: _local_scalar_dense_cuda
@@ -3676,7 +3682,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    variants: function
    supports_named_tensor: True
  
-@@ -3791,10 +4645,16 @@
+@@ -3791,10 +4647,16 @@
  
  # RNN cells and layers
  - func: lstm.input(Tensor input, Tensor[] hx, Tensor[] params, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first) -> (Tensor, Tensor, Tensor)
@@ -3693,7 +3699,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gru.data(Tensor data, Tensor batch_sizes, Tensor hx, Tensor[] params, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional) -> (Tensor, Tensor)
  
-@@ -3839,10 +4699,14 @@
+@@ -3839,10 +4701,14 @@
  
  # PackedSequence utilities
  - func: _pack_padded_sequence(Tensor input, Tensor lengths, bool batch_first) -> (Tensor, Tensor)
@@ -3708,7 +3714,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # wrappers for legacy TH methods
  
-@@ -3852,6 +4716,8 @@
+@@ -3852,6 +4718,8 @@
    dispatch:
      CPU: set_
      CUDA: set_
@@ -3717,7 +3723,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: set_.source_Storage_storage_offset(Tensor(a!) self, Storage source, int storage_offset, int[] size, int[] stride=[]) -> Tensor(a!)
    variants: method
-@@ -3860,6 +4726,8 @@
+@@ -3860,6 +4728,8 @@
      CPU: legacy::cpu::_th_set_
      CUDA: legacy::cuda::_th_set_
      QuantizedCPU: set_storage
@@ -3726,7 +3732,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: set_.source_Tensor(Tensor(a!) self, Tensor source) -> Tensor(a!)
    variants: method
-@@ -3867,12 +4735,16 @@
+@@ -3867,12 +4737,16 @@
    dispatch:
      CPU: set_tensor_
      CUDA: set_tensor_
@@ -3743,7 +3749,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: set_quantizer_(Tensor(a!) self, ConstQuantizerPtr quantizer) -> Tensor(a!)
    variants: method
-@@ -3892,6 +4764,8 @@
+@@ -3892,6 +4766,8 @@
    dispatch:
      CPU: masked_fill__cpu
      CUDA: masked_fill__cuda
@@ -3752,7 +3758,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: masked_fill.Scalar(Tensor self, Tensor mask, Scalar value) -> Tensor
-@@ -3904,6 +4778,8 @@
+@@ -3904,6 +4780,8 @@
    dispatch:
      CPU: masked_fill__cpu
      CUDA: masked_fill__cuda
@@ -3761,7 +3767,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: masked_fill.Tensor(Tensor self, Tensor mask, Tensor value) -> Tensor
-@@ -3916,6 +4792,8 @@
+@@ -3916,6 +4794,8 @@
    dispatch:
      CPU: masked_scatter__cpu
      CUDA: masked_scatter__cuda
@@ -3770,7 +3776,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: masked_scatter(Tensor self, Tensor mask, Tensor source) -> Tensor
    use_c10_dispatcher: full
-@@ -3929,25 +4807,35 @@
+@@ -3929,25 +4809,35 @@
      CUDA: view
      MkldnnCPU: mkldnn_view
      QuantizedCPU: view
@@ -3806,7 +3812,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: index_fill_.int_Scalar(Tensor(a!) self, int dim, Tensor index, Scalar value) -> Tensor(a!)
    variants: method
-@@ -3955,11 +4843,15 @@
+@@ -3955,11 +4845,15 @@
    dispatch:
      CPU: legacy::cpu::_th_index_fill_
      CUDA: legacy::cuda::_th_index_fill_
@@ -3822,7 +3828,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: index_fill_.int_Tensor(Tensor(a!) self, int dim, Tensor index, Tensor value) -> Tensor(a!)
    variants: method
-@@ -3967,11 +4859,15 @@
+@@ -3967,11 +4861,15 @@
      CPU: index_fill_
      CUDA: index_fill_
    supports_named_tensor: True
@@ -3838,7 +3844,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: index_fill_.Dimname_Scalar(Tensor(a!) self, Dimname dim, Tensor index, Scalar value) -> Tensor(a!)
    variants: method
-@@ -3994,6 +4890,8 @@
+@@ -3994,6 +4892,8 @@
    dispatch:
      CPU: scatter_cpu_
      CUDA: legacy::cuda::_th_scatter_
@@ -3847,7 +3853,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: scatter.src(Tensor self, int dim, Tensor index, Tensor src) -> Tensor
    use_c10_dispatcher: full
-@@ -4004,6 +4902,8 @@
+@@ -4004,6 +4904,8 @@
    dispatch:
      CPU: scatter_fill_cpu_
      CUDA: legacy::cuda::_th_scatter_
@@ -3856,7 +3862,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: scatter.value(Tensor self, int dim, Tensor index, Scalar value) -> Tensor
    use_c10_dispatcher: full
-@@ -4020,81 +4920,127 @@
+@@ -4020,81 +4922,127 @@
    dispatch:
      CPU: scatter_add_cpu_
      CUDA: legacy::cuda::_th_scatter_add_
@@ -3984,7 +3990,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: __iand__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
    variants: method
-@@ -4107,70 +5053,106 @@
+@@ -4107,70 +5055,106 @@
    dispatch:
      CPU: bitwise_or_out
      CUDA: bitwise_or_out
@@ -4091,7 +4097,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: __ixor__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
    variants: method
-@@ -4240,18 +5222,24 @@
+@@ -4240,18 +5224,24 @@
  - func: atan2_(Tensor(a!) self, Tensor other) -> Tensor(a!)
    supports_named_tensor: True
    variants: method
@@ -4116,7 +4122,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: digamma_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4266,6 +5254,8 @@
+@@ -4266,6 +5256,8 @@
    dispatch:
      CPU: legacy::cpu::_th_renorm_
      CUDA: legacy::cuda::_th_renorm_
@@ -4125,7 +4131,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow_.Scalar(Tensor(a!) self, Scalar exponent) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4273,6 +5263,8 @@
+@@ -4273,6 +5265,8 @@
    dispatch:
      CPU: pow_
      CUDA: pow_
@@ -4134,7 +4140,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow_.Tensor(Tensor(a!) self, Tensor exponent) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4280,53 +5272,71 @@
+@@ -4280,53 +5274,71 @@
    dispatch:
      CPU: pow_
      CUDA: pow_
@@ -4206,7 +4212,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: addbmm(Tensor self, Tensor batch1, Tensor batch2, *, Scalar beta=1, Scalar alpha=1) -> Tensor
    use_c10_dispatcher: full
-@@ -4334,28 +5344,40 @@
+@@ -4334,28 +5346,40 @@
    dispatch:
      CPU: legacy::cpu::_th_addbmm
      CUDA: legacy::cuda::_th_addbmm
@@ -4247,7 +4253,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: cauchy_(Tensor(a!) self, float median=0, float sigma=1, *, Generator? generator=None) -> Tensor(a!)
-@@ -4380,6 +5402,8 @@
+@@ -4380,6 +5404,8 @@
    dispatch:
      CPU: legacy::cpu::_th_diag_out
      CUDA: legacy::cuda::_th_diag_out
@@ -4256,7 +4262,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: diag(Tensor self, int diagonal=0) -> Tensor
    use_c10_dispatcher: full
-@@ -4387,40 +5411,58 @@
+@@ -4387,40 +5413,58 @@
    dispatch:
      CPU: legacy::cpu::_th_diag
      CUDA: legacy::cuda::_th_diag
@@ -4315,7 +4321,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: trace(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -4435,6 +5477,8 @@
+@@ -4435,6 +5479,8 @@
      CPU: ne_out
      CUDA: ne_out
      QuantizedCPU: ne_out_quantized_cpu
@@ -4324,7 +4330,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ne.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4444,6 +5488,8 @@
+@@ -4444,6 +5490,8 @@
      CPU: ne
      CUDA: ne
      QuantizedCPU: ne_quantized_cpu
@@ -4333,7 +4339,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ne.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4451,6 +5497,8 @@
+@@ -4451,6 +5499,8 @@
      CPU: ne_out
      CUDA: ne_out
      QuantizedCPU: ne_out_quantized_cpu
@@ -4342,7 +4348,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ne.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4460,6 +5508,8 @@
+@@ -4460,6 +5510,8 @@
      CPU: ne
      CUDA: ne
      QuantizedCPU: ne_quantized_cpu
@@ -4351,7 +4357,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: eq.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4467,6 +5517,8 @@
+@@ -4467,6 +5519,8 @@
      CPU: eq_out
      CUDA: eq_out
      QuantizedCPU: eq_out_quantized_cpu
@@ -4360,7 +4366,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: eq.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4476,6 +5528,8 @@
+@@ -4476,6 +5530,8 @@
      CPU: eq
      CUDA: eq
      QuantizedCPU: eq_quantized_cpu
@@ -4369,7 +4375,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: eq.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4483,6 +5537,8 @@
+@@ -4483,6 +5539,8 @@
      CPU: eq_out
      CUDA: eq_out
      QuantizedCPU: eq_out_quantized_cpu
@@ -4378,7 +4384,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: eq.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4492,6 +5548,8 @@
+@@ -4492,6 +5550,8 @@
      CPU: eq
      CUDA: eq
      QuantizedCPU: eq_quantized_cpu
@@ -4387,7 +4393,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ge.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4499,6 +5557,8 @@
+@@ -4499,6 +5559,8 @@
      CPU: ge_out
      CUDA: ge_out
      QuantizedCPU: ge_out_quantized_cpu
@@ -4396,7 +4402,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ge.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4508,6 +5568,8 @@
+@@ -4508,6 +5570,8 @@
      CPU: ge
      CUDA: ge
      QuantizedCPU: ge_quantized_cpu
@@ -4405,7 +4411,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ge.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4515,6 +5577,8 @@
+@@ -4515,6 +5579,8 @@
      CPU: ge_out
      CUDA: ge_out
      QuantizedCPU: ge_out_quantized_cpu
@@ -4414,7 +4420,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: ge.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4524,6 +5588,8 @@
+@@ -4524,6 +5590,8 @@
      CPU: ge
      CUDA: ge
      QuantizedCPU: ge_quantized_cpu
@@ -4423,7 +4429,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: le.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4531,6 +5597,8 @@
+@@ -4531,6 +5599,8 @@
      CPU: le_out
      CUDA: le_out
      QuantizedCPU: le_out_quantized_cpu
@@ -4432,7 +4438,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: le.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4540,6 +5608,8 @@
+@@ -4540,6 +5610,8 @@
      CPU: le
      CUDA: le
      QuantizedCPU: le_quantized_cpu
@@ -4441,7 +4447,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: le.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4547,6 +5617,8 @@
+@@ -4547,6 +5619,8 @@
      CPU: le_out
      CUDA: le_out
      QuantizedCPU: le_out_quantized_cpu
@@ -4450,7 +4456,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: le.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4556,6 +5628,8 @@
+@@ -4556,6 +5630,8 @@
      CPU: le
      CUDA: le
      QuantizedCPU: le_quantized_cpu
@@ -4459,7 +4465,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4563,6 +5637,8 @@
+@@ -4563,6 +5639,8 @@
      CPU: gt_out
      CUDA: gt_out
      QuantizedCPU: gt_out_quantized_cpu
@@ -4468,7 +4474,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gt.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4572,6 +5648,8 @@
+@@ -4572,6 +5650,8 @@
      CPU: gt
      CUDA: gt
      QuantizedCPU: gt_quantized_cpu
@@ -4477,7 +4483,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4579,6 +5657,8 @@
+@@ -4579,6 +5659,8 @@
      CPU: gt_out
      CUDA: gt_out
      QuantizedCPU: gt_out_quantized_cpu
@@ -4486,7 +4492,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gt.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4588,6 +5668,8 @@
+@@ -4588,6 +5670,8 @@
      CPU: gt
      CUDA: gt
      QuantizedCPU: gt_quantized_cpu
@@ -4495,7 +4501,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lt.Scalar_out(Tensor self, Scalar other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4595,6 +5677,8 @@
+@@ -4595,6 +5679,8 @@
      CPU: lt_out
      CUDA: lt_out
      QuantizedCPU: lt_out_quantized_cpu
@@ -4504,7 +4510,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lt.Scalar(Tensor self, Scalar other) -> Tensor
    supports_named_tensor: True
-@@ -4604,6 +5688,8 @@
+@@ -4604,6 +5690,8 @@
      CPU: lt
      CUDA: lt
      QuantizedCPU: lt_quantized_cpu
@@ -4513,7 +4519,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lt.Tensor_out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4611,6 +5697,8 @@
+@@ -4611,6 +5699,8 @@
      CPU: lt_out
      CUDA: lt_out
      QuantizedCPU: lt_out_quantized_cpu
@@ -4522,7 +4528,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lt.Tensor(Tensor self, Tensor other) -> Tensor
    supports_named_tensor: True
-@@ -4620,11 +5708,16 @@
+@@ -4620,11 +5710,16 @@
      CPU: lt
      CUDA: lt
      QuantizedCPU: lt_quantized_cpu
@@ -4539,7 +4545,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: take(Tensor self, Tensor index) -> Tensor
    use_c10_dispatcher: full
-@@ -4632,11 +5725,16 @@
+@@ -4632,11 +5727,16 @@
    dispatch:
      CPU: legacy::cpu::_th_take
      CUDA: legacy::cuda::_th_take
@@ -4556,7 +4562,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: index_select(Tensor self, int dim, Tensor index) -> Tensor
    use_c10_dispatcher: full
-@@ -4646,17 +5744,25 @@
+@@ -4646,17 +5746,25 @@
      CUDA: legacy::cuda::_th_index_select
      SparseCPU: index_select_sparse
      SparseCUDA: index_select_sparse
@@ -4582,7 +4588,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: masked_select(Tensor self, Tensor mask) -> Tensor
    use_c10_dispatcher: full
-@@ -4665,11 +5771,15 @@
+@@ -4665,11 +5773,15 @@
      CPU: masked_select_cpu
      CUDA: masked_select_cuda
    supports_named_tensor: True
@@ -4598,7 +4604,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: nonzero(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -4677,6 +5787,8 @@
+@@ -4677,6 +5789,8 @@
    dispatch:
      CPU: legacy::cpu::_th_nonzero
      CUDA: legacy::cuda::_th_nonzero
@@ -4607,7 +4613,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: nonzero_numpy(Tensor self) -> Tensor[]
    variants: method, function
-@@ -4685,6 +5797,8 @@
+@@ -4685,6 +5799,8 @@
    dispatch:
      CPU: gather_out_cpu
      CUDA: gather_out_cuda
@@ -4616,7 +4622,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: gather(Tensor self, int dim, Tensor index, *, bool sparse_grad=False) -> Tensor
    use_c10_dispatcher: full
-@@ -4692,34 +5806,50 @@
+@@ -4692,34 +5808,50 @@
    dispatch:
      CPU: gather_cpu
      CUDA: gather_cuda
@@ -4667,7 +4673,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lstsq.X(Tensor self, Tensor A, *, Tensor(a!) X, Tensor(b!) qr) -> (Tensor(a!) solution, Tensor(b!) QR)
    dispatch:
-@@ -4742,6 +5872,8 @@
+@@ -4742,6 +5874,8 @@
    dispatch:
      CPU: _triangular_solve_helper_cpu
      CUDA: _triangular_solve_helper_cuda
@@ -4676,7 +4682,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: symeig.e(Tensor self, bool eigenvectors=False, bool upper=True, *, Tensor(a!) e, Tensor(b!) V) -> (Tensor(a!) eigenvalues, Tensor(b!) eigenvectors)
  
-@@ -4753,6 +5885,8 @@
+@@ -4753,6 +5887,8 @@
    dispatch:
      CPU: _symeig_helper_cpu
      CUDA: _symeig_helper_cuda
@@ -4685,7 +4691,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: eig.e(Tensor self, bool eigenvectors=False, *, Tensor(a!) e, Tensor(b!) v) -> (Tensor(a!) eigenvalues, Tensor(b!) eigenvectors)
    dispatch:
-@@ -4775,6 +5909,8 @@
+@@ -4775,6 +5911,8 @@
    dispatch:
      CPU: _svd_helper_cpu
      CUDA: _svd_helper_cuda
@@ -4694,7 +4700,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: cholesky.out(Tensor self, bool upper=False, *, Tensor(a!) out) -> Tensor(a!)
  
-@@ -4826,9 +5962,13 @@
+@@ -4826,9 +5964,13 @@
      CUDA: legacy::cuda::_th_potri
  
  - func: qr.Q(Tensor self, bool some=True, *, Tensor(a!) Q, Tensor(b!) R) -> (Tensor(a!) Q, Tensor(b!) R)
@@ -4708,7 +4714,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _qr_helper(Tensor self, bool some) -> (Tensor, Tensor)
    variants: function
-@@ -4891,12 +6031,16 @@
+@@ -4891,12 +6033,16 @@
    dispatch:
      CPU: multinomial_out
      CUDA: multinomial_out
@@ -4725,7 +4731,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _multinomial_alias_setup(Tensor probs) -> (Tensor, Tensor)
    variants: function
-@@ -4947,6 +6091,8 @@
+@@ -4947,6 +6093,8 @@
    dispatch:
      CPU: erfinv
      CUDA: erfinv
@@ -4734,7 +4740,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: erfinv_(Tensor(a!) self) -> Tensor(a!)
    supports_named_tensor: True
-@@ -4954,26 +6100,36 @@
+@@ -4954,26 +6102,36 @@
    dispatch:
      CPU: _erfinv__cpu
      CUDA: _erfinv__cuda
@@ -4771,7 +4777,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: dist(Tensor self, Tensor other, Scalar p=2) -> Tensor
    use_c10_dispatcher: full
-@@ -4981,21 +6137,29 @@
+@@ -4981,21 +6139,29 @@
  
  - func: atan2.out(Tensor self, Tensor other, *, Tensor(a!) out) -> Tensor(a!)
    supports_named_tensor: True
@@ -4801,7 +4807,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lerp.Scalar(Tensor self, Tensor end, Scalar weight) -> Tensor
    use_c10_dispatcher: full
-@@ -5003,6 +6167,8 @@
+@@ -5003,6 +6169,8 @@
    dispatch:
      CPU: lerp_cpu_scalar
      CUDA: lerp_cuda_scalar
@@ -4810,7 +4816,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: lerp.Tensor(Tensor self, Tensor end, Tensor weight) -> Tensor
    use_c10_dispatcher: full
-@@ -5010,6 +6176,8 @@
+@@ -5010,6 +6178,8 @@
    dispatch:
      CPU: lerp_cpu_tensor
      CUDA: lerp_cuda_tensor
@@ -4819,7 +4825,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: histc.out(Tensor self, int bins=100, Scalar min=0, Scalar max=0, *, Tensor(a!) out) -> Tensor(a!)
    dispatch:
-@@ -5027,6 +6195,8 @@
+@@ -5027,6 +6197,8 @@
    dispatch:
      CPU: fmod_out
      CUDA: legacy::cuda::_th_fmod_out
@@ -4828,7 +4834,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: fmod.Scalar(Tensor self, Scalar other) -> Tensor
    use_c10_dispatcher: full
-@@ -5034,11 +6204,15 @@
+@@ -5034,11 +6206,15 @@
    dispatch:
      CPU: fmod
      CUDA: legacy::cuda::_th_fmod
@@ -4844,7 +4850,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: fmod.Tensor(Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
-@@ -5046,11 +6220,15 @@
+@@ -5046,11 +6222,15 @@
    dispatch:
      CPU: fmod
      CUDA: legacy::cuda::_th_fmod
@@ -4860,7 +4866,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: remainder.Scalar(Tensor self, Scalar other) -> Tensor
    use_c10_dispatcher: full
-@@ -5058,11 +6236,15 @@
+@@ -5058,11 +6238,15 @@
    dispatch:
      CPU: remainder
      CUDA: remainder
@@ -4876,7 +4882,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: remainder.Tensor(Tensor self, Tensor other) -> Tensor
    use_c10_dispatcher: full
-@@ -5070,12 +6252,18 @@
+@@ -5070,12 +6254,18 @@
    dispatch:
      CPU: remainder
      CUDA: remainder
@@ -4895,7 +4901,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: min(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -5084,13 +6272,19 @@
+@@ -5084,13 +6274,19 @@
      CPU: min
      CUDA: legacy::cuda::_th_min
      QuantizedCPU: min_quant
@@ -4915,7 +4921,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: max(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -5099,6 +6293,8 @@
+@@ -5099,6 +6295,8 @@
      CPU: max
      CUDA: legacy::cuda::_th_max
      QuantizedCPU: max_quant
@@ -4924,7 +4930,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: median(Tensor self) -> Tensor
-@@ -5107,12 +6303,16 @@
+@@ -5107,12 +6305,16 @@
    dispatch:
      CPU: median_cpu
      CUDA: median_cuda
@@ -4941,7 +4947,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: sort(Tensor self, int dim=-1, bool descending=False) -> (Tensor values, Tensor indices)
    variants: method, function
-@@ -5120,23 +6320,45 @@
+@@ -5120,23 +6322,45 @@
      CPU: legacy::cpu::_th_sort
      CUDA: legacy::cuda::_th_sort
      QuantizedCPU: sort_quant
@@ -4987,7 +4993,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: topk(Tensor self, int k, int dim=-1, bool largest=True, bool sorted=True) -> (Tensor values, Tensor indices)
    variants: method, function
-@@ -5144,11 +6366,15 @@
+@@ -5144,11 +6368,15 @@
      CPU: topk
      CUDA: topk
      QuantizedCPU: quantized_topk_cpu
@@ -5003,7 +5009,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: any(Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -5159,11 +6385,15 @@
+@@ -5159,11 +6387,15 @@
      CUDA: any
      SparseCPU: any_sparse
      SparseCUDA: any_sparse
@@ -5019,7 +5025,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: renorm(Tensor self, Scalar p, int dim, Scalar maxnorm) -> Tensor
    use_c10_dispatcher: full
-@@ -5171,6 +6401,8 @@
+@@ -5171,6 +6403,8 @@
    dispatch:
      CPU: legacy::cpu::_th_renorm
      CUDA: legacy::cuda::_th_renorm
@@ -5028,7 +5034,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: unfold(Tensor(a) self, int dimension, int size, int step) -> Tensor(a)
    variants: method
-@@ -5178,6 +6410,8 @@
+@@ -5178,6 +6412,8 @@
    dispatch:
      CPU: unfold
      CUDA: unfold
@@ -5037,7 +5043,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: equal(Tensor self, Tensor other) -> bool
    use_c10_dispatcher: full
-@@ -5186,6 +6420,8 @@
+@@ -5186,6 +6422,8 @@
      CPU: legacy::cpu::_th_equal
      CUDA: legacy::cuda::_th_equal
      QuantizedCPU: quantized_equal
@@ -5046,7 +5052,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: pow.Tensor_Tensor_out(Tensor self, Tensor exponent, *, Tensor(a!) out) -> Tensor(a!)
-@@ -5193,6 +6429,8 @@
+@@ -5193,6 +6431,8 @@
    dispatch:
      CPU: pow_out
      CUDA: pow_out
@@ -5055,7 +5061,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow.Tensor_Tensor(Tensor self, Tensor exponent) -> Tensor
    use_c10_dispatcher: full
-@@ -5201,12 +6439,16 @@
+@@ -5201,12 +6441,16 @@
    dispatch:
      CPU: pow
      CUDA: pow
@@ -5072,7 +5078,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: pow.Scalar(Scalar self, Tensor exponent) -> Tensor
    use_c10_dispatcher: full
-@@ -5214,6 +6456,8 @@
+@@ -5214,6 +6458,8 @@
    dispatch:
      CPU: pow
      CUDA: pow
@@ -5081,7 +5087,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: normal_(Tensor(a!) self, float mean=0, float std=1, *, Generator? generator=None) -> Tensor(a!)
    variants: method
-@@ -5221,40 +6465,58 @@
+@@ -5221,40 +6467,58 @@
      CPU: normal_cpu_
      CUDA: normal_cuda_
    supports_named_tensor: True
@@ -5140,7 +5146,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: alias(Tensor(a) self) -> Tensor(a)
    variants: method, function
-@@ -5265,43 +6527,59 @@
+@@ -5265,43 +6529,59 @@
    dispatch:
      CPU: legacy::cpu::_th_addr
      CUDA: legacy::cuda::_th_addr
@@ -5201,7 +5207,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _var(Tensor self, bool unbiased=True) -> Tensor
    use_c10_dispatcher: full
-@@ -5309,6 +6587,8 @@
+@@ -5309,6 +6589,8 @@
      CPU: legacy::cpu::_th_var
      CUDA: legacy::cuda::_th_var
    supports_named_tensor: True
@@ -5210,7 +5216,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _std(Tensor self, bool unbiased=True) -> Tensor
    use_c10_dispatcher: full
-@@ -5321,6 +6601,8 @@
+@@ -5321,6 +6603,8 @@
    variants: function
    dispatch:
      CUDA: _amp_non_finite_check_and_unscale_cuda_
@@ -5219,7 +5225,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _amp_update_scale(Tensor(a!) growth_tracker, Tensor current_scale, Tensor found_inf, float scale_growth_factor, float scale_backoff_factor, int growth_interval) -> Tensor
    variants: function
-@@ -5332,12 +6614,16 @@
+@@ -5332,12 +6616,16 @@
      CPU: _cat_cpu
      CUDA: cat_cuda
      QuantizedCPU: quantized_cat
@@ -5236,7 +5242,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _mode(Tensor self, int dim=-1, bool keepdim=False) -> (Tensor, Tensor)
    dispatch:
-@@ -5353,36 +6639,50 @@
+@@ -5353,36 +6641,50 @@
    dispatch:
      CPU: legacy::cpu::_th_max
      CUDA: legacy::cuda::_th_max
@@ -5287,7 +5293,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mse_loss_backward(Tensor grad_output, Tensor self, Tensor target, int reduction) -> Tensor
    use_c10_dispatcher: full
-@@ -5390,23 +6690,33 @@
+@@ -5390,23 +6692,33 @@
    dispatch:
      CPU: mse_loss_backward
      CUDA: mse_loss_backward
@@ -5321,7 +5327,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: multi_margin_loss.out(Tensor self, Tensor target, Scalar p=1, Scalar margin=1, Tensor? weight=None, int reduction=Mean, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -5434,22 +6744,30 @@
+@@ -5434,22 +6746,30 @@
  
  - func: multilabel_margin_loss.out(Tensor self, Tensor target, int reduction=Mean, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
@@ -5352,7 +5358,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: multilabel_margin_loss_backward.grad_input(Tensor grad_output, Tensor self, Tensor target, int reduction, Tensor is_target, *, Tensor(a!) grad_input) -> Tensor(a!)
    python_module: nn
-@@ -5466,97 +6784,137 @@
+@@ -5466,97 +6786,137 @@
  
  - func: nll_loss.out(Tensor self, Tensor target, Tensor? weight=None, int reduction=Mean, int ignore_index=-100, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
@@ -5490,7 +5496,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: elu.out(Tensor self, Scalar alpha=1, Scalar scale=1, Scalar input_scale=1, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -5564,6 +6922,8 @@
+@@ -5564,6 +6924,8 @@
      CPU: elu_out
      CUDA: elu_out
      QuantizedCPU: quantized_elu_out
@@ -5499,7 +5505,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: elu(Tensor self, Scalar alpha=1, Scalar scale=1, Scalar input_scale=1) -> Tensor
    use_c10_dispatcher: full
-@@ -5572,16 +6932,22 @@
+@@ -5572,16 +6934,22 @@
      CPU: elu
      CUDA: elu
      QuantizedCPU: quantized_elu
@@ -5522,7 +5528,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: elu_(Tensor(a!) self, Scalar alpha=1, Scalar scale=1, Scalar input_scale=1) -> Tensor(a!)
    python_module: nn
-@@ -5589,12 +6955,16 @@
+@@ -5589,12 +6957,16 @@
      CPU: elu_
      CUDA: elu_
      QuantizedCPU: quantized_elu_
@@ -5539,7 +5545,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: glu(Tensor self, int dim=-1) -> Tensor
    use_c10_dispatcher: full
-@@ -5602,12 +6972,16 @@
+@@ -5602,12 +6974,16 @@
    dispatch:
      CPU: glu
      CUDA: legacy::cuda::_thnn_glu_forward
@@ -5556,7 +5562,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: glu_backward(Tensor grad_output, Tensor self, int dim) -> Tensor
    use_c10_dispatcher: full
-@@ -5615,20 +6989,30 @@
+@@ -5615,20 +6991,30 @@
    dispatch:
      CPU: glu_backward
      CUDA: legacy::cuda::_thnn_glu_backward
@@ -5587,7 +5593,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: hardtanh.out(Tensor self, Scalar min_val=-1, Scalar max_val=1, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -5636,6 +7020,8 @@
+@@ -5636,6 +7022,8 @@
      CPU: hardtanh_out
      CUDA: hardtanh_out
      QuantizedCPU: quantized_hardtanh_out
@@ -5596,7 +5602,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: hardtanh(Tensor self, Scalar min_val=-1, Scalar max_val=1) -> Tensor
    use_c10_dispatcher: full
-@@ -5644,16 +7030,22 @@
+@@ -5644,16 +7032,22 @@
      CPU: hardtanh
      CUDA: hardtanh
      QuantizedCPU: quantized_hardtanh
@@ -5619,7 +5625,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: hardtanh_(Tensor(a!) self, Scalar min_val=-1, Scalar max_val=1) -> Tensor(a!)
    python_module: nn
-@@ -5661,6 +7053,8 @@
+@@ -5661,6 +7055,8 @@
      CPU: hardtanh_
      CUDA: hardtanh_
      QuantizedCPU: quantized_hardtanh_
@@ -5628,7 +5634,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: leaky_relu.out(Tensor self, Scalar negative_slope=0.01, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -5668,6 +7062,8 @@
+@@ -5668,6 +7064,8 @@
      CPU: leaky_relu_out
      CUDA: leaky_relu_out
      QuantizedCPU: quantized_leaky_relu_out
@@ -5637,7 +5643,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: leaky_relu(Tensor self, Scalar negative_slope=0.01) -> Tensor
    use_c10_dispatcher: full
-@@ -5676,10 +7072,14 @@
+@@ -5676,10 +7074,14 @@
      CPU: leaky_relu
      CUDA: leaky_relu
      QuantizedCPU: quantized_leaky_relu
@@ -5652,7 +5658,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: leaky_relu_(Tensor(a!) self, Scalar negative_slope=0.01) -> Tensor(a!)
    python_module: nn
-@@ -5687,31 +7087,44 @@
+@@ -5687,31 +7089,44 @@
      CPU: leaky_relu_
      CUDA: leaky_relu_
      QuantizedCPU: quantized_leaky_relu_
@@ -5697,7 +5703,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: log_sigmoid_backward(Tensor grad_output, Tensor self, Tensor buffer) -> Tensor
    use_c10_dispatcher: full
-@@ -5719,62 +7132,88 @@
+@@ -5719,62 +7134,88 @@
    dispatch:
      CPU: log_sigmoid_backward_cpu
      CUDA: legacy::cuda::_thnn_log_sigmoid_backward
@@ -5786,7 +5792,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: adaptive_avg_pool2d.out(Tensor self, int[2] output_size, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -5782,9 +7221,13 @@
+@@ -5782,9 +7223,13 @@
      CPU: adaptive_avg_pool2d_out_cpu
      CUDA: adaptive_avg_pool2d_out_cuda
      MkldnnCPU: mkldnn_adaptive_avg_pool2d_out
@@ -5800,7 +5806,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: mkldnn_adaptive_avg_pool2d(Tensor self, int[2] output_size) -> Tensor
    dispatch:
-@@ -5796,6 +7239,8 @@
+@@ -5796,6 +7241,8 @@
      CPU: adaptive_avg_pool2d_cpu
      CUDA: adaptive_avg_pool2d_cuda
      QuantizedCPU: quantized_adaptive_avg_pool2d
@@ -5809,7 +5815,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: _adaptive_avg_pool2d_backward(Tensor grad_output, Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -5803,24 +7248,32 @@
+@@ -5803,24 +7250,32 @@
    dispatch:
      CPU: adaptive_avg_pool2d_backward_cpu
      CUDA: adaptive_avg_pool2d_backward_cuda
@@ -5842,7 +5848,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: adaptive_avg_pool3d_backward(Tensor grad_output, Tensor self) -> Tensor
    use_c10_dispatcher: full
-@@ -5828,6 +7281,8 @@
+@@ -5828,6 +7283,8 @@
    dispatch:
      CPU: adaptive_avg_pool3d_backward_cpu
      CUDA: adaptive_avg_pool3d_backward_cuda
@@ -5851,7 +5857,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: adaptive_max_pool2d.out(Tensor self, int[2] output_size, *, Tensor(a!) out, Tensor(b!) indices) -> (Tensor(a!), Tensor(b!))
-@@ -5835,6 +7290,8 @@
+@@ -5835,6 +7292,8 @@
    dispatch:
      CPU: adaptive_max_pool2d_out_cpu
      CUDA: adaptive_max_pool2d_out_cuda
@@ -5860,7 +5866,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: adaptive_max_pool2d(Tensor self, int[2] output_size) -> (Tensor, Tensor)
-@@ -5842,12 +7299,16 @@
+@@ -5842,12 +7301,16 @@
    dispatch:
      CPU: adaptive_max_pool2d_cpu
      CUDA: adaptive_max_pool2d_cuda
@@ -5877,7 +5883,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: adaptive_max_pool2d_backward(Tensor grad_output, Tensor self, Tensor indices) -> Tensor
    use_c10_dispatcher: full
-@@ -5855,6 +7316,8 @@
+@@ -5855,6 +7318,8 @@
    dispatch:
      CPU: adaptive_max_pool2d_backward_cpu
      CUDA: adaptive_max_pool2d_backward_cuda
@@ -5886,7 +5892,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: adaptive_max_pool3d.out(Tensor self, int[3] output_size, *, Tensor(a!) out, Tensor(b!) indices) -> (Tensor(a!), Tensor(b!))
-@@ -5889,6 +7352,8 @@
+@@ -5889,6 +7354,8 @@
      CPU: avg_pool2d_out_cpu
      CUDA: avg_pool2d_out_cuda
      MkldnnCPU: mkldnn_avg_pool2d_out
@@ -5895,7 +5901,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: avg_pool2d(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
    python_module: nn
-@@ -5897,24 +7362,32 @@
+@@ -5897,24 +7364,32 @@
      CUDA: avg_pool2d_cuda
      MkldnnCPU: mkldnn_avg_pool2d
      QuantizedCPU: quantized_avg_pool2d
@@ -5928,7 +5934,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: avg_pool3d(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, bool ceil_mode=False, bool count_include_pad=True, int? divisor_override=None) -> Tensor
    python_module: nn
-@@ -5922,18 +7395,24 @@
+@@ -5922,18 +7397,24 @@
      CPU: avg_pool3d_cpu
      CUDA: avg_pool3d_cuda
      QuantizedCPU: quantized_avg_pool3d
@@ -5953,7 +5959,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: fractional_max_pool2d.output(Tensor self, int[2] kernel_size, int[2] output_size, Tensor random_samples, *, Tensor(a!) output, Tensor(b!) indices) -> (Tensor(a!), Tensor(b!))
-@@ -5993,6 +7472,8 @@
+@@ -5993,6 +7474,8 @@
    dispatch:
      CPU: max_pool2d_with_indices_out_cpu
      CUDA: max_pool2d_with_indices_out_cuda
@@ -5962,7 +5968,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: max_pool2d_with_indices(Tensor self, int[2] kernel_size, int[2] stride=[], int[2] padding=0, int[2] dilation=1, bool ceil_mode=False) -> (Tensor, Tensor)
-@@ -6000,6 +7481,8 @@
+@@ -6000,6 +7483,8 @@
    dispatch:
      CPU: max_pool2d_with_indices_cpu
      CUDA: max_pool2d_with_indices_cuda
@@ -5971,7 +5977,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: max_pool2d_with_indices_backward.grad_input(Tensor grad_output, Tensor self, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool ceil_mode, Tensor indices, *, Tensor(a!) grad_input) -> Tensor(a!)
-@@ -6007,12 +7490,16 @@
+@@ -6007,12 +7492,16 @@
    dispatch:
      CPU: max_pool2d_with_indices_backward_out_cpu
      CUDA: max_pool2d_with_indices_backward_out_cuda
@@ -5988,7 +5994,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: max_pool3d_with_indices.out(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, int[3] dilation=1, bool ceil_mode=False, *, Tensor(a!) out, Tensor(b!) indices) -> (Tensor(a!), Tensor(b!))
-@@ -6020,6 +7507,8 @@
+@@ -6020,6 +7509,8 @@
    dispatch:
      CPU: max_pool3d_with_indices_out_cpu
      CUDA: max_pool3d_with_indices_out_cuda
@@ -5997,7 +6003,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # Return: (Tensor output, Tensor indices)
  - func: max_pool3d_with_indices(Tensor self, int[3] kernel_size, int[3] stride=[], int[3] padding=0, int[3] dilation=1, bool ceil_mode=False) -> (Tensor, Tensor)
-@@ -6027,6 +7516,8 @@
+@@ -6027,6 +7518,8 @@
    dispatch:
      CPU: max_pool3d_with_indices_cpu
      CUDA: max_pool3d_with_indices_cuda
@@ -6006,7 +6012,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    supports_named_tensor: True
  
  - func: max_pool3d_with_indices_backward.grad_input(Tensor grad_output, Tensor self, int[3] kernel_size, int[3] stride, int[3] padding, int[3] dilation, bool ceil_mode, Tensor indices, *, Tensor(a!) grad_input) -> Tensor(a!)
-@@ -6034,12 +7525,17 @@
+@@ -6034,12 +7527,17 @@
    dispatch:
      CPU: max_pool3d_with_indices_backward_out_cpu
      CUDA: max_pool3d_with_indices_backward_out_cuda
@@ -6024,7 +6030,24 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: max_unpool2d.out(Tensor self, Tensor indices, int[2] output_size, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -6166,12 +7662,16 @@
+@@ -6118,12 +7616,16 @@
+   dispatch:
+     CPU: reflection_pad2d_out_cpu
+     CUDA: reflection_pad2d_out_cuda
++  npu_dispatch:
++    NPU: reflection_pad2d_out_npu
+ 
+ - func: reflection_pad2d(Tensor self, int[4] padding) -> Tensor
+   python_module: nn
+   dispatch:
+     CPU: reflection_pad2d_cpu
+     CUDA: reflection_pad2d_cuda
++  npu_dispatch:
++    NPU: reflection_pad2d_npu
+ 
+ - func: reflection_pad2d_backward.grad_input(Tensor grad_output, Tensor self, int[4] padding, *, Tensor(a!) grad_input) -> Tensor(a!)
+   python_module: nn
+@@ -6166,12 +7668,16 @@
    dispatch:
      CPU: replication_pad2d_out_cpu
      CUDA: replication_pad2d_out_cuda
@@ -6041,7 +6064,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: replication_pad2d_backward.grad_input(Tensor grad_output, Tensor self, int[4] padding, *, Tensor(a!) grad_input) -> Tensor(a!)
    python_module: nn
-@@ -6214,12 +7714,16 @@
+@@ -6214,12 +7720,16 @@
    dispatch:
      CPU: upsample_linear1d_out_cpu
      CUDA: upsample_linear1d_out_cuda
@@ -6058,7 +6081,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: upsample_linear1d_backward.grad_input(Tensor grad_output, int[1] output_size, int[3] input_size, bool align_corners, float? scales=None, *, Tensor(a!) grad_input) -> Tensor(a!)
    python_module: nn
-@@ -6232,12 +7736,16 @@
+@@ -6232,12 +7742,16 @@
    dispatch:
      CPU: upsample_linear1d_backward_cpu
      CUDA: upsample_linear1d_backward_cuda
@@ -6075,7 +6098,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: upsample_bilinear2d(Tensor self, int[2] output_size, bool align_corners, float? scales_h=None, float? scales_w=None) -> Tensor
    python_module: nn
-@@ -6245,96 +7753,128 @@
+@@ -6245,96 +7759,128 @@
      CPU: upsample_bilinear2d_cpu
      CUDA: upsample_bilinear2d_cuda
      QuantizedCPU: quantized_upsample_bilinear2d_cpu
@@ -6204,7 +6227,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: upsample_nearest2d(Tensor self, int[2] output_size, float? scales_h=None, float? scales_w=None) -> Tensor
    python_module: nn
-@@ -6342,24 +7882,32 @@
+@@ -6342,24 +7888,32 @@
      CPU: upsample_nearest2d_cpu
      CUDA: upsample_nearest2d_cuda
      QuantizedCPU: quantized_upsample_nearest2d_cpu
@@ -6237,7 +6260,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: upsample_nearest3d(Tensor self, int[3] output_size, float? scales_d=None, float? scales_h=None, float? scales_w=None) -> Tensor
    python_module: nn
-@@ -6367,38 +7915,52 @@
+@@ -6367,38 +7921,52 @@
      CPU: upsample_nearest3d_cpu
      CUDA: upsample_nearest3d_cuda
      QuantizedCPU: quantized_upsample_nearest3d_cpu
@@ -6290,7 +6313,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  # What's a thnn_conv_ versus a slow_conv_?
  #
-@@ -6423,24 +7985,32 @@
+@@ -6423,24 +7991,32 @@
    dispatch:
      CPU: slow_conv_transpose2d_out_cpu
      CUDA: slow_conv_transpose2d_out_cuda
@@ -6323,7 +6346,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: slow_conv_transpose3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] output_padding=0, int[3] dilation=1, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -6468,21 +8038,29 @@
+@@ -6468,21 +8044,29 @@
  
  - func: thnn_conv2d.out(Tensor self, Tensor weight, int[2] kernel_size, Tensor? bias=None, int[2] stride=1, int[2] padding=0, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
@@ -6353,7 +6376,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: thnn_conv2d_backward.grad_input(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, Tensor finput, Tensor fgrad_input, *, Tensor(a!)? grad_input, Tensor(b!)? grad_weight, Tensor(c!)? grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
    python_module: nn
-@@ -6495,32 +8073,46 @@
+@@ -6495,48 +8079,70 @@
    dispatch:
      CPU: slow_conv2d_backward_cpu
      CUDA: legacy::cuda::_thnn_conv2d_backward
@@ -6400,7 +6423,31 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: slow_conv3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, *, Tensor(a!) out) -> Tensor(a!)
    python_module: nn
-@@ -6553,12 +8145,16 @@
++  npu_dispatch:
++    NPU: slow_conv3d_out_npu
+ 
+ - func: slow_conv3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0) -> Tensor
+   python_module: nn
++  npu_dispatch:
++    NPU: slow_conv3d_npu
+ 
+ - func: slow_conv3d_forward.output(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding, *, Tensor(a!) output, Tensor(b!) finput, Tensor(c!) fgrad_input) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+   python_module: nn
+   dispatch:
+     CPU: slow_conv3d_forward_out_cpu
++  npu_dispatch:
++    NPU: slow_conv3d_forward_out_npu
+ 
+ - func: slow_conv3d_forward(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding) -> (Tensor output, Tensor finput, Tensor fgrad_input)
+   python_module: nn
+   dispatch:
+     CPU: slow_conv3d_forward_cpu
++  npu_dispatch:
++    NPU: slow_conv3d_forward_npu
+ 
+ - func: slow_conv3d_backward.grad_input(Tensor grad_output, Tensor self, Tensor weight, int[3] kernel_size, int[3] stride, int[3] padding, Tensor finput, Tensor fgrad_input, *, Tensor(a!)? grad_input, Tensor(b!)? grad_weight, Tensor(c!)? grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+   python_module: nn
+@@ -6553,12 +8159,16 @@
    dispatch:
      CPU: slow_conv_dilated2d_cpu
      CUDA: slow_conv_dilated2d_cuda
@@ -6417,7 +6464,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  - func: slow_conv_dilated3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] dilation=1) -> Tensor
    python_module: nn
-@@ -6577,57 +8173,413 @@
+@@ -6577,57 +8187,413 @@
    dispatch:
      CPU: col2im_out_cpu
      CUDA: col2im_out_cuda
@@ -6834,7 +6881,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S pytorch-develop/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S
 --- pytorch-v1.5.0/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-08-06 16:45:27.858803146 +0800
++++ pytorch-develop/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-08-13 18:32:48.450986091 +0800
 @@ -659,14 +659,14 @@
  
      SUB x1, x1, 4
@@ -6860,7 +6907,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      CMP x1, 2
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorCompare.cpp pytorch-develop/aten/src/ATen/native/TensorCompare.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorCompare.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/TensorCompare.cpp	2021-08-06 16:45:27.814802970 +0800
++++ pytorch-develop/aten/src/ATen/native/TensorCompare.cpp	2021-08-13 18:32:48.390986030 +0800
 @@ -64,7 +64,7 @@
  
  Tensor isinf(const Tensor &self) {
@@ -6872,7 +6919,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return AT_DISPATCH_FLOATING_TYPES_AND_HALF(self.scalar_type(), "isinf", [&]() {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorFactories.cpp pytorch-develop/aten/src/ATen/native/TensorFactories.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorFactories.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/TensorFactories.cpp	2021-08-06 16:45:27.814802970 +0800
++++ pytorch-develop/aten/src/ATen/native/TensorFactories.cpp	2021-08-13 18:32:48.390986030 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -6917,7 +6964,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorProperties.cpp pytorch-develop/aten/src/ATen/native/TensorProperties.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorProperties.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/TensorProperties.cpp	2021-08-06 16:45:27.814802970 +0800
++++ pytorch-develop/aten/src/ATen/native/TensorProperties.cpp	2021-08-13 18:32:48.390986030 +0800
 @@ -87,6 +87,7 @@
    if (self.is_contiguous(memory_format)) {
      return self;
@@ -6928,7 +6975,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        "preserve memory format is unsupported by the contiguous operator");
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/UpSampleBicubic2d.cpp pytorch-develop/aten/src/ATen/native/UpSampleBicubic2d.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-08-06 16:45:27.814802970 +0800
++++ pytorch-develop/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-08-13 18:32:48.390986030 +0800
 @@ -26,7 +26,7 @@
          const scalar_t* in = &idata[output_y * input_width + output_x];
          scalar_t* out = &odata[output_y * output_width + output_x];
@@ -6940,7 +6987,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
            out += output_width * output_height;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native_parse.py pytorch-develop/aten/src/ATen/native_parse.py
 --- pytorch-v1.5.0/aten/src/ATen/native_parse.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/native_parse.py	2021-08-06 16:45:27.870803194 +0800
++++ pytorch-develop/aten/src/ATen/native_parse.py	2021-08-13 18:32:48.466986108 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -6978,7 +7025,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  msg = '''Exception raised in processing function:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/preprocess_declarations.py pytorch-develop/aten/src/ATen/preprocess_declarations.py
 --- pytorch-v1.5.0/aten/src/ATen/preprocess_declarations.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/preprocess_declarations.py	2021-08-06 16:45:27.870803194 +0800
++++ pytorch-develop/aten/src/ATen/preprocess_declarations.py	2021-08-13 18:32:48.470986112 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -7010,7 +7057,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/templates/TensorBody.h pytorch-develop/aten/src/ATen/templates/TensorBody.h
 --- pytorch-v1.5.0/aten/src/ATen/templates/TensorBody.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/templates/TensorBody.h	2021-08-06 16:45:27.870803194 +0800
++++ pytorch-develop/aten/src/ATen/templates/TensorBody.h	2021-08-13 18:32:48.470986112 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7043,7 +7090,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/templates/TensorMethods.h pytorch-develop/aten/src/ATen/templates/TensorMethods.h
 --- pytorch-v1.5.0/aten/src/ATen/templates/TensorMethods.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/ATen/templates/TensorMethods.h	2021-08-06 16:45:27.870803194 +0800
++++ pytorch-develop/aten/src/ATen/templates/TensorMethods.h	2021-08-13 18:32:48.470986112 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7077,7 +7124,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/CMakeLists.txt pytorch-develop/aten/src/TH/CMakeLists.txt
 --- pytorch-v1.5.0/aten/src/TH/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/TH/CMakeLists.txt	2021-08-06 16:45:27.874803210 +0800
++++ pytorch-develop/aten/src/TH/CMakeLists.txt	2021-08-13 18:32:48.474986117 +0800
 @@ -48,6 +48,11 @@
    ${CMAKE_CURRENT_SOURCE_DIR}
  PARENT_SCOPE)
@@ -7092,7 +7139,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/generic/THStorage.cpp pytorch-develop/aten/src/TH/generic/THStorage.cpp
 --- pytorch-v1.5.0/aten/src/TH/generic/THStorage.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/TH/generic/THStorage.cpp	2021-08-06 16:45:27.874803210 +0800
++++ pytorch-develop/aten/src/TH/generic/THStorage.cpp	2021-08-13 18:32:48.474986117 +0800
 @@ -1,9 +1,32 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7201,7 +7248,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/generic/THStorage.h pytorch-develop/aten/src/TH/generic/THStorage.h
 --- pytorch-v1.5.0/aten/src/TH/generic/THStorage.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/aten/src/TH/generic/THStorage.h	2021-08-06 16:45:27.874803210 +0800
++++ pytorch-develop/aten/src/TH/generic/THStorage.h	2021-08-13 18:32:48.474986117 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7240,7 +7287,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/CMakeLists.txt pytorch-develop/c10/CMakeLists.txt
 --- pytorch-v1.5.0/c10/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/CMakeLists.txt	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/CMakeLists.txt	2021-08-13 18:32:48.490986133 +0800
 @@ -63,6 +63,14 @@
    message(STATUS "don't use NUMA")
  endif()
@@ -7269,7 +7316,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # not checked in
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Backend.h pytorch-develop/c10/core/Backend.h
 --- pytorch-v1.5.0/c10/core/Backend.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/Backend.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/Backend.h	2021-08-13 18:32:48.490986133 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7364,7 +7411,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Device.cpp pytorch-develop/c10/core/Device.cpp
 --- pytorch-v1.5.0/c10/core/Device.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/Device.cpp	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/Device.cpp	2021-08-13 18:32:48.490986133 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7404,7 +7451,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        types.begin(),
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Device.h pytorch-develop/c10/core/Device.h
 --- pytorch-v1.5.0/c10/core/Device.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/Device.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/Device.h	2021-08-13 18:32:48.490986133 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7439,7 +7486,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return type_ == DeviceType::CPU;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DeviceType.cpp pytorch-develop/c10/core/DeviceType.cpp
 --- pytorch-v1.5.0/c10/core/DeviceType.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/DeviceType.cpp	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/DeviceType.cpp	2021-08-13 18:32:48.490986133 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7479,7 +7526,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        return false;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DeviceType.h pytorch-develop/c10/core/DeviceType.h
 --- pytorch-v1.5.0/c10/core/DeviceType.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/DeviceType.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/DeviceType.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7522,7 +7569,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  constexpr DeviceType kXLA = DeviceType::XLA;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DispatchKey.cpp pytorch-develop/c10/core/DispatchKey.cpp
 --- pytorch-v1.5.0/c10/core/DispatchKey.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/DispatchKey.cpp	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/DispatchKey.cpp	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7554,7 +7601,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      case DispatchKey::TESTING_ONLY_GenericModeTensorId:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DispatchKey.h pytorch-develop/c10/core/DispatchKey.h
 --- pytorch-v1.5.0/c10/core/DispatchKey.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/DispatchKey.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/DispatchKey.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7586,7 +7633,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Storage.h pytorch-develop/c10/core/Storage.h
 --- pytorch-v1.5.0/c10/core/Storage.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/Storage.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/Storage.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7620,7 +7667,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  };
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/StorageImpl.h pytorch-develop/c10/core/StorageImpl.h
 --- pytorch-v1.5.0/c10/core/StorageImpl.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/StorageImpl.h	2021-08-06 16:45:27.886803259 +0800
++++ pytorch-develop/c10/core/StorageImpl.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,12 +1,39 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7677,7 +7724,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/TensorImpl.h pytorch-develop/c10/core/TensorImpl.h
 --- pytorch-v1.5.0/c10/core/TensorImpl.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/TensorImpl.h	2021-08-06 16:45:27.890803274 +0800
++++ pytorch-develop/c10/core/TensorImpl.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7747,7 +7794,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/TensorOptions.h pytorch-develop/c10/core/TensorOptions.h
 --- pytorch-v1.5.0/c10/core/TensorOptions.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/core/TensorOptions.h	2021-08-06 16:45:27.890803274 +0800
++++ pytorch-develop/c10/core/TensorOptions.h	2021-08-13 18:32:48.494986137 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7788,7 +7835,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/macros/Export.h pytorch-develop/c10/macros/Export.h
 --- pytorch-v1.5.0/c10/macros/Export.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/c10/macros/Export.h	2021-08-06 16:45:27.890803274 +0800
++++ pytorch-develop/c10/macros/Export.h	2021-08-13 18:32:48.498986141 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7915,7 +7962,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/caffe2/CMakeLists.txt pytorch-develop/caffe2/CMakeLists.txt
 --- pytorch-v1.5.0/caffe2/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/caffe2/CMakeLists.txt	2021-08-06 16:45:27.898803307 +0800
++++ pytorch-develop/caffe2/CMakeLists.txt	2021-08-13 18:32:48.506986150 +0800
 @@ -32,6 +32,7 @@
    # Add source, includes, and libs to lists
    list(APPEND Caffe2_CPU_SRCS ${ATen_CPU_SRCS})
@@ -8062,7 +8109,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # Call again since Caffe2_HIP_INCLUDE is extended with ATen include dirs.
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/.clang-format pytorch-develop/.clang-format
 --- pytorch-v1.5.0/.clang-format	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/.clang-format	2021-08-06 16:45:27.786802859 +0800
++++ pytorch-develop/.clang-format	2021-08-13 18:32:48.350985988 +0800
 @@ -84,5 +84,4 @@
  SpacesInSquareBrackets: false
  Standard:        Cpp11
@@ -8073,7 +8120,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/BuildVariables.cmake pytorch-develop/cmake/BuildVariables.cmake
 --- pytorch-v1.5.0/cmake/BuildVariables.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/cmake/BuildVariables.cmake	2021-08-06 16:45:28.006803739 +0800
++++ pytorch-develop/cmake/BuildVariables.cmake	2021-08-13 18:32:48.622986269 +0800
 @@ -11,6 +11,7 @@
  # CMakeLists.txt files under each folder respectively.
  set(Caffe2_CPU_SRCS)
@@ -8100,7 +8147,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # symbols. However, if the lib is whole linked in caffe2 lib, we don't want
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Codegen.cmake pytorch-develop/cmake/Codegen.cmake
 --- pytorch-v1.5.0/cmake/Codegen.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/cmake/Codegen.cmake	2021-08-06 16:45:28.006803739 +0800
++++ pytorch-develop/cmake/Codegen.cmake	2021-08-13 18:32:48.622986269 +0800
 @@ -191,13 +191,14 @@
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt generated_cpp)
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt-cuda cuda_generated_cpp)
@@ -8131,7 +8178,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Dependencies.cmake pytorch-develop/cmake/Dependencies.cmake
 --- pytorch-v1.5.0/cmake/Dependencies.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/cmake/Dependencies.cmake	2021-08-06 16:45:28.010803755 +0800
++++ pytorch-develop/cmake/Dependencies.cmake	2021-08-13 18:32:48.622986269 +0800
 @@ -1509,6 +1509,13 @@
    ENDIF(NOT C_HAS_THREAD)
  endif()
@@ -8148,7 +8195,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Summary.cmake pytorch-develop/cmake/Summary.cmake
 --- pytorch-v1.5.0/cmake/Summary.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/cmake/Summary.cmake	2021-08-06 16:45:28.010803755 +0800
++++ pytorch-develop/cmake/Summary.cmake	2021-08-13 18:32:48.622986269 +0800
 @@ -134,6 +134,7 @@
    if(NOT "${SELECTED_OP_LIST}" STREQUAL "")
      message(STATUS "  SELECTED_OP_LIST    : ${SELECTED_OP_LIST}")
@@ -8159,7 +8206,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endfunction()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/TorchConfig.cmake.in pytorch-develop/cmake/TorchConfig.cmake.in
 --- pytorch-v1.5.0/cmake/TorchConfig.cmake.in	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/cmake/TorchConfig.cmake.in	2021-08-06 16:45:28.010803755 +0800
++++ pytorch-develop/cmake/TorchConfig.cmake.in	2021-08-13 18:32:48.622986269 +0800
 @@ -112,6 +112,11 @@
    list(APPEND TORCH_LIBRARIES ${TORCH_CUDA_LIBRARIES})
  endif()
@@ -8174,7 +8221,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=@GLIBCXX_USE_CXX11_ABI@")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/CMakeLists.txt pytorch-develop/CMakeLists.txt
 --- pytorch-v1.5.0/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/CMakeLists.txt	2021-08-06 16:45:27.790802874 +0800
++++ pytorch-develop/CMakeLists.txt	2021-08-13 18:32:48.354985992 +0800
 @@ -205,6 +205,10 @@
  option(USE_TBB "Use TBB" OFF)
  option(ONNX_ML "Enable traditional ONNX ML API." ON)
@@ -8241,7 +8288,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/.dockerignore pytorch-develop/.dockerignore
 --- pytorch-v1.5.0/.dockerignore	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/.dockerignore	2021-08-06 16:45:27.786802859 +0800
++++ pytorch-develop/.dockerignore	2021-08-13 18:32:48.350985988 +0800
 @@ -1,257 +1 @@
 -# READ THIS BEFORE YOU REFACTOR ME
 -#
@@ -8515,9 +8562,20 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -ColumnLimit: 100
 -PointerBindsToType: false
 \ No newline at end of file
+diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/pt_sync.log pytorch-develop/pt_sync.log
+--- pytorch-v1.5.0/pt_sync.log	1970-01-01 08:00:00.000000000 +0800
++++ pytorch-develop/pt_sync.log	2021-08-13 18:32:49.990987685 +0800
+@@ -0,0 +1,7 @@
++unix2dos: converting file docs/make.bat to DOS format...
++unix2dos: converting file scripts/appveyor/install.bat to DOS format...
++unix2dos: converting file scripts/appveyor/install_cuda.bat to DOS format...
++unix2dos: converting file scripts/build_windows.bat to DOS format...
++unix2dos: converting file scripts/proto.ps1 to DOS format...
++unix2dos: converting file torch/distributions/von_mises.py to DOS format...
++unix2dos: converting file torch/nn/modules/transformer.pyi.in to DOS format...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/requirements.txt pytorch-develop/requirements.txt
 --- pytorch-v1.5.0/requirements.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/requirements.txt	2021-08-06 16:45:28.030803835 +0800
++++ pytorch-develop/requirements.txt	2021-08-13 18:32:48.642986290 +0800
 @@ -4,4 +4,12 @@
  requests
  setuptools
@@ -8536,7 +8594,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/setup.py pytorch-develop/setup.py
 --- pytorch-v1.5.0/setup.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/setup.py	2021-08-06 16:45:28.030803835 +0800
++++ pytorch-develop/setup.py	2021-08-13 18:32:48.646986294 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -8635,7 +8693,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  'python/serialized_test/data/operator_test/*.zip',
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/derivatives.yaml pytorch-develop/tools/autograd/derivatives.yaml
 --- pytorch-v1.5.0/tools/autograd/derivatives.yaml	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/derivatives.yaml	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/derivatives.yaml	2021-08-13 18:32:49.838987527 +0800
 @@ -107,6 +107,10 @@
  #
  # NB: The parameter names here MUST be consistent with the parameter names
@@ -8754,8 +8812,8 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/dump_utils.py pytorch-develop/tools/autograd/dump_utils.py
 --- pytorch-v1.5.0/tools/autograd/dump_utils.py	1970-01-01 08:00:00.000000000 +0800
-+++ pytorch-develop/tools/autograd/dump_utils.py	2021-08-06 16:45:29.178808429 +0800
-@@ -0,0 +1,115 @@
++++ pytorch-develop/tools/autograd/dump_utils.py	2021-08-13 18:32:49.842987531 +0800
+@@ -0,0 +1,118 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# All rights reserved.
 +#
@@ -8789,6 +8847,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +  LoadUtil::GetInstance()->Lock();
 +  if (!LoadUtil::GetInstance()->IsLoading()) {
 +    LoadUtil::GetInstance()->SetLoadFlag(true);
++    std::cout << "IR: " << ir_name << " load inputs" << std::endl;
 +    LoadUtil::GetInstance()->LoadInputs(ir_name, ${args_des});
 +    ${scalar_args_copy}
 +    seq_id = LoadUtil::GetInstance()->GetMatchedSeqId();
@@ -8801,6 +8860,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +  if (!DumpUtil::GetInstance()->IsDumping()) {
 +    DumpUtil::GetInstance()->SetDumpFlag(true);
 +    seq_id = DumpUtil::GetInstance()->DumpSeqIdAddOne();
++    std::cout << "IR: " << ir_name << " SeqId: " << seq_id << " dump inputs" << std::endl;
 +    DumpUtil::GetInstance()->DumpInputs(ir_name, seq_id, ${args_des});
 +    dump_flag = true;
 +  } else {
@@ -8836,6 +8896,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +#ifdef USE_DUMP
 +if (dump_flag || load_flag) {
 +  ${define_returns_des}
++  std::cout << "IR: " << ir_name << " SeqId: " << seq_id << " dump outputs" << std::endl;
 +  DumpUtil::GetInstance()->DumpOutputs(ir_name, seq_id, ${returns_des});
 +}
 +#endif
@@ -8873,7 +8934,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +]
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_autograd_functions.py pytorch-develop/tools/autograd/gen_autograd_functions.py
 --- pytorch-v1.5.0/tools/autograd/gen_autograd_functions.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/gen_autograd_functions.py	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/gen_autograd_functions.py	2021-08-13 18:32:49.842987531 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9059,7 +9120,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_python_functions.py pytorch-develop/tools/autograd/gen_python_functions.py
 --- pytorch-v1.5.0/tools/autograd/gen_python_functions.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/gen_python_functions.py	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/gen_python_functions.py	2021-08-13 18:32:49.842987531 +0800
 @@ -1,3 +1,20 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9101,7 +9162,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              'value': argname,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_variable_type.py pytorch-develop/tools/autograd/gen_variable_type.py
 --- pytorch-v1.5.0/tools/autograd/gen_variable_type.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/gen_variable_type.py	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/gen_variable_type.py	2021-08-13 18:32:49.842987531 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9274,7 +9335,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/Functions.cpp pytorch-develop/tools/autograd/templates/Functions.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/Functions.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/templates/Functions.cpp	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/templates/Functions.cpp	2021-08-13 18:32:49.842987531 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2021 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -9354,7 +9415,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto sparse = sparse_.coalesce();
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/python_torch_functions.cpp pytorch-develop/tools/autograd/templates/python_torch_functions.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/python_torch_functions.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/templates/python_torch_functions.cpp	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/templates/python_torch_functions.cpp	2021-08-13 18:32:49.842987531 +0800
 @@ -22,7 +22,7 @@
  #include "torch/csrc/autograd/generated/variable_factories.h"
  #include "torch/csrc/utils/structseq.h"
@@ -9438,7 +9499,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/python_variable_methods.cpp pytorch-develop/tools/autograd/templates/python_variable_methods.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/python_variable_methods.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/templates/python_variable_methods.cpp	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/templates/python_variable_methods.cpp	2021-08-13 18:32:49.842987531 +0800
 @@ -15,7 +15,13 @@
  #include "torch/csrc/cuda/Stream.h"
  #include "torch/csrc/cuda/Event.h"
@@ -9525,7 +9586,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"has_names", (PyCFunction)THPVariable_has_names, METH_NOARGS, NULL},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/VariableType.cpp pytorch-develop/tools/autograd/templates/VariableType.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/VariableType.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/templates/VariableType.cpp	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/templates/VariableType.cpp	2021-08-13 18:32:49.842987531 +0800
 @@ -1,7 +1,27 @@
 +// Copyright (c) 2021 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -9556,7 +9617,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/VariableType.h pytorch-develop/tools/autograd/templates/VariableType.h
 --- pytorch-v1.5.0/tools/autograd/templates/VariableType.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/autograd/templates/VariableType.h	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/autograd/templates/VariableType.h	2021-08-13 18:32:49.842987531 +0800
 @@ -1,3 +1,20 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -9588,7 +9649,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    const at::Tensor & unpack(const Tensor & t, const char * name, int pos);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/build_variables.bzl pytorch-develop/tools/build_variables.bzl
 --- pytorch-v1.5.0/tools/build_variables.bzl	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/tools/build_variables.bzl	2021-08-06 16:45:29.178808429 +0800
++++ pytorch-develop/tools/build_variables.bzl	2021-08-13 18:32:49.842987531 +0800
 @@ -46,6 +46,7 @@
      "torch/csrc/autograd/functions/utils.cpp",
      "torch/csrc/autograd/input_buffer.cpp",
@@ -9674,7 +9735,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def grad(outputs: _TensorOrTensors, inputs: _TensorOrTensors, grad_outputs: Optional[_TensorOrTensors]=..., retain_graph: Optional[bool]=..., create_graph: bool=..., only_inputs: bool=..., allow_unused: bool=...) -> Tuple[Tensor, ...]: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/autograd/profiler.py pytorch-develop/torch/autograd/profiler.py
 --- pytorch-v1.5.0/torch/autograd/profiler.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/autograd/profiler.py	2021-08-06 16:45:29.186808461 +0800
++++ pytorch-develop/torch/autograd/profiler.py	2021-08-13 18:32:49.850987539 +0800
 @@ -1,8 +1,25 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -10147,7 +10208,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return ''.join(result)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/CMakeLists.txt pytorch-develop/torch/CMakeLists.txt
 --- pytorch-v1.5.0/torch/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/CMakeLists.txt	2021-08-06 16:45:29.182808445 +0800
++++ pytorch-develop/torch/CMakeLists.txt	2021-08-13 18:32:49.846987535 +0800
 @@ -97,6 +97,7 @@
      ${TORCH_SRC_DIR}/csrc/tensor/python_tensor.cpp
      ${TORCH_SRC_DIR}/csrc/utils.cpp
@@ -10179,7 +10240,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/engine.cpp pytorch-develop/torch/csrc/autograd/engine.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/engine.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/engine.cpp	2021-08-06 16:45:29.194808493 +0800
++++ pytorch-develop/torch/csrc/autograd/engine.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10302,7 +10363,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        auto event = c10::Event{c10::DeviceType::CUDA};
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/functions/tensor.cpp pytorch-develop/torch/csrc/autograd/functions/tensor.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/functions/tensor.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/functions/tensor.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/functions/tensor.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10334,7 +10395,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
            /*non_blocking=*/false,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/init.cpp pytorch-develop/torch/csrc/autograd/init.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/init.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/init.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10377,7 +10438,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    m.def("_enable_profiler", enableProfiler);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/input_buffer.cpp pytorch-develop/torch/csrc/autograd/input_buffer.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/input_buffer.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/input_buffer.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/input_buffer.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10429,7 +10490,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto& old_var = buffer[pos];
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/profiler.cpp pytorch-develop/torch/csrc/autograd/profiler.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/profiler.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/profiler.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/profiler.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10625,7 +10686,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  CUDAStubs::~CUDAStubs() = default;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/profiler.h pytorch-develop/torch/csrc/autograd/profiler.h
 --- pytorch-v1.5.0/torch/csrc/autograd/profiler.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/profiler.h	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/profiler.h	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10750,7 +10811,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/python_variable.cpp pytorch-develop/torch/csrc/autograd/python_variable.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/python_variable.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/python_variable.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/python_variable.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10804,7 +10865,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"is_complex", (getter)THPVariable_is_complex, nullptr, nullptr, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/python_variable_indexing.cpp pytorch-develop/torch/csrc/autograd/python_variable_indexing.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/python_variable_indexing.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/python_variable_indexing.cpp	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/python_variable_indexing.cpp	2021-08-13 18:32:49.862987552 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10845,7 +10906,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/utils/wrap_outputs.h pytorch-develop/torch/csrc/autograd/utils/wrap_outputs.h
 --- pytorch-v1.5.0/torch/csrc/autograd/utils/wrap_outputs.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/utils/wrap_outputs.h	2021-08-06 16:45:29.198808509 +0800
++++ pytorch-develop/torch/csrc/autograd/utils/wrap_outputs.h	2021-08-13 18:32:49.862987552 +0800
 @@ -168,6 +168,45 @@
    return r.release();
  }
@@ -10894,7 +10955,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    if (!r) throw python_error();
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/VariableTypeManual.cpp pytorch-develop/torch/csrc/autograd/VariableTypeManual.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/VariableTypeManual.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/autograd/VariableTypeManual.cpp	2021-08-06 16:45:29.194808493 +0800
++++ pytorch-develop/torch/csrc/autograd/VariableTypeManual.cpp	2021-08-13 18:32:49.858987548 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10928,7 +10989,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    if (!t.defined()) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/comm.cpp pytorch-develop/torch/csrc/distributed/c10d/comm.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/comm.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/distributed/c10d/comm.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/distributed/c10d/comm.cpp	2021-08-13 18:32:49.866987556 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11034,7 +11095,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    while (!in_flight.empty()) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/init.cpp pytorch-develop/torch/csrc/distributed/c10d/init.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/distributed/c10d/init.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/distributed/c10d/init.cpp	2021-08-13 18:32:49.866987556 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11091,7 +11152,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        .def("is_success", &::c10d::ProcessGroup::Work::isSuccess)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/reducer.cpp pytorch-develop/torch/csrc/distributed/c10d/reducer.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/reducer.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/distributed/c10d/reducer.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/distributed/c10d/reducer.cpp	2021-08-13 18:32:49.866987556 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11216,7 +11277,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/DynamicTypes.cpp pytorch-develop/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.5.0/torch/csrc/DynamicTypes.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/DynamicTypes.cpp	2021-08-06 16:45:29.186808461 +0800
++++ pytorch-develop/torch/csrc/DynamicTypes.cpp	2021-08-13 18:32:49.850987539 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11265,7 +11326,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return it->second;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/Generator.cpp pytorch-develop/torch/csrc/Generator.cpp
 --- pytorch-v1.5.0/torch/csrc/Generator.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/Generator.cpp	2021-08-06 16:45:29.186808461 +0800
++++ pytorch-develop/torch/csrc/Generator.cpp	2021-08-13 18:32:49.850987539 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11333,7 +11394,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #endif 
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/serialization.cpp pytorch-develop/torch/csrc/generic/serialization.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/serialization.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/generic/serialization.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/generic/serialization.cpp	2021-08-13 18:32:49.870987560 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11433,7 +11494,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/Storage.cpp pytorch-develop/torch/csrc/generic/Storage.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/Storage.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/generic/Storage.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/generic/Storage.cpp	2021-08-13 18:32:49.870987560 +0800
 @@ -1,7 +1,25 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11512,7 +11573,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        for (Py_ssize_t i = 0; i < length; i++) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/StorageMethods.cpp pytorch-develop/torch/csrc/generic/StorageMethods.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/StorageMethods.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/generic/StorageMethods.cpp	2021-08-06 16:45:29.202808525 +0800
++++ pytorch-develop/torch/csrc/generic/StorageMethods.cpp	2021-08-13 18:32:49.870987560 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11560,7 +11621,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"_write_file", (PyCFunction)THPStorage_(writeFile), METH_VARARGS, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/Module.cpp pytorch-develop/torch/csrc/Module.cpp
 --- pytorch-v1.5.0/torch/csrc/Module.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/Module.cpp	2021-08-06 16:45:29.186808461 +0800
++++ pytorch-develop/torch/csrc/Module.cpp	2021-08-13 18:32:49.850987539 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11704,7 +11765,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto set_module_attr = [&](const char* name, PyObject* v, bool incref = true) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/tensor/python_tensor.cpp pytorch-develop/torch/csrc/tensor/python_tensor.cpp
 --- pytorch-v1.5.0/torch/csrc/tensor/python_tensor.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/tensor/python_tensor.cpp	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/tensor/python_tensor.cpp	2021-08-13 18:32:49.898987589 +0800
 @@ -1,18 +1,35 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12081,7 +12142,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +} // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/init.cpp pytorch-develop/torch/csrc/utils/init.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/init.cpp	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/init.cpp	2021-08-13 18:32:49.898987589 +0800
 @@ -1,6 +1,10 @@
  #include <ATen/core/ivalue.h>
  #include <torch/csrc/utils/init.h>
@@ -12169,7 +12230,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  } // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/init.h pytorch-develop/torch/csrc/utils/init.h
 --- pytorch-v1.5.0/torch/csrc/utils/init.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/init.h	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/init.h	2021-08-13 18:32:49.898987589 +0800
 @@ -8,4 +8,7 @@
  void initThroughputBenchmarkBindings(PyObject* module);
  
@@ -12180,7 +12241,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  } // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/python_arg_parser.h pytorch-develop/torch/csrc/utils/python_arg_parser.h
 --- pytorch-v1.5.0/torch/csrc/utils/python_arg_parser.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/python_arg_parser.h	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/python_arg_parser.h	2021-08-13 18:32:49.898987589 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12215,7 +12276,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return at::Device(device_str);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_layouts.cpp pytorch-develop/torch/csrc/utils/tensor_layouts.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_layouts.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/tensor_layouts.cpp	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/tensor_layouts.cpp	2021-08-13 18:32:49.898987589 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12246,7 +12307,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    registerLayoutObject((THPLayout*)strided_layout, at::Backend::QuantizedCPU);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_new.cpp pytorch-develop/torch/csrc/utils/tensor_new.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_new.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/tensor_new.cpp	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/tensor_new.cpp	2021-08-13 18:32:49.898987589 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12382,7 +12443,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    } else if(expected_layout == c10::kSparse) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_types.cpp pytorch-develop/torch/csrc/utils/tensor_types.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_types.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/csrc/utils/tensor_types.cpp	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/csrc/utils/tensor_types.cpp	2021-08-13 18:32:49.898987589 +0800
 @@ -1,58 +1,91 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12595,7 +12656,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def get_rng_state(): ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/distributed/distributed_c10d.py pytorch-develop/torch/distributed/distributed_c10d.py
 --- pytorch-v1.5.0/torch/distributed/distributed_c10d.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/distributed/distributed_c10d.py	2021-08-06 16:45:29.226808621 +0800
++++ pytorch-develop/torch/distributed/distributed_c10d.py	2021-08-13 18:32:49.902987593 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -12676,7 +12737,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/__init__.py pytorch-develop/torch/__init__.py
 --- pytorch-v1.5.0/torch/__init__.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/__init__.py	2021-08-06 16:45:29.182808445 +0800
++++ pytorch-develop/torch/__init__.py	2021-08-13 18:32:49.846987535 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -12719,7 +12780,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/lib/c10d/CMakeLists.txt pytorch-develop/torch/lib/c10d/CMakeLists.txt
 --- pytorch-v1.5.0/torch/lib/c10d/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/lib/c10d/CMakeLists.txt	2021-08-06 16:45:29.230808637 +0800
++++ pytorch-develop/torch/lib/c10d/CMakeLists.txt	2021-08-13 18:32:49.906987598 +0800
 @@ -28,6 +28,10 @@
    option(USE_C10D_NCCL "USE C10D NCCL" ON)
  endif()
@@ -12772,7 +12833,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    copy_header(ProcessGroupMPI.hpp)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/lib/libshm/CMakeLists.txt pytorch-develop/torch/lib/libshm/CMakeLists.txt
 --- pytorch-v1.5.0/torch/lib/libshm/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/lib/libshm/CMakeLists.txt	2021-08-06 16:45:29.234808653 +0800
++++ pytorch-develop/torch/lib/libshm/CMakeLists.txt	2021-08-13 18:32:49.910987602 +0800
 @@ -37,8 +37,11 @@
  SET_TARGET_PROPERTIES(shm PROPERTIES
    PREFIX "lib"
@@ -12829,7 +12890,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -_maybe_indices_t = _scalar_or_tuple_2_t[Tensor]
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/functional.py pytorch-develop/torch/nn/functional.py
 --- pytorch-v1.5.0/torch/nn/functional.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/nn/functional.py	2021-08-06 16:45:29.238808669 +0800
++++ pytorch-develop/torch/nn/functional.py	2021-08-13 18:32:49.910987602 +0800
 @@ -1611,7 +1611,7 @@
      else:
          output = input.matmul(weight.t())
@@ -12852,7 +12913,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -from . import parallel as parallel
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/batchnorm.py pytorch-develop/torch/nn/modules/batchnorm.py
 --- pytorch-v1.5.0/torch/nn/modules/batchnorm.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/nn/modules/batchnorm.py	2021-08-06 16:45:29.238808669 +0800
++++ pytorch-develop/torch/nn/modules/batchnorm.py	2021-08-13 18:32:49.910987602 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -12884,7 +12945,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              self.register_parameter('running_var', None)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/module.py pytorch-develop/torch/nn/modules/module.py
 --- pytorch-v1.5.0/torch/nn/modules/module.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/nn/modules/module.py	2021-08-06 16:45:29.238808669 +0800
++++ pytorch-develop/torch/nn/modules/module.py	2021-08-13 18:32:49.914987606 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13027,7 +13088,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  return t.to(device, dtype if t.is_floating_point() else None, non_blocking, memory_format=convert_to_format)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/normalization.py pytorch-develop/torch/nn/modules/normalization.py
 --- pytorch-v1.5.0/torch/nn/modules/normalization.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/nn/modules/normalization.py	2021-08-06 16:45:29.238808669 +0800
++++ pytorch-develop/torch/nn/modules/normalization.py	2021-08-13 18:32:49.914987606 +0800
 @@ -128,13 +128,14 @@
      """
      __constants__ = ['normalized_shape', 'eps', 'elementwise_affine']
@@ -13096,7 +13157,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -                  module_kwargs: Optional[Any] = ...) -> Tensor: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/parallel/distributed.py pytorch-develop/torch/nn/parallel/distributed.py
 --- pytorch-v1.5.0/torch/nn/parallel/distributed.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/nn/parallel/distributed.py	2021-08-06 16:45:29.238808669 +0800
++++ pytorch-develop/torch/nn/parallel/distributed.py	2021-08-13 18:32:49.914987606 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13142,8 +13203,12 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          else:
              # Use all devices by default for single-device CUDA modules
              if device_ids is None:
-@@ -439,7 +461,8 @@
-         if self.require_forward_param_sync:
+@@ -436,10 +458,11 @@
+             self.require_backward_grad_sync = old_require_backward_grad_sync
+ 
+     def forward(self, *inputs, **kwargs):
+-        if self.require_forward_param_sync:
++        if self.require_forward_param_sync and torch.is_grad_enabled():
              self._sync_params()
  
 -        if self.device_ids:
@@ -13447,7 +13512,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def remove_weight_norm(module: T_module, name: str = ...) -> T_module: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/onnx/symbolic_opset9.py pytorch-develop/torch/onnx/symbolic_opset9.py
 --- pytorch-v1.5.0/torch/onnx/symbolic_opset9.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/onnx/symbolic_opset9.py	2021-08-06 16:45:29.242808686 +0800
++++ pytorch-develop/torch/onnx/symbolic_opset9.py	2021-08-13 18:32:49.918987610 +0800
 @@ -1621,14 +1621,23 @@
          slices = [sym_help._slice_helper(g, w, axes=[0], starts=[x * n], ends=[y * n]) for x, y in intervals]
          return g.op('Concat', *slices, axis_i=0)
@@ -13525,7 +13590,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, params: _params_t, lr: float=..., lr_decay: float=..., weight_decay: float=..., initial_accumulator_value: float=...,  eps: float=...) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/optim/adamax.py pytorch-develop/torch/optim/adamax.py
 --- pytorch-v1.5.0/torch/optim/adamax.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/optim/adamax.py	2021-08-06 16:45:29.242808686 +0800
++++ pytorch-develop/torch/optim/adamax.py	2021-08-13 18:32:49.918987610 +0800
 @@ -80,8 +80,8 @@
                      exp_inf.mul_(beta2).unsqueeze(0),
                      grad.abs().add_(eps).unsqueeze_(0)
@@ -13702,7 +13767,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, params: _params_t, lr: float=..., betas: Tuple[float, float]=..., eps: float=...) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/serialization.py pytorch-develop/torch/serialization.py
 --- pytorch-v1.5.0/torch/serialization.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/serialization.py	2021-08-06 16:45:29.246808701 +0800
++++ pytorch-develop/torch/serialization.py	2021-08-13 18:32:49.922987614 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13786,7 +13851,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  def location_tag(storage):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/storage.py pytorch-develop/torch/storage.py
 --- pytorch-v1.5.0/torch/storage.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/storage.py	2021-08-06 16:45:29.246808701 +0800
++++ pytorch-develop/torch/storage.py	2021-08-13 18:32:49.922987614 +0800
 @@ -7,6 +7,7 @@
  
  class _StorageBase(object):
@@ -13806,7 +13871,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          else:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/tensor.py pytorch-develop/torch/tensor.py
 --- pytorch-v1.5.0/torch/tensor.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/tensor.py	2021-08-06 16:45:29.246808701 +0800
++++ pytorch-develop/torch/tensor.py	2021-08-13 18:32:49.922987614 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13868,7 +13933,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      def __reversed__(self):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/_tensor_str.py pytorch-develop/torch/_tensor_str.py
 --- pytorch-v1.5.0/torch/_tensor_str.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/_tensor_str.py	2021-08-06 16:45:29.182808445 +0800
++++ pytorch-develop/torch/_tensor_str.py	2021-08-13 18:32:49.846987535 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13922,7 +13987,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      has_default_dtype = self.dtype in (torch.get_default_dtype(), torch.int64, torch.bool)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/data/dataloader.py pytorch-develop/torch/utils/data/dataloader.py
 --- pytorch-v1.5.0/torch/utils/data/dataloader.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/utils/data/dataloader.py	2021-08-06 16:45:29.250808717 +0800
++++ pytorch-develop/torch/utils/data/dataloader.py	2021-08-13 18:32:49.926987618 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14131,7 +14196,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, sampler: Sampler[int], batch_size: int, drop_last: bool) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/data/_utils/pin_memory.py pytorch-develop/torch/utils/data/_utils/pin_memory.py
 --- pytorch-v1.5.0/torch/utils/data/_utils/pin_memory.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/utils/data/_utils/pin_memory.py	2021-08-06 16:45:29.250808717 +0800
++++ pytorch-develop/torch/utils/data/_utils/pin_memory.py	2021-08-13 18:32:49.926987618 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14192,7 +14257,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/__init__.py pytorch-develop/torch/utils/__init__.py
 --- pytorch-v1.5.0/torch/utils/__init__.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/utils/__init__.py	2021-08-06 16:45:29.246808701 +0800
++++ pytorch-develop/torch/utils/__init__.py	2021-08-13 18:32:49.926987618 +0800
 @@ -1,6 +1,7 @@
  from __future__ import absolute_import, division, print_function, unicode_literals
  
@@ -14203,7 +14268,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  def set_module(obj, mod):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/_utils.py pytorch-develop/torch/_utils.py
 --- pytorch-v1.5.0/torch/_utils.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop/torch/_utils.py	2021-08-06 16:45:29.182808445 +0800
++++ pytorch-develop/torch/_utils.py	2021-08-13 18:32:49.846987535 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
