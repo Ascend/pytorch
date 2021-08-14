@@ -215,6 +215,7 @@ class OpCommandImpl {
       const Tensor& hostTensor) {
     AddInput(desc, buffer, dim, format);
     execParam.hostMem.emplace_back(hostTensor);
+    execParam.graph.SetConst(hostTensor.data_ptr(), hostTensor.nbytes());
   }
 
   void AddConst(SmallVector<int64_t, N> dimList) {

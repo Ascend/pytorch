@@ -100,6 +100,9 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY TensorDesc {
   void SetPlacement(Placement placement);
   Placement GetPlacement() const;
 
+  void SetConstData(const std::shared_ptr<void> const_data_buffer, const size_t &const_data_len);
+  bool GetConstData(std::shared_ptr<void>& const_dat_buffer, size_t &const_data_len) const;
+
  private:
   std::shared_ptr<TensorDescImpl> impl;
 };

@@ -62,6 +62,10 @@ public:
     */
   Graph& Output(const aclTensorDesc* outDesc);
   /**
+  This api is used to set graph's last input desc to be const.
+  */
+  Graph& SetConst(void* const_data_buffer, const size_t &const_data_len);
+  /**
     This api is used to make graph, which is depend on the TensorDesc of inputs and outputs
     */
   void Make();

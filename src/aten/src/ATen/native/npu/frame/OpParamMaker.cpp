@@ -153,7 +153,7 @@ void OpCommandImpl::Run() {
 }
 
 aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
-  AutoTune::GetInstance()->Do(name, params.graph);
+  AutotuneManager::GetInstance()->PushGraph(name, params.graph);
   auto stream = c10::npu::getCurrentNPUStream();
   auto inputSize = params.inBuffer.size();
   auto outputSize = params.outBuffer.size();

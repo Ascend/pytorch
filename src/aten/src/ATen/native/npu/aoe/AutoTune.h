@@ -19,35 +19,41 @@
 #include <atomic>
 #include <ATen/native/npu/interface/AoeInterface.h>
 #include <ATen/native/npu/interface/Graph.h>
-
+#include<c10/core/thread_pool.h>
 namespace at {
 namespace native {
 namespace npu {
-
 /** 
   class Autotune provide API for tuning.
   */
-class AutoTune {
-public:
-  /**
-    singleton
-    */
-  static AutoTune* GetInstance();
-  /**
-    when this API is called, we will make graph and tune it.
-    */
-  void Do(const std::string& name, Graph& tuningGraph);
+class AutotuneManager {
 
-private:
-  AutoTune();
-  ~AutoTune();
-  void Init();
-  void DeInit();
+public:
+  static AutotuneManager* GetInstance();
+  void PushGraph(const std::string& name, Graph& tuningGraph);
 
 private:
   std::atomic<bool> isInited;
-  aoe::SessionId sessionId;
-}; // class AutoTune
+  std::shared_ptr<TaskThreadPool> thread_pool_;
+  std::vector<aoe::SessionId> sessionIDs;
+  std::vector<ge::Graph> ge_graphs;
+  std::map<ge::AscendString, ge::AscendString> sessionOptions;
+
+  AutotuneManager();
+  ~AutotuneManager();
+
+  void Init(); 
+  void DeInit();
+
+  void DoGraphsTune();
+  void DoGraphTune(ge::Graph& ge_graph, aoe::SessionId sessionId);
+  void TuningGraphs();
+  void WaitThreadsFinished();
+
+  void CreatSessions();
+  void DestroySessions();
+
+};
 
 } // namespace npu
 } // namespace native
