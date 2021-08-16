@@ -29,7 +29,7 @@ namespace at {
 namespace native {
 namespace npu {
 
-void FuzzyCompileBlacklist::RegisterBlacklist(const std::string blacklist) {
+void FuzzyCompileBlacklist::RegisterBlacklist(const std::string& blacklist) {
   if (blacklist.size() <= 0)
     return;
   auto value = blacklist;
@@ -52,7 +52,7 @@ void FuzzyCompileBlacklist::RegisterBlacklist(const std::string blacklist) {
   return ;
 }
 
-bool FuzzyCompileBlacklist::IsInBlacklist(const std::string opName) const {
+bool FuzzyCompileBlacklist::IsInBlacklist(const std::string& opName) const {
   if (black_list_.find(opName) != black_list_.end()) {
     return true;
   }

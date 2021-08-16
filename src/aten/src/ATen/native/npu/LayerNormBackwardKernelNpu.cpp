@@ -45,19 +45,13 @@ tuple<Tensor &, Tensor &, Tensor &> layer_norm_backward_npu_nocheck(
   Tensor variance = 1 / at::pow(rstd, 2) - eps;  
   variance = variance.reshape(tmpSize);
 
-  Tensor formatCastOfdY = dY.npu_format_cast(ACL_FORMAT_ND);
-  Tensor formatCastOfX = X.npu_format_cast(ACL_FORMAT_ND);
-  Tensor formatCastOfVariance = variance.npu_format_cast(ACL_FORMAT_ND);
-  Tensor formatCastOfMean = mean_ex.npu_format_cast(ACL_FORMAT_ND);
-  Tensor formatCastOfGamma = gamma.npu_format_cast(ACL_FORMAT_ND);
-
   OpCommand cmd;
   cmd.Name("LayerNormGrad")
-    .Input(formatCastOfdY)
-    .Input(formatCastOfX)
-    .Input(formatCastOfVariance)
-    .Input(formatCastOfMean)
-    .Input(formatCastOfGamma)
+    .Input(dY)
+    .Input(X)
+    .Input(variance)
+    .Input(mean_ex)
+    .Input(gamma)
     .Output(dX)
     .Output(dgamma)
     .Output(dbeta)
@@ -108,12 +102,9 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu(
   }  
 
   // construct the output tensor
-  dX = at::empty_with_format(
-      std::get<0>(outputSizes), X.options(), ACL_FORMAT_NCHW);
-  dgamma = at::empty_with_format(
-      std::get<1>(outputSizes), gammaTemp.options(), ACL_FORMAT_NCHW);
-  dbeta = at::empty_with_format(
-      std::get<2>(outputSizes), gammaTemp.options(), ACL_FORMAT_NCHW);
+  dX = OpPreparation::ApplyTensor(X, std::get<0>(outputSizes));
+  dgamma = OpPreparation::ApplyTensor(gammaTemp, std::get<1>(outputSizes));
+  dbeta = OpPreparation::ApplyTensor(gammaTemp, std::get<2>(outputSizes));
   
   // calculate the output result of the NPU
   return layer_norm_backward_npu_nocheck(dX, dgamma, dbeta, dY, X, mean, rstd, gammaTemp, M, N);

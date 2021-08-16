@@ -29,8 +29,8 @@ public:
     static FuzzyCompileBlacklist fuzzy_black_list;
       return fuzzy_black_list;
   }
-  void RegisterBlacklist(const std::string blacklist);
-  bool IsInBlacklist(const std::string opName) const;
+  void RegisterBlacklist(const std::string& blacklist);
+  bool IsInBlacklist(const std::string& opName) const;
   void DisplayBlacklist() const;
   ~FuzzyCompileBlacklist() = default;
 private:

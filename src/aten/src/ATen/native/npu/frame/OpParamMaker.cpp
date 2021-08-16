@@ -158,8 +158,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   auto inputSize = params.inBuffer.size();
   auto outputSize = params.outBuffer.size();
   bool reset_flag = false;
-  if (env::CheckFuzzyEnable() &&
-      FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name)) {
+  if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name) && env::CheckFuzzyEnable()) {
     AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
     reset_flag = true;
   }
@@ -196,8 +195,7 @@ int ExecFunc(void* in, aclrtStream stream) {
     ret = DynamicRun(*cur_paras, stream);
   } else {
     bool reset_flag = false;
-    if (env::CheckFuzzyEnable() &&
-        FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType)) {
+    if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType) && env::CheckFuzzyEnable()) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;
     }
