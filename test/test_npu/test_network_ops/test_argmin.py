@@ -49,11 +49,12 @@ class TestArgmin(TestCase):
 
     def test_argmin_shape_format(self, device):
         shape_format = [
-            [ [np.float32, 0, (6, 4)],       0, False],
-            [ [np.float32, 0, (6, 4)],       1, True ],
-            [ [np.float32, 0, (2, 4, 5)],    2, True ],
-            [ [np.float32, 0, (1, 2, 3, 3)], 2, False],
-            [ [np.float32, 0, (1, 2, 3, 3)], 3, True ],
+            [ [np.float32, 0,  (6, 4)],           0, False],
+            [ [np.float32, 0,  (6, 4)],           1, True ],
+            [ [np.float32, 0,  (2, 4, 5)],        2, True ],
+            [ [np.float32, 0,  (1, 2, 3, 3)],     2, False],
+            [ [np.float32, 0,  (1, 2, 3, 3)],     2, False],
+            [ [np.float32, 29, (15, 15, 15, 16)], 1, False],
         ]
                
         for item in shape_format:
