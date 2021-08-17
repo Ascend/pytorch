@@ -5168,6 +5168,8 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
+  npu_dispatch:    
+    NPU: __lshift___npu
 
 - func: __lshift__.Tensor(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -5175,18 +5177,24 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
+  npu_dispatch:    
+    NPU: __lshift___npu
 
 - func: __ilshift__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
   variants: method
   dispatch:
     CPU: __ilshift__
     CUDA: __ilshift__
+  npu_dispatch:
+    NPU: __iLshift___npu
 
 - func: __ilshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
   variants: method
   dispatch:
     CPU: __ilshift__
     CUDA: __ilshift__
+  npu_dispatch:
+    NPU: __iLshift___npu
 
 - func: __rshift__.Scalar(Tensor self, Scalar other) -> Tensor
   use_c10_dispatcher: full
@@ -5194,6 +5202,8 @@
   dispatch:
     CPU: __rshift__
     CUDA: __rshift__
+  npu_dispatch:
+    NPU: __rshift___npu
 
 - func: __rshift__.Tensor(Tensor self, Tensor other) -> Tensor
   use_c10_dispatcher: full
@@ -5201,18 +5211,24 @@
   dispatch:
     CPU: __rshift__
     CUDA: __rshift__
+  npu_dispatch:
+    NPU: __rshift___npu
 
 - func: __irshift__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
   variants: method
   dispatch:
     CPU: __irshift__
     CUDA: __irshift__
+  npu_dispatch:
+    NPU: __iRshift___npu
 
 - func: __irshift__.Tensor(Tensor(a!) self, Tensor other) -> Tensor(a!)
   variants: method
   dispatch:
     CPU: __irshift__
     CUDA: __irshift__
+  npu_dispatch:
+    NPU: __iRshift___npu
 
 - func: lgamma_(Tensor(a!) self) -> Tensor(a!)
   supports_named_tensor: True

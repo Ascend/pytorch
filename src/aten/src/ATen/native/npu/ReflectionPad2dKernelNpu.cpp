@@ -52,7 +52,7 @@ Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArr
     .Input(padding, at::kInt)
     .Input(value_tensor, self.scalar_type())
     .Output(out)
-    .Attr("mode", "reflect")
+    .Attr("mode", (string)"reflect")
     .Attr("paddings_contiguous", true)
     .Run();
 

@@ -236,7 +236,7 @@ namespace at {
     PrepareSimpleHdf5Attr(dataset, ATTR_TYPE_NAME, PredType::STD_I32LE, &typeData);
 
     // create contiguous cpu tensor
-    auto tensor_cpu = tensor.detach().cpu().clone();
+    auto tensor_cpu = tensor.detach().cpu().contiguous().clone();
 
     // prepare stride attribute
     rank = 1;

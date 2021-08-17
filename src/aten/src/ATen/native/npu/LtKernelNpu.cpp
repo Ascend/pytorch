@@ -50,7 +50,7 @@ Tensor& lt_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
       {self},
       result,
       ACL_FORMAT_ND,
-      result.scalar_type(),
+      kBool,
       outputSize);
 
   lt_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
@@ -79,7 +79,7 @@ Tensor& lt_out_npu(Tensor& result, const Tensor& self, Scalar other) {
       {self},
       result,
       ACL_FORMAT_ND,
-      result.scalar_type(),
+      kBool,
       outputSize);
 
   lt_out_npu_nocheck(result, formatCastOfSelf, other);

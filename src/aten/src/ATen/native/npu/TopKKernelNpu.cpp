@@ -197,7 +197,7 @@ tuple<Tensor&, Tensor&> large_topk_out_npu(
   return std::tie(values, indices);
 }
 
-tuple<Tensor&, Tensor&> topk_out_npu(
+tuple<Tensor&, Tensor&> topk_out_npu_nocheck(
     Tensor& values,
     Tensor& indices,
     const Tensor& self,
@@ -250,6 +250,36 @@ tuple<Tensor&, Tensor&> topk_out_npu(
   return tuple<Tensor&, Tensor&>(values, indices);
 }
 
+tuple<Tensor&, Tensor&> topk_out_npu(
+    Tensor& values,
+    Tensor& indices,
+    const Tensor& self,
+    int64_t k,
+    int64_t dim,
+    bool largest,
+    bool sorted) {
+  Tensor selfCp = OpPreparation::CastBackToOriFormat(self);
+
+  // calculate the output size
+  auto outputSize = topk_npu_output_size(selfCp, k, dim, largest, sorted);
+  SmallVector<int64_t, SIZE> indicesSize = outputSize;
+
+  // calculate the output result of the NPU
+  auto func = [&selfCp, k, dim, largest, sorted](Tensor& values, Tensor& indices) {
+    topk_out_npu_nocheck(values, indices, selfCp, k, dim, largest, sorted);
+  };
+
+  Tensor indices_tmp;
+  OpPipeWithMultiOut<Tensor&, Tensor&> pipe(values, indices_tmp);
+  return pipe.FixOutputSizeAndFormat<0>({selfCp}, selfCp, CalcuOpUtil::get_tensor_npu_format(selfCp), outputSize)
+      .ApplyOutputWithSpecailParams<1>(indicesSize, selfCp.options().dtype(kInt), ACL_FORMAT_ND)
+      .Call(func)
+      .ReflushOutputDtype<1>(ScalarType::Long)
+      .FixOutputExceptDtype<1>({selfCp}, ACL_FORMAT_ND, ScalarType::Long, indicesSize)
+      .FixOutputWithReplace<1>(indices)
+      .ReturnRef<Tensor&, Tensor&>();
+}
+
 tuple<Tensor, Tensor> topk_npu(
     const Tensor& self,
     int64_t k,
@@ -266,7 +296,7 @@ tuple<Tensor, Tensor> topk_npu(
       outputSize, selfCp.options().dtype(kInt), ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  topk_out_npu(values, indices, selfCp, k, dim, largest, sorted);
+  topk_out_npu_nocheck(values, indices, selfCp, k, dim, largest, sorted);
 
   // indices dtype transform Int64
   indices = indices.to(at::kLong);

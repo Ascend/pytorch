@@ -35,6 +35,12 @@ class TestTopK(TestCase):
         indices = indices.numpy().astype(np.int32)
         return output, indices
 
+    def npu_op_exec_out(self, input, k, output, indices):
+        torch.topk(input, k, out = (output, indices))
+        output = output.to("cpu").numpy()
+        indices = indices.to("cpu").numpy().astype(np.int32)
+        return output, indices
+
     def topk_result(self, shape_format):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
@@ -59,6 +65,45 @@ class TestTopK(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
             #self.assertRtolEqual(cpu_indices, npu_indices)
+
+    def test_topk_out_result_fp32(self, device):
+        shape_format = [
+            [np.float32, 0, [18]],
+            [np.float32, 0, [5, 256]],
+            [np.float32, 0, [32, 8, 8]],
+            [np.float32, 0, [64, 112, 7, 7]],
+        ]
+        for item in shape_format:
+            print(item)
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
+            cpu_input3, npu_input3 = create_common_tensor(item, 0, 100)
+            cpu_output, cpu_indices = self.cpu_op_exec(cpu_input1, 5)
+            npu_output, npu_indices = self.npu_op_exec_out(npu_input1, 5, npu_input2, npu_input3.to(torch.int64))
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            #目前fp32降低阈值判断
+            self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
+
+    def test_topk_out_result_fp16(self, device):
+        shape_format = [
+            [np.float16, 0, [18]],
+            [np.float16, 0, [5, 256]],
+            [np.float16, 0, [32, 8, 8]],
+            [np.float16, 0, [64, 112, 7, 7]],
+        ]
+        for item in shape_format:
+            print(item)
+            cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
+            cpu_input3, npu_input3 = create_common_tensor(item, 0, 100)
+            if cpu_input1.dtype == torch.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+            if cpu_input1.dtype == torch.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
+            cpu_output, cpu_indices = self.cpu_op_exec(cpu_input1, 5)
+            npu_output, npu_indices = self.npu_op_exec_out(npu_input1, 5, npu_input2, npu_input3.to(torch.int64))
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_topk_shape_format_fp16_1d(self, device):
         format_list = [0, 3, 4, 29]
