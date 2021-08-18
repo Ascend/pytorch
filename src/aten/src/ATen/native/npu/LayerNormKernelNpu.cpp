@@ -37,10 +37,10 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
 
   Tensor Y = at::empty_with_format(input.sizes(), input.options(), CalcuOpUtil::get_tensor_npu_format(input));
   Tensor mean;
-  Tensor rstd;
+  Tensor variance;
   if (M < 0) {
     mean = at::empty_with_format({M}, input.options());
-    rstd = at::empty_with_format({M}, input.options());
+    variance = at::empty_with_format({M}, input.options());
   } else {
     int64_t numels = 1;
     int64_t begin_dim = 0;
@@ -76,7 +76,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
     }
     
     mean = at::empty_with_format(reduceDims, weight.options());
-    rstd = at::empty_with_format(reduceDims, weight.options());
+    variance = at::empty_with_format(reduceDims, weight.options());
 
     OpCommand cmd;
     cmd.Name("LayerNorm")
@@ -85,19 +85,18 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
       .Input(bias)
       .Output(Y)
       .Output(mean)
-      .Output(rstd)
+      .Output(variance)
       .Attr("begin_norm_axis", begin_dim)
       .Attr("begin_params_axis", begin_dim)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
-    rstd = 1 / at::sqrt(rstd + eps);
   }
   
   Tensor meanResult = mean.reshape({M});
-  Tensor rstdResult = rstd.reshape({M});
+  Tensor varianceResult = variance.reshape({M});
         
-  return std::tie(Y, meanResult, rstdResult);
+  return std::tie(Y, meanResult, varianceResult);
 }
 
 }}

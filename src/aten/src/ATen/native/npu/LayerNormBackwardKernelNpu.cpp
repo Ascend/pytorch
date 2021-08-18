@@ -29,7 +29,7 @@ tuple<Tensor &, Tensor &, Tensor &> layer_norm_backward_npu_nocheck(
     const Tensor& dY,
     const Tensor& X,
     const Tensor& mean,
-    const Tensor& rstd,
+    const Tensor& variance,
     const Tensor& gamma,
     int64_t M,
     int64_t N) 
@@ -40,16 +40,14 @@ tuple<Tensor &, Tensor &, Tensor &> layer_norm_backward_npu_nocheck(
     tmpSize[i] = 1;
   }
   Tensor mean_ex = mean.reshape(tmpSize);
-
+  Tensor variance_ex = variance.reshape(tmpSize);
   double eps = 1e-05;
-  Tensor variance = 1 / at::pow(rstd, 2) - eps;  
-  variance = variance.reshape(tmpSize);
 
   OpCommand cmd;
   cmd.Name("LayerNormGrad")
     .Input(dY)
     .Input(X)
-    .Input(variance)
+    .Input(variance_ex)
     .Input(mean_ex)
     .Input(gamma)
     .Output(dX)
@@ -64,7 +62,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu(
     const Tensor& dY,
     const Tensor& X,
     const Tensor& mean,
-    const Tensor& rstd,
+    const Tensor& variance,
     const Tensor& gamma,
     int64_t M,
     int64_t N,
@@ -92,7 +90,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu(
   }
   
   // calculate the output size
-  auto outputSizes = layer_norm_backward_npu_output_size(dY, X, mean, rstd, gammaTemp, M, N);
+  auto outputSizes = layer_norm_backward_npu_output_size(dY, X, mean, variance, gammaTemp, M, N);
   
   if (M <= 0) {
     dX = at::native::empty_like(X, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
@@ -107,7 +105,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu(
   dbeta = OpPreparation::ApplyTensor(gammaTemp, std::get<2>(outputSizes));
   
   // calculate the output result of the NPU
-  return layer_norm_backward_npu_nocheck(dX, dgamma, dbeta, dY, X, mean, rstd, gammaTemp, M, N);
+  return layer_norm_backward_npu_nocheck(dX, dgamma, dbeta, dY, X, mean, variance, gammaTemp, M, N);
 }
 
 }}  // namespace at::native

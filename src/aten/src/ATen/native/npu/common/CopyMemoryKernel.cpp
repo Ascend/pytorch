@@ -61,40 +61,20 @@ Tensor& copy_memory_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
     src_size = (src_element > src_storage) ? src_storage : src_element;
   }
 
-  // TODO(Ascend): Temporary plan. Wait for ND plan to verify.
   c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-  if (dst_size != src_size) {
-    Tensor temp = src.npu_format_cast(CalcuOpUtil::get_tensor_npu_format(self));
-    src_desc = temp.storage().unsafeGetStorageImpl()->npu_desc_;
-    src_size = prod_intlist(src_desc.storage_sizes_);
 
-    // Designed for the gather of tensors, ignoring npu_format_ and
-    // copying continuous memory between npu tensors.
-    AT_NPU_CHECK(aclrtMemcpyAsync(
-        self.data_ptr(),
-        dst_size * self.itemsize(),
-        temp.data_ptr(),
-        dst_size * self.itemsize(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE,
-        stream));
-    if (!non_blocking) {
-      AT_NPU_CHECK(aclrtSynchronizeStream(stream));
-    }
-  } else {
-    // Designed for the gather of tensors, ignoring npu_format_ and
-    // copying continuous memory between npu tensors.
-    AT_NPU_CHECK(aclrtMemcpyAsync(
-        self.data_ptr(),
-        dst_size * self.itemsize(),
-        src.data_ptr(),
-        dst_size * self.itemsize(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE,
-        stream));
-    if (!non_blocking) {
-      AT_NPU_CHECK(aclrtSynchronizeStream(stream));
-    }
+  // Designed for the gather of tensors, ignoring npu_format_ and
+  // copying continuous memory between npu tensors.
+  AT_NPU_CHECK(aclrtMemcpyAsync(
+      self.data_ptr(),
+      dst_size * self.itemsize(),
+      src.data_ptr(),
+      dst_size * self.itemsize(),
+      ACL_MEMCPY_DEVICE_TO_DEVICE,
+      stream));
+  if (!non_blocking) {
+    AT_NPU_CHECK(aclrtSynchronizeStream(stream));
   }
-
   return self;
 }
 } // namespace native
