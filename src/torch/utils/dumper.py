@@ -24,6 +24,7 @@ class DumpMode(Enum):
     OFF = 0
     DUMP = 1
     LOAD = 2
+    CHK_OVERFLOW = 3
 
 def get_time_stamp():
     time_stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S.%f')
@@ -68,12 +69,18 @@ class dumper(object):
         >>>         y.backward()
     """
 
-    def __init__(self, enabled=True, use_dump=False, use_load=False, dump_path=None, load_file_path=None):
+    def __init__(self, enabled=True, use_dump=False, use_load=False, 
+                 check_overflow=False, dump_path=None, load_file_path=None):
         self.enabled = enabled
         self.use_dump = use_dump
         self.use_load = use_load
+        self.check_overflow = check_overflow
         self.dump_path = dump_path
         self.load_file_path = load_file_path
+        if not isinstance(use_dump, bool) or \
+            not isinstance(use_load, bool) or \
+            not isinstance(check_overflow, bool):
+            raise RuntimeError("use_dump/use_load/check_overflow should be set to True or False!")
         if not self.enabled:
             return
         self.entered = False
@@ -83,16 +90,14 @@ class dumper(object):
         if self.entered:
             raise RuntimeError("utils dumper are not reentrant")
         self.entered = True
-        if self.use_dump and self.use_load:
-            raise RuntimeError("dump mode and load mode can not run together!")
-
-        if not self.use_dump and not self.use_load:
-            raise RuntimeError("you should choose dump mode or load mode!")
+        mode = self.use_dump + self.use_load + self.check_overflow
+        if mode > 1:
+            raise RuntimeError("dump mode, load mode and check overflow mode can not run together!")
 
         if self.use_dump:
             self._set_dump_path(self.dump_path)
             torch._C._set_dumper_mode(DumpMode.DUMP.value)
-        if self.use_load:
+        elif self.use_load:
             if path.isfile(self.load_file_path):
                 if path.isfile(self.dump_path) and \
                     path.abspath(self.load_file_path) == path.abspath(self.dump_path):
@@ -102,6 +107,9 @@ class dumper(object):
             else:
                 raise RuntimeError("please input a file path")
             torch._C._set_dumper_mode(DumpMode.LOAD.value)
+        elif self.check_overflow:
+            self._set_dump_path(self.dump_path)
+            torch._C._set_dumper_mode(DumpMode.CHK_OVERFLOW.value)
         return self
 
     @staticmethod

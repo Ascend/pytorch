@@ -117,7 +117,7 @@ class LoadUtil {
     isInIr = flag;
   }
 
-  bool IsLoading() {
+  bool GetLoadFlag() {
     return isInIr;
   }
 

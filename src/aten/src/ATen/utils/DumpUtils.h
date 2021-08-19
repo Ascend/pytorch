@@ -28,6 +28,7 @@ enum class C10_API DumpMode:int32_t {
   OFF = 0,
   DUMP = 1,
   LOAD = 2,
+  CHK_OVERFLOW = 3,
 };
 
 C10_API void SetDumpMode(DumpMode mode);
@@ -195,10 +196,6 @@ class DumpUtil {
     return dumpSeqId;
   }
 
-  bool IsDumping() {
-    return isDumping;
-  }
-
   bool IsDumpSwitchOn() {
     return isDumpSwitchOn;
   }
@@ -208,8 +205,18 @@ class DumpUtil {
     return;
   }
 
+  bool GetDumpFlag() {
+    return isDumping;
+  }
+
   void SetDumpSwitch(bool flag) {
     isDumpSwitchOn = flag;
+    if (!isDumpSwitchOn) {
+      if (dumpInit) {
+        dumpInit = false;
+        delete file;
+      }
+    }
     return;
   }
 

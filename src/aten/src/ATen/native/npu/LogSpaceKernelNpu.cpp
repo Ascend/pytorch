@@ -18,7 +18,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& logspace_out_npu(
+Tensor& logspace_out_npu_nocheck(
     Tensor& result,
     Scalar start,
     Scalar end,
@@ -63,6 +63,28 @@ Tensor& logspace_out_npu(
   return result;
 }
 
+Tensor& logspace_out_npu(
+    Tensor& result,
+    Scalar start,
+    Scalar end,
+    int64_t steps,
+    double base) {
+  OpPreparation::CheckOut(
+      { },
+      result,
+      ACL_FORMAT_ND,
+      result.scalar_type(),
+      {steps});
+
+  OpPipeWithDefinedOut pipe;
+  return pipe.CheckMemory({},{result})
+    .Func([&start, &end, &steps, &base](Tensor& result)
+    {logspace_out_npu_nocheck(result, start, end, steps, base);})
+    .Call(result);
+
+  return result;
+}
+
 Tensor logspace_npu(
     Scalar start,
     Scalar end,
@@ -72,7 +94,7 @@ Tensor logspace_npu(
 
   Tensor result = OpPreparation::ApplyTensorWithFormat({steps}, options, ACL_FORMAT_ND);
 
-  return logspace_out_npu(result, start, end, steps, base);
+  return logspace_out_npu_nocheck(result, start, end, steps, base);
 }
 
 }

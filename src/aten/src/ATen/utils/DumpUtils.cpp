@@ -16,6 +16,7 @@
 #include <iostream>
 #include <ATen/utils/DumpUtils.h>
 #include <ATen/utils/LoadUtils.h>
+#include <ATen/utils/OverflowUtils.h>
 
 using namespace std;
 using namespace H5;
@@ -26,10 +27,13 @@ namespace at {
     if (mode == DumpMode::OFF) {
       DumpUtil::GetInstance()->SetDumpSwitch(false);
       LoadUtil::GetInstance()->SetLoadSwitch(false);
+      OverflowUtil::GetInstance()->SetCheckSwitch(false);
     } else if (mode == DumpMode::DUMP) {
       DumpUtil::GetInstance()->SetDumpSwitch(true);
     } else if (mode == DumpMode::LOAD) {
       LoadUtil::GetInstance()->SetLoadSwitch(true);
+    } else if (mode == DumpMode::CHK_OVERFLOW) {
+      OverflowUtil::GetInstance()->SetCheckSwitch(true);
     }
     return;
   }

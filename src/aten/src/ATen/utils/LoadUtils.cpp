@@ -21,15 +21,6 @@ using namespace H5;
 
 namespace at {
 
-  void SetLoadMode(DumpMode mode) {
-    if (mode == DumpMode::OFF) {
-      LoadUtil::GetInstance()->SetLoadSwitch(false);
-    } else if (mode == DumpMode::LOAD){
-      LoadUtil::GetInstance()->SetLoadSwitch(true);
-    }
-    return;
-  }
-
   void SetLoadPath(string path) {
     LoadUtil::GetInstance()->SetLoadFilePath(path);
     LoadUtil::GetInstance()->LoadLazyInit();
