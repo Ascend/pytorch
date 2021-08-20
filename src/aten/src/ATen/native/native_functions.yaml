@@ -8470,12 +8470,12 @@
   npu_dispatch_only:
     NPU: dropout_backward_npu
 
-- func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides) -> Tensor
+- func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0) -> Tensor
   variants: function, method
   npu_dispatch_only:
     NPU: indexing_npu
 
-- func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, *, Tensor(a!) out) -> Tensor(a!)
+- func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)
   npu_dispatch_only:
     NPU: indexing_out_npu
 

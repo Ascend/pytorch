@@ -25,7 +25,12 @@ Tensor& indexing_out_npu(
     const Tensor& self,
     IntArrayRef begin,
     IntArrayRef end,
-    IntArrayRef strides) {
+    IntArrayRef strides,
+    int64_t begin_mask,
+    int64_t end_mask,
+    int64_t ellipsis_mask,
+    int64_t new_axis_mask,
+    int64_t shrink_axis_mask) {
   OpCommand cmd;
   cmd.Name("StridedSlice")
       .Input(self)
@@ -33,11 +38,11 @@ Tensor& indexing_out_npu(
       .Input(end)
       .Input(strides)
       .Output(result)
-      .Attr("begin_mask", (int64_t)0)
-      .Attr("end_mask", (int64_t)0)
-      .Attr("shrink_axis_mask", (int64_t)0)
-      .Attr("ellipsis_mask", (int64_t)0)
-      .Attr("new_axis_mask", (int64_t)0)
+      .Attr("begin_mask", begin_mask)
+      .Attr("end_mask", end_mask)
+      .Attr("ellipsis_mask", ellipsis_mask)
+      .Attr("new_axis_mask", new_axis_mask)
+      .Attr("shrink_axis_mask", shrink_axis_mask)
       .Run();
 	  
   return result; 
@@ -47,7 +52,12 @@ Tensor indexing_npu(
     const Tensor& self,
     IntArrayRef begin,
     IntArrayRef end,
-    IntArrayRef strides) {
+    IntArrayRef strides,
+    int64_t begin_mask,
+    int64_t end_mask,
+    int64_t ellipsis_mask,
+    int64_t new_axis_mask,
+    int64_t shrink_axis_mask) {
   // calculate the output size
   SmallVector<int64_t, SIZE> outputSize;
   for (int i = 0; i < self.dim(); i++) {
@@ -56,7 +66,8 @@ Tensor indexing_npu(
   }
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  indexing_out_npu(result, self, begin, end, strides);
+  indexing_out_npu(result, self, begin, end, strides,begin_mask, end_mask,
+                   ellipsis_mask, new_axis_mask, shrink_axis_mask);
 
   return result;
 }

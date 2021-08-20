@@ -129,12 +129,22 @@ class SelectContiguousOpt : public ContiguousOpt {
         temp_src.storage_offset(),
         temp_src.sizes(),
         temp_src.strides());
-    // [临时解决方案，已讨论] sliceD算子当前对NCDWH格式入参不友好,框架层转ND格式
-    if (temp_src.dim() == 5 && FormatHelper::GetFormat(temp_src) == ACL_FORMAT_NCDHW) {
-      temp_src.npu_format_cast_(ACL_FORMAT_ND);
+
+    // construct StridedSlice param
+    auto axis_size = start.size();
+    SmallVector<int64_t, SHAPE_SIZE> strides (axis_size, 1);
+    SmallVector<int64_t, SHAPE_SIZE> end;
+    int64_t shrink_mask = 0;
+    for (auto i = 0; i < axis_size; ++i) {
+      end.emplace_back(start[i] + length[i]);
+      if (length[i] == 1 && temp_src.size(i) != 1) {
+        shrink_mask += std::pow(2, i);
+      }
     }
-    // SliceD
-    at::npu_slice_out(self, temp_src, start, length);
+
+    // call StridedSlice op to contiguous
+    at::npu_indexing_out(self, temp_src, start, end, strides, 0, 0, 0, 0, shrink_mask);
+
     return;
   }
 }; // class SelectContiguousOpt
