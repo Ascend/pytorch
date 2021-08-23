@@ -65,6 +65,13 @@ class TestCummin(TestCase):
         npu_output, npu_argmin = self.npu_op_exec(input_x1, 1)
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_argmin, npu_argmin)
+        
+    def test_cummin_3_3_0_int64(self, device):
+        input_x1 = self.generate_data(-1, 1, (3, 3), np.int64)
+        cpu_output, cpu_argmin = self.cpu_op_exec(input_x1, 1)
+        npu_output, npu_argmin = self.npu_op_exec(input_x1, 1)
+        self.assertRtolEqual(cpu_output, npu_output)
+        self.assertRtolEqual(cpu_argmin, npu_argmin)
     
     def test_cummin_3_3_3_0_float32(self, device):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
@@ -160,9 +167,7 @@ class TestCummin(TestCase):
         cpu_output, cpu_argmin = self.cpu_op_exec(input_x1, 'H')
         npu_output, npu_argmin = self.npu_op_exec(input_x1, 'H')
         self.assertRtolEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_argmin, npu_argmin)
-    
-    
+        self.assertRtolEqual(cpu_argmin, npu_argmin)    
 
 instantiate_device_type_tests(TestCummin, globals(), except_for='cpu')
 if __name__ == "__main__":

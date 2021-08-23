@@ -477,6 +477,51 @@ tuple<Tensor, Tensor, Tensor> npu_convolution_backward(
   return output;
 }
 
+tuple<Tensor, Tensor, Tensor> npu_convolution_transpose_backward(
+    const Tensor& input,
+    const Tensor& grad,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups,
+    std::array<bool, 3> grad_input_mask) {
+  int64_t dim = input.ndimension();
+
+  tuple<Tensor, Tensor, Tensor> output;
+  if (dim == 4) {
+    output = at::npu_conv_transpose2d_backward(
+        input,
+        grad,
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
+  }
+
+  if (dim == 5) {
+    output = at::npu_conv_transpose3d_backward(
+        input,
+        grad,
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
+  }
+  // Note:weight.grad should be equal weight
+  if (std::get<1>(output).defined()) {
+    std::get<1>(output) = std::get<1>(output).npu_dtype_cast(weight.scalar_type());
+  }
+  return output;
+}
+
 tuple<Tensor, Tensor, Tensor> npu_convolution_double_backward(
   const Tensor& ggI, const Tensor& ggW, const Tensor& ggb,
   const Tensor& input, const Tensor& gO_r, const Tensor& weight_r,

@@ -58,7 +58,6 @@ Tensor alloc_float_status_npu(const Tensor& self) {
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("NPUAllocFloatStatus")
-      .Input()
       .Output(result)
       .Run();
 

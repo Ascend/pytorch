@@ -18,6 +18,7 @@ from .dropout import DropoutV2
 from .crossentropy import LabelSmoothingCrossEntropy
 from .roi_align import ROIAlign
 from .deform_conv import ModulatedDeformConv, DCNv2
+from .activations import Mish
 
 __all__ = [
     "ChannelShuffle",
@@ -27,4 +28,5 @@ __all__ = [
     "ROIAlign",
     "DCNv2",
     "ModulatedDeformConv",
+    "Mish",
 ]

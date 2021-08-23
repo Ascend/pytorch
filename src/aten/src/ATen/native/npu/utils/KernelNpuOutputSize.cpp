@@ -224,7 +224,7 @@ SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
 }       
 
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> 
-convolution_transpose_backward_npu_output_size(
+conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -238,7 +238,7 @@ convolution_transpose_backward_npu_output_size(
       input.sizes(), weight.sizes(), gradBiasSize);
 }
 
-SmallVector<int64_t, SIZE> convolution_transpose_npu_output_size(
+SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
     const Tensor& input,
     const Tensor& weight,
     const Tensor& bias,

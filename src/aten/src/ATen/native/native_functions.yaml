@@ -1114,11 +1114,19 @@
 
 - func: npu_conv_transpose2d(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
   npu_dispatch_only:
-    NPU: convolution_transpose_npu
+    NPU: conv_transpose2d_npu
 
 - func: npu_convolution_transpose_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   npu_dispatch_only:
-    NPU: convolution_transpose_backward_npu
+    NPU: npu_convolution_transpose_backward
+
+- func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: conv_transpose2d_backward_npu
+
+- func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: conv_transpose3d_backward_npu
 
 - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   npu_dispatch_only:
@@ -1191,30 +1199,24 @@
 - func: cummin(Tensor self, int dim) -> (Tensor values, Tensor indices)
   supports_named_tensor: True
   variants: function, method
-  npu_dispatch:
-    NPU: cummin_npu
 
 - func: cummin.out(Tensor self, int dim, *, Tensor(a!) values, Tensor(b!) indices) -> (Tensor(a!) values, Tensor(b!) indices)
   supports_named_tensor: True
-  npu_dispatch:
-    NPU: cummin_out_npu
 
 - func: cummin.dimname(Tensor self, Dimname dim) -> (Tensor values, Tensor indices)
   supports_named_tensor: True
   variants: function, method
-  npu_dispatch:
-    NPU: cummin_npu
 
 - func: cummin.dimname_out(Tensor self, Dimname dim, *, Tensor(a!) values, Tensor(b!) indices) -> (Tensor(a!) values, Tensor(b!) indices)
   supports_named_tensor: True
-  npu_dispatch:
-    NPU: cummin_out_npu
 
 - func: _cummin_helper(Tensor self, Tensor(a!) values, Tensor(b!) indices, int dim) -> ()
   variants: function
   dispatch:
     CPU: cummin_helper_cpu
     CUDA: cummin_helper_cuda
+  npu_dispatch:
+    NPU: cummin_helper_npu
 
 - func: cumprod(Tensor self, int dim, *, ScalarType? dtype=None) -> Tensor
   supports_named_tensor: True

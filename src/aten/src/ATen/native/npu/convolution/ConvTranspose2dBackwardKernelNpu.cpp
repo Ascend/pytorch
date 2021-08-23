@@ -20,7 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor convolution_transpose_backward_input_out_npu(
+Tensor conv_transpose2d_backward_input_out_npu(
     Tensor& gradInput,
     const Tensor& input, 
     const Tensor& grad_output, 
@@ -51,7 +51,7 @@ Tensor convolution_transpose_backward_input_out_npu(
   return gradInput;
 }
 
-Tensor convolution_transpose_backward_weight_out_npu(
+Tensor conv_transpose2d_backward_weight_out_npu(
     Tensor& gradWeight,
     const Tensor& input, 
     const Tensor& grad_output, 
@@ -103,7 +103,7 @@ Tensor convolution_transpose_backward_weight_out_npu(
   return gradWeight;
 }
 
-Tensor convolution_transpose_backward_bias_out_npu(
+Tensor conv_transpose2d_backward_bias_out_npu(
     Tensor& gradBias,
     const Tensor& input, 
     const Tensor& grad_output, 
@@ -118,7 +118,7 @@ Tensor convolution_transpose_backward_bias_out_npu(
 
   return gradBias;
 }
-tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
+tuple<Tensor&, Tensor&, Tensor&> conv_transpose2d_backward_out_npu(
     Tensor& gradInput, 
     Tensor& gradWeight,
     Tensor& gradBias,
@@ -133,24 +133,24 @@ tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
     std::array<bool, 3> output_mask) {
   // calculate the output result of the NPU
   if (output_mask[0]) {
-    convolution_transpose_backward_input_out_npu(
+    conv_transpose2d_backward_input_out_npu(
         gradInput, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   if (output_mask[1]) {
-    convolution_transpose_backward_weight_out_npu(
+    conv_transpose2d_backward_weight_out_npu(
         gradWeight, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   if (output_mask[2]) {
-    convolution_transpose_backward_bias_out_npu(
+    conv_transpose2d_backward_bias_out_npu(
         gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   return std::tie(gradInput, gradWeight, gradBias);
 }
 
-tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
+tuple<Tensor, Tensor, Tensor> conv_transpose2d_backward_npu(
     const Tensor& input, 
     const Tensor& grad_output, 
     const Tensor& weight, 
@@ -181,7 +181,7 @@ tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
   }
 
   // calculate the output result of the NPU
-  convolution_transpose_backward_out_npu(
+  conv_transpose2d_backward_out_npu(
       gradInput, gradWeight, gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups, output_mask);
 
   return std::tie(gradInput, gradWeight, gradBias);
