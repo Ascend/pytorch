@@ -20,6 +20,8 @@
 #include "ATen/native/npu/utils/NpuProfilingDispatch.h"
 #include <third_party/acl/inc/acl/acl_mdl.h>
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
+#include "ATen/native/npu/profiler/NpuProfiling.h"
+
 namespace at {
 namespace native {
 namespace npu {
@@ -84,6 +86,22 @@ REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string& val) {
      at::native::npu::NpuProfilingDispatch::Instance().stop();
    }
  })
+
+REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string&val) {
+  at::native::npu::NpuProfiling::Instance().Init(val);
+})
+
+REGISTER_OPTION_HOOK(profiling, [](const std::string&val) {
+  if (val.compare("start") == 0) {
+    at::native::npu::NpuProfiling::Instance().Start();
+  } else if (val.compare("stop") == 0) {
+    at::native::npu::NpuProfiling::Instance().Stop();
+  } else if (val.compare("finalize") == 0) {
+    at::native::npu::NpuProfiling::Instance().Finalize();
+  } else {
+    TORCH_CHECK(false, "profiling input: (", val , " ) error!")
+  }
+})
 
 } // namespace env
 } // namespace npu

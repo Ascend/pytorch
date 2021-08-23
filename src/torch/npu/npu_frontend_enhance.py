@@ -16,10 +16,12 @@
 
 import torch._C
 import os
+import contextlib
+
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_dump", "init_dump", "finalize_dump", "global_step_inc", "set_start_fuzz_compile_step", 
-           "iteration_start", "iteration_end"]
+           "iteration_start", "iteration_end", "profile"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -71,3 +73,32 @@ def set_start_fuzz_compile_step(step):
     _START_FUZZ_COMPILE_STEP = step
     option = {"fuzzycompileswitch": "disable"}
     torch._C._npu_setOption(option)
+
+def prof_init(path):
+    if not os.path.exists(path):
+        raise AssertionError("profiler_result_path: %s not exists."%(path))
+    profiler_result_path = os.path.abspath(path)
+    option = {"profilerResultPath": profiler_result_path}
+    torch._C._npu_setOption(option)
+
+def prof_start():
+    option = {"profiling": "start"}
+    torch._C._npu_setOption(option)
+
+def prof_stop():
+    option = {"profiling": "stop"}
+    torch._C._npu_setOption(option)
+
+def prof_finalize():
+    option = {"profiling": "finalize"}
+    torch._C._npu_setOption(option)
+
+@contextlib.contextmanager
+def profile(profiler_result_path):
+    try:
+        prof_init(profiler_result_path)
+        prof_start()
+        yield "profile"
+    finally:
+        prof_stop()
+        prof_finalize()

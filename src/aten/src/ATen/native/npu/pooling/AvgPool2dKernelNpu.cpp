@@ -142,10 +142,12 @@ Tensor avg_pool2d_npu(
   TORCH_CHECK(
       !divisor_override.has_value() || divisor_override.value() != 0,
       "divisor must be not zero");
+  
+  Tensor selfCast = self.npu_format_cast(ACL_FORMAT_NCHW);
 
   // calculate the output size
   auto outputSizes = avg_pool2d_npu_output_size(
-      self,
+      selfCast,
       kernel_sizess,
       stridess,
       paddingss,
@@ -154,11 +156,11 @@ Tensor avg_pool2d_npu(
       divisor_override);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self, outputSizes);
+  Tensor result = OpPreparation::ApplyTensor(selfCast, outputSizes);
   // calculate the output result of the NPU
   avg_pool2d_out_npu(
       result,
-      self,
+      selfCast,
       kernel_sizess,
       stridess,
       paddingss,

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include "AclInterface.h"
 #include "c10/npu/register/FunctionLoader.h"
 #include "c10/util/Exception.h"
@@ -35,6 +34,12 @@ LOAD_FUNCTION(aclrtQueryEventWaitStatus)
 LOAD_FUNCTION(aclprofCreateStepInfo)
 LOAD_FUNCTION(aclprofGetStepTimestamp)
 LOAD_FUNCTION(aclprofDestroyStepInfo)
+LOAD_FUNCTION(aclprofInit)
+LOAD_FUNCTION(aclprofStart)
+LOAD_FUNCTION(aclprofStop)
+LOAD_FUNCTION(aclprofFinalize)
+LOAD_FUNCTION(aclprofCreateConfig)
+LOAD_FUNCTION(aclprofDestroyConfig)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -116,6 +121,73 @@ aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus,
     return aclrtQueryEvent(event, recordStatus);
   }
 }
+
+aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
+  typedef aclError (*AclProfInitFunc) (const char *, size_t);
+  static AclProfInitFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfInitFunc)GET_FUNC(aclprofInit);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofInit");
+  return func(profilerResultPath, length);
+}
+
+aclError AclProfilingStart(const aclprofConfig *profilerConfig) {
+  typedef aclError (*AclProfStartFunc) (const aclprofConfig *);
+  static AclProfStartFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfStartFunc)GET_FUNC(aclprofStart);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStart");
+  return func(profilerConfig);
+}
+
+aclError AclProfilingStop(const aclprofConfig *profilerConfig) {
+  typedef aclError (*AclProfStopFunc) (const aclprofConfig*);
+  static AclProfStopFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfStopFunc)GET_FUNC(aclprofStop);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofStop");
+  return func(profilerConfig);
+}
+
+aclError AclProfilingFinalize() {
+  typedef aclError (*AclProfFinalizeFunc) ();
+  static AclProfFinalizeFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfFinalizeFunc)GET_FUNC(aclprofFinalize);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofFinalize");
+  return func();
+}
+
+aclprofConfig *AclProfilingCreateConfig(
+  uint32_t *deviceIdList,
+  uint32_t deviceNums,
+  aclprofAicoreMetrics aicoreMetrics,
+  aclprofAicoreEvents *aicoreEvents,
+  uint64_t dataTypeConfig) {
+  typedef aclprofConfig *(*AclProfCreateConfigFunc) \
+    (uint32_t *, uint32_t, aclprofAicoreMetrics, aclprofAicoreEvents *, uint64_t);
+  static AclProfCreateConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfCreateConfigFunc)GET_FUNC(aclprofCreateConfig);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofCreateConfig");
+  return func(deviceIdList, deviceNums, aicoreMetrics, aicoreEvents, dataTypeConfig);
+}
+
+aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
+  typedef aclError (*AclProfDestroyConfigFunc) (const aclprofConfig *);
+  static AclProfDestroyConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclProfDestroyConfigFunc)GET_FUNC(aclprofDestroyConfig);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclprofDestroyConfig");
+  return func(profilerConfig);
+}
+
 } // namespace acl
 } // namespace npu
 } // namespace c10

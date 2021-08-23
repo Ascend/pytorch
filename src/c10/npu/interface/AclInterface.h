@@ -18,6 +18,7 @@
 
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include <third_party/acl/inc/acl/acl_base.h>
+#include <third_party/acl/inc/acl/acl_prof.h>
 
 namespace c10 {
 namespace npu {
@@ -74,6 +75,19 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
   This API is used to query status of event task
   */
 aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus);
+
+aclError AclProfilingInit(const char *profilerResultPath, size_t length);
+aclError AclProfilingStart(const aclprofConfig *profilerConfig);
+aclError AclProfilingStop(const aclprofConfig *profilerConfig);
+aclError AclProfilingFinalize();
+aclprofConfig * AclProfilingCreateConfig(
+  uint32_t *deviceIdList,
+  uint32_t deviceNums,
+  aclprofAicoreMetrics aicoreMetrics,
+  aclprofAicoreEvents *aicoreEvents,
+  uint64_t dataTypeConfig);
+aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
+
 } // namespace acl
 } // namespace npu
 } // namespace c10

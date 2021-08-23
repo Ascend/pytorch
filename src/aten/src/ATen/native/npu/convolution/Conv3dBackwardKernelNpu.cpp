@@ -108,7 +108,7 @@ Tensor conv3d_backward_biasmask(Tensor &gradBias, const Tensor &input,
   if (input.numel() == input.size(0) * input.size(1) * input.size(2)) {
     Tensor gradView =
         grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2)});
-    at::sum_out(gradBias, gradView, SmallVector<int64_t, N>{0});
+    at::sum_out(gradBias, gradView, SmallVector<int64_t, N>{0, 2});
   } else {
     Tensor gradView =
         grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2), -1});
