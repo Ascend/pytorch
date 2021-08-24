@@ -1,17 +1,17 @@
 # PyTorch API支持清单
--   [Tensors](#Tensors.md)
--   [Generators](#Generators.md)
--   [Random sampling](#Random-sampling.md)
--   [Serialization](#Serialization.md)
--   [Math operations](#Math-operations.md)
--   [Utilities](#Utilities.md)
--   [Other](#Other.md)
--   [torch.Tensor](#torch-Tensor.md)
--   [Layers \(torch.nn\)](#Layers-&#40;torch-nn&#41;.md)
--   [Functions\(torch.nn.functional\)](#Functions&#40;torch-nn-functional&#41;.md)
--   [torch.distributed](#torch-distributed.md)
--   [NPU和CUDA功能对齐](#NPU和CUDA功能对齐.md)
-<h2 id="Tensors.md">Tensors</h2>
+-   [Tensors](#Tensors)
+-   [Generators](#Generators)
+-   [Random sampling](#Random-sampling)
+-   [Serialization](#Serialization)
+-   [Math operations](#Math-operations)
+-   [Utilities](#Utilities)
+-   [Other](#Other)
+-   [torch.Tensor](#torch-Tensor)
+-   [Layers \(torch.nn\)](#Layers-torch-nn)
+-   [Functions\(torch.nn.functional\)](#Functionstorch-nn-functional)
+-   [torch.distributed](#torch-distributed)
+-   [NPU和CUDA功能对齐](#NPU和CUDA功能对齐)
+<h2 id="Tensors">Tensors</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p960817567348"><a name="p960817567348"></a><a name="p960817567348"></a>序号</p>
@@ -361,7 +361,7 @@
 </tbody>
 </table>
 
-<h2 id="Generators.md">Generators</h2>
+<h2 id="Generators">Generators</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p16697450143718"><a name="p16697450143718"></a><a name="p16697450143718"></a>序号</p>
@@ -424,7 +424,7 @@
 </tbody>
 </table>
 
-<h2 id="Random-sampling.md">Random sampling</h2>
+<h2 id="Random-sampling">Random sampling</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p382722114388"><a name="p382722114388"></a><a name="p382722114388"></a>序号</p>
@@ -641,7 +641,7 @@
 </tbody>
 </table>
 
-<h2 id="Serialization.md">Serialization</h2>
+<h2 id="Serialization">Serialization</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p12952172303918"><a name="p12952172303918"></a><a name="p12952172303918"></a>序号</p>
@@ -669,7 +669,7 @@
 </tbody>
 </table>
 
-<h2 id="Math-operations.md">Math operations</h2>
+<h2 id="Math-operations">Math operations</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p7641165016399"><a name="p7641165016399"></a><a name="p7641165016399"></a>序号</p>
@@ -1873,7 +1873,7 @@
 </tbody>
 </table>
 
-<h2 id="Utilities.md">Utilities</h2>
+<h2 id="Utilities">Utilities</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p22242584402"><a name="p22242584402"></a><a name="p22242584402"></a>序号</p>
@@ -1915,7 +1915,7 @@
 </tbody>
 </table>
 
-<h2 id="Other.md">Other</h2>
+<h2 id="Other">Other</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p143036271411"><a name="p143036271411"></a><a name="p143036271411"></a>序号</p>
@@ -1978,7 +1978,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-Tensor.md">torch.Tensor</h2>
+<h2 id="torch-Tensor">torch.Tensor</h2>
 
 <a name="table1895120221777"></a>
 <table><thead align="left"><tr id="row1595142219714"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p182711720423"><a name="p182711720423"></a><a name="p182711720423"></a>序号</p>
@@ -4484,7 +4484,7 @@
 </tbody>
 </table>
 
-<h2 id="Layers-(torch-nn).md">Layers \(torch.nn\)</h2>
+<h2 id="Layers-torch-nn">Layers \(torch.nn\)</h2>
 
 <a name="table8705205810121"></a>
 <table><thead align="left"><tr id="row2070595881212"><th class="cellrowborder" valign="top" width="8.000000000000002%" id="mcps1.1.4.1.1"><p id="p8163151816433"><a name="p8163151816433"></a><a name="p8163151816433"></a>序号</p>
@@ -6710,7 +6710,7 @@
 </tbody>
 </table>
 
-<h2 id="Functions(torch-nn-functional).md">Functions\(torch.nn.functional\)</h2>
+<h2 id="Functionstorch-nn-functional">Functions\(torch.nn.functional\)</h2>
 
 <a name="table9911195161614"></a>
 <table><thead align="left"><tr id="row591155115160"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1339212174419"><a name="p1339212174419"></a><a name="p1339212174419"></a>序号</p>
@@ -7417,7 +7417,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-distributed.md">torch.distributed</h2>
+<h2 id="torch-distributed">torch.distributed</h2>
 
 <a name="table2583230111811"></a>
 <table><thead align="left"><tr id="row11583113018186"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1356195214418"><a name="p1356195214418"></a><a name="p1356195214418"></a>序号</p>
@@ -7641,7 +7641,7 @@
 </tbody>
 </table>
 
-<h2 id="NPU和CUDA功能对齐.md">NPU和CUDA功能对齐</h2>
+<h2 id="NPU和CUDA功能对齐">NPU和CUDA功能对齐</h2>
 
 <a name="table1125623115220"></a>
 <table><thead align="left"><tr id="row72566317225"><th class="cellrowborder" valign="top" width="7.5200000000000005%" id="mcps1.1.5.1.1"><p id="p15384153811454"><a name="p15384153811454"></a><a name="p15384153811454"></a>序号</p>

@@ -1,95 +1,95 @@
 # PyTorch网络模型移植&训练指南
--   [概述](#概述.md)
--   [约束与限制](#约束与限制.md)
--   [迁移流程](#迁移流程.md)
--   [模型移植评估](#模型移植评估.md)
--   [环境准备](#环境准备.md)
-    -   [准备运行环境](#准备运行环境.md)
-    -   [配置环境变量](#配置环境变量.md)
--   [模型迁移](#模型迁移.md)
-    -   [工具迁移](#工具迁移.md)
-        -   [功能介绍](#功能介绍.md)
-        -   [操作指南](#操作指南.md)
-        -   [结果解析](#结果解析.md)
-    -   [手工迁移](#手工迁移.md)
-        -   [单P训练模型迁移](#单P训练模型迁移.md)
-        -   [多P训练模型迁移](#多P训练模型迁移.md)
-        -   [PyTorch接口替换](#PyTorch接口替换.md)
-    -   [混合精度](#混合精度.md)
-    -   [性能优化](#性能优化.md)
-        -   [概述](#概述-0.md)
-        -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式（X86服务器）.md)
-        -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式（ARM服务器）.md)
-        -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库（X86服务器）.md)
-        -   [（可选）安装指定版本OpenCV库](#（可选）安装指定版本OpenCV库.md)
--   [模型训练](#模型训练.md)
--   [性能调优和分析](#性能调优和分析.md)
-    -   [前提条件](#前提条件.md)
-    -   [调测过程](#调测过程.md)
-        -   [总体思路](#总体思路.md)
-        -   [采集训练过程相关数据](#采集训练过程相关数据.md)
-        -   [性能优化](#性能优化-1.md)
-    -   [亲和库](#亲和库.md)
-        -   [来源介绍](#来源介绍.md)
-        -   [功能介绍](#功能介绍-2.md)
--   [精度调测](#精度调测.md)
-    -   [前提条件](#前提条件-3.md)
-    -   [调测过程](#调测过程-4.md)
-        -   [总体思路](#总体思路-5.md)
-        -   [精度调优方法](#精度调优方法.md)
--   [模型保存与转换](#模型保存与转换.md)
-    -   [简介](#简介.md)
-    -   [模型保存](#模型保存.md)
-    -   [导出ONNX模型](#导出ONNX模型.md)
--   [样例说明](#样例说明.md)
-    -   [ResNet50模型迁移示例](#ResNet50模型迁移示例.md)
-        -   [样例获取](#样例获取.md)
-        -   [训练脚本迁移](#训练脚本迁移.md)
-            -   [单P训练修改](#单P训练修改.md)
-            -   [分布式训练修改](#分布式训练修改.md)
-        -   [脚本执行](#脚本执行.md)
-    -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例.md)
-        -   [样例获取](#样例获取-6.md)
-        -   [模型评估](#模型评估.md)
-        -   [网络迁移](#网络迁移.md)
-        -   [网络调测](#网络调测.md)
--   [参考信息](#参考信息.md)
-    -   [单算子样例编写说明](#单算子样例编写说明.md)
-    -   [单算子dump方法](#单算子dump方法.md)
-    -   [常用环境变量说明](#常用环境变量说明.md)
-    -   [dump op方法](#dump-op方法.md)
-    -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
--   [FAQ](#FAQ.md)
-    -   [软件安装常见问题](#软件安装常见问题.md)
-        -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)
-    -   [模型和算子运行常见问题](#模型和算子运行常见问题.md)
-        -   [在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md)
-        -   [在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs.md)
-        -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what&#40;&#41;-HelpACLExecute.md)
-        -   [在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-so.md)
-        -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize.md)
-        -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error.md)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)
-        -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭&#40;export-TASK_QUEUE_ENABLE-0&#41;后仍然遇到报错-HelpACLExecute.md)
-        -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1&#40;failed&#41;.md)
-    -   [模型调测常见问题](#模型调测常见问题.md)
-        -   [在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5.md)
-        -   [在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend.md)
-        -   [在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错](#在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错.md)
-        -   [在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”](#在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C.md)
-    -   [其他操作相关问题](#其他操作相关问题.md)
-        -   [cuda流同步操作报错](#cuda流同步操作报错.md)
-        -   [aicpu\_kernels/libpt\_kernels.so不存在](#aicpu_kernels-libpt_kernels-so不存在.md)
-        -   [使用npu-smi info查看显存时发现python进程残留](#使用npu-smi-info查看显存时发现python进程残留.md)
-        -   [动态shape报错“match op inputs failed”](#动态shape报错-match-op-inputs-failed.md)
-        -   [Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported](#Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported.md)
-        -   [Hook失败](#Hook失败.md)
-        -   [加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-error.md)
-    -   [模型分布式训练常见问题](#模型分布式训练常见问题.md)
-        -   [在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found.md)
-        -   [在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect&#40;&#41;-timed-out.md)
-<h2 id="概述.md">概述</h2>
+-   [概述](#概述)
+-   [约束与限制](#约束与限制)
+-   [迁移流程](#迁移流程)
+-   [模型移植评估](#模型移植评估)
+-   [环境准备](#环境准备)
+    -   [准备运行环境](#准备运行环境)
+    -   [配置环境变量](#配置环境变量)
+-   [模型迁移](#模型迁移)
+    -   [工具迁移](#工具迁移)
+        -   [功能介绍](#功能介绍)
+        -   [操作指南](#操作指南)
+        -   [结果解析](#结果解析)
+    -   [手工迁移](#手工迁移)
+        -   [单P训练模型迁移](#单P训练模型迁移)
+        -   [多P训练模型迁移](#多P训练模型迁移)
+        -   [PyTorch接口替换](#PyTorch接口替换)
+    -   [混合精度](#混合精度)
+    -   [性能优化](#性能优化)
+        -   [概述](#概述-0)
+        -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器)
+        -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器)
+        -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器)
+        -   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库)
+-   [模型训练](#模型训练)
+-   [性能调优和分析](#性能调优和分析)
+    -   [前提条件](#前提条件)
+    -   [调测过程](#调测过程)
+        -   [总体思路](#总体思路)
+        -   [采集训练过程相关数据](#采集训练过程相关数据)
+        -   [性能优化](#性能优化-1)
+    -   [亲和库](#亲和库)
+        -   [来源介绍](#来源介绍)
+        -   [功能介绍](#功能介绍-2)
+-   [精度调测](#精度调测)
+    -   [前提条件](#前提条件-3)
+    -   [调测过程](#调测过程-4)
+        -   [总体思路](#总体思路-5)
+        -   [精度调优方法](#精度调优方法)
+-   [模型保存与转换](#模型保存与转换)
+    -   [简介](#简介)
+    -   [模型保存](#模型保存)
+    -   [导出ONNX模型](#导出ONNX模型)
+-   [样例说明](#样例说明)
+    -   [ResNet50模型迁移示例](#ResNet50模型迁移示例)
+        -   [样例获取](#样例获取)
+        -   [训练脚本迁移](#训练脚本迁移)
+            -   [单P训练修改](#单P训练修改)
+            -   [分布式训练修改](#分布式训练修改)
+        -   [脚本执行](#脚本执行)
+    -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例)
+        -   [样例获取](#样例获取-6)
+        -   [模型评估](#模型评估)
+        -   [网络迁移](#网络迁移)
+        -   [网络调测](#网络调测)
+-   [参考信息](#参考信息)
+    -   [单算子样例编写说明](#单算子样例编写说明)
+    -   [单算子dump方法](#单算子dump方法)
+    -   [常用环境变量说明](#常用环境变量说明)
+    -   [dump op方法](#dump-op方法)
+    -   [安装7.3.0版本gcc](#安装7-3-0版本gcc)
+-   [FAQ](#FAQ)
+    -   [软件安装常见问题](#软件安装常见问题)
+        -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败)
+    -   [模型和算子运行常见问题](#模型和算子运行常见问题)
+        -   [在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice)
+        -   [在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs)
+        -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecute)
+        -   [在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-so)
+        -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize)
+        -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7)
+        -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecute)
+        -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failed)
+    -   [模型调测常见问题](#模型调测常见问题)
+        -   [在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5)
+        -   [在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend)
+        -   [在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错](#在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错)
+        -   [在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”](#在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C)
+    -   [其他操作相关问题](#其他操作相关问题)
+        -   [cuda流同步操作报错](#cuda流同步操作报错)
+        -   [aicpu\_kernels/libpt\_kernels.so不存在](#aicpu_kernels-libpt_kernels-so不存在)
+        -   [使用npu-smi info查看显存时发现python进程残留](#使用npu-smi-info查看显存时发现python进程残留)
+        -   [动态shape报错“match op inputs failed”](#动态shape报错-match-op-inputs-failed)
+        -   [Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported](#Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported)
+        -   [Hook失败](#Hook失败)
+        -   [加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-error)
+    -   [模型分布式训练常见问题](#模型分布式训练常见问题)
+        -   [在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found)
+        -   [在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect-timed-out)
+<h2 id="概述">概述</h2>
 
 当前阶段针对PyTorch框架实现的对接适配昇腾AI处理器的方案为在线对接方案。
 
@@ -110,7 +110,7 @@
 4.  扩展性好。在打通流程的通路之上，对于新增的网络类型或结构，只需涉及相关计算类算子的开发和实现。框架类算子，反向图建立和实现机制等结构可保持复用。
 5.  与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，只需在Python侧和Device相关操作中，指定device为昇腾AI处理器，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试，用户无需进一步关注昇腾AI处理器具体的底层细节。这样可以确保用户的最小化修改，迁移成本较低。
 
-<h2 id="约束与限制.md">约束与限制</h2>
+<h2 id="约束与限制">约束与限制</h2>
 
 -   infershape阶段算子不支持unknowshape的推导。
 -   cube计算的算子只支持float16。
@@ -124,7 +124,7 @@
     -   只支持int8，int32，float16和float32数据类型。
 
 
-<h2 id="迁移流程.md">迁移流程</h2>
+<h2 id="迁移流程">迁移流程</h2>
 
 模型迁移主要指将开源社区中实现过的模型迁移到昇腾AI处理器上，主要流程如[图1](#fig759451810422)所示。
 
@@ -142,32 +142,32 @@
 </thead>
 <tbody><tr id="row17349111602716"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1234921620273"><a name="p1234921620273"></a><a name="p1234921620273"></a>模型选取</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>详情请参见<a href="#模型移植评估.md#li5941731123517">模型选取</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>详情请参见<a href="#模型移植评估#li5941731123517">模型选取</a>。</p>
 </td>
 </tr>
 <tr id="row53492016112717"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p133501716132719"><a name="p133501716132719"></a><a name="p133501716132719"></a>模型移植评估</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>详情请参见<a href="#模型移植评估.md">模型移植评估</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>详情请参见<a href="#模型移植评估">模型移植评估</a>。</p>
 </td>
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>算子开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph07771712101117"><a name="ph07771712101117"></a><a name="ph07771712101117"></a>《<a href="#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch算子开发指南/PyTorch算子开发指南.md" target="_blank" rel="noopener noreferrer">PyTorch算子开发指南</a>》</span></span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph07771712101117"><a name="ph07771712101117"></a><a name="ph07771712101117"></a>《<a href="https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch算子开发指南/PyTorch算子开发指南.md" target="_blank" rel="noopener noreferrer">PyTorch算子开发指南</a>》</span></span>。</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>环境准备</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>详情请参见<a href="#环境准备.md">环境准备</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>详情请参见<a href="#环境准备">环境准备</a>。</p>
 </td>
 </tr>
 <tr id="row43031317489"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p14304131711817"><a name="p14304131711817"></a><a name="p14304131711817"></a>模型迁移</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>详情请参见<a href="#模型迁移.md">模型迁移</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>详情请参见<a href="#模型迁移">模型迁移</a>。</p>
 </td>
 </tr>
 <tr id="row10695931399"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p186956311094"><a name="p186956311094"></a><a name="p186956311094"></a>模型训练</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>详情请参见<a href="#模型训练.md">模型训练</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>详情请参见<a href="#模型训练">模型训练</a>。</p>
 </td>
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>错误分析</p>
@@ -177,17 +177,17 @@
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>性能调优和分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>详情请参见<a href="#性能调优和分析.md">性能调优和分析</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>详情请参见<a href="#性能调优和分析">性能调优和分析</a>。</p>
 </td>
 </tr>
 <tr id="row94308194435"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p74301019144319"><a name="p74301019144319"></a><a name="p74301019144319"></a>精度调测</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="#精度调测.md">精度调测</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="#精度调测">精度调测</a>。</p>
 </td>
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>模型保存与转换</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换.md">模型保存与转换</a>和<span id="ph1834334902411"><a name="ph1834334902411"></a><a name="ph1834334902411"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a>《CANN 开发辅助工具指南》</span></span>中“ATC工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换">模型保存与转换</a>和<span id="ph1834334902411"><a name="ph1834334902411"></a><a name="ph1834334902411"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a>《CANN 开发辅助工具指南》</span></span>中“ATC工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>应用软件开发</p>
@@ -197,33 +197,33 @@
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQ</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>主要涉及环境准备、模型迁移、模型调测和其他常见问题的解决方法。详情请参见<a href="#FAQ.md">FAQ</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>主要涉及环境准备、模型迁移、模型调测和其他常见问题的解决方法。详情请参见<a href="#FAQ">FAQ</a>。</p>
 </td>
 </tr>
 </tbody>
 </table>
 
-<h2 id="模型移植评估.md">模型移植评估</h2>
+<h2 id="模型移植评估">模型移植评估</h2>
 
 1.  在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
-2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法.md)，当有不支持算子时参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子开发。
+2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与[《PyTorch适配算子清单》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法)，当有不支持算子时参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch算子开发指南/PyTorch算子开发指南.md)进行算子开发。
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
 
 
-<h2 id="环境准备.md">环境准备</h2>
+<h2 id="环境准备">环境准备</h2>
 
--   **[准备运行环境](#准备运行环境.md)**  
+-   **[准备运行环境](#准备运行环境)**  
 
--   **[配置环境变量](#配置环境变量.md)**  
+-   **[配置环境变量](#配置环境变量)**  
 
 
-<h2 id="准备运行环境.md">准备运行环境</h2>
+<h2 id="准备运行环境">准备运行环境</h2>
 
-请参见《PyTorch安装指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)》进行PyTorch相关运行环境搭建。
+请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch安装指南/PyTorch安装指南.md)进行PyTorch相关运行环境搭建。
 
-<h2 id="配置环境变量.md">配置环境变量</h2>
+<h2 id="配置环境变量">配置环境变量</h2>
 
 安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径为例）。
 
@@ -347,29 +347,29 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 </tbody>
 </table>
 
-<h2 id="模型迁移.md">模型迁移</h2>
+<h2 id="模型迁移">模型迁移</h2>
 
--   **[工具迁移](#工具迁移.md)**  
+-   **[工具迁移](#工具迁移)**  
 
--   **[手工迁移](#手工迁移.md)**  
+-   **[手工迁移](#手工迁移)**  
 
--   **[混合精度](#混合精度.md)**  
+-   **[混合精度](#混合精度)**  
 
--   **[性能优化](#性能优化.md)**  
-
-
-<h2 id="工具迁移.md">工具迁移</h2>
-
-Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见《MindStudio 用户指南](https://support.huaweicloud.com/mindstudio302/)》。
-
--   **[功能介绍](#功能介绍.md)**  
-
--   **[操作指南](#操作指南.md)**  
-
--   **[结果解析](#结果解析.md)**  
+-   **[性能优化](#性能优化)**  
 
 
-<h2 id="功能介绍.md">功能介绍</h2>
+<h2 id="工具迁移">工具迁移</h2>
+
+Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://support.huaweicloud.com/mindstudio302/)。
+
+-   **[功能介绍](#功能介绍)**  
+
+-   **[操作指南](#操作指南)**  
+
+-   **[结果解析](#结果解析)**  
+
+
+<h2 id="功能介绍">功能介绍</h2>
 
 ## 简介<a name="zh-cn_topic_0000001133095885_section20874690446"></a>
 
@@ -674,9 +674,9 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 ## 环境准备<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
 
-详情请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》安装开发环境。
+详情请参考[《CANN 软件安装指南》](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)安装开发环境。
 
-<h2 id="操作指南.md">操作指南</h2>
+<h2 id="操作指南">操作指南</h2>
 
 ## 参数说明<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
 
@@ -836,7 +836,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 3.  完成脚本转换。
 
-<h2 id="结果解析.md">结果解析</h2>
+<h2 id="结果解析">结果解析</h2>
 
 脚本转换完成后，进入脚本转换结果输出路径查看结果文件。
 
@@ -847,16 +847,16 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 │   ├── unsupported_op.xlsx                // 不支持算子列表文件。
 ```
 
-<h2 id="手工迁移.md">手工迁移</h2>
+<h2 id="手工迁移">手工迁移</h2>
 
--   **[单P训练模型迁移](#单P训练模型迁移.md)**  
+-   **[单P训练模型迁移](#单P训练模型迁移)**  
 
--   **[多P训练模型迁移](#多P训练模型迁移.md)**  
+-   **[多P训练模型迁移](#多P训练模型迁移)**  
 
--   **[PyTorch接口替换](#PyTorch接口替换.md)**  
+-   **[PyTorch接口替换](#PyTorch接口替换)**  
 
 
-<h2 id="单P训练模型迁移.md">单P训练模型迁移</h2>
+<h2 id="单P训练模型迁移">单P训练模型迁移</h2>
 
 当前在线对接方案优点在于保证在昇腾AI处理器上训练与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，**只需在Python侧和Device相关操作中，指定device为昇腾AI处理器**，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试。针对单P模型训练，主要迁移改动如下。
 
@@ -886,9 +886,9 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
     target = target.to(CALCULATE_DEVICE)
 ```
 
-更多迁移细节请参见[单P训练修改](#单P训练修改.md)。
+更多迁移细节请参见[单P训练修改](#单P训练修改)。
 
-<h2 id="多P训练模型迁移.md">多P训练模型迁移</h2>
+<h2 id="多P训练模型迁移">多P训练模型迁移</h2>
 
 多P训练模型迁移除了需在**Python侧和Device相关操作中，指定device为昇腾AI处理器**外，依然通过PyTorch的DistributedDataParallel方式来进行分布式训练，即在模型初始化阶段执行init\_process\_group，再将模型初始化为DistributedDataParallel模型。但须注意的是在初始化init\_process\_group时需要将**backend**配置为**hccl**并屏蔽掉初始化方式。
 
@@ -912,9 +912,9 @@ def main():
           lr_scheduler)
 ```
 
-更多迁移细节请参见[分布式训练修改](#分布式训练修改.md)。
+更多迁移细节请参见[分布式训练修改](#分布式训练修改)。
 
-<h2 id="PyTorch接口替换.md">PyTorch接口替换</h2>
+<h2 id="PyTorch接口替换">PyTorch接口替换</h2>
 
 1.  为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
 
@@ -1111,9 +1111,9 @@ def main():
     </table>
 
 
-更多接口请参见《PyTorch API支持清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)》。
+更多接口请参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
-<h2 id="混合精度.md">混合精度</h2>
+<h2 id="混合精度">混合精度</h2>
 
 ## 概述<a name="section166113311599"></a>
 
@@ -1204,27 +1204,27 @@ def main():
     ```
 
 
-<h2 id="性能优化.md">性能优化</h2>
+<h2 id="性能优化">性能优化</h2>
 
--   **[概述](#概述-0.md)**  
+-   **[概述](#概述-0)**  
 
--   **[修改CPU性能模式（X86服务器）](#修改CPU性能模式（X86服务器）.md)**  
+-   **[修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器)**  
 
--   **[修改CPU性能模式（ARM服务器）](#修改CPU性能模式（ARM服务器）.md)**  
+-   **[修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器)**  
 
--   **[安装高性能pillow库（X86服务器）](#安装高性能pillow库（X86服务器）.md)**  
+-   **[安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器)**  
 
--   **[（可选）安装指定版本OpenCV库](#（可选）安装指定版本OpenCV库.md)**  
+-   **[（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库)**  
 
 
-<h2 id="概述-0.md">概述</h2>
+<h2 id="概述-0">概述</h2>
 
 在进行PyTorch模型迁移训练时，部分网络模型会出现1秒内识别的图像数（fps）较低、性能不达标的情况。此时需要针对服务器进行以下优化。
 
 -   修改CPU性能模式。
 -   安装高性能pillow库。
 
-<h2 id="修改CPU性能模式（X86服务器）.md">修改CPU性能模式（X86服务器）</h2>
+<h2 id="修改CPU性能模式X86服务器">修改CPU性能模式（X86服务器）</h2>
 
 ## 设置电源策略为高性能模式<a name="section18832114453814"></a>
 
@@ -1331,7 +1331,7 @@ def main():
 
 4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
-<h2 id="修改CPU性能模式（ARM服务器）.md">修改CPU性能模式（ARM服务器）</h2>
+<h2 id="修改CPU性能模式ARM服务器">修改CPU性能模式（ARM服务器）</h2>
 
 ## 设置电源策略为高性能模式<a name="section18832114453814"></a>
 
@@ -1360,7 +1360,7 @@ def main():
 
 6.  按下“F10”保存配置并重启服务器。
 
-<h2 id="安装高性能pillow库（X86服务器）.md">安装高性能pillow库（X86服务器）</h2>
+<h2 id="安装高性能pillow库X86服务器">安装高性能pillow库（X86服务器）</h2>
 
 1.  安装高性能pillow库相关依赖，命令如下。
 
@@ -1411,42 +1411,42 @@ def main():
     ```
 
 
-<h2 id="（可选）安装指定版本OpenCV库.md">（可选）安装指定版本OpenCV库</h2>
+<h2 id="可选安装指定版本OpenCV库">（可选）安装指定版本OpenCV库</h2>
 
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
 1.  获取源码：[获取地址](https://opencv.org/releases/)。
 2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
-<h2 id="模型训练.md">模型训练</h2>
+<h2 id="模型训练">模型训练</h2>
 
-训练脚本迁移完成后，需要参见[配置环境变量](#配置环境变量.md)设置环境变量，然后执行**python3.7** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行.md)。
+训练脚本迁移完成后，需要参见[配置环境变量](#配置环境变量)设置环境变量，然后执行**python3.7** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行)。
 
-<h2 id="性能调优和分析.md">性能调优和分析</h2>
+<h2 id="性能调优和分析">性能调优和分析</h2>
 
--   **[前提条件](#前提条件.md)**  
+-   **[前提条件](#前提条件)**  
 
--   **[调测过程](#调测过程.md)**  
+-   **[调测过程](#调测过程)**  
 
--   **[亲和库](#亲和库.md)**  
+-   **[亲和库](#亲和库)**  
 
 
-<h2 id="前提条件.md">前提条件</h2>
+<h2 id="前提条件">前提条件</h2>
 
-1.  参见[样例说明](#样例说明.md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
-2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子适配开发。
+1.  参见[样例说明](#样例说明)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
+2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子适配开发。
 3.  优先打通单卡功能，再打通多卡功能。
 
-<h2 id="调测过程.md">调测过程</h2>
+<h2 id="调测过程">调测过程</h2>
 
--   **[总体思路](#总体思路.md)**  
+-   **[总体思路](#总体思路)**  
 
--   **[采集训练过程相关数据](#采集训练过程相关数据.md)**  
+-   **[采集训练过程相关数据](#采集训练过程相关数据)**  
 
--   **[性能优化](#性能优化-1.md)**  
+-   **[性能优化](#性能优化-1)**  
 
 
-<h2 id="总体思路.md">总体思路</h2>
+<h2 id="总体思路">总体思路</h2>
 
 1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
 2.  当吞吐量指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
@@ -1457,7 +1457,7 @@ def main():
 
 3.  针对以上制约性能瓶颈的原因进行分析与优化。
 
-<h2 id="采集训练过程相关数据.md">采集训练过程相关数据</h2>
+<h2 id="采集训练过程相关数据">采集训练过程相关数据</h2>
 
 ## Profiling数据采集<a name="section141471611314"></a>
 
@@ -1536,7 +1536,7 @@ def main():
     export ASCEND_SLOG_PRINT_TO_STDOUT=1
     ```
 
-3.  设置日志级别为info，参考《CANN 日志参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)》设置日志级别。
+3.  设置日志级别为info，参考[《CANN 日志参考》](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)设置日志级别。
 4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
@@ -1546,7 +1546,7 @@ def main():
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
 
-<h2 id="性能优化-1.md">性能优化</h2>
+<h2 id="性能优化-1">性能优化</h2>
 
 ## 算子瓶颈优化<a name="section8727652134111"></a>
 
@@ -1590,18 +1590,18 @@ def main():
     -   解决方案：减少编译或不需要编译该算子。
 
 
-<h2 id="亲和库.md">亲和库</h2>
+<h2 id="亲和库">亲和库</h2>
 
--   **[来源介绍](#来源介绍.md)**  
+-   **[来源介绍](#来源介绍)**  
 
--   **[功能介绍](#功能介绍-2.md)**  
+-   **[功能介绍](#功能介绍-2)**  
 
 
-<h2 id="来源介绍.md">来源介绍</h2>
+<h2 id="来源介绍">来源介绍</h2>
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
-<h2 id="功能介绍-2.md">功能介绍</h2>
+<h2 id="功能介绍-2">功能介绍</h2>
 
 <a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>函数名</p>
@@ -1646,25 +1646,25 @@ def main():
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
 
-<h2 id="精度调测.md">精度调测</h2>
+<h2 id="精度调测">精度调测</h2>
 
--   **[前提条件](#前提条件-3.md)**  
+-   **[前提条件](#前提条件-3)**  
 
--   **[调测过程](#调测过程-4.md)**  
+-   **[调测过程](#调测过程-4)**  
 
 
-<h2 id="前提条件-3.md">前提条件</h2>
+<h2 id="前提条件-3">前提条件</h2>
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h2 id="调测过程-4.md">调测过程</h2>
+<h2 id="调测过程-4">调测过程</h2>
 
--   **[总体思路](#总体思路-5.md)**  
+-   **[总体思路](#总体思路-5)**  
 
--   **[精度调优方法](#精度调优方法.md)**  
+-   **[精度调优方法](#精度调优方法)**  
 
 
-<h2 id="总体思路-5.md">总体思路</h2>
+<h2 id="总体思路-5">总体思路</h2>
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
@@ -1698,7 +1698,7 @@ def main():
 
 
 
-<h2 id="精度调优方法.md">精度调优方法</h2>
+<h2 id="精度调优方法">精度调优方法</h2>
 
 1.  通过对比CPU和昇腾AI处理器的结果，判断在昇腾AI处理器上计算是否正确。
 
@@ -1758,16 +1758,16 @@ def main():
     ```
 
 
-<h2 id="模型保存与转换.md">模型保存与转换</h2>
+<h2 id="模型保存与转换">模型保存与转换</h2>
 
--   **[简介](#简介.md)**  
+-   **[简介](#简介)**  
 
--   **[模型保存](#模型保存.md)**  
+-   **[模型保存](#模型保存)**  
 
--   **[导出ONNX模型](#导出ONNX模型.md)**  
+-   **[导出ONNX模型](#导出ONNX模型)**  
 
 
-<h2 id="简介.md">简介</h2>
+<h2 id="简介">简介</h2>
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
@@ -1775,11 +1775,11 @@ def main():
 
 如果想使用Auto Tune优化功能，请参考《CANN 开发辅助工具指南》手册中“Auto Tune工具使用指导”章节。
 
-离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)](https://support.huawei.com/enterprise/zh/doc/EDOC1100206685?idPath=23710424%7C251366513%7C22892968%7C251168373)》。整体流程如下：
+离线推理应用构建请参考[《CANN 应用软件开发指南\(C&C++, 推理\)》](https://support.huawei.com/enterprise/zh/doc/EDOC1100206685?idPath=23710424%7C251366513%7C22892968%7C251168373)。整体流程如下：
 
 ![](figures/zh-cn_image_0000001106176222.png)
 
-<h2 id="模型保存.md">模型保存</h2>
+<h2 id="模型保存">模型保存</h2>
 
 Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件，根据模型文件的后续用途会保存为两种格式的模型文件：
 
@@ -1799,7 +1799,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         torch.save(net.state_dict(), PATH)
         ```
 
-    2.  加载模型以用于在线推理，示例如下，详情请参见《PyTorch在线推理指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97.md)》。
+    2.  加载模型以用于在线推理，示例如下，详情请参见[《PyTorch在线推理指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97.md)。
 
         ```
         # 模型文件保存路径
@@ -1852,7 +1852,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
 >![](public_sys-resources/icon-notice.gif) **须知：** 
 >通常情况下，训练图和推理图中对同一个算子处理方式不同（例如BatchNorm和dropout等算子），在输入格式上也有差别，因此在运行推理或导出ONNX模型之前，必须调用model.eval\(\) 来将dropout和batch normalization层设置为推理模式。
 
-<h2 id="导出ONNX模型.md">导出ONNX模型</h2>
+<h2 id="导出ONNX模型">导出ONNX模型</h2>
 
 ## 简介<a name="section5385151615714"></a>
 
@@ -1939,23 +1939,23 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="样例说明.md">样例说明</h2>
+<h2 id="样例说明">样例说明</h2>
 
--   **[ResNet50模型迁移示例](#ResNet50模型迁移示例.md)**  
+-   **[ResNet50模型迁移示例](#ResNet50模型迁移示例)**  
 
--   **[ShuffleNet模型调优示例](#ShuffleNet模型调优示例.md)**  
-
-
-<h2 id="ResNet50模型迁移示例.md">ResNet50模型迁移示例</h2>
-
--   **[样例获取](#样例获取.md)**  
-
--   **[训练脚本迁移](#训练脚本迁移.md)**  
-
--   **[脚本执行](#脚本执行.md)**  
+-   **[ShuffleNet模型调优示例](#ShuffleNet模型调优示例)**  
 
 
-<h2 id="样例获取.md">样例获取</h2>
+<h2 id="ResNet50模型迁移示例">ResNet50模型迁移示例</h2>
+
+-   **[样例获取](#样例获取)**  
+
+-   **[训练脚本迁移](#训练脚本迁移)**  
+
+-   **[脚本执行](#脚本执行)**  
+
+
+<h2 id="样例获取">样例获取</h2>
 
 ## 样例获取<a name="section1155115015182"></a>
 
@@ -2001,14 +2001,14 @@ if __name__ == "__main__":
 ├──main.py 
 ```
 
-<h2 id="训练脚本迁移.md">训练脚本迁移</h2>
+<h2 id="训练脚本迁移">训练脚本迁移</h2>
 
--   **[单P训练修改](#单P训练修改.md)**  
+-   **[单P训练修改](#单P训练修改)**  
 
--   **[分布式训练修改](#分布式训练修改.md)**  
+-   **[分布式训练修改](#分布式训练修改)**  
 
 
-<h2 id="单P训练修改.md">单P训练修改</h2>
+<h2 id="单P训练修改">单P训练修改</h2>
 
 1.  main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练：
 
@@ -2151,7 +2151,7 @@ if __name__ == "__main__":
     ```
 
 
-<h2 id="分布式训练修改.md">分布式训练修改</h2>
+<h2 id="分布式训练修改">分布式训练修改</h2>
 
 1.  main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练及进行混合精度训练。
 
@@ -2502,7 +2502,7 @@ if __name__ == "__main__":
     ```
 
 
-<h2 id="脚本执行.md">脚本执行</h2>
+<h2 id="脚本执行">脚本执行</h2>
 
 ## 准备数据集<a name="section1570410549599"></a>
 
@@ -2553,18 +2553,18 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \               
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
 
-<h2 id="ShuffleNet模型调优示例.md">ShuffleNet模型调优示例</h2>
+<h2 id="ShuffleNet模型调优示例">ShuffleNet模型调优示例</h2>
 
--   **[样例获取](#样例获取-6.md)**  
+-   **[样例获取](#样例获取-6)**  
 
--   **[模型评估](#模型评估.md)**  
+-   **[模型评估](#模型评估)**  
 
--   **[网络迁移](#网络迁移.md)**  
+-   **[网络迁移](#网络迁移)**  
 
--   **[网络调测](#网络调测.md)**  
+-   **[网络调测](#网络调测)**  
 
 
-<h2 id="样例获取-6.md">样例获取</h2>
+<h2 id="样例获取-6">样例获取</h2>
 
 ## 样例获取<a name="section1155115015182"></a>
 
@@ -2587,15 +2587,15 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \               
 ├──main.py 
 ```
 
-<h2 id="模型评估.md">模型评估</h2>
+<h2 id="模型评估">模型评估</h2>
 
-模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见《PyTorch算子开发指南](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)》进行算子开发。
+模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch适配算子清单》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
-<h2 id="网络迁移.md">网络迁移</h2>
+<h2 id="网络迁移">网络迁移</h2>
 
 训练脚本迁移请参见[单P训练修改](#单P训练修改.md)和[分布式训练修改](#分布式训练修改.md)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
 
-<h2 id="网络调测.md">网络调测</h2>
+<h2 id="网络调测">网络调测</h2>
 
 网络调测具体方法请参见[调测过程](#调测过程.md)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
 
@@ -3094,20 +3094,20 @@ for group in [2, 4, 8]:
     ```
 
 
-<h2 id="参考信息.md">参考信息</h2>
+<h2 id="参考信息">参考信息</h2>
 
--   **[单算子样例编写说明](#单算子样例编写说明.md)**  
+-   **[单算子样例编写说明](#单算子样例编写说明)**  
 
--   **[单算子dump方法](#单算子dump方法.md)**  
+-   **[单算子dump方法](#单算子dump方法)**  
 
--   **[常用环境变量说明](#常用环境变量说明.md)**  
+-   **[常用环境变量说明](#常用环境变量说明)**  
 
--   **[dump op方法](#dump-op方法.md)**  
+-   **[dump op方法](#dump-op方法)**  
 
--   **[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)**  
+-   **[安装7.3.0版本gcc](#安装7-3-0版本gcc)**  
 
 
-<h2 id="单算子样例编写说明.md">单算子样例编写说明</h2>
+<h2 id="单算子样例编写说明">单算子样例编写说明</h2>
 
 在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法.md)。
 
@@ -3202,7 +3202,7 @@ for group in [2, 4, 8]:
     ```
 
 
-<h2 id="单算子dump方法.md">单算子dump方法</h2>
+<h2 id="单算子dump方法">单算子dump方法</h2>
 
 ## 采集Dump数据<a name="zh-cn_topic_0235790166_section1470293916167"></a>
 
@@ -3310,7 +3310,7 @@ torch.npu.finalize_dump()
     转换为.txt格式文件后，维度信息、Dtype均不存在。详细的使用方法请参考numpy官网介绍。
 
 
-<h2 id="常用环境变量说明.md">常用环境变量说明</h2>
+<h2 id="常用环境变量说明">常用环境变量说明</h2>
 
 1.  开启TASK多线程下发，绝大多数情况下，打开该功能会进一步提升整网训练性能。
 
@@ -3320,7 +3320,7 @@ torch.npu.finalize_dump()
 
     **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=1**
 
-3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考《CANN 日志参考](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)》设置日志级别。
+3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《CANN 日志参考》](https://support.huawei.com/enterprise/zh/doc/EDOC1100206691?idPath=23710424%7C251366513%7C22892968%7C251168373)设置日志级别。
 4.  dump图，主要用于查看图结构。
 
     **export DUMP\_GE\_GRAPH=2**
@@ -3328,7 +3328,7 @@ torch.npu.finalize_dump()
     **export DUMP\_GRAPH\_LEVEL=3**
 
 
-<h2 id="dump-op方法.md">dump op方法</h2>
+<h2 id="dump-op方法">dump op方法</h2>
 
 1.  使用profile接口对原始代码训练脚本的loss计算和优化过程进行改造，打印算子信息。代码样例如下：
 
@@ -3343,7 +3343,7 @@ torch.npu.finalize_dump()
 
 2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
 
-<h2 id="安装7-3-0版本gcc.md">安装7.3.0版本gcc</h2>
+<h2 id="安装7-3-0版本gcc">安装7.3.0版本gcc</h2>
 
 以下步骤请在root用户下执行。
 
@@ -3425,25 +3425,25 @@ torch.npu.finalize_dump()
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
 
-<h2 id="FAQ.md">FAQ</h2>
+<h2 id="FAQ">FAQ</h2>
 
--   **[软件安装常见问题](#软件安装常见问题.md)**  
+-   **[软件安装常见问题](#软件安装常见问题)**  
 
--   **[模型和算子运行常见问题](#模型和算子运行常见问题.md)**  
+-   **[模型和算子运行常见问题](#模型和算子运行常见问题)**  
 
--   **[模型调测常见问题](#模型调测常见问题.md)**  
+-   **[模型调测常见问题](#模型调测常见问题)**  
 
--   **[其他操作相关问题](#其他操作相关问题.md)**  
+-   **[其他操作相关问题](#其他操作相关问题)**  
 
--   **[模型分布式训练常见问题](#模型分布式训练常见问题.md)**  
-
-
-<h2 id="软件安装常见问题.md">软件安装常见问题</h2>
-
--   **[pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)**  
+-   **[模型分布式训练常见问题](#模型分布式训练常见问题)**  
 
 
-<h2 id="pip3-7-install-Pillow-5-3-0安装失败.md">pip3.7 install Pillow==5.3.0安装失败</h2>
+<h2 id="软件安装常见问题">软件安装常见问题</h2>
+
+-   **[pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败)**  
+
+
+<h2 id="pip3-7-install-Pillow-5-3-0安装失败">pip3.7 install Pillow==5.3.0安装失败</h2>
 
 ## 现象描述<a name="zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -3466,30 +3466,30 @@ pip3.7 install pillow==5.3.0安装失败。
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-<h2 id="模型和算子运行常见问题.md">模型和算子运行常见问题</h2>
+<h2 id="模型和算子运行常见问题">模型和算子运行常见问题</h2>
 
--   **[在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md)**  
+-   **[在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice)**  
 
--   **[在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs.md)**  
+-   **[在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs)**  
 
--   **[在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecute.md)**  
+-   **[在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecute)**  
 
--   **[在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-so.md)**  
+-   **[在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-so)**  
 
--   **[在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize.md)**  
+-   **[在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize)**  
 
--   **[在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error.md)**  
+-   **[在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error)**  
 
--   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)**  
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed)**  
 
--   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)**  
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7)**  
 
--   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecute.md)**  
+-   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecute)**  
 
--   **[在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed).md)**  
+-   **[在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failed)**  
 
 
-<h2 id="在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice.md">在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”</h2>
+<h2 id="在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevice">在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3503,7 +3503,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 检查代码中在调用torch.npu.set\_device\(device\)、tensor.to\(device\)或者model.to\(device\)时，同一个线程内前后调用时device名称不一致。对于多个线程情况（如多卡训练），每个线程同样只能调用固定的npu device。
 
-<h2 id="在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs.md">在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”</h2>
+<h2 id="在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncs">在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3517,7 +3517,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 在调用NPU设备之前，通过torch.npu.set\_device\(device\)指定需要使用的NPU设备即可。
 
-<h2 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecute.md">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”</h2>
+<h2 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecute">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3534,7 +3534,7 @@ pip3.7 install pillow==5.3.0安装失败。
 -   查看具体的host报错日志信息。日志默认路径为/var/log/npu/slog/host-0/，根据时间标识查找以host-0为前缀的日志文件，打开日志文件，搜索“ERROR”，查询具体的报错信息。
 -   关闭多线程下发\(export TASK\_QUEUE\_ENABLE=0\)，再次运行代码，一般可根据终端报错信息定位错误原因。
 
-<h2 id="在模型运行时遇到报错-ImportError-libhccl-so.md">在模型运行时遇到报错“ImportError: libhccl.so.”</h2>
+<h2 id="在模型运行时遇到报错-ImportError-libhccl-so">在模型运行时遇到报错“ImportError: libhccl.so.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3548,7 +3548,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 将hccl模块的路径添加到环境变量中，一般情况下hccl库文件路径为安装包下的.../fwkacllib/python/site-packages/hccl。
 
-<h2 id="在模型运行时遇到报错-RuntimeError-Initialize.md">在模型运行时遇到报错“RuntimeError: Initialize.”</h2>
+<h2 id="在模型运行时遇到报错-RuntimeError-Initialize">在模型运行时遇到报错“RuntimeError: Initialize.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3586,7 +3586,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 4.  <a name="li475615212912"></a>联系华为工程师。
 
-<h2 id="在模型运行时遇到报错-TVM-te-cce-error.md">在模型运行时遇到报错“TVM/te/cce error.”</h2>
+<h2 id="在模型运行时遇到报错-TVM-te-cce-error">在模型运行时遇到报错“TVM/te/cce error.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3602,7 +3602,7 @@ pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch�
 
 ![](figures/FAQ10-1.png)
 
-<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
+<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3671,7 +3671,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
 5.  将stack入参数据类型转换为一致即可临时规避问题。
 
-<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
+<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3740,7 +3740,7 @@ shell报错是在同步操作中和ai cpu错误，而日志报错信息却是在
 4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
 5.  将stack入参数据类型转换为一致即可临时规避问题。
 
-<h2 id="在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecute.md">在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”</h2>
+<h2 id="在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecute">在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3760,7 +3760,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 在模型代码中查找topk算子调用位置，确定该算子是否可由其他算子代替，若可由其他算子报错，暂时使用代替方案，并将算子报错信息报告华为工程师。若无替代算子，请将算子报错信息通知华为工程师解决。
 
-<h2 id="在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed).md">在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”</h2>
+<h2 id="在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failed">在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”</h2>
 
 ## 现象描述<a name="section170419711269"></a>
 
@@ -3776,18 +3776,18 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 该报错信息不影响训练功能与性能，可忽略该报错信息。
 
-<h2 id="模型调测常见问题.md">模型调测常见问题</h2>
+<h2 id="模型调测常见问题">模型调测常见问题</h2>
 
--   **[在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5.md)**  
+-   **[在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5)**  
 
--   **[在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend.md)**  
+-   **[在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend)**  
 
--   **[在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错](#在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错.md)**  
+-   **[在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错](#在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错)**  
 
--   **[在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”](#在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C.md)**  
+-   **[在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”](#在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C)**  
 
 
-<h2 id="在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5.md">在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”</h2>
+<h2 id="在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5">在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3801,7 +3801,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 在模型调测中，可用通过减小batch size参数来减少NPU显存的分配，解决该问题。
 
-<h2 id="在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend.md">在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”</h2>
+<h2 id="在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backend">在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3815,7 +3815,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 在模型调测中，可通过减小batch size参数，来减少NPU显存的占用，解决该问题。
 
-<h2 id="在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错.md">在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错</h2>
+<h2 id="在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错">在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3843,7 +3843,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 在模型中遇到算子报错，首选是仅构建单算子测试用例，确定报错场景和原因即可；若无法在单算子中构建单算子用例，则需要构建基于上下文的单算子场景, 可以参考[单算子样例编写说明](#单算子样例编写说明.md)编写用例。
 
-<h2 id="在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C.md">在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”</h2>
+<h2 id="在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_C">在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3857,24 +3857,24 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 切换到其他目录执行脚本。
 
-<h2 id="其他操作相关问题.md">其他操作相关问题</h2>
+<h2 id="其他操作相关问题">其他操作相关问题</h2>
 
--   **[cuda流同步操作报错](#cuda流同步操作报错.md)**  
+-   **[cuda流同步操作报错](#cuda流同步操作报错)**  
 
--   **[aicpu\_kernels/libpt\_kernels.so不存在](#aicpu_kernels-libpt_kernels-so不存在.md)**  
+-   **[aicpu\_kernels/libpt\_kernels.so不存在](#aicpu_kernels-libpt_kernels-so不存在)**  
 
--   **[使用npu-smi info查看显存时发现python进程残留](#使用npu-smi-info查看显存时发现python进程残留.md)**  
+-   **[使用npu-smi info查看显存时发现python进程残留](#使用npu-smi-info查看显存时发现python进程残留)**  
 
--   **[动态shape报错“match op inputs failed”](#动态shape报错-match-op-inputs-failed.md)**  
+-   **[动态shape报错“match op inputs failed”](#动态shape报错-match-op-inputs-failed)**  
 
--   **[Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported](#Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported.md)**  
+-   **[Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported](#Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported)**  
 
--   **[Hook失败](#Hook失败.md)**  
+-   **[Hook失败](#Hook失败)**  
 
--   **[加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-error.md)**  
+-   **[加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-error)**  
 
 
-<h2 id="cuda流同步操作报错.md">cuda流同步操作报错</h2>
+<h2 id="cuda流同步操作报错">cuda流同步操作报错</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3893,7 +3893,7 @@ stream = torch.npu.current_stream()
 stream.synchronize()
 ```
 
-<h2 id="aicpu_kernels-libpt_kernels-so不存在.md">aicpu\_kernels/libpt\_kernels.so不存在</h2>
+<h2 id="aicpu_kernels-libpt_kernels-so不存在">aicpu\_kernels/libpt\_kernels.so不存在</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3911,7 +3911,7 @@ stream.synchronize()
 export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest
 ```
 
-<h2 id="使用npu-smi-info查看显存时发现python进程残留.md">使用npu-smi info查看显存时发现python进程残留</h2>
+<h2 id="使用npu-smi-info查看显存时发现python进程残留">使用npu-smi info查看显存时发现python进程残留</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3929,7 +3929,7 @@ python进程残留，需要kill。
 pkill -9 python
 ```
 
-<h2 id="动态shape报错-match-op-inputs-failed.md">动态shape报错“match op inputs failed”</h2>
+<h2 id="动态shape报错-match-op-inputs-failed">动态shape报错“match op inputs failed”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3943,7 +3943,7 @@ PTIndexPut编译的算子和输入的shape不一致， 并有acl\_dynamic\_shape
 
 PTIndexPut对应tensor\[indices\] = value，需要在代码中找到对应的地方将动态shape修改为固定shape。
 
-<h2 id="Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported.md">Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported</h2>
+<h2 id="Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupported">Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3960,7 +3960,7 @@ SigmoidCrossEntropyWithLogitsV2算子输入了不支持的数据类型，可能�
 
 检查对应python代码中输入的数据类型，并修改。
 
-<h2 id="Hook失败.md">Hook失败</h2>
+<h2 id="Hook失败">Hook失败</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -4016,7 +4016,7 @@ if len(self._backward_hooks) > 0:
 return result
 ```
 
-<h2 id="加载权重时遇到报错-load-state_dict-error.md">加载权重时遇到报错“load state\_dict error.”</h2>
+<h2 id="加载权重时遇到报错-load-state_dict-error">加载权重时遇到报错“load state\_dict error.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -4045,14 +4045,14 @@ return result
    model.load_state_dict(state_dict)
 ```
 
-<h2 id="模型分布式训练常见问题.md">模型分布式训练常见问题</h2>
+<h2 id="模型分布式训练常见问题">模型分布式训练常见问题</h2>
 
--   **[在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found.md)**  
+-   **[在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-found)**  
 
--   **[在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-out.md)**  
+-   **[在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect-timed-out)**  
 
 
-<h2 id="在进行模型分布式训练时遇到报错-host-not-found.md">在进行模型分布式训练时遇到报错“host not found.”</h2>
+<h2 id="在进行模型分布式训练时遇到报错-host-not-found">在进行模型分布式训练时遇到报错“host not found.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -4066,7 +4066,7 @@ return result
 
 在运行脚本中设置正确的IP地址，对于单机情况，设置为本机的IP地址即可；对于多机情况，每个服务器上脚本中的IP需要设置为master节点的IP。
 
-<h2 id="在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-out.md">在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”</h2>
+<h2 id="在进行模型分布式训练时遇到报错-RuntimeError-connect-timed-out">在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 

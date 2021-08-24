@@ -1,37 +1,37 @@
 # PyTorch算子开发指南
--   [简介](#简介.md)
--   [算子开发流程](#算子开发流程.md)
--   [算子开发准备](#算子开发准备.md)
-    -   [环境准备](#环境准备.md)
-    -   [算子速查](#算子速查.md)
--   [算子适配开发](#算子适配开发.md)
-    -   [前提条件](#前提条件.md)
-    -   [获取PyTorch源码](#获取PyTorch源码.md)
-    -   [注册算子开发](#注册算子开发.md)
-    -   [算子适配插件开发](#算子适配插件开发.md)
-    -   [编译和安装PyTorch框架](#编译和安装PyTorch框架.md)
--   [算子功能验证](#算子功能验证.md)
-    -   [概述](#概述.md)
-    -   [实现过程](#实现过程.md)
--   [FAQ](#FAQ.md)
-    -   [Pillow==5.3.0安装失败](#Pillow-5-3-0安装失败.md)
-    -   [pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败.md)
-    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
-    -   [如何查看测试的运行日志](#如何查看测试的运行日志.md)
-    -   [为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)
-    -   [如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用.md)
-    -   [PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status.md)
-    -   [PyTorch编译失败，提示“error: call of overload ....”](#PyTorch编译失败-提示-error-call-of-overload.md)
--   [附录](#附录.md)
-    -   [CMake安装方法](#CMake安装方法.md)
-    -   [自定义算子导出方法](#自定义算子导出方法.md)
-<h2 id="简介.md">简介</h2>
+-   [简介](#简介)
+-   [算子开发流程](#算子开发流程)
+-   [算子开发准备](#算子开发准备)
+    -   [环境准备](#环境准备)
+    -   [算子速查](#算子速查)
+-   [算子适配开发](#算子适配开发)
+    -   [前提条件](#前提条件)
+    -   [获取PyTorch源码](#获取PyTorch源码)
+    -   [注册算子开发](#注册算子开发)
+    -   [算子适配插件开发](#算子适配插件开发)
+    -   [编译和安装PyTorch框架](#编译和安装PyTorch框架)
+-   [算子功能验证](#算子功能验证)
+    -   [概述](#概述)
+    -   [实现过程](#实现过程)
+-   [FAQ](#FAQ)
+    -   [Pillow==5.3.0安装失败](#Pillow-5-3-0安装失败)
+    -   [pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败)
+    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配)
+    -   [如何查看测试的运行日志](#如何查看测试的运行日志)
+    -   [为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到)
+    -   [如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用)
+    -   [PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status)
+    -   [PyTorch编译失败，提示“error: call of overload ....”](#PyTorch编译失败-提示-error-call-of-overload)
+-   [附录](#附录)
+    -   [CMake安装方法](#CMake安装方法)
+    -   [自定义算子导出方法](#自定义算子导出方法)
+<h2 id="简介">简介</h2>
 
 ## 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
 
 为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。
 
-<h2 id="算子开发流程.md">算子开发流程</h2>
+<h2 id="算子开发流程">算子开发流程</h2>
 
 Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
@@ -66,7 +66,7 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="zh-cn_topic_0000001105032530_p1381018121891"><a name="zh-cn_topic_0000001105032530_p1381018121891"></a><a name="zh-cn_topic_0000001105032530_p1381018121891"></a>准备算子开发及运行验证所依赖的开发环境与运行环境。</p>
 </td>
-<td class="cellrowborder" rowspan="2" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_p1498205181013"><a name="zh-cn_topic_0000001105032530_p1498205181013"></a><a name="zh-cn_topic_0000001105032530_p1498205181013"></a><a href="#算子开发准备.md">算子开发准备</a></p>
+<td class="cellrowborder" rowspan="2" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_p1498205181013"><a name="zh-cn_topic_0000001105032530_p1498205181013"></a><a name="zh-cn_topic_0000001105032530_p1498205181013"></a><a href="#算子开发准备">算子开发准备</a></p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001105032530_row194671091290"><td class="cellrowborder" valign="top" headers="mcps1.2.5.1.1 "><p id="zh-cn_topic_0000001105032530_p3467169594"><a name="zh-cn_topic_0000001105032530_p3467169594"></a><a name="zh-cn_topic_0000001105032530_p3467169594"></a>2</p>
@@ -83,7 +83,7 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p381282212"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p381282212"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p381282212"></a>获取昇腾社区PyTorch源码。</p>
 </td>
-<td class="cellrowborder" rowspan="4" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_p10679152717175"><a name="zh-cn_topic_0000001105032530_p10679152717175"></a><a name="zh-cn_topic_0000001105032530_p10679152717175"></a><a href="#算子开发准备.md">算子适配开发</a></p>
+<td class="cellrowborder" rowspan="4" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_p10679152717175"><a name="zh-cn_topic_0000001105032530_p10679152717175"></a><a name="zh-cn_topic_0000001105032530_p10679152717175"></a><a href="#算子开发准备">算子适配开发</a></p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001105032530_row1184984391512"><td class="cellrowborder" valign="top" headers="mcps1.2.5.1.1 "><p id="zh-cn_topic_0000001105032530_p1054075616153"><a name="zh-cn_topic_0000001105032530_p1054075616153"></a><a name="zh-cn_topic_0000001105032530_p1054075616153"></a>4</p>
@@ -113,25 +113,25 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p4952132615216"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p4952132615216"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p4952132615216"></a>在真实的硬件环境中验证算子功能。</p>
 </td>
-<td class="cellrowborder" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"></a><a href="#算子功能验证.md">算子功能验证</a></p>
+<td class="cellrowborder" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p20908934557"></a><a href="#算子功能验证">算子功能验证</a></p>
 </td>
 </tr>
 </tbody>
 </table>
 
-<h2 id="算子开发准备.md">算子开发准备</h2>
+<h2 id="算子开发准备">算子开发准备</h2>
 
--   **[环境准备](#环境准备.md)**  
+-   **[环境准备](#环境准备)**  
 
--   **[算子速查](#算子速查.md)**  
+-   **[算子速查](#算子速查)**  
 
 
-<h2 id="环境准备.md">环境准备</h2>
+<h2 id="环境准备">环境准备</h2>
 
 ## 前提条件<a name="zh-cn_topic_0000001125736787_section12464163765320"></a>
 
 -   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》。
--   需安装3.12.0及以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
+-   需安装3.12.0及以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206656?idPath=23710424%7C251366513%7C22892968%7C251168373)》中的“安装7.3.0版本gcc”章节。
 -   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下:
     -   Ubuntu系统
@@ -159,9 +159,9 @@ pip3.7 install Pillow==5.3.0
 ```
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->若以上过程出错，请参考[FAQ](#FAQ.md)尝试解决问题。
+>若以上过程出错，请参考[FAQ](#FAQ)尝试解决问题。
 
-<h2 id="算子速查.md">算子速查</h2>
+<h2 id="算子速查">算子速查</h2>
 
 进行算子开发时，您可以查询当前昇腾AI处理器中支持的算子列表和当前PyTorch适配的算子列表。根据查询结果进行算子开发或PyTorch算子适配。
 
@@ -172,30 +172,30 @@ pip3.7 install Pillow==5.3.0
 昇腾AI处理器和PyTorch适配的算子查询方式如下。
 
 -   当前昇腾AI处理器中支持的算子以及对应的算子约束可以通过以下两种方式查询。
-    -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)](https://support.huawei.com/enterprise/zh/doc/EDOC1100206663)》进行离线查询。
-    -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南](https://support.huaweicloud.com/mindstudio302/)》中的“算子&模型速查”章节。
+    -   命令行开发方式下，您可以参见《[CANN 算子清单 \(Ascend 910\)](https://support.huawei.com/enterprise/zh/doc/EDOC1100206663)》进行离线查询。
+    -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《[MindStudio 用户指南](https://support.huaweicloud.com/mindstudio302/)》中的“算子&模型速查”章节。
 
--   当前PyTorch适配的算子列表可以参见《PyTorch适配算子清单](#https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》。
+-   当前PyTorch适配的算子列表可以参见《[PyTorch适配算子清单](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95/PyTorch%E9%80%82%E9%85%8D%E7%AE%97%E5%AD%90%E6%B8%85%E5%8D%95.md)》。
 
-<h2 id="算子适配开发.md">算子适配开发</h2>
+<h2 id="算子适配开发">算子适配开发</h2>
 
--   **[前提条件](#前提条件.md)**  
+-   **[前提条件](#前提条件)**  
 
--   **[获取PyTorch源码](#获取PyTorch源码.md)**  
+-   **[获取PyTorch源码](#获取PyTorch源码)**  
 
--   **[注册算子开发](#注册算子开发.md)**  
+-   **[注册算子开发](#注册算子开发)**  
 
--   **[算子适配插件开发](#算子适配插件开发.md)**  
+-   **[算子适配插件开发](#算子适配插件开发)**  
 
--   **[编译和安装PyTorch框架](#编译和安装PyTorch框架.md)**  
+-   **[编译和安装PyTorch框架](#编译和安装PyTorch框架)**  
 
 
-<h2 id="前提条件.md">前提条件</h2>
+<h2 id="前提条件">前提条件</h2>
 
--   完成开发及运行环境准备及相关依赖的安装，详情请参见[环境准备](#环境准备.md)。
--   完成相关的TBE算子开发及部署，详情请参见《CANN TBE自定义算子开发指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206660)》。
+-   完成开发及运行环境准备及相关依赖的安装，详情请参见[环境准备](#环境准备)。
+-   完成相关的TBE算子开发及部署，详情请参见《[CANN TBE自定义算子开发指南](https://support.huawei.com/enterprise/zh/doc/EDOC1100206660)》。
 
-<h2 id="获取PyTorch源码.md">获取PyTorch源码</h2>
+<h2 id="获取PyTorch源码">获取PyTorch源码</h2>
 
 从gitee上获取适配昇腾AI处理器的PyTorch源代码，获取地址为：  [https://gitee.com/ascend/pytorch-develop](https://gitee.com/ascend/pytorch-develop)  。用户可以通过执行下面git命令行下载源代码。
 
@@ -208,7 +208,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >如无权限获取代码，请联系华为技术支持申请加入“Ascend”组织。
 
-<h2 id="注册算子开发.md">注册算子开发</h2>
+<h2 id="注册算子开发">注册算子开发</h2>
 
 ## 概述<a name="zh-cn_topic_0000001125315887_section693616257599"></a>
 
@@ -344,7 +344,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 
 
-<h2 id="算子适配插件开发.md">算子适配插件开发</h2>
+<h2 id="算子适配插件开发">算子适配插件开发</h2>
 
 ## 简介<a name="zh-cn_topic_0000001125315877_section16410139174517"></a>
 
@@ -529,7 +529,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >AddKernelNpu.cpp的详细实现代码请参见pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp文档。
 
-<h2 id="编译和安装PyTorch框架.md">编译和安装PyTorch框架</h2>
+<h2 id="编译和安装PyTorch框架">编译和安装PyTorch框架</h2>
 
 ## 编译PyTorch框架<a name="zh-cn_topic_0000001125736777_section470105143317"></a>
 
@@ -549,7 +549,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 ## 安装PyTorch框架<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
 
-1.  将[编译和安装PyTorch框架](#编译和安装PyTorch框架.md)生成的torch-\*.whl包上传到服务器任一路径。
+1.  将[编译和安装PyTorch框架](#编译和安装PyTorch框架)生成的torch-\*.whl包上传到服务器任一路径。
 2.  进入torch-\*.whl 所在的目录，使用pip命令完成torch安装。
 
     当前登录用户为root用户时，执行：
@@ -569,14 +569,14 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 >-   修改代码之后，需要重新执行“编译”和“安装”PyTorch过程。
 >-   安装过程中，可能会出现错误提示"torchvision 0.6.0" 版本不匹配，此问题无影响，忽略即可。
 
-<h2 id="算子功能验证.md">算子功能验证</h2>
+<h2 id="算子功能验证">算子功能验证</h2>
 
--   **[概述](#概述.md)**  
+-   **[概述](#概述)**  
 
--   **[实现过程](#实现过程.md)**  
+-   **[实现过程](#实现过程)**  
 
 
-<h2 id="概述.md">概述</h2>
+<h2 id="概述">概述</h2>
 
 ## 简介<a name="zh-cn_topic_0000001117556616_section29881459155718"></a>
 
@@ -590,7 +590,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 在https://gitee.com/ascend/pytorch-develop中 "pytorch/test/test\_npu/test\_network\_ops"目录下提供了测试用例及测试工具，供用户参考。
 
-<h2 id="实现过程.md">实现过程</h2>
+<h2 id="实现过程">实现过程</h2>
 
 ## 简介<a name="zh-cn_topic_0000001164276377_section29881459155718"></a>
 
@@ -673,26 +673,26 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
     ```
 
 
-<h2 id="FAQ.md">FAQ</h2>
+<h2 id="FAQ">FAQ</h2>
 
--   **[Pillow==5.3.0安装失败](#Pillow-5-3-0安装失败.md)**  
+-   **[Pillow==5.3.0安装失败](#Pillow-5-3-0安装失败)**  
 
--   **[pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败.md)**  
+-   **[pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败)**  
 
--   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
+-   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配)**  
 
--   **[如何查看测试的运行日志](#如何查看测试的运行日志.md)**  
+-   **[如何查看测试的运行日志](#如何查看测试的运行日志)**  
 
--   **[为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)**  
+-   **[为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到)**  
 
--   **[如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用.md)**  
+-   **[如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用)**  
 
--   **[PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status.md)**  
+-   **[PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status)**  
 
--   **[PyTorch编译失败，提示“error: call of overload ....”](#PyTorch编译失败-提示-error-call-of-overload.md)**  
+-   **[PyTorch编译失败，提示“error: call of overload ....”](#PyTorch编译失败-提示-error-call-of-overload)**  
 
 
-<h2 id="Pillow-5-3-0安装失败.md">Pillow==5.3.0安装失败</h2>
+<h2 id="Pillow-5-3-0安装失败">Pillow==5.3.0安装失败</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125315879_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -710,7 +710,7 @@ pillow==5.3.0安装失败。
 apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel
 ```
 
-<h2 id="pip3-7-install-torchvision安装失败.md">pip3.7 install torchvision安装失败</h2>
+<h2 id="pip3-7-install-torchvision安装失败">pip3.7 install torchvision安装失败</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125641109_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -728,7 +728,7 @@ torch与torchvision版本不匹配。
 pip3.7 install torchvision --no-deps
 ```
 
-<h2 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h2>
+<h2 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125315883_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -746,7 +746,7 @@ pip3.7 install torchvision --no-deps
 
 对实际结果无影响，无需处理。
 
-<h2 id="如何查看测试的运行日志.md">如何查看测试的运行日志</h2>
+<h2 id="如何查看测试的运行日志">如何查看测试的运行日志</h2>
 
 测试运行过程提示错误，但直接可参考的信息太少，如何才能看到更详细的运行日志？
 
@@ -767,7 +767,7 @@ pip3.7 install torchvision --no-deps
     ```
 
 
-<h2 id="为什么我实现的-自定义TBE算子-无法调用到.md">为什么我实现的“自定义TBE算子”无法调用到？</h2>
+<h2 id="为什么我实现的-自定义TBE算子-无法调用到">为什么我实现的“自定义TBE算子”无法调用到？</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125736795_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -781,7 +781,7 @@ pip3.7 install torchvision --no-deps
 
 ## 处理方法<a name="zh-cn_topic_0000001125736795_section108142031907"></a>
 
-1.  参考“[算子功能验证](#算子功能验证.md)”章节，完成运行环境设置，特别注意：
+1.  参考“[算子功能验证](#算子功能验证)”章节，完成运行环境设置，特别注意：
 
     ```
     . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
@@ -821,7 +821,7 @@ pip3.7 install torchvision --no-deps
 
 
 
-<h2 id="如何确定-TBE算子-是否被-PyTorch适配-正确调用.md">如何确定“TBE算子”是否被“PyTorch适配”正确调用</h2>
+<h2 id="如何确定-TBE算子-是否被-PyTorch适配-正确调用">如何确定“TBE算子”是否被“PyTorch适配”正确调用</h2>
 
 不管是“custom”算子，还是“built-in”算子，在安装后，都是以\*.py源码的方式存放在安装目录下，所以我们可以通过编辑源码，在API入口增加日志的方式，打印输出入参，确定输入的参数是否正确。
 
@@ -871,7 +871,7 @@ pip3.7 install torchvision --no-deps
     ![](figures/zh-cn_image_0000001126846512.png)
 
 
-<h2 id="PyTorch编译失败-提示-error-ld-returned-1-exit-status.md">PyTorch编译失败，提示“error: ld returned 1 exit status”</h2>
+<h2 id="PyTorch编译失败-提示-error-ld-returned-1-exit-status">PyTorch编译失败，提示“error: ld returned 1 exit status”</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125315885_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -891,7 +891,7 @@ PyTorch编译失败，提示“ error: ld returned 1 exit status”。
 
 修改XxxxKernelNpu.cpp中实现的适配函数，在上面的例子中，修改“binary\_cross\_entropy\_npu”方法最后一个参数类型为“int64\_t”\(cpp中“long”的类型使用"int64\_t"\)。
 
-<h2 id="PyTorch编译失败-提示-error-call-of-overload.md">PyTorch编译失败，提示“error: call of overload ....”</h2>
+<h2 id="PyTorch编译失败-提示-error-call-of-overload">PyTorch编译失败，提示“error: call of overload ....”</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125641113_zh-cn_topic_0175549220_section197270431505"></a>
 
@@ -915,14 +915,14 @@ PyTorch编译失败，提示“error: call of overload ....”。
 
 2、binary\_cross\_entropy\_attr\(\)入参类型修改为 int64\_t。
 
-<h2 id="附录.md">附录</h2>
+<h2 id="附录">附录</h2>
 
--   **[CMake安装方法](#CMake安装方法.md)**  
+-   **[CMake安装方法](#CMake安装方法)**  
 
--   **[自定义算子导出方法](#自定义算子导出方法.md)**  
+-   **[自定义算子导出方法](#自定义算子导出方法)**  
 
 
-<h2 id="CMake安装方法.md">CMake安装方法</h2>
+<h2 id="CMake安装方法">CMake安装方法</h2>
 
 以CMake版本升级为3.12.1为例说明。
 
@@ -961,7 +961,7 @@ PyTorch编译失败，提示“error: call of overload ....”。
     显示“cmake version 3.12.1”则表示安装成功。
 
 
-<h2 id="自定义算子导出方法.md">自定义算子导出方法</h2>
+<h2 id="自定义算子导出方法">自定义算子导出方法</h2>
 
 ## 简介<a name="zh-cn_topic_0000001136292799_section13121145561615"></a>
 

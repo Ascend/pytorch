@@ -1,7 +1,7 @@
 # PyTorch适配算子清单
--   [PyTorch原生算子与昇腾算子对应表](#PyTorch原生算子与昇腾算子对应表.md)
--   [PyTorch昇腾自定义算子](#PyTorch昇腾自定义算子.md)
-<h2 id="PyTorch原生算子与昇腾算子对应表.md">PyTorch原生算子与昇腾算子对应表</h2>
+-   [PyTorch原生算子与昇腾算子对应表](#PyTorch原生算子与昇腾算子对应表)
+-   [PyTorch昇腾自定义算子](#PyTorch昇腾自定义算子)
+<h2 id="PyTorch原生算子与昇腾算子对应表">PyTorch原生算子与昇腾算子对应表</h2>
 
 <a name="table16733238131217"></a>
 <table><thead align="left"><tr id="row1869443913127"><th class="cellrowborder" valign="top" width="8.694379391100702%" id="mcps1.1.4.1.1"><p id="p354012516592"><a name="p354012516592"></a><a name="p354012516592"></a>序号</p>
@@ -5405,7 +5405,7 @@
 </tbody>
 </table>
 
-<h2 id="PyTorch昇腾自定义算子.md">PyTorch昇腾自定义算子</h2>
+<h2 id="PyTorch昇腾自定义算子">PyTorch昇腾自定义算子</h2>
 
 <a name="table336910472136"></a>
 <table><thead align="left"><tr id="row145917478132"><th class="cellrowborder" valign="top" width="8.334944884935215%" id="mcps1.1.4.1.1"><p id="p1055148824"><a name="p1055148824"></a><a name="p1055148824"></a>序号</p>
