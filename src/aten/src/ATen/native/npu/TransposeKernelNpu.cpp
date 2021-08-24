@@ -31,7 +31,7 @@ Tensor& transpose_out_npu(
     OpCommand cmd;
     cmd.Name("Transpose")
         .Input(self)
-        .Input(perm, at::kInt)
+        .Input(perm)
         .Output(result)
         .Run();
   } else {

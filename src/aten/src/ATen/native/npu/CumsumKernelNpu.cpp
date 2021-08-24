@@ -25,7 +25,7 @@ Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
       Scalar dimScalar(dim);
       cmd.Name("Cumsum")
       .Input(self)
-      .Input(dimScalar, at::kInt)
+      .Input(dimScalar, at::kLong)
       .Output(result)
       .Run();
     } else {

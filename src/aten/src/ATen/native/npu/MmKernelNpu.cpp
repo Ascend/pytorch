@@ -48,20 +48,25 @@ bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
 }
 
 SmallVector<NPUTensorDesc, N> mm_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  Tensor contiguousTensor;
+    const Tensor& self,
+    bool isSelfT,
+    const Tensor& mat2,
+    bool isMat2T) {
+
+  Tensor contiguousTensorSelf = self;
+  Tensor contiguousTensorMat2 = mat2;
+
   SmallVector<NPUTensorDesc, N> inputs;
 
-  for (int i = 0; i < inputTensor.size(); i++) {
-    // transpose scene is supported by matmul operator.
-    if (is_transpose_last_two_dims_flex(inputTensor[i])) {
-      contiguousTensor = inputTensor[i];
-    } else {
-      contiguousTensor = NpuUtils::format_contiguous_add_copy_optimize(inputTensor[i]);
-    }
-
-    inputs.emplace_back(NPUTensorDesc(contiguousTensor));
+  if (!isSelfT) {
+    contiguousTensorSelf = NpuUtils::format_contiguous_add_copy_optimize(self);
   }
+  if (!isMat2T) {
+    contiguousTensorMat2 = NpuUtils::format_contiguous_add_copy_optimize(mat2);
+  }
+
+  inputs.emplace_back(NPUTensorDesc(contiguousTensorSelf));
+  inputs.emplace_back(NPUTensorDesc(contiguousTensorMat2));
 
   return inputs;
 }
@@ -73,26 +78,29 @@ SmallVector<NPUTensorDesc, N> mm_npu_output(
 
 SmallVector<NPUAttrDesc, N> mm_npu_attr(
     const Tensor& self,
-    const Tensor& mat2) {
-  bool isSelfT = is_transpose_last_two_dims_flex(self);
-  bool isMat2T = is_transpose_last_two_dims_flex(mat2);
+    bool isSelfT,
+    const Tensor& mat2,
+    bool isMat2T) {
 
-  NPUAttrDesc npuAttrSelfTranspose = NPUAttrDesc("transpose_x1", isSelfT);
-  NPUAttrDesc npuAttrMat2Transpose = NPUAttrDesc("transpose_x2", isMat2T);
+  SmallVector<NPUAttrDesc, N> attrs;
 
-  SmallVector<NPUAttrDesc, N> attrs = {
-      npuAttrSelfTranspose, npuAttrMat2Transpose};
+  attrs.emplace_back(NPUAttrDesc("transpose_x1", isSelfT));
+  attrs.emplace_back(NPUAttrDesc("transpose_x2", isMat2T));
 
   return attrs;
 }
 
 Tensor& mm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
+
+  bool isSelfT = is_transpose_last_two_dims_flex(self);
+  bool isMat2T = is_transpose_last_two_dims_flex(mat2);
+
   // constructs the input and output NPUTensorDesc
-  auto inputs = mm_npu_input({self, mat2});
+  auto inputs = mm_npu_input(self, isSelfT, mat2, isMat2T);
   auto outputs = mm_npu_output({result});
 
   // constructs the attr of the NPUAttrDesc
-  auto attrs = mm_npu_attr(self, mat2);
+  auto attrs = mm_npu_attr(self, isSelfT, mat2, isMat2T);
 
   // executing the NPU operator
   CalcuOpUtil::execute_npu_operate("MatMul", inputs, outputs, attrs);

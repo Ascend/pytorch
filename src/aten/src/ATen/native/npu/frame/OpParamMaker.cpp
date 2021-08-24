@@ -191,9 +191,7 @@ int ExecFunc(void* in, aclrtStream stream) {
   NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
   aclError ret;
-  if (c10::npu::OptionsManager::CheckDynamicEnable()) {
-    ret = DynamicRun(*cur_paras, stream);
-  } else {
+  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     bool reset_flag = false;
     if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType) && env::CheckFuzzyEnable()) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
@@ -222,6 +220,8 @@ int ExecFunc(void* in, aclrtStream stream) {
     if (ret != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
     }
+  } else {
+    ret = DynamicRun(*cur_paras, stream);
   }
 
   if (ret != 0) {

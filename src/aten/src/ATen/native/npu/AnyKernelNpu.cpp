@@ -30,7 +30,7 @@ inline Tensor& any_out_npu_nocheck(
     OpCommand cmd;
     cmd.Name("ReduceAny")
       .Input(self)
-      .Input(dimList, at::kInt)
+      .Input(dimList)
       .Output(result)
       .Attr("keep_dims", keepdim)
       .Run();

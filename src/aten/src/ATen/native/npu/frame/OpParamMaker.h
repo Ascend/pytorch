@@ -200,11 +200,11 @@ class OpCommandImpl {
       int64_t dim,
       aclFormat format) {
     inputCounter += 1;
-    execParam.inDesc.emplace_back(desc);
-    execParam.inBuffer.emplace_back(buffer);
+    execParam.graph.Input(desc);
+    execParam.inDesc.emplace_back(std::move(desc));
+    execParam.inBuffer.emplace_back(std::move(buffer));
     execParam.inDims.emplace_back(dim);
     execParam.inFormats.emplace_back(format);
-    execParam.graph.Input(desc);
   }
 
   void AddInput(
@@ -234,11 +234,11 @@ class OpCommandImpl {
       aclDataBuffer* buffer,
       int64_t dim,
       aclFormat format) {
-    execParam.outDesc.emplace_back(desc);
-    execParam.outBuffer.emplace_back(buffer);
+    execParam.graph.Output(desc);
+    execParam.outDesc.emplace_back(std::move(desc));
+    execParam.outBuffer.emplace_back(std::move(buffer));
     execParam.outDims.emplace_back(dim);
     execParam.outFormats.emplace_back(format);
-    execParam.graph.Output(desc);
   }
 
   template <typename dataType>

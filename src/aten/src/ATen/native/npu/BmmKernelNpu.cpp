@@ -27,10 +27,13 @@ Tensor& bmm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
 
   Tensor contiguousSelf = self;
   Tensor contiguousMat2 = mat2;
-  if(! CalcuOpUtil::is_transpose_last_two_dims(self)){
+  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
+  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(mat2);
+
+  if(!isSelfT){
     contiguousSelf = NpuUtils::format_contiguous_add_copy_optimize(self);
   }
-  if(! CalcuOpUtil::is_transpose_last_two_dims(mat2)){
+  if(!isMat2T){
     contiguousMat2 = NpuUtils::format_contiguous_add_copy_optimize(mat2);
   }
 
@@ -42,9 +45,6 @@ Tensor& bmm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
       bool pass = false;
       return std::tie(pass, contiguousMat2);
   };
-
-  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
-  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(mat2);
 
   // executing the NPU operator
   OpCommand cmd;

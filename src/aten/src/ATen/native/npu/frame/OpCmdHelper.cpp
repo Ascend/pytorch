@@ -25,15 +25,15 @@ namespace npu {
 
 std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
 OpCmdHelper::CovertTensorToAclInput(
-    Tensor tensor,
-    c10::optional<Tensor> cpu_tensor,
-    string descName,
+    const Tensor& tensor,
+    const c10::optional<Tensor>& cpu_tensor,
+    const string& descName,
     string forceDataType) {
   ScalarType scalarDataType = tensor.scalar_type();
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(scalarDataType, forceDataType);
-  auto npuDesc = tensor.storage().get_npu_desc();
-  auto storageDims = npuDesc.storage_sizes_;
+  const auto& npuDesc = tensor.storage().get_npu_desc();
+  auto& storageDims = npuDesc.storage_sizes_;
   AclTensorDescMaker desc;
   auto aclDesc = desc.Create(aclDataType, npuDesc)
                       .SetFormat(npuDesc.npu_format_)
@@ -102,7 +102,7 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
 OpCmdHelper::CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
-  auto dims = tensor.sizes();
+  const auto& dims = tensor.sizes();
   AclTensorDescMaker desc;
   aclFormat format = ACL_FORMAT_ND;
   auto aclDesc = desc.Create(aclDataType, dims, format)
@@ -120,9 +120,9 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
 OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, string forceDataType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
       tensorPtr->scalar_type(), forceDataType);
-  auto npuDesc = tensorPtr->storage().get_npu_desc();
-  auto dims = tensorPtr->sizes();
-  auto storageDims = npuDesc.storage_sizes_;
+  const auto& npuDesc = tensorPtr->storage().get_npu_desc();
+  const auto& dims = tensorPtr->sizes();
+  auto& storageDims = npuDesc.storage_sizes_;
   AclTensorDescMaker desc;
   auto aclDesc = desc.Create(aclDataType, dims, npuDesc.origin_format_)
                       .SetFormat(npuDesc.npu_format_)

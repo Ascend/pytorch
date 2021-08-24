@@ -77,7 +77,7 @@ string GetAtScalarTypeName(const ScalarType data_type) {
 } // namespace
 
 aclDataType CalcuOpUtil::convert_to_acl_data_type(const ScalarType data_type) {
-  auto iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
+  const auto& iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
   if (iter == AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.end()) {
     NPU_LOGE(
         "Unsupport data type: %s.", GetAtScalarTypeName(data_type).c_str());

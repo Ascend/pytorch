@@ -30,9 +30,9 @@ class OpCmdHelper {
 public:
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertTensorToAclInput(
-      Tensor tensor,
-      c10::optional<Tensor> cpu_tensor,
-      string descName,
+      const Tensor& tensor,
+      const c10::optional<Tensor>& cpu_tensor,
+      const string& descName,
       string forceDataType = "");
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
