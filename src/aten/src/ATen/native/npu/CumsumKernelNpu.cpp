@@ -21,21 +21,19 @@ using namespace at::native::npu;
 Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
   OpCommand cmd;
   if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    if (dim == 0) {
-      Scalar dimScalar(dim);
-      cmd.Name("Cumsum")
-      .Input(self)
-      .Input(dimScalar, at::kLong)
-      .Output(result)
-      .Run();
+    // if dim = 0, performance in Aicpu is better than Aicore
+    // if dim > INT32_MAX, we should use long to store dim for ensuring function correctness.
+    // use host memory instead of scalar to improve delivery performance
+    Scalar dimScalar(dim);
+    cmd.Name("Cumsum")
+      .Input(self);
+    if (dim == 0 || dim > INT32_MAX) {
+      cmd.Input(dimScalar, at::kLong, MemoryType::MEMORY_HOST);
     } else {
-      SmallVector<int64_t, N> dimVec = {dim};
-      cmd.Name("Cumsum")
-      .Input(self)
-      .Input(dimVec, at::kInt)
-      .Output(result)
-      .Run();
+      cmd.Input(dimScalar, at::kInt, MemoryType::MEMORY_HOST);
     }
+    cmd.Output(result)
+      .Run();
   } else {
     cmd.Name("CumsumD")
       .Input(self)
@@ -48,16 +46,12 @@ Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
 }
 
 Tensor _cumsum_npu(const Tensor& self, int64_t dim) {
-  Tensor input = self;
-  if(self.scalar_type() == ScalarType::Long){
-     input = self.to(ScalarType::Int);
-  }
   // calculate the output size
   auto outputSize = input_same_output_size(self);
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(input, outputSize);
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   // calculate the output result of the NPU
-  _cumsum_out_npu(result, input, dim);
+  _cumsum_out_npu(result, self, dim);
 
   return result;
 }

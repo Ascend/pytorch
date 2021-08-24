@@ -53,6 +53,18 @@ class TestSoftmaxBackward(TestCase):
         z = output.sum()
         z.backward()
         input = input.cpu()
+    
+    def cpu_op_exec_nz(self, input, dim=-1):
+        input.requires_grad = True
+        output = torch.softmax(input, dim=dim)
+        output.backward(torch.ones_like(output))
+        return input.grad
+
+    def npu_op_exec_nz(self, input, dim=-1):
+        input.requires_grad = True
+        output = torch.softmax(input, dim=dim)
+        output.backward(torch.ones_like(output))
+        return input.grad.cpu()
 
     def test_softmax_backward_shape_format(self, device):
         shape_format = [
@@ -113,6 +125,29 @@ class TestSoftmaxBackward(TestCase):
             else:
                 self.cpu_op_exec(input1, dim=item[1])
                 self.assertRtolEqual(input_grad.numpy(), npu_input_grad.numpy())
+    
+    def test_softmax_backward_shape_format_nz(self, device):
+        shape_format = [
+            [np.float32, 29, 5],
+            [np.float32, 29, (64, 10)],
+            [np.float32, 29, (32, 3, 3)],
+            [np.float32, 29, (256, 2048, 7, 7)],
+            [np.float16, 29, 5],
+            [np.float16, 29, (64, 10)],
+            [np.float16, 29, (32, 3, 3)],
+            [np.float16, 29, (256, 2048, 7, 7)],
+        ]
+
+        for item in shape_format:
+            input1, npu_input1 = create_common_tensor(item, 10, 100)
+
+            if input1.dtype == torch.float16:
+                cpu_input1_grad = self.cpu_op_exec_nz(input1.float()).half()
+            else:
+                cpu_input1_grad = self.cpu_op_exec_nz(input1)
+            npu_input1_grad = self.npu_op_exec_nz(npu_input1)
+
+            self.assertRtolEqual(cpu_input1_grad.numpy(), npu_input1_grad.numpy())
 
 
 instantiate_device_type_tests(TestSoftmaxBackward, globals(), except_for="cpu")
