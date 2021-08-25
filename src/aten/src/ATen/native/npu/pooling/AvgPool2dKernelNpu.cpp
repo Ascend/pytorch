@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -143,7 +144,12 @@ Tensor avg_pool2d_npu(
       !divisor_override.has_value() || divisor_override.value() != 0,
       "divisor must be not zero");
   
-  Tensor selfCast = self.npu_format_cast(ACL_FORMAT_NCHW);
+  // Note：临时规避方案，待后续方案确认后修改
+  Tensor selfCast = self;
+  if (self.ndimension() == 4 && CalcuOpUtil::get_tensor_npu_format(self) == ACL_FORMAT_ND){
+    selfCast = self.npu_format_cast(ACL_FORMAT_NCHW);
+  }
+
 
   // calculate the output size
   auto outputSizes = avg_pool2d_npu_output_size(
