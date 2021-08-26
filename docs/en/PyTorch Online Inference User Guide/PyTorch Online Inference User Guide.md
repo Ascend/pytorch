@@ -1,14 +1,14 @@
 # PyTorch Online Inference Guide
--   [Application Scenario](#application-scenario.md)
--   [Basic Workflow](#basic-workflow.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Online Inference Process](#online-inference-process.md)
-    -   [Environment Variable Configuration](#environment-variable-configuration.md)
-    -   [Sample Reference](#sample-reference.md)
--   [Special Topics](#special-topics.md)
-    -   [Mixed Precision](#mixed-precision.md)
--   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)
-<h2 id="application-scenario.md">Application Scenario</h2>
+-   [Application Scenario](#application-scenario)
+-   [Basic Workflow](#basic-workflow)
+    -   [Prerequisites](#prerequisites)
+    -   [Online Inference Process](#online-inference-process)
+    -   [Environment Variable Configuration](#environment-variable-configuration)
+    -   [Sample Reference](#sample-reference)
+-   [Special Topics](#special-topics)
+    -   [Mixed Precision](#mixed-precision)
+-   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0)
+<h2 id="application-scenario">Application Scenario</h2>
 
 Online inference, unlike offline inference, allows developers to perform inference directly with PyTorch models using the  **model.eval\(\)**  method.
 
@@ -20,29 +20,29 @@ Ascend 910 AI Processor
 
 Ascend 710 AI Processor
 
-<h2 id="basic-workflow.md">Basic Workflow</h2>
+<h2 id="basic-workflow">Basic Workflow</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisites)**  
 
--   **[Online Inference Process](#online-inference-process.md)**  
+-   **[Online Inference Process](#online-inference-process)**  
 
--   **[Environment Variable Configuration](#environment-variable-configuration.md)**  
+-   **[Environment Variable Configuration](#environment-variable-configuration)**  
 
--   **[Sample Reference](#sample-reference.md)**  
+-   **[Sample Reference](#sample-reference)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h2 id="prerequisites">Prerequisites</h2>
 
 The PyTorch framework and mixed precision module have been installed. For details, see the .
 
-<h2 id="online-inference-process.md">Online Inference Process</h2>
+<h2 id="online-inference-process">Online Inference Process</h2>
 
 [Figure 1](#fig13802941161818)  shows the online inference process.
 
 **Figure  1**  Online inference process<a name="fig13802941161818"></a>  
 ![](figures/online-inference-process.png "online-inference-process")
 
-<h2 id="environment-variable-configuration.md">Environment Variable Configuration</h2>
+<h2 id="environment-variable-configuration">Environment Variable Configuration</h2>
 
 The following are the environment variables required for starting the inference process on PyTorch:
 
@@ -133,7 +133,7 @@ export TASK_QUEUE_ENABLE=0
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >For more log information, see the  _CANN Log Reference_.
 
-<h2 id="sample-reference.md">Sample Reference</h2>
+<h2 id="sample-reference">Sample Reference</h2>
 
 ## Sample Code<a name="section2017032418274"></a>
 
@@ -420,7 +420,7 @@ The following uses the ResNet-50 model as an example to describe how to perform 
 
 3.  Run inference.
 
-    Set environment variables by referring to  [Environment Variable Configuration](#environment-variable-configuration.md)  and then run the following command:
+    Set environment variables by referring to  [Environment Variable Configuration](#environment-variable-configuration)  and then run the following command:
 
     ```
     python3 pytorch-resnet50-apex.py --data /data/imagenet \
@@ -433,12 +433,12 @@ The following uses the ResNet-50 model as an example to describe how to perform 
     >The preceding command is an example only. Modify the arguments as needed.
 
 
-<h2 id="special-topics.md">Special Topics</h2>
+<h2 id="special-topics">Special Topics</h2>
 
--   **[Mixed Precision](#mixed-precision.md)**  
+-   **[Mixed Precision](#mixed-precision)**  
 
 
-<h2 id="mixed-precision.md">Mixed Precision</h2>
+<h2 id="mixed-precision">Mixed Precision</h2>
 
 ## Overview<a name="section14734122962615"></a>
 
@@ -503,7 +503,7 @@ However, the mixed precision training is limited by the precision range expresse
     model, optimizer = amp.initialize(model, optimizer)
     ```
 
-    For details, see "Initialize the mixed precision model."# in  [Sample Code](#sample-reference.md).
+    For details, see "Initialize the mixed precision model."# in  [Sample Code](#sample-reference).
 
     ```
     model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=1024, verbosity=1)
@@ -514,9 +514,9 @@ However, the mixed precision training is limited by the precision range expresse
 
 After the mixed precision model is initialized, perform model forward propagation.
 
-Sample code: For details, see the implementation of  **validate\(val\_loader, model, args\)**  in  [Sample Code](#sample-reference.md).
+Sample code: For details, see the implementation of  **validate\(val\_loader, model, args\)**  in  [Sample Code](#sample-reference).
 
-<h2 id="how-do-i-install-gcc-7-3-0.md">How Do I Install GCC 7.3.0?</h2>
+<h2 id="how-do-i-install-gcc-7-3-0">How Do I Install GCC 7.3.0?</h2>
 
 Perform the following steps as the  **root**  user.
 

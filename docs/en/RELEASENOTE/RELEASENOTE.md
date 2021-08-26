@@ -1,15 +1,15 @@
 # PyTorch Release Notes 2.0.2
--   [Before You Start](#before-you-start.md)
--   [New Features](#new-features.md)
--   [Modified Features](#modified-features.md)
--   [Resolved Issues](#resolved-issues.md)
--   [Known Issues](#known-issues.md)
--   [Compatibility](#compatibility.md)
-<h2 id="before-you-start.md">Before You Start</h2>
+-   [Before You Start](#before-you-start)
+-   [New Features](#new-features)
+-   [Modified Features](#modified-features)
+-   [Resolved Issues](#resolved-issues)
+-   [Known Issues](#known-issues)
+-   [Compatibility](#compatibility)
+<h2 id="before-you-start">Before You Start</h2>
 
 This framework is modified based on the open-source PyTorch 1.5.0 primarily developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
-<h2 id="new-features.md">New Features</h2>
+<h2 id="new-features">New Features</h2>
 
 **Table  1**  Features supported by  PyTorch
 
@@ -84,15 +84,15 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 </tbody>
 </table>
 
-<h2 id="modified-features.md">Modified Features</h2>
+<h2 id="modified-features">Modified Features</h2>
 
 N/A
 
-<h2 id="resolved-issues.md">Resolved Issues</h2>
+<h2 id="resolved-issues">Resolved Issues</h2>
 
 N/A
 
-<h2 id="known-issues.md">Known Issues</h2>
+<h2 id="known-issues">Known Issues</h2>
 
 <a name="table1969972073016"></a>
 <table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
@@ -131,7 +131,7 @@ N/A
 </tbody>
 </table>
 
-<h2 id="compatibility.md">Compatibility</h2>
+<h2 id="compatibility">Compatibility</h2>
 
 Atlas 800 \(model 9010\): CentOS 7.6/Ubuntu 18.04/BC-Linux 7.6/Debian 9.9/Debian 10/openEuler 20.03 LTS
 

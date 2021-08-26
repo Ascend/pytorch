@@ -1,95 +1,95 @@
 # PyTorch Network Model Porting and Training Guide
--   [Overview](#overview.md)
--   [Restrictions and Limitations](#restrictions-and-limitations.md)
--   [Porting Process](#porting-process.md)
--   [Model Porting Evaluation](#model-porting-evaluation.md)
--   [Environment Setup](#environment-setup.md)
-    -   [Setting Up the Operating Environment](#setting-up-the-operating-environment.md)
-    -   [Configuring Environment Variables](#configuring-environment-variables.md)
--   [Model Porting](#model-porting.md)
-    -   [Tool-Facilitated](#tool-facilitated.md)
-        -   [Introduction](#introduction.md)
-        -   [Instructions](#instructions.md)
-        -   [Result Analysis](#result-analysis.md)
-    -   [Manual](#manual.md)
-        -   [Single-Device Training Model Porting](#single-device-training-model-porting.md)
-        -   [Multi-Device Training Model Porting](#multi-device-training-model-porting.md)
-        -   [Replacing PyTorch-related APIs](#replacing-pytorch-related-apis.md)
-    -   [Mixed Precision](#mixed-precision.md)
-    -   [Performance Optimization](#performance-optimization.md)
-        -   [Overview](#overview-0.md)
-        -   [Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-&#40;x86-server&#41;.md)
-        -   [Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-&#40;arm-server&#41;.md)
-        -   [Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-&#40;x86-server&#41;.md)
-        -   [\(Optional\) Installing the OpenCV Library of the Specified Version](#&#40;optional&#41;-installing-the-opencv-library-of-the-specified-version.md)
--   [Model Training](#model-training.md)
--   [Performance Analysis and Optimization](#performance-analysis-and-optimization.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Commissioning Process](#commissioning-process.md)
-        -   [Overall Guideline](#overall-guideline.md)
-        -   [Collecting Data Related to the Training Process](#collecting-data-related-to-the-training-process.md)
-        -   [Performance Optimization](#performance-optimization-1.md)
-    -   [Affinity Library](#affinity-library.md)
-        -   [Source](#source.md)
-        -   [Functions](#functions.md)
--   [Precision Commissioning](#precision-commissioning.md)
-    -   [Prerequisites](#prerequisites-2.md)
-    -   [Commissioning Process](#commissioning-process-3.md)
-        -   [Overall Guideline](#overall-guideline-4.md)
-        -   [Precision Optimization Methods](#precision-optimization-methods.md)
--   [Model Saving and Conversion](#model-saving-and-conversion.md)
-    -   [Introduction](#introduction-5.md)
-    -   [Saving a Model](#saving-a-model.md)
-    -   [Exporting an ONNX Model](#exporting-an-onnx-model.md)
--   [Samples](#samples.md)
-    -   [ResNet-50 Model Porting](#resnet-50-model-porting.md)
-        -   [Obtaining Samples](#obtaining-samples.md)
-        -   [Porting the Training Script](#porting-the-training-script.md)
-            -   [Single-Device Training Modification](#single-device-training-modification.md)
-            -   [Distributed Training Modification](#distributed-training-modification.md)
-        -   [Executing the Script](#executing-the-script.md)
-    -   [ShuffleNet Model Optimization](#shufflenet-model-optimization.md)
-        -   [Obtaining Samples](#obtaining-samples-6.md)
-        -   [Evaluating the Model](#evaluating-the-model.md)
-        -   [Porting the Network](#porting-the-network.md)
-        -   [Commissioning the Network](#commissioning-the-network.md)
--   [References](#references.md)
-    -   [Single-Operator Sample Building](#single-operator-sample-building.md)
-    -   [Single-Operator Dump Method](#single-operator-dump-method.md)
-    -   [Common Environment Variables](#common-environment-variables.md)
-    -   [dump op Method](#dump-op-method.md)
-    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)
--   [FAQs](#faqs.md)
-    -   [FAQs About Software Installation](#faqs-about-software-installation.md)
-        -   [pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failed.md)
-    -   [FAQs About Model and Operator Running](#faqs-about-model-and-operator-running.md)
-        -   [What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator.md)
-        -   [What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat.md)
-        -   [What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what&#40;&#41;-he.md)
-        -   [What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running.md)
-        -   [What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running.md)
-        -   [What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running.md)
-        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running.md)
-        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7.md)
-        -   [What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?](#what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled.md)
-        -   [What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1&#40;failed&#41;-is-displayed-during.md)
-    -   [FAQs About Model Commissioning](#faqs-about-model-commissioning.md)
-        -   [What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np.md)
-        -   [What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning](#what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the.md)
-        -   [What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?](#what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni.md)
-        -   [What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?](#what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor.md)
-    -   [FAQs About Other Operations](#faqs-about-other-operations.md)
-        -   [What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization.md)
-        -   [What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?](#what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist.md)
-        -   [What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?](#what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m.md)
-        -   [What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?](#what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used.md)
-        -   [What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?](#what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine.md)
-        -   [What Do I Do If a Hook Failure Occurs?](#what-do-i-do-if-a-hook-failure-occurs.md)
-        -   [What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?](#what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded.md)
-    -   [FAQs About Distributed Model Training](#faqs-about-distributed-model-training.md)
-        -   [What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training.md)
-        -   [What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect&#40;&#41;-timed-out-is-displayed-during-distributed-m.md)
-<h2 id="overview.md">Overview</h2>
+-   [Overview](#overview)
+-   [Restrictions and Limitations](#restrictions-and-limitations)
+-   [Porting Process](#porting-process)
+-   [Model Porting Evaluation](#model-porting-evaluation)
+-   [Environment Setup](#environment-setup)
+    -   [Setting Up the Operating Environment](#setting-up-the-operating-environment)
+    -   [Configuring Environment Variables](#configuring-environment-variables)
+-   [Model Porting](#model-porting)
+    -   [Tool-Facilitated](#tool-facilitated)
+        -   [Introduction](#introduction)
+        -   [Instructions](#instructions)
+        -   [Result Analysis](#result-analysis)
+    -   [Manual](#manual)
+        -   [Single-Device Training Model Porting](#single-device-training-model-porting)
+        -   [Multi-Device Training Model Porting](#multi-device-training-model-porting)
+        -   [Replacing PyTorch-related APIs](#replacing-pytorch-related-apis)
+    -   [Mixed Precision](#mixed-precision)
+    -   [Performance Optimization](#performance-optimization)
+        -   [Overview](#overview-0)
+        -   [Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-x86-server)
+        -   [Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-arm-server)
+        -   [Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-x86-server)
+        -   [\(Optional\) Installing the OpenCV Library of the Specified Version](#optional-installing-the-opencv-library-of-the-specified-version)
+-   [Model Training](#model-training)
+-   [Performance Analysis and Optimization](#performance-analysis-and-optimization)
+    -   [Prerequisites](#prerequisites)
+    -   [Commissioning Process](#commissioning-process)
+        -   [Overall Guideline](#overall-guideline)
+        -   [Collecting Data Related to the Training Process](#collecting-data-related-to-the-training-process)
+        -   [Performance Optimization](#performance-optimization-1)
+    -   [Affinity Library](#affinity-library)
+        -   [Source](#source)
+        -   [Functions](#functions)
+-   [Precision Commissioning](#precision-commissioning)
+    -   [Prerequisites](#prerequisites-2)
+    -   [Commissioning Process](#commissioning-process-3)
+        -   [Overall Guideline](#overall-guideline-4)
+        -   [Precision Optimization Methods](#precision-optimization-methods)
+-   [Model Saving and Conversion](#model-saving-and-conversion)
+    -   [Introduction](#introduction-5)
+    -   [Saving a Model](#saving-a-model)
+    -   [Exporting an ONNX Model](#exporting-an-onnx-model)
+-   [Samples](#samples)
+    -   [ResNet-50 Model Porting](#resnet-50-model-porting)
+        -   [Obtaining Samples](#obtaining-samples)
+        -   [Porting the Training Script](#porting-the-training-script)
+            -   [Single-Device Training Modification](#single-device-training-modification)
+            -   [Distributed Training Modification](#distributed-training-modification)
+        -   [Executing the Script](#executing-the-script)
+    -   [ShuffleNet Model Optimization](#shufflenet-model-optimization)
+        -   [Obtaining Samples](#obtaining-samples-6)
+        -   [Evaluating the Model](#evaluating-the-model)
+        -   [Porting the Network](#porting-the-network)
+        -   [Commissioning the Network](#commissioning-the-network)
+-   [References](#references)
+    -   [Single-Operator Sample Building](#single-operator-sample-building)
+    -   [Single-Operator Dump Method](#single-operator-dump-method)
+    -   [Common Environment Variables](#common-environment-variables)
+    -   [dump op Method](#dump-op-method)
+    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0)
+-   [FAQs](#faqs)
+    -   [FAQs About Software Installation](#faqs-about-software-installation)
+        -   [pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failed)
+    -   [FAQs About Model and Operator Running](#faqs-about-model-and-operator-running)
+        -   [What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator)
+        -   [What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat)
+        -   [What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what-he)
+        -   [What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running)
+        -   [What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running)
+        -   [What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running)
+        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running)
+        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7)
+        -   [What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?](#what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled)
+        -   [What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1failed-is-displayed-during)
+    -   [FAQs About Model Commissioning](#faqs-about-model-commissioning)
+        -   [What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np)
+        -   [What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning](#what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the)
+        -   [What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?](#what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni)
+        -   [What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?](#what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor)
+    -   [FAQs About Other Operations](#faqs-about-other-operations)
+        -   [What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization)
+        -   [What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?](#what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist)
+        -   [What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?](#what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m)
+        -   [What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?](#what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used)
+        -   [What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?](#what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine)
+        -   [What Do I Do If a Hook Failure Occurs?](#what-do-i-do-if-a-hook-failure-occurs)
+        -   [What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?](#what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded)
+    -   [FAQs About Distributed Model Training](#faqs-about-distributed-model-training)
+        -   [What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training)
+        -   [What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect-timed-out-is-displayed-during-distributed-m)
+<h2 id="overview">Overview</h2>
 
 Currently, the solution of adapting to the Ascend AI Processor is an online solution.
 
@@ -110,7 +110,7 @@ Currently, the main reasons for selecting the online adaptation solution are as 
 4.  It has good scalability. During the streamlining process, only the development and implementation of related compute operators are involved for new network types or structures. Framework operators, reverse graph building, and implementation mechanisms can be reused.
 5.  The usage and style are the same as those of the GPU-based implementation. During online adaption, you only need to specify the device as the Ascend AI Processor in Python and device operations to develop, train, and debug the network in PyTorch using the Ascend AI Processor. You do not need to pay attention to the underlying details of the Ascend AI Processor. In this way, you can minimize the modification and complete porting with low costs.
 
-<h2 id="restrictions-and-limitations.md">Restrictions and Limitations</h2>
+<h2 id="restrictions-and-limitations">Restrictions and Limitations</h2>
 
 -   In the  **infershape**  phase, operators do not support unknown shape inference.
 -   Only the float16 operator can be used for cube computing.
@@ -124,7 +124,7 @@ Currently, the main reasons for selecting the online adaptation solution are as 
     -   Only the int8, int32, float16, and float32 data types are supported.
 
 
-<h2 id="porting-process.md">Porting Process</h2>
+<h2 id="porting-process">Porting Process</h2>
 
 Model porting refers to moving models that have been implemented in the open-source community to an Ascend AI Processor.  [Figure 1](#fig759451810422)  shows the model porting process.
 
@@ -142,12 +142,12 @@ Model porting refers to moving models that have been implemented in the open-sou
 </thead>
 <tbody><tr id="row17349111602716"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1234921620273"><a name="p1234921620273"></a><a name="p1234921620273"></a>Model selection</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>For details, see <a href="#model-porting-evaluation.md#li5941731123517">Model Selection</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>For details, see <a href="#model-porting-evaluation#li5941731123517">Model Selection</a>.</p>
 </td>
 </tr>
 <tr id="row53492016112717"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p133501716132719"><a name="p133501716132719"></a><a name="p133501716132719"></a>Model porting evaluation</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>For details, see <a href="#model-porting-evaluation.md">Model Porting Evaluation</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>For details, see <a href="#model-porting-evaluation">Model Porting Evaluation</a>.</p>
 </td>
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>Operator development</p>
@@ -157,17 +157,17 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>Environment setup</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>For details, see <a href="#environment-setup.md">Environment Setup</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>For details, see <a href="#environment-setup">Environment Setup</a>.</p>
 </td>
 </tr>
 <tr id="row43031317489"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p14304131711817"><a name="p14304131711817"></a><a name="p14304131711817"></a>Model porting</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>For details, see <a href="#model-porting.md">Model Porting</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>For details, see <a href="#model-porting">Model Porting</a>.</p>
 </td>
 </tr>
 <tr id="row10695931399"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p186956311094"><a name="p186956311094"></a><a name="p186956311094"></a>Model training</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>For details, see <a href="#model-training.md">Model Training</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>For details, see <a href="#model-training">Model Training</a>.</p>
 </td>
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>Error analysis</p>
@@ -177,17 +177,17 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>Performance analysis and optimization</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>For details, see <a href="#performance-analysis-and-optimization.md">Performance Optimization and Analysis</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>For details, see <a href="#performance-analysis-and-optimization">Performance Optimization and Analysis</a>.</p>
 </td>
 </tr>
 <tr id="row94308194435"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p74301019144319"><a name="p74301019144319"></a><a name="p74301019144319"></a>Precision commissioning</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>For details, see <a href="#precision-commissioning.md">Precision Commissioning</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>For details, see <a href="#precision-commissioning">Precision Commissioning</a>.</p>
 </td>
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>Model saving and conversion</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>For details, see <a href="#model-saving-and-conversion.md">Model Saving and Conversion</a> and "ATC Tool Instructions" in the <span id="ph18769182415611"><a name="ph18769182415611"></a><a name="ph18769182415611"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a><em id="en-us_topic_0000001105924246_i68718167403"><a name="en-us_topic_0000001105924246_i68718167403"></a><a name="en-us_topic_0000001105924246_i68718167403"></a>CANN Auxiliary Development Tool User Guide </em></span></span>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>For details, see <a href="#model-saving-and-conversion">Model Saving and Conversion</a> and "ATC Tool Instructions" in the <span id="ph18769182415611"><a name="ph18769182415611"></a><a name="ph18769182415611"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a><em id="en-us_topic_0000001105924246_i68718167403"><a name="en-us_topic_0000001105924246_i68718167403"></a><a name="en-us_topic_0000001105924246_i68718167403"></a>CANN Auxiliary Development Tool User Guide </em></span></span>.</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>Application software development</p>
@@ -197,33 +197,33 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQs</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>Describes how to prepare the environment, port models, commission models, and resolve other common problems. For details, see <a href="#faqs.md">FAQs</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>Describes how to prepare the environment, port models, commission models, and resolve other common problems. For details, see <a href="#faqs">FAQs</a>.</p>
 </td>
 </tr>
 </tbody>
 </table>
 
-<h2 id="model-porting-evaluation.md">Model Porting Evaluation</h2>
+<h2 id="model-porting-evaluation">Model Porting Evaluation</h2>
 
 1.  When selecting models, select authoritative PyTorch models as benchmarks, including but not limited to PyTorch \([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)\), facebookresearch \([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)\), and open-mmlab \([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)\).
-2.  Check the operator adaptation. Before porting the original model and training script to an Ascend AI Processor, train the original model and training script on the CPU, obtain the operator information by using the dump op method, and compare the operator information with that in the  _PyTorch Adapted Operator List_  to check whether the operator is supported. For details about the dump op method, see  [dump op Method](#dump-op-method.md). If an operator is not supported, develop the operator. For details, see the  _PyTorch Operator Development Guide_.
+2.  Check the operator adaptation. Before porting the original model and training script to an Ascend AI Processor, train the original model and training script on the CPU, obtain the operator information by using the dump op method, and compare the operator information with that in the  _PyTorch Adapted Operator List_  to check whether the operator is supported. For details about the dump op method, see  [dump op Method](#dump-op-method). If an operator is not supported, develop the operator. For details, see the  _PyTorch Operator Development Guide_.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator \(the first operator that is not supported\) cannot run in the backend of the Ascend AI Processor.
 
 
-<h2 id="environment-setup.md">Environment Setup</h2>
+<h2 id="environment-setup">Environment Setup</h2>
 
--   **[Setting Up the Operating Environment](#setting-up-the-operating-environment.md)**  
+-   **[Setting Up the Operating Environment](#setting-up-the-operating-environment)**  
 
--   **[Configuring Environment Variables](#configuring-environment-variables.md)**  
+-   **[Configuring Environment Variables](#configuring-environment-variables)**  
 
 
-<h2 id="setting-up-the-operating-environment.md">Setting Up the Operating Environment</h2>
+<h2 id="setting-up-the-operating-environment">Setting Up the Operating Environment</h2>
 
 For details about how to set up the PyTorch operating environment, see the .
 
-<h2 id="configuring-environment-variables.md">Configuring Environment Variables</h2>
+<h2 id="configuring-environment-variables">Configuring Environment Variables</h2>
 
 After the software packages are installed, configure environment variables to use Ascend PyTorch. You are advised to build a startup script, for example, the  **set\_env.sh**  script, and run  **source set\_env.sh**  to configure the environment variables. The content of the  **set\_env.sh**  script is as follows \(the  **root**  user is used as the installation user and the default installation path is used\):
 
@@ -347,29 +347,29 @@ export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change
 </tbody>
 </table>
 
-<h2 id="model-porting.md">Model Porting</h2>
+<h2 id="model-porting">Model Porting</h2>
 
--   **[Tool-Facilitated](#tool-facilitated.md)**  
+-   **[Tool-Facilitated](#tool-facilitated)**  
 
--   **[Manual](#manual.md)**  
+-   **[Manual](#manual)**  
 
--   **[Mixed Precision](#mixed-precision.md)**  
+-   **[Mixed Precision](#mixed-precision)**  
 
--   **[Performance Optimization](#performance-optimization.md)**  
+-   **[Performance Optimization](#performance-optimization)**  
 
 
-<h2 id="tool-facilitated.md">Tool-Facilitated</h2>
+<h2 id="tool-facilitated">Tool-Facilitated</h2>
 
 The Ascend platform provides a script conversion tool to enable you to port training scripts to Ascend AI Processors using commands. The following will provide the details. In addition to using commands, you can also use the PyTorch GPU2Ascend function integrated in MindStudio to port scripts. For details, see the  _MindStudio User Guide_.
 
--   **[Introduction](#introduction.md)**  
+-   **[Introduction](#introduction)**  
 
--   **[Instructions](#instructions.md)**  
+-   **[Instructions](#instructions)**  
 
--   **[Result Analysis](#result-analysis.md)**  
+-   **[Result Analysis](#result-analysis)**  
 
 
-<h2 id="introduction.md">Introduction</h2>
+<h2 id="introduction">Introduction</h2>
 
 ## Overview<a name="en-us_topic_0000001133095885_section20874690446"></a>
 
@@ -676,7 +676,7 @@ msFmkTransplt runs on Ubuntu 18.04, CentOS 7.6, and EulerOS 2.8 only.
 
 Set up the development environment by referring to the  _CANN Software Installation Guide_.
 
-<h2 id="instructions.md">Instructions</h2>
+<h2 id="instructions">Instructions</h2>
 
 ## Command-line Options<a name="en-us_topic_0000001086713630_section21951346163910"></a>
 
@@ -835,7 +835,7 @@ An example of a custom conversion rule is as follows:
 
 3.  Find the converted script in the specified output path.
 
-<h2 id="result-analysis.md">Result Analysis</h2>
+<h2 id="result-analysis">Result Analysis</h2>
 
 You can view the result files in the output path when the script is converted.
 
@@ -846,16 +846,16 @@ You can view the result files in the output path when the script is converted.
 │   ├── unsupported_op.xlsx                // File of the unsupported operator list
 ```
 
-<h2 id="manual.md">Manual</h2>
+<h2 id="manual">Manual</h2>
 
--   **[Single-Device Training Model Porting](#single-device-training-model-porting.md)**  
+-   **[Single-Device Training Model Porting](#single-device-training-model-porting)**  
 
--   **[Multi-Device Training Model Porting](#multi-device-training-model-porting.md)**  
+-   **[Multi-Device Training Model Porting](#multi-device-training-model-porting)**  
 
--   **[Replacing PyTorch-related APIs](#replacing-pytorch-related-apis.md)**  
+-   **[Replacing PyTorch-related APIs](#replacing-pytorch-related-apis)**  
 
 
-<h2 id="single-device-training-model-porting.md">Single-Device Training Model Porting</h2>
+<h2 id="single-device-training-model-porting">Single-Device Training Model Porting</h2>
 
 The advantage of the online adaption is that the training on the Ascend AI Processor is consistent with the usage of the GPU. During online adaption,** you only need to specify the device as the Ascend AI Processor in Python and device operations**  to develop, train, and debug the network in PyTorch using the Ascend AI Processor. For single-device model training, main changes for porting are as follows:
 
@@ -885,9 +885,9 @@ The code ported to the Ascend AI Processor is as follows:
     target = target.to(CALCULATE_DEVICE)
 ```
 
-For details, see  [Single-Device Training Modification](#single-device-training-modification.md).
+For details, see  [Single-Device Training Modification](#single-device-training-modification).
 
-<h2 id="multi-device-training-model-porting.md">Multi-Device Training Model Porting</h2>
+<h2 id="multi-device-training-model-porting">Multi-Device Training Model Porting</h2>
 
 To port a multi-device training model,** you need to specify the device as the Ascend AI Processor in Python and device operations**. In addition, you can perform distributed training using PyTorch  **DistributedDataParallel**, that is, run  **init\_process\_group**  during model initialization, and then initialize the model into a  **DistributedDataParallel**  model. Note that the  **backend **must be set to  **hccl **and the initialization mode must be shielded when  **init\_process\_group**  is executed.
 
@@ -911,9 +911,9 @@ def main():
           lr_scheduler)
 ```
 
-For details, see  [Distributed Training Modification](#distributed-training-modification.md).
+For details, see  [Distributed Training Modification](#distributed-training-modification).
 
-<h2 id="replacing-pytorch-related-apis.md">Replacing PyTorch-related APIs</h2>
+<h2 id="replacing-pytorch-related-apis">Replacing PyTorch-related APIs</h2>
 
 1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 1](#table1922064517344)  lists the supported device-related APIs.
 
@@ -1112,7 +1112,7 @@ For details, see  [Distributed Training Modification](#distributed-training-modi
 
 For more APIs, see the  _PyTorch API Support_.
 
-<h2 id="mixed-precision.md">Mixed Precision</h2>
+<h2 id="mixed-precision">Mixed Precision</h2>
 
 ## Overview<a name="section166113311599"></a>
 
@@ -1203,27 +1203,27 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
     ```
 
 
-<h2 id="performance-optimization.md">Performance Optimization</h2>
+<h2 id="performance-optimization">Performance Optimization</h2>
 
--   **[Overview](#overview-0.md)**  
+-   **[Overview](#overview-0)**  
 
--   **[Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-(x86-server).md)**  
+-   **[Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-x86-server)**  
 
--   **[Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-(arm-server).md)**  
+-   **[Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-arm-server)**  
 
--   **[Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-(x86-server).md)**  
+-   **[Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-x86-server)**  
 
--   **[\(Optional\) Installing the OpenCV Library of the Specified Version](#(optional)-installing-the-opencv-library-of-the-specified-version.md)**  
+-   **[\(Optional\) Installing the OpenCV Library of the Specified Version](#optional-installing-the-opencv-library-of-the-specified-version)**  
 
 
-<h2 id="overview-0.md">Overview</h2>
+<h2 id="overview-0">Overview</h2>
 
 During PyTorch model porting and training, the number of images recognized within one second \(FPS\) for some network models is low and the performance does not meet the requirements. In this case, you need to perform the following optimization operations on the server:
 
 -   Change the CPU performance mode.
 -   Install the high-performance Pillow library.
 
-<h2 id="changing-the-cpu-performance-mode-(x86-server).md">Changing the CPU Performance Mode \(x86 Server\)</h2>
+<h2 id="changing-the-cpu-performance-mode-x86-server">Changing the CPU Performance Mode \(x86 Server\)</h2>
 
 ## Setting the Power Policy to High Performance<a name="section18832114453814"></a>
 
@@ -1330,7 +1330,7 @@ Perform the following steps as the  **root**  user:
 
 4.  Perform  [Step 1](#li158435131344)  again to check whether the current CPU mode is set to performance.
 
-<h2 id="changing-the-cpu-performance-mode-(arm-server).md">Changing the CPU Performance Mode \(ARM Server\)</h2>
+<h2 id="changing-the-cpu-performance-mode-arm-server">Changing the CPU Performance Mode \(ARM Server\)</h2>
 
 ## Setting the Power Policy to High Performance<a name="section18832114453814"></a>
 
@@ -1359,7 +1359,7 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
 
 6.  Press  **F10**  to save the settings and reboot the server.
 
-<h2 id="installing-the-high-performance-pillow-library-(x86-server).md">Installing the High-Performance Pillow Library \(x86 Server\)</h2>
+<h2 id="installing-the-high-performance-pillow-library-x86-server">Installing the High-Performance Pillow Library \(x86 Server\)</h2>
 
 1.  Run the following command to install the dependencies for the high-performance pillow library:
 
@@ -1397,7 +1397,7 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
         >```
 
 
-3.  Modify the torchvision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install torchvision, see  [How to Obtain](#obtaining-samples.md).
+3.  Modify the torchvision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install torchvision, see  [How to Obtain](#obtaining-samples).
 
     Modify the code in line 5 of  **/usr/local/python3.7.5/lib/python3.7/site-packages/torchvision/transforms/functional.py**  as follows:
 
@@ -1410,42 +1410,42 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
     ```
 
 
-<h2 id="(optional)-installing-the-opencv-library-of-the-specified-version.md">\(Optional\) Installing the OpenCV Library of the Specified Version</h2>
+<h2 id="(optional)-installing-the-opencv-library-of-the-specified-version">\(Optional\) Installing the OpenCV Library of the Specified Version</h2>
 
 If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensure training performance.
 
 1.  Source code:  [Link](https://opencv.org/releases/)
 2.  Installation guide:  [Link](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)
 
-<h2 id="model-training.md">Model Training</h2>
+<h2 id="model-training">Model Training</h2>
 
-After the training scripts are migrated, set environment variables by following the instructions in  [Configuring Environment Variables](#configuring-environment-variables.md)  and run the  **python3.7** _xxx_  command to train a model. For details, see  [Executing the Script](#executing-the-script.md).
+After the training scripts are migrated, set environment variables by following the instructions in  [Configuring Environment Variables](#configuring-environment-variables)  and run the  **python3.7** _xxx_  command to train a model. For details, see  [Executing the Script](#executing-the-script).
 
-<h2 id="performance-analysis-and-optimization.md">Performance Analysis and Optimization</h2>
+<h2 id="performance-analysis-and-optimization">Performance Analysis and Optimization</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisites)**  
 
--   **[Commissioning Process](#commissioning-process.md)**  
+-   **[Commissioning Process](#commissioning-process)**  
 
--   **[Affinity Library](#affinity-library.md)**  
+-   **[Affinity Library](#affinity-library)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h2 id="prerequisites">Prerequisites</h2>
 
-1.  Modify the open-source code to ensure that the model can run properly, including data preprocessing, forward propagation, loss calculation, mixed precision, back propagation, and parameter update. For details, see  [Samples](#samples.md).
+1.  Modify the open-source code to ensure that the model can run properly, including data preprocessing, forward propagation, loss calculation, mixed precision, back propagation, and parameter update. For details, see  [Samples](#samples).
 2.  During model porting, check whether the model can run properly and whether the existing operators can meet the requirements. If no operator meets the requirements, develop an adapted operator. For details, see the  _PyTorch Operator Development Guide_.
 3.  Prioritize the single-device function, and then enable the multi-device function.
 
-<h2 id="commissioning-process.md">Commissioning Process</h2>
+<h2 id="commissioning-process">Commissioning Process</h2>
 
--   **[Overall Guideline](#overall-guideline.md)**  
+-   **[Overall Guideline](#overall-guideline)**  
 
--   **[Collecting Data Related to the Training Process](#collecting-data-related-to-the-training-process.md)**  
+-   **[Collecting Data Related to the Training Process](#collecting-data-related-to-the-training-process)**  
 
--   **[Performance Optimization](#performance-optimization-1.md)**  
+-   **[Performance Optimization](#performance-optimization-1)**  
 
 
-<h2 id="overall-guideline.md">Overall Guideline</h2>
+<h2 id="overall-guideline">Overall Guideline</h2>
 
 1.  Check whether the throughput meets the expected requirements based on the training execution result.
 2.  If the throughput does not meet requirements, you need to find out the causes of the performance bottleneck. Possible causes are as follows:
@@ -1456,7 +1456,7 @@ After the training scripts are migrated, set environment variables by following 
 
 3.  Analyze the preceding causes of performance bottlenecks and optimize the performance.
 
-<h2 id="collecting-data-related-to-the-training-process.md">Collecting Data Related to the Training Process</h2>
+<h2 id="collecting-data-related-to-the-training-process">Collecting Data Related to the Training Process</h2>
 
 ## Profile Data Collection<a name="section141471611314"></a>
 
@@ -1545,20 +1545,20 @@ The network model is executed as an operator \(OP\). The OPInfo log can be used 
 
 6.  Analyze the extra tasks in TaskInfo, especially transdata.
 
-<h2 id="performance-optimization-1.md">Performance Optimization</h2>
+<h2 id="performance-optimization-1">Performance Optimization</h2>
 
 ## Operator Bottleneck Optimization<a name="section8727652134111"></a>
 
-1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#collecting-data-related-to-the-training-process.md).
+1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#collecting-data-related-to-the-training-process).
 2.  Analyze the profile data to obtain the time-consuming operator.
-3.  See  [Single-Operator Sample Building](#single-operator-sample-building.md)  to build the single-operator sample of the time-consuming operator, and compare the execution time of a single-operator sample on the CPU and GPU. If the performance is insufficient, use either of the following methods to solve the problem:
+3.  See  [Single-Operator Sample Building](#single-operator-sample-building)  to build the single-operator sample of the time-consuming operator, and compare the execution time of a single-operator sample on the CPU and GPU. If the performance is insufficient, use either of the following methods to solve the problem:
     -   Workaround: Use other efficient operators with the same semantics.
     -   Solution: Improve the operator performance.
 
 
 ## Copy Bottleneck Optimization<a name="section219718193717"></a>
 
-1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#collecting-data-related-to-the-training-process.md).
+1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#collecting-data-related-to-the-training-process).
 2.  Analyze the Profile data to obtain the execution time of  **D2DCopywithStreamSynchronize**,  **PTCopy**, or  **format\_contiguous**  in the entire network.
 3.  If the execution takes a long time, use either of the following methods to solve the problem:
     -   Method 1 \(workaround\): Replace view operators with compute operators. In PyTorch, view operators cause conversion from non-contiguous tensors to contiguous tensors. The optimization idea is to replace view operators with compute operators. Common view operators include view, permute, and transpose operators. For more view operators, go to  [https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html).
@@ -1567,7 +1567,7 @@ The network model is executed as an operator \(OP\). The OPInfo log can be used 
 
 ## Framework Bottleneck Optimization<a name="section1391981014420"></a>
 
-1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#collecting-data-related-to-the-training-process.md).
+1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#collecting-data-related-to-the-training-process).
 2.  Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
 3.  Solution: Specify the initialization format of some operators to eliminate cast operators.
 4.  In  **pytorch/torch/nn/modules/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
@@ -1582,25 +1582,25 @@ The network model is executed as an operator \(OP\). The OPInfo log can be used 
 
 ## Compilation Bottleneck Optimization<a name="section148361506506"></a>
 
-1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#collecting-data-related-to-the-training-process.md).
+1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#collecting-data-related-to-the-training-process).
 2.  View the INFO log and check the keyword  **aclopCompile::aclOp**  after the first step. If  **Match op iunputs/type failed**  or  **To compile op**  is displayed, the operator is dynamically compiled and needs to be optimized.
 3.  Use either of the following methods to solve the problem:
     -   Workaround: Based on the understanding of model semantics and related APIs, replace dynamic shape with static shape.
     -   Solution: Reduce compilation or do not compile the operator.
 
 
-<h2 id="affinity-library.md">Affinity Library</h2>
+<h2 id="affinity-library">Affinity Library</h2>
 
--   **[Source](#source.md)**  
+-   **[Source](#source)**  
 
--   **[Functions](#functions.md)**  
+-   **[Functions](#functions)**  
 
 
-<h2 id="source.md">Source</h2>
+<h2 id="source">Source</h2>
 
 The common network structures and functions in the public models are optimized to greatly improve computing performance. In addition, the network structures and functions are integrated into the PyTorch framework to facilitate model performance optimization.
 
-<h2 id="functions.md">Functions</h2>
+<h2 id="functions">Functions</h2>
 
 <a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>Function</p>
@@ -1645,30 +1645,30 @@ The common network structures and functions in the public models are optimized t
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >The optimization content will be enhanced and updated with the version. Use the content in the corresponding path of the actual PyTorch version.
 
-<h2 id="precision-commissioning.md">Precision Commissioning</h2>
+<h2 id="precision-commissioning">Precision Commissioning</h2>
 
--   **[Prerequisites](#prerequisites-2.md)**  
+-   **[Prerequisites](#prerequisites-2)**  
 
--   **[Commissioning Process](#commissioning-process-3.md)**  
+-   **[Commissioning Process](#commissioning-process-3)**  
 
 
-<h2 id="prerequisites-2.md">Prerequisites</h2>
+<h2 id="prerequisites-2">Prerequisites</h2>
 
 Run a certain number of epochs \(20% of the total number of epoches is recommended\) with the same semantics and hyperparameters to align the precision and loss with the corresponding level of the GPU. After the alignment is complete, align the final precision.
 
-<h2 id="commissioning-process-3.md">Commissioning Process</h2>
+<h2 id="commissioning-process-3">Commissioning Process</h2>
 
--   **[Overall Guideline](#overall-guideline-4.md)**  
+-   **[Overall Guideline](#overall-guideline-4)**  
 
--   **[Precision Optimization Methods](#precision-optimization-methods.md)**  
+-   **[Precision Optimization Methods](#precision-optimization-methods)**  
 
 
-<h2 id="overall-guideline-4.md">Overall Guideline</h2>
+<h2 id="overall-guideline-4">Overall Guideline</h2>
 
 To locate the precision problem, you need to find out the step in which the problem occurs. The following aspects are involved:
 
 1.  <a name="li17755175510322"></a>Model network calculation error
-    -   Locating method: Add a hook to the network to determine which part is suspected. Then build a  [single-operator sample](#single-operator-sample-building.md)  to narrow down the error range. This can prove that the operator calculation is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem.
+    -   Locating method: Add a hook to the network to determine which part is suspected. Then build a  [single-operator sample](#single-operator-sample-building)  to narrow down the error range. This can prove that the operator calculation is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem.
 
     -   Workaround: Use other operators with the same semantics.
 
@@ -1697,7 +1697,7 @@ To locate the precision problem, you need to find out the step in which the prob
 
 
 
-<h2 id="precision-optimization-methods.md">Precision Optimization Methods</h2>
+<h2 id="precision-optimization-methods">Precision Optimization Methods</h2>
 
 1.  Determine whether the calculation on the Ascend AI Processor is correct by comparing the calculation result of the CPU and that of the Ascend AI Processor.
 
@@ -1757,16 +1757,16 @@ To locate the precision problem, you need to find out the step in which the prob
     ```
 
 
-<h2 id="model-saving-and-conversion.md">Model Saving and Conversion</h2>
+<h2 id="model-saving-and-conversion">Model Saving and Conversion</h2>
 
--   **[Introduction](#introduction-5.md)**  
+-   **[Introduction](#introduction-5)**  
 
--   **[Saving a Model](#saving-a-model.md)**  
+-   **[Saving a Model](#saving-a-model)**  
 
--   **[Exporting an ONNX Model](#exporting-an-onnx-model.md)**  
+-   **[Exporting an ONNX Model](#exporting-an-onnx-model)**  
 
 
-<h2 id="introduction-5.md">Introduction</h2>
+<h2 id="introduction-5">Introduction</h2>
 
 After the model training is complete, save the model file and export the ONNX model by using the APIs provided by PyTorch. Then use the ATC tool to convert the model into an .om file that adapts to the Ascend AI Processor for offline inference.
 
@@ -1778,7 +1778,7 @@ For details about how to build an offline inference application, see the  _CANN 
 
 ![](figures/en-us_image_0000001106176222.png)
 
-<h2 id="saving-a-model.md">Saving a Model</h2>
+<h2 id="saving-a-model">Saving a Model</h2>
 
 During PyTorch training,  **torch.save\(\)**  is used to save checkpoint files. Based on the usage of model files, model files are saved in the following two formats:
 
@@ -1851,7 +1851,7 @@ During PyTorch training,  **torch.save\(\)**  is used to save checkpoint files. 
 >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
 >Generally, an operator is processed in different ways in the training graph and inference graph \(for example, BatchNorm and dropout operators\), and the input formats are also different. Therefore, before inference or ONNX model exporting,  **model.eval\(\)**  must be called to set the dropout and batch normalization layers to the inference mode.
 
-<h2 id="exporting-an-onnx-model.md">Exporting an ONNX Model</h2>
+<h2 id="exporting-an-onnx-model">Exporting an ONNX Model</h2>
 
 ## Introduction<a name="section5385151615714"></a>
 
@@ -1938,23 +1938,23 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="samples.md">Samples</h2>
+<h2 id="samples">Samples</h2>
 
--   **[ResNet-50 Model Porting](#resnet-50-model-porting.md)**  
+-   **[ResNet-50 Model Porting](#resnet-50-model-porting)**  
 
--   **[ShuffleNet Model Optimization](#shufflenet-model-optimization.md)**  
-
-
-<h2 id="resnet-50-model-porting.md">ResNet-50 Model Porting</h2>
-
--   **[Obtaining Samples](#obtaining-samples.md)**  
-
--   **[Porting the Training Script](#porting-the-training-script.md)**  
-
--   **[Executing the Script](#executing-the-script.md)**  
+-   **[ShuffleNet Model Optimization](#shufflenet-model-optimization)**  
 
 
-<h2 id="obtaining-samples.md">Obtaining Samples</h2>
+<h2 id="resnet-50-model-porting">ResNet-50 Model Porting</h2>
+
+-   **[Obtaining Samples](#obtaining-samples)**  
+
+-   **[Porting the Training Script](#porting-the-training-script)**  
+
+-   **[Executing the Script](#executing-the-script)**  
+
+
+<h2 id="obtaining-samples">Obtaining Samples</h2>
 
 ## How to Obtain<a name="section1155115015182"></a>
 
@@ -1984,7 +1984,7 @@ if __name__ == "__main__":
         >![](public_sys-resources/icon-note.gif) **NOTE:** 
         >ResNet-50 is a model built in PyTorch. For more built-in models, visit the  [PyTorch official website](https://pytorch.org/).
 
-    2.  During script execution, set  **arch**  to  **resnet50**. This method is used in the sample. For details, see  [Executing the Script](#executing-the-script.md).
+    2.  During script execution, set  **arch**  to  **resnet50**. This method is used in the sample. For details, see  [Executing the Script](#executing-the-script).
 
         ```
         --arch resnet50
@@ -2000,14 +2000,14 @@ The structure of major directories and files is as follows:
 ├──main.py 
 ```
 
-<h2 id="porting-the-training-script.md">Porting the Training Script</h2>
+<h2 id="porting-the-training-script">Porting the Training Script</h2>
 
--   **[Single-Device Training Modification](#single-device-training-modification.md)**  
+-   **[Single-Device Training Modification](#single-device-training-modification)**  
 
--   **[Distributed Training Modification](#distributed-training-modification.md)**  
+-   **[Distributed Training Modification](#distributed-training-modification)**  
 
 
-<h2 id="single-device-training-modification.md">Single-Device Training Modification</h2>
+<h2 id="single-device-training-modification">Single-Device Training Modification</h2>
 
 1.  Add the header file to  **main.py**  to support model training on the  Ascend 910 AI Processor  based on the PyTorch framework.
 
@@ -2150,7 +2150,7 @@ The structure of major directories and files is as follows:
     ```
 
 
-<h2 id="distributed-training-modification.md">Distributed Training Modification</h2>
+<h2 id="distributed-training-modification">Distributed Training Modification</h2>
 
 1.  Add the header file to  **main.py**  to support mixed-precision model training on the  Ascend 910 AI Processor  based on the PyTorch framework.
 
@@ -2501,7 +2501,7 @@ The structure of major directories and files is as follows:
     ```
 
 
-<h2 id="executing-the-script.md">Executing the Script</h2>
+<h2 id="executing-the-script">Executing the Script</h2>
 
 ## Preparing a Dataset<a name="section1570410549599"></a>
 
@@ -2509,7 +2509,7 @@ Prepare a dataset and upload it to a directory in the operating environment, for
 
 ## Configuring Environment Variables<a name="section13239217203"></a>
 
-For details, see  [Configuring Environment Variables](#configuring-environment-variables.md).
+For details, see  [Configuring Environment Variables](#configuring-environment-variables).
 
 ## Command<a name="section624019171308"></a>
 
@@ -2552,18 +2552,18 @@ python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \               
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >**dist-backend**  must be set to  **hccl**  to support distributed training on the Ascend AI device.
 
-<h2 id="shufflenet-model-optimization.md">ShuffleNet Model Optimization</h2>
+<h2 id="shufflenet-model-optimization">ShuffleNet Model Optimization</h2>
 
--   **[Obtaining Samples](#obtaining-samples-6.md)**  
+-   **[Obtaining Samples](#obtaining-samples-6)**  
 
--   **[Evaluating the Model](#evaluating-the-model.md)**  
+-   **[Evaluating the Model](#evaluating-the-model)**  
 
--   **[Porting the Network](#porting-the-network.md)**  
+-   **[Porting the Network](#porting-the-network)**  
 
--   **[Commissioning the Network](#commissioning-the-network.md)**  
+-   **[Commissioning the Network](#commissioning-the-network)**  
 
 
-<h2 id="obtaining-samples-6.md">Obtaining Samples</h2>
+<h2 id="obtaining-samples-6">Obtaining Samples</h2>
 
 ## How to Obtain<a name="section1155115015182"></a>
 
@@ -2586,17 +2586,17 @@ The structure of major directories and files is as follows:
 ├──main.py 
 ```
 
-<h2 id="evaluating-the-model.md">Evaluating the Model</h2>
+<h2 id="evaluating-the-model">Evaluating the Model</h2>
 
 Model evaluation focuses on operator adaptation. Use the dump op method to obtain the ShuffleNet operator information and compare the information with that in the  _PyTorch Adapted Operator List_. If an operator is not supported, in simple scenarios, you can replace the operator with a similar operator or place the operator on the CPU to avoid this problem. In complex scenarios, operator development is required. For details, see the  _PyTorch Operator Development Guide_.
 
-<h2 id="porting-the-network.md">Porting the Network</h2>
+<h2 id="porting-the-network">Porting the Network</h2>
 
-For details about how to port the training scripts, see  [Single-Device Training Modification](#single-device-training-modification.md)  and  [Distributed Training Modification](#distributed-training-modification.md). During the script execution, select the  **--arch shufflenet\_v2\_x1\_0**  parameter.
+For details about how to port the training scripts, see  [Single-Device Training Modification](#single-device-training-modification)  and  [Distributed Training Modification](#distributed-training-modification). During the script execution, select the  **--arch shufflenet\_v2\_x1\_0**  parameter.
 
-<h2 id="commissioning-the-network.md">Commissioning the Network</h2>
+<h2 id="commissioning-the-network">Commissioning the Network</h2>
 
-For details about how to commission the network, see  [Commissioning Process](#commissioning-process.md). After check, it is found that too much time is consumed by operators during ShuffleNet running. The following provides the time consumption data and solutions.
+For details about how to commission the network, see  [Commissioning Process](#commissioning-process). After check, it is found that too much time is consumed by operators during ShuffleNet running. The following provides the time consumption data and solutions.
 
 ## Forward check<a name="section7544311140"></a>
 
@@ -2665,10 +2665,10 @@ The forward check record table is as follows:
 
 The details are as follows:
 
--   The native  **torch.transpose\(x, 1, 2\).contiguous\(\)**  uses the view operator transpose, which produced non-contiguous tensors. For example, the copy bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1.md)  uses  **channel\_shuffle\_index\_select**  to replace the framework operator with the compute operator when the semantics is the same, reducing the time consumption.
--   ShuffleNet V2 contains a large number of chunk operations, and chunk operations are framework operators in PyTorch. As a result, a tensor is split into several non-contiguous tensors of the same length. The operation of converting non-contiguous tensors to contiguous tensors takes a long time. Therefore, the compute operator is used to eliminate non-contiguous tensors. For details, see the copy bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1.md)
+-   The native  **torch.transpose\(x, 1, 2\).contiguous\(\)**  uses the view operator transpose, which produced non-contiguous tensors. For example, the copy bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1)  uses  **channel\_shuffle\_index\_select**  to replace the framework operator with the compute operator when the semantics is the same, reducing the time consumption.
+-   ShuffleNet V2 contains a large number of chunk operations, and chunk operations are framework operators in PyTorch. As a result, a tensor is split into several non-contiguous tensors of the same length. The operation of converting non-contiguous tensors to contiguous tensors takes a long time. Therefore, the compute operator is used to eliminate non-contiguous tensors. For details, see the copy bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1)
 -   During operator adaptation, the output format is specified as the input format by default. However, Concat does not support the 5HD format whose C dimension is not an integral multiple of 16, so it converts the format into 4D for processing. In addition, the Concat is followed by the GatherV2 operator, which supports only the 4D format. Therefore, the data format conversion process is 5HD \> 4D \> Concat \> 5HD \> 4D \> GatherV2 \> 5HD. The solution is to modify the Concat output format. When the output format is not an integer multiple of 16, the specified output format is 4D. After the optimization, the data format conversion process is 5HD \> 4D \> Concat \> GatherV2 \> 5HD. For details about the method for ShuffleNet, see line 121 in  **pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp**.
--   Set the weight initialization format to avoid repeated transdata during calculation, for example, the framework bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1.md).
+-   Set the weight initialization format to avoid repeated transdata during calculation, for example, the framework bottleneck described in the  [copy bottleneck optimization](#performance-optimization-1).
 -   The output format of the DWCONV weight is rectified to avoid the unnecessary conversion from 5HD to 4D.
 
 ## Entire Network Check<a name="section1261194410241"></a>
@@ -3093,22 +3093,22 @@ for group in [2, 4, 8]:
     ```
 
 
-<h2 id="references.md">References</h2>
+<h2 id="references">References</h2>
 
--   **[Single-Operator Sample Building](#single-operator-sample-building.md)**  
+-   **[Single-Operator Sample Building](#single-operator-sample-building)**  
 
--   **[Single-Operator Dump Method](#single-operator-dump-method.md)**  
+-   **[Single-Operator Dump Method](#single-operator-dump-method)**  
 
--   **[Common Environment Variables](#common-environment-variables.md)**  
+-   **[Common Environment Variables](#common-environment-variables)**  
 
--   **[dump op Method](#dump-op-method.md)**  
+-   **[dump op Method](#dump-op-method)**  
 
--   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)**  
+-   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0)**  
 
 
-<h2 id="single-operator-sample-building.md">Single-Operator Sample Building</h2>
+<h2 id="single-operator-sample-building">Single-Operator Sample Building</h2>
 
-When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-method.md).
+When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-method).
 
 1.  Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
 
@@ -3201,7 +3201,7 @@ When a problem occurs in a model, it is costly to reproduce the problem in the e
     ```
 
 
-<h2 id="single-operator-dump-method.md">Single-Operator Dump Method</h2>
+<h2 id="single-operator-dump-method">Single-Operator Dump Method</h2>
 
 ## Collecting Dump Data<a name="en-us_topic_0235790166_section1470293916167"></a>
 
@@ -3309,7 +3309,7 @@ The fields in the dump data path and file are described as follows:
     The dimension and  **Dtype**  information no longer exist in the .txt file. For details, visit the NumPy website.
 
 
-<h2 id="common-environment-variables.md">Common Environment Variables</h2>
+<h2 id="common-environment-variables">Common Environment Variables</h2>
 
 1.  Enables the task delivery in multi-thread mode. When this function is enabled, the training performance of the entire network is improved in most cases.
 
@@ -3327,7 +3327,7 @@ The fields in the dump data path and file are described as follows:
     **export DUMP\_GRAPH\_LEVEL=3**
 
 
-<h2 id="dump-op-method.md">dump op Method</h2>
+<h2 id="dump-op-method">dump op Method</h2>
 
 1.  Use the profile API to reconstruct the loss calculation and optimization process of the original code training script and print the operator information. The following is a code example.
 
@@ -3342,7 +3342,7 @@ The fields in the dump data path and file are described as follows:
 
 2.  Train the reconstructed training script on the CPU. The related operator information is displayed.
 
-<h2 id="how-do-i-install-gcc-7-3-0.md">How Do I Install GCC 7.3.0?</h2>
+<h2 id="how-do-i-install-gcc-7-3-0">How Do I Install GCC 7.3.0?</h2>
 
 Perform the following steps as the  **root**  user.
 
@@ -3424,25 +3424,25 @@ Perform the following steps as the  **root**  user.
     >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 
-<h2 id="faqs.md">FAQs</h2>
+<h2 id="faqs">FAQs</h2>
 
--   **[FAQs About Software Installation](#faqs-about-software-installation.md)**  
+-   **[FAQs About Software Installation](#faqs-about-software-installation)**  
 
--   **[FAQs About Model and Operator Running](#faqs-about-model-and-operator-running.md)**  
+-   **[FAQs About Model and Operator Running](#faqs-about-model-and-operator-running)**  
 
--   **[FAQs About Model Commissioning](#faqs-about-model-commissioning.md)**  
+-   **[FAQs About Model Commissioning](#faqs-about-model-commissioning)**  
 
--   **[FAQs About Other Operations](#faqs-about-other-operations.md)**  
+-   **[FAQs About Other Operations](#faqs-about-other-operations)**  
 
--   **[FAQs About Distributed Model Training](#faqs-about-distributed-model-training.md)**  
-
-
-<h2 id="faqs-about-software-installation.md">FAQs About Software Installation</h2>
-
--   **[pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failed.md)**  
+-   **[FAQs About Distributed Model Training](#faqs-about-distributed-model-training)**  
 
 
-<h2 id="pip3-7-install-pillow-5-3-0-installation-failed.md">pip3.7 install Pillow==5.3.0 Installation Failed</h2>
+<h2 id="faqs-about-software-installation">FAQs About Software Installation</h2>
+
+-   **[pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failed)**  
+
+
+<h2 id="pip3-7-install-pillow-5-3-0-installation-failed">pip3.7 install Pillow==5.3.0 Installation Failed</h2>
 
 ## Symptom<a name="en-us_topic_0175549220_section197270431505"></a>
 
@@ -3465,30 +3465,30 @@ Run the following commands to install the dependencies:
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-<h2 id="faqs-about-model-and-operator-running.md">FAQs About Model and Operator Running</h2>
+<h2 id="faqs-about-model-and-operator-running">FAQs About Model and Operator Running</h2>
 
--   **[What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator.md)**  
+-   **[What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator)**  
 
--   **[What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat.md)**  
+-   **[What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat)**  
 
--   **[What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what()-he.md)**  
+-   **[What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what-he)**  
 
--   **[What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running.md)**  
+-   **[What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running)**  
 
--   **[What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running.md)**  
+-   **[What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running)**  
 
--   **[What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running.md)**  
+-   **[What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running)**  
 
--   **[What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running.md)**  
+-   **[What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running)**  
 
--   **[What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7.md)**  
+-   **[What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7)**  
 
--   **[What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?](#what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled.md)**  
+-   **[What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?](#what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled)**  
 
--   **[What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1(failed)-is-displayed-during.md)**  
+-   **[What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1failed-is-displayed-during)**  
 
 
-<h2 id="what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator.md">What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operator">What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3502,7 +3502,7 @@ Currently, only one NPU device can be called in a thread. When different NPU dev
 
 In the code, when  **torch.npu.set\_device\(device\)**,  **tensor.to\(device\)**, or  **model.to\(device\)**  is called in the same thread, the device names are inconsistent. For multiple threads \(such as multi-device training\), each thread can call only a fixed NPU device.
 
-<h2 id="what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat.md">What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operat">What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3516,7 +3516,7 @@ If no NPU device is specified by  **torch.npu.device\(id\)**  during torch initi
 
 Before calling an NPU device, specify the NPU device by using  **torch.npu.set\_device\(device\)**.
 
-<h2 id="what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what()-he.md">What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what-he">What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3533,7 +3533,7 @@ You can resolve this exception by using either of the following methods:
 -   Check the host error log information. The default log path is  **/var/log/npu/slog/host-0/**. Search for the log file whose name is prefixed with  **host-0**  based on the time identifier, open the log file, and search for error information using keyword  **ERROR**.
 -   Disable multi-thread delivery \(**export TASK\_QUEUE\_ENABLE=0**\) and run the code again. Generally, you can locate the fault based on the error information reported by the terminal.
 
-<h2 id="what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running.md">What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-running">What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3547,7 +3547,7 @@ Currently, the released PyTorch installation package uses the NPU and HCCL funct
 
 Add the path of the HCCL module to the environment variables. Generally, the path of the HCCL library file is  **.../fwkacllib/python/site-packages/hccl**  in the installation package.
 
-<h2 id="what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running.md">What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-running">What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3585,7 +3585,7 @@ To solve the problem, perform the following steps:
 
 4.  <a name="li475615212912"></a>Contact Huawei technical support personnel.
 
-<h2 id="what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running.md">What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-running">What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3601,7 +3601,7 @@ Update the versions of components such as TE. The  **te-\*.whl**  and  **topi-\*
 
 ![](figures/faq10-1.png)
 
-<h2 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running.md">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3670,7 +3670,7 @@ Perform the following steps to locate the fault based on the actual error inform
 4.  Print the shape, dtype, and npu\_format of all stack parameters. Construct a single-operator case to reproduce the problem. The cause is that the data types of the input parameters for subtraction are different. As a result, the data types of the a-b and b-a results are different, and an error is reported in the stack operator.
 5.  Convert the data types of the stack input parameters to the same one to temporarily avoid the problem.
 
-<h2 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7.md">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-7">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3739,7 +3739,7 @@ Perform the following steps to locate the fault based on the actual error inform
 4.  Print the shape, dtype, and npu\_format of all stack parameters. Construct a single-operator case to reproduce the problem. The cause is that the data types of the input parameters for subtraction are different. As a result, the data types of the a-b and b-a results are different, and an error is reported in the stack operator.
 5.  Convert the data types of the stack input parameters to the same one to temporarily avoid the problem.
 
-<h2 id="what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled.md">What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabled">What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3759,7 +3759,7 @@ The error information in the log indicates that the error operator is topKD and 
 
 Locate the topKD operator in the model code and check whether the operator can be replaced by another operator. If the operator can be replaced by another operator, use the replacement solution and report the operator error information to Huawei engineers. If the operator cannot be replaced by another operator, contact Huawei technical support.
 
-<h2 id="what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1(failed)-is-displayed-during.md">What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?</h2>
+<h2 id="what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1failed-is-displayed-during">What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?</h2>
 
 ## Symptom<a name="section170419711269"></a>
 
@@ -3775,18 +3775,18 @@ A public API is called.
 
 The error information does not affect the training function and performance and can be ignored.
 
-<h2 id="faqs-about-model-commissioning.md">FAQs About Model Commissioning</h2>
+<h2 id="faqs-about-model-commissioning">FAQs About Model Commissioning</h2>
 
--   **[What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np.md)**  
+-   **[What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np)**  
 
--   **[What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning](#what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the.md)**  
+-   **[What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning](#what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the)**  
 
--   **[What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?](#what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni.md)**  
+-   **[What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?](#what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni)**  
 
--   **[What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?](#what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor.md)**  
+-   **[What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?](#what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor)**  
 
 
-<h2 id="what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np.md">What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?</h2>
+<h2 id="what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-np">What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3800,7 +3800,7 @@ For the malloc error in  **NPUCachingAllocator**, the possible cause is that the
 
 During model commissioning, you can decrease the value of the  **batch size**  parameter to reduce the size of the occupied video memory on the NPU.
 
-<h2 id="what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the.md">What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning</h2>
+<h2 id="what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-the">What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3814,7 +3814,7 @@ Currently, the NPU supports only some PyTorch operators. The preceding error is 
 
 During model commissioning, you can decrease the value of the  **batch size**  parameter to reduce the size of the occupied video memory on the NPU.
 
-<h2 id="what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni.md">What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?</h2>
+<h2 id="what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissioni">What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3840,9 +3840,9 @@ Locate the operators based on the error information and perform the following st
 
 In the preceding figure, the error information indicates that the MaxPoolGradWithArgmaxV1 and max operators report the error. MaxPoolGradWithArgmaxV1 reports the error during backward propagation. Therefore, construct a reverse scenario. The max operator reports the error during forward propagation. Therefore, construct a forward scenario.
 
-If an operator error is reported in the model, you are advised to build a single-operator test case and determine the error scenario and cause. If a single-operator case cannot be built in a single operator, you need to construct a context-based single-operator scenario. For details about how to build a test case, see  [Single-Operator Sample Building](#single-operator-sample-building.md).
+If an operator error is reported in the model, you are advised to build a single-operator test case and determine the error scenario and cause. If a single-operator case cannot be built in a single operator, you need to construct a context-based single-operator scenario. For details about how to build a test case, see  [Single-Operator Sample Building](#single-operator-sample-building).
 
-<h2 id="what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor.md">What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?</h2>
+<h2 id="what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tor">What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3856,24 +3856,24 @@ In the preceding figure, the error path is  **.../code/pytorch/torch/\_\_init\_\
 
 Switch to another directory to run the script.
 
-<h2 id="faqs-about-other-operations.md">FAQs About Other Operations</h2>
+<h2 id="faqs-about-other-operations">FAQs About Other Operations</h2>
 
--   **[What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization.md)**  
+-   **[What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization)**  
 
--   **[What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?](#what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist.md)**  
+-   **[What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?](#what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist)**  
 
--   **[What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?](#what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m.md)**  
+-   **[What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?](#what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m)**  
 
--   **[What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?](#what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used.md)**  
+-   **[What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?](#what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used)**  
 
--   **[What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?](#what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine.md)**  
+-   **[What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?](#what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine)**  
 
--   **[What Do I Do If a Hook Failure Occurs?](#what-do-i-do-if-a-hook-failure-occurs.md)**  
+-   **[What Do I Do If a Hook Failure Occurs?](#what-do-i-do-if-a-hook-failure-occurs)**  
 
--   **[What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?](#what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded.md)**  
+-   **[What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?](#what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded)**  
 
 
-<h2 id="what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization.md">What Do I Do If an Error Is Reported During CUDA Stream Synchronization?</h2>
+<h2 id="what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronization">What Do I Do If an Error Is Reported During CUDA Stream Synchronization?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3892,7 +3892,7 @@ stream = torch.npu.current_stream()
 stream.synchronize()
 ```
 
-<h2 id="what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist.md">What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?</h2>
+<h2 id="what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-exist">What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3910,7 +3910,7 @@ Import the AI CPU. \(The following describes how to install the Toolkit software
 export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest
 ```
 
-<h2 id="what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m.md">What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?</h2>
+<h2 id="what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-m">What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3928,7 +3928,7 @@ Kill the Python process.
 pkill -9 python
 ```
 
-<h2 id="what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used.md">What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?</h2>
+<h2 id="what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-used">What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3942,7 +3942,7 @@ The operator compiled by  **PTIndexPut**  does not match the input shape, and th
 
 **PTIndexPut**  corresponds to  **tensor\[indices\] = value**. Locate the field in the code and change the dynamic shape to a fixed shape.
 
-<h2 id="what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine.md">What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?</h2>
+<h2 id="what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreengine">What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -3959,7 +3959,7 @@ The input data type is not supported by the SigmoidCrossEntropyWithLogitsV2 oper
 
 Check the input data type in the Python code and modify the data type.
 
-<h2 id="what-do-i-do-if-a-hook-failure-occurs.md">What Do I Do If a Hook Failure Occurs?</h2>
+<h2 id="what-do-i-do-if-a-hook-failure-occurs">What Do I Do If a Hook Failure Occurs?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -4015,7 +4015,7 @@ if len(self._backward_hooks) > 0:
 return result
 ```
 
-<h2 id="what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded.md">What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?</h2>
+<h2 id="what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loaded">What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -4044,14 +4044,14 @@ The script is as follows:
    model.load_state_dict(state_dict)
 ```
 
-<h2 id="faqs-about-distributed-model-training.md">FAQs About Distributed Model Training</h2>
+<h2 id="faqs-about-distributed-model-training">FAQs About Distributed Model Training</h2>
 
--   **[What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training.md)**  
+-   **[What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training)**  
 
--   **[What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect()-timed-out-is-displayed-during-distributed-m.md)**  
+-   **[What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect-timed-out-is-displayed-during-distributed-m)**  
 
 
-<h2 id="what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training.md">What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?</h2>
+<h2 id="what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-training">What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
@@ -4065,7 +4065,7 @@ During distributed model training, the Huawei Collective Communication Library \
 
 Set the correct IP address in the running script. If a single server is deployed, set the IP address to the IP address of the server. If multiple servers are deployed, set the IP address in the script on each server to the IP address of the active node.
 
-<h2 id="what-do-i-do-if-the-error-message-runtimeerror-connect()-timed-out-is-displayed-during-distributed-m.md">What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?</h2>
+<h2 id="what-do-i-do-if-the-error-message-runtimeerror-connect()-timed-out-is-displayed-during-distributed-m">What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?</h2>
 
 ## Symptom<a name="section1785905019184"></a>
 
