@@ -30,12 +30,13 @@ public:
       //TODO(ascend): delete call and implementation, after more test 
       // optimize_permute(perm, sizes);
       RECORD_FUNCTION("npuTransposeD", std::vector<c10::IValue>({src}));
-
       // create contiguous tensor for npu transpose
       Tensor temp_src = at::empty(sizes, src.options());
       temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(), temp_src.strides());
       auto npu_desc = temp_src.storage().unsafeGetStorageImpl()->npu_desc_;
-      change_tensor_npuDesc(npu_desc, temp_src);
+      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_ = temp_src.sizes();
+      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.base_strides_ = temp_src.strides();
+      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_ = temp_src.sizes();
 
       at::npu_transpose_out(self, temp_src, perm);
       temp_src.storage().unsafeGetStorageImpl()->npu_desc_ = npu_desc;
@@ -51,13 +52,6 @@ public:
   }
   
 private:
-  void change_tensor_npuDesc(NPUStorageDesc npu_desc, Tensor& tensor) {
-    npu_desc.base_sizes_ = tensor.sizes();
-    npu_desc.base_strides_ = tensor.strides();
-    npu_desc.storage_sizes_ = tensor.sizes();
-    tensor.storage().unsafeGetStorageImpl()->npu_desc_ = npu_desc;
-  }
-
   bool can_use_permute(const Tensor &src, 
       SmallVector<int64_t, SHAPE_SIZE> &perm, 
       SmallVector<int64_t, 5> &sizes) {

@@ -222,7 +222,7 @@ Tensor tensors_convert_contiguous(const Tensor& src) {
 }
 
 Tensor metadata_convert_match(const Tensor& src) {
-  auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
   bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
   // Only when a tensor monopolizes a storage can NpuStorageDesc be refreshed.
   // When the original format is not NCHW, the npu_format_cast to NCHW will generate

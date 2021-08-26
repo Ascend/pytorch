@@ -111,7 +111,7 @@ class AclTensorDescMaker {
     return *this;
   }
 
-  AclTensorDescMaker& SetName(string name) {
+  AclTensorDescMaker& SetName(const string& name) {
     if (name != "") {
       aclSetTensorDescName(desc, name.c_str());
     }

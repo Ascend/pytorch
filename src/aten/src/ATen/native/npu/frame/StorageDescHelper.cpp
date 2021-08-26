@@ -22,7 +22,7 @@ namespace native {
 namespace npu {
 
 bool StorageDescHelper::MetaDataAreMatch(const Tensor* tensor) {
-  auto desc = tensor->storage().unsafeGetStorageImpl()->npu_desc_;
+  auto& desc = tensor->storage().unsafeGetStorageImpl()->npu_desc_;
   return IsSameSize(desc.base_sizes_, tensor->sizes()) && IsSameSize(desc.base_strides_, tensor->strides());
 }
 

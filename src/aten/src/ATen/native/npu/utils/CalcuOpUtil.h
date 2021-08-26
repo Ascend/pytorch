@@ -193,7 +193,7 @@ class CalcuOpUtil {
   static aclDataType convert_to_acl_data_type(const ScalarType data_type);
   static aclDataType convert_to_acl_data_type(
       const ScalarType data_type,
-      const string realDataType);
+      const string& realDataType);
   static Scalar ConvertTensorToScalar(const Tensor& tensor);
   static Tensor CopyScalarToDevice(
       const Scalar& cpu_scalar,

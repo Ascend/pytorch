@@ -68,15 +68,15 @@ class OpCommandBase {
 
   Derived& Input(
     const Tensor& input,
-    string descName = "",
-    string realData = "") {
+    const string& descName = "",
+    const string& realData = "") {
     return AddTensorInput(Contiguous(input), ScalarType::Undefined, descName, realData);
   }
 
   Derived& Input(
     const Tensor& cpuTensor,
     SmallVector<int64_t, N> dimList,
-    string descName = "") {
+    const string& descName = "") {
     Tensor npuTensor = CopyHostToDevice(cpuTensor);
     aclCmd->AddConst(dimList);
     return AddTensorInput(npuTensor, ScalarType::Undefined, descName, "", cpuTensor);
@@ -115,7 +115,7 @@ class OpCommandBase {
   }
 
   // TODO(ascend): 这个类型的参数应该是一个bug
-  Derived& Output(Tensor& output, string realType = "") {
+  Derived& Output(Tensor& output, const string& realType = "") {
     return AddOutput(output, realType);
   }
 
@@ -142,7 +142,7 @@ class OpCommandBase {
  protected:
   Derived& AddTensorInput(Tensor& tensor,
       ScalarType forceScaleType = ScalarType::Undefined,
-      string descName = "", string realData = "",
+      const string& descName = "", const string& realData = "",
       c10::optional<Tensor> cpu_tensor = c10::nullopt) {
     std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> res;
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
@@ -188,7 +188,7 @@ class OpCommandBase {
         std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
     return static_cast<Derived&>(*this);
   }
-  Derived& AddOutput(Tensor& output, string realType = "") {
+  Derived& AddOutput(Tensor& output, const string& realType = "") {
     if (resultTypeDefined == false && commonType.has_value() 
               && commonType.value() != output.scalar_type()) {
       output = output.npu_dtype_cast(commonType.value());

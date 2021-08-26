@@ -28,7 +28,7 @@ OpCmdHelper::CovertTensorToAclInput(
     const Tensor& tensor,
     const c10::optional<Tensor>& cpu_tensor,
     const string& descName,
-    string forceDataType) {
+    const string& forceDataType) {
   ScalarType scalarDataType = tensor.scalar_type();
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(scalarDataType, forceDataType);
@@ -72,7 +72,7 @@ OpCmdHelper::CovertTensorWithZeroDimToAclInput(const Tensor& tensor, ScalarType 
 }
 
 std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, string descName) {
+OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, const string& descName) {
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(tensor.scalar_type());
   AclTensorDescMaker desc;
@@ -117,7 +117,7 @@ OpCmdHelper::CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type) {
 }
 
 std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, string forceDataType) {
+OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
       tensorPtr->scalar_type(), forceDataType);
   const auto& npuDesc = tensorPtr->storage().get_npu_desc();

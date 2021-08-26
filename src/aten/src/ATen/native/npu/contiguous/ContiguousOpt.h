@@ -36,10 +36,10 @@ class TransContiguous {
   static bool ContiguousOptimizeWithAnyFormat(
       Tensor& self,
       const Tensor& src,
-      std::vector<string> optimizations = optimizations_any_format);
+      const std::vector<string>& optimizations = optimizations_any_format);
   static c10::optional<Tensor> ContiguousOptimizeWithAnyFormat(
       const Tensor& src,
-      std::vector<string> optimizations = optimizations_any_format);
+      const std::vector<string>& optimizations = optimizations_any_format);
   static bool ContiguousOptimizeWithBaseFormat(
       Tensor& self,
       const Tensor& src,

@@ -57,7 +57,7 @@ Tensor& dtype_cast_npu_(Tensor& self, const Tensor& src) {
   }
 
   if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    Tensor contiguousSelf = OpPreparation::ApplyTensor(self.sizes(), self.options().dtype(self.dtype()), self);
     Tensor result = cast_nocheck(contiguousSelf, src);
     NpuUtils::format_fresh_view(self, result);
   } else {
