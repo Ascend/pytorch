@@ -17,7 +17,6 @@
     -   [Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failed)
     -   [pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed)
     -   ["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)
-    -   [如何查看测试的运行日志](#en-us_topic_0000001117914770)
     -   [What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat)
     -   [Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called)
     -   [How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation)
@@ -681,8 +680,6 @@ This section describes how to test the functions of a PyTorch operator.
 -   **[pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed)**  
 
 -   **["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)**  
-
--   **[如何查看测试的运行日志](#en-us_topic_0000001117914770)**  
 
 -   **[What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat)**  
 
