@@ -1,38 +1,37 @@
 # PyTorch Operator Development Guide
--   [Introduction](#introduction.md)
--   [Operator Development Process](#operator-development-process.md)
--   [Operator Development Preparations](#operator-development-preparations.md)
-    -   [Setting Up the Environment](#setting-up-the-environment.md)
-    -   [Looking Up Operators](#looking-up-operators.md)
--   [Operator Adaptation](#operator-adaptation.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-code.md)
-    -   [Registering Operator Development](#registering-operator-development.md)
-    -   [Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-plugin.md)
-    -   [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework.md)
--   [Operator Function Verification](#operator-function-verification.md)
-    -   [Overview](#overview.md)
-    -   [Implementation](#implementation.md)
--   [FAQs](#faqs.md)
-    -   [Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failed.md)
-    -   [pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed.md)
-    -   ["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)
-    -   [如何查看测试的运行日志](#en-us_topic_0000001117914770.md)
-    -   [What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat.md)
-    -   [Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called.md)
-    -   [How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation.md)
-    -   [PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed.md)
-    -   [PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed.md)
--   [Appendixes](#appendixes.md)
-    -   [Installing CMake](#installing-cmake.md)
-    -   [Exporting a Custom Operator](#exporting-a-custom-operator.md)
-<h2 id="introduction.md">Introduction</h2>
+-   [Introduction](#introduction)
+-   [Operator Development Process](#operator-development-process)
+-   [Operator Development Preparations](#operator-development-preparations)
+    -   [Setting Up the Environment](#setting-up-the-environment)
+    -   [Looking Up Operators](#looking-up-operators)
+-   [Operator Adaptation](#operator-adaptation)
+    -   [Prerequisites](#prerequisites)
+    -   [Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-code)
+    -   [Registering Operator Development](#registering-operator-development)
+    -   [Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-plugin)
+    -   [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework)
+-   [Operator Function Verification](#operator-function-verification)
+    -   [Overview](#overview)
+    -   [Implementation](#implementation)
+-   [FAQs](#faqs)
+    -   [Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failed)
+    -   [pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed)
+    -   ["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)
+    -   [What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat)
+    -   [Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called)
+    -   [How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation)
+    -   [PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed)
+    -   [PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed)
+-   [Appendixes](#appendixes)
+    -   [Installing CMake](#installing-cmake)
+    -   [Exporting a Custom Operator](#exporting-a-custom-operator)
+<h2 id="introduction">Introduction</h2>
 
 ## Overview<a name="en-us_topic_0000001125558589_section7405182695312"></a>
 
 To enable the PyTorch deep learning framework to run on Ascend AI Processors, you need to use Tensor Boost Engine \(TBE\) to customize the framework operators.
 
-<h2 id="operator-development-process.md">Operator Development Process</h2>
+<h2 id="operator-development-process">Operator Development Process</h2>
 
 PyTorch operator development includes TBE operator development and operator adaptation to the PyTorch framework.
 
@@ -67,7 +66,7 @@ PyTorch operator development includes TBE operator development and operator adap
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="en-us_topic_0000001105032530_p1381018121891"><a name="en-us_topic_0000001105032530_p1381018121891"></a><a name="en-us_topic_0000001105032530_p1381018121891"></a>Set up the development and operating environments required for operator development, execution, and verification.</p>
 </td>
-<td class="cellrowborder" rowspan="2" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_p1498205181013"><a name="en-us_topic_0000001105032530_p1498205181013"></a><a name="en-us_topic_0000001105032530_p1498205181013"></a><a href="#operator-development-preparations.md">Operator Development Preparations</a></p>
+<td class="cellrowborder" rowspan="2" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_p1498205181013"><a name="en-us_topic_0000001105032530_p1498205181013"></a><a name="en-us_topic_0000001105032530_p1498205181013"></a><a href="#operator-development-preparations">Operator Development Preparations</a></p>
 </td>
 </tr>
 <tr id="en-us_topic_0000001105032530_row194671091290"><td class="cellrowborder" valign="top" headers="mcps1.2.5.1.1 "><p id="en-us_topic_0000001105032530_p3467169594"><a name="en-us_topic_0000001105032530_p3467169594"></a><a name="en-us_topic_0000001105032530_p3467169594"></a>2</p>
@@ -84,7 +83,7 @@ PyTorch operator development includes TBE operator development and operator adap
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="en-us_topic_0000001105032530_en-us_topic_0228422310_p381282212"><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p381282212"></a><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p381282212"></a>Obtain the PyTorch source code from the Ascend Community.</p>
 </td>
-<td class="cellrowborder" rowspan="4" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_p10679152717175"><a name="en-us_topic_0000001105032530_p10679152717175"></a><a name="en-us_topic_0000001105032530_p10679152717175"></a><a href="#operator-development-preparations.md">Operator Adaptation</a></p>
+<td class="cellrowborder" rowspan="4" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_p10679152717175"><a name="en-us_topic_0000001105032530_p10679152717175"></a><a name="en-us_topic_0000001105032530_p10679152717175"></a><a href="#operator-development-preparations">Operator Adaptation</a></p>
 </td>
 </tr>
 <tr id="en-us_topic_0000001105032530_row1184984391512"><td class="cellrowborder" valign="top" headers="mcps1.2.5.1.1 "><p id="en-us_topic_0000001105032530_p1054075616153"><a name="en-us_topic_0000001105032530_p1054075616153"></a><a name="en-us_topic_0000001105032530_p1054075616153"></a>4</p>
@@ -114,25 +113,25 @@ PyTorch operator development includes TBE operator development and operator adap
 </td>
 <td class="cellrowborder" valign="top" width="55.55123090396029%" headers="mcps1.2.5.1.3 "><p id="en-us_topic_0000001105032530_en-us_topic_0228422310_p4952132615216"><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p4952132615216"></a><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p4952132615216"></a>Verify the operator functions in the real-world hardware environment.</p>
 </td>
-<td class="cellrowborder" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"></a><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"></a><a href="#operator-function-verification.md">Operator Function Verification</a></p>
+<td class="cellrowborder" valign="top" width="19.772307093509777%" headers="mcps1.2.5.1.4 "><p id="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"></a><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p20908934557"></a><a href="#operator-function-verification">Operator Function Verification</a></p>
 </td>
 </tr>
 </tbody>
 </table>
 
-<h2 id="operator-development-preparations.md">Operator Development Preparations</h2>
+<h2 id="operator-development-preparations">Operator Development Preparations</h2>
 
--   **[Setting Up the Environment](#setting-up-the-environment.md)**  
+-   **[Setting Up the Environment](#setting-up-the-environment)**  
 
--   **[Looking Up Operators](#looking-up-operators.md)**  
+-   **[Looking Up Operators](#looking-up-operators)**  
 
 
-<h2 id="setting-up-the-environment.md">Setting Up the Environment</h2>
+<h2 id="setting-up-the-environment">Setting Up the Environment</h2>
 
 ## Prerequisites<a name="en-us_topic_0000001125736787_section12464163765320"></a>
 
 -   The development or operating environment of CANN has been installed. For details, see the  _CANN Software Installation Guide_.
--   CMake 3.12.0 or later has been installed. For details, see  [Installing CMake](#installing-cmake.md).
+-   CMake 3.12.0 or later has been installed. For details, see  [Installing CMake](#installing-cmake).
 -   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see "Installing GCC 7.3.0" in the  _CANN Software Installation Guide_.
 -   The Git tool has been installed. To install Git for Ubuntu and CentOS, run the following commands:
     -   Ubuntu
@@ -160,9 +159,9 @@ pip3.7 install Pillow==5.3.0
 ```
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->If an error is reported in the preceding process, rectify the fault by referring to  [FAQs](#faqs.md).
+>If an error is reported in the preceding process, rectify the fault by referring to  [FAQs](#faqs).
 
-<h2 id="looking-up-operators.md">Looking Up Operators</h2>
+<h2 id="looking-up-operators">Looking Up Operators</h2>
 
 During operator development, you can query the list of operators supported by Ascend AI Processors and the list of operators adapted to PyTorch. Develop or adapt operators to PyTorch based on the query result.
 
@@ -178,25 +177,25 @@ The following describes how to query the operators supported by Ascend AI Proces
 
 -   For the list of operators adapted to PyTorch, see the  _PyTorch Adapted Operator List_.
 
-<h2 id="operator-adaptation.md">Operator Adaptation</h2>
+<h2 id="operator-adaptation">Operator Adaptation</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisites)**  
 
--   **[Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-code.md)**  
+-   **[Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-code)**  
 
--   **[Registering Operator Development](#registering-operator-development.md)**  
+-   **[Registering Operator Development](#registering-operator-development)**  
 
--   **[Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-plugin.md)**  
+-   **[Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-plugin)**  
 
--   **[Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework.md)**  
+-   **[Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h2 id="prerequisites">Prerequisites</h2>
 
--   The development and operating environments have been set up, and related dependencies have been installed. For details, see  [Setting Up the Environment](#setting-up-the-environment.md).
+-   The development and operating environments have been set up, and related dependencies have been installed. For details, see  [Setting Up the Environment](#setting-up-the-environment).
 -   TBE operators have been developed and deployed. For details, see the  _CANN TBE Custom Operator Development Guide_.
 
-<h2 id="obtaining-the-pytorch-source-code.md">Obtaining the PyTorch Source Code</h2>
+<h2 id="obtaining-the-pytorch-source-code">Obtaining the PyTorch Source Code</h2>
 
 Visit  [https://gitee.com/ascend/pytorch-develop](https://gitee.com/ascend/pytorch-develop)  to obtain the PyTorch source code that adapts to the Ascend AI Processor. Run the following  **git**  command to download the source code:
 
@@ -209,7 +208,7 @@ After the download is successful, the PyTorch file directory is generated.
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >If you do not have the permission to obtain the code, contact Huawei technical support to join the  **Ascend**  organization.
 
-<h2 id="registering-operator-development.md">Registering Operator Development</h2>
+<h2 id="registering-operator-development">Registering Operator Development</h2>
 
 ## Overview<a name="en-us_topic_0000001125315887_section693616257599"></a>
 
@@ -345,7 +344,7 @@ The following uses the torch.add\(\) operator as an example to describe how to r
 
 
 
-<h2 id="developing-an-operator-adaptation-plugin.md">Developing an Operator Adaptation Plugin</h2>
+<h2 id="developing-an-operator-adaptation-plugin">Developing an Operator Adaptation Plugin</h2>
 
 ## Overview<a name="en-us_topic_0000001125315877_section16410139174517"></a>
 
@@ -530,7 +529,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >For details about the implementation code of  **AddKernelNpu.cpp**, see the  **pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp**  document.
 
-<h2 id="compiling-and-installing-the-pytorch-framework.md">Compiling and Installing the PyTorch Framework</h2>
+<h2 id="compiling-and-installing-the-pytorch-framework">Compiling and Installing the PyTorch Framework</h2>
 
 ## Compiling the PyTorch Framework<a name="en-us_topic_0000001125736777_section470105143317"></a>
 
@@ -550,7 +549,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
 
 ## Installing the PyTorch Framework<a name="en-us_topic_0000001125736777_section119821419153412"></a>
 
-1.  Upload the  **torch-**_\*_**.whl**  package generated in  [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework.md)  to any path on the server.
+1.  Upload the  **torch-**_\*_**.whl**  package generated in  [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-framework)  to any path on the server.
 2.  Go to the directory where  **torch-**_\*_**.whl**  is located and run the  **pip**  command to install PyTorch.
 
     If the current user is the  **root**  user, run the following command:
@@ -570,14 +569,14 @@ The following uses the torch.add\(\) operator as an example to describe how to a
 >-   After the code has been modified, you need to re-compile and re-install PyTorch.
 >-   During the installation, the system may display a message indicating that the TorchVision 0.6.0 version does not match PyTorch. This problem has no impact and can be ignored.
 
-<h2 id="operator-function-verification.md">Operator Function Verification</h2>
+<h2 id="operator-function-verification">Operator Function Verification</h2>
 
--   **[Overview](#overview.md)**  
+-   **[Overview](#overview)**  
 
--   **[Implementation](#implementation.md)**  
+-   **[Implementation](#implementation)**  
 
 
-<h2 id="overview.md">Overview</h2>
+<h2 id="overview">Overview</h2>
 
 ## Introduction<a name="en-us_topic_0000001117556616_section29881459155718"></a>
 
@@ -591,7 +590,7 @@ Use the PyTorch frontend to construct the custom operator function and run the f
 
 The test cases and test tools are provided in the  **pytorch/test/test\_npu/test\_network\_ops**  directory at  **https://gitee.com/ascend/pytorch-develop**.
 
-<h2 id="implementation.md">Implementation</h2>
+<h2 id="implementation">Implementation</h2>
 
 ## Introduction<a name="en-us_topic_0000001164276377_section29881459155718"></a>
 
@@ -674,28 +673,26 @@ This section describes how to test the functions of a PyTorch operator.
     ```
 
 
-<h2 id="faqs.md">FAQs</h2>
+<h2 id="faqs">FAQs</h2>
 
--   **[Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failed.md)**  
+-   **[Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failed)**  
 
--   **[pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed.md)**  
+-   **[pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failed)**  
 
--   **["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)**  
+-   **["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)**  
 
--   **[如何查看测试的运行日志](#en-us_topic_0000001117914770.md)**  
+-   **[What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat)**  
 
--   **[What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?](#what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat.md)**  
+-   **[Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called)**  
 
--   **[Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called.md)**  
+-   **[How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation)**  
 
--   **[How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation.md)**  
+-   **[PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed)**  
 
--   **[PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed.md)**  
-
--   **[PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed.md)**  
+-   **[PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed)**  
 
 
-<h2 id="pillow-5-3-0-installation-failed.md">Pillow==5.3.0 Installation Failed</h2>
+<h2 id="pillow-5-3-0-installation-failed">Pillow==5.3.0 Installation Failed</h2>
 
 ## Symptom<a name="en-us_topic_0000001125315879_en-us_topic_0175549220_section197270431505"></a>
 
@@ -713,7 +710,7 @@ Run the following command to install the required dependencies:
 apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel
 ```
 
-<h2 id="pip3-7-install-torchvision-installation-failed.md">pip3.7 install torchvision Installation Failed</h2>
+<h2 id="pip3-7-install-torchvision-installation-failed">pip3.7 install torchvision Installation Failed</h2>
 
 ## Symptom<a name="en-us_topic_0000001125641109_en-us_topic_0175549220_section197270431505"></a>
 
@@ -731,7 +728,7 @@ Run the following command:
 pip3.7 install torchvision --no-deps
 ```
 
-<h2 id="torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md">"torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed</h2>
+<h2 id="torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed">"torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed</h2>
 
 ## Symptom<a name="en-us_topic_0000001125315883_en-us_topic_0175549220_section197270431505"></a>
 
@@ -749,11 +746,11 @@ When the PyTorch is installed, the version check is automatically triggered. The
 
 This problem has no impact on the actual result, and no action is required.
 
-<h2 id="what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat.md">What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?</h2>
+<h2 id="what-is-the-meaning-of-the-npu-error-code-output-during-the-test-is-there-any-corresponding-explanat">What Is the Meaning Of The NPU Error Code Output During the Test? Is There Any Corresponding Explanation?</h2>
 
 For details, see  [aclError](https://support.huaweicloud.com/intl/en-us/adevg-A800_3000_3010/atlasdevelopment_01_0256.html).
 
-<h2 id="why-cannot-the-custom-tbe-operator-be-called.md">Why Cannot the Custom TBE Operator Be Called?</h2>
+<h2 id="why-cannot-the-custom-tbe-operator-be-called">Why Cannot the Custom TBE Operator Be Called?</h2>
 
 ## Symptom<a name="en-us_topic_0000001125736795_en-us_topic_0175549220_section197270431505"></a>
 
@@ -767,7 +764,7 @@ The custom TBE operator has been developed and adapted to PyTorch. However, the 
 
 ## Solutions<a name="en-us_topic_0000001125736795_section108142031907"></a>
 
-1.  Set the operating environment by referring to  [Verifying Operator Functions](#operator-function-verification.md). Pay special attention to the following settings:
+1.  Set the operating environment by referring to  [Verifying Operator Functions](#operator-function-verification). Pay special attention to the following settings:
 
     ```
     . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
@@ -807,7 +804,7 @@ The custom TBE operator has been developed and adapted to PyTorch. However, the 
 
 
 
-<h2 id="how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation.md">How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?</h2>
+<h2 id="how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation">How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?</h2>
 
 Both the custom and built-in operators are stored in the installation directory as .py source code after installation. Therefore, you can edit the source code and add logs at the API entry to print the input parameters, and determine whether the input parameters are correct.
 
@@ -857,7 +854,7 @@ The following uses the  **zn\_2\_nchw**  operator in the built-in operator packa
     ![](figures/en-us_image_0000001126846512.png)
 
 
-<h2 id="pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed.md">PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed</h2>
+<h2 id="pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed">PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed</h2>
 
 ## Symptom<a name="en-us_topic_0000001125315885_en-us_topic_0175549220_section197270431505"></a>
 
@@ -877,7 +874,7 @@ In the implementation, the type of the last parameter is  **int**, which does no
 
 Modify the adaptation function implemented in  _xxxx_**KernelNpu.cpp**. In the preceding example, change the type of the last parameter in the  **binary\_cross\_entropy\_npu**  function to  **int64\_t**  \(use  **int64\_t**  instead of  **long**  in the .cpp file\).
 
-<h2 id="pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed.md">PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed</h2>
+<h2 id="pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed">PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed</h2>
 
 ## Symptom<a name="en-us_topic_0000001125641113_en-us_topic_0175549220_section197270431505"></a>
 
@@ -901,14 +898,14 @@ In the implementation, the type of the second input parameter of  **NPUAttrDesc*
 
 2. Change the input parameter type of  **binary\_cross\_entropy\_attr\(\)**  to  **int64\_t**.
 
-<h2 id="appendixes.md">Appendixes</h2>
+<h2 id="appendixes">Appendixes</h2>
 
--   **[Installing CMake](#installing-cmake.md)**  
+-   **[Installing CMake](#installing-cmake)**  
 
--   **[Exporting a Custom Operator](#exporting-a-custom-operator.md)**  
+-   **[Exporting a Custom Operator](#exporting-a-custom-operator)**  
 
 
-<h2 id="installing-cmake.md">Installing CMake</h2>
+<h2 id="installing-cmake">Installing CMake</h2>
 
 The following describes how to upgrade CMake to 3.12.1.
 
@@ -947,7 +944,7 @@ The following describes how to upgrade CMake to 3.12.1.
     If the message "cmake version 3.12.1" is displayed, the installation is successful.
 
 
-<h2 id="exporting-a-custom-operator.md">Exporting a Custom Operator</h2>
+<h2 id="exporting-a-custom-operator">Exporting a Custom Operator</h2>
 
 ## Overview<a name="en-us_topic_0000001136292799_section13121145561615"></a>
 

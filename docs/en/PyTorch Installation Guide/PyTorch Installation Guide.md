@@ -1,42 +1,42 @@
 # FrameworkPTAdapter 2.0.2 PyTorch Installation Guide
--   [Overview](#overview.md)
--   [Manual Build and Installation](#manual-build-and-installation.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Installing the PyTorch Framework](#installing-the-pytorch-framework.md)
-    -   [Configuring Environment Variables](#configuring-environment-variables.md)
-    -   [Installing the Mixed Precision Module](#installing-the-mixed-precision-module.md)
--   [Using the Ascend Hub Image](#using-the-ascend-hub-image.md)
-    -   [Obtaining the PyTorch Image from the Ascend Hub](#obtaining-the-pytorch-image-from-the-ascend-hub.md)
-    -   [Configuring Environment Variables](#configuring-environment-variables-0.md)
--   [References](#references.md)
-    -   [Installing CMake](#installing-cmake.md)
-    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)
-    -   [What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)
-<h2 id="overview.md">Overview</h2>
+-   [Overview](#overview)
+-   [Manual Build and Installation](#manual-build-and-installation)
+    -   [Prerequisites](#prerequisites)
+    -   [Installing the PyTorch Framework](#installing-the-pytorch-framework)
+    -   [Configuring Environment Variables](#configuring-environment-variables)
+    -   [Installing the Mixed Precision Module](#installing-the-mixed-precision-module)
+-   [Using the Ascend Hub Image](#using-the-ascend-hub-image)
+    -   [Obtaining the PyTorch Image from the Ascend Hub](#obtaining-the-pytorch-image-from-the-ascend-hub)
+    -   [Configuring Environment Variables](#configuring-environment-variables-0)
+-   [References](#references)
+    -   [Installing CMake](#installing-cmake)
+    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0)
+    -   [What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)
+<h2 id="overview">Overview</h2>
 
 When setting up the environment for PyTorch model porting and training, you can manually build and install the modules adapted to the PyTorch framework on a training server, or use the base image provided by the Ascend Hub image center \(the PyTorch module and mixed precision module have been installed in the image\).
 
 **Figure  1**  Environment setup process<a name="en-us_topic_0000001119176876_fig1938918396117"></a>  
 ![](figures/environment-setup-process.png "environment-setup-process")
 
-<h2 id="manual-build-and-installation.md">Manual Build and Installation</h2>
+<h2 id="manual-build-and-installation">Manual Build and Installation</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisites)**  
 
--   **[Installing the PyTorch Framework](#installing-the-pytorch-framework.md)**  
+-   **[Installing the PyTorch Framework](#installing-the-pytorch-framework)**  
 
--   **[Configuring Environment Variables](#configuring-environment-variables.md)**  
+-   **[Configuring Environment Variables](#configuring-environment-variables)**  
 
--   **[Installing the Mixed Precision Module](#installing-the-mixed-precision-module.md)**  
+-   **[Installing the Mixed Precision Module](#installing-the-mixed-precision-module)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h2 id="prerequisites">Prerequisites</h2>
 
 ## Prerequisites<a name="en-us_topic_0000001105856382_en-us_topic_0275872734_section108914373254"></a>
 
 -   The development or operating environment of CANN has been installed. For details, see the  _CANN Software Installation Guide_.
--   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmake.md).
--   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md).
+-   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmake).
+-   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0).
 -   The Patch and Git tools have been installed in the environment. To install the tools for Ubuntu and CentOS, run the following commands:
     -   Ubuntu
 
@@ -54,7 +54,7 @@ When setting up the environment for PyTorch model porting and training, you can 
 
 
 
-<h2 id="installing-the-pytorch-framework.md">Installing the PyTorch Framework</h2>
+<h2 id="installing-the-pytorch-framework">Installing the PyTorch Framework</h2>
 
 ## Installation Process<a name="en-us_topic_0000001152776301_section1611810384557"></a>
 
@@ -155,7 +155,7 @@ When setting up the environment for PyTorch model porting and training, you can 
     >**pip3 list | grep torch**
 
 
-<h2 id="configuring-environment-variables.md">Configuring Environment Variables</h2>
+<h2 id="configuring-environment-variables">Configuring Environment Variables</h2>
 
 After the software packages are installed, configure environment variables to use Ascend PyTorch. You are advised to build a startup script, for example, the  **set\_env.sh**  script, and run  **source set\_env.sh**  to configure the environment variables. The content of the  **set\_env.sh**  script is as follows \(the  **root**  user is used as the installation user and the default installation path is used\):
 
@@ -224,7 +224,7 @@ export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change
 <tbody><tr id="en-us_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p688241953218"><a name="en-us_topic_0000001152616261_p688241953218"></a><a name="en-us_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p1888291915322"><a name="en-us_topic_0000001152616261_p1888291915322"></a><a name="en-us_topic_0000001152616261_p1888291915322"></a>Dynamic library search path. Set this variable based on the preceding example.</p>
-<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>If you need to upgrade GCC in OSs such as CentOS, Debian, and BC-Linux, add <strong id="b6163826603"><a name="b6163826603"></a><a name="b6163826603"></a><em id="i161631926505"><a name="i161631926505"></a><a name="i161631926505"></a>${install_path}</em>/lib64</strong> to the <span class="parmname" id="parmname161637265015"><a name="parmname161637265015"></a><a name="parmname161637265015"></a><b>LD_LIBRARY_PATH</b></span> variable of the dynamic library search path. Replace <em id="i01649261704"><a name="i01649261704"></a><a name="i01649261704"></a><strong id="b1216317261109"><a name="b1216317261109"></a><a name="b1216317261109"></a>{install_path}</strong></em> with the GCC installation path. For details, see <a href="#how-do-i-install-gcc-7-3-0.md#en-us_topic_0000001135347812_en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li9745165315131">5</a>.</p>
+<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>If you need to upgrade GCC in OSs such as CentOS, Debian, and BC-Linux, add <strong id="b6163826603"><a name="b6163826603"></a><a name="b6163826603"></a><em id="i161631926505"><a name="i161631926505"></a><a name="i161631926505"></a>${install_path}</em>/lib64</strong> to the <span class="parmname" id="parmname161637265015"><a name="parmname161637265015"></a><a name="parmname161637265015"></a><b>LD_LIBRARY_PATH</b></span> variable of the dynamic library search path. Replace <em id="i01649261704"><a name="i01649261704"></a><a name="i01649261704"></a><strong id="b1216317261109"><a name="b1216317261109"></a><a name="b1216317261109"></a>{install_path}</strong></em> with the GCC installation path. For details, see <a href="#how-do-i-install-gcc-7-3-0#en-us_topic_0000001135347812_en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li9745165315131">5</a>.</p>
 </td>
 </tr>
 <tr id="en-us_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p16195185523019"><a name="en-us_topic_0000001152616261_p16195185523019"></a><a name="en-us_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
@@ -279,12 +279,12 @@ export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change
 </tbody>
 </table>
 
-<h2 id="installing-the-mixed-precision-module.md">Installing the Mixed Precision Module</h2>
+<h2 id="installing-the-mixed-precision-module">Installing the Mixed Precision Module</h2>
 
 ## Prerequisites<a name="en-us_topic_0000001106176190_section3225481020"></a>
 
 1.  Ensure that the PyTorch framework adapted to Ascend AI Processors in the operating environment can be used properly.
-2.  Before building and installing Apex, you have configured the environment variables on which the build depends. See  [Configuring Environment Variables](#configuring-environment-variables.md).
+2.  Before building and installing Apex, you have configured the environment variables on which the build depends. See  [Configuring Environment Variables](#configuring-environment-variables).
 
 ## Installation Process<a name="en-us_topic_0000001106176190_section11880164819567"></a>
 
@@ -376,14 +376,14 @@ export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change
     >**pip3 list | grep apex**
 
 
-<h2 id="using-the-ascend-hub-image.md">Using the Ascend Hub Image</h2>
+<h2 id="using-the-ascend-hub-image">Using the Ascend Hub Image</h2>
 
--   **[Obtaining the PyTorch Image from the Ascend Hub](#obtaining-the-pytorch-image-from-the-ascend-hub.md)**  
+-   **[Obtaining the PyTorch Image from the Ascend Hub](#obtaining-the-pytorch-image-from-the-ascend-hub)**  
 
--   **[Configuring Environment Variables](#configuring-environment-variables-0.md)**  
+-   **[Configuring Environment Variables](#configuring-environment-variables-0)**  
 
 
-<h2 id="obtaining-the-pytorch-image-from-the-ascend-hub.md">Obtaining the PyTorch Image from the Ascend Hub</h2>
+<h2 id="obtaining-the-pytorch-image-from-the-ascend-hub">Obtaining the PyTorch Image from the Ascend Hub</h2>
 
 ## Prerequisites<a name="en-us_topic_0000001118701830_en-us_topic_0275872734_section108914373254"></a>
 
@@ -417,20 +417,20 @@ Log in to the  [Ascend Hub](https://ascendhub.huawei.com/#/home)  to obtain the 
 </tbody>
 </table>
 
-<h2 id="configuring-environment-variables-0.md">Configuring Environment Variables</h2>
+<h2 id="configuring-environment-variables-0">Configuring Environment Variables</h2>
 
-After starting and entering the image container, configure the environment variables on which model training depends by referring to  [Configuring Environment Variables](#configuring-environment-variables.md).
+After starting and entering the image container, configure the environment variables on which model training depends by referring to  [Configuring Environment Variables](#configuring-environment-variables).
 
-<h2 id="references.md">References</h2>
+<h2 id="references">References</h2>
 
--   **[Installing CMake](#installing-cmake.md)**  
+-   **[Installing CMake](#installing-cmake)**  
 
--   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)**  
+-   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0)**  
 
--   **[What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)**  
+-   **[What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed)**  
 
 
-<h2 id="installing-cmake.md">Installing CMake</h2>
+<h2 id="installing-cmake">Installing CMake</h2>
 
 Procedure for upgrading CMake to 3.12.1
 
@@ -469,7 +469,7 @@ Procedure for upgrading CMake to 3.12.1
     If the message "cmake version 3.12.1" is displayed, the installation is successful.
 
 
-<h2 id="how-do-i-install-gcc-7-3-0.md">How Do I Install GCC 7.3.0?</h2>
+<h2 id="how-do-i-install-gcc-7-3-0">How Do I Install GCC 7.3.0?</h2>
 
 Perform the following steps as the  **root**  user.
 
@@ -550,7 +550,7 @@ Perform the following steps as the  **root**  user.
     >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 
-<h2 id="what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md">What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h2>
+<h2 id="what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed">What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h2>
 
 ## Symptom<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section197270431505"></a>
 

@@ -1,17 +1,17 @@
 # PyTorch API Support List
--   [Tensors](#tensors.md)
--   [Generators](#generators.md)
--   [Random sampling](#random-sampling.md)
--   [Serialization](#serialization.md)
--   [Math operations](#math-operations.md)
--   [Utilities](#utilities.md)
--   [Other](#other.md)
--   [torch.Tensor](#torch-tensor.md)
--   [Layers \(torch.nn\)](#layers-&#40;torch-nn&#41;.md)
--   [Functions\(torch.nn.functional\)](#functions&#40;torch-nn-functional&#41;.md)
--   [torch.distributed](#torch-distributed.md)
--   [NPU and CUDA Function Alignment](#npu-and-cuda-function-alignment.md)
-<h2 id="tensors.md">Tensors</h2>
+-   [Tensors](#tensors)
+-   [Generators](#generators)
+-   [Random sampling](#random-sampling)
+-   [Serialization](#serialization)
+-   [Math operations](#math-operations)
+-   [Utilities](#utilities)
+-   [Other](#other)
+-   [torch.Tensor](#torch-tensor)
+-   [Layers \(torch.nn\)](#layers-torch-nn)
+-   [Functions\(torch.nn.functional\)](#functionstorch-nn-functional)
+-   [torch.distributed](#torch-distributed)
+-   [NPU and CUDA Function Alignment](#npu-and-cuda-function-alignment)
+<h2 id="tensors">Tensors</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p960817567348"><a name="p960817567348"></a><a name="p960817567348"></a>No.</p>
@@ -361,7 +361,7 @@
 </tbody>
 </table>
 
-<h2 id="generators.md">Generators</h2>
+<h2 id="generators">Generators</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p16697450143718"><a name="p16697450143718"></a><a name="p16697450143718"></a>No.</p>
@@ -424,7 +424,7 @@
 </tbody>
 </table>
 
-<h2 id="random-sampling.md">Random sampling</h2>
+<h2 id="random-sampling">Random sampling</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p382722114388"><a name="p382722114388"></a><a name="p382722114388"></a>No.</p>
@@ -641,7 +641,7 @@
 </tbody>
 </table>
 
-<h2 id="serialization.md">Serialization</h2>
+<h2 id="serialization">Serialization</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p12952172303918"><a name="p12952172303918"></a><a name="p12952172303918"></a>No.</p>
@@ -669,7 +669,7 @@
 </tbody>
 </table>
 
-<h2 id="math-operations.md">Math operations</h2>
+<h2 id="math-operations">Math operations</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p7641165016399"><a name="p7641165016399"></a><a name="p7641165016399"></a>No.</p>
@@ -1873,7 +1873,7 @@
 </tbody>
 </table>
 
-<h2 id="utilities.md">Utilities</h2>
+<h2 id="utilities">Utilities</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p22242584402"><a name="p22242584402"></a><a name="p22242584402"></a>No.</p>
@@ -1915,7 +1915,7 @@
 </tbody>
 </table>
 
-<h2 id="other.md">Other</h2>
+<h2 id="other">Other</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p143036271411"><a name="p143036271411"></a><a name="p143036271411"></a>No.</p>
@@ -1978,7 +1978,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-tensor.md">torch.Tensor</h2>
+<h2 id="torch-tensor">torch.Tensor</h2>
 
 <a name="table1895120221777"></a>
 <table><thead align="left"><tr id="row1595142219714"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p182711720423"><a name="p182711720423"></a><a name="p182711720423"></a>No.</p>
@@ -4484,7 +4484,7 @@
 </tbody>
 </table>
 
-<h2 id="layers-(torch-nn).md">Layers \(torch.nn\)</h2>
+<h2 id="layers-torch-nn">Layers \(torch.nn\)</h2>
 
 <a name="table8705205810121"></a>
 <table><thead align="left"><tr id="row2070595881212"><th class="cellrowborder" valign="top" width="8%" id="mcps1.1.4.1.1"><p id="p8163151816433"><a name="p8163151816433"></a><a name="p8163151816433"></a>No.</p>
@@ -6710,7 +6710,7 @@
 </tbody>
 </table>
 
-<h2 id="functions(torch-nn-functional).md">Functions\(torch.nn.functional\)</h2>
+<h2 id="functionstorch-nn-functional">Functions\(torch.nn.functional\)</h2>
 
 <a name="table9911195161614"></a>
 <table><thead align="left"><tr id="row591155115160"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1339212174419"><a name="p1339212174419"></a><a name="p1339212174419"></a>No.</p>
@@ -7417,7 +7417,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-distributed.md">torch.distributed</h2>
+<h2 id="torch-distributed">torch.distributed</h2>
 
 <a name="table2583230111811"></a>
 <table><thead align="left"><tr id="row11583113018186"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1356195214418"><a name="p1356195214418"></a><a name="p1356195214418"></a>No.</p>
@@ -7641,7 +7641,7 @@
 </tbody>
 </table>
 
-<h2 id="npu-and-cuda-function-alignment.md">NPU and CUDA Function Alignment</h2>
+<h2 id="npu-and-cuda-function-alignment">NPU and CUDA Function Alignment</h2>
 
 <a name="table1125623115220"></a>
 <table><thead align="left"><tr id="row72566317225"><th class="cellrowborder" valign="top" width="7.5200000000000005%" id="mcps1.1.5.1.1"><p id="p15384153811454"><a name="p15384153811454"></a><a name="p15384153811454"></a>No.</p>
