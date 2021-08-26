@@ -445,7 +445,7 @@ if __name__ == '__main__':
 基于NPU芯片的架构特性，模型运算会涉及到混合精度，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
 -   对于中间变量的内存占用更少，节省内存的使用。
--   因内存使用会减少，所以数据传出的时间也会减少。
+-   因内存使用会减少，所以数据传出的时间也会相应减少。
 -   float16的计算单元可以提供更快的计算性能。
 
 但是，混合精度训练受限于float16表达的精度范围，单纯将float32转换成float16会影响训练收敛情况，为了保证部分计算使用float16来进行加速的同时能保证训练收敛，这里采用混合精度模块Apex来达到以上效果。混合精度模块Apex是一个集优化性能、精度收敛于一身的综合优化库。
@@ -465,12 +465,12 @@ if __name__ == '__main__':
 </thead>
 <tbody><tr id="zh-cn_topic_0278765773_row1571763813334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p4502732153412"><a name="zh-cn_topic_0278765773_p4502732153412"></a><a name="zh-cn_topic_0278765773_p4502732153412"></a>O1配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p640053920348"><a name="zh-cn_topic_0278765773_p640053920348"></a><a name="zh-cn_topic_0278765773_p640053920348"></a>Conv, Matmul等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p640053920348"><a name="zh-cn_topic_0278765773_p640053920348"></a><a name="zh-cn_topic_0278765773_p640053920348"></a>Conv, Matmul等使用float16计算，其他如Softmax、BN使用float32。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0278765773_row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p11503103210344"><a name="zh-cn_topic_0278765773_p11503103210344"></a><a name="zh-cn_topic_0278765773_p11503103210344"></a>O2配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p164001639143419"><a name="zh-cn_topic_0278765773_p164001639143419"></a><a name="zh-cn_topic_0278765773_p164001639143419"></a>BN使用<span>float32</span>，其他绝大部分使用<span>float16</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0278765773_p164001639143419"><a name="zh-cn_topic_0278765773_p164001639143419"></a><a name="zh-cn_topic_0278765773_p164001639143419"></a>BN使用float32，其他绝大部分使用float16。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0278765773_row14717193815334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0278765773_p1950318328349"><a name="zh-cn_topic_0278765773_p1950318328349"></a><a name="zh-cn_topic_0278765773_p1950318328349"></a>静态Loss Scale功能</p>
@@ -539,7 +539,6 @@ if __name__ == '__main__':
         ```
         apt-get install bzip2    
         ```
-
 
 4.  编译安装gcc。
     1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：

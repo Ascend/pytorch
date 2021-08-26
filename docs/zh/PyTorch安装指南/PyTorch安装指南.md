@@ -14,7 +14,7 @@
     -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
 <h2 id="简介.md">简介</h2>
 
-用户在准备相关环境进行PyTorch模型的移植及训练时，可以选择在训练服务器中手动编译安装PyTorch框架相关模块，或直接获取Ascend Hub镜像中心提供的基础镜像（镜像中已安装PyTorch模块和混合精度模块），进行模型的移植与训练。
+用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块，或直接获取Ascend Hub镜像中心提供的基础镜像（镜像中已安装PyTorch模块和混合精度模块），进行模型的开发、运行。
 
 **图 1**  环境准备流程图<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
 ![](figures/环境准备流程图.png "环境准备流程图")
@@ -118,7 +118,6 @@
         git submodule update --init --recursive
         ```
 
-
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
 
@@ -141,7 +140,6 @@
 
         生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
 
-
 5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch。
 
     进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
@@ -159,7 +157,7 @@
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
 
-安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径为例）。
+安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，，安装路径为默认路径，python版本为3.7.5为例，用户可根据软件包实际安装路径修改配置项。）。
 
 ```
 cpu_type=$(echo $HOSTTYPE)
@@ -341,7 +339,6 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
         cd ..
         ```
 
-
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
 
@@ -363,7 +360,6 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
         ```
 
         生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
-
 
 4.  <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
 
@@ -391,7 +387,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 
 ## 前提条件<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0275872734_section108914373254"></a>
 
--   已完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+-   已准备好相应硬件环境驱动和固件的安装，请参见各硬件产品[“驱动和固件安装升级指南”](https://support.huawei.com/enterprise/zh/category/ai-computing-platform-pid-1557196528909)。需要在硬件设备上安装与CANN版本配套的固件与驱动。
 -   宿主机上已安装Docker。
 
 ## 获取并使用镜像<a name="zh-cn_topic_0000001118701830_section108941734162613"></a>
@@ -497,7 +493,6 @@ CMake版本升级为3.12.1的方法
         apt-get install bzip2    
         ```
 
-
 4.  编译安装gcc。
     1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
 
@@ -561,7 +556,7 @@ CMake版本升级为3.12.1的方法
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
 
-![](figures/zh-cn_image_0000001180656411.png)
+![](figures/zh-cn_image_0000001190081735.png)
 
 ## 可能原因<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section169499490501"></a>
 
