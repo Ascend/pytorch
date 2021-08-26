@@ -18,7 +18,6 @@
     -   [pip3.7 install torchvision安装失败](#pip3-7-install-torchvision安装失败.md)
     -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
     -   [如何查看测试的运行日志](#如何查看测试的运行日志.md)
-    -   [测试运行输出的NPU错误码是什么意思，有无对应的含义解释？](#测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md)
     -   [为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)
     -   [如何确定“TBE算子”是否被“PyTorch适配”正确调用](#如何确定-TBE算子-是否被-PyTorch适配-正确调用.md)
     -   [PyTorch编译失败，提示“error: ld returned 1 exit status”](#PyTorch编译失败-提示-error-ld-returned-1-exit-status.md)
@@ -30,7 +29,7 @@
 
 ## 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
 
-为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。用户通过完成TBE自定义算子适配PyTorch框架，实现PyTorch框架中算子在昇腾AI处理器上运行。
+为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。
 
 <h2 id="算子开发流程.md">算子开发流程</h2>
 
@@ -234,7 +233,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
         - func：适配算子名称(输入参数信息) -> 返回类型
         ```
 
-
 3.  修改native\_functions.yaml文件，添加实现该算子相关函数的分发描述。
 
     yaml 文件编写规范：
@@ -252,7 +250,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
         npu_dispatch_only:
           NPU: NPU_Adapt_Fun_Name
         ```
-
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >NPU\_Adapt\_Fun\_Name的格式为 :
@@ -656,7 +653,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
-            ]        
+            ]
             self.add_result(shape_format)
     
     instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
@@ -685,8 +682,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 -   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
 
 -   **[如何查看测试的运行日志](#如何查看测试的运行日志.md)**  
-
--   **[测试运行输出的NPU错误码是什么意思，有无对应的含义解释？](#测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md)**  
 
 -   **[为什么我实现的“自定义TBE算子”无法调用到？](#为什么我实现的-自定义TBE算子-无法调用到.md)**  
 
@@ -739,7 +734,7 @@ pip3.7 install torchvision --no-deps
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
 
-![](figures/zh-cn_image_0000001172886189.png)
+![](figures/zh-cn_image_0000001144082048.png)
 
 但实际安装成功
 
@@ -772,10 +767,6 @@ pip3.7 install torchvision --no-deps
     ```
 
 
-<h2 id="测试运行输出的NPU错误码是什么意思-有无对应的含义解释.md">测试运行输出的NPU错误码是什么意思，有无对应的含义解释？</h2>
-
-参考“[错误码定义](https://support.huaweicloud.com/adevg-A300_3000_3010/atlasdevelopment_01_0256.html)”。
-
 <h2 id="为什么我实现的-自定义TBE算子-无法调用到.md">为什么我实现的“自定义TBE算子”无法调用到？</h2>
 
 ## 现象描述<a name="zh-cn_topic_0000001125736795_zh-cn_topic_0175549220_section197270431505"></a>
@@ -802,7 +793,7 @@ pip3.7 install torchvision --no-deps
 
         "pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp"
 
-        ![](figures/zh-cn_image_0000001126846510.png)
+        ![](figures/zh-cn_image_0000001144082088.png)
 
     2.  完成上两步的编译、安装，调用“python3.7 test\_add.py”进行测试。
 
@@ -848,7 +839,7 @@ pip3.7 install torchvision --no-deps
 
     可以看到相应的算子\*.py源码文件均为“只读”，即此时不可编辑。
 
-    ![](figures/zh-cn_image_0000001127006336.png)
+    ![](figures/zh-cn_image_0000001190081791.png)
 
 2.  修改算子\*.py源码文件属性，增加“可写”权限。
 
@@ -857,7 +848,7 @@ pip3.7 install torchvision --no-deps
     ll
     ```
 
-    ![](figures/zh-cn_image_0000001172886191.png)
+    ![](figures/zh-cn_image_0000001190081803.png)
 
 3.  打开算子\*.py源码文件，增加日志，保存退出。
 
@@ -865,7 +856,7 @@ pip3.7 install torchvision --no-deps
     vi zn_2_nchw.py
     ```
 
-    ![](figures/zh-cn_image_0000001173046109.png)
+    ![](figures/zh-cn_image_0000001190201951.png)
 
     上面例子只加了个标识，实际调测时，可以增加打印输入参数信息。
 
@@ -877,7 +868,7 @@ pip3.7 install torchvision --no-deps
     sudo chmod -w zn_2_nchw.py
     ```
 
-    ![](figures/zh-cn_image_0000001126846512.png)
+    ![](figures/zh-cn_image_0000001144082072.png)
 
 
 <h2 id="PyTorch编译失败-提示-error-ld-returned-1-exit-status.md">PyTorch编译失败，提示“error: ld returned 1 exit status”</h2>
@@ -886,13 +877,13 @@ pip3.7 install torchvision --no-deps
 
 PyTorch编译失败，提示“ error: ld returned 1 exit status”。
 
-![](figures/zh-cn_image_0000001127006338.png)
+![](figures/zh-cn_image_0000001190201973.png)
 
 ## 可能原因<a name="zh-cn_topic_0000001125315885_zh-cn_topic_0175549220_section169499490501"></a>
 
 通过日志分析，大概原因为XxxxKernelNpu.cpp中实现的适配函数，与PyTorch框架算子要求的分发实现接口参数不匹配。在上面的例子中，是“binary\_cross\_entropy\_npu”，打开对应的XxxxKernelNpu.cpp文件，找到相应的适配函数。
 
-![](figures/zh-cn_image_0000001172886193.png)
+![](figures/zh-cn_image_0000001144241896.png)
 
 可以看出实现中，最后一个参数是"int" ，与要求的“long”不匹配。
 
@@ -906,15 +897,15 @@ PyTorch编译失败，提示“ error: ld returned 1 exit status”。
 
 PyTorch编译失败，提示“error: call of overload ....”。
 
-![](figures/zh-cn_image_0000001173046111.png)
+![](figures/zh-cn_image_0000001144082056.png)
 
-![](figures/zh-cn_image_0000001126846514.png)
+![](figures/zh-cn_image_0000001190201935.png)
 
 ## 可能原因<a name="zh-cn_topic_0000001125641113_zh-cn_topic_0175549220_section169499490501"></a>
 
 通过日志分析，错误出在XxxxKernelNpu.cpp中30行位置，NPUAttrDesc的参数不合法。在上面的例子中，是“binary\_cross\_entropy\_attr”，打开对应的XxxxKernelNpu.cpp文件，找到相应的适配函数。
 
-![](figures/zh-cn_image_0000001127006340.png)
+![](figures/zh-cn_image_0000001144082064.png)
 
 可以看出实现中，NPUAttrDesc的入参，第二个参数是"int" ，与NPUAttrDesc定义不匹配。
 

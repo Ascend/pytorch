@@ -37,6 +37,8 @@
     -   [调测过程](#调测过程-4.md)
         -   [总体思路](#总体思路-5.md)
         -   [精度调优方法](#精度调优方法.md)
+            -   [单算子溢出检测](#单算子溢出检测.md)
+            -   [整网调测](#整网调测.md)
 -   [模型保存与转换](#模型保存与转换.md)
     -   [简介](#简介.md)
     -   [模型保存](#模型保存.md)
@@ -59,6 +61,7 @@
     -   [常用环境变量说明](#常用环境变量说明.md)
     -   [dump op方法](#dump-op方法.md)
     -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
+    -   [编译安装hdf5](#编译安装hdf5.md)
 -   [FAQ](#FAQ.md)
     -   [软件安装常见问题](#软件安装常见问题.md)
         -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败.md)
@@ -70,7 +73,7 @@
         -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initialize.md)
         -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-error.md)
         -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)
         -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭&#40;export-TASK_QUEUE_ENABLE-0&#41;后仍然遇到报错-HelpACLExecute.md)
         -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1&#40;failed&#41;.md)
     -   [模型调测常见问题](#模型调测常见问题.md)
@@ -152,7 +155,7 @@
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>算子开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph07771712101117"><a name="ph07771712101117"></a><a name="ph07771712101117"></a>《PyTorch算子开发指南》</span></span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a>《PyTorch算子开发指南》</span></span>。</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>环境准备</p>
@@ -172,7 +175,7 @@
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>错误分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph92061657112415"><a name="ph92061657112415"></a><a name="ph92061657112415"></a>《CANN 日志参考》</span>和<span id="ph4109111816191"><a name="ph4109111816191"></a><a name="ph4109111816191"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph7924185091616"><a name="ph7924185091616"></a><a name="ph7924185091616"></a>《CANN 日志参考》</span>和<span id="ph1572317171516"><a name="ph1572317171516"></a><a name="ph1572317171516"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>性能调优和分析</p>
@@ -187,12 +190,12 @@
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>模型保存与转换</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换.md">模型保存与转换</a>和<span id="ph1834334902411"><a name="ph1834334902411"></a><a name="ph1834334902411"></a><span id="ph13354922101910"><a name="ph13354922101910"></a><a name="ph13354922101910"></a>《CANN 开发辅助工具指南》</span></span>中“ATC工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换.md">模型保存与转换</a>和<span id="ph98735134233"><a name="ph98735134233"></a><a name="ph98735134233"></a>《CANN 开发辅助工具指南》</span>中“ATC工具使用指南”章节。</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>应用软件开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph10403111142311"><a name="ph10403111142311"></a><a name="ph10403111142311"></a><span id="ph16725185971512"><a name="ph16725185971512"></a><a name="ph16725185971512"></a>《CANN 应用软件开发指南(C&amp;C++, 推理)》</span></span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph1062525151815"><a name="ph1062525151815"></a><a name="ph1062525151815"></a>《CANN 应用软件开发指南(C&amp;C++, 推理)》</span>。</p>
 </td>
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQ</p>
@@ -225,7 +228,7 @@
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
 
-安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径为例）。
+安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径，python版本为3.7.5为例，用户可根据软件包实际安装路径修改配置项。）。
 
 ```
 cpu_type=$(echo $HOSTTYPE)
@@ -291,18 +294,18 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 </thead>
 <tbody><tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a><span>动态库的查找路径，</span>参考上述举例配置。</p>
-<p id="zh-cn_topic_0000001134654416_p1292181892120"><a name="zh-cn_topic_0000001134654416_p1292181892120"></a><a name="zh-cn_topic_0000001134654416_p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="zh-cn_topic_0000001134654416_parmname795020446318"><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#zh-cn_topic_0000001181522175.md#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1888291915322"></a>动态库的查找路径，参考上述举例配置。</p>
+<p id="zh-cn_topic_0000001134654416_p1292181892120"><a name="zh-cn_topic_0000001134654416_p1292181892120"></a><a name="zh-cn_topic_0000001134654416_p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="zh-cn_topic_0000001134654416_parmname795020446318"><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a><a name="zh-cn_topic_0000001134654416_parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#安装7-3-0版本gcc.md#zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a><span>Python搜索路径，</span>参考上述举例配置。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p19637083322"></a>Python搜索路径，参考上述举例配置。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row2954102119329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p195452113218"></a>PATH</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a><span>可执行程序的查找路径，</span>参考上述举例配置。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p964914893211"></a>可执行程序的查找路径，参考上述举例配置。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row58592816294"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p1886016892913"></a>ASCEND_OPP_PATH</p>
@@ -328,7 +331,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 <tr id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
-<a name="zh-cn_topic_0000001134654416_ul928845132310"></a><a name="zh-cn_topic_0000001134654416_ul928845132310"></a><ul id="zh-cn_topic_0000001134654416_ul928845132310"><li>0：开启白名单，无需校验HCCL通信白名单。</li><li>1：关闭白名单，需校验HCCL通信白名单。</li></ul>
+<a name="zh-cn_topic_0000001134654416_ul928845132310"></a><a name="zh-cn_topic_0000001134654416_ul928845132310"></a><ul id="zh-cn_topic_0000001134654416_ul928845132310"><li>0：开启白名单</li><li>1：关闭白名单</li></ul>
 <p id="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a><a name="zh-cn_topic_0000001134654416_zh-cn_topic_0000001152616261_p5809162416201"></a>缺省值为0，默认开启白名单。</p>
 </td>
 </tr>
@@ -680,51 +683,78 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 ## 参数说明<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
 
-**表 1**  参数说明
+1.  
 
-<a name="zh-cn_topic_0000001086713630_table1581171912407"></a>
-<table><thead align="left"><tr id="zh-cn_topic_0000001086713630_row175811919124014"><th class="cellrowborder" valign="top" width="22.35%" id="mcps1.2.4.1.1"><p id="zh-cn_topic_0000001086713630_p155823194404"><a name="zh-cn_topic_0000001086713630_p155823194404"></a><a name="zh-cn_topic_0000001086713630_p155823194404"></a>参数</p>
-</th>
-<th class="cellrowborder" valign="top" width="54.75%" id="mcps1.2.4.1.2"><p id="zh-cn_topic_0000001086713630_p105820192400"><a name="zh-cn_topic_0000001086713630_p105820192400"></a><a name="zh-cn_topic_0000001086713630_p105820192400"></a>参数说明</p>
-</th>
-<th class="cellrowborder" valign="top" width="22.900000000000002%" id="mcps1.2.4.1.3"><p id="zh-cn_topic_0000001086713630_p6580427104516"><a name="zh-cn_topic_0000001086713630_p6580427104516"></a><a name="zh-cn_topic_0000001086713630_p6580427104516"></a>取值示例</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001086713630_row1582131914407"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p19582151918409"><a name="zh-cn_topic_0000001086713630_p19582151918409"></a><a name="zh-cn_topic_0000001086713630_p19582151918409"></a>-i</p>
-<p id="zh-cn_topic_0000001086713630_p2473202124113"><a name="zh-cn_topic_0000001086713630_p2473202124113"></a><a name="zh-cn_topic_0000001086713630_p2473202124113"></a>--input</p>
-</td>
-<td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul1242295411339"></a><a name="zh-cn_topic_0000001086713630_ul1242295411339"></a><ul id="zh-cn_topic_0000001086713630_ul1242295411339"><li>要进行转换的原始脚本文件所在文件夹路径或文件路径。</li><li>必选。</li></ul>
-</td>
-<td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><a name="zh-cn_topic_0000001086713630_ul1643544143415"></a><a name="zh-cn_topic_0000001086713630_ul1643544143415"></a><ul id="zh-cn_topic_0000001086713630_ul1643544143415"><li>/home/username/fmktransplt</li><li>/home/username/fmktransplt.py</li></ul>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row1742052304118"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p442092316415"><a name="zh-cn_topic_0000001086713630_p442092316415"></a><a name="zh-cn_topic_0000001086713630_p442092316415"></a>-o</p>
-<p id="zh-cn_topic_0000001086713630_p16543329134117"><a name="zh-cn_topic_0000001086713630_p16543329134117"></a><a name="zh-cn_topic_0000001086713630_p16543329134117"></a>--output</p>
-</td>
-<td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul1363116594714"></a><a name="zh-cn_topic_0000001086713630_ul1363116594714"></a><ul id="zh-cn_topic_0000001086713630_ul1363116594714"><li>脚本转换结果文件输出路径。会在该路径下输出带有msft后缀的文件夹。</li><li>必选。</li></ul>
-</td>
-<td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p2478319143616"><a name="zh-cn_topic_0000001086713630_p2478319143616"></a><a name="zh-cn_topic_0000001086713630_p2478319143616"></a>/home/username/fmktransplt_output</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row5405851153019"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p164051151163010"><a name="zh-cn_topic_0000001086713630_p164051151163010"></a><a name="zh-cn_topic_0000001086713630_p164051151163010"></a>-r</p>
-<p id="zh-cn_topic_0000001086713630_p11383956183014"><a name="zh-cn_topic_0000001086713630_p11383956183014"></a><a name="zh-cn_topic_0000001086713630_p11383956183014"></a>--rule</p>
-</td>
-<td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul4776121015816"></a><a name="zh-cn_topic_0000001086713630_ul4776121015816"></a><ul id="zh-cn_topic_0000001086713630_ul4776121015816"><li>用户自定义通用转换规则的json文件路径，主要分为：函数参数修改、函数名称修改和模块名称修改三部分。</li><li>可选。</li></ul>
-</td>
-<td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p6273113412368"><a name="zh-cn_topic_0000001086713630_p6273113412368"></a><a name="zh-cn_topic_0000001086713630_p6273113412368"></a>/home/username/fmktransplt_rule.json</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row1736213644115"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p1036312363411"><a name="zh-cn_topic_0000001086713630_p1036312363411"></a><a name="zh-cn_topic_0000001086713630_p1036312363411"></a>-h</p>
-<p id="zh-cn_topic_0000001086713630_p176714017418"><a name="zh-cn_topic_0000001086713630_p176714017418"></a><a name="zh-cn_topic_0000001086713630_p176714017418"></a>--help</p>
-</td>
-<td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001086713630_p1373193411818"><a name="zh-cn_topic_0000001086713630_p1373193411818"></a><a name="zh-cn_topic_0000001086713630_p1373193411818"></a>显示帮助信息。</p>
-</td>
-<td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p358017279458"><a name="zh-cn_topic_0000001086713630_p358017279458"></a><a name="zh-cn_topic_0000001086713630_p358017279458"></a>-</p>
-</td>
-</tr>
-</tbody>
-</table>
+    **表 1**  参数说明
+
+    <a name="zh-cn_topic_0000001086713630_table1581171912407"></a>
+    <table><thead align="left"><tr id="zh-cn_topic_0000001086713630_row175811919124014"><th class="cellrowborder" valign="top" width="22.35%" id="mcps1.2.4.1.1"><p id="zh-cn_topic_0000001086713630_p155823194404"><a name="zh-cn_topic_0000001086713630_p155823194404"></a><a name="zh-cn_topic_0000001086713630_p155823194404"></a>参数</p>
+    </th>
+    <th class="cellrowborder" valign="top" width="54.75%" id="mcps1.2.4.1.2"><p id="zh-cn_topic_0000001086713630_p105820192400"><a name="zh-cn_topic_0000001086713630_p105820192400"></a><a name="zh-cn_topic_0000001086713630_p105820192400"></a>参数说明</p>
+    </th>
+    <th class="cellrowborder" valign="top" width="22.900000000000002%" id="mcps1.2.4.1.3"><p id="zh-cn_topic_0000001086713630_p6580427104516"><a name="zh-cn_topic_0000001086713630_p6580427104516"></a><a name="zh-cn_topic_0000001086713630_p6580427104516"></a>取值示例</p>
+    </th>
+    </tr>
+    </thead>
+    <tbody><tr id="zh-cn_topic_0000001086713630_row1582131914407"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p19582151918409"><a name="zh-cn_topic_0000001086713630_p19582151918409"></a><a name="zh-cn_topic_0000001086713630_p19582151918409"></a>-i</p>
+    <p id="zh-cn_topic_0000001086713630_p2473202124113"><a name="zh-cn_topic_0000001086713630_p2473202124113"></a><a name="zh-cn_topic_0000001086713630_p2473202124113"></a>--input</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul1242295411339"></a><a name="zh-cn_topic_0000001086713630_ul1242295411339"></a><ul id="zh-cn_topic_0000001086713630_ul1242295411339"><li>要进行转换的原始脚本文件所在文件夹路径或文件路径。</li><li>必选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><a name="zh-cn_topic_0000001086713630_ul1643544143415"></a><a name="zh-cn_topic_0000001086713630_ul1643544143415"></a><ul id="zh-cn_topic_0000001086713630_ul1643544143415"><li>/home/username/fmktransplt</li><li>/home/username/fmktransplt.py</li></ul>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row1742052304118"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p442092316415"><a name="zh-cn_topic_0000001086713630_p442092316415"></a><a name="zh-cn_topic_0000001086713630_p442092316415"></a>-o</p>
+    <p id="zh-cn_topic_0000001086713630_p16543329134117"><a name="zh-cn_topic_0000001086713630_p16543329134117"></a><a name="zh-cn_topic_0000001086713630_p16543329134117"></a>--output</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul1363116594714"></a><a name="zh-cn_topic_0000001086713630_ul1363116594714"></a><ul id="zh-cn_topic_0000001086713630_ul1363116594714"><li>脚本转换结果文件输出路径。会在该路径下输出带有msft后缀的文件夹。</li><li>必选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p2478319143616"><a name="zh-cn_topic_0000001086713630_p2478319143616"></a><a name="zh-cn_topic_0000001086713630_p2478319143616"></a>/home/username/fmktransplt_output</p>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row5405851153019"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p164051151163010"><a name="zh-cn_topic_0000001086713630_p164051151163010"></a><a name="zh-cn_topic_0000001086713630_p164051151163010"></a>-r</p>
+    <p id="zh-cn_topic_0000001086713630_p11383956183014"><a name="zh-cn_topic_0000001086713630_p11383956183014"></a><a name="zh-cn_topic_0000001086713630_p11383956183014"></a>--rule</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul4776121015816"></a><a name="zh-cn_topic_0000001086713630_ul4776121015816"></a><ul id="zh-cn_topic_0000001086713630_ul4776121015816"><li>用户自定义通用转换规则的json文件路径，主要分为：函数参数修改、函数名称修改和模块名称修改三部分。</li><li>可选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p6273113412368"><a name="zh-cn_topic_0000001086713630_p6273113412368"></a><a name="zh-cn_topic_0000001086713630_p6273113412368"></a>/home/username/fmktransplt_rule.json</p>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row1355087145112"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p1801752706"><a name="zh-cn_topic_0000001086713630_p1801752706"></a><a name="zh-cn_topic_0000001086713630_p1801752706"></a>-s</p>
+    <p id="zh-cn_topic_0000001086713630_p011914159516"><a name="zh-cn_topic_0000001086713630_p011914159516"></a><a name="zh-cn_topic_0000001086713630_p011914159516"></a>--specify-device</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul186822151820"></a><a name="zh-cn_topic_0000001086713630_ul186822151820"></a><ul id="zh-cn_topic_0000001086713630_ul186822151820"><li>可以通过环境变量设置指定device作为高级特性，但有可能导致原本脚本中分布式功能失效。</li><li>可选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p185502785114"><a name="zh-cn_topic_0000001086713630_p185502785114"></a><a name="zh-cn_topic_0000001086713630_p185502785114"></a>-</p>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row1914883514326"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p51490353324"><a name="zh-cn_topic_0000001086713630_p51490353324"></a><a name="zh-cn_topic_0000001086713630_p51490353324"></a>-sim</p>
+    <p id="zh-cn_topic_0000001086713630_p5549113123714"><a name="zh-cn_topic_0000001086713630_p5549113123714"></a><a name="zh-cn_topic_0000001086713630_p5549113123714"></a>--similar</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><a name="zh-cn_topic_0000001086713630_ul856518554400"></a><a name="zh-cn_topic_0000001086713630_ul856518554400"></a><ul id="zh-cn_topic_0000001086713630_ul856518554400"><li>用功能相似的API替换某些不支持的API，但有可能导致准确性和性能下降。</li><li>可选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p13149193573212"><a name="zh-cn_topic_0000001086713630_p13149193573212"></a><a name="zh-cn_topic_0000001086713630_p13149193573212"></a>-</p>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row311811519515"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p1755018717511"><a name="zh-cn_topic_0000001086713630_p1755018717511"></a><a name="zh-cn_topic_0000001086713630_p1755018717511"></a>distributed</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001086713630_p27033264208"><a name="zh-cn_topic_0000001086713630_p27033264208"></a><a name="zh-cn_topic_0000001086713630_p27033264208"></a>将GPU单卡脚本转换为NPU多卡脚本，仅支持使用torch.utils.data.DataLoader方式加载数据的场景，指定此参数时，才可以指定以下两个参数。</p>
+    <a name="zh-cn_topic_0000001086713630_ul94321522131015"></a><a name="zh-cn_topic_0000001086713630_ul94321522131015"></a><ul id="zh-cn_topic_0000001086713630_ul94321522131015"><li>-m，--main：训练脚本的入口python文件，必选。</li><li>-t，--target model：目标模型变量名，默认为'model'，可选。</li></ul>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p011961519515"><a name="zh-cn_topic_0000001086713630_p011961519515"></a><a name="zh-cn_topic_0000001086713630_p011961519515"></a>-</p>
+    </td>
+    </tr>
+    <tr id="zh-cn_topic_0000001086713630_row1736213644115"><td class="cellrowborder" valign="top" width="22.35%" headers="mcps1.2.4.1.1 "><p id="zh-cn_topic_0000001086713630_p1036312363411"><a name="zh-cn_topic_0000001086713630_p1036312363411"></a><a name="zh-cn_topic_0000001086713630_p1036312363411"></a>-h</p>
+    <p id="zh-cn_topic_0000001086713630_p176714017418"><a name="zh-cn_topic_0000001086713630_p176714017418"></a><a name="zh-cn_topic_0000001086713630_p176714017418"></a>--help</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="54.75%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001086713630_p1373193411818"><a name="zh-cn_topic_0000001086713630_p1373193411818"></a><a name="zh-cn_topic_0000001086713630_p1373193411818"></a>显示帮助信息。</p>
+    </td>
+    <td class="cellrowborder" valign="top" width="22.900000000000002%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001086713630_p358017279458"><a name="zh-cn_topic_0000001086713630_p358017279458"></a><a name="zh-cn_topic_0000001086713630_p358017279458"></a>-</p>
+    </td>
+    </tr>
+    </tbody>
+    </table>
+
 
 ## 自定义规则文件<a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
 
@@ -813,7 +843,8 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tr>
 <tr id="zh-cn_topic_0000001086713630_row4677165715235"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p2434071544"><a name="zh-cn_topic_0000001086713630_p2434071544"></a><a name="zh-cn_topic_0000001086713630_p2434071544"></a>parent_module</p>
 </td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p443419713418"><a name="zh-cn_topic_0000001086713630_p443419713418"></a><a name="zh-cn_topic_0000001086713630_p443419713418"></a>父级模块名称</p>
+<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p571992311016"><a name="zh-cn_topic_0000001086713630_p571992311016"></a><a name="zh-cn_topic_0000001086713630_p571992311016"></a>父级模块全名</p>
+<p id="zh-cn_topic_0000001086713630_p1065614314599"><a name="zh-cn_topic_0000001086713630_p1065614314599"></a><a name="zh-cn_topic_0000001086713630_p1065614314599"></a>例如torch.cuda.amp，amp的父级模块全名为torch.cuda。</p>
 </td>
 </tr>
 </tbody>
@@ -830,20 +861,25 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 2.  执行脚本转换工具。
 
     ```
-    python3 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径]
+    python3 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径] [-s] [-sim] [distributed -m 训练脚本的入口文件 -t 目标模型变量名]
     ```
+
+    >![](public_sys-resources/icon-note.gif) **说明：** 
+    >distributed及其参数-m、-t在语句最后指定。
 
 3.  完成脚本转换。
 
 <h2 id="结果解析.md">结果解析</h2>
 
-脚本转换完成后，进入脚本转换结果输出路径查看结果文件。
+脚本转换完成后，进入脚本转换结果输出路径查看结果文件，以GPU单卡脚本转换为NPU多卡脚本为例。
 
 ```
 ├── xxx_msft                // 脚本转换结果输出目录，默认为原始脚本路径。xxx为原始脚本所在文件夹名称。
 │   ├── 生成脚本文件                 // 与转换前的脚本文件目录结构一致。
 │   ├── msFmkTranspltlog.txt                 // 脚本转换过程日志文件。
 │   ├── unsupported_op.xlsx                // 不支持算子列表文件。
+│   ├── change_list.csv                    // 修改记录文件。
+│   ├── run_distributed_npu.sh            // 多卡启动shell脚本。
 ```
 
 <h2 id="手工迁移.md">手工迁移</h2>
@@ -1119,7 +1155,7 @@ def main():
 基于NPU芯片的架构特性，会涉及到混合精度训练，即混合使用float16和float32数据类型的应用场景。使用float16代替float32有如下好处：
 
 -   对于中间变量的内存占用更少，节省内存的使用。
--   因内存使用会减少，所以数据传出的时间也会减半。
+-   因内存使用会减少，所以数据传出的时间也会相应减少。
 -   float16的计算单元可以提供更快的计算性能。
 
 但是，混合精度训练受限于float16表达的精度范围，单纯将float32转换成float16会影响训练收敛情况，为了保证部分计算使用float16来进行加速的同时能保证训练收敛，这里采用混合精度模块Apex来达到以上效果。混合精度模块Apex是一个集优化性能、精度收敛于一身的综合优化库。
@@ -1144,12 +1180,12 @@ def main():
 </thead>
 <tbody><tr id="row1571763813334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p4502732153412"><a name="p4502732153412"></a><a name="p4502732153412"></a>O1配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv，Matmal等使用<span>float16</span>计算，其他如Softmax、BN使用<span>float32</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p640053920348"><a name="p640053920348"></a><a name="p640053920348"></a>Conv，Matmul等使用float16计算，其他如Softmax、BN使用float32。</p>
 </td>
 </tr>
 <tr id="row3717173817336"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p11503103210344"><a name="p11503103210344"></a><a name="p11503103210344"></a>O2配置模式</p>
 </td>
-<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p164001639143419"><a name="p164001639143419"></a><a name="p164001639143419"></a>除了BN使用<span>float32</span>外，其他绝大部分使用<span>float16</span>。</p>
+<td class="cellrowborder" valign="top" width="67.73%" headers="mcps1.2.3.1.2 "><p id="p164001639143419"><a name="p164001639143419"></a><a name="p164001639143419"></a>除了BN使用float32外，其他绝大部分使用float16。</p>
 </td>
 </tr>
 <tr id="row14717193815334"><td class="cellrowborder" valign="top" width="32.269999999999996%" headers="mcps1.2.3.1.1 "><p id="p1950318328349"><a name="p1950318328349"></a><a name="p1950318328349"></a>静态Loss Scale功能</p>
@@ -1234,12 +1270,12 @@ def main():
     **图 1**  远程登录控制台<a name="fig15869135420288"></a>  
     ![](figures/远程登录控制台.png "远程登录控制台")
 
-2.  在虚拟界面工具栏中，单击启动项工具![](figures/zh-cn_image_0000001106016350.png)，弹出启动项配置界面，如[图2](#fig744814574243)。
+2.  在虚拟界面工具栏中，单击启动项工具![](figures/zh-cn_image_0000001144241932.png)，弹出启动项配置界面，如[图2](#fig744814574243)。
 
     **图 2**  启动项工具<a name="fig744814574243"></a>  
     ![](figures/启动项工具.png "启动项工具")
 
-3.  在启动项配置界面选择，选择“BIOS设置”，然后在虚拟界面工具栏中单击重启工具![](figures/zh-cn_image_0000001152616281.png)，重启服务器。
+3.  在启动项配置界面选择，选择“BIOS设置”，然后在虚拟界面工具栏中单击重启工具![](figures/zh-cn_image_0000001190201999.png)，重启服务器。
 4.  系统重启后进入BIOS配置界面，依次选择“Advanced”\>“Socket Configuration”，如[图3](#fig4546303814)所示。
 
     **图 3**  Socket Configuration<a name="fig4546303814"></a>  
@@ -1322,7 +1358,6 @@ def main():
         systemctl start cpupower
         ```
 
-
 3.  设置CPU为performance模式。
 
     ```
@@ -1342,12 +1377,12 @@ def main():
     **图 1**  远程登录控制台<a name="fig15869135420288"></a>  
     ![](figures/远程登录控制台-0.png "远程登录控制台-0")
 
-2.  在虚拟界面工具栏中，单击启动项工具![](figures/zh-cn_image_0000001152616289.png)，弹出启动项配置界面，如[图2](#fig744814574243)。
+2.  在虚拟界面工具栏中，单击启动项工具![](figures/zh-cn_image_0000001190202013.png)，弹出启动项配置界面，如[图2](#fig744814574243)。
 
     **图 2**  启动项工具<a name="fig744814574243"></a>  
     ![](figures/启动项工具-1.png "启动项工具-1")
 
-3.  在启动项配置界面选择，选择“BIOS设置”，然后在虚拟界面工具栏中单击重启工具![](figures/zh-cn_image_0000001152736233.png)，重启服务器。
+3.  在启动项配置界面选择，选择“BIOS设置”，然后在虚拟界面工具栏中单击重启工具![](figures/zh-cn_image_0000001144082138.png)，重启服务器。
 4.  系统重启后进入BIOS配置界面，依次选择“Advanced”\>“ Performance Config”，如[图3](#fig4546303814)所示。
 
     **图 3**  Performance Config<a name="fig4546303814"></a>  
@@ -1420,7 +1455,10 @@ def main():
 
 <h2 id="模型训练.md">模型训练</h2>
 
-训练脚本迁移完成后，需要参见[配置环境变量](#配置环境变量.md)设置环境变量，然后执行**python3.7** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行.md)。
+训练脚本迁移完成后，需要参见[配置环境变量](#配置环境变量.md)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行.md)。
+
+>![](public_sys-resources/icon-note.gif) **说明：** 
+>执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
 
 <h2 id="性能调优和分析.md">性能调优和分析</h2>
 
@@ -1461,23 +1499,51 @@ def main():
 
 ## Profiling数据采集<a name="section141471611314"></a>
 
-当吞吐量指标不达标时，需要通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。请参见以下步骤进行profiling数据的获取。
+当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。Profiling数据采集分为PyTorch层面和CANN层面的采集，PyTorch层面采集的是PyTorch API的数据，CANN层面采集的是TBE算子的数据。
 
-1.  获取chrome\_trace文件。使用profile接口对原始代码的loss计算和优化过程进行改造。
+请参见以下方式进行profiling数据的获取，并根据实际情况选择需要的数据采集方式。
 
-    ```
-    # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
-    with torch.autograd.profiler.profile(use_npu=True) as prof:
-        out = model(input_tensor)
-        loss=loss_func(out)
-        loss.backward()
-        optimizer.zero_grad()
-        optimizer.step()
-    # 导出chrome_trace文件到指定路径
-    prof.export_chrome_trace(output_path)
-    ```
+-   PyTorch层面Profiling数据采集。
+    1.  获取chrome\_trace文件。
 
-2.  chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
+        使用profile接口对原始代码的loss计算和优化过程进行改造。
+
+        ```
+        # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
+        with torch.autograd.profiler.profile(use_npu=True) as prof:
+            out = model(input_tensor)
+            loss=loss_func(out)
+            loss.backward()
+            optimizer.zero_grad()
+            optimizer.step()
+        # 导出chrome_trace文件到指定路径
+        output_path = '/home/HwHiAiUser/profile_data.json'
+        prof.export_chrome_trace(output_path)
+        ```
+
+    2.  查看chrome\_trace文件。
+
+        chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
+
+
+-   CANN层面Profiling数据采集。
+    1.  获取性能数据文件。
+
+        ```
+        profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
+        with torch.npu.profile(profiler_result_path) as prof:
+            out = model(input_tensor)
+            loss=loss_func(out)
+            loss.backward()
+            optimizer.zero_grad()
+            optimizer.step()
+        ```
+
+    2.  解析性能数据文件。
+
+        请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
+
+
 
 ## 获取算子信息OP\_INFO<a name="section15654162853114"></a>
 
@@ -1541,7 +1607,7 @@ def main():
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
     ```
-    python3.7 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
+    python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
     ```
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
@@ -1675,14 +1741,12 @@ def main():
 
     -   解决方案：改进算子精度或功能问题。
 
-
 2.  <a name="li25281726103316"></a>loss计算错误。
     -   定位思路：由于Loss的特殊性和可以自定义，在判断Loss计算错误后建议dump网络中的loss的输入来测试而非随机同shape tensor，这样才能更好地复现证明。
 
     -   规避方案：使用同等语义其他算子替代。
 
     -   解决方案：改进算子精度或功能问题（loss也是由算子构成）。
-
 
 3.  参数更新错误。
 
@@ -1691,7 +1755,6 @@ def main():
     -   规避方案：使用同等语义其他算子替代。
 
     -   解决方案：改进计算grad的算子精度或功能问题。
-
 
 4.  多卡计算错误。
 
@@ -1702,6 +1765,55 @@ def main():
 
 
 <h2 id="精度调优方法.md">精度调优方法</h2>
+
+模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
+
+-   **[单算子溢出检测](#单算子溢出检测.md)**  
+
+-   **[整网调测](#整网调测.md)**  
+
+
+<h2 id="单算子溢出检测.md">单算子溢出检测</h2>
+
+用户通过采集训练过程中各算子的运算结果（即Dump数据），然后查看算子是否产生溢出，从而帮助开发人员快速定位并解决算子精度问题。
+
+## 约束说明<a name="section52762019181510"></a>
+
+-   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5.md)；
+-   本功能只提供IR级别的算子溢出检测，且只支持AICORE的溢出检测，不支持Atomic溢出检测；
+-   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。
+
+    ```
+    修改前: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3 setup.py build bdist_wheel 
+    修改后: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python3 setup.py build
+    ```
+
+    并参见《PyTorch安装指南》的“手动编译安装”章节重新编译并安装PyTorch。
+
+-   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能。
+
+## 采集算子Dump数据<a name="section121407268191"></a>
+
+```
+# check_overflow为溢出检测控制开关
+# dump_path为dump文件保存路径
+with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
+    # 需要算子采集的代码片段
+```
+
+模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
+
+## 查看Dump数据<a name="section155351957142017"></a>
+
+如果训练过程中采集到了Dump数据，则会在\{dump\_path\}路径下生成dump数据的.h5文件，用户可进入路径自行查看。
+
+## 解决方法<a name="section1729763162019"></a>
+
+请将算子溢出的打印截图及采集到的.h5文件通过Issue附件形式反馈给华为开发人员。
+
+<h2 id="整网调测.md">整网调测</h2>
+
+用户也可通过分析整个网络的方式来进行网络模型的精度调测。
 
 1.  通过对比CPU和昇腾AI处理器的结果，判断在昇腾AI处理器上计算是否正确。
 
@@ -1780,7 +1892,7 @@ def main():
 
 离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)》。整体流程如下：
 
-![](figures/zh-cn_image_0000001106176222.png)
+![](figures/zh-cn_image_0000001144082132.png)
 
 <h2 id="模型保存.md">模型保存</h2>
 
@@ -1812,7 +1924,6 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         model.load_state_dict(torch.load(PATH))
         model.eval()
         ```
-
 
     >![](public_sys-resources/icon-notice.gif) **须知：** 
     >保存.pth或.pt文件扩展名的文件时要提供模型定义文件，否则无法部署。
@@ -2061,10 +2172,10 @@ if __name__ == "__main__":
         # if not torch.cuda.is_available():
             # print('using CPU, this will be slow')
         # elif args.distributed:
-    ############## npu modify begin #############
+        ############## npu modify begin #############
         # 迁移后为直接判断是否进行分布式训练，去掉判断是否在GPU上进行训练
         if args.distributed:
-    ############## npu modify end #############
+        ############## npu modify end #############
             # For multiprocessing distributed, DistributedDataParallel constructor
             # should always set the single device scope, otherwise,
             # DistributedDataParallel will use all available devices.
@@ -2122,7 +2233,6 @@ if __name__ == "__main__":
                 ############## npu modify end #############
         ```
 
-
     -   代码位置：main.py文件中的validate\(\)函数（修改部分为字体加粗部分）：
 
         ```
@@ -2141,7 +2251,6 @@ if __name__ == "__main__":
                   images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
                    ############## npu modify end #############
         ```
-
 
 6.  设置当前正在使用的device。
 
@@ -2395,7 +2504,7 @@ if __name__ == "__main__":
     
         if args.amp:
             model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, loss_scale=args.loss_scale)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], broadcast_buffers=False)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
     
         # optionally resume from a checkpoint
         if args.resume:
@@ -2525,7 +2634,7 @@ if __name__ == "__main__":
 单卡:
 
 ```
-python3.7 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
+python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
                                                --lr 0.1 \               # 学习率
                                                --epochs 90 \            # 训练迭代轮数
                                                --arch resnet50 \        # 模型架构
@@ -2539,7 +2648,7 @@ python3.7 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练
 分布式：
 
 ```
-python3.7 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
+python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
                                                --seed 49  \                      # 随机种子
                                                --workers 160 \                   # 加载数据进程数
                                                --lr 0.8 \
@@ -3112,6 +3221,8 @@ for group in [2, 4, 8]:
 
 -   **[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)**  
 
+-   **[编译安装hdf5](#编译安装hdf5.md)**  
+
 
 <h2 id="单算子样例编写说明.md">单算子样例编写说明</h2>
 
@@ -3303,7 +3414,7 @@ torch.npu.finalize_dump()
 
 4.  调用Python，转换numpy文件为txt文件。举例：
 
-    **$ python3.7.5**
+    **$ python3**
 
     **\>\>\> import numpy as np**
 
@@ -3431,6 +3542,43 @@ torch.npu.finalize_dump()
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
 
+<h2 id="编译安装hdf5.md">编译安装hdf5</h2>
+
+以下步骤请在root用户下执行。
+
+1.  获取代码。
+
+    ```
+    git clone https://github.com/HDFGroup/hdf5.git 
+    ```
+
+2.  切换到hdf5-1\_10\_7分支。
+
+    ```
+    cd hdf5
+    git checkout remotes/origin/hdf5_1_10_7 
+    ```
+
+3.  编译hdf5。
+
+    ```
+    ./configure --prefix=/usr/local/hdf5 --enable-cxx
+    make -j72                 #-j 后的数值可以根据CPU的核数设置
+    make check                # run test suite.
+    make install
+    make check-install        # verify installation. 
+    ```
+
+4.  添加环境变量。
+
+    ```
+    export PATH=/usr/local/hdf5/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/hdf5/lib:$LD_LIBRARY_PATH
+    export LIBRARY_PATH=/usr/local/hdf5/lib:$LIBRARY_PATH
+    export CPATH=/usr/local/hdf5/include:$CPATH 
+    ```
+
+
 <h2 id="FAQ.md">FAQ</h2>
 
 -   **[软件安装常见问题](#软件安装常见问题.md)**  
@@ -3488,7 +3636,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed.md)**  
 
--   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md)**  
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md)**  
 
 -   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecute.md)**  
 
@@ -3677,7 +3825,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
 5.  将stack入参数据类型转换为一致即可临时规避问题。
 
-<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-1.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”1</h2>
+<h2 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7.md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h2>
 
 ## 现象描述<a name="section1785905019184"></a>
 
@@ -3884,7 +4032,7 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 ## 现象描述<a name="section1785905019184"></a>
 
-![](figures/FAQ12.png)
+![](figures/model_faq11_20210728.jpg)
 
 ## 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
