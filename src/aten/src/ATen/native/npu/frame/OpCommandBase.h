@@ -85,9 +85,9 @@ class OpCommandBase {
   Derived& Input(SmallVector<int64_t, N>& dimList,
     ScalarType toType = at::kLong) {
   
-    Tensor& cpuTensor = CreateHostTensor((void*)dimList.data(), 
-      {dimList.size()}, 
-      TensorOptions(kCPU).dtype(at::kLong), 
+    Tensor& cpuTensor = CreateHostTensor((void*)dimList.data(),
+      dimList.size(),
+      TensorOptions(kCPU).dtype(at::kLong),
       toType);
     return AddHostTensorInput(cpuTensor);
   }
@@ -95,9 +95,9 @@ class OpCommandBase {
   Derived& Input(IntArrayRef& dimListRef,
     ScalarType toType = at::kLong) {
   
-    Tensor& cpuTensor = CreateHostTensor((void*)dimListRef.data(), 
-      {dimListRef.size()},
-      TensorOptions(kCPU).dtype(at::kLong), 
+    Tensor& cpuTensor = CreateHostTensor((void*)dimListRef.data(),
+      dimListRef.size(),
+      TensorOptions(kCPU).dtype(at::kLong),
       toType);
     return AddHostTensorInput(cpuTensor);
   }
@@ -224,12 +224,17 @@ class OpCommandBase {
     storage.emplace_back(tensor);
     return storage.back();
   }
-  Tensor& CreateHostTensor(void* data, IntArrayRef sizes,
+
+  Tensor& CreateHostTensor(void* data, size_t size,
     const TensorOptions& options, ScalarType toType) {
-    // we should clone the tensor due to at::from_blob only do shallow copy
-    Tensor cpuTensor = at::from_blob(data, sizes, options).clone();
-    if (toType != at::kLong)
+
+    AT_ASSERT(options.dtype() == at::kLong);
+    auto cpuTensor = at::native::empty_cpu(size, options);
+    AT_ASSERT(cpuTensor.is_contiguous());
+    std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
+    if (toType != at::kLong) {
       cpuTensor = cpuTensor.to(toType);
+    }
 
     storage.emplace_back(std::move(cpuTensor));
     return storage.back();
