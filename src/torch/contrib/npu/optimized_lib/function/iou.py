@@ -20,13 +20,19 @@ def box_dtype_check(box):
 
 
 def npu_ptiou(boxes1, boxes2):
-    """
+    """ Applies an NPU based IOU operation.
+
     Given two lists of boxes of size N and M,
     compute the IoU (intersection over union)
     between __all__ N x M pairs of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
     Compute Function: insect_area / (union_area + 0.001)
+
+    .. note::
+        This function is commonly used when bbox and anchor match.
+        Until now, this function has no corresponding backward operator,
+        so it cannot be used in IOU_Loss.
 
     Args:
         boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
@@ -43,13 +49,19 @@ def npu_ptiou(boxes1, boxes2):
 
 
 def npu_iou(boxes1, boxes2):
-    """
+    """ Applies an NPU based IOU operation.
+
     Given two lists of boxes of size N and M,
     compute the IoU (intersection over union)
     between __all__ N x M pairs of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
     Compute Function: (insect_area + 0.001) / (union_area + 0.001)
+
+    .. note::
+        This function is commonly used when bbox and anchor match.
+        Until now, this function has no corresponding backward operator,
+        so it cannot be used in IOU_Loss.
 
     Args:
         boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.

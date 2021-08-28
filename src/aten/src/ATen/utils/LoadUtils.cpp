@@ -174,7 +174,7 @@ namespace at {
     return true;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<double>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<double>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -204,7 +204,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<c10::optional<double>>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<c10::optional<double>>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -235,7 +235,7 @@ namespace at {
   }
 
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<std::pair<size_t, size_t>>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<std::pair<size_t, size_t>>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -274,7 +274,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<int64_t>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<int64_t>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -304,7 +304,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<c10::optional<int64_t>>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<c10::optional<int64_t>>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -334,7 +334,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, std::vector<TensorDesc>& tensorVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, std::vector<TensorDesc>& tensorVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = tensorVec.begin(); it != tensorVec.end(); it++) {
@@ -379,7 +379,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<bool>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<bool>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -410,7 +410,7 @@ namespace at {
 
   }
   
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<at::Scalar>*>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<at::Scalar>*>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -433,7 +433,7 @@ namespace at {
 
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<c10::optional<at::Scalar>>*>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<c10::optional<at::Scalar>>*>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -456,7 +456,7 @@ namespace at {
 
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<c10::ScalarType>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<c10::ScalarType>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -486,7 +486,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<std::vector<int64_t>>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<std::vector<int64_t>>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -531,7 +531,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ValueMatching(const string& seqH5, const H5File* file, const string nameIr, const std::vector<ArgDes<c10::ArrayRef<long int>>>& descVec) {
+  bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<c10::ArrayRef<long int>>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
@@ -576,7 +576,7 @@ namespace at {
     return is_matched;
   }
 
-  bool ExhaustedMatchingBaseType(const string& seqH5, const H5File* file, const string nameIr, CommDesc& commDesc) {
+  bool ExhaustedMatchingBaseType(const string& seqH5, const H5File* file, const string &nameIr, CommDesc& commDesc) {
     // try to match int64_t, datatype and value
     if (!ValueMatching(seqH5, file, nameIr, commDesc.int64DescVec)) {
       return false;
@@ -604,7 +604,7 @@ namespace at {
     return true;
   }
 
-  bool ExhaustedMatchingVecType(const string& seqH5, const H5File* file, const string nameIr, CommDesc& commDesc) {
+  bool ExhaustedMatchingVecType(const string& seqH5, const H5File* file, const string &nameIr, CommDesc& commDesc) {
     // try to match vector<int64_t>, shape, datatype and value
     if (!ValueMatching(seqH5, file, nameIr, commDesc.int64VecDescVec)) {
       return false;
@@ -622,7 +622,7 @@ namespace at {
     return true;
   }
 
-  bool ExhaustedMatchingTorchType(const string& seqH5, const H5File* file, const string nameIr, CommDesc& commDesc) {
+  bool ExhaustedMatchingTorchType(const string& seqH5, const H5File* file, const string &nameIr, CommDesc& commDesc) {
     // try to match tensor
     if (!ValueMatching(seqH5, file, nameIr, commDesc.tensorDescVec)) {
       return false;
@@ -645,7 +645,7 @@ namespace at {
     return true;
   }   
 
-  int ProcessMatching(const H5File* file, const string nameIr, CommDesc& commDesc, std::vector<int>& visitedSeq) {
+  int ProcessMatching(const H5File* file, const string &nameIr, CommDesc& commDesc, std::vector<int>& visitedSeq) {
     std::string h5IRPath = "/" + nameIr;
     if (!file->nameExists(h5IRPath)) {
       return -1;
@@ -713,7 +713,7 @@ namespace at {
     dst.copy_(src);
   }
 
-  void TensorCopying(const int & seqH5, const string nameIr, const H5File* file, CommDesc& commDesc) {
+  void TensorCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.tensorDescVec.begin(); it != commDesc.tensorDescVec.end(); it++) {
       if (!(*it).tensor.has_storage()) {
@@ -740,7 +740,12 @@ namespace at {
 
       Tensor thArray;
       if ((*it).tensor.scalar_type() != ScalarType::Half) {
-        auto options = at::TensorOptions().dtype((*it).tensor.scalar_type());
+        TensorOptions options;
+        if (dataset.getDataType() == PredType::STD_I64LE) {
+          options = at::TensorOptions().dtype(ScalarType::Long);
+        } else {
+          options = at::TensorOptions().dtype((*it).tensor.scalar_type());
+        }
         thArray = at::from_blob(data, (*it).tensor.sizes(), options);
         auto verCountBefore = (*it).tensor.unsafeGetTensorImpl()->version_counter().current_version();
         CopyMaybeWithZeroStride((*it).tensor.detach(), thArray.to((*it).tensor.device()).to((*it).tensor.dtype()));
@@ -763,7 +768,7 @@ namespace at {
 
   }
 
-  void ScalarCopying(const int & seqH5, const string nameIr, const H5File* file, CommDesc& commDesc) {
+  void ScalarCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.scalarDescVec.begin(); it != commDesc.scalarDescVec.end(); it++) {
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*(*it)).Name();
@@ -786,7 +791,7 @@ namespace at {
     }
   }
 
-  void OptionalScalarCopying(const int & seqH5, const string nameIr, const H5File* file, CommDesc& commDesc) {
+  void OptionalScalarCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.optionalScalarDescVec.begin(); it != commDesc.optionalScalarDescVec.end(); it++) {
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*(*it)).Name();
@@ -809,7 +814,7 @@ namespace at {
     }    
   }
 
-  void ProcessCopying(const int & seqH5, const string nameIr, const H5File* file, CommDesc& commDesc) {
+  void ProcessCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     // copying tensor
     TensorCopying(seqH5, nameIr, file, commDesc);
 

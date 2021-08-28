@@ -49,6 +49,15 @@ class OverflowUtil {
     return isChecking;
   }
 
+  void SetOverflowFlag(bool flag) {
+    hasOverflow = flag;
+    return;
+  }
+
+  bool GetOverflowFlag() {
+    return hasOverflow;
+  }
+
   void Lock() {
     mu_.lock();
   }
@@ -64,6 +73,7 @@ class OverflowUtil {
   OverflowUtil();
   bool isChecking = false;
   bool isCheckSwitchOn = false;
+  bool hasOverflow = false;
   std::recursive_mutex mu_;
 };
 

@@ -109,18 +109,17 @@ class ModulatedDeformConv(nn.Module):
 
         The implementation of this ModulatedDeformConv is mainly based
         on the implementation of mmcv for design and reconstruction.
-        Through the modular ModulatedDeformConvFunction, the forward and reverse are customized,
-        and the input is reconstructed in combination with the NPU underlying operator IR,
-        and finally the function is completed.
 
-        It is worth mentioning that deformconv (DCNv1) is also implemented
-        by setting modulated = False. Due to the difference between input
+        In ModulatedDeformConvFunction, the forward and backward are customized,
+        and the input tensor is reconstructed ito match the NPU based function.
+
+        It is worth mentioning that DeformConv(DCNv1) is also implemented
+        by setting modulated==False. Due to the difference between input
         and initialization, there is no additional implementation here.
-
 
         .. note::
             ModulatedDeformConv only implements operations under fp32 data types.
-            Notice, conv_ Weight and bias of offset must be initialized to 0.
+            Notice, weight and bias in conv_offset must be initialized to 0.
 
         Args:
             in_channels (int): Number of channels in the input image.
