@@ -23,26 +23,37 @@ using namespace at::native::npu;
 Tensor& inverse_out_npu(
     Tensor& result,
     const Tensor& self) {
+  Tensor selfCast = self;
+  if(self.scalar_type() == at::kHalf) {
+    selfCast = self.to(at::kFloat);
+  }
 
   OpCommand cmd;
   cmd.Name("MatrixInverse")
-      .Input(self)
+      .Input(selfCast)
       .Output(result)
       .Attr("adjoint", false)
       .Run();
-  
+  if (result.scalar_type() != self.scalar_type()) {
+    result = result.to(self.scalar_type());
+  }
   return result;
 }
 
 Tensor inverse_npu(const Tensor& self) {
-  Tensor result = OpPreparation::ApplyTensor(self);
+  Tensor selfCast = self;
+  if(self.scalar_type() == at::kHalf) {
+    selfCast = self.to(at::kFloat);
+  }
+  Tensor result = OpPreparation::ApplyTensor(selfCast);
 
-  inverse_out_npu(result, self);
+  inverse_out_npu(result, selfCast);
 
+  if (result.scalar_type() != self.scalar_type()) {
+    result = result.to(self.scalar_type());
+  }
   return result;
 }
 
-
 } // namespace native
 } // namespace at
-

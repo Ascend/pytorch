@@ -33,17 +33,19 @@ class TestInverse(TestCase):
         return output
     
     def test_inverse_shape_format(self, device):
-        #aicpu暂不支持5HD format，待支持后增加其他格式测试
+        dtype_list = [np.float16, np.float32]
+        format_list = [0, 3]
+        shape_list = [(4, 4), (0, 3, 29, 29), (1, 2, 4, 4)]
         shape_format = [
-                [np.float32, 0, (4,4)],
-                [np.float32, 0, (0,3,29,29)],
-                [np.float32, 0, (1,2,4,4)]
+            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
-
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, -100, 100)
+            if cpu_input1.dtype == torch.float16:
+                cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1)
             npu_output = self.npu_op_exec(npu_input1)
+            cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
 

@@ -15,8 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -88,27 +87,31 @@ Tensor constant_pad_nd_npu(const Tensor& self, IntArrayRef pad, Scalar value){
   }
 
   if (is_backward(pad)) {
-    TORCH_CHECK(self.dim() == 4 || self.dim() == 5,
-        "Only support 4D and 5D now, but self.dim is",self.dim());
-    TORCH_CHECK(pad.size()  == 4 || pad.size()  == 6,
-        "Length of pad must is 4 or 6 now, but pad.size() is", pad.size());
+    TORCH_CHECK(pad.size() % 2 == 0,
+        "Length of pad must be even but instead it equals ", pad.size());
 
-    SmallVector<int64_t, SIZE> begin_list = {0, 0, -pad[2], -pad[0]};
-    SmallVector<int64_t, SIZE> end_list = {self.size(0), self.size(1), self.size(-2) + pad[3], self.size(-1) + pad[1]};
-    SmallVector<int64_t, SIZE> strides = {1, 1, 1, 1};
-
-    if (self.dim() == 5) {
-      begin_list = {0, 0, -pad[4], -pad[2], -pad[0]};
-      end_list = {self.size(0), self.size(1), self.size(-3) + pad[5], self.size(-2) + pad[3], self.size(-1) + pad[1]};
-      strides = {1, 1, 1, 1, 1};
+    int64_t max_pad_size = 2 * self.dim();
+    auto pad_vec = array_to_small_vector(pad);
+    if (pad.size() < max_pad_size) {
+      for (int64_t i = 0; i < max_pad_size - pad.size(); i++) {
+        pad_vec.emplace_back(0);
+      }
     }
 
+    SmallVector<int64_t, SIZE> begin_list = {};
+    SmallVector<int64_t, SIZE> end_list = {};
+    SmallVector<int64_t, SIZE> strides = {};
+    for (int64_t i = 0; i < self.dim(); i++) {
+      begin_list.emplace_back(-pad_vec[max_pad_size - 2 * (i + 1)]);
+      end_list.emplace_back(self.size(i) + pad_vec[max_pad_size - 1 - 2 * i]);
+      strides.emplace_back(1);
+    }
+    
     return at::npu_indexing(self, begin_list, end_list, strides);
   }
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-    new_shape, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self, new_shape);
 
   // calculate the output result of the NPU
   constant_pad_nd_out_npu_nocheck(result, self, pad, value);
