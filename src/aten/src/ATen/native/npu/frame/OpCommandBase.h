@@ -229,7 +229,7 @@ class OpCommandBase {
     const TensorOptions& options, ScalarType toType) {
 
     AT_ASSERT(options.dtype() == at::kLong);
-    auto cpuTensor = at::native::empty_cpu(size, options);
+    auto cpuTensor = at::empty(size, options);
     AT_ASSERT(cpuTensor.is_contiguous());
     std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
     if (toType != at::kLong) {

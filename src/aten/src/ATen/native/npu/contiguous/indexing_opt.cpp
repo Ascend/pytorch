@@ -73,7 +73,12 @@ private:
 
     // infer end index
     for (int64_t i = 0; i < src.dim() ; i++) {
-      end.emplace_back(start[i] + src.size(i) * step[i]);   
+      int64_t calculate_end = start[i] + src.size(i) * step[i];
+      if (calculate_end > src.size(i)) {
+        // Op StrideSlice(Slice) don't support span-axis indexing(slice).
+        return false;
+      }
+      end.emplace_back(calculate_end);   
     }
 
     // indexing场景判断: (1) step乘积>1(=1为slice); 

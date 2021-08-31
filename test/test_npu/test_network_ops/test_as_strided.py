@@ -39,6 +39,7 @@ class TestAsStrided(TestCase):
                 [[np.float32, 0, [3, 3]], (2, 2), (1, 2), 0],
                 [[np.float16, 0, [13, 23]], (10, 15), (1, 2), 1],
                 [[np.int32, 0, [5, 5]], (3, 3), (1, 2), 1],
+                [[np.float32, 2, [32, 8, 2]], (8, 6, 2), (5, 4, 1), 1],
         ]
         
         for item in shape_format:

@@ -74,13 +74,10 @@ bool is_transpose_last_two_dims_strict(
 // Refresh storage desc of view-transpose tensor.
 void set_transposed_npu_desc(Tensor& tensor) {
   Tensor temp_transpose_Tensor = tensor.transpose(-1, -2);
-  NPUStorageDesc tensorDesc =
-      tensor.storage().get_npu_desc();
   StorageDescHelper::SetDesc(
       tensor,
       temp_transpose_Tensor.sizes(),
-      temp_transpose_Tensor.strides(),
-      tensorDesc.npu_format_);
+      temp_transpose_Tensor.strides());
 }
 
 Tensor& mm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
