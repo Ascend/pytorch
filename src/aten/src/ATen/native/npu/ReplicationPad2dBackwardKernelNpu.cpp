@@ -13,55 +13,56 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& replication_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArrayRef padding) {
-  TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
+Tensor& replication_pad2d_backward_out_npu_nocheck(
+  Tensor& gradInput,
+  const Tensor& gradOutput,
+  const Tensor& input,
+  IntArrayRef padding) {
   SmallVector<int64_t, N> vectorInt;
   SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * self.dim(), 0);
+  paddingsVector.resize(2 * input.dim(), 0);
   for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
     vectorInt.emplace_back(paddingsVector[i - 2]);
     vectorInt.emplace_back(paddingsVector[i - 1]);
   }
-  //constructs the attr of the NPUAttrDesc
-  SmallVector<int64_t, N> value_tensor = {(int64_t)0};
+
   OpCommand cmd;
-  cmd.Name("PadV3")
-    .Input(self)
+  cmd.Name("PadV3Grad")
+    .Input(gradOutput)
     .Input(vectorInt, at::kInt)
-    .Input(value_tensor, self.scalar_type())
-    .Output(out)
+    .Output(gradInput)
     .Attr("mode", (string)"edge")
     .Attr("paddings_contiguous", true)
     .Run();
 
-  return out;
+  return gradInput;
 }
 
-Tensor& replication_pad2d_out_npu(Tensor& out, const Tensor& self, IntArrayRef padding) {
-  //calculate the output size
-  auto outputSize = replication_pad2d_npu_output_size(self, padding);
+Tensor& replication_pad2d_backward_out_npu(
+  Tensor& gradInput,
+  const Tensor& gradOutput,
+  const Tensor& input,
+  IntArrayRef padding) {
   OpPreparation::CheckOut(
-  {self},
-  out,
-  self,
-  outputSize);
-  return replication_pad2d_out_npu_nocheck(out, self, padding);
+  {input, gradOutput},
+  gradInput,
+  input);
+  return replication_pad2d_backward_out_npu_nocheck(gradInput, gradOutput, input, padding);
 }
 
-Tensor replication_pad2d_npu(const Tensor& self, IntArrayRef padding) {
-  //calculate the output size
-  auto outputSize = replication_pad2d_npu_output_size(self, padding);
-  //construct the output tensor of the NPU
-  Tensor out = OpPreparation::ApplyTensor(self, outputSize);
+Tensor replication_pad2d_backward_npu(
+  const Tensor& gradOutput,
+  const Tensor& input, 
+  IntArrayRef padding) {
+  Tensor gradInput = OpPreparation::ApplyTensor(input);
+  replication_pad2d_backward_out_npu(gradInput, gradOutput, input, padding);
 
-  //calculate the output result of the NPU
-  replication_pad2d_out_npu(out, self, padding);
-
-  return out;
+  return gradInput;
 }
 }
 } // namespace at::native

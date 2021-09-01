@@ -44,12 +44,19 @@ SmallVector<int64_t, SIZE> reflection_pad2d_npu_output_size(const Tensor& self, 
 
 Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArrayRef padding) {
   TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
+  SmallVector<int64_t, N> vectorInt;
+  SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
+  paddingsVector.resize(2 * self.dim(), 0);
+  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
+    vectorInt.emplace_back(paddingsVector[i - 2]);
+    vectorInt.emplace_back(paddingsVector[i - 1]);
+  }
   //constructs the attr of the NPUAttrDesc
   SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
   cmd.Name("PadV3")
     .Input(self)
-    .Input(padding, at::kInt)
+    .Input(vectorInt, at::kInt)
     .Input(value_tensor, self.scalar_type())
     .Output(out)
     .Attr("mode", (string)"reflect")
