@@ -27,7 +27,13 @@ class TestLogicalNot(TestCase):
         return output
 
     def npu_op_exec(self, input):
-        output = torch.logical_not(input)      
+        output = torch.logical_not(input)
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
+
+    def npu_op_exec_out(self, input, output):
+        output = torch.logical_not(input, out = output)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -50,8 +56,8 @@ class TestLogicalNot(TestCase):
                 [[np.float32, -1, (64, 10)]],
                 [[np.float32, -1, (256, 2048, 7, 7)]],
                 [[np.float32, -1, (32, 1, 3, 3)]],
-                [[np.bool, -1, (64, 10)]],
-                [[np.bool, -1, (256, 2048, 7, 7)]]
+                [[np.bool_, -1, (64, 10)]],
+                [[np.bool_, -1, (256, 2048, 7, 7)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 10)
@@ -59,6 +65,24 @@ class TestLogicalNot(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)  
 
+    def test_logical_not_out_common_shape_format(self, device):
+        shape_format = [
+                [[np.float16, -1, (64, 10)], [np.float16, -1, (64, 1)]],
+                [[np.float16, -1, (256, 2048, 7, 7)], [np.float16, -1, (256, 2048, 7)]],
+                [[np.float16, -1, (32, 1, 3, 3)], [np.float16, -1, (32, 1, 3, 3)]],
+                [[np.float32, -1, (64, 10)], [np.float32, -1, (64, 1)]],
+                [[np.float32, -1, (256, 2048, 7, 7)], [np.float32, -1, (256, 2048, 7)]],
+                [[np.float32, -1, (32, 1, 3, 3)], [np.float32, -1, (32, 1, 3, 3)]],
+                [[np.bool_, -1, (64, 10)], [np.bool_, -1, (64, 10)]],
+                [[np.bool_, -1, (256, 2048, 7, 7)], [np.bool_, -1, (256, 2048, 7, 7)]],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 10)
+            cpu_output = self.cpu_op_exec(cpu_input1)
+            npu_output = self.npu_op_exec_out(npu_input1, npu_input2)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 
 instantiate_device_type_tests(TestLogicalNot, globals(), except_for="cpu")
