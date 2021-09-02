@@ -40,13 +40,11 @@ function main()
     fi     
 }
 
-
 case "$1" in
     -v|--version)
         Version=$2;
     ;;
 
 esac
-
 
 main
