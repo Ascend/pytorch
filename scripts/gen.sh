@@ -18,16 +18,35 @@
 CUR_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=$CUR_DIR/..
 PT_DIR=$ROOT_DIR/pytorch
-
+Version=1.5.0
 function main()
 {
     cd $ROOT_DIR
     # patch
-    cp $ROOT_DIR/patch/npu.patch $PT_DIR
-    cd $PT_DIR
-    patch -p1 < npu.patch
-    cp -r $ROOT_DIR/src/* $PT_DIR
+    if [ $Version = "1.5.0" ]; then
+        cp $ROOT_DIR/patch/pytorch1.5.0_npu.patch $PT_DIR
+        cd $PT_DIR
+        patch -p1 < pytorch1.5.0_npu.patch
+        cp -r $ROOT_DIR/pytorch1.5.0/src/* $PT_DIR
+    
+    elif [ $Version = "1.8.1" ];  then
+        cp $ROOT_DIR/patch/pytorch1.8.1_npu.patch $PT_DIR
+        cd $PT_DIR
+        patch -p1 < pytorch1.8.1_npu.patch
+        cp -r $ROOT_DIR/pytorch1.8.1/src/* $PT_DIR
+    else
+        echo "Usage: Only support version: 1.5.0 or 1.8.1."
+        exit 1
+    fi     
 }
 
-main $@
 
+case "$1" in
+    -v|--version)
+        Version=$2;
+    ;;
+
+esac
+
+
+main
