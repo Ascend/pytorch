@@ -20,7 +20,7 @@ import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
 
-DEFAULT_UT_FILE = 'test/test_npu/test_add.py'
+DEFAULT_UT_FILE = 'pytorch1.5.0/test/test_npu/test_add.py'
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
