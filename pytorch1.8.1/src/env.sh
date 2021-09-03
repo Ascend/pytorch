@@ -1,17 +1,3 @@
-# Copyright (c) 2020 Huawei Technologies Co., Ltd
-# All rights reserved.
-#
-# Licensed under the BSD 3-Clause License  (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# https://opensource.org/licenses/BSD-3-Clause
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 ############## nnae situation ################
 
 # cann env path
@@ -24,18 +10,18 @@ fi
 
 # 根据系统下的路径判断走nnae 还是 ascend-toolkit
 if [ -d /usr/local/Ascend/ascend-toolkit/latest ];then
-  export ASCEND_BASE=/usr/local/Ascend/ascend-toolkit/latest
-  export ASCEND_AICPU_PATH=${ASCEND_BASE}/${cpu_type}
+  export ASCNED_BASE=/usr/local/Ascend/ascend-toolkit/latest
+  export ASCEND_AICPU_PATH=${ASCNED_BASE}/${cpu_type}
 else
-  export ASCEND_BASE=/usr/local/Ascend/nnae/latest
-  export ASCEND_AICPU_PATH=${ASCEND_BASE}
+  export ASCNED_BASE=/usr/local/Ascend/nnae/latest
+  export ASCEND_AICPU_PATH=${ASCNED_BASE}
 fi
 
 # 定义各个子包的路径
-export FWK_HOME=${ASCEND_BASE}/fwkacllib
-export PLUGIN_PATH=${ASCEND_BASE}/fwkacllib/lib64/plugin
-export OP_PATH=${ASCEND_BASE}/opp/
-export TOOLKIT_PATH=${ASCEND_BASE}/toolkit
+export FWK_HOME=${ASCNED_BASE}/fwkacllib
+export PLUGIN_PATH=${ASCNED_BASE}/fwkacllib/lib64/plugin
+export OP_PATH=${ASCNED_BASE}/opp/
+export TOOLKIT_PATH=${ASCNED_BASE}/toolkit
 export DRIVER_PATH=/usr/local/Ascend/driver
 export ADD_ONS_PATH=/usr/local/Ascend/add-ons
 

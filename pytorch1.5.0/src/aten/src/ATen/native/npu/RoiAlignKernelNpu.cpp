@@ -14,40 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> roi_align_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> roi_align_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> roi_align_npu_attr(
-    double spatial_scale,
+SmallVector<int64_t, SIZE> roi_align_npu_output_size(
+    const Tensor& self,
+    const Tensor& rois,
     int64_t pooled_height,
-    int64_t pooled_width,
-    int64_t sample_num,
-    int64_t roi_end_mode) {
-  NPUAttrDesc spatialscaleValue =
-      NPUAttrDesc("spatial_scale", (float)spatial_scale);
-  NPUAttrDesc pooledheightValue = NPUAttrDesc("pooled_height", pooled_height);
-  NPUAttrDesc pooledwidthValue = NPUAttrDesc("pooled_width", pooled_width);
-  NPUAttrDesc samplenumValue = NPUAttrDesc("sample_num", sample_num);
-  NPUAttrDesc roiendmodeValue = NPUAttrDesc("roi_end_mode", roi_end_mode);
-
-  SmallVector<NPUAttrDesc, N> attrs = {
-      spatialscaleValue, pooledheightValue, pooledwidthValue, samplenumValue, roiendmodeValue};
-  return attrs;
+    int64_t pooled_width) {
+  return {
+      rois.size(0),
+      self.size(1),
+      pooled_height,
+      pooled_width}; //{N, C, H1, W1}
 }
 
 Tensor& roi_align_out_npu(
@@ -59,16 +41,17 @@ Tensor& roi_align_out_npu(
     int64_t pooled_width,
     int64_t sample_num,
     int64_t roi_end_mode) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = roi_align_npu_input({self, rois});
-  auto outputs = roi_align_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc (attr_roi_end_mode defaultValue:1)
-  auto attrs = roi_align_npu_attr(
-      spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("ROIAlign", inputs, outputs, attrs);
+  OpCommand cmd;
+  cmd.Name("ROIAlign")
+      .Input(self)
+      .Input(rois)
+      .Output(result)
+      .Attr("spatial_scale", (float)spatial_scale)
+      .Attr("pooled_height", pooled_height)
+      .Attr("pooled_width", pooled_width)
+      .Attr("sample_num", sample_num)
+      .Attr("roi_end_mode", roi_end_mode)
+      .Run();
 
   return result;
 }
@@ -81,13 +64,20 @@ Tensor roi_align_npu(
     int64_t pooled_width,
     int64_t sample_num,
     int64_t roi_end_mode) {
+  Tensor selfCast = self;
+  Tensor roisCast = rois;
+  if (self.scalar_type() == kHalf || rois.scalar_type() == kHalf) {
+    selfCast = self.to(kFloat);
+    roisCast = rois.to(kFloat);
+  }
+
   // calculate the output size
   auto outputSize =
       roi_align_npu_output_size(self, rois, pooled_height, pooled_width);
 
   // construct the output tensor of the NPU
   Tensor result =
-      at::empty_with_format(outputSize, self.options(), ACL_FORMAT_NC1HWC0);
+      OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
 
   // calculate the output result of the NPU
   roi_align_out_npu(
@@ -99,6 +89,10 @@ Tensor roi_align_npu(
       pooled_width,
       sample_num,
       roi_end_mode);
+
+  if (self.scalar_type() == kHalf || rois.scalar_type() == kHalf) {
+    result = result.to(kHalf);
+  }
 
   return result;
 }

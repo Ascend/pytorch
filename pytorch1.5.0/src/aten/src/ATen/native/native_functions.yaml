@@ -8352,7 +8352,7 @@
   npu_dispatch_only:
     NPU: dtype_cast_npu_
 
-- func: npu_roi_alignbk(Tensor self, Tensor rois, int[] xdiff_shape, int pooled_width, int pooled_height, float spatial_scale, int sample_num) -> Tensor
+- func: npu_roi_alignbk(Tensor self, Tensor rois, int[] xdiff_shape, int pooled_width, int pooled_height, float spatial_scale, int sample_num, int? roi_end_mode=None) -> Tensor
   variants: function, method
   npu_dispatch_only:
     NPU: roi_align_backward_npu

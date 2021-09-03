@@ -20,7 +20,7 @@ import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
 
-DEFAULT_UT_FILE = 'pytorch1.5.0/test/test_npu/test_add.py'
+DEFAULT_UT_FILE = 'test/test_npu/test_network_ops/test_add.py'
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -32,7 +32,7 @@ class AccurateTest(metaclass=ABCMeta):
     
     def find_ut_by_regex(self, regex):
         ut_files = []
-        cmd = "find {} -name {}".format('test/test_npu', regex)
+        cmd = "find {} -name {}".format('test/test_npu/test_network_ops', regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status:
             pass # 对于找不到的暂时不作处理

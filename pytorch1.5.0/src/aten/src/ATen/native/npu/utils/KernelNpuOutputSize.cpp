@@ -732,30 +732,12 @@ SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,
   return outputSize;
 }
 
-SmallVector<int64_t, SIZE> roi_align_npu_output_size(
-    const Tensor& self,
-    const Tensor& rois,
-    int64_t pooled_height,
-    int64_t pooled_width) {
-  return {
-      rois.size(0), self.size(1), pooled_height, pooled_width}; //{N, C, H1, W1}
-}
-
 tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
 nms_v4_npu_output_size(Scalar max_output_size) {
   SmallVector<int64_t, SIZE> selected_indices = {max_output_size.toInt()};
   SmallVector<int64_t, SIZE> valid_outputs    = {};
   return std::tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
       selected_indices, valid_outputs);
-}
-
-SmallVector<int64_t, SIZE> roi_align_backward_npu_output_size(
-    IntArrayRef xdiff_shape) {
-  return {
-      xdiff_shape[0],
-      xdiff_shape[1],
-      xdiff_shape[2],
-      xdiff_shape[3]}; //{N, C, H1, W1}
 }
 
 SmallVector<int64_t, SIZE> repeat_npu_output_size(
