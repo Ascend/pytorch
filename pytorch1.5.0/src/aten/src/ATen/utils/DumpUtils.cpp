@@ -17,6 +17,10 @@
 #include <ATen/utils/DumpUtils.h>
 #include <ATen/utils/LoadUtils.h>
 #include <ATen/utils/OverflowUtils.h>
+#ifdef USE_NPU
+#include <c10/npu/NPUStream.h>
+#include <c10/npu/NPUException.h>
+#endif
 
 using namespace std;
 using namespace H5;
@@ -673,5 +677,29 @@ namespace at {
   }
   
   void DumpUtil::DumpOneOutput(const string& irName, int seqId, const ArgDes<c10::ScalarType>& output) {
+  }
+
+  void DumpUtil::StartAclDump() {
+  #ifdef USE_NPU
+    auto stream = c10::npu::getCurrentNPUStream();
+    C10_NPU_CHECK(aclrtSynchronizeStream(stream));
+
+    C10_NPU_CHECK(aclmdlInitDump());
+    const char *aclConfigPath = "acl.json";
+    C10_NPU_CHECK(aclmdlSetDump(aclConfigPath));
+
+    C10_NPU_CHECK(aclrtSynchronizeStream(stream));
+  #endif
+  }
+
+  void DumpUtil::FinalizeAclDump() {
+  #ifdef USE_NPU
+    auto stream = c10::npu::getCurrentNPUStream();
+    C10_NPU_CHECK(aclrtSynchronizeStream(stream));
+
+    C10_NPU_CHECK(aclmdlFinalizeDump());
+
+    C10_NPU_CHECK(aclrtSynchronizeStream(stream));
+  #endif
   }
 }

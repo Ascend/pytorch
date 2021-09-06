@@ -70,17 +70,20 @@ class dumper(object):
     """
 
     def __init__(self, enabled=True, use_dump=False, use_load=False, 
-                 check_overflow=False, dump_path=None, load_file_path=None):
+                 check_overflow=False, dump_path=None, load_file_path=None,
+                 load_with_acl_dump=False):
         self.enabled = enabled
         self.use_dump = use_dump
         self.use_load = use_load
         self.check_overflow = check_overflow
         self.dump_path = dump_path
         self.load_file_path = load_file_path
+        self.load_with_acl_dump = load_with_acl_dump
         if not isinstance(use_dump, bool) or \
             not isinstance(use_load, bool) or \
-            not isinstance(check_overflow, bool):
-            raise RuntimeError("use_dump/use_load/check_overflow should be set to True or False!")
+            not isinstance(check_overflow, bool) or \
+            not isinstance(load_with_acl_dump, bool):
+            raise RuntimeError("use_dump/use_load/check_overflow/load_with_acl_dump should be set to True or False!")
         if not self.enabled:
             return
         self.entered = False
@@ -94,19 +97,23 @@ class dumper(object):
         if mode > 1:
             raise RuntimeError("dump mode, load mode and check overflow mode can not run together!")
 
+        if not torch.npu.is_available() and (self.check_overflow or self.load_with_acl_dump):
+            raise RuntimeError("check_overflow and load_with_acl_dump are only supported on NPU device, "
+                               "however there is no NPU available!")
+
         if self.use_dump:
             self._set_dump_path(self.dump_path)
             torch._C._set_dumper_mode(DumpMode.DUMP.value)
         elif self.use_load:
             if path.isfile(self.load_file_path):
-                if path.isfile(self.dump_path) and \
-                    path.abspath(self.load_file_path) == path.abspath(self.dump_path):
+                if path.abspath(self.load_file_path) == path.abspath(self.dump_path):
                     raise RuntimeError("dump_path and load_file_path can not be same!")
                 torch._C._set_loader_path(self.load_file_path)
                 self._set_dump_path(self.dump_path)
             else:
                 raise RuntimeError("please input a file path")
             torch._C._set_dumper_mode(DumpMode.LOAD.value)
+            torch._C._set_load_with_acl_dump_flag(self.load_with_acl_dump)
         elif self.check_overflow:
             self._set_dump_path(self.dump_path)
             torch._C._set_dumper_mode(DumpMode.CHK_OVERFLOW.value)

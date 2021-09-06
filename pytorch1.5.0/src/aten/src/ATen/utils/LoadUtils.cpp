@@ -27,6 +27,11 @@ namespace at {
     return;
   }
 
+  void SetLoadWithAclDumpFlag(bool flag) {
+    LoadUtil::GetInstance()->SetLoadWithAclDumpFlag(flag);
+    return;
+  }
+
   class ScalarTypeHashFunction {
    public:
     size_t operator()(const c10::ScalarType& type) const {

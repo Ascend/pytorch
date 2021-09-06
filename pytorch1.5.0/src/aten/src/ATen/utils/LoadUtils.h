@@ -25,6 +25,7 @@ using std::vector;
 namespace at {
 
 C10_API void SetLoadPath(string path);
+C10_API void SetLoadWithAclDumpFlag(bool flag);
 
 struct TensorDesc {
   Tensor tensor;
@@ -148,6 +149,15 @@ class LoadUtil {
     mu_.unlock();
   }
 
+  void SetLoadWithAclDumpFlag(bool flag) {
+    loadWithAclDump = flag;
+    return;
+  }
+
+  bool GetLoadWithAclDumpFlag() {
+    return loadWithAclDump;
+  }
+
  private:
   LoadUtil();
   H5::H5File* file = nullptr;
@@ -158,6 +168,7 @@ class LoadUtil {
   int matchedSeqId = -1;
   bool isLoadSwitchOn = false;
   bool loadInit = false;
+  bool loadWithAclDump = false;
   std::recursive_mutex mu_;
 };
 } // namespace c10

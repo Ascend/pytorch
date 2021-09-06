@@ -234,6 +234,9 @@ class DumpUtil {
     mu_.unlock();
   }
 
+  void StartAclDump();
+  void FinalizeAclDump();
+
  private:
   DumpUtil();
   H5::H5File* file = nullptr;
