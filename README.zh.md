@@ -35,10 +35,13 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 ## 获取原生PyTorch源代码和third_party代码
 
-在当前仓库根目录pytorch/下获取原生PyTorch的源代码
+当前支持pytorch 1.5.0和1.8.1的版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
+// 1.5.0 版本
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
+// 1.8.1 版本
+git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
 ```
 
 进入到pytorch/pytorch/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
@@ -52,10 +55,13 @@ git submodule update --init --recursive
 
 ## 生成适配昇腾AI处理器的PyTorch代码。
 
-进入到pytorch/scripts目录，执行
+进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
 
 ```sh
+// 默认为1.5.0版本
 bash gen.sh
+// 对于1.8.1版本，则通过-v 参数指定
+bash gen.sh -v 1.8.1
 ```
 
 会在pytorch/pytorch/目录中生成npu适配全量代码
@@ -81,6 +87,8 @@ bash build.sh
 生成的二进制包在pytorch/pytorch/dist/目录下
 
 # 安装
+
+### （以1.5.0版本为例，1.8.1版本同理）
 
 **x86_64:**
 
