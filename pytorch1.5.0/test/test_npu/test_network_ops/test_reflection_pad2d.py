@@ -44,7 +44,7 @@ class TestReflectionPad2d(TestCase):
         output = output.numpy()
         return output
 
-    def test_reflectionPad2d_out_shape_format_fp16(self, device):
+    def test_reflection_pad2d_out_shape_format_fp16(self, device):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2]
@@ -66,7 +66,7 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflectionPad2d_shape_format_fp16(self, device):
+    def test_reflection_pad2d_shape_format_fp16(self, device):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2]
@@ -86,6 +86,17 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_reflection_pad2d_shape_format_fp32(self, device):
+        shape_format = [
+            [[np.float32, 0, (1, 1, 37, 37)], [2, 2, 2, 2]],
+            [[np.float32, 3, (1, 1, 17, 17)], 2]
+        ]
+
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
+            cpu_output = self.cpu_op_exec(cpu_input1, item[1])
+            npu_output = self.npu_op_exec(npu_input1, item[1])
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestReflectionPad2d, globals(), except_for="cpu")
 if __name__ == "__main__":

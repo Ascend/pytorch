@@ -36,10 +36,10 @@ function main()
     if [ $? != 0 ]; then
         USE_FBGEMM=0 DEBUG=0 USE_DISTRIBUTED=1 USE_QNNPACK=0 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_XNNPACK=0 python3.7 setup.py build bdist_wheel
         if [ $? != 0 ]; then
-            exit 0
+            echo "Failed to compile the wheel file. Please check the source code by yourself."
+            exit 1
         fi
-        echo "Failed to compile the wheel file. Please check the source code by yourself."
-        exit 1
+        exit 0
     fi
 
     exit 0

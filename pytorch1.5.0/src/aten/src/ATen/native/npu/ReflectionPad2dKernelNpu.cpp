@@ -51,10 +51,12 @@ Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArr
     vectorInt.emplace_back(paddingsVector[i - 2]);
     vectorInt.emplace_back(paddingsVector[i - 1]);
   }
+  
   //constructs the attr of the NPUAttrDesc
   SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
-  cmd.Name("PadV3")
+  if(self.dtype() == kHalf) {
+    cmd.Name("PadV3")
     .Input(self)
     .Input(vectorInt, at::kInt)
     .Input(value_tensor, self.scalar_type())
@@ -62,6 +64,14 @@ Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArr
     .Attr("mode", (string)"reflect")
     .Attr("paddings_contiguous", true)
     .Run();
+  } else {
+    cmd.Name("MirrorPad")
+    .Input(self)
+    .Input(vectorInt, at::kInt)
+    .Output(out)
+    .Attr("mode", (string)"REFLECT")
+    .Run();
+  }
 
   return out;
 }
