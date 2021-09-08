@@ -451,6 +451,21 @@ class TestProd(TestCase):
                          for i in format_list for j in keepdim_list
                        ]
         self.prod_dim_name_out_result(shape_format)
+    
+    def test_prod_dtype(self, device):
+        cpu_input1 = torch.empty(15, 15, 15, 16).uniform_(1.0, 2.0).to(torch.float16)
+        npu_input1 = cpu_input1.npu()
+
+        cpu_out = torch.prod(cpu_input1.float(), dim=0, keepdim=False, dtype=torch.float).half()
+        npu_out = torch.prod(npu_input1, dim=0, keepdim=False, dtype=torch.float16).cpu()
+        self.assertRtolEqual(cpu_out, npu_out)
+
+        cpu_out1 = torch.rand(1)
+        npu_out1 = cpu_out1.npu().half()
+        torch.prod(cpu_input1.float(), dim=0, keepdim=False, dtype=torch.float, out=cpu_out1)
+        torch.prod(npu_input1, dim=0, keepdim=False, dtype=torch.float16, out=npu_out1)
+        self.assertRtolEqual(cpu_out1.half(), npu_out1.cpu())
+
 
 instantiate_device_type_tests(TestProd, globals(), except_for="cpu")
 if __name__ == "__main__":

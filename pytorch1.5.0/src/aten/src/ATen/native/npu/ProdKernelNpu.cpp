@@ -40,23 +40,9 @@ Tensor& prod_out_npu_nocheck(
     SmallVector<int64_t, N> dimList,
     bool keepdim,
     optional<ScalarType> dtype) {
-  ScalarType dstType;
-  if (dtype.has_value()) {
-    dstType = dtype.value();
-  } else if (result.defined()) {
-    dstType = result.scalar_type();
-  } else {
-    dstType = self.scalar_type();
-  }
-
-  Tensor self_tmp = self;
-  if (dstType != self.scalar_type()) {
-      self_tmp = self.to(dstType);
-  }
-
   OpCommand cmd;
     cmd.Name("ReduceProd")
-    .Input(self_tmp)
+    .Input(self)
     .Input(dimList)
     .Output(result)
     .Attr("keep_dims", keepdim)
@@ -71,25 +57,35 @@ Tensor& prod_out_npu(
     int64_t dim,
     bool keepdim,
     optional<ScalarType> dtype) {
+  Tensor self_tmp = self;
   // fp16 transform：fp32 for precise
   if (self.scalar_type() == ScalarType::Half) {
-    Tensor result_tmp  = prod_npu(self, dim, keepdim, dtype);
-    OpPreparation::CheckOut(
-        {result_tmp}, 
-        result, 
-        ACL_FORMAT_ND, 
-        result_tmp.scalar_type(), 
-        result_tmp.sizes());
-    result.copy_(result_tmp);
-    return result;
-  } else {
-    auto outputSize = prod_npu_output_size(self, dim, keepdim);
-    ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
-    OpPreparation::CheckOut({self}, result, ACL_FORMAT_ND, dstType, outputSize);
-
-    prod_out_npu_nocheck(result, self, {dim}, keepdim, dtype);
-    return result;
+    self_tmp = self.npu_dtype_cast(ScalarType::Float);
   }
+
+  auto outputSize = prod_npu_output_size(self, dim, keepdim);
+  ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
+
+  OpPreparation::CheckOut(
+      {self_tmp}, 
+      result, 
+      ACL_FORMAT_ND, 
+      dstType,
+      outputSize);
+  
+  Tensor result_tmp = result;
+  if (result_tmp.scalar_type() == ScalarType::Half) {
+    result_tmp = result_tmp.npu_dtype_cast(ScalarType::Float);
+  }
+
+  prod_out_npu_nocheck(result_tmp, self_tmp, {dim}, keepdim, dtype);
+
+  if (result_tmp.scalar_type() != dstType) {
+    result_tmp = result_tmp.npu_dtype_cast(dstType);
+  }
+  result.copy_(result_tmp);
+
+  return result;
 }
 
 Tensor& prod_out_npu(
@@ -113,7 +109,7 @@ Tensor prod_npu(
     self_tmp = self.npu_dtype_cast(ScalarType::Float);
   }
 
-  ScalarType dstType = dtype.has_value() ? dtype.value() : self_tmp.scalar_type();
+  ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
 
   // calculate the output size
   auto outputSize = prod_npu_output_size(self_tmp, dim, keepdim);
@@ -122,12 +118,15 @@ Tensor prod_npu(
 
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self_tmp.options().dtype(dstType), npu_format);
+      outputSize, self_tmp.options(), npu_format);
 
   // calculate the output result of the NPU
   prod_out_npu_nocheck(result, self_tmp, {dim}, keepdim, dtype);
 
-  result = result.npu_dtype_cast(self.scalar_type());
+  if (result.scalar_type() != dstType) {
+    result = result.npu_dtype_cast(dstType);
+  }
+
   return result;
 }
 
@@ -140,6 +139,12 @@ Tensor prod_npu(
 }
 
 Tensor prod_npu(const Tensor& self, optional<ScalarType> dtype) {
+  Tensor self_tmp = self;
+  //Input transform：fp16 to fp32
+  if (self.scalar_type() == ScalarType::Half) {
+    self_tmp = self.npu_dtype_cast(ScalarType::Float);
+  }
+
   ScalarType dstType = dtype.has_value() ? dtype.value() : self.scalar_type();
 
   // calculate the output size
@@ -149,11 +154,15 @@ Tensor prod_npu(const Tensor& self, optional<ScalarType> dtype) {
 
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options().dtype(dstType), npu_format);
+      outputSize, self_tmp.options(), npu_format);
 
   // calculate the output result of the NPU
   prod_out_npu_nocheck(
-      result, self, CalcuOpUtil::get_dimlist_for_tensor(self), false, dtype);
+      result, self_tmp, CalcuOpUtil::get_dimlist_for_tensor(self), false, dtype);
+
+  if (result.scalar_type() != dstType) {
+    result = result.npu_dtype_cast(dstType);
+  }
 
   return result;
 }

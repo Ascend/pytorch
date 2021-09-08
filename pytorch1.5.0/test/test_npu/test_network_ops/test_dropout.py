@@ -50,7 +50,7 @@ class TestDropOutDoMask(TestCase):
                 print(f'input = {item}, Successfully!')
 
     def test_op_shape_format_fp16(self, device):
-        format_list = [0, 3, 29]
+        format_list = [-1]
         shape_list = [1, (256, 1280), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
@@ -58,7 +58,7 @@ class TestDropOutDoMask(TestCase):
         self.dropout_list_exec(shape_format)
 
     def test_op_shape_format_fp32(self, device):
-        format_list = [0, 3, 29]
+        format_list = [-1]
         shape_list = [1, (256, 1280), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list

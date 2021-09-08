@@ -34,7 +34,7 @@ class TestRepeat(TestCase):
 
     def test_repeat_common_shape_format(self, device):
         shape_format = [
-                [[np.float32, 3, (1280, 4)], [2,3]],
+                [[np.float32, -1, (1280, 4)], [2,3]],
                 [[np.float32, 0, (1, 6, 4)],  [2, 4, 8]],
                 [[np.float32, 0, (2, 4, 5)], [2, 6, 10]],
                 [[np.int32, 0, (2, 2, 1280, 4)], [2,2,3,5]],

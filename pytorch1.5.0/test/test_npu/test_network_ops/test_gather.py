@@ -35,7 +35,7 @@ class TestIndex(TestCase):
         return output
 
     def test_index_shape_format_fp32(self, device):
-        format_list = [0, 3, 29]
+        format_list = [-1]
         shape_list = [(1000, 1280), (32, 3, 3), (1024, 464, 7, 7)]
         shape_format = [
             [[np.float32, i, j], [np.int64, 0, [2]]] for i in format_list for j in shape_list
@@ -53,7 +53,7 @@ class TestIndex(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_index_shape_format_fp16(self, device):
-        format_list = [0, 3, 29]
+        format_list = [-1]
         shape_list = [(1000, 1280), (32, 3, 3), (1024, 464, 7, 7)]
         shape_format = [
             [[np.float16, i, j], [np.int64, 0, [2]]] for i in format_list for j in shape_list
