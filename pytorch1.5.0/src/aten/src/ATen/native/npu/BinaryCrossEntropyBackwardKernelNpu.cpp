@@ -27,11 +27,8 @@ Tensor& binary_cross_entropy_backward_out_npu(
     const Tensor& target,
     const Tensor& weight,
     int64_t reduction) {
-  Tensor weightTensor = at::ones(self.sizes(), self.options());
-  if (weight.defined()) {
-    weightTensor = at::sub(
-        at::empty_with_format(self.sizes(), self.options()), weightTensor, 1);
-  }
+  Tensor weightTensor = weight.defined() ? weight :
+              at::ones(self.sizes(), self.options());
 
   string reductionStr;
   if (reduction == Reduction::None) {
@@ -41,7 +38,7 @@ Tensor& binary_cross_entropy_backward_out_npu(
   } else if (reduction == Reduction::Sum) {
     reductionStr = "sum";
   }
-  
+
   OpCommand cmd;
   cmd.Name("BinaryCrossEntropyGrad")
      .Input(self)
