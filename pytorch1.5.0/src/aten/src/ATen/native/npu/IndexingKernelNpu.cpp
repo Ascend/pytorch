@@ -31,20 +31,35 @@ Tensor& indexing_out_npu(
     int64_t ellipsis_mask,
     int64_t new_axis_mask,
     int64_t shrink_axis_mask) {
-  OpCommand cmd;
-  cmd.Name("StridedSlice")
-      .Input(self)
-      .Input(begin)
-      .Input(end)
-      .Input(strides)
-      .Output(result)
-      .Attr("begin_mask", begin_mask)
-      .Attr("end_mask", end_mask)
-      .Attr("ellipsis_mask", ellipsis_mask)
-      .Attr("new_axis_mask", new_axis_mask)
-      .Attr("shrink_axis_mask", shrink_axis_mask)
-      .Run();
-	  
+  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
+    OpCommand cmd;
+    cmd.Name("StridedSlice")
+        .Input(self)
+        .Input(begin)
+        .Input(end)
+        .Input(strides)
+        .Output(result)
+        .Attr("begin_mask", begin_mask)
+        .Attr("end_mask", end_mask)
+        .Attr("ellipsis_mask", ellipsis_mask)
+        .Attr("new_axis_mask", new_axis_mask)
+        .Attr("shrink_axis_mask", shrink_axis_mask)
+        .Run();
+  } else {
+    OpCommand cmd;
+    cmd.Name("StridedSliceD")
+        .Input(self)
+        .Output(result)
+        .Attr("begin", begin)
+        .Attr("end", end)
+        .Attr("strides", strides)
+        .Attr("begin_mask", begin_mask)
+        .Attr("end_mask", end_mask)
+        .Attr("ellipsis_mask", ellipsis_mask)
+        .Attr("new_axis_mask", new_axis_mask)
+        .Attr("shrink_axis_mask", shrink_axis_mask)
+        .Run();
+  }
   return result; 
 }
 

@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include <torch/script.h>
 
 namespace at {
 namespace native {
@@ -62,12 +63,15 @@ Tensor& convolution_transpose_out_npu(
 Tensor convolution_transpose_npu(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const optional<Tensor>& bias_opt,
     IntArrayRef padding,
     IntArrayRef output_padding,
     IntArrayRef stride,
     IntArrayRef dilation,
     int64_t groups) {
+  
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+
   // calculate the output size
   auto outputSize = convolution_transpose_npu_output_size(
       input, weight, bias, padding, output_padding, stride, dilation, groups);
@@ -81,6 +85,23 @@ Tensor convolution_transpose_npu(
       result, input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   return result;
+}
+
+Tensor npu_conv_transpose2d(
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias_opt,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  
+    return convolution_transpose_npu(input, weight, bias_opt, padding, output_padding, stride, dilation, groups);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_conv_transpose2d", TORCH_FN(convolution_transpose_npu));
 }
 
 } // namespace native

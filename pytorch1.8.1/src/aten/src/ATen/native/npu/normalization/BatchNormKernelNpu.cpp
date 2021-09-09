@@ -194,11 +194,15 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
   int64_t dim_c = self_4d.size(1);
   TensorOptions options = self.options().dtype(ScalarType::Float);
 
-  Tensor running_mean_tensor = running_mean_opt.has_value() ? running_mean_opt.value() : at::zeros({dim_c}, options);
-  Tensor running_var_tensor = running_var_opt.has_value() ? running_var_opt.value() : at::ones({dim_c}, options);
+  Tensor running_mean_tensor = 
+      (running_mean_opt.has_value() && running_mean_opt.value().defined()) ? running_mean_opt.value() : at::zeros({dim_c}, options);
+  Tensor running_var_tensor = 
+      (running_var_opt.has_value() && running_var_opt.value().defined()) ? running_var_opt.value() : at::ones({dim_c}, options);
 
-  Tensor weight_tensor = weight_opt.has_value() ? weight_opt.value() : at::ones({dim_c}, options);
-  Tensor bias_tensor = bias_opt.has_value() ? bias_opt.value() : at::zeros({dim_c}, options);
+  Tensor weight_tensor = 
+      (weight_opt.has_value() && weight_opt.value().defined()) ? weight_opt.value() : at::ones({dim_c}, options);
+  Tensor bias_tensor = 
+      (bias_opt.has_value() && bias_opt.value().defined()) ? bias_opt.value() : at::zeros({dim_c}, options);
 
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self_4d.sizes(), self_4d.options(), self_4d);

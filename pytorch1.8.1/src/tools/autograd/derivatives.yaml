@@ -1126,10 +1126,7 @@
 
 - name: transpose_(Tensor(a!) self, int dim0, int dim1) -> Tensor(a!)
   self: grad.transpose(dim0, dim1)
-
-#- name: npu_transpose_to_contiguous(Tensor self) -> Tensor
- # self: grad
-
+  
 - name: triangular_solve(Tensor self, Tensor A, bool upper=True, bool transpose=False, bool unitriangular=False) -> (Tensor solution, Tensor cloned_coefficient)
   self, A: triangular_solve_backward(grads[0], grads[1], self, A, solution, upper, transpose, unitriangular, grad_input_mask)
 
@@ -1784,10 +1781,6 @@
 
 - name: cudnn_convolution_backward(Tensor self, Tensor grad_output, Tensor weight, int[] padding, int[] stride, int[] dilation, int groups, bool benchmark, bool deterministic, bool allow_tf32, bool[2] output_mask) -> (Tensor, Tensor)
   grad_output, self, weight: _convolution_double_backward(grads[0], grads[1], Tensor(), grad_output, weight, self, stride, padding, dilation, false, std::vector<int64_t>(padding.size(), 0), groups, benchmark, deterministic, true, allow_tf32, grad_input_mask)
-- name: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
-  input, weight, bias: npu_convolution_backward(input, grad, weight, stride, padding, dilation, groups, grad_input_mask)
-- name: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
-  input, weight, bias: npu_convolution_transpose_backward(input, grad, weight, padding, output_padding, stride, dilation, groups, grad_input_mask)
 
 # The above backward definitions are equivalent to the definitions below.  Why do we bundle
 # everything up?  It's because it's more convenient to define double backwards
@@ -1983,9 +1976,6 @@
 
 - name: nonzero(Tensor self) -> Tensor
   output_differentiability: [False]
-
-#- name: npu_format_cast(Tensor self, int acl_format) -> Tensor
- # self: grad
 
 - name: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
   self: npu_softmax_cross_entropy_with_logits_backward(grad, self, labels)

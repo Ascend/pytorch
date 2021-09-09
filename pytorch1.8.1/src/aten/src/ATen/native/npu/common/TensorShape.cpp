@@ -19,6 +19,7 @@
 #include <ATen/InferSize.h>
 #include <ATen/NamedTensorUtils.h>
 #include <ATen/NativeFunctions.h>
+#include <torch/script.h>
 #include <ATen/SparseTensorUtils.h>
 #include <ATen/WrapDimUtils.h>
 #include <ATen/native/Copy.h>
@@ -30,7 +31,6 @@
 #include <vector>
 #include <ATen/native/npu/frame/InferFormat.h>
 #include <ATen/native/npu/common/FormatCastHelper.h>
-#include <torch/script.h>
 
 namespace at {
 namespace native {

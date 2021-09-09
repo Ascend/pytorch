@@ -18,7 +18,6 @@
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

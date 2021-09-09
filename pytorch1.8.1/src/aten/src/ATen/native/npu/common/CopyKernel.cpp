@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>

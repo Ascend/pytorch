@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
+
 namespace at {
 namespace native {
 using namespace at::native::npu;

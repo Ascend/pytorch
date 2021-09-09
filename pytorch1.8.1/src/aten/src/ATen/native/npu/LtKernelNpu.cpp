@@ -16,7 +16,6 @@
 
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

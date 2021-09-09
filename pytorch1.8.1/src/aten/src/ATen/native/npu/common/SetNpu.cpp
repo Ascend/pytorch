@@ -17,11 +17,11 @@
 // #pragma once
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
+#include <torch/script.h>
 #include <ATen/native/npu/common/ResizeNpu.h>
 #include <TH/THTensor.hpp>
 #include <c10/npu/NPUCachingAllocator.h>
 #include "ATen/native/npu/frame/StorageDescHelper.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

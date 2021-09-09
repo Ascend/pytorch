@@ -14,21 +14,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <torch/csrc/autograd/function.h>
+#include <torch/csrc/autograd/variable.h>
 #include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
+using namespace torch::autograd;
 
 Tensor convolution_transpose_backward_input_out_npu(
     Tensor& gradInput,
-    const Tensor& input, 
-    const Tensor& grad_output, 
-    const Tensor& weight, 
-    IntArrayRef padding, 
-    IntArrayRef output_padding, 
-    IntArrayRef stride, 
-    IntArrayRef dilation, 
+    const Tensor& input,
+    const Tensor& grad_output,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
     int64_t groups) {
   // constructs the input and output NPUTensorDesc
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
@@ -53,13 +56,13 @@ Tensor convolution_transpose_backward_input_out_npu(
 
 Tensor convolution_transpose_backward_weight_out_npu(
     Tensor& gradWeight,
-    const Tensor& input, 
-    const Tensor& grad_output, 
-    const Tensor& weight, 
-    IntArrayRef padding, 
-    IntArrayRef output_padding, 
-    IntArrayRef stride, 
-    IntArrayRef dilation, 
+    const Tensor& input,
+    const Tensor& grad_output,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
     int64_t groups) {
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
@@ -83,20 +86,19 @@ Tensor convolution_transpose_backward_weight_out_npu(
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
       .Run();
-    
 
   return gradWeight;
 }
 
 Tensor convolution_transpose_backward_bias_out_npu(
     Tensor& gradBias,
-    const Tensor& input, 
-    const Tensor& grad_output, 
-    const Tensor& weight, 
-    IntArrayRef padding, 
-    IntArrayRef output_padding, 
-    IntArrayRef stride, 
-    IntArrayRef dilation, 
+    const Tensor& input,
+    const Tensor& grad_output,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
     int64_t groups) {
   Tensor gradView = grad_output.contiguous().view({grad_output.size(0), grad_output.size(1), -1});
   at::sum_out(gradBias, gradView, SmallVector<int64_t, N>{0, 2}); 
@@ -104,17 +106,17 @@ Tensor convolution_transpose_backward_bias_out_npu(
   return gradBias;
 }
 tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
-    Tensor& gradInput, 
+    Tensor& gradInput,
     Tensor& gradWeight,
     Tensor& gradBias,
-    const Tensor& input, 
-    const Tensor& grad_output, 
-    const Tensor& weight, 
-    IntArrayRef padding, 
-    IntArrayRef output_padding, 
-    IntArrayRef stride, 
-    IntArrayRef dilation, 
-    int64_t groups, 
+    const Tensor& input,
+    const Tensor& grad_output,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups,
     std::array<bool, 3> output_mask) {
   // calculate the output result of the NPU
   if (output_mask[0]) {
@@ -134,16 +136,35 @@ tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
 
   return std::tie(gradInput, gradWeight, gradBias);
 }
+Tensor npu_convolution_transpose(
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  int64_t dim = input.ndimension();
 
-tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
-    const Tensor& input, 
-    const Tensor& grad_output, 
-    const Tensor& weight, 
-    IntArrayRef padding, 
-    IntArrayRef output_padding, 
-    IntArrayRef stride, 
-    IntArrayRef dilation, 
-    int64_t groups, 
+  Tensor output;
+  if (dim == 4) {
+    output = at::npu_conv_transpose2d(
+        input, weight, bias, padding, output_padding, stride, dilation, groups);
+  }
+
+  return output;
+}
+
+tuple<Tensor, Tensor, Tensor> npu_convolution_transpose_backward(
+    const Tensor& input,
+    const Tensor& grad_output,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups,
     std::array<bool, 3> output_mask) {
   Tensor gradInput;
   Tensor gradWeight;
@@ -170,6 +191,102 @@ tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
       gradInput, gradWeight, gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups, output_mask);
 
   return std::tie(gradInput, gradWeight, gradBias);
+}
+
+class NPUConvlutionTransposeFunction : public torch::autograd::Function<NPUConvlutionTransposeFunction> {
+public:
+  static Tensor forward(AutogradContext *ctx,
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+
+    ctx->saved_data["padding"] = padding;
+    ctx->saved_data["output_padding"] = output_padding;
+    ctx->saved_data["stride"] = stride;
+    ctx->saved_data["dilation"] = dilation;
+    ctx->saved_data["groups"] = groups;
+    ctx->saved_data["bias_has_value"] = (bias.has_value() == true) ? bias.value().requires_grad() : false;
+
+    at::AutoNonVariableTypeMode g;
+    ctx->save_for_backward({input, weight});
+    return at::native::npu_convolution_transpose(input, weight, bias, padding, output_padding, stride, dilation, groups);
+  }
+
+  static tensor_list backward(AutogradContext *ctx,
+    tensor_list grad_outputs) {
+    
+    auto padding = ctx->saved_data["padding"].toIntVector();
+    auto output_padding = ctx->saved_data["output_padding"].toIntVector();
+    auto stride = ctx->saved_data["stride"].toIntVector();
+    auto dilation = ctx->saved_data["dilation"].toIntVector();
+    auto groups = ctx->saved_data["groups"].toInt();
+    auto bias_has_value = ctx->saved_data["bias_has_value"].toBool();
+
+    auto saved = ctx->get_saved_variables();
+    auto input = saved[0];
+    auto weight = saved[1];
+    
+    std::array<bool, 3> grad_input_mask;
+    grad_input_mask[0] = input.requires_grad();
+    grad_input_mask[1] = weight.requires_grad();
+    grad_input_mask[2] = bias_has_value;
+
+    tuple<Tensor, Tensor, Tensor> result = 
+        at::native::npu_convolution_transpose_backward(input,
+            grad_outputs[0],
+            weight,
+            padding,
+            output_padding,
+            stride,
+            dilation,
+            groups,
+            grad_input_mask);
+    tensor_list output={std::get<0>(result),
+        std::get<1>(result),
+        std::get<2>(result),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
+    return output;
+  }
+};
+
+Tensor npu_convolution_transpose_autograd(const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias_opt,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+    
+    optional<Tensor> bias = c10::nullopt;
+    if (bias_opt.has_value()) {
+      if (bias_opt.value().defined()) {
+          bias = bias_opt;
+      }
+    }
+    
+  return NPUConvlutionTransposeFunction::apply(input,
+      weight,
+      bias,
+      padding,
+      output_padding,
+      stride,
+      dilation,
+      groups);
+}
+
+// Register the autograd kernel to AutogradPrivateUse1
+TORCH_LIBRARY_IMPL(aten, AutogradNPU, m) {
+  m.impl("npu_convolution_transpose", npu_convolution_transpose_autograd);
 }
 
 } // namespace native

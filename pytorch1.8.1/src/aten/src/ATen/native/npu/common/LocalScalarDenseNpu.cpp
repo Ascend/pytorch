@@ -16,10 +16,10 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
+#include <torch/script.h>
 #include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
-#include <torch/script.h>
 
 namespace at {
 namespace native {

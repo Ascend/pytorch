@@ -17,7 +17,6 @@
 #include "ATen/native/npu/common/FormatCastHelper.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include <torch/script.h>
 
 namespace at {
 namespace native {
@@ -42,14 +43,17 @@ bool isSpecialConv1d(
 } // namespace
 
 Tensor& conv2d_out_npu(
-    Tensor& result,
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
-    int64_t groups) {
+    int64_t groups,
+    Tensor& result) {
+  
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+
   // constructs the input and output NPUTensorDesc
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   SmallVector<int64_t, N> paddings = { padding[0], padding[0], padding[1], padding[1]};
@@ -75,7 +79,7 @@ Tensor& conv2d_out_npu(
 Tensor conv2d_npu(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -108,9 +112,38 @@ Tensor conv2d_npu(
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NC1HWC0);
   // calculate the output result of the NPU
-  conv2d_out_npu(
-      result, input, weight, bias, stride, padding, dilation, groups);
+  -(input, weight, bias, stride, padding, dilation, groups, result);
   return result;
+}
+
+Tensor npu_conv2d(
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
+
+   return conv2d_npu(input, weight, bias, stride, padding, dilation, groups);
+}
+
+Tensor& npu_conv2d_out(
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups, 
+    Tensor& result) {
+
+  return conv2d_out_npu(input, weight, bias, stride, padding, dilation, groups, result);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_conv2d", TORCH_FN(conv2d_npu));
+  m.impl("npu_conv2d.out", TORCH_FN(conv2d_out_npu));
 }
 
 } // namespace native

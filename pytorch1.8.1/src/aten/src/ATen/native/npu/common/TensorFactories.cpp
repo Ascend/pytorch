@@ -23,6 +23,7 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
+#include <torch/script.h>
 #include <c10/util/Exception.h>
 #include <c10/npu/NPUCachingAllocator.h>
 #include <ATen/native/npu/common/ResizeNpu.h>
@@ -35,7 +36,6 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
-#include <torch/script.h>
 
 namespace at {
 namespace native {

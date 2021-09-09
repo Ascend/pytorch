@@ -15,14 +15,13 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-
+#include <torch/script.h>
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include "ATen/native/npu/utils/TensorInterface.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

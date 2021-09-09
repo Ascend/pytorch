@@ -14,9 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <torch/script.h>
+#include <torch/csrc/autograd/function.h>
+#include <torch/csrc/autograd/variable.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+
+using namespace torch::autograd;
 
 namespace at {
 namespace native {
@@ -123,7 +128,7 @@ Tensor view3d(const Tensor& tensor) {
 Tensor conv2d_npu_(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -157,7 +162,7 @@ Tensor _conv3d_npu(
 Tensor conv_transpose2d_npu_(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef output_padding,
@@ -178,7 +183,7 @@ Tensor conv_transpose2d_npu_(
 Tensor convolution_npu(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -203,7 +208,7 @@ Tensor convolution_npu(
 Tensor _convolution_npu(
     const Tensor& input_,
     const Tensor& weight_,
-    const Tensor& bias_,
+    const c10::optional<Tensor>& bias_opt_,
     IntArrayRef stride_,
     IntArrayRef padding_,
     IntArrayRef dilation_,
@@ -215,6 +220,8 @@ Tensor _convolution_npu(
     bool cudnn_enabled) {
   Tensor input = input_;
   Tensor weight = weight_;
+
+  const Tensor& bias_ = c10::value_or_else(bias_opt_, [] {return Tensor();});
   Tensor bias = bias_;
 
   int64_t k = weight.ndimension();
@@ -267,16 +274,16 @@ Tensor _convolution_npu(
         input.contiguous(),
         weight,
         kernel_size,
-        bias,
+        bias_opt_,
         stride,
         padding,
         dilation);
   } else if (!transposed) {
     output = at::npu_convolution(
-        input, weight, bias, stride, padding, dilation, groups);
+        input, weight, bias_opt_, stride, padding, dilation, groups);
   } else {
     output = at::npu_convolution_transpose(
-        input, weight, bias, padding, output_padding, stride, dilation, groups);
+        input, weight, bias_opt_, padding, output_padding, stride, dilation, groups);
   }
 
   if (k == 3) {
@@ -289,7 +296,7 @@ Tensor _convolution_npu(
 Tensor npu_convolution(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -299,32 +306,12 @@ Tensor npu_convolution(
   Tensor output;
   if (dim == 4) {
     output =
-        at::npu_conv2d(input, weight, bias, stride, padding, dilation, groups);
+        at::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
   }
 
   if (dim == 5) {
     output = at::npu_conv3d(
-        input, weight, bias, stride, padding, dilation, groups);
-  }
-
-  return output;
-}
-
-Tensor npu_convolution_transpose(
-    const Tensor& input,
-    const Tensor& weight,
-    const Tensor& bias,
-    IntArrayRef padding,
-    IntArrayRef output_padding,
-    IntArrayRef stride,
-    IntArrayRef dilation,
-    int64_t groups) {
-  int64_t dim = input.ndimension();
-
-  Tensor output;
-  if (dim == 4) {
-    output = at::npu_conv_transpose2d(
-        input, weight, bias, padding, output_padding, stride, dilation, groups);
+        input, weight, bias_opt, stride, padding, dilation, groups);
   }
 
   return output;
@@ -372,7 +359,7 @@ tuple<Tensor, Tensor, Tensor> npu_convolution_backward(
 Tensor _convolution_nogroup_npu(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -381,7 +368,7 @@ Tensor _convolution_nogroup_npu(
   Tensor output;
   if (!transposed) {
     output =
-        at::npu_convolution(input, weight, bias, stride, padding, dilation, 1);
+        at::npu_convolution(input, weight, bias_opt, stride, padding, dilation, 1);
   }
 
   return output;
@@ -391,7 +378,7 @@ Tensor thnn_conv2d_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding) {
   return std::get<0>(at::thnn_conv2d_forward(
@@ -399,13 +386,13 @@ Tensor thnn_conv2d_npu(
 }
 
 Tensor& thnn_conv2d_out_npu(
-    Tensor& output,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
-    IntArrayRef padding) {
+    IntArrayRef padding,
+    Tensor& output) {
   Tensor finput = at::empty({0}, self.options());
   Tensor fgrad_input = at::empty({0}, self.options());
   return std::get<0>(at::thnn_conv2d_forward_out(
@@ -424,7 +411,7 @@ tuple<Tensor, Tensor, Tensor> thnn_conv2d_forward_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding) {
   Tensor finput = at::empty({0}, self.options());
@@ -435,16 +422,16 @@ tuple<Tensor, Tensor, Tensor> thnn_conv2d_forward_npu(
 }
 
 tuple<Tensor&, Tensor&, Tensor&> thnn_conv2d_forward_out_npu(
-    Tensor& output,
-    Tensor& finput,
-    Tensor& fgrad_input,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
-    IntArrayRef padding) {
-  conv2d_out_npu(output, self, weight, bias, stride, padding, {1, 1}, 1);
+    IntArrayRef padding,
+    Tensor& output,
+    Tensor& finput,
+    Tensor& fgrad_input) {
+  at::npu_conv2d_out(output, self, weight, bias, stride, padding, {1, 1}, 1);
   return tuple<Tensor&, Tensor&, Tensor&>(output, finput, fgrad_input);
 }
 
@@ -463,14 +450,14 @@ tuple<Tensor, Tensor, Tensor> thnn_conv2d_backward_npu(
 }
 
 Tensor& thnn_conv_depthwise2d_out_npu(
-    Tensor& out,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
-    IntArrayRef dilation) {
+    IntArrayRef dilation,
+    Tensor& out) {
   return at::thnn_conv_depthwise2d_forward_out(
       out, self, weight, kernel_size, bias, stride, padding, dilation);
 }
@@ -479,7 +466,7 @@ Tensor thnn_conv_depthwise2d_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation) {
@@ -487,10 +474,10 @@ Tensor thnn_conv_depthwise2d_npu(
       self, weight, kernel_size, bias, stride, padding, dilation);
 }
 
-Tensor _convolution_npu(
+Tensor _convolution_new_npu(
     const Tensor& input_,
     const Tensor& weight_,
-    const Tensor& bias_,
+    const c10::optional<Tensor>& bias_,
     IntArrayRef stride_,
     IntArrayRef padding_,
     IntArrayRef dilation_,
@@ -514,6 +501,103 @@ Tensor _convolution_npu(
                               benchmark,
                               deterministic,
                               cudnn_enabled);
+}
+
+class NPUConvlutionFunction : public torch::autograd::Function<NPUConvlutionFunction> {
+public:
+  static Tensor forward(AutogradContext *ctx,
+    const Tensor& input,
+    const Tensor& weight,
+    const c10::optional<Tensor>& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
+
+    ctx->saved_data["padding"] = padding;
+    ctx->saved_data["stride"] = stride;
+    ctx->saved_data["dilation"] = dilation;
+    ctx->saved_data["groups"] = groups;
+    ctx->saved_data["bias_has_value"] = (bias.has_value() == true) ? bias.value().requires_grad() : false;
+
+    at::AutoNonVariableTypeMode g;
+    ctx->save_for_backward({input, weight});
+    return at::native::npu_convolution(input, weight, bias, stride, padding, dilation, groups);
+  }
+
+  static tensor_list backward(AutogradContext *ctx,
+    tensor_list grad_outputs) {
+
+    auto padding = ctx->saved_data["padding"].toIntVector();
+    auto stride = ctx->saved_data["stride"].toIntVector();
+    auto dilation = ctx->saved_data["dilation"].toIntVector();
+    auto groups = ctx->saved_data["groups"].toInt();
+    auto bias_has_value = ctx->saved_data["bias_has_value"].toBool();
+    auto saved = ctx->get_saved_variables();
+    auto input = saved[0];
+    auto weight = saved[1];
+    
+    std::array<bool, 3> grad_input_mask;
+    grad_input_mask[0] = input.requires_grad();
+    grad_input_mask[1] = weight.requires_grad();
+    grad_input_mask[2] = bias_has_value;
+
+    tuple<Tensor, Tensor, Tensor> result
+        = at::native::npu_convolution_backward(input,
+               grad_outputs[0],
+               weight,
+               stride,
+               padding,
+               dilation,
+               groups,
+               grad_input_mask);
+    tensor_list output={std::get<0>(result),
+        std::get<1>(result),
+        std::get<2>(result),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor(),
+        torch::Tensor()};
+    return output;
+  }
+};
+
+Tensor npu_convolution_autograd(const Tensor& input,
+    const Tensor& weight,
+    const c10::optional<Tensor>& bias_opt,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
+    optional<Tensor> bias = c10::nullopt;
+    if (bias_opt.has_value()) {
+      if (bias_opt.value().defined()) {
+          bias = bias_opt;
+      }
+    }
+    
+  return NPUConvlutionFunction::apply(input, weight, bias, stride, padding, dilation, groups);
+}
+
+TORCH_LIBRARY_IMPL(aten, AutogradNPU, m) {
+  m.impl("npu_convolution", npu_convolution_autograd);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_convolution", TORCH_FN(npu_convolution));
+  m.impl("npu_convolution_backward", TORCH_FN(npu_convolution_backward));
+  m.impl("convolution", TORCH_FN(convolution_npu));
+  m.impl("_convolution", TORCH_FN(_convolution_new_npu));
+  m.impl("_convolution_nogroup", TORCH_FN(_convolution_nogroup_npu));
+  m.impl("conv2d", TORCH_FN(conv2d_npu_));
+  m.impl("conv_transpose2d.input", TORCH_FN(conv_transpose2d_npu_));
+
+  m.impl("thnn_conv2d.out", TORCH_FN(thnn_conv2d_out_npu));
+  m.impl("thnn_conv2d", TORCH_FN(thnn_conv2d_npu));
+  m.impl("thnn_conv2d_forward.output", TORCH_FN(thnn_conv2d_forward_out_npu));
+  m.impl("thnn_conv2d_forward", TORCH_FN(thnn_conv2d_forward_npu));
+  m.impl("thnn_conv_depthwise2d.out", TORCH_FN(thnn_conv_depthwise2d_out_npu));
+  m.impl("thnn_conv_depthwise2d", TORCH_FN(thnn_conv_depthwise2d_npu));
 }
 
 } // namespace native

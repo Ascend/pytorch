@@ -74,10 +74,16 @@ Tensor &conv3d_out_npu_nocheck(Tensor &result, const Tensor &input,
   return result;
 }
 
-Tensor &conv3d_out_npu(Tensor &result, const Tensor &input,
-                       const Tensor &weight, const Tensor &bias,
-                       IntArrayRef stride, IntArrayRef padding,
-                       IntArrayRef dilation, int64_t groups) {
+Tensor &conv3d_out_npu(const Tensor &input,
+                       const Tensor &weight,
+                       const optional<Tensor> &bias_opt,
+                       IntArrayRef stride,
+                       IntArrayRef padding,
+                       IntArrayRef dilation,
+                       int64_t groups, 
+                       Tensor &result) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({input, weight, bias}, {result})
              .Func([&input, &weight, &bias, stride, padding, dilation, groups](Tensor &result) {
@@ -87,11 +93,13 @@ Tensor &conv3d_out_npu(Tensor &result, const Tensor &input,
              .Call(result);
 }
 
-Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const Tensor &bias,
+Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const optional<Tensor> &bias_opt,
                   IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
                   int64_t groups) {
-  // calculate the output size
 
+   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+
+  // calculate the output size
   auto outputSize = conv3d_npu_output_size(
       input, weight, bias, stride, padding, dilation, groups);
 
@@ -100,9 +108,38 @@ Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const Tensor &bias,
       outputSize, input.options(), CalcuOpUtil::get_tensor_npu_format(input));
 
   // calculate the output result of the NPU
-  conv3d_out_npu(result, input, weight, bias, stride, padding, dilation, groups);
+  conv3d_out_npu(input, weight, bias_opt, stride, padding, dilation, groups, result);
 
   return result;
+}
+
+Tensor& npu_conv3d_out(const Tensor &input,
+                       const Tensor &weight,
+                       const optional<Tensor> &bias_opt,
+                       IntArrayRef stride,
+                       IntArrayRef padding,
+                       IntArrayRef dilation,
+                       int64_t groups,
+                       Tensor &result) {
+
+    return conv3d_out_npu(input, weight, bias_opt, stride, padding, dilation, groups, result);
+}
+
+Tensor npu_conv3d(const Tensor &input,
+                  const Tensor &weight,
+                  const optional<Tensor> &bias_opt,
+                  IntArrayRef stride,
+                  IntArrayRef padding,
+                  IntArrayRef dilation,
+                  int64_t groups) {
+        
+    return conv3d_npu(input, weight, bias_opt, stride, padding, dilation, groups);
+}
+
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_conv3d", TORCH_FN(conv3d_npu));
+  m.impl("npu_conv3d.out", TORCH_FN(conv3d_out_npu));
 }
 
 } // namespace native

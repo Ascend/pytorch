@@ -47,10 +47,20 @@ Tensor& adds_out_npu_nocheck(
   float alphaValue = CalcuOpUtil::get_scalar_float_value(alpha);
   float value = otherValue * alphaValue;
   OpCommand cmd;
+  std::string real_type = "";
+  if (self.scalar_type() == c10::ScalarType::Bool) {
+    auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
+    if (unified_result.common_type == c10::ScalarType::Bool) {
+      unified_result.common_type = c10::ScalarType::Byte;
+      unified_result.result_type_defined = true;
+      real_type = "uint8";
+    }
+    cmd.Expect(unified_result);
+  }
   cmd.Name("Add")
       .Input(self)
       .Input(value, self.scalar_type())
-      .Output(result)
+      .Output(result, real_type)
       .Run();
 
   return result;
@@ -76,10 +86,18 @@ Tensor& add_out_npu_nocheck(
         TORCH_WARN_ONCE("The oprator of add is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
           "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
       }
+
+      std::string real_type = "";
+      if (self.scalar_type() == c10::ScalarType::Bool && other.scalar_type() == c10::ScalarType::Bool) {
+        unified_result.common_type = c10::ScalarType::Byte;
+        unified_result.result_type_defined = true;
+        cmd.Expect(unified_result);
+        real_type = "uint8";
+      }
       cmd.Name("Add")
           .Input(self)
           .Input(other)
-          .Output(result)
+          .Output(result, real_type)
           .Run();
     } else {
       if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD")) {

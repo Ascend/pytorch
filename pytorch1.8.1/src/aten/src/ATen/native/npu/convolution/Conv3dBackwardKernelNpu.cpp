@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include <torch/script.h>
 
 namespace at {
 namespace native {
@@ -129,6 +130,19 @@ conv3d_backward_npu(const Tensor &input, const Tensor &grad,
   }
 
   return std::make_tuple(gradInput, gradWeight, gradBias);
+}
+
+tuple<Tensor, Tensor, Tensor>
+npu_conv3d_backward(const Tensor &input, const Tensor &grad,
+                    const Tensor &weight, IntArrayRef stride,
+                    IntArrayRef padding, IntArrayRef dilation, int64_t groups,
+                    std::array<bool, 3> grad_input_mask) {
+  
+  return conv3d_backward_npu(input, grad, weight, stride, padding, dilation, groups, grad_input_mask);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_conv3d_backward", TORCH_FN(conv3d_backward_npu));
 }
 
 } // namespace native

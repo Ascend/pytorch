@@ -16,9 +16,9 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
+#include <torch/script.h>
 #include <ATen/native/npu/common/ResizeNpu.h>
 #include "ATen/native/npu/frame/FormatHelper.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {

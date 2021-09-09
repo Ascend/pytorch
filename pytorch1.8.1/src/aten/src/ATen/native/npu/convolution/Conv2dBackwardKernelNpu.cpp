@@ -245,5 +245,22 @@ tuple<Tensor, Tensor, Tensor> conv2d_backward_npu(
       std::move(gradInput), std::move(gradWeight), std::move(gradBias));
 }
 
+tuple<Tensor, Tensor, Tensor> npu_conv2d_backward(
+    const Tensor& input,
+    const Tensor& grad,
+    const Tensor& weight,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups,
+    std::array<bool, 3> grad_input_mask) {
+
+    return conv2d_backward_npu(input, grad, weight, stride, padding, dilation, groups, grad_input_mask);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("npu_conv2d_backward", TORCH_FN(conv2d_backward_npu));
+}
+
 } // namespace native
 } // namespace at
