@@ -112,7 +112,7 @@ Tensor conv2d_npu(
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NC1HWC0);
   // calculate the output result of the NPU
-  -(input, weight, bias, stride, padding, dilation, groups, result);
+  conv2d_out_npu(input, weight, bias, stride, padding, dilation, groups, result);
   return result;
 }
 
