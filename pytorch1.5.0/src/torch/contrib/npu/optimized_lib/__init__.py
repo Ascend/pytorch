@@ -16,7 +16,7 @@ from .function import npu_iou, npu_ptiou, npu_multiclass_nms, npu_batched_multic
     npu_single_level_responsible_flags, npu_fast_condition_index_put, npu_bbox_coder_encode_yolo, \
     npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy
 from .module import ChannelShuffle, Prefetcher, DropoutV2, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
-    ModulatedDeformConv, Mish, BidirectionalLSTM
+    ModulatedDeformConv, Mish, BiLSTM
 
 __all__ = [
     # from function
@@ -39,5 +39,5 @@ __all__ = [
     "DCNv2",
     "ModulatedDeformConv",
     "Mish",
-    "BidirectionalLSTM",
+    "BiLSTM",
 ]

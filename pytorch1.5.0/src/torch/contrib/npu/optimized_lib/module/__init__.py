@@ -19,7 +19,7 @@ from .crossentropy import LabelSmoothingCrossEntropy
 from .roi_align import ROIAlign
 from .deform_conv import ModulatedDeformConv, DCNv2
 from .activations import Mish
-from .bidirectional_lstm import BidirectionalLSTM
+from .bidirectional_lstm import BiLSTM
 
 __all__ = [
     "ChannelShuffle",
@@ -30,5 +30,5 @@ __all__ = [
     "DCNv2",
     "ModulatedDeformConv",
     "Mish",
-    "BidirectionalLSTM",
+    "BiLSTM",
 ]

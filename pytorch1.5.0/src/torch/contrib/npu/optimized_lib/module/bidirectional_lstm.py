@@ -66,7 +66,7 @@ class BiLSTM(torch.nn.Module):
 
 
     Examples::
-        >>> r = BiLSTM(512, 256, 256)
+        >>> r = BiLSTM(512, 256)
         >>> input_tensor = torch.randn(26, 2560, 512)
         >>> output = r(input_tensor)
     """
@@ -93,10 +93,10 @@ if __name__ == '__main__':
 
     torch.npu.set_device(0)
     x = x.npu()
-    rnn = BiLSTM(512, 256, 256)
+    rnn = BiLSTM(512, 256).npu()
     x.retain_grad()
     output = rnn(x)
     print('test forward: ', output)
-    output.backward(torch.ones(rnn.size(), dtype=torch.float).npu())
+    output.backward(torch.ones(x.size(), dtype=torch.float).npu())
     x_grad = x.grad
     print('test grad ', x_grad)
