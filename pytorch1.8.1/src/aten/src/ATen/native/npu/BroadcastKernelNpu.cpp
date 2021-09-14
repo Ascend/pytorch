@@ -66,14 +66,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_broadcast", TORCH_FN(broadcast_npu));
   m.impl("npu_broadcast.out", TORCH_FN(broadcast_out_npu));
 }
-
-Tensor npu_broadcast(const Tensor& self, IntArrayRef size) {
-  return at::native::broadcast_npu(self, size);
-}
-
-Tensor& npu_broadcast_out(const Tensor& self, IntArrayRef size, Tensor& result) {
-  return at::native::broadcast_out_npu(self, size, result);
-}
-
 } // namespace native
 } // namespace at

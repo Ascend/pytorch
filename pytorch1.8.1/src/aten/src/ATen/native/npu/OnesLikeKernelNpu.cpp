@@ -30,11 +30,11 @@ Tensor ones_like_npu(const Tensor& self,
     optional<c10::MemoryFormat> optional_memory_format) {
   auto device = device_or_default(device_opt);
   if (!device.is_npu()) {
-    auto result = at::empty_like(self, 
-       dtype_opt, 
+    auto result = at::empty_like(self,
+       dtype_opt,
        layout_opt,
-       device_opt, 
-       pin_memory_opt, 
+       device_opt,
+       pin_memory_opt,
        optional_memory_format);
 
     return result.fill_(1.);
@@ -43,7 +43,7 @@ Tensor ones_like_npu(const Tensor& self,
   auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(outputSize, 
+  Tensor result = at::empty_with_format(outputSize,
       dtype_opt,
       layout_opt,
       device_opt,
@@ -73,10 +73,6 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("one_", TORCH_FN(one_npu_));
 }
 
-Tensor& one_(Tensor& self) {
-  return one_npu_(self);
-}
-
 Tensor ones_like(const Tensor& self,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
@@ -86,6 +82,5 @@ Tensor ones_like(const Tensor& self,
 
     return ones_like_npu(self, dtype_opt, layout_opt, device_opt, pin_memory_opt, optional_memory_format);
 }
-
 } // namespace native
 } // namespace at

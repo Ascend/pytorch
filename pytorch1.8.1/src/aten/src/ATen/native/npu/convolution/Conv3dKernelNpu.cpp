@@ -113,34 +113,9 @@ Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const optional<Tens
   return result;
 }
 
-Tensor& npu_conv3d_out(const Tensor &input,
-                       const Tensor &weight,
-                       const optional<Tensor> &bias_opt,
-                       IntArrayRef stride,
-                       IntArrayRef padding,
-                       IntArrayRef dilation,
-                       int64_t groups,
-                       Tensor &result) {
-
-    return conv3d_out_npu(input, weight, bias_opt, stride, padding, dilation, groups, result);
-}
-
-Tensor npu_conv3d(const Tensor &input,
-                  const Tensor &weight,
-                  const optional<Tensor> &bias_opt,
-                  IntArrayRef stride,
-                  IntArrayRef padding,
-                  IntArrayRef dilation,
-                  int64_t groups) {
-        
-    return conv3d_npu(input, weight, bias_opt, stride, padding, dilation, groups);
-}
-
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_conv3d", TORCH_FN(conv3d_npu));
   m.impl("npu_conv3d.out", TORCH_FN(conv3d_out_npu));
 }
-
 } // namespace native
 } // namespace at

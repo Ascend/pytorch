@@ -17,6 +17,5 @@
 #include "ATen/native/npu/utils/OpTemplate.h"
 #include "ATen/native/npu/utils/OpPipeWithMultiOut.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/TensorInterface.h"
 #include <torch/library.h>
 #include <torch/script.h>

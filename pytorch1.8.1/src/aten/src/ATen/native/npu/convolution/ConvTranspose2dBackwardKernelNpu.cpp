@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -101,7 +101,7 @@ Tensor convolution_transpose_backward_bias_out_npu(
     IntArrayRef dilation,
     int64_t groups) {
   Tensor gradView = grad_output.contiguous().view({grad_output.size(0), grad_output.size(1), -1});
-  at::sum_out(gradBias, gradView, SmallVector<int64_t, N>{0, 2}); 
+  at::sum_out(gradBias, gradView, SmallVector<int64_t, N>{0, 2});
 
   return gradBias;
 }
@@ -136,27 +136,8 @@ tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
 
   return std::tie(gradInput, gradWeight, gradBias);
 }
-Tensor npu_convolution_transpose(
-    const Tensor& input,
-    const Tensor& weight,
-    const optional<Tensor>& bias,
-    IntArrayRef padding,
-    IntArrayRef output_padding,
-    IntArrayRef stride,
-    IntArrayRef dilation,
-    int64_t groups) {
-  int64_t dim = input.ndimension();
 
-  Tensor output;
-  if (dim == 4) {
-    output = at::npu_conv_transpose2d(
-        input, weight, bias, padding, output_padding, stride, dilation, groups);
-  }
-
-  return output;
-}
-
-tuple<Tensor, Tensor, Tensor> npu_convolution_transpose_backward(
+tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -187,10 +168,40 @@ tuple<Tensor, Tensor, Tensor> npu_convolution_transpose_backward(
   }
 
   // calculate the output result of the NPU
-  convolution_transpose_backward_out_npu(
-      gradInput, gradWeight, gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups, output_mask);
+  convolution_transpose_backward_out_npu(gradInput,
+      gradWeight,
+      gradBias,
+      input,
+      grad_output,
+      weight,
+      padding,
+      output_padding,
+      stride,
+      dilation,
+      groups,
+      output_mask);
 
   return std::tie(gradInput, gradWeight, gradBias);
+}
+
+Tensor convolution_transpose_kernel_npu(
+    const Tensor& input,
+    const Tensor& weight,
+    const optional<Tensor>& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  int64_t dim = input.ndimension();
+
+  Tensor output;
+  if (dim == 4) {
+    output = at::npu_conv_transpose2d(
+        input, weight, bias, padding, output_padding, stride, dilation, groups);
+  }
+
+  return output;
 }
 
 class NPUConvlutionTransposeFunction : public torch::autograd::Function<NPUConvlutionTransposeFunction> {
@@ -214,12 +225,19 @@ public:
 
     at::AutoNonVariableTypeMode g;
     ctx->save_for_backward({input, weight});
-    return at::native::npu_convolution_transpose(input, weight, bias, padding, output_padding, stride, dilation, groups);
+    return at::native::convolution_transpose_kernel_npu(input,
+        weight,
+        bias,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups);
   }
 
   static tensor_list backward(AutogradContext *ctx,
     tensor_list grad_outputs) {
-    
+
     auto padding = ctx->saved_data["padding"].toIntVector();
     auto output_padding = ctx->saved_data["output_padding"].toIntVector();
     auto stride = ctx->saved_data["stride"].toIntVector();
@@ -230,23 +248,22 @@ public:
     auto saved = ctx->get_saved_variables();
     auto input = saved[0];
     auto weight = saved[1];
-    
+
     std::array<bool, 3> grad_input_mask;
     grad_input_mask[0] = input.requires_grad();
     grad_input_mask[1] = weight.requires_grad();
     grad_input_mask[2] = bias_has_value;
 
-    tuple<Tensor, Tensor, Tensor> result = 
-        at::native::npu_convolution_transpose_backward(input,
-            grad_outputs[0],
-            weight,
-            padding,
-            output_padding,
-            stride,
-            dilation,
-            groups,
-            grad_input_mask);
-    tensor_list output={std::get<0>(result),
+    tuple<Tensor, Tensor, Tensor> result = at::native::convolution_transpose_backward_npu(input,
+        grad_outputs[0],
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
+    tensor_list output = {std::get<0>(result),
         std::get<1>(result),
         std::get<2>(result),
         torch::Tensor(),
@@ -266,28 +283,27 @@ Tensor npu_convolution_transpose_autograd(const Tensor& input,
     IntArrayRef stride,
     IntArrayRef dilation,
     int64_t groups) {
-    
+
     optional<Tensor> bias = c10::nullopt;
     if (bias_opt.has_value()) {
-      if (bias_opt.value().defined()) {
-          bias = bias_opt;
-      }
+        if (bias_opt.value().defined()) {
+            bias = bias_opt;
+        }
     }
-    
-  return NPUConvlutionTransposeFunction::apply(input,
-      weight,
-      bias,
-      padding,
-      output_padding,
-      stride,
-      dilation,
-      groups);
+
+    return NPUConvlutionTransposeFunction::apply(input,
+        weight,
+        bias,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups);
 }
 
 // Register the autograd kernel to AutogradPrivateUse1
 TORCH_LIBRARY_IMPL(aten, AutogradNPU, m) {
   m.impl("npu_convolution_transpose", npu_convolution_transpose_autograd);
 }
-
 } // namespace native
 } // namespace at

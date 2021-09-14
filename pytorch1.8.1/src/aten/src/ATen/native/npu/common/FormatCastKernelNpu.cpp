@@ -123,19 +123,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_format_cast_", TORCH_FN(format_cast_npu_));
   m.impl("npu_format_cast", TORCH_FN(format_cast_npu));
 }
-
-Tensor npu_format_cast(const Tensor& src, int64_t acl_format) {
-  return format_cast_npu(src, acl_format);
-}
-
-Tensor& npu_format_cast_(Tensor& self, int64_t acl_format) {
-  return format_cast_acl_format_npu_(self, acl_format);
-}
-
-Tensor& npu_format_cast_(Tensor& self, const Tensor& src) {
-  return format_cast_npu_(self, src);
-}
-
-
 } // namespace native
 } // namespace at

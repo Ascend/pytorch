@@ -95,25 +95,10 @@ Tensor transpose_to_contiguous_npu(const Tensor& self) {
   return result;
 }
 
-Tensor npu_transpose_to_contiguous(const Tensor& self) {
-  return at::native::transpose_to_contiguous_npu(self);
-}
-
-Tensor npu_transpose(const Tensor& self, IntArrayRef perm) {
-  return at::native::transpose_npu(self, perm);
-}
-
-Tensor& npu_transpose_out(const Tensor& self,
-    IntArrayRef perm,
-    Tensor& result) {
-  return at::native::transpose_out_npu(self, perm, result);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_transpose_to_contiguous", TORCH_FN(transpose_to_contiguous_npu));
   m.impl("npu_transpose", TORCH_FN(transpose_npu));
   m.impl("npu_transpose.out", TORCH_FN(transpose_out_npu));
 }
- 
 } // namespace native
 } // namespace at

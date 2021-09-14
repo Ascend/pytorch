@@ -58,16 +58,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("ones", TORCH_FN(ones_npu));
   m.impl("ones.out", TORCH_FN(ones_out_npu));
 }
-
-Tensor ones(IntArrayRef size,     
-    c10::optional<ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
-    c10::optional<bool> pin_memory_opt) {
-
-  // calculate the output result of the NPU
-  return ones_npu(size, dtype_opt, layout_opt, device_opt, pin_memory_opt);
-}
-
 } // namespace native
 } // namespace at

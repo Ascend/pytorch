@@ -118,14 +118,5 @@ Tensor stride_add_npu(
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_stride_add", TORCH_FN(stride_add_npu));
 }
-
-Tensor npu_stride_add(  const Tensor& self,
-    const Tensor& other,
-    Scalar offset1,
-    Scalar offset2,
-    Scalar c1_len) {
-  return at::native::stride_add_npu(self, other, offset1, offset2, c1_len);
-}
-
 } // namespace native
 } // namespace at

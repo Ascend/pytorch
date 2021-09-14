@@ -55,17 +55,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_slice", TORCH_FN(slice_npu));
   m.impl("npu_slice.out", TORCH_FN(slice_out_npu));
 }
-
-Tensor npu_slice(const Tensor& self, IntArrayRef offsets, IntArrayRef size) {
-  return at::native::slice_npu(self, offsets, size);
-}
-
-Tensor& npu_slice_out(const Tensor& self,
-    IntArrayRef offsets,
-    IntArrayRef size,
-    Tensor& result) {
-  return at::native::slice_out_npu(self, offsets, size, result);
-}
-
 } // namespace native
 } // namespace at

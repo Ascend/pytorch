@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -51,7 +51,7 @@ Tensor& conv2d_out_npu(
     IntArrayRef dilation,
     int64_t groups,
     Tensor& result) {
-  
+
   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
 
   // constructs the input and output NPUTensorDesc
@@ -116,35 +116,9 @@ Tensor conv2d_npu(
   return result;
 }
 
-Tensor npu_conv2d(
-    const Tensor& input,
-    const Tensor& weight,
-    const optional<Tensor>& bias,
-    IntArrayRef stride,
-    IntArrayRef padding,
-    IntArrayRef dilation,
-    int64_t groups) {
-
-   return conv2d_npu(input, weight, bias, stride, padding, dilation, groups);
-}
-
-Tensor& npu_conv2d_out(
-    const Tensor& input,
-    const Tensor& weight,
-    const optional<Tensor>& bias,
-    IntArrayRef stride,
-    IntArrayRef padding,
-    IntArrayRef dilation,
-    int64_t groups, 
-    Tensor& result) {
-
-  return conv2d_out_npu(input, weight, bias, stride, padding, dilation, groups, result);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_conv2d", TORCH_FN(conv2d_npu));
   m.impl("npu_conv2d.out", TORCH_FN(conv2d_out_npu));
 }
-
 } // namespace native
 } // namespace at

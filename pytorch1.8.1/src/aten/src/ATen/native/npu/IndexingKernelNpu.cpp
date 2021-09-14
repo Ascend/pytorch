@@ -41,8 +41,7 @@ Tensor& indexing_out_npu(
       .Attr("ellipsis_mask", (int64_t)0)
       .Attr("new_axis_mask", (int64_t)0)
       .Run();
-	  
-  return result; 
+  return result;
 }
 
 Tensor indexing_npu(
@@ -53,7 +52,7 @@ Tensor indexing_npu(
   // calculate the output size
   SmallVector<int64_t, SIZE> outputSize;
   for (int i = 0; i < self.dim(); i++) {
-    TORCH_CHECK(strides[i]!=0, "stride should not be 0");
+    TORCH_CHECK(strides[i] != 0, "stride should not be 0");
     outputSize.emplace_back((end[i] + strides[i] - 1 - begin[i]) / strides[i]);
   }
   // construct the output tensor of the NPU
@@ -65,25 +64,9 @@ Tensor indexing_npu(
   return result;
 }
 
-Tensor npu_indexing(const Tensor& self,
-    IntArrayRef begin,
-    IntArrayRef end,
-    IntArrayRef strides) {
-  return at::native::indexing_npu(self, begin, end, strides);
-}
-
-Tensor& npu_indexing_out(const Tensor& self,
-    IntArrayRef begin,
-    IntArrayRef end,
-    IntArrayRef strides,
-    Tensor& result) {
-  return at::native::indexing_out_npu(self, begin, end, strides, result);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_indexing", TORCH_FN(indexing_npu));
   m.impl("npu_indexing.out", TORCH_FN(indexing_out_npu));
 }
- 
 } // namespace native
 } // namespace at

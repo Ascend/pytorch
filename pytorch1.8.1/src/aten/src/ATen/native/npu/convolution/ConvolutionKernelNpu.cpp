@@ -293,7 +293,7 @@ Tensor _convolution_npu(
   return output;
 }
 
-Tensor npu_convolution(
+Tensor convolution_kernel_npu(
     const Tensor& input,
     const Tensor& weight,
     const optional<Tensor>& bias_opt,
@@ -317,7 +317,7 @@ Tensor npu_convolution(
   return output;
 }
 
-tuple<Tensor, Tensor, Tensor> npu_convolution_backward(
+tuple<Tensor, Tensor, Tensor> convolution_kernel_backward_npu(
     const Tensor& input,
     const Tensor& grad,
     const Tensor& weight,
@@ -522,7 +522,7 @@ public:
 
     at::AutoNonVariableTypeMode g;
     ctx->save_for_backward({input, weight});
-    return at::native::npu_convolution(input, weight, bias, stride, padding, dilation, groups);
+    return at::native::convolution_kernel_npu(input, weight, bias, stride, padding, dilation, groups);
   }
 
   static tensor_list backward(AutogradContext *ctx,
@@ -536,22 +536,21 @@ public:
     auto saved = ctx->get_saved_variables();
     auto input = saved[0];
     auto weight = saved[1];
-    
+
     std::array<bool, 3> grad_input_mask;
     grad_input_mask[0] = input.requires_grad();
     grad_input_mask[1] = weight.requires_grad();
     grad_input_mask[2] = bias_has_value;
 
-    tuple<Tensor, Tensor, Tensor> result
-        = at::native::npu_convolution_backward(input,
-               grad_outputs[0],
-               weight,
-               stride,
-               padding,
-               dilation,
-               groups,
-               grad_input_mask);
-    tensor_list output={std::get<0>(result),
+    tuple<Tensor, Tensor, Tensor> result = at::native::convolution_kernel_backward_npu(input,
+        grad_outputs[0],
+        weight,
+        stride,
+        padding,
+        dilation,
+        groups,
+        grad_input_mask);
+    tensor_list output = {std::get<0>(result),
         std::get<1>(result),
         std::get<2>(result),
         torch::Tensor(),
@@ -571,11 +570,11 @@ Tensor npu_convolution_autograd(const Tensor& input,
     int64_t groups) {
     optional<Tensor> bias = c10::nullopt;
     if (bias_opt.has_value()) {
-      if (bias_opt.value().defined()) {
-          bias = bias_opt;
-      }
+        if (bias_opt.value().defined()) {
+            bias = bias_opt;
+        }
     }
-    
+
   return NPUConvlutionFunction::apply(input, weight, bias, stride, padding, dilation, groups);
 }
 
@@ -584,14 +583,13 @@ TORCH_LIBRARY_IMPL(aten, AutogradNPU, m) {
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
-  m.impl("npu_convolution", TORCH_FN(npu_convolution));
-  m.impl("npu_convolution_backward", TORCH_FN(npu_convolution_backward));
+  m.impl("npu_convolution", TORCH_FN(convolution_kernel_npu));
+  m.impl("npu_convolution_backward", TORCH_FN(convolution_kernel_backward_npu));
   m.impl("convolution", TORCH_FN(convolution_npu));
   m.impl("_convolution", TORCH_FN(_convolution_new_npu));
   m.impl("_convolution_nogroup", TORCH_FN(_convolution_nogroup_npu));
   m.impl("conv2d", TORCH_FN(conv2d_npu_));
   m.impl("conv_transpose2d.input", TORCH_FN(conv_transpose2d_npu_));
-
   m.impl("thnn_conv2d.out", TORCH_FN(thnn_conv2d_out_npu));
   m.impl("thnn_conv2d", TORCH_FN(thnn_conv2d_npu));
   m.impl("thnn_conv2d_forward.output", TORCH_FN(thnn_conv2d_forward_out_npu));
@@ -599,6 +597,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("thnn_conv_depthwise2d.out", TORCH_FN(thnn_conv_depthwise2d_out_npu));
   m.impl("thnn_conv_depthwise2d", TORCH_FN(thnn_conv_depthwise2d_npu));
 }
-
 } // namespace native
 } // namespace at

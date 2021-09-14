@@ -34,7 +34,8 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "Conv2D",
     "Conv2DTransposeD",
     "Conv2DBackpropInputD",
-    "Conv2DBackpropFilterD"};
+    "Conv2DBackpropFilterD",
+    "StridedSlice"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {

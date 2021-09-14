@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {
@@ -56,7 +55,7 @@ Tensor& convolution_transpose_out_npu(
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
       .Run();
-    
+
   return result;
 }
 
@@ -69,7 +68,7 @@ Tensor convolution_transpose_npu(
     IntArrayRef stride,
     IntArrayRef dilation,
     int64_t groups) {
-  
+
   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
 
   // calculate the output size
@@ -87,22 +86,8 @@ Tensor convolution_transpose_npu(
   return result;
 }
 
-Tensor npu_conv_transpose2d(
-    const Tensor& input,
-    const Tensor& weight,
-    const optional<Tensor>& bias_opt,
-    IntArrayRef padding,
-    IntArrayRef output_padding,
-    IntArrayRef stride,
-    IntArrayRef dilation,
-    int64_t groups) {
-  
-    return convolution_transpose_npu(input, weight, bias_opt, padding, output_padding, stride, dilation, groups);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_conv_transpose2d", TORCH_FN(convolution_transpose_npu));
 }
-
 } // namespace native
 } // namespace at

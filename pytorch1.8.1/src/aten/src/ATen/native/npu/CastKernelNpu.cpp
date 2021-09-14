@@ -70,14 +70,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_dtype_cast", TORCH_FN(dtype_cast_npu));
   m.impl("npu_dtype_cast_", TORCH_FN(dtype_cast_npu_));
 }
-
-Tensor& npu_dtype_cast_(Tensor& self, const Tensor& src) {
-  return dtype_cast_npu_(self, src);;
-}
-
-Tensor npu_dtype_cast(const Tensor& self, ScalarType dtype) {
-  return dtype_cast_npu(self, dtype);
-}
-
 } // namespace native
 } // namespace at

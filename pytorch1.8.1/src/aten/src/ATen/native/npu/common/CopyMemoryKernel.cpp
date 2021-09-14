@@ -21,7 +21,6 @@
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl.h>
-#include "ATen/native/npu/utils/TensorInterface.h"
 
 namespace at {
 namespace native {
@@ -83,10 +82,5 @@ Tensor& copy_memory_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("copy_memory_", TORCH_FN(copy_memory_npu_));
 }
-
-Tensor& copy_memory_(Tensor& self, const Tensor& src, bool non_blocking) {
-  return copy_memory_npu_(self, src, non_blocking);
-}
-
 } // namespace native
 } // namespace at

@@ -15,6 +15,7 @@
 
 #include "DebugDynamic.h"
 #include "c10/npu/OptionsManager.h"
+#include <regex>
 #include "c10/npu/npu_log.h"
 #include <string>
 #include <iostream>
@@ -25,7 +26,6 @@
 namespace at {
 namespace native {
 namespace npu {
-
 using namespace std;
 
 DebugDynamic::DebugDynamic() {
@@ -39,6 +39,15 @@ DebugDynamic::DebugDynamic() {
 
 bool DebugDynamic::CheckInConfig(const string& opName) {
   if (configPath == "") {
+    return false;
+  }
+
+  // check securse path
+  std::string pattern{"/[\\w]+/[\\w]+.txt"};
+  std::regex re(pattern);
+  bool ret = std::regex_match(configPath, re);
+  if (ret == false) {
+    NPU_LOGD("configPath path Fails, path %s", (char*)configPath.c_str());
     return false;
   }
 
@@ -75,7 +84,6 @@ void DebugDynamic::ConfigFileRead(set<string>& configInfo) {
     return;
   }
 }
-
 } // namespace npu
 } // namespace native
 } // namespace at

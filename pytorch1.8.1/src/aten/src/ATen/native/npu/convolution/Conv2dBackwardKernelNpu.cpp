@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -85,7 +85,7 @@ Tensor conv2d_backward_input_out_npu(
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
       .Run();
-  
+
   return gradInput;
 }
 
@@ -115,7 +115,7 @@ Tensor conv2d_backward_weight_out_npu(
     gradWeight = mmResult.reshape({grad.size(1), 1, 1, weight.size(3)});
     return gradWeight;
   }
-  
+
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   SmallVector<int64_t, N> paddings = {
@@ -123,7 +123,7 @@ Tensor conv2d_backward_weight_out_npu(
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   string dataFormat = "NCHW";
   string sizeName = "filter_size";
-  
+
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("Conv2DBackpropFilter")
@@ -137,7 +137,7 @@ Tensor conv2d_backward_weight_out_npu(
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
       .Run();
-  
+
   return gradWeight;
 }
 
@@ -245,22 +245,8 @@ tuple<Tensor, Tensor, Tensor> conv2d_backward_npu(
       std::move(gradInput), std::move(gradWeight), std::move(gradBias));
 }
 
-tuple<Tensor, Tensor, Tensor> npu_conv2d_backward(
-    const Tensor& input,
-    const Tensor& grad,
-    const Tensor& weight,
-    IntArrayRef stride,
-    IntArrayRef padding,
-    IntArrayRef dilation,
-    int64_t groups,
-    std::array<bool, 3> grad_input_mask) {
-
-    return conv2d_backward_npu(input, grad, weight, stride, padding, dilation, groups, grad_input_mask);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_conv2d_backward", TORCH_FN(conv2d_backward_npu));
 }
-
 } // namespace native
 } // namespace at

@@ -619,65 +619,23 @@ Tensor full_npu(
   return result.fill_(fill_value);
 }
 
-Tensor empty_with_format(IntArrayRef size,
-              c10::optional<DimnameList> names,
-              c10::optional<ScalarType> dtype_opt,
-              c10::optional<Layout> layout_opt,
-              c10::optional<Device> device_opt,
-              c10::optional<bool> pin_memory_opt,
-              int64_t dst_format) {
-
-  return at::native::empty_new_with_format_name_npu(size, names, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
-}
-
-Tensor empty_with_format(IntArrayRef size,
-              c10::optional<ScalarType> dtype_opt,
-              c10::optional<Layout> layout_opt,
-              c10::optional<Device> device_opt,
-              c10::optional<bool> pin_memory_opt,
-              int64_t dst_format) {
-
-  return at::native::empty_new_with_format_npu(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, dst_format);
-}
-
-Tensor empty_like(
-    const Tensor& self,
-    c10::optional<ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
-    c10::optional<bool> pin_memory_opt,
-    c10::optional<c10::MemoryFormat> optional_memory_format) {
-
-  return at::native::empty_like_new_npu(self, 
-      dtype_opt, 
-      layout_opt, 
-      device_opt,
-      pin_memory_opt, 
-      optional_memory_format);
-}
-
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("bartlett_window", TORCH_FN(bartlett_window_npu));
   m.impl("bartlett_window.periodic", TORCH_FN(bartlett_window_periodic_npu));
   m.impl("blackman_window", TORCH_FN(blackman_window_npu));
   m.impl("blackman_window.periodic", TORCH_FN(blackman_window_periodic_npu));
-
   m.impl("hamming_window", TORCH_FN(hamming_window_npu));
   m.impl("hamming_window.periodic", TORCH_FN(hamming_window_periodic_npu));
   m.impl("hamming_window.periodic_alpha", TORCH_FN(hamming_window_alpha_npu));
   m.impl("hamming_window.periodic_alpha_beta", TORCH_FN(hamming_window_beta_npu));
-
   m.impl("hann_window", TORCH_FN(hann_window_npu));
   m.impl("hann_window.periodic", TORCH_FN(hann_window_periodic_npu));
-
   m.impl("empty.memory_format", TORCH_FN(empty_npu));
   m.impl("clone", TORCH_FN(clone_npu));
   m.impl("empty_strided", TORCH_FN(empty_strided_npu));
-  
   m.impl("empty_with_format", TORCH_FN(empty_new_with_format_npu));
   m.impl("empty_with_format.names", TORCH_FN(empty_new_with_format_name_npu));
   m.impl("empty_like", TORCH_FN(empty_like_new_npu));
 }
-
 } // namespace native
 } // namespace at
