@@ -60,6 +60,7 @@
     -   [单算子dump方法](#单算子dump方法.md)
     -   [常用环境变量说明](#常用环境变量说明.md)
     -   [dump op方法](#dump-op方法.md)
+    -   [编译选项设置](#编译选项设置.md)
     -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
     -   [编译安装hdf5](#编译安装hdf5.md)
 -   [FAQ](#FAQ.md)
@@ -3215,7 +3216,9 @@ for group in [2, 4, 8]:
 
 -   **[常用环境变量说明](#常用环境变量说明.md)**  
 
--   **[dump op方法](#dump-op方法.md)**  
+-   **[dump op方法](#dump-op方法.md)**
+
+-   **[编译选项设置](#编译选项设置.md)**  
 
 -   **[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)**  
 
@@ -3457,6 +3460,47 @@ torch.npu.finalize_dump()
     ```
 
 2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
+
+<h2 id="编译选项设置.md">编译选项设置</h2>
+
+用于配置算子编译过程中的属性，可用于提升性能，通过ACL接口实现。用法及解释如下：
+
+```
+    import torch
+    option = {key: val}
+    torch.npu.set_option(option) # 以dict方式进行设置
+
+    其中key可选值和对应的含义如下：
+    ACL_OP_SELECT_IMPL_MODE,      //选择算子是高精度实现还是高性能实现
+    ACL_OPTYPELIST_FOR_IMPLMODE,  //列举算子类型的列表，该列表中的算子使用ACL_OP_SELECT_IMPL_MODE指定的模式
+    ACL_OP_DEBUG_LEVEL,           //TBE算子编译debug功能开关
+    ACL_DEBUG_DIR,                //保存模型转换、网络迁移过程中算子编译生成的调试相关过程文件的路径，包括算子.o/.json/.cce等文件。
+    ACL_OP_COMPILER_CACHE_MODE,   //算子编译磁盘缓存模式
+    ACL_OP_COMPILER_CACHE_DIR,    //算子编译磁盘缓存的目录
+
+    key对应的val值解释和可设置值如下：
+    ACL_OPTYPELIST_FOR_IMPLMODE： 用于选择算子是高精度实现还是高性能实现。如果不配置该编译选项，默认采用high_precision。
+        high_precision：表示网络模型中所有算子选择高精度实现。
+        high_performance：表示网络模型中所有算子选择高性能实现。
+
+    ACL_OP_DEBUG_LEVEL：用于配置TBE算子编译debug功能开关。
+        0：不开启算子debug功能。在执行atc命令当前路径算子编译生成的kernel_meta文件夹中不保留.o（算子二进制文件）和.json文件（算子描述文件）。
+        1：开启算子debug功能，在执行atc命令当前路径算子编译生成的kernel_meta文件夹中生成TBE指令映射文件（算子cce文件*.cce和python-cce映射文件*_loc.json），用于后续工具进行AICore Error问题定位。
+        2：开启算子debug功能，在执行atc命令当前路径算子编译生成的kernel_meta文件夹中生成TBE指令映射文件（算子cce文件*.cce和python-cce映射文件*_loc.json），并关闭编译优化开关并且开启ccec调试功能（ccec编译器选项设置为-O0-g），用于后续工具进行AICore Error问题定位。
+        3：不开启算子debug功能，在执行atc命令当前路径算子编译生成的kernel_meta文件夹中保留.o（算子二进制文件）和.json文件（算子描述文件）。
+        4：不开启算子debug功能，在执行atc命令当前路径算子编译生成的kernel_meta文件夹中保留.o（算子二进制文件）和.json文件（算子描述文件），生成TBE指令映射文件（算子cce文件*.cce）和UB融合计算描述文件（{$kernel_name}_compute.json）。
+
+    ACL_DEBUG_DIR：用于配置保存模型转换、网络迁移过程中算子编译生成的调试相关过程文件的路径，包括算子.o/.json/.cce等文件。
+
+    ACL_OP_COMPILER_CACHE_MODE：用于配置算子编译磁盘缓存模式。该编译选项需要与ACL_OP_COMPILER_CACHE_DIR配合使用。
+        enable：表示启用算子编译缓存。
+        disable：表示禁用算子编译缓存。
+        force：表示强制刷新缓存，即先删除已有缓存，再重新编译并加入缓存。当用户的python或者依赖库等发生变化时，需要指定为force用于清理已有的缓存。
+
+    ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该编译选项需要与ACL_OP_COMPILER_CACHE_MODE配合使用。
+
+```
+
 
 <h2 id="安装7-3-0版本gcc.md">安装7.3.0版本gcc</h2>
 
