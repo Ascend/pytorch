@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -26,7 +26,7 @@ Tensor& fill_out_npu(Tensor& result, Tensor& self, const Tensor& other) {
     SmallVector<int64_t, N> dims;
     if (self.dim() != 0){
       dims = array_to_small_vector(self.sizes());
-    } {
+    } else {
       dims = {1};
     }
     OpCommand cmd;
@@ -48,7 +48,7 @@ Tensor& fill_out_npu(Tensor& result, Tensor& self, const Tensor& other) {
 
 Tensor& fills_out_npu(Tensor& result, Tensor& self, Scalar value) {
   AT_DISPATCH_ALL_TYPES_AND3(kHalf, kBool, kBFloat16, self.scalar_type(), "fills_out_npu", [&]() {
-    auto value_converted = value.to<scalar_t>();}); 
+    auto value_converted = value.to<scalar_t>();});
   OpCommand cmd;
   cmd.Name("Fills")
       .Input(self)

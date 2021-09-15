@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -60,6 +60,19 @@ class TestFill_(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_fill_zero_dim_shape_format(self, device):
+        dtype_list = [torch.float16, torch.float32]
+        init_list = [3, 73, 1000]
+        value_list = [0.8, 1.25, torch.tensor(0.8), torch.tensor(1.25)]
+        shape_format = [
+            [i, j, v] for i in dtype_list for j in init_list for v in value_list
+        ]
+        for item in shape_format:
+            cpu_input1 = torch.tensor(item[1], dtype=item[0])
+            npu_input1 = cpu_input1.npu()
+            cpu_output = self.cpu_op_exec(cpu_input1, item[2])
+            npu_output = self.npu_op_exec(npu_input1, item[2])
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestFill_, globals(), except_for="cpu")
 if __name__ == "__main__":

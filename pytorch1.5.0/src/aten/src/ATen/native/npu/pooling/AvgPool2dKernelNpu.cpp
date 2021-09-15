@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -22,7 +22,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& avg_pool2d_out_npu_nocheck(
-  Tensor& result,
+    Tensor& result,
     const Tensor& self,
     IntArrayRef kernel_size,
     IntArrayRef stride,
@@ -80,13 +80,13 @@ Tensor& avg_pool2d_out_npu(
       ceil_mode,
       count_include_pad,
       divisor_override);
-  
+
   OpPreparation::CheckOut(
       {self},
       result,
       self,
       outputSize);
-  
+
   avg_pool2d_out_npu_nocheck(
       result,
       self,
@@ -143,17 +143,10 @@ Tensor avg_pool2d_npu(
   TORCH_CHECK(
       !divisor_override.has_value() || divisor_override.value() != 0,
       "divisor must be not zero");
-  
-  // Note：临时规避方案，待后续方案确认后修改
-  Tensor selfCast = self;
-  if (self.ndimension() == 4 && CalcuOpUtil::get_tensor_npu_format(self) == ACL_FORMAT_ND){
-    selfCast = self.npu_format_cast(ACL_FORMAT_NCHW);
-  }
-
 
   // calculate the output size
   auto outputSizes = avg_pool2d_npu_output_size(
-      selfCast,
+      self,
       kernel_sizess,
       stridess,
       paddingss,
@@ -162,11 +155,11 @@ Tensor avg_pool2d_npu(
       divisor_override);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(selfCast, outputSizes);
+  Tensor result = OpPreparation::ApplyTensor(self, outputSizes);
   // calculate the output result of the NPU
-  avg_pool2d_out_npu(
+  avg_pool2d_out_npu_nocheck(
       result,
-      selfCast,
+      self,
       kernel_sizess,
       stridess,
       paddingss,
