@@ -157,60 +157,40 @@
 
 <h2 id="配置环境变量.md">配置环境变量</h2>
 
-安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，，安装路径为默认路径，python版本为3.7.5为例，用户可根据软件包实际安装路径修改配置项。）。
+安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。相关环境变量介绍参见[表1](#zh-cn_topic_0000001152616261_table42017516135)。
 
-```
-cpu_type=$(echo $HOSTTYPE)
+1.  配置运行环境变量，在适配昇腾AI处理器的PyTorch源代码根目录中运行如下命令。
 
-if [ x"${cpu_type}" == x"x86_64" ];then
-  cpu_type=x86_64-linux
-else
-  cpu_type=arm64-linux
-fi
-if [ -d /usr/local/Ascend/nnae/latest ];then
-	export LD_LIBRARY_PATH=/usr/local/:/usr/local/python3.7.5/lib/:/usr/local/openblas/lib:/usr/local/lib/:/usr/lib64/:/usr/lib/:/usr/local/Ascend/nnae/latest/fwkacllib/lib64/:/usr/local/Ascend/driver/lib64/common/:/usr/local/Ascend/driver/lib64/driver/:/usr/local/Ascend/add-ons/:/usr/lib/aarch64_64-linux-gnu:$LD_LIBRARY_PATH
-  export PATH=$PATH:/usr/local/Ascend/nnae/latest/fwkacllib/ccec_compiler/bin/:/usr/local/Ascend/nnae/latest/toolkit/tools/ide_daemon/bin/
-  export ASCEND_OPP_PATH=/usr/local/Ascend/nnae/latest/opp/
-  export OPTION_EXEC_EXTERN_PLUGIN_PATH=/usr/local/Ascend/nnae/latest/fwkacllib/lib64/plugin/opskernel/libfe.so:/usr/local/Ascend/nnae/latest/fwkacllib/lib64/plugin/opskernel/libaicpu_engine.so:/usr/local/Ascend/nnae/latest/fwkacllib/lib64/plugin/opskernel/libge_local_engine.so
-  export PYTHONPATH=/usr/local/Ascend/nnae/latest/fwkacllib/python/site-packages/:/usr/local/Ascend/nnae/latest/fwkacllib/python/site-packages/auto_tune.egg/auto_tune:/usr/local/Ascend/nnae/latest/fwkacllib/python/site-packages/schedule_search.egg:$PYTHONPATH
-	export ASCEND_AICPU_PATH=/usr/local/Ascend/nnae/latest/
-else
-	export LD_LIBRARY_PATH=/usr/local/:/usr/local/lib/:/usr/lib64/:/usr/lib/:/usr/local/python3.7.5/lib/:/usr/local/openblas/lib:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64/:/usr/local/Ascend/driver/lib64/common/:/usr/local/Ascend/driver/lib64/driver/:/usr/local/Ascend/add-ons/:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH
-	export PATH=$PATH:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/ccec_compiler/bin/:/usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/ide_daemon/bin/
-	export ASCEND_OPP_PATH=/usr/local/Ascend/ascend-toolkit/latest/opp/
-	export OPTION_EXEC_EXTERN_PLUGIN_PATH=/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64/plugin/opskernel/libfe.so:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64/plugin/opskernel/libaicpu_engine.so:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/lib64/plugin/opskernel/libge_local_engine.so
-	export PYTHONPATH=/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/python/site-packages/:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/python/site-packages/auto_tune.egg/auto_tune:/usr/local/Ascend/ascend-toolkit/latest/fwkacllib/python/site-packages/schedule_search.egg:$PYTHONPATH
-	export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest/${cpu_type}
-fi
-path_lib=$(python3.7 -c """
-import sys
-import re
-result=''
-for index in range(len(sys.path)):
-    match_sit = re.search('-packages', sys.path[index])
-    if match_sit is not None:
-        match_lib = re.search('lib', sys.path[index])
-        if match_lib is not None:
-            end=match_lib.span()[1]
-            result += sys.path[index][0:end] + ':'
-        result+=sys.path[index] + '/torch/lib:'
-print(result)"""
-)
-export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib/:${path_lib}:$LD_LIBRARY_PATH
-export TASK_QUEUE_ENABLE=1 
+    ```
+    source pytorch/env.sh
+    ```
 
-# （可选）当系统为openeuler时，需设置此命令，取消CPU绑核。
-# unset GOMP_CPU_AFFINITY
+2.  请依据实际场景，选择合适的HCCL初始化方式，并配置相应环境变量。
 
-# 请依据实际，在下列场景中选择合适的HCCL初始化方式，并配置相应环境变量。具体如下：
-# 场景一：单机场景
-export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-# 场景二：多机场景。
-export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
-```
+    ```
+    # 场景一：单机场景
+    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
+    # 场景二：多机场景。
+    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
+    export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
+    ```
 
-相关参数介绍参见[表1](#zh-cn_topic_0000001152616261_table42017516135)。
+3.  （可选）NPU场景下配置功能或性能环境变量。默认为不开启。
+
+    ```
+    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1
+    export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
+    export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1
+    export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
+    export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下有不同的性能表现。可选
+    ```
+
+4.  （可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。
+
+    ```
+    # unset GOMP_CPU_AFFINITY
+    ```
+
 
 **表 1**  环境变量说明
 
@@ -271,9 +251,57 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
 <p id="zh-cn_topic_0000001152616261_p1167163719217"><a name="zh-cn_topic_0000001152616261_p1167163719217"></a><a name="zh-cn_topic_0000001152616261_p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡（网卡名字字典序升序排列）&gt;docker 网卡 &gt; local网卡</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001152616261_row1371356152313"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+<tr id="zh-cn_topic_0000001152616261_row1371356152313"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p15106173103120"><a name="p15106173103120"></a><a name="p15106173103120"></a>PTCOPY_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）当系统为openeuler时，需设置此命令，取消CPU绑核。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p71055317311"><a name="p71055317311"></a><a name="p71055317311"></a>使用PTCopy算子模式，加速转连续及copy等过程，建议开启，开启设置为1</p>
+</td>
+</tr>
+<tr id="row743212132309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p17433111312307"><a name="p17433111312307"></a><a name="p17433111312307"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p6433151393018"><a name="p6433151393018"></a><a name="p6433151393018"></a>（可选）设置是否开启日志打屏。</p>
+<a name="ul760201917473"></a><a name="ul760201917473"></a><ul id="ul760201917473"><li>0：表示采用日志的默认输出方式。</li><li>1：表示日志打屏显示。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row19237171814300"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p14238161893019"><a name="p14238161893019"></a><a name="p14238161893019"></a>ASCEND_GLOBAL_LOG_LEVEL</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p223841810303"><a name="p223841810303"></a><a name="p223841810303"></a>设置应用类日志的全局日志级别。</p>
+<a name="ul175714586453"></a><a name="ul175714586453"></a><ul id="ul175714586453"><li>0：对应DEBUG级别。</li><li>1：对应INFO级别。</li><li>2：对应WARNING级别。</li><li>3：对应ERROR级别。</li><li>4：对应NULL级别，不输出日志。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row1348192313303"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1734815235305"><a name="p1734815235305"></a><a name="p1734815235305"></a>ASCEND_GLOBAL_EVENT_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p12348202373018"><a name="p12348202373018"></a><a name="p12348202373018"></a>设置应用类日志是否开启Event日志。</p>
+<a name="ul416352114610"></a><a name="ul416352114610"></a><ul id="ul416352114610"><li>0：不开启Event日志。</li><li>1：开启Event日志。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1</p>
+</td>
+</tr>
+<tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1</p>
+</td>
+</tr>
+<tr id="row17630155212342"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p66309527341"><a name="p66309527341"></a><a name="p66309527341"></a>RI_COMBINED_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p19630185220345"><a name="p19630185220345"></a><a name="p19630185220345"></a>（可选）非连续三个算子组合类场景优化，开启设置为1</p>
+</td>
+</tr>
+<tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1</p>
+</td>
+</tr>
+<tr id="row27481914203518"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p674813144357"><a name="p674813144357"></a><a name="p674813144357"></a>DYNAMIC_OP</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p974891414353"><a name="p974891414353"></a><a name="p974891414353"></a>（可选）算子实现，ADD和MUL算子在不同场景下有不同的性能表现。默认不设置。</p>
+</td>
+</tr>
+<tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。</p>
 </td>
 </tr>
 </tbody>
