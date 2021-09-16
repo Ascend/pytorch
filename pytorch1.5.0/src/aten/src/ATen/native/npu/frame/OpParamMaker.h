@@ -30,16 +30,16 @@ namespace npu {
 //
 class OpAttrMaker {
  public:
-  static void Set(aclopAttr* attr, string name, bool value);
-  static void Set(aclopAttr* attr, string name, int64_t value);
-  static void Set(aclopAttr* attr, string name, float value);
-  static void Set(aclopAttr* attr, string name, string value);
-  static void Set(aclopAttr* attr, string name, IntArrayRef value);
-  static void Set(aclopAttr* attr, string name, at::ArrayRef<float> value);
-  static void Set(aclopAttr* attr, string name, Scalar value);
+  static void Set(aclopAttr* attr, const string& name, bool value);
+  static void Set(aclopAttr* attr, const string& name, int64_t value);
+  static void Set(aclopAttr* attr, const string& name, float value);
+  static void Set(aclopAttr* attr, const string& name, string& value);
+  static void Set(aclopAttr* attr, const string& name, IntArrayRef value);
+  static void Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value);
+  static void Set(aclopAttr* attr, const string& name, Scalar value);
   static void Set(
       aclopAttr* attr,
-      string name,
+      const string& name,
       at::ArrayRef<IntArrayRef> value);
 }; // class OpAttrMaker
 
@@ -62,7 +62,7 @@ class AclTensorDescMaker {
   ~AclTensorDescMaker() = default;
 
   AclTensorDescMaker& Create(aclDataType dataType, NPUStorageDesc storageDesc) {
-    auto dims = storageDesc.base_sizes_;
+    auto& dims = storageDesc.base_sizes_;
     auto format = storageDesc.origin_format_;
     desc = aclCreateTensorDesc(dataType, dims.size(), dims.data(), format);
     return *this;
@@ -189,7 +189,7 @@ class OpCommandImpl {
     // queue-enable
   }
 
-  void SetName(string& name) {
+  void SetName(const string& name) {
     opName = name;
     execParam.graph.Name(name);
   }
@@ -242,7 +242,7 @@ class OpCommandImpl {
   }
 
   template <typename dataType>
-  void AddAttr(string attrName, dataType value) {
+  void AddAttr(const string& attrName, dataType value) {
     InitAttr();
     AttrInfoMaker::Add(value, attrInfo);
     OpAttrMaker::Set(execParam.attr, attrName, value);

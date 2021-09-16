@@ -33,7 +33,7 @@ aclFormat InferFormat::GuessFormatWhenContiguous(const Tensor& tensor) {
 }
 
 // NOTE: this method should cooperate with shape infer.
-std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(IntArrayRef size, aclFormat format) {
+std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(const IntArrayRef& size, aclFormat format) {
   if ((FormatHelper::GetBaseFormat(format) == ACL_FORMAT_NCDHW) && (size.size() > 4)) {
     return std::make_tuple(ACL_FORMAT_NCDHW, format);
   } else if (format == ACL_FORMAT_ND && size.size() == 4) {
@@ -51,7 +51,7 @@ std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(IntArrayRef size, 
   return std::make_tuple(FormatHelper::GetBaseFormat(format), format);
 }
 
-aclFormat InferFormat::GuessBaseFormat(IntArrayRef size) {
+aclFormat InferFormat::GuessBaseFormat(const IntArrayRef& size) {
   if (size.size() == 5) {
     return ACL_FORMAT_NCDHW;
   } else if (size.size() == 4) {
@@ -60,7 +60,7 @@ aclFormat InferFormat::GuessBaseFormat(IntArrayRef size) {
   return ACL_FORMAT_ND;
 }
 
-aclFormat InferFormat::GuessStorageFormat(IntArrayRef size, aclFormat format) {
+aclFormat InferFormat::GuessStorageFormat(const IntArrayRef& size, aclFormat format) {
   int64_t dim = size.size();
   aclFormat baseFormat = FormatHelper::GetBaseFormat(format);
   bool isBaseFormat = FormatHelper::IsBaseFormatType(format);
@@ -95,7 +95,7 @@ FormatShape InferFormat::GuessStorageSizeWhenConvertFormat(const Tensor& tensor)
   return FormatHelper::GetStorageSizes(format, size);
 }
 
-bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, IntArrayRef size) {
+bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, const IntArrayRef& size) {
   auto baseformat = FormatHelper::GetBaseFormat(tensor);
   if (baseformat == ACL_FORMAT_NCHW && size.size() >= 5) {
     return true;

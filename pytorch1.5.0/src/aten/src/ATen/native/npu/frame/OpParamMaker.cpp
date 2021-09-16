@@ -29,33 +29,33 @@ namespace at {
 namespace native {
 namespace npu {
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, bool value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, int64_t value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, int64_t value) {
   aclopSetAttrInt(attr, name.c_str(), value);
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, float value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, float value) {
   aclopSetAttrFloat(attr, name.c_str(), value);
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, string value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, string& value) {
   aclopSetAttrString(attr, name.c_str(), value.c_str());
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, IntArrayRef value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, IntArrayRef value) {
   auto vec = value.vec();
   aclopSetAttrListInt(attr, name.c_str(), vec.size(), vec.data());
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, at::ArrayRef<float> value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value) {
   auto vec = value.vec();
   aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, string name, Scalar value) {
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, Scalar value) {
   float val = CalcuOpUtil::get_scalar_float_value(value);
   aclopSetAttrFloat(attr, name.c_str(), val);
 }
@@ -63,7 +63,7 @@ void OpAttrMaker::Set(aclopAttr* attr, string name, Scalar value) {
 
 void OpAttrMaker::Set(
       aclopAttr* attr,
-      string name,
+      const string& name,
       at::ArrayRef<IntArrayRef> value) {
   // Pointer to values of each listInt.
   SmallVector<int64_t*, N> attrValue;
@@ -265,7 +265,7 @@ void OpCommandImpls::Push(OpCommandImpl*& ptr) {
   offset += 1;
   if (objs.size() <= offset) {
     OpCommandImpl impl;
-    objs.push_back(impl);
+    objs.emplace_back(impl);
   }
   TORCH_CHECK(
       objs.size() > offset,

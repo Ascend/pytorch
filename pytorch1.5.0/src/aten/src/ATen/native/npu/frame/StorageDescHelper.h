@@ -37,15 +37,15 @@ public:
 
   // calculate storage size need by npu memory
   static int64_t GetMemorySize(const Tensor& dst);
-  static int64_t GetMemorySize(IntArrayRef size, aclFormat format);
+  static int64_t GetMemorySize(const IntArrayRef& size, aclFormat format);
   // Calculate the valid memory size of the tensor, because of view operator and so on.
   static int64_t GetValidMemorySize(const Tensor& tensor);
 
   // Set Part
   // StorageDesc Init/Set
   static void SetDesc(Tensor& dst);
-  static void SetDesc(Tensor& dst, IntArrayRef size, IntArrayRef strides);
-  static void SetDesc(Tensor& dst, IntArrayRef size, IntArrayRef strides, aclFormat format);
+  static void SetDesc(Tensor& dst, const IntArrayRef& size, const IntArrayRef& strides);
+  static void SetDesc(Tensor& dst, const IntArrayRef& size, const IntArrayRef& strides, aclFormat format);
 
   static void CopyDesc(Tensor& dst, const Tensor& src);
   static void CopyDesc(Tensor& dst, const Storage& src);
@@ -63,8 +63,8 @@ private:
   static int64_t GetMemorySize(const NPUStorageDesc& dst);
   // Set Part
   static NPUStorageDesc SetDesc();
-  static NPUStorageDesc SetDesc(IntArrayRef size, IntArrayRef strides);
-  static NPUStorageDesc SetDesc(IntArrayRef size, IntArrayRef strides, aclFormat format);
+  static NPUStorageDesc SetDesc(const IntArrayRef& size, const IntArrayRef& strides);
+  static NPUStorageDesc SetDesc(const IntArrayRef& size, const IntArrayRef& strides, aclFormat format);
 };
 
 } // namespace npu

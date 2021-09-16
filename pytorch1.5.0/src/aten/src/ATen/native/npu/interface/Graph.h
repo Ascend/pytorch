@@ -52,7 +52,7 @@ public:
   /**
     This api is used to set graph's name.
     */
-  Graph& Name(std::string name);
+  Graph& Name(const std::string& name);
   /**
     This api is used to set graph's input desc
     */
@@ -73,7 +73,7 @@ public:
     This api should be called after Make().
     */
   template <typename dataType>
-  void AddAttr(std::string& attrName, dataType value);
+  void AddAttr(const std::string& attrName, dataType value);
   /**
     This API is used to get the private member: ge::Graph.
     */
@@ -88,7 +88,7 @@ private:
 };
 
 template <typename dataType>
-void Graph::AddAttr(std::string& attrName, dataType value) {
+void Graph::AddAttr(const std::string& attrName, dataType value) {
   if (not env::AutoTuneEnabled()) {
     return;
   }

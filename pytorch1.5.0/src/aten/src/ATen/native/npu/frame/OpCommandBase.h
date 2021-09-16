@@ -44,7 +44,7 @@ class OpCommandBase {
   }
   virtual ~OpCommandBase() {}
 
-  Derived& Name(string name) {
+  Derived& Name(const string& name) {
     aclCmd->SetName(name);
     return static_cast<Derived&>(*this);
   }
@@ -57,7 +57,7 @@ class OpCommandBase {
   }
 
   template <typename dataType>
-  Derived& Attr(string name, dataType value) {
+  Derived& Attr(const string& name, dataType value) {
     aclCmd->AddAttr(name, value);
     return static_cast<Derived&>(*this);
   }

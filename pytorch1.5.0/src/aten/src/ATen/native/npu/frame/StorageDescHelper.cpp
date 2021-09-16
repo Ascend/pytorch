@@ -86,11 +86,11 @@ void StorageDescHelper::SetDesc(Tensor& dst) {
   dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc();
 }
 
-void StorageDescHelper::SetDesc(Tensor& dst, IntArrayRef size, IntArrayRef strides) {
+void StorageDescHelper::SetDesc(Tensor& dst, const IntArrayRef& size, const IntArrayRef& strides) {
   dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(size, strides);
 }
 
-void StorageDescHelper::SetDesc(Tensor& dst, IntArrayRef size, IntArrayRef strides, aclFormat format) {
+void StorageDescHelper::SetDesc(Tensor& dst, const IntArrayRef& size, const IntArrayRef& strides, aclFormat format) {
   dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(size, strides, format);
 }
 
@@ -118,11 +118,11 @@ NPUStorageDesc StorageDescHelper::SetDesc() {
   return SetDesc({0}, {});
 }
 
-NPUStorageDesc StorageDescHelper::SetDesc(IntArrayRef size, IntArrayRef strides) {
+NPUStorageDesc StorageDescHelper::SetDesc(const IntArrayRef& size, const IntArrayRef& strides) {
   return SetDesc(size, strides, InferFormat::GuessBaseFormat(size));
 }
 
-NPUStorageDesc StorageDescHelper::SetDesc(IntArrayRef size, IntArrayRef strides, aclFormat format) {
+NPUStorageDesc StorageDescHelper::SetDesc(const IntArrayRef& size, const IntArrayRef& strides, aclFormat format) {
   struct NPUStorageDesc npu_desc;
   npu_desc.base_sizes_ = size;
   npu_desc.base_strides_ = strides;
@@ -148,7 +148,7 @@ int64_t StorageDescHelper::GetMemorySize(const Tensor& dst) {
   return GetMemorySize(desc);
 }
 
-int64_t StorageDescHelper::GetMemorySize(IntArrayRef size, aclFormat format) {
+int64_t StorageDescHelper::GetMemorySize(const IntArrayRef& size, aclFormat format) {
   auto physical_size = FormatHelper::GetStorageSizes(format, size);
   return prod_intlist(physical_size);
 }

@@ -46,12 +46,12 @@ class CopyOptRegister {
     static CopyOptRegister instance;
     return &instance;
   }
-  void Register(std::string name, ::std::unique_ptr<ContiguousOpt>& ptr) {
+  void Register(std::string& name, ::std::unique_ptr<ContiguousOpt>& ptr) {
     std::lock_guard<std::mutex> lock(mu_);
     registry.emplace(name, std::move(ptr));
   }
 
-  bool CanOptimize(std::string name, const Tensor& src) {
+  bool CanOptimize(std::string& name, const Tensor& src) {
     auto itr = registry.find(name);
     if (itr != registry.end()) {
       return itr->second->CanOptimizer(src);
@@ -59,7 +59,7 @@ class CopyOptRegister {
     return false;
   }
 
-  bool Run(std::string name, const Tensor& src, Tensor& self) {
+  bool Run(const std::string& name, const Tensor& src, Tensor& self) {
     auto itr = registry.find(name);
     if (itr != registry.end()) {
       return itr->second->Optimizer(src, self);

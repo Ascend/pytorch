@@ -65,7 +65,7 @@ bool FormatHelper::IsPadded(const Tensor* tensor) {
 }
 
 bool FormatHelper::IsPadded(aclFormat format) {
-  auto itr = info.find(format);
+  const auto& itr = info.find(format);
   if (itr != info.end()) {
     return itr->second.isPadded;
   }
@@ -74,7 +74,7 @@ bool FormatHelper::IsPadded(aclFormat format) {
 }
 
 char* FormatHelper::GetFormatName(aclFormat format) {
-  auto itr = info.find(format);
+  const auto& itr = info.find(format);
   if (itr == info.end()) {
     AT_ERROR("unknown format type:", format);
     return nullptr;
@@ -93,7 +93,7 @@ aclFormat FormatHelper::GetBaseFormat(const Tensor& tensor) {
 }
 
 aclFormat FormatHelper::GetBaseFormat(aclFormat format) {
-  auto itr = info.find(format);
+  const auto& itr = info.find(format);
   if (itr == info.end()) {
     AT_ERROR("unknown format type:", format);
     return ACL_FORMAT_ND;

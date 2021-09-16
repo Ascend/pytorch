@@ -26,7 +26,6 @@ Tensor& transpose_out_npu(
     Tensor& result,
     const Tensor& self,
     IntArrayRef perm) {
-  SmallVector<int64_t, N> permVec = array_to_small_vector(perm);
   if (!c10::npu::OptionsManager::CheckDynamicEnable()){
     OpCommand cmd;
     cmd.Name("Transpose")
@@ -35,6 +34,7 @@ Tensor& transpose_out_npu(
         .Output(result)
         .Run();
   } else {
+    SmallVector<int64_t, N> permVec = array_to_small_vector(perm);
     OpDynamicCommand cmd;
     cmd.Name("TransposeD")
        .Input(self)

@@ -21,8 +21,8 @@
 namespace at {
 namespace native {
 
-inline void check_size_nonnegative(IntArrayRef size) {
-  for (auto x : size) {
+inline void check_size_nonnegative(IntArrayRef& size) {
+  for (auto& x : size) {
     TORCH_CHECK(
         x >= 0,
         "Trying to create tensor with negative dimension ",

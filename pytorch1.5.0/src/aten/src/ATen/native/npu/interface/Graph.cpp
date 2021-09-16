@@ -65,7 +65,7 @@ void GNodeAttrMaker::Set(ge::GNode& op, const ge::AscendString& name, at::ArrayR
 }
 
 
-Graph& Graph::Name(std::string name) {
+Graph& Graph::Name(const std::string& name) {
   this->name = name;
   this->inputs.clear();
   this->outputs.clear();

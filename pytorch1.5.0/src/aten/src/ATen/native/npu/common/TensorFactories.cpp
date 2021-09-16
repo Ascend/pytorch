@@ -232,7 +232,7 @@ Tensor empty_with_format_npu(
   aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
   int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
   auto dtype = options.dtype();
-  auto storage_impl = c10::make_intrusive<StorageImpl>(
+  const auto& storage_impl = c10::make_intrusive<StorageImpl>(
       dtype,
       nelements,
       allocator->allocate(nelements * dtype.itemsize()),
@@ -245,8 +245,8 @@ Tensor empty_with_format_npu(
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
-  auto memory_format = MemoryFormat::Contiguous;
-  tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
+
+  tensor.unsafeGetTensorImpl()->empty_tensor_restride(MemoryFormat::Contiguous);
   StorageDescHelper::SetDesc(tensor, size, tensor.strides(), format);
   return tensor;
 }

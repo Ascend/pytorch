@@ -49,16 +49,24 @@ Tensor& norm_out_npu_nocheck(
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
 
   // construct the output tensor of the NPU
+  Tensor resultTemp = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
   Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
 
   auto pvalue = calculate_p(p);
-  OpCommand cmd;
-  cmd.Name("LpNorm")
+  OpCommand cmd1;
+  cmd1.Name("LpNormReduce")
       .Input(self)
-      .Output(result)
+      .Output(resultTemp)
       .Attr("p", pvalue)
       .Attr("axes", dim)
       .Attr("keepdim", keepdim)
+      .Run();
+
+  OpCommand cmd2;
+  cmd2.Name("LpNormUpdate")
+      .Input(resultTemp)
+      .Output(result)
+      .Attr("p", pvalue)
       .Run();
 
   // trans dtype for output
@@ -68,7 +76,7 @@ Tensor& norm_out_npu_nocheck(
 
   // until now, can not support resize shape of out correctly,
   // so the shape of out must be equal to outputSize
-  out = out.copy_(result);  
+  out = out.copy_(result);
   
   return out;
 }

@@ -2677,6 +2677,8 @@
 - func: batch_norm_backward_reduce(Tensor grad_out, Tensor input, Tensor mean, Tensor invstd, Tensor? weight, bool input_g, bool weight_g, bool bias_g) -> (Tensor, Tensor, Tensor, Tensor)
   dispatch:
     CUDA: batch_norm_backward_reduce_cuda
+  npu_dispatch:
+    NPU: batch_norm_backward_reduce_npu
 
 - func: batch_norm_backward_elemt(Tensor grad_out, Tensor input, Tensor mean, Tensor invstd, Tensor? weight, Tensor mean_dy, Tensor mean_dy_xmu) -> Tensor
   dispatch:

@@ -346,9 +346,8 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
     } else if (
         input[i].tensorDescType == NPUTensorDesc::TensorDescType::TENSOR) {
       Tensor* aclInput = &input[i].tensor;
-      SmallVector<int64_t, 5> dims;
-      dims = aclInput->storage().get_npu_desc().base_sizes_;
-      auto storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
+      const auto& dims = aclInput->storage().get_npu_desc().base_sizes_;
+      const auto& storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
       int64_t numel = 1;
       for (int j = 0; j < storageDims.size(); j++) {
         numel *= storageDims[j];

@@ -35,12 +35,12 @@ public:
   // The format transform between other formats should be based
   // on these base formats.(their should convert to base format first.)
   // This function will be called at new, reset, set and so on.
-  static std::tuple<aclFormat, aclFormat> GuessFormatUnit(IntArrayRef size, aclFormat format);
+  static std::tuple<aclFormat, aclFormat> GuessFormatUnit(const IntArrayRef& size, aclFormat format);
   // GuessBaseFormat is the base of the format assumption
   // this function is called when apply the new tensor
-  static aclFormat GuessBaseFormat(IntArrayRef size);
+  static aclFormat GuessBaseFormat(const IntArrayRef& size);
   // this function used to fix format when format and size is not match
-  static aclFormat GuessStorageFormat(IntArrayRef size, aclFormat format);
+  static aclFormat GuessStorageFormat(const IntArrayRef& size, aclFormat format);
   // Features: guess the format of tensor after it called format_contiguous().
   // According to the law of continuity, the output format is same as input format,
   // this function is called to guess the input format, so it also the output format.
@@ -55,7 +55,7 @@ public:
   // fix: NCHW | 5HD -> NCDHW | NCDHW or ND | ND
   // unsqueeze/squeeze/select/flatten/view will change meta data, they will call
   // as_strided and view
-  static bool IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, IntArrayRef size);
+  static bool IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, const IntArrayRef& size);
 }; //class InferFormat
 
 
