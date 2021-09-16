@@ -1,42 +1,42 @@
 # PyTorch安装指南
--   [简介](#简介.md)
--   [手动编译安装](#手动编译安装.md)
-    -   [前提条件](#前提条件.md)
-    -   [安装PyTorch框架](#安装PyTorch框架.md)
-    -   [配置环境变量](#配置环境变量.md)
-    -   [安装混合精度模块](#安装混合精度模块.md)
--   [使用Ascend Hub镜像](#使用Ascend-Hub镜像.md)
-    -   [Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像.md)
-    -   [配置环境变量](#配置环境变量-0.md)
--   [参考信息](#参考信息.md)
-    -   [CMake安装方法](#CMake安装方法.md)
-    -   [安装7.3.0版本gcc](#安装7-3-0版本gcc.md)
-    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)
-<h2 id="简介.md">简介</h2>
+-   [简介](#简介md)
+-   [手动编译安装](#手动编译安装md)
+    -   [前提条件](#前提条件md)
+    -   [安装PyTorch框架](#安装PyTorch框架md)
+    -   [配置环境变量](#配置环境变量md)
+    -   [安装混合精度模块](#安装混合精度模块md)
+-   [使用Ascend Hub镜像](#使用Ascend-Hub镜像md)
+    -   [Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像md)
+    -   [配置环境变量](#配置环境变量-0md)
+-   [参考信息](#参考信息md)
+    -   [CMake安装方法](#CMake安装方法md)
+    -   [安装7.3.0版本gcc](#安装7-3-0版本gccmd)
+    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)
+<h2 id="简介md">简介</h2>
 
 用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块，或直接获取Ascend Hub镜像中心提供的基础镜像（镜像中已安装PyTorch模块和混合精度模块），进行模型的开发、运行。
 
 **图 1**  环境准备流程图<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
 ![](figures/环境准备流程图.png "环境准备流程图")
 
-<h2 id="手动编译安装.md">手动编译安装</h2>
+<h2 id="手动编译安装md">手动编译安装</h2>
 
--   **[前提条件](#前提条件.md)**  
+-   **[前提条件](#前提条件md)**  
 
--   **[安装PyTorch框架](#安装PyTorch框架.md)**  
+-   **[安装PyTorch框架](#安装PyTorch框架md)**  
 
--   **[配置环境变量](#配置环境变量.md)**  
+-   **[配置环境变量](#配置环境变量md)**  
 
--   **[安装混合精度模块](#安装混合精度模块.md)**  
+-   **[安装混合精度模块](#安装混合精度模块md)**  
 
 
-<h2 id="前提条件.md">前提条件</h2>
+<h3 id="前提条件md">前提条件</h3>
 
-## 前提条件<a name="zh-cn_topic_0000001105856382_zh-cn_topic_0275872734_section108914373254"></a>
+#### 前提条件<a name="zh-cn_topic_0000001105856382_zh-cn_topic_0275872734_section108914373254"></a>
 
 -   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
--   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法.md)。
--   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)。
+-   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
+-   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
     -   Ubuntu系统
 
@@ -54,9 +54,9 @@
 
 
 
-<h2 id="安装PyTorch框架.md">安装PyTorch框架</h2>
+<h3 id="安装PyTorch框架md">安装PyTorch框架</h3>
 
-## 安装流程<a name="zh-cn_topic_0000001152776301_section1611810384557"></a>
+#### 安装流程<a name="zh-cn_topic_0000001152776301_section1611810384557"></a>
 
 1.  以root或非root用户登录服务器。
 2.  依次执行如下命令安装PyTorch依赖环境。
@@ -155,7 +155,7 @@
     >**pip3 list | grep torch**
 
 
-<h2 id="配置环境变量.md">配置环境变量</h2>
+<h3 id="配置环境变量md">配置环境变量</h3>
 
 安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。相关环境变量介绍参见[表1](#zh-cn_topic_0000001152616261_table42017516135)。
 
@@ -204,7 +204,7 @@
 <tbody><tr id="zh-cn_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p688241953218"><a name="zh-cn_topic_0000001152616261_p688241953218"></a><a name="zh-cn_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001152616261_p1888291915322"></a>动态库的查找路径，参考上述举例配置。</p>
-<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="parmname795020446318"><a name="parmname795020446318"></a><a name="parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#安装7-3-0版本gcc.md#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
+<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="parmname795020446318"><a name="parmname795020446318"></a><a name="parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#安装7-3-0版本gccmd#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
 </td>
 </tr>
 <tr id="zh-cn_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16195185523019"><a name="zh-cn_topic_0000001152616261_p16195185523019"></a><a name="zh-cn_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
@@ -307,14 +307,14 @@
 </tbody>
 </table>
 
-<h2 id="安装混合精度模块.md">安装混合精度模块</h2>
+<h3 id="安装混合精度模块md">安装混合精度模块</h3>
 
-## 前提条件<a name="zh-cn_topic_0000001106176190_section3225481020"></a>
+#### 前提条件<a name="zh-cn_topic_0000001106176190_section3225481020"></a>
 
 1.  请确保运行环境中适配昇腾AI处理器的PyTorch框架能正常使用。
-2.  编译安装Apex前，需参见[配置环境变量](#配置环境变量.md)配置好编译过程依赖的环境变量。
+2.  编译安装Apex前，需参见[配置环境变量](#配置环境变量md)配置好编译过程依赖的环境变量。
 
-## 安装流程<a name="zh-cn_topic_0000001106176190_section11880164819567"></a>
+#### 安装流程<a name="zh-cn_topic_0000001106176190_section11880164819567"></a>
 
 1.  以root或非root用户登录服务器。
 2.  获取apex源代码。
@@ -404,21 +404,21 @@
     >**pip3 list | grep apex**
 
 
-<h2 id="使用Ascend-Hub镜像.md">使用Ascend Hub镜像</h2>
+<h2 id="使用Ascend-Hub镜像md">使用Ascend Hub镜像</h2>
 
--   **[Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像.md)**  
+-   **[Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像md)**  
 
--   **[配置环境变量](#配置环境变量-0.md)**  
+-   **[配置环境变量](#配置环境变量-0md)**  
 
 
-<h2 id="Ascend-Hub获取PyTorch镜像.md">Ascend Hub获取PyTorch镜像</h2>
+<h3 id="Ascend-Hub获取PyTorch镜像md">Ascend Hub获取PyTorch镜像</h3>
 
-## 前提条件<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0275872734_section108914373254"></a>
+#### 前提条件<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0275872734_section108914373254"></a>
 
 -   已准备好相应硬件环境驱动和固件的安装，请参见各硬件产品[“驱动和固件安装升级指南”](https://support.huawei.com/enterprise/zh/category/ai-computing-platform-pid-1557196528909)。需要在硬件设备上安装与CANN版本配套的固件与驱动。
 -   宿主机上已安装Docker。
 
-## 获取并使用镜像<a name="zh-cn_topic_0000001118701830_section108941734162613"></a>
+#### 获取并使用镜像<a name="zh-cn_topic_0000001118701830_section108941734162613"></a>
 
 用户可登录[Ascend Hub](https://ascendhub.huawei.com/#/home)获取相应镜像（首次申请需要激活账号）。
 
@@ -445,20 +445,20 @@
 </tbody>
 </table>
 
-<h2 id="配置环境变量-0.md">配置环境变量</h2>
+<h3 id="配置环境变量-0md">配置环境变量</h3>
 
-启动并进入镜像容器后，请参见[配置环境变量](#配置环境变量.md)配置模型训练依赖的环境变量。
+启动并进入镜像容器后，请参见[配置环境变量](#配置环境变量md)配置模型训练依赖的环境变量。
 
-<h2 id="参考信息.md">参考信息</h2>
+<h2 id="参考信息md">参考信息</h2>
 
--   **[CMake安装方法](#CMake安装方法.md)**  
+-   **[CMake安装方法](#CMake安装方法md)**  
 
--   **[安装7.3.0版本gcc](#安装7-3-0版本gcc.md)**  
+-   **[安装7.3.0版本gcc](#安装7-3-0版本gccmd)**  
 
--   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md)**  
+-   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)**  
 
 
-<h2 id="CMake安装方法.md">CMake安装方法</h2>
+<h3 id="CMake安装方法md">CMake安装方法</h3>
 
 CMake版本升级为3.12.1的方法
 
@@ -497,7 +497,7 @@ CMake版本升级为3.12.1的方法
     如显示“cmake version 3.12.1”则表示安装成功。
 
 
-<h2 id="安装7-3-0版本gcc.md">安装7.3.0版本gcc</h2>
+<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
 
 以下步骤请在root用户下执行。
 
@@ -578,19 +578,19 @@ CMake版本升级为3.12.1的方法
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
 
-<h2 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配.md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h2>
+<h3 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h3>
 
-## 现象描述<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section197270431505"></a>
+#### 现象描述<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section197270431505"></a>
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
 
 ![](figures/zh-cn_image_0000001190081735.png)
 
-## 可能原因<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section169499490501"></a>
+#### 可能原因<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section169499490501"></a>
 
 安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
 
-## 处理方法<a name="zh-cn_topic_0000001105856364_section108142031907"></a>
+#### 处理方法<a name="zh-cn_topic_0000001105856364_section108142031907"></a>
 
 对实际结果无影响，无需处理。
 
