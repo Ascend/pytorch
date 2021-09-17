@@ -10,7 +10,7 @@ gcc版本: 7.3.0（只在编译场景要求）
 
 cmake版本：3.12.0以上版本（只在编译场景要求）
 
-python版本：3.7.x
+python版本：3.7.5 和 3.8.x（编译方法有差别，详见脚本编译章节）
 
 
 # 系统依赖库
@@ -81,7 +81,13 @@ pip3 install -r requirements.txt
 进入到pytorch/pytorch/目录，执行
 
 ```sh
+# python3.7版本
 bash build.sh
+或者
+bash build.sh --python=3.7（推荐）
+
+# python3.8版本
+bash build.sh --python=3.8
 ```
 
 生成的二进制包在pytorch/pytorch/dist/目录下
