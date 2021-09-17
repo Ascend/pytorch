@@ -43,13 +43,19 @@ Tensor softmax_npu(
 }
 
 Tensor _softmax_npu(const Tensor& self, int64_t dim, bool half_to_float) {
+  // calculate the output size
+  auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU
   Tensor result;
   if (half_to_float) {
-    result = OpPreparation::ApplyTensor(self, self.options().dtype(ScalarType::Float));
+    result = at::empty_with_format(
+        outputSize,
+        self.options().dtype(ScalarType::Float),
+        CalcuOpUtil::get_tensor_npu_format(self));
   } else {
-    result = OpPreparation::ApplyTensor(self);
+    result = at::empty_with_format(
+        outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
   }
 
   // calculate the output result of the NPU

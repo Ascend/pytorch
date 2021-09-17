@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,17 +14,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/OpTemplate.h"
+#include <torch/library.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
 Tensor& normal_tensor_float_out_npu(
-    const Tensor& mean, 
-    double std, 
+    const Tensor& mean,
+    double std,
     c10::optional<Generator> generator,
     Tensor& result) {
   TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
@@ -49,8 +49,8 @@ Tensor& normal_tensor_float_out_npu(
 }
 
 Tensor& normal_float_tensor_out_npu(
-    double mean, 
-    const Tensor& std, 
+    double mean,
+    const Tensor& std,
     c10::optional<Generator> generator,
     Tensor& result) {
   Tensor resultCopy = result;
@@ -73,11 +73,11 @@ Tensor& normal_float_tensor_out_npu(
 }
 
 Tensor& normal_tensor_tensor_out_npu(
-    const Tensor& mean, 
-    const Tensor& std, 
-    c10::optional<Generator> generator,    
+    const Tensor& mean,
+    const Tensor& std,
+    c10::optional<Generator> generator,
     Tensor& result) {
-  Tensor resultCopy = result;  
+  Tensor resultCopy = result;
   Tensor dtypeCastOfMean = mean;
   Tensor dtypeCastOfStd = std;
   if (dtypeCastOfMean.scalar_type() == ScalarType::Half) {
@@ -87,7 +87,7 @@ Tensor& normal_tensor_tensor_out_npu(
   if (dtypeCastOfStd.scalar_type() == ScalarType::Half) {
     dtypeCastOfStd = dtypeCastOfStd.to(ScalarType::Float);
   }
-  
+
   OpCommand cmd;
   cmd.Name("Normal")
     .Input(dtypeCastOfMean)
@@ -101,10 +101,10 @@ Tensor& normal_tensor_tensor_out_npu(
 }
 
 Tensor& normal_float_float_out_npu(
-    double mean, 
-    double std, 
+    double mean,
+    double std,
     IntArrayRef size,
-    c10::optional<Generator> generator, 
+    c10::optional<Generator> generator,
     Tensor& result) {
   TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
@@ -113,7 +113,7 @@ Tensor& normal_float_float_out_npu(
   if (formatCastOfResult.scalar_type() == ScalarType::Half) {
     formatCastOfResult = formatCastOfResult.to(ScalarType::Float);
   }
-  
+
   Tensor meanTensor = OpPreparation::ApplyTensor(size, result.options(), result);
   meanTensor.fill_(mean);
   OpCommand cmd;
@@ -129,8 +129,8 @@ Tensor& normal_float_float_out_npu(
 }
 
 Tensor normal_tensor_float_npu(
-    const Tensor& mean, 
-    double std, 
+    const Tensor& mean,
+    double std,
     c10::optional<Generator> generator) {
   Tensor result = OpPreparation::ApplyTensor(mean);
   normal_tensor_float_out_npu(mean, std, generator, result);
@@ -139,8 +139,8 @@ Tensor normal_tensor_float_npu(
 }
 
 Tensor normal_float_tensor_npu(
-    double mean, 
-    const Tensor& std, 
+    double mean,
+    const Tensor& std,
     c10::optional<Generator> generator) {
   Tensor result = OpPreparation::ApplyTensor(std);
   normal_float_tensor_out_npu(mean, std, generator, result);
@@ -149,8 +149,8 @@ Tensor normal_float_tensor_npu(
 }
 
 Tensor normal_tensor_tensor_npu(
-    const Tensor& mean, 
-    const Tensor& std, 
+    const Tensor& mean,
+    const Tensor& std,
     c10::optional<Generator> generator) {
   Tensor result = OpPreparation::ApplyTensor(mean);
   normal_tensor_tensor_out_npu(mean, std, generator, result);
@@ -159,8 +159,8 @@ Tensor normal_tensor_tensor_npu(
 }
 
 Tensor normal_float_float_npu(
-    double mean, 
-    double std, 
+    double mean,
+    double std,
     IntArrayRef size,
     c10::optional<Generator> generator,
     c10::optional<ScalarType> dtype_opt,
@@ -205,6 +205,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("normal.float_float", TORCH_FN(normal_float_float_npu));
   m.impl("normal.float_float_out", TORCH_FN(normal_float_float_out_npu));
 }
-
 } // namespace native
 } // namespace at

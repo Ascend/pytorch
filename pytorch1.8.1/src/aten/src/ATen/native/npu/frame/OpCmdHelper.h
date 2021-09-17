@@ -30,22 +30,22 @@ class OpCmdHelper {
 public:
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertTensorToAclInput(
-      Tensor tensor,
-      c10::optional<Tensor> cpu_tensor,
-      string descName,
-      string forceDataType = "");
+      const Tensor& tensor,
+      const c10::optional<Tensor>& cpu_tensor,
+      const string& descName,
+      const string& forceDataType = "");
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertTensorWithZeroDimToAclInput(const Tensor& tensor, ScalarType type);
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-  CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, string descName);
+  CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, const string& descName);
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertScalarToAclInput(const Tensor& tensor, ScalarType type);
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-  CovertToAclOutput(const Tensor* tensorPtr, string forceDataType);
+  CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataType);
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertTransDataTensorToAcl(
@@ -53,7 +53,6 @@ public:
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
   CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type);
-
 }; // class OpCommandImpl
 
 } // npu

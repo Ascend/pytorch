@@ -17,8 +17,9 @@
 #define __NATIVE_NPU_UTILS_OP_PARAM_MAKER__
 
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include "ATen/native/npu/frame/NPUDefine.h"
+#include "ATen/native/npu/interface/Graph.h"
 #include "c10/npu/NPUStream.h"
 
 namespace at {
@@ -110,7 +111,7 @@ class AclTensorDescMaker {
     return *this;
   }
 
-  AclTensorDescMaker& SetName(string name) {
+  AclTensorDescMaker& SetName(const string& name) {
     if (name != "") {
       aclSetTensorDescName(desc, name.c_str());
     }
@@ -190,6 +191,7 @@ class OpCommandImpl {
 
   void SetName(string& name) {
     opName = name;
+    execParam.graph.Name(name);
   }
 
   void AddInput(
@@ -198,8 +200,9 @@ class OpCommandImpl {
       int64_t dim,
       aclFormat format) {
     inputCounter += 1;
-    execParam.inDesc.emplace_back(desc);
-    execParam.inBuffer.emplace_back(buffer);
+    execParam.graph.Input(desc);
+    execParam.inDesc.emplace_back(std::move(desc));
+    execParam.inBuffer.emplace_back(std::move(buffer));
     execParam.inDims.emplace_back(dim);
     execParam.inFormats.emplace_back(format);
   }
@@ -212,6 +215,7 @@ class OpCommandImpl {
       const Tensor& hostTensor) {
     AddInput(desc, buffer, dim, format);
     execParam.hostMem.emplace_back(hostTensor);
+    execParam.graph.SetConst(hostTensor.data_ptr(), hostTensor.nbytes());
   }
 
   void AddConst(SmallVector<int64_t, N> dimList) {
@@ -230,8 +234,9 @@ class OpCommandImpl {
       aclDataBuffer* buffer,
       int64_t dim,
       aclFormat format) {
-    execParam.outDesc.emplace_back(desc);
-    execParam.outBuffer.emplace_back(buffer);
+    execParam.graph.Output(desc);
+    execParam.outDesc.emplace_back(std::move(desc));
+    execParam.outBuffer.emplace_back(std::move(buffer));
     execParam.outDims.emplace_back(dim);
     execParam.outFormats.emplace_back(format);
   }
@@ -241,6 +246,7 @@ class OpCommandImpl {
     InitAttr();
     AttrInfoMaker::Add(value, attrInfo);
     OpAttrMaker::Set(execParam.attr, attrName, value);
+    execParam.graph.AddAttr(attrName, value);
     execParam.hasAttr = true;
   }
 
@@ -400,11 +406,13 @@ class OpCommandImpl {
 
     aclopAttr* attr = nullptr;
     bool hasAttr = false;
+    Graph graph;
   };
 
   void InitAttr() {
     if (execParam.attr == nullptr) {
       execParam.attr = aclopCreateAttr();
+      execParam.graph.Make();
     }
   }
 

@@ -23,14 +23,14 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
-#include <torch/script.h>
 #include <c10/util/Exception.h>
 #include <c10/npu/NPUCachingAllocator.h>
 #include <ATen/native/npu/common/ResizeNpu.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
 #include <ATen/native/npu/frame/InferFormat.h>
 #include <ATen/native/npu/common/InnerNpuNativeFunction.h>
-#include <ATen/native/npu/utils/OpAdapter.h>
+#include <ATen/record_function.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 #include <algorithm>
 #include <cctype>
@@ -99,7 +99,7 @@ Tensor empty_npu(IntArrayRef size,
       "Only MemoryFormat::Contiguous is supported for creating a npu tensor");
   tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
   StorageDescHelper::SetDesc(tensor, size, tensor.strides());
-  
+
   return tensor;
 }
 
@@ -386,13 +386,13 @@ Tensor& empty_out_npu(
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Tensor blackman_window_periodic_npu(int64_t window_length, 
-    bool periodic, 
+Tensor blackman_window_periodic_npu(int64_t window_length,
+    bool periodic,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  
+
   TensorOptions options;
   options.dtype(dtype_opt);
   auto device = device_or_default(device_opt);
@@ -415,7 +415,7 @@ Tensor blackman_window_periodic_npu(int64_t window_length,
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
 
-Tensor blackman_window_npu(int64_t window_length,  
+Tensor blackman_window_npu(int64_t window_length,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
@@ -431,7 +431,7 @@ Tensor bartlett_window_periodic_npu(
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  
+
   TensorOptions options;
   options.dtype(dtype_opt);
   auto device = device_or_default(device_opt);
@@ -472,7 +472,7 @@ Tensor hann_window_periodic_npu(
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  
+
   TensorOptions options;
   options.dtype(dtype_opt);
   auto device = device_or_default(device_opt);
@@ -484,7 +484,7 @@ Tensor hann_window_periodic_npu(
   return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
 }
 
-Tensor hann_window_npu(int64_t window_length, 
+Tensor hann_window_npu(int64_t window_length,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
@@ -552,7 +552,7 @@ Tensor hamming_window_periodic_npu(
 
 
 
-Tensor hamming_window_npu(int64_t window_length,     
+Tensor hamming_window_npu(int64_t window_length,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,

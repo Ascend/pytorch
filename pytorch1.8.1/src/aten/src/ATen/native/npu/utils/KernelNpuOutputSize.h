@@ -110,12 +110,6 @@ SmallVector<int64_t, SIZE> cdist_npu_output_size(
     const Tensor& x1,
     const Tensor& x2);
 
-SmallVector<int64_t, SIZE> conv_tbc_npu_output_size(
-    const Tensor& self,
-    const Tensor& weight,
-    const Tensor& bias,
-    int64_t pad);
-
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
 conv2d_backward_npu_output_size(
     const Tensor& input,
@@ -133,7 +127,7 @@ SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
 );
 
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> 
-convolution_transpose_backward_npu_output_size(
+conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -143,7 +137,7 @@ convolution_transpose_backward_npu_output_size(
     IntArrayRef dilation,
     int64_t groups);
 
-SmallVector<int64_t, SIZE> convolution_transpose_npu_output_size(
+SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
     const Tensor& input,
     const Tensor& weight,
     const Tensor& bias,
@@ -158,6 +152,7 @@ SmallVector<int64_t, SIZE> deformable_conv2d_npu_output_size(
     const Tensor& weight,
     const Tensor& offset,
     const Tensor& bias,
+    IntArrayRef kernel_size,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -186,10 +181,6 @@ SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
     int64_t num_weights, 
     int64_t padding_idx, 
     bool scale_grad_by_freq);
-
-SmallVector<int64_t, SIZE> embedding_renorm_mid_npu_output_size(
-    const Tensor& self,
-    const Tensor& indices);
 
 SmallVector<int64_t, SIZE> index_npu_output_size(
   const Tensor& self, 
@@ -226,10 +217,6 @@ SmallVector<int64_t, SIZE> lstm_npu_output_size(
 	bool train,
 	bool bidirectional,
 	bool batch_first);
-
-SmallVector<int64_t, SIZE> masked_select_npu_output_size(
-    const Tensor& self,
-    const Tensor& mask);
 
 SmallVector<int64_t, SIZE> mm_npu_output_size(
     const Tensor& self,
@@ -290,17 +277,6 @@ SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
 
 SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,IntArrayRef padding);
 
-SmallVector<int64_t, SIZE> reflection_pad2d_npu_output_size(const Tensor& self,IntArrayRef padding);
-
-SmallVector<int64_t, SIZE> roi_align_npu_output_size(
-    const Tensor& self,
-    const Tensor& rois,
-    int64_t pooled_height,
-    int64_t pooled_width);
-
-SmallVector<int64_t, SIZE> roi_align_backward_npu_output_size(
-    IntArrayRef xdiff_shape);
-
 SmallVector<int64_t, SIZE> repeat_npu_output_size(
     const Tensor& self,
     IntArrayRef repeats);
@@ -350,9 +326,6 @@ SmallVector<int64_t, SIZE> transpose_npu_output_size(
 
 tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
 softmax_cross_entropy_with_logits_impl_npu_output_size(const Tensor& self);
-
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> 
-std_npu_output_size(const Tensor & self, IntArrayRef dim, bool keepdim);
 
 SmallVector<int64_t, SIZE> sum_npu_output_size(
     const Tensor& self,

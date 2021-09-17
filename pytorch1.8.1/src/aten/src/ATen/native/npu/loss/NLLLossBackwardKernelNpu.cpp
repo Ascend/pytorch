@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
-#include <torch/script.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -54,10 +53,17 @@ Tensor& nll_loss_backward_out_npu(
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
 
   Tensor targetCast = target;
-  if (target.scalar_type() == at::kLong || target.scalar_type() == at::kFloat) {
+  auto scalar_type = target.scalar_type();
+  if (scalar_type == at::kLong) {
     targetCast = target.to(at::kInt);
+  }  else if (scalar_type == at::kInt) {
+    ;
   }
-  
+  else {
+    AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+        " for argument 'target'  in call to nll_loss_backward");
+  }
+
   OpCommand cmd;
   cmd.Name("NLLLossGrad")
       .Input(self)
@@ -106,6 +112,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("nll_loss_backward", TORCH_FN(nll_loss_backward_npu));
   m.impl("nll_loss_backward.grad_input", TORCH_FN(nll_loss_backward_out_npu));
 }
-
 } // namespace native
 } // namespace at

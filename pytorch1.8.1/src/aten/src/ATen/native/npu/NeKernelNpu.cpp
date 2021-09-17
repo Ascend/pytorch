@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -37,9 +37,9 @@ Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
     .Expect(unified_result)
     .Input(selfCast)
     .Input(otherCast)
-    .Output(result)   
+    .Output(result)
     .Run();
-  
+
   return result;
 }
 
@@ -56,7 +56,7 @@ Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
   cmd.Name("NotEqual")
     .Input(selfCast)
     .Input(other, selfCast.scalar_type())
-    .Output(result)   
+    .Output(result)
     .Run();
 
   return result;
@@ -67,10 +67,10 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other}, 
-    result, 
+    {self, other},
+    result,
     ACL_FORMAT_ND,
-    result.scalar_type(), 
+    result.scalar_type(),
     IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
   return result;
@@ -80,10 +80,10 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, Scalar other) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   auto outputSize = formatCastOfSelf.sizes();
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
+    {self},
+    result,
     ACL_FORMAT_ND,
-    result.scalar_type(), 
+    result.scalar_type(),
     outputSize);
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;
@@ -165,6 +165,5 @@ Tensor& ne_npu_(Tensor& self, Scalar other) {
 
   return self;
 }
-
 } // namespace native
 } // namespace at

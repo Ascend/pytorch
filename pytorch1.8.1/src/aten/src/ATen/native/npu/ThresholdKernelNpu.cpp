@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -39,14 +37,7 @@ Tensor& threshold_out_npu(
 }
 
 Tensor threshold_npu(const Tensor& self, Scalar threshold, Scalar value) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   threshold_out_npu(self, threshold, value, result);
   return result;
 }
@@ -69,6 +60,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("threshold_", TORCH_FN(threshold_npu_));
   m.impl("threshold.out", TORCH_FN(threshold_out_npu));
 }
-
 } // namespace native
 } // namespace at

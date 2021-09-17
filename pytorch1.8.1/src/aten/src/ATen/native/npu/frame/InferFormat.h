@@ -57,8 +57,6 @@ public:
   // as_strided and view
   static bool IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, IntArrayRef size);
 }; //class InferFormat
-
-
 } // namespace npu
 } // namespace native
 } // namespace at

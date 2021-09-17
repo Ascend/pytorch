@@ -14,20 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& indexing_out_npu(
-    const Tensor& self,
+Tensor& indexing_out_npu(const Tensor& self,
     IntArrayRef begin,
     IntArrayRef end,
     IntArrayRef strides,
+    int64_t begin_mask,
+    int64_t end_mask,
+    int64_t ellipsis_mask,
+    int64_t new_axis_mask,
+    int64_t shrink_axis_mask,
     Tensor& result) {
+
   OpCommand cmd;
   cmd.Name("StridedSlice")
       .Input(self)
@@ -35,11 +38,11 @@ Tensor& indexing_out_npu(
       .Input(end)
       .Input(strides)
       .Output(result)
-      .Attr("begin_mask", (int64_t)0)
-      .Attr("end_mask", (int64_t)0)
-      .Attr("shrink_axis_mask", (int64_t)0)
-      .Attr("ellipsis_mask", (int64_t)0)
-      .Attr("new_axis_mask", (int64_t)0)
+      .Attr("begin_mask", begin_mask)
+      .Attr("end_mask", end_mask)
+      .Attr("ellipsis_mask", ellipsis_mask)
+      .Attr("new_axis_mask", new_axis_mask)
+      .Attr("shrink_axis_mask", shrink_axis_mask)
       .Run();
   return result;
 }
@@ -48,7 +51,12 @@ Tensor indexing_npu(
     const Tensor& self,
     IntArrayRef begin,
     IntArrayRef end,
-    IntArrayRef strides) {
+    IntArrayRef strides,
+    int64_t begin_mask,
+    int64_t end_mask,
+    int64_t ellipsis_mask,
+    int64_t new_axis_mask,
+    int64_t shrink_axis_mask) {
   // calculate the output size
   SmallVector<int64_t, SIZE> outputSize;
   for (int i = 0; i < self.dim(); i++) {
@@ -56,11 +64,9 @@ Tensor indexing_npu(
     outputSize.emplace_back((end[i] + strides[i] - 1 - begin[i]) / strides[i]);
   }
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  indexing_out_npu(self, begin, end, strides, result);
-
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  indexing_out_npu(self, begin, end, strides,begin_mask, end_mask,
+                   ellipsis_mask, new_axis_mask, shrink_axis_mask, result);
   return result;
 }
 

@@ -257,6 +257,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("add_.Tensor", TORCH_FN(add_npu_));
   m.impl("add.out", TORCH_FN(add_out_npu));
 }
-
 } // namespace native
 } // namespace at

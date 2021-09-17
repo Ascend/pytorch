@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
+#include <ATen/native/Pool.h>
 
 namespace at {
 namespace native {
@@ -62,7 +62,7 @@ Tensor& max_pool2d_with_indices_backward_out_npu(
 }
 
 Tensor max_pool2d_with_indices_backward_npu(
-    const Tensor& grad_output,
+    const Tensor& grad_output_,
     const Tensor& self,
     IntArrayRef kernel_size,
     IntArrayRef stride,
@@ -70,6 +70,51 @@ Tensor max_pool2d_with_indices_backward_npu(
     IntArrayRef dilation,
     bool ceil_mode,
     const Tensor& indices) {
+  TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 2,
+      "max_pool2d: kernel_size must either be a single int, or a tuple of two ints")
+  const int kH = safe_downcast<int, int64_t>(kernel_size[0]);
+  const int kW = kernel_size.size() == 1 ? kH : safe_downcast<int, int64_t>(kernel_size[1]);
+  SmallVector<int64_t, SIZE> kernel_sizes = {kH, kW};
+  IntArrayRef kernel_sizess = IntArrayRef(kernel_sizes);
+
+  // NB: stride default is not expressible as an integer constant, so we accept
+  // empty stride for this case
+  TORCH_CHECK(stride.size() == 0 || stride.size() == 1 || stride.size() == 2,
+      "max_pool2d: stride must either be omitted, a single int, or a tuple of two ints")
+  const int dH = stride.empty() ? kH : safe_downcast<int, int64_t>(stride[0]);
+  const int dW = stride.empty() ? kW :
+                 stride.size() == 1 ? dH : safe_downcast<int, int64_t>(stride[1]);
+  SmallVector<int64_t, SIZE> strides = {dH, dW};
+  IntArrayRef stridess = IntArrayRef(strides);
+
+  TORCH_CHECK(padding.size() == 1 || padding.size() == 2,
+      "max_pool2d: padding must be either be a single int, or a tuple of two ints");
+  const int padH = safe_downcast<int, int64_t>(padding[0]);
+  const int padW = padding.size() == 1 ? padH : safe_downcast<int, int64_t>(padding[1]);
+  SmallVector<int64_t, SIZE> paddings = {padH, padW};
+  IntArrayRef padss = IntArrayRef(paddings);
+
+  TORCH_CHECK(dilation.size() == 1 || dilation.size() == 2,
+      "max_pool2d: dilation must be either a single int, or a tuple of two ints");
+  const int dilationH = safe_downcast<int, int64_t>(dilation[0]);
+  const int dilationW = dilation.size() == 1 ? dilationH : safe_downcast<int, int64_t>(dilation[1]);
+  SmallVector<int64_t, SIZE> dilations = {dilationH, dilationW};
+  IntArrayRef dilationss = IntArrayRef(dilations);
+
+  TORCH_CHECK((self.ndimension() == 3 || self.ndimension() == 4),
+      "non-empty 3D or 4D (batch mode) tensor expected for input");
+
+  /* get contiguous gradOutput */
+  const Tensor grad_output = grad_output_.contiguous();
+
+  /* sizes */
+  const int64_t inputHeight = self.size(-2);
+  const int64_t inputWidth = self.size(-1);
+
+  /* XXX preserve the existing shape check behavior */
+  const int64_t outputHeight_for_shape_check = pooling_output_shape<int64_t>(inputHeight, kH, padH, dH, dilationH, ceil_mode);
+  const int64_t outputWidth_for_shape_check = pooling_output_shape<int64_t>(inputWidth, kW, padW, dW, dilationW, ceil_mode);
+
   // construct the output tensor of the NPU
   Tensor grad_input =  OpPreparation::ApplyTensor(self);
 
@@ -77,10 +122,10 @@ Tensor max_pool2d_with_indices_backward_npu(
   max_pool2d_with_indices_backward_out_npu(
       grad_output,
       self,
-      kernel_size,
-      stride,
-      padding,
-      dilation,
+      kernel_sizess,
+      stridess,
+      padss,
+      dilationss,
       ceil_mode,
       indices,
       grad_input);
@@ -92,6 +137,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("max_pool2d_with_indices_backward", TORCH_FN(max_pool2d_with_indices_backward_npu));
   m.impl("max_pool2d_with_indices_backward.grad_input", TORCH_FN(max_pool2d_with_indices_backward_out_npu));
 }
-
 } // namespace native
 } // namespace at

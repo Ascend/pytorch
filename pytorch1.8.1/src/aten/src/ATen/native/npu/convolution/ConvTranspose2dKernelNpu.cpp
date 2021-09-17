@@ -20,7 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& convolution_transpose_out_npu(
+Tensor& conv_transpose2d_out_npu(
     Tensor& result,
     const Tensor& input,
     const Tensor& weight,
@@ -59,7 +59,7 @@ Tensor& convolution_transpose_out_npu(
   return result;
 }
 
-Tensor convolution_transpose_npu(
+Tensor conv_transpose2d_npu(
     const Tensor& input,
     const Tensor& weight,
     const optional<Tensor>& bias_opt,
@@ -72,7 +72,7 @@ Tensor convolution_transpose_npu(
   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
 
   // calculate the output size
-  auto outputSize = convolution_transpose_npu_output_size(
+  auto outputSize = conv_transpose2d_npu_output_size(
       input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   // construct the output tensor of the NPU
@@ -80,14 +80,14 @@ Tensor convolution_transpose_npu(
       at::empty_with_format(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
 
   // calculate the output result of the NPU
-  convolution_transpose_out_npu(
+  conv_transpose2d_out_npu(
       result, input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   return result;
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
-  m.impl("npu_conv_transpose2d", TORCH_FN(convolution_transpose_npu));
+  m.impl("npu_conv_transpose2d", TORCH_FN(conv_transpose2d_npu));
 }
 } // namespace native
 } // namespace at

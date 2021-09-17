@@ -38,7 +38,6 @@ SmallVector<int64_t, N> get_view_value(
   }
   return value;
 }
-
 } // namespace
 
 // format are base format (the format of src and dst are all nchw now)
@@ -109,7 +108,7 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize) {
     TORCH_WARN("copy_d2d_by_memcpy, src.data_ptr() is null.");
     return;
   }
-  
+
   c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
   aclError error = aclrtMemcpyAsync(
       dst.data_ptr(),

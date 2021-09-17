@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,26 +15,30 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "c10/npu/OptionsManager.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
 Tensor& fill_out_npu(Tensor& result, Tensor& self, const Tensor& other) {
-  SmallVector<int64_t, N> dims = array_to_small_vector(self.sizes());
-  OpCommand cmd;
-  cmd.Name("Fill")
-      .Input(dims, at::kLong)
-      .Input(other)
-      .Output(result)
-      .Run();
-  return result;
+    SmallVector<int64_t, N> dims;
+    if (self.dim() != 0){
+      dims = array_to_small_vector(self.sizes());
+    } else {
+      dims = {1};
+    }
+    OpCommand cmd;
+    cmd.Name("Fill")
+        .Input(dims, at::kLong)
+        .Input(other)
+        .Output(result)
+        .Run();
+	return result;
 }
 
 Tensor& fills_out_npu(Tensor& result, Tensor& self, Scalar value) {
   AT_DISPATCH_ALL_TYPES_AND3(kHalf, kBool, kBFloat16, self.scalar_type(), "fills_out_npu", [&]() {
-    auto value_converted = value.to<scalar_t>();}); 
+    auto value_converted = value.to<scalar_t>();});
   OpCommand cmd;
   cmd.Name("Fills")
       .Input(self)
@@ -71,6 +75,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("fill_.Tensor", TORCH_FN(fill_tensor_npu_));
   m.impl("fill_.Scalar", TORCH_FN(fill_scalar_npu_));
 }
-
 } // namespace native
 } // namespace at

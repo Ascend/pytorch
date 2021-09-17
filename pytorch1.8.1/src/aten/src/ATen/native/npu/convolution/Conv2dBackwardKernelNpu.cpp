@@ -216,10 +216,19 @@ tuple<Tensor, Tensor, Tensor> conv2d_backward_npu(
   }
 
   if (grad_input_mask[1]) {
-    gradWeight = at::empty_with_format(
-        std::get<1>(outputSizes),
-        weight.options().dtype(kFloat),
-        ACL_FORMAT_FRACTAL_Z);
+    // For group conv2d: keep consistent with weight to avoid allreduce accuracy problem.
+    // For more info: https://gitee.com/ascend/pytorch-develop/pulls/2255
+    if (groups > 1) {
+      gradWeight = at::empty_with_format(
+          std::get<1>(outputSizes),
+          weight.options().dtype(kFloat),
+          ACL_FORMAT_NCHW);      
+    } else {
+      gradWeight = at::empty_with_format(
+          std::get<1>(outputSizes),
+          weight.options().dtype(kFloat),
+          ACL_FORMAT_FRACTAL_Z);      
+    }
   }
 
   if (grad_input_mask[2]) {

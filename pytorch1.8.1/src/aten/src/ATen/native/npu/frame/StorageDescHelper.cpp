@@ -22,7 +22,7 @@ namespace native {
 namespace npu {
 
 bool StorageDescHelper::MetaDataAreMatch(const Tensor* tensor) {
-  auto desc = tensor->storage().unsafeGetStorageImpl()->npu_desc_;
+  auto& desc = tensor->storage().unsafeGetStorageImpl()->npu_desc_;
   return IsSameSize(desc.base_sizes_, tensor->sizes()) && IsSameSize(desc.base_strides_, tensor->strides());
 }
 
@@ -160,8 +160,6 @@ int64_t StorageDescHelper::GetValidMemorySize(const Tensor& tensor) {
   }
   return real_bytes + 1;
 }
-
-
 } // namespace npu
 } // namespace native
 } // namespace at

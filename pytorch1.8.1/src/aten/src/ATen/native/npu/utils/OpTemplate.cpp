@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "OpTemplate.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 #include "ATen/native/npu/frame/OpCmdHelper.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
@@ -31,14 +32,20 @@ TransDataOpCommand& TransDataOpCommand::InputAndOutput(const Tensor& input, cons
 }
 
 TransDataOpCommand& TransDataOpCommand::AddInputAndOutput(const Tensor& input, const Tensor& output) {
-  auto srcDesc = input.storage().unsafeGetStorageImpl()->npu_desc_;
-  auto dstDesc = output.storage().unsafeGetStorageImpl()->npu_desc_;
 
-  auto in = OpCmdHelper::CovertTransDataTensorToAcl(input);
+  std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> in;
+  std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> out;
+
+  if (env::CheckFuzzyEnable()) {
+    in = OpCmdHelper::CovertTensorToAclInput(input, c10::nullopt, "", "");
+    out = OpCmdHelper::CovertTensorToAclInput(output, c10::nullopt, "", "");
+  } else {
+    in = OpCmdHelper::CovertTransDataTensorToAcl(input);
+    out = OpCmdHelper::CovertTransDataTensorToAcl((output));
+  }
+
   aclCmd->AddInput(
       std::get<0>(in), std::get<1>(in), std::get<2>(in), std::get<3>(in));
-
-  auto out = OpCmdHelper::CovertTransDataTensorToAcl(output);
   aclCmd->AddOutput(
       std::get<0>(out), std::get<1>(out), std::get<2>(out), std::get<3>(out));
   return *this;

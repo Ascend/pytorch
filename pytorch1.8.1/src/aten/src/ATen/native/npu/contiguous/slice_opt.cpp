@@ -12,7 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/utils/KernelNpuOutputSize.h>
 
@@ -57,6 +56,18 @@ bool can_use_slice(const Tensor &src,
   auto base_strides = src.storage().get_npu_desc().base_strides_;
   auto view_sizes = array_to_small_vector(src.sizes());
   auto view_strides = array_to_small_vector(src.strides());
+
+  // narrow+select(select at last dim) ==> single narrow
+  // 限制条件：1. 最后一轴stride非1==>最后一轴select；2. 基础格式；3.非最后一轴发生narrow（元素减少）
+  // 最小化影响：仅限最后一轴的select，即tensor.select(-1, 1) == tensor[**,1:2],select过渡到narrow
+  if (view_strides[view_strides.size() - 1] != 1 &&
+      FormatHelper::IsBaseFormatType(src) &&
+      view_strides.size() < base_strides.size() &&
+      prod_intlist(view_sizes) <
+          prod_intlist(base_sizes) / base_sizes[base_sizes.size() - 1]) {
+    view_sizes.emplace_back(1);
+    view_strides.emplace_back(1);
+  }
 
   // Strides must be the same.
   if (view_strides != base_strides) {
@@ -113,6 +124,11 @@ void slice_to_contiguous(const Tensor &src, Tensor &self,
   auto temp_tensor_size = src.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_;
   Tensor temp_src = at::empty(temp_tensor_size, src.options());
   temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(), temp_src.strides());
+
+  // [临时解决方案，已讨论] sliceD算子当前对NCDWH格式入参不友好,框架层转ND格式
+  if (temp_src.dim() == 5 && FormatHelper::GetFormat(temp_src) == ACL_FORMAT_NCDHW) {
+    temp_src.npu_format_cast_(ACL_FORMAT_ND);
+  }
 
   at::npu_slice_out(self, temp_src, offsets, size);
   return;

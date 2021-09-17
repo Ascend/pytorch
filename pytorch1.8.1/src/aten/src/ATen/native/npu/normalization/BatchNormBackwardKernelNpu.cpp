@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -44,7 +44,7 @@ tuple<Tensor&, Tensor&> batch_norm_backward_training_update_nocheck(
       .Output(grad_bias)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-  
+
   return tuple<Tensor&, Tensor&>(grad_weight, grad_bias);
 }
 
@@ -98,8 +98,8 @@ Tensor& batch_norm_backward_infer_nocheck(
       .Output(grad_input)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-  
-  return grad_input;  
+
+  return grad_input;
 }
 
 tuple<Tensor&, Tensor&, Tensor&> batch_norm_backward_impl(
@@ -133,7 +133,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_backward_impl(
       train,
       eps);
 
-  // calculate grad_input by NPU 
+  // calculate grad_input by NPU
   if (grad_input_mask[0]) {
     if (!train) {
       batch_norm_backward_infer_nocheck(
@@ -165,7 +165,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_backward_impl(
           eps);
     }
   }
-  
+
   return tuple<Tensor&, Tensor&, Tensor&>(grad_input, grad_weight, grad_bias);
 }
 }
@@ -236,7 +236,7 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
       train,
       eps,
       grad_input_mask);
-  
+
   // grad_input_mask
   Tensor undefine_grad_input;
   Tensor undefine_grad_weight;
@@ -271,6 +271,5 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("native_batch_norm_backward", TORCH_FN(batch_norm_backward_npu));
 }
-
 } // namespace native
 } // namespace at

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -200,23 +200,6 @@ SmallVector<int64_t, SIZE> cdist_npu_output_size(
   return output_shape;
 }
 
-SmallVector<int64_t, SIZE> conv_tbc_npu_output_size(
-    const Tensor& self,
-    const Tensor& weight,
-    const Tensor& bias,
-    int64_t pad) {
-  int64_t N = self.size(1);
-  int64_t H = 1;
-  int64_t W = self.size(0);
-  int64_t Co = weight.size(2);
-  int64_t Ho = 1;
-  int64_t Wo = (W + 2 * pad - (weight.size(0) - 1) - 1) + 1;
-
-  SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
-
-  return outputSize;
-}
-
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
 conv2d_backward_npu_output_size(
     const Tensor& input,
@@ -238,10 +221,10 @@ SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
 	){
 	IntArrayRef dims(dim);
     return reduce_ops_npu_output_size(x1, dims, keepdim);
-}       
+}
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> 
-convolution_transpose_backward_npu_output_size(
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
+conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -255,7 +238,7 @@ convolution_transpose_backward_npu_output_size(
       input.sizes(), weight.sizes(), gradBiasSize);
 }
 
-SmallVector<int64_t, SIZE> convolution_transpose_npu_output_size(
+SmallVector<int64_t, SIZE> conv_transpose2d_npu_output_size(
     const Tensor& input,
     const Tensor& weight,
     const Tensor& bias,
@@ -267,7 +250,7 @@ SmallVector<int64_t, SIZE> convolution_transpose_npu_output_size(
   int64_t N = input.size(0);
   int64_t H = input.size(2);
   int64_t W = input.size(3);
-  int64_t Co = weight.size(1);
+  int64_t Co = weight.size(1) * groups;
   auto kernel_size = weight.sizes().slice(2);
 
   int64_t Ho = (H - 1) * stride[0] - 2 * padding[0] +
@@ -285,6 +268,7 @@ SmallVector<int64_t, SIZE> deformable_conv2d_npu_output_size(
     const Tensor& weight,
     const Tensor& offset,
     const Tensor& bias,
+    IntArrayRef kernel_size,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -293,9 +277,9 @@ SmallVector<int64_t, SIZE> deformable_conv2d_npu_output_size(
     bool modulated) {
   int64_t No = input.size(0);
   int64_t Co = input.size(1);
-  int64_t Ho = offset.size(2) * weight.size(2);
-  int64_t Wo = offset.size(3) * weight.size(3);
-  
+  int64_t Ho = offset.size(2) * kernel_size[0];
+  int64_t Wo = offset.size(3) * kernel_size[1];
+
   SmallVector<int64_t, SIZE> outputSize = {No, Co, Ho, Wo};
 
   return outputSize;
@@ -325,14 +309,9 @@ ctc_loss_npu_output_size(
   int64_t numLabels = logProbs.size(2);
 
   SmallVector<int64_t, SIZE> negLogLikelihoodSize = {batchSize};
-  
-  // tSize = 2*max(target_lengths)+1
-  int64_t maxLength = 0;
-  for(int i = 0; i < targetLengths.size(); i++) {
-    maxLength = targetLengths[i] > maxLength? targetLengths[i]: maxLength;
-  }
-  
-  int64_t tSize = 2 * maxLength + 1;  
+
+  int64_t maxLength = targets.size(1);
+  int64_t tSize = 2 * maxLength + 1;
   SmallVector<int64_t, SIZE> logAlphaSize = {batchSize, maxInputLength, tSize};
 
   return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(negLogLikelihoodSize, logAlphaSize);
@@ -341,23 +320,17 @@ ctc_loss_npu_output_size(
 SmallVector<int64_t, SIZE> dot_npu_output_size(
     const Tensor& self,
     const Tensor& other) {
-    SmallVector<int64_t, SIZE> outputSize = {1}; 
+    SmallVector<int64_t, SIZE> outputSize = {1};
     return outputSize;
 }
 
 SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
-    const Tensor& grad_output, 
-    const Tensor& indices, 
-    int64_t num_weights, 
-    int64_t padding_idx, 
+    const Tensor& grad_output,
+    const Tensor& indices,
+    int64_t num_weights,
+    int64_t padding_idx,
     bool scale_grad_by_freq) {
   return {num_weights, grad_output.size(-1)};
-}
-
-SmallVector<int64_t, SIZE> embedding_renorm_mid_npu_output_size(
-    const Tensor& self,
-    const Tensor& indices){
-  return {indices.size(0), self.size(1)};
 }
 
 SmallVector<int64_t, SIZE> equal_npu_output_size(void) {
@@ -549,14 +522,6 @@ SmallVector<int64_t, SIZE> lstm_npu_output_size(
   return outputSize;
 }
 
-SmallVector<int64_t, SIZE> masked_select_npu_output_size(
-    const Tensor& self,
-    const Tensor& mask) {
-  int64_t shape;
-  shape = mask.sum().item().toInt();
-  return {shape};
-}
-
 SmallVector<int64_t, SIZE> mm_npu_output_size(
     const Tensor& self,
     const Tensor& mat2) {
@@ -578,23 +543,23 @@ SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
   int64_t Wo = 0;
   if (padding.size() == 1 && stride.size() == 1)
   {
-    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) / 
+    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
           stride[0] + 1;
-    Wo = (W + 2 * padding[0] - (kernel_size[1] - 1) - 1) / 
+    Wo = (W + 2 * padding[0] - (kernel_size[1] - 1) - 1) /
           stride[0] + 1;
   }
   if (padding.size() != 1 && stride.size() == 1)
   {
-    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) / 
+    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
           stride[0] + 1;
-    Wo = (W + 2 * padding[1] - (kernel_size[1] - 1) - 1) / 
+    Wo = (W + 2 * padding[1] - (kernel_size[1] - 1) - 1) /
           stride[0] + 1;
   }
   if (padding.size() != 1 && stride.size() != 1)
   {
-    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) / 
+    Ho = (H + 2 * padding[0] - (kernel_size[0] - 1) - 1) /
           stride[0] + 1;
-    Wo = (W + 2 * padding[1] - (kernel_size[1] - 1) - 1) / 
+    Wo = (W + 2 * padding[1] - (kernel_size[1] - 1) - 1) /
           stride[1] + 1;
   }
   SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
@@ -624,14 +589,22 @@ SmallVector<int64_t, SIZE> nonzero_npu_output_size(const Tensor& self){
   int64_t dim = self.dim();
   Tensor boolSelf = self.npu_dtype_cast(ScalarType::Bool);
   Tensor intSelf  = boolSelf.npu_dtype_cast(ScalarType::Int);
-  Tensor coutNonzeroSelf = at::sum(intSelf, ScalarType::Int);
-  int64_t nonzeroNum = coutNonzeroSelf.item().toInt(); 
+
+  Tensor coutNonzeroSelf = intSelf;
+  if (self.numel() > 10000000) {
+    // Ensure outputsize correctly in large shape case
+    coutNonzeroSelf = at::sum(intSelf, ScalarType::Long);
+  } else {
+    coutNonzeroSelf = at::sum(intSelf, ScalarType::Int);
+  }
+
+  int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
   SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
-  return outputSize;   
+  return outputSize;
 }
 
 SmallVector<int64_t, SIZE> pad_npu_output_size(
-    const Tensor& input, 
+    const Tensor& input,
     IntArrayRef paddings) {
   SmallVector<int64_t, SIZE> outputSize;
   for (int i = 0; i < input.dim(); i++) {
@@ -643,7 +616,7 @@ SmallVector<int64_t, SIZE> pad_npu_output_size(
 
     } else {
       outputSize.emplace_back(input.size(i));
-    }   
+    }
   }
   return outputSize;
 }
@@ -708,9 +681,12 @@ SmallVector<int64_t, SIZE> range_npu_output_size(
     float start,
     float end,
     float step) {
+  if (step == 0) {
+      AT_ERROR("range_npu_output_size step is zero!");
+  }
   int64_t size_value = std::floor((end - start) / step);
   SmallVector<int64_t, SIZE> outputSize = {size_value + 1};
-  
+
   return outputSize;
 }
 
@@ -759,57 +735,12 @@ SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,
   return outputSize;
 }
 
-SmallVector<int64_t, SIZE> reflection_pad2d_npu_output_size(const Tensor& self, IntArrayRef padding) {
-  int64_t N = self.size(0);
-  int64_t C = self.size(1);
-  int64_t H = self.size(2);
-  int64_t W = self.size(3);
-  int64_t padding_l = 0;
-  int64_t padding_r = 0;
-  int64_t padding_t = 0;
-  int64_t padding_b = 0;
-  if (!padding.empty() && padding.size() == 1) {
-    padding_l = padding[0];
-    padding_r = padding[0];
-    padding_t = padding[0];
-    padding_b = padding[0];
-  } else if (!padding.empty() && 4 == padding.size()) {
-    padding_l = padding[0];
-    padding_r = padding[1];
-    padding_t = padding[2];
-    padding_b = padding[3];
-  }
-  int64_t Ho = H +  padding_t + padding_b;
-  int64_t Wo = W +  padding_l + padding_r;
-
-  SmallVector<int64_t, SIZE> outputSize = {N, C, Ho, Wo};
-  return outputSize;
-}
-
-SmallVector<int64_t, SIZE> roi_align_npu_output_size(
-    const Tensor& self,
-    const Tensor& rois,
-    int64_t pooled_height,
-    int64_t pooled_width) {
-  return {
-      rois.size(0), self.size(1), pooled_height, pooled_width}; //{N, C, H1, W1}
-}
-
 tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
 nms_v4_npu_output_size(Scalar max_output_size) {
   SmallVector<int64_t, SIZE> selected_indices = {max_output_size.toInt()};
   SmallVector<int64_t, SIZE> valid_outputs    = {};
   return std::tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
       selected_indices, valid_outputs);
-}
-
-SmallVector<int64_t, SIZE> roi_align_backward_npu_output_size(
-    IntArrayRef xdiff_shape) {
-  return {
-      xdiff_shape[0],
-      xdiff_shape[1],
-      xdiff_shape[2],
-      xdiff_shape[3]}; //{N, C, H1, W1}
 }
 
 SmallVector<int64_t, SIZE> repeat_npu_output_size(
@@ -829,7 +760,7 @@ SmallVector<int64_t, SIZE> repeat_npu_output_size(
 
 SmallVector<int64_t, SIZE> soft_margin_loss_npu_output_size(
   const Tensor &self,
-  const Tensor &target, 
+  const Tensor &target,
   int64_t reduction) {
   SmallVector<int64_t, SIZE> outputSize;
   if (reduction == Reduction::None) {
@@ -877,13 +808,13 @@ tuple<IntArrayRef, IntArrayRef, IntArrayRef> slow_conv_dilated2d_backward_npu_ou
 
 tuple<IntArrayRef, IntArrayRef,IntArrayRef> slow_conv_transpose2d_backward_npu_output_size(
     const Tensor& grad_output,
-    const Tensor& self,  
-    const Tensor& weight, 
-    IntArrayRef kernel_size, 
-    IntArrayRef stride, 
-    IntArrayRef padding, 
+    const Tensor& self,
+    const Tensor& weight,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef padding,
     IntArrayRef output_padding,
-    IntArrayRef dilation, 
+    IntArrayRef dilation,
     const Tensor& columns,
     const Tensor& ones){
   return tuple<IntArrayRef, IntArrayRef, IntArrayRef>(self.sizes(), weight.sizes(), grad_output.sizes());
@@ -907,15 +838,6 @@ softmax_cross_entropy_with_logits_impl_npu_output_size(const Tensor& self) {
 
   return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
       resultSize, backpropSize);
-}
-
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> std_npu_output_size(const Tensor & self, IntArrayRef dim, bool keepdim)
-{
-    SmallVector<int64_t, SIZE> outputSize;
-    SmallVector<int64_t, SIZE> meanSize;
-    outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-    meanSize = reduce_ops_npu_output_size(self, dim, keepdim);
-    return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(outputSize, meanSize);
 }
 
 SmallVector<int64_t, SIZE> sum_npu_output_size(
@@ -947,7 +869,7 @@ SmallVector<int64_t, SIZE> transpose_npu_output_size(
   for (int64_t i = 0; i < perm.size(); i++) {
     shape.emplace_back(sizes[perm[i]]);
   }
-  
+
   return shape;
 }
 
@@ -994,7 +916,7 @@ SmallVector<int64_t, SIZE> upsample_linear1d_npu_output_size(
   int64_t N = self.size(0);
   int64_t C = self.size(1);
   int64_t W = output_size[0];
-  
+
   SmallVector<int64_t, SIZE> outputSize = {N, C, W};
   return outputSize;
 }

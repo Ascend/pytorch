@@ -18,15 +18,26 @@
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/frame/StorageDescHelper.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-// Flexible transpose judgement for view+transpose+Matmul, 
-// i.e., tensors with dim=2 and base_size_.size=3 can also be Matmul directly!
+/*****************************************
+Function: is_transpose_last_two_dims_flex
+Description:
+  Flexible transpose judgement for view+transpose+Matmul, i.e.,
+  tensors with dim=2 and base_size_.size=n can also be Matmul directly!
+Return:
+  True--Cases are flex transposed(flex transpose=strict transpose+view
+    transpose), which can be refreshed as a input transposed tensor proceed to Matmul:
+    [1] 2-2-t(strict transpose);
+    [2] 2-n-view+t(view transpose).
+  False--Tensor is not transposed, proceed to format_contiguous.
+*****************************************/
 bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
-  if (tensor.dim() < 2 || tensor.dim() > 3) {
+  if (tensor.dim() != 2) {
     return false;
   }
   int64_t numel = 1;
@@ -47,81 +58,103 @@ bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
   }
 }
 
-SmallVector<NPUTensorDesc, N> mm_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  Tensor contiguousTensor;
-  SmallVector<NPUTensorDesc, N> inputs;
-
-  for (int i = 0; i < inputTensor.size(); i++) {
-    // transpose scene is supported by matmul operator.
-    if (is_transpose_last_two_dims_flex(inputTensor[i])) {
-      contiguousTensor = inputTensor[i];
-    } else {
-      contiguousTensor = NpuUtils::format_contiguous_add_copy_optimize(inputTensor[i]);
-    }
-
-    inputs.emplace_back(NPUTensorDesc(contiguousTensor));
+// Pick out strict-transpose tensors from flex-transpose tensors.
+bool is_transpose_last_two_dims_strict(
+    const Tensor& tensor,
+    bool is_transpose_flex) {
+  auto base_sizes = tensor.storage().get_npu_desc().base_sizes_;
+  if (is_transpose_flex && base_sizes.size() == tensor.dim() &&
+      tensor.size(-1) == base_sizes[tensor.dim() - 2] &&
+      tensor.size(-2) == base_sizes[tensor.dim() - 1]) {
+    return true;
   }
-
-  return inputs;
+  return false;
 }
 
-SmallVector<NPUTensorDesc, N> mm_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> mm_npu_attr(
-    const Tensor& self,
-    const Tensor& mat2) {
-  bool isSelfT = is_transpose_last_two_dims_flex(self);
-  bool isMat2T = is_transpose_last_two_dims_flex(mat2);
-
-  NPUAttrDesc npuAttrSelfTranspose = NPUAttrDesc("transpose_x1", isSelfT);
-  NPUAttrDesc npuAttrMat2Transpose = NPUAttrDesc("transpose_x2", isMat2T);
-
-  SmallVector<NPUAttrDesc, N> attrs = {
-      npuAttrSelfTranspose, npuAttrMat2Transpose};
-
-  return attrs;
+// Refresh storage desc of view-transpose tensor.
+void set_transposed_npu_desc(Tensor& tensor) {
+  Tensor temp_transpose_Tensor = tensor.transpose(-1, -2);
+  StorageDescHelper::SetDesc(
+      tensor,
+      temp_transpose_Tensor.sizes(),
+      temp_transpose_Tensor.strides());
 }
 
 Tensor& mm_out_npu(const Tensor& self, const Tensor& mat2, Tensor& result) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = mm_npu_input({self, mat2});
-  auto outputs = mm_npu_output({result});
+  Tensor contiguousResult = result.is_contiguous() ? result : result.contiguous();
 
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = mm_npu_attr(self, mat2);
+  NPUStorageDesc self_desc = self.storage().get_npu_desc();
+  NPUStorageDesc mat2_desc = mat2.storage().get_npu_desc();
+  bool isSelfT_flex = is_transpose_last_two_dims_flex(self);
+  bool isMat2T_flex = is_transpose_last_two_dims_flex(mat2);
+  bool isSelfT_strict = is_transpose_last_two_dims_strict(self, isSelfT_flex);
+  bool isMat2T_strict = is_transpose_last_two_dims_strict(mat2, isMat2T_flex);
+  Tensor contiguousSelf = self;
+  Tensor contiguousMat2 = mat2;
+
+  if (isSelfT_flex) {
+    if (!isSelfT_strict) {
+      // Matmul cannot directly deal with view+transposed tensor with NZ format, so Transdata is necessary
+      contiguousSelf = OpPreparation::CastBackToOriFormat(self);
+      // Storage desc of view-transpose tensors should be refreshed to be matched.
+      set_transposed_npu_desc(contiguousSelf);
+    }
+  } else {
+    contiguousSelf = NpuUtils::format_contiguous_add_copy_optimize(self);
+  }
+
+  if (isMat2T_flex) {
+    if (!isMat2T_strict) {
+      // Matmul cannot directly deal with view+transposed tensor with NZ format, so Transdata is necessary
+      contiguousMat2 = OpPreparation::CastBackToOriFormat(mat2);
+      // Storage desc of view-transpose tensors should be refreshed to be matched.
+      set_transposed_npu_desc(contiguousMat2);
+    }
+  } else {
+    contiguousMat2 = NpuUtils::format_contiguous_add_copy_optimize(mat2);
+  }
+
+  auto func1 = [&contiguousSelf]() {
+      bool pass = false;
+      return std::tie(pass, contiguousSelf);
+  };
+  auto func2 = [&contiguousMat2]() {
+      bool pass = false;
+      return std::tie(pass, contiguousMat2);
+  };
 
   // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("MatMul", inputs, outputs, attrs);
+  OpCommand cmd;
+  cmd.Name("MatMul")
+      .InputWithFunc(func1)
+      .InputWithFunc(func2)
+      .Output(contiguousResult)
+      .Attr("transpose_x1", isSelfT_flex)
+      .Attr("transpose_x2", isMat2T_flex)
+      .Run();
 
+  // Recover storage desc of view-transpose tensors, i.e. the inverse process of
+  // set_transposed_npu_desc
+  if (isSelfT_flex && (!isSelfT_strict)) {
+    self.storage().unsafeGetStorageImpl()->npu_desc_ = self_desc;
+  }
+  if (isMat2T_flex && (!isMat2T_strict)) {
+    mat2.storage().unsafeGetStorageImpl()->npu_desc_ = mat2_desc;
+  }
+
+  if (!result.is_contiguous()) {
+    result.copy_(contiguousResult);
+  }
   return result;
 }
 
 Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   // calculate the output size
-  
   auto outputSize = mm_npu_output_size(self, mat2);
 
-  NPUStorageDesc self_desc = self.storage().unsafeGetStorageImpl()->npu_desc_;
-  NPUStorageDesc mat2_desc = mat2.storage().unsafeGetStorageImpl()->npu_desc_;
-
-  Tensor selfFormatCast = self;
-  Tensor mat2FormatCast = mat2;
-  // Matmul cannot directly deal with view+transposed tensor with NZ format, so Transdata is necessary
-  if (self.sizes().size() != self_desc.base_sizes_.size()) {
-    selfFormatCast = OpPreparation::CastBackToOriFormat(self);
-  }
-  
-  if (mat2.sizes().size() != mat2_desc.base_sizes_.size()) {
-    mat2FormatCast = OpPreparation::CastBackToOriFormat(mat2);
-  }
-  
   // construct the output tensor of the NPU
   Tensor result;
-  
+
   // TODO(ASCEND): 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
     result = at::empty_with_format(
@@ -131,7 +164,7 @@ Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   }
 
   // calculate the output result of the NPU
-  mm_out_npu(selfFormatCast, mat2FormatCast, result);
+  mm_out_npu(self, mat2, result);
   return result;
 }
 
@@ -139,6 +172,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("mm", TORCH_FN(mm_npu));
   m.impl("mm.out", TORCH_FN(mm_out_npu));
 }
-
 } // namespace native
 } // namespace at

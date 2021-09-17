@@ -15,23 +15,23 @@
 #ifndef __NATIVE_NPU_UTILS_COMMAND_BASE__
 #define __NATIVE_NPU_UTILS_COMMAND_BASE__
 
+#include <c10/npu/OptionsManager.h>
 #include "ATen/native/npu/mirror/NPUTensorIterator.h"
 #include "ATen/native/npu/frame/OpCmdHelper.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
-#include <c10/npu/OptionsManager.h>
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
+#include <ATen/npu/Exceptions.h>
 
 namespace at {
 namespace native {
 namespace npu {
 
-//get common dtype and shape from op adapter layer 
+//get common dtype and shape from op adapter layer
 struct UnifiedResult {
   c10::optional<ScalarType> common_type = c10::nullopt;
   c10::optional<IntArrayRef> common_shape = c10::nullopt;
-  //judge result tensor's dtype is defined or not. 
+  //judge result tensor's dtype is defined or not.
   //if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
   bool result_type_defined = false;
 };
@@ -69,15 +69,15 @@ class OpCommandBase {
 
   Derived& Input(
     const Tensor& input,
-    string descName = "",
-    string realData = "") {
+    const string& descName = "",
+    const string& realData = "") {
     return AddTensorInput(Contiguous(input), ScalarType::Undefined, descName, realData);
   }
 
   Derived& Input(
     const Tensor& cpuTensor,
     SmallVector<int64_t, N> dimList,
-    string descName = "") {
+    const string& descName = "") {
     Tensor npuTensor = CopyHostToDevice(cpuTensor);
     aclCmd->AddConst(dimList);
     return AddTensorInput(npuTensor, ScalarType::Undefined, descName, "", cpuTensor);
@@ -85,21 +85,21 @@ class OpCommandBase {
 
   Derived& Input(SmallVector<int64_t, N>& dimList,
     ScalarType toType = at::kLong) {
-  
-    Tensor cpuTensor = CreateHostTensor((void*)dimList.data(), 
-      {dimList.size()}, 
-      TensorOptions(kCPU).dtype(at::kLong), 
-      toType);
+
+    Tensor& cpuTensor = CreateHostTensor((void*)dimList.data(),
+        dimList.size(),
+        TensorOptions(kCPU).dtype(at::kLong),
+        toType);
     return AddHostTensorInput(cpuTensor);
   }
 
   Derived& Input(IntArrayRef& dimListRef,
     ScalarType toType = at::kLong) {
-  
-    Tensor cpuTensor = CreateHostTensor((void*)dimListRef.data(), 
-      {dimListRef.size()}, 
-      TensorOptions(kCPU).dtype(at::kLong), 
-      toType);
+
+    Tensor& cpuTensor = CreateHostTensor((void*)dimListRef.data(),
+        dimListRef.size(),
+        TensorOptions(kCPU).dtype(at::kLong),
+        toType);
     return AddHostTensorInput(cpuTensor);
   }
 
@@ -116,7 +116,7 @@ class OpCommandBase {
   }
 
   // TODO(ascend): 这个类型的参数应该是一个bug
-  Derived& Output(Tensor& output, string realType = "") {
+  Derived& Output(Tensor& output, const string& realType = "") {
     return AddOutput(output, realType);
   }
 
@@ -136,7 +136,7 @@ class OpCommandBase {
  protected:
   Derived& AddTensorInput(Tensor& tensor,
       ScalarType forceScaleType = ScalarType::Undefined,
-      string descName = "", string realData = "",
+      const string& descName = "", const string& realData = "",
       c10::optional<Tensor> cpu_tensor = c10::nullopt) {
     std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> res;
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
@@ -182,8 +182,8 @@ class OpCommandBase {
         std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
     return static_cast<Derived&>(*this);
   }
-  Derived& AddOutput(Tensor& output, string realType = "") {
-    if (resultTypeDefined == false && commonType.has_value() 
+  Derived& AddOutput(Tensor& output, const string& realType = "") {
+    if (resultTypeDefined == false && commonType.has_value()
               && commonType.value() != output.scalar_type()) {
       output = output.npu_dtype_cast(commonType.value());
     }
@@ -218,14 +218,19 @@ class OpCommandBase {
     storage.emplace_back(tensor);
     return storage.back();
   }
-  Tensor CreateHostTensor(void* data, IntArrayRef sizes,
-      const TensorOptions& options, ScalarType toType) {
-    // we should clone the tensor due to at::from_blob only do shallow copy
-    Tensor cpuTensor = at::from_blob(data, sizes, options).clone();
-    if (toType != at::kLong)
-      cpuTensor = cpuTensor.to(toType);
 
-    storage.emplace_back(cpuTensor);
+  Tensor& CreateHostTensor(void* data, size_t size,
+    const TensorOptions& options, ScalarType toType) {
+
+    AT_ASSERT(options.dtype() == at::kLong);
+    auto cpuTensor = at::empty(size, options);
+    AT_ASSERT(cpuTensor.is_contiguous());
+    std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
+    if (toType != at::kLong) {
+      cpuTensor = cpuTensor.to(toType);
+    }
+
+    storage.emplace_back(std::move(cpuTensor));
     return storage.back();
   }
   Tensor CreateScalarTensor(const Scalar& scalar, const ScalarType type) {

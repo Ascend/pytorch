@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "c10/npu/OptionsManager.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -49,8 +49,8 @@ Tensor broadcast_npu(const Tensor& self, IntArrayRef size) {
   }
 
   Tensor result = at::empty_with_format(
-      size, 
-      input.options(), 
+      size,
+      input.options(),
       CalcuOpUtil::get_tensor_npu_format(self));
 
   broadcast_out_npu(input, size, result);

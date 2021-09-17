@@ -130,8 +130,21 @@ class SelectContiguousOpt : public ContiguousOpt {
         temp_src.sizes(),
         temp_src.strides());
 
-    // SliceD
-    at::npu_slice_out(self, temp_src, start, length);
+    // construct StridedSlice param
+    auto axis_size = start.size();
+    SmallVector<int64_t, SHAPE_SIZE> strides (axis_size, 1);
+    SmallVector<int64_t, SHAPE_SIZE> end;
+    int64_t shrink_mask = 0;
+    for (auto i = 0; i < axis_size; ++i) {
+      end.emplace_back(start[i] + length[i]);
+      if (length[i] == 1 && temp_src.size(i) != 1) {
+        shrink_mask += std::pow(2, i);
+      }
+    }
+
+    // call StridedSlice op to contiguous
+    at::npu_indexing_out(self, temp_src, start, end, strides, 0, 0, 0, 0, shrink_mask);
+
     return;
   }
 }; // class SelectContiguousOpt

@@ -27,36 +27,34 @@ class TestHardtanh(TestCase):
         input.requires_grad_(True)
         output = torch.nn.functional.hardtanh(input, min, max)
         output.backward(w)
-        output = output.detach().numpy() 
+        output = output.detach().numpy()
         res = input.grad
         res = res.numpy()
         return output, res
-        
+
     def npu_op_backward_exec(self, input, min, max):
         w = torch.ones_like(input)
         w = w.to("npu")
         input.requires_grad_(True)
         output = torch.nn.functional.hardtanh(input, min, max)
-        output.backward(w)    
-        output = output.to("cpu").detach().numpy()    
+        output.backward(w)
+        output = output.to("cpu").detach().numpy()
         res = input.grad
         res = res.to("cpu").numpy()
-        return output, res        
-    
+        return output, res
+
     def hardtanh_result(self, shape_format):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 2)
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
-                
             cpu_output_forward, cpu_output_backward = self.cpu_op_backward_exec(cpu_input, 0, 1)
             npu_output_forward, npu_output_backward = self.npu_op_backward_exec(npu_input, 0, 1)
             cpu_output_forward = cpu_output_forward.astype(npu_output_forward.dtype)
             cpu_output_backward = cpu_output_backward.astype(npu_output_backward.dtype)
-            
             self.assertRtolEqual(cpu_output_forward, npu_output_forward)
             self.assertRtolEqual(cpu_output_backward, npu_output_backward)
-    
+
     # 1d do not support format 29
     def test_hardtanh_shape_format_fp16_1d(self, device):
         format_list = [0, 3, 4]
@@ -64,57 +62,56 @@ class TestHardtanh(TestCase):
             [np.float16, i, [18]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp32_1d(self, device):
         format_list = [0, 3, 4]
         shape_format = [
             [np.float32, i, [18]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp16_2d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [256, 1000]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp32_2d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [256, 1000]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp16_3d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [32, 328, 368]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp32_3d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [32, 328, 368]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp16_4d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [256, 576, 7, 7]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-        
+
     def test_hardtanh_shape_format_fp32_4d(self, device):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [256, 576, 7, 7]]  for i in format_list
         ]
         self.hardtanh_result(shape_format)
-                    
 
 instantiate_device_type_tests(TestHardtanh, globals(), except_for="cpu")
 if __name__ == "__main__":
-    run_tests()    
+    run_tests()

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -40,7 +41,7 @@ Tensor& slice_out_npu(
 
 Tensor slice_npu(const Tensor& self, IntArrayRef offsets, IntArrayRef size) {
   // calculate the output size
-  SmallVector<int64_t, SIZE> outputSize = 
+  SmallVector<int64_t, SIZE> outputSize =
       CalcuOpUtil::ConvertIntArrayRefToSmallVector(size);
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);

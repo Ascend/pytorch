@@ -13,9 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-#include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -92,7 +91,11 @@ Tensor& _cat_out_npu(TensorList tensors, int64_t dim, Tensor& result) {
   }
 
   SmallVector<Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
-  dim = CalcuOpUtil::make_wrap_dim(dim, inputTensors[0].dim());
+  int64_t dim_post_expr = 0;
+  if (inputTensors.size() > 0) {
+    dim_post_expr = inputTensors[0].dim();
+  }
+  dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
 
   // executing the NPU operator
   int64_t input_number = 0;
@@ -100,21 +103,36 @@ Tensor& _cat_out_npu(TensorList tensors, int64_t dim, Tensor& result) {
   cmd.Name("ConcatD");
   input_number = 0;
   for (int i = 0; i < inputTensors.size(); i++) {
-    if (inputTensors[i].numel() == 0) {
-      continue;
-    }
-    string inputName = "x" + to_string(input_number++);
-    cmd.Input(inputTensors[i], inputName);
+      if (inputTensors[i].numel() == 0) {
+          continue;
+      }
+      string inputName = "x" + to_string(input_number++);
+      cmd.Input(inputTensors[i], inputName);
   }
+
   cmd.Output(result)
-    .Attr("N", input_number)
-    .Attr("concat_dim", dim)
-    .Run();
+      .Attr("N", input_number)
+      .Attr("concat_dim", dim)
+      .Run();
 
   return result;
 }
 
 Tensor& cat_out_npu(TensorList tensors, int64_t dim, Tensor& result) {
+  SmallVector<Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
+
+  int64_t dim_post_expr = 0;
+  if (inputTensors.size() > 0) {
+    dim_post_expr = inputTensors[0].dim();
+  }
+  dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
+  auto outputSize = cat_npu_output_size(inputTensors, dim);
+  OpPreparation::CheckOut(
+      {tensors[0]},
+      result,
+      ACL_FORMAT_ND,
+      tensors[0].scalar_type(),
+      outputSize);
   return at::_cat_out(result, tensors, dim);
 }
 
@@ -125,7 +143,11 @@ Tensor& cat_dimname_out_npu(TensorList tensors, Dimname dim, Tensor& result) {
 Tensor _cat_npu(TensorList tensors, int64_t dim) {
   SmallVector<Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
 
-  dim = CalcuOpUtil::make_wrap_dim(dim, inputTensors[0].dim());
+  int64_t dim_post_expr = 0;
+  if (inputTensors.size() > 0) {
+    dim_post_expr = inputTensors[0].dim();
+  }
+  dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
 
   // calculate the output size
   auto outputSize = cat_npu_output_size(inputTensors, dim);
@@ -145,17 +167,11 @@ Tensor _cat_npu(TensorList tensors, int64_t dim) {
 
   // construct the output tensor of the NPU
   if (tensors_dim_check == true) {
-    Tensor result = at::empty_with_format(
-        outputSize,
-        inputTensors[0].options(),
-        CalcuOpUtil::get_tensor_npu_format(inputTensors[0]));
-
+    Tensor result =  OpPreparation::ApplyTensor(tensors[0], outputSize);
     _cat_out_npu(tensors, dim, result);
     return result;
   } else {
-    Tensor result = at::empty_with_format(
-        outputSize, inputTensors[0].options(), ACL_FORMAT_ND);
-
+    Tensor result = OpPreparation::ApplyTensorWithFormat(tensors[0], outputSize, ACL_FORMAT_ND);
     _cat_out_npu(tensors, dim, result);
     return result;
   }
@@ -177,6 +193,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("_cat", TORCH_FN(_cat_npu));
   m.impl("_cat.out", TORCH_FN(_cat_out_npu));
 }
-
 } // namespace native
 } // namespace at

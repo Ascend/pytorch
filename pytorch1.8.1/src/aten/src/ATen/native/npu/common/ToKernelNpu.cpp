@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,7 +17,6 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <c10/util/Optional.h>
-
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 
 namespace at {

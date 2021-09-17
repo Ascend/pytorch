@@ -1,3 +1,17 @@
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 #include "acl/acl.h"
 #include "acl/acl_rt.h"
 #include "acl/acl_base.h"
@@ -25,7 +39,6 @@ aclError aclrtSynchronizeStream(aclrtStream stream){return 0;}
 // Event
 aclError aclrtQueryEvent(aclrtEvent event, aclrtEventStatus *status){return 0;}
 aclError aclrtCreateEvent(aclrtEvent *event){return 0;}
-aclError aclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag){return 0;}
 aclError aclrtDestroyEvent(aclrtEvent event){return 0;}
 aclError aclrtRecordEvent(aclrtEvent event, aclrtStream stream){return 0;}
 aclError aclrtStreamWaitEvent(aclrtStream stream, aclrtEvent event){return 0;}
@@ -56,10 +69,8 @@ void aclDestroyTensorDesc(const aclTensorDesc *desc){return;}
 aclDataBuffer *aclCreateDataBuffer(void *data, size_t size){return NULL;}
 aclError aclDestroyDataBuffer(const aclDataBuffer *dataBuffer){return 0;}
 void aclSetTensorDescName(aclTensorDesc *desc, const char *name){return;}
-aclError aclSetTensorStorageFormat(aclTensorDesc *desc, aclFormat format){return 0;}
-aclError aclSetTensorStorageShape(aclTensorDesc *desc, int numDims, const int64_t *dims){return 0;}
 aclError aclSetTensorFormat(aclTensorDesc *desc, aclFormat format){return 0;}
-aclError aclSetTensorShape(aclTensorDesc *desc, int numDims, const int64_t *dims){return 0;}											   
+aclError aclSetTensorShape(aclTensorDesc *desc, int numDims, const int64_t *dims){return 0;}
 aclError aclSetTensorShapeRange(aclTensorDesc* desc, size_t dimsCount, int64_t dimsRange[][ACL_TENSOR_SHAPE_RANGE_NUM]){return 0;}
 aclError aclGetTensorDescDimV2(const aclTensorDesc *desc, size_t index, int64_t *dimSize) {return 0;}
 

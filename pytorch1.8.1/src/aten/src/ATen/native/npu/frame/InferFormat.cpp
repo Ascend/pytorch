@@ -15,14 +15,14 @@
 
 #include "InferFormat.h"
 #include "FormatHelper.h"
-#include <c10/npu/OptionsManager.h>
+#include "c10/npu/OptionsManager.h"
 
 namespace at {
 namespace native {
 namespace npu {
 
 aclFormat InferFormat::GuessFormatWhenContiguous(const Tensor& tensor) {
-  auto desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_; 
+  auto desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
   // fix: NCDHW -> default format
   if ((desc.origin_format_ == ACL_FORMAT_NCDHW)) {
     if ((tensor.sizes().size() != desc.base_sizes_.size()) && (tensor.sizes().size() <= 4)) {
@@ -76,7 +76,7 @@ aclFormat InferFormat::GuessStorageFormat(IntArrayRef size, aclFormat format) {
     } else {
       return ACL_FORMAT_ND;
     }
-  } else if (format == ACL_FORMAT_NCHW &&  dim != 4) {
+  } else if (format == ACL_FORMAT_NCHW && dim != 4) {
       return ACL_FORMAT_ND;
   }
   return format;
@@ -105,7 +105,6 @@ bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, IntA
   }
   return false;
 }
-
 } // namespace npu
 } // namespace native
 } // namespace at

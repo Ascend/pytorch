@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
+
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
@@ -25,7 +26,7 @@
 #include <c10/npu/OptionsManager.h>
 #include "ATen/native/npu/common/FormatCastHelper.h"
 #include "ATen/native/npu/common/InnerNpuNativeFunction.h"
-#include <torch/script.h>
+#include <torch/library.h>
 
 namespace at {
 namespace native {
@@ -356,6 +357,11 @@ bool can_use_memcpy(Tensor& dst, const Tensor& src) {
 void copy_d2d_dtype(Tensor& self, const Tensor& src, bool non_blocking) {
   if (!is_same_format(self, src)) {
     Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+    // ApplyBaseFormatTensorBy is redundant for self tensor with base format.
+    if (FormatHelper::IsBaseFormatType(self)) {
+      copy_d2d_dtype_baseformat(self, src_4D, non_blocking);
+      return;
+    }
     Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
     copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
     self.npu_format_cast_(dst_4D);

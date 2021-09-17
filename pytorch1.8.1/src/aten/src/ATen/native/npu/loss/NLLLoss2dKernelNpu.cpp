@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -73,6 +74,7 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
       .Input(target)
       .Input(weight_tensor)
       .Attr("reduction", reductionStr)
+      .Attr("ignore_index", ignore_index)
       .Output(result)
       .Output(total_weight)
       .Run();
@@ -86,12 +88,19 @@ tuple<Tensor, Tensor> nll_loss2d_forward_npu(
     const Tensor& weight,
     int64_t reduction,
     int64_t ignore_index) {
+  // Check Target Dtype
+  auto scalar_type = target.scalar_type();
+  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt,
+      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+      " for argument 'target'  in call to nll_loss2d_forward");
+  Tensor targetCast = target.to(at::kInt);
+
   auto self_input = self.contiguous();
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = target.contiguous();
-  target_input = target.reshape({-1});
+  auto target_input = targetCast.contiguous();
+  target_input = targetCast.reshape({-1});
 
   // calculate the output size
   auto outputSizes =
@@ -115,6 +124,5 @@ tuple<Tensor, Tensor> nll_loss2d_forward_npu(
 
   return tuple<Tensor, Tensor>(result, total_weight);
 }
-
 } // namespace native
 } // namespace at

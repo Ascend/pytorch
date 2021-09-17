@@ -22,9 +22,22 @@ typedef enum aclCompileType {
     ACL_COMPILE_UNREGISTERED
 } aclopCompileType;
 
-typedef enum aclOpCompileFlag{
-    ACL_OPCOMPILE_DEFAULT = 0,
-    ACL_OPCOMPILE_FUZZ = 1,
+typedef enum {
+    ACL_PRECISION_MODE,
+    ACL_AICORE_NUM,
+    ACL_AUTO_TUNE_MODE,
+    ACL_OP_SELECT_IMPL_MODE,
+    ACL_OPTYPELIST_FOR_IMPLMODE,
+    ACL_OP_DEBUG_LEVEL,
+    ACL_DEBUG_DIR,
+    ACL_OP_COMPILER_CACHE_MODE,
+    ACL_OP_COMPILER_CACHE_DIR,
+    ACL_OP_PERFORMANCE_MODE
+} aclCompileOpt;
+
+typedef enum aclCompileFlag{
+    ACL_OP_COMPILE_DEFAULT = 0,
+    ACL_OP_COMPILE_FUZZ = 1,
 }aclOpCompileFlag;
 
 /**
@@ -80,17 +93,17 @@ ACL_FUNC_VISIBILITY aclError aclopCompileAndExecute(const char *opType,
     const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
     const char *opPath, aclrtStream stream);
 
-
 /**
  * @ingroup AscendCL
- * @brief an interface set compile flag
+ * @brief set compile option
  *
- * @param flag [IN]     flag: ACL_OPCOMPILE_DEFAULT represent static compile while ACL_OPCOMPILE_FUZZ represent dynamic compile
- *        
- * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @param aclCompileOpt [IN]      compile option
+ * @param value [IN]              pointer for the option value
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
  * @retval OtherValues Failure
  */
-ACL_FUNC_VISIBILITY aclError aclopSetCompileFlag(aclOpCompileFlag flag);
+ACL_FUNC_VISIBILITY aclError aclSetCompileopt(aclCompileOpt opt, const char *value);
 
 #ifdef __cplusplus
 }

@@ -25,7 +25,9 @@ namespace {
 bool is_large_topk(
     const Tensor& self,
     int64_t k,
-    int64_t dim) {
+    int64_t dim,
+    bool largest,
+    bool sorted) {
   // 当前aicore支持大规模topk的触发条件为：输入tensor为1维，dtype为fp16，size大于300000，k值大于7936
   if (self.dtype() == at::kHalf &&
       self.dim() == 1 &&
@@ -47,7 +49,7 @@ SmallVector<int64_t, SIZE> segment_sort_npu_output_size(
   int64_t each_core_align_num = 1984;
   int64_t each_core_min_num = 7936;
   int64_t each_core_data_num = CeilDiv(data_num, core_num);
-  int64_t each_core_proposal_num = 
+  int64_t each_core_proposal_num =
       CeilDiv(each_core_data_num, each_core_align_num) * each_core_align_num > each_core_min_num?
       CeilDiv(each_core_data_num, each_core_align_num) * each_core_align_num : each_core_min_num;
   int64_t core_num_use = CeilDiv(data_num, each_core_proposal_num);
@@ -99,7 +101,6 @@ tuple<Tensor&, Tensor&> topk_out_npu_no_transpose(
     .Attr("largest", largest)
     .Attr("sorted", sorted)
     .Run();
-  
   return tuple<Tensor&, Tensor&>(values, indices);
 }
 
@@ -183,11 +184,11 @@ tuple<Tensor&, Tensor&> topk_out_npu_nocheck(
     bool largest,
     bool sorted) {
   // aicore support large topk scenario
-  if (is_large_topk(self, k, dim)) {
+  if (is_large_topk(self, k, dim, largest, sorted)) {
     large_topk_out_npu(values, indices, self, k, dim, largest, sorted);
     return std::tie(values, indices);
   }
-  
+
   dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
   int64_t lastDim = CalcuOpUtil::make_wrap_dim(-1, self.dim());
 

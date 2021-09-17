@@ -18,8 +18,11 @@
 #define __NATIVE_NPU_UTILS_NUP_UTILS__
 
 #include <stdint.h>
+#include "c10/npu/NPUCachingAllocator.h"
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
+#include <third_party/acl/inc/acl/acl_op.h>
 #include <third_party/acl/inc/ge/ge_error_codes.h>
 #include <string>
 #include <vector>
@@ -49,6 +52,7 @@ typedef enum MemoryType{
 
 class NpuUtils {
  public:
+
   static bool check_match(const Tensor* tensor);
   static Tensor format_contiguous(const Tensor& src);
   static Tensor format_contiguous_add_copy_optimize(const Tensor& src);

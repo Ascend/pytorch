@@ -18,8 +18,11 @@
 #include "c10/npu/NPUQueue.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include <ATen/record_function.h>
+#include "ATen/native/npu/aoe/AutoTune.h"
+#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
 namespace native {
@@ -149,10 +152,15 @@ void OpCommandImpl::Run() {
 }
 
 aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
+  AutotuneManager::GetInstance()->PushGraph(name, params.graph);
   auto stream = c10::npu::getCurrentNPUStream();
   auto inputSize = params.inBuffer.size();
   auto outputSize = params.outBuffer.size();
   bool reset_flag = false;
+  if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name) && env::CheckFuzzyEnable()) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    reset_flag = true;
+  }
   aclError ret;
   int index = 0;
   do {
@@ -171,6 +179,9 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
       stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+  if (reset_flag) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+  }
   return ret;
 }
 
@@ -179,6 +190,11 @@ int ExecFunc(void* in, aclrtStream stream) {
   NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
   aclError ret;
+  bool reset_flag = false;
+  if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType) && env::CheckFuzzyEnable()) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    reset_flag = true;
+  }
   int index = 0;
   do {
     ret = aclopCompileAndExecute(
@@ -196,6 +212,10 @@ int ExecFunc(void* in, aclrtStream stream) {
       stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+
+  if (reset_flag) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+  }
 
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();

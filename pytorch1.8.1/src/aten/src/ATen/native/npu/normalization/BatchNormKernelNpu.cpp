@@ -1,5 +1,5 @@
  // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -64,7 +64,7 @@ tuple<Tensor&, Tensor&> batch_norm_training_reduce_nocheck(
       .Output(square_sum)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-    
+
   return tuple<Tensor&, Tensor&>(sum, square_sum);
 }
 
@@ -96,11 +96,11 @@ batch_norm_training_update_nocheck(
       .Output(const_cast<Tensor &>(running_mean))
       .Output(const_cast<Tensor &>(running_var))
       .Output(save_mean)
-      .Output(save_invstd)  
+      .Output(save_invstd)
       .Attr("epsilon", static_cast<float>(eps))
       .Attr("factor", static_cast<float>(momentum))
       .Run();
-      
+
   return tuple<Tensor&, Tensor&, Tensor&>(result, save_mean, save_invstd);
 }
 
@@ -194,14 +194,14 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
   int64_t dim_c = self_4d.size(1);
   TensorOptions options = self.options().dtype(ScalarType::Float);
 
-  Tensor running_mean_tensor = 
+  Tensor running_mean_tensor =
       (running_mean_opt.has_value() && running_mean_opt.value().defined()) ? running_mean_opt.value() : at::zeros({dim_c}, options);
-  Tensor running_var_tensor = 
+  Tensor running_var_tensor =
       (running_var_opt.has_value() && running_var_opt.value().defined()) ? running_var_opt.value() : at::ones({dim_c}, options);
 
-  Tensor weight_tensor = 
+  Tensor weight_tensor =
       (weight_opt.has_value() && weight_opt.value().defined()) ? weight_opt.value() : at::ones({dim_c}, options);
-  Tensor bias_tensor = 
+  Tensor bias_tensor =
       (bias_opt.has_value() && bias_opt.value().defined()) ? bias_opt.value() : at::zeros({dim_c}, options);
 
   // construct the output tensor of the NPU
@@ -248,6 +248,5 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("native_batch_norm", TORCH_FN(batch_norm_npu));
 }
-
 } // namespace native
 } // namespace at

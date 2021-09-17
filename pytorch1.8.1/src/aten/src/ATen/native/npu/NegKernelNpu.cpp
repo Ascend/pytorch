@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,19 +14,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include <torch/library.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& neg_out_npu_nocheck(const Tensor& self, Tensor& result) {
+Tensor& neg_out_npu_nocheck(Tensor& result, const Tensor& self) {
   OpCommand cmd;
   cmd.Name("Neg")
-      .Input(self)
-      .Output(result)
-      .Run();
+     .Input(self)
+     .Output(result)
+     .Run();
 
   return result;
 }
@@ -35,26 +37,37 @@ Tensor& neg_out_npu(const Tensor& self, Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
-      self);
+      ACL_FORMAT_ND,
+      self.scalar_type(),
+      self.sizes());
+  neg_out_npu_nocheck(result, self);
 
-  OpPipeWithDefinedOut pipe;
-  return pipe.CheckMemory({self}, {result})
-      .Func([&self](Tensor& result){neg_out_npu_nocheck(self, result);})
-      .Call(result);
+  return result;
 }
 
 Tensor neg_npu(const Tensor& self) {
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self);
+  Tensor result = at::empty_with_format(
+      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
-  neg_out_npu_nocheck(self, result);
+  neg_out_npu_nocheck(result, self);
 
   return result;
 }
 
 Tensor& neg_npu_(Tensor& self) {
-  neg_out_npu(self, self);
+  SmallVector<Tensor, N> inputs = {self};
+  SmallVector<Tensor, N> outputs = {self};
+  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+
+  if (!NpuUtils::check_match(&self)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    Tensor result = neg_out_npu_nocheck(contiguousSelf, contiguousSelf);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+    neg_out_npu_nocheck(self, self);
+  }
 
   return self;
 }
@@ -64,6 +77,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("neg_", TORCH_FN(neg_npu_));
   m.impl("neg.out", TORCH_FN(neg_out_npu));
 }
-
 } // namespace native
 } // namespace at

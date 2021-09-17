@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include <torch/library.h>
 
 namespace at {
 namespace native {
@@ -120,6 +120,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("_batch_norm_impl_index", TORCH_FN(_batch_norm_impl_index_npu));
   m.impl("_batch_norm_impl_index_backward", TORCH_FN(_batch_norm_impl_index_backward_npu));
 }
-
 } // namespace native
 } // namespace at

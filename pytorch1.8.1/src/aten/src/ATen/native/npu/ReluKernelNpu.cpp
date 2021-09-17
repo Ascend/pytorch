@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include <torch/library.h>
 
 namespace at {
 namespace native {
@@ -38,7 +38,7 @@ SmallVector<NPUAttrDesc, N> relu_npu_attr(const Tensor& self) {
   return attrs;
 }
 
-Tensor& relu_out_npu(Tensor& result, const Tensor& self) {
+Tensor& relu_out_npu(const Tensor& self, Tensor& result) {
   // constructs the input and output NPUTensorDesc
   auto inputs = relu_npu_input({self});
   auto outputs = relu_npu_output({result});
@@ -62,7 +62,7 @@ Tensor relu_npu(const Tensor& self) {
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
-  relu_out_npu(result, self);
+  relu_out_npu(self, result);
   return result;
 }
 
@@ -83,6 +83,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("relu_", TORCH_FN(relu_npu_));
   m.impl("relu", TORCH_FN(relu_npu));
 }
-
 } // namespace native
 } // namespace at

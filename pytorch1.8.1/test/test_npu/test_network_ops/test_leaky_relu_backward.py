@@ -13,12 +13,9 @@
 # limitations under the License.
 import torch
 import numpy as np
-import sys
-import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-
 
 class TestLeakyReluBackward(TestCase):
     def cpu_op_backward_exec(self, input1):
@@ -28,7 +25,7 @@ class TestLeakyReluBackward(TestCase):
         output.backward(w)
         res = input1.grad
         res = res.numpy()
-        return res, output
+        return res, output.detach().numpy()
 
     def npu_op_backward_exec(self, input1):
         w = torch.ones_like(input1)
@@ -37,11 +34,11 @@ class TestLeakyReluBackward(TestCase):
         input1.requires_grad_(True)
         output = torch.nn.functional.leaky_relu(input1)
         output.backward(w)
-        output = output.to("cpu")
+        output = output.detach().to("cpu")
         res = input1.grad
         res = input1.grad.to("cpu")
         res = res.numpy()
-        return res, output
+        return res, output.numpy()
 
     def test_leaky_relu_backward_format_fp32(self, device):
         format_list = [0, 3]
@@ -50,11 +47,11 @@ class TestLeakyReluBackward(TestCase):
             [np.float32, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            # print(item)
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 2)
-            cpu_output = self.cpu_op_backward_exec(cpu_input1)
-            npu_output = self.npu_op_backward_exec(npu_input1)
-            self.assertEqual(cpu_output, npu_output)
+            cpu_output, cpu_output2 = self.cpu_op_backward_exec(cpu_input1)
+            npu_output, npu_output2 = self.npu_op_backward_exec(npu_input1)
+            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output2, cpu_output2)
 
     def test_leaky_relu_backward_format_fp16(self, device):
         format_list = [0, 3]
@@ -63,15 +60,14 @@ class TestLeakyReluBackward(TestCase):
             [np.float16, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            # print(item)
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 2)
             cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output1, cpu_output2 = self.cpu_op_backward_exec(cpu_input1)
             npu_output1, npu_output2 = self.npu_op_backward_exec(npu_input1)
             cpu_output1 = cpu_output1.astype(np.float16)
-            self.assertEqual(cpu_output1, npu_output1)
-            self.assertEqual(cpu_output2, npu_output2)
-
+            cpu_output2 = cpu_output2.astype(np.float16)
+            self.assertRtolEqual(cpu_output1, npu_output1)
+            self.assertRtolEqual(cpu_output2, npu_output2)
 
 instantiate_device_type_tests(
     TestLeakyReluBackward,

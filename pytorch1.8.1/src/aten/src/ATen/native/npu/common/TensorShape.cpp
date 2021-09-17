@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -19,7 +19,7 @@
 #include <ATen/InferSize.h>
 #include <ATen/NamedTensorUtils.h>
 #include <ATen/NativeFunctions.h>
-#include <torch/script.h>
+#include <torch/library.h>
 #include <ATen/SparseTensorUtils.h>
 #include <ATen/WrapDimUtils.h>
 #include <ATen/native/Copy.h>

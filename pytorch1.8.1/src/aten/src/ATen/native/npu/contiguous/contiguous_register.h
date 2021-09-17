@@ -16,11 +16,11 @@
 #ifndef __NATIVE_NPU_CONTIGUOUS_CONTIGUOUS_REGISTER__
 #define __NATIVE_NPU_CONTIGUOUS_CONTIGUOUS_REGISTER__
 
+#include <c10/util/Optional.h>
+#include <map>
 #include <mutex>
 #include <string>
-#include <map>
 #include "ATen/ATen.h"
-#include <c10/util/Optional.h>
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/StorageDescHelper.h"
 
@@ -31,7 +31,7 @@ namespace npu {
 class ContiguousOpt {
  public:
   ContiguousOpt() {}
-  virtual ~ContiguousOpt() {}
+  virtual ~ContiguousOpt() = default;
   virtual bool Optimizer(const Tensor& src, Tensor& self) = 0;
   virtual bool CanOptimizer(const Tensor& src) {
     return false;
@@ -41,6 +41,7 @@ class ContiguousOpt {
 namespace register_opt {
 class CopyOptRegister {
  public:
+  ~CopyOptRegister() = default;
   static CopyOptRegister* GetInstance() {
     static CopyOptRegister instance;
     return &instance;
@@ -77,6 +78,7 @@ class CopyOptBuilder {
   CopyOptBuilder(std::string name, ::std::unique_ptr<ContiguousOpt>& ptr) {
     CopyOptRegister::GetInstance()->Register(name, ptr);
   }
+  ~CopyOptBuilder() = default;
 }; // class CopyOptBuilder
 } // namespace register_opt
 

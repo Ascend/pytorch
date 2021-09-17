@@ -17,77 +17,74 @@
 #define __C10_NPU_NPUQUEUE_WITH_QUEUE__
 
 #include "c10/npu/npu_log.h"
-#include <third_party/acl/inc/acl/acl_op.h>
 #include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 namespace npu {
 
-struct ACL_PARAMS
-{
-    ACL_PARAMS() {
-      input_desc = nullptr;
-      input_data_buf = nullptr;
-      output_desc = nullptr;
-      output_data_buf = nullptr;
-      inputDims = nullptr;
-      outputDims = nullptr;
-      inputFormats = nullptr;
-      outputFormats = nullptr;
-      hasAttr = false;
-    }
+struct ACL_PARAMS {
+  ACL_PARAMS() {
+    input_desc = nullptr;
+    input_data_buf = nullptr;
+    output_desc = nullptr;
+    output_data_buf = nullptr;
+    inputDims = nullptr;
+    outputDims = nullptr;
+    inputFormats = nullptr;
+    outputFormats = nullptr;
+    hasAttr = false;
+  }
 
-    int input_num;
-    const aclTensorDesc **input_desc;
-    const aclDataBuffer **input_data_buf;
-    int output_num;
-    const aclTensorDesc **output_desc;
-    aclDataBuffer **output_data_buf;
-    int64_t *inputDims;
-    int64_t *outputDims;
-    aclFormat *inputFormats;
-    aclFormat *outputFormats;
-    bool hasAttr;
+  int input_num;
+  const aclTensorDesc** input_desc;
+  const aclDataBuffer** input_data_buf;
+  int output_num;
+  const aclTensorDesc** output_desc;
+  aclDataBuffer** output_data_buf;
+  int64_t* inputDims;
+  int64_t* outputDims;
+  aclFormat* inputFormats;
+  aclFormat* outputFormats;
+  bool hasAttr;
 };
 
-struct ACL_DYNAMIC_PARAMS
-{
-    ACL_DYNAMIC_PARAMS() {
-      input_desc = nullptr;
-      input_data_buf = nullptr;
-      output_desc = nullptr;
-      output_data_buf = nullptr;
-      inputDims = nullptr;
-      outputDims = nullptr;
-      inputFormats = nullptr;
-      outputFormats = nullptr;
-      compile_input_desc = nullptr;
-      compile_output_desc = nullptr;
-      hasAttr = false;
-    }
+struct ACL_DYNAMIC_PARAMS {
+  ACL_DYNAMIC_PARAMS() {
+    input_desc = nullptr;
+    input_data_buf = nullptr;
+    output_desc = nullptr;
+    output_data_buf = nullptr;
+    inputDims = nullptr;
+    outputDims = nullptr;
+    inputFormats = nullptr;
+    outputFormats = nullptr;
+    compile_input_desc = nullptr;
+    compile_output_desc = nullptr;
 
-    int input_num;
-    const aclTensorDesc **input_desc;
-    const aclDataBuffer **input_data_buf;
-    int output_num;
-    const aclTensorDesc **output_desc;
-    aclDataBuffer **output_data_buf;
-    int64_t *inputDims;
-    int64_t *outputDims;
-    aclFormat *inputFormats;
-    aclFormat *outputFormats;
-    const aclTensorDesc **compile_input_desc;
-    const aclTensorDesc **compile_output_desc;
-    bool hasAttr;
-    std::string dynamicKey;
+    hasAttr = false;
+  }
+
+  int input_num;
+  const aclTensorDesc** input_desc;
+  const aclDataBuffer** input_data_buf;
+  int output_num;
+  const aclTensorDesc** output_desc;
+  aclDataBuffer** output_data_buf;
+  int64_t* inputDims;
+  int64_t* outputDims;
+  aclFormat* inputFormats;
+  aclFormat* outputFormats;
+  const aclTensorDesc** compile_input_desc;
+  const aclTensorDesc** compile_output_desc;
+  bool hasAttr;
+  std::string dynamicKey;
 };
 
-struct CONST_PARAMS
-{
+struct CONST_PARAMS {
   int constNum = 0;
-  const int64_t **constList = nullptr;
-  const int64_t *constIdx = nullptr;
+  const int64_t** constList = nullptr;
+  const int64_t* constIdx = nullptr;
   CONST_PARAMS() = default;
 };
 

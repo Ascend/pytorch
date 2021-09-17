@@ -96,12 +96,19 @@ Tensor nll_loss2d_backward_npu(
     int64_t reduction,
     int64_t ignore_index,
     const Tensor& total_weight) {
+  // Check Target Dtype
+  auto scalar_type = target.scalar_type();
+  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt,
+      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+      " for argument 'target'  in call to nll_loss2d_backward");
+  Tensor targetCast = target.to(at::kInt);
+
   auto self_input = self.contiguous();
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = target.contiguous();
-  target_input = target.reshape({-1});
+  auto target_input = targetCast.contiguous();
+  target_input = targetCast.reshape({-1});
 
   auto grad_output_reshape = grad_output.contiguous();
   if (reduction == Reduction::None) {
@@ -134,6 +141,5 @@ Tensor nll_loss2d_backward_npu(
 
   return grad_input;
 }
-
 } // namespace native
 } // namespace at

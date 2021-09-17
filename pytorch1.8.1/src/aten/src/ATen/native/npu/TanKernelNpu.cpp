@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,14 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
+#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/OpTemplate.h"
+#include <torch/library.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& tan_out_npu_nocheck(const Tensor& self, Tensor& result) {
+Tensor& tan_out_npu(const Tensor& self, Tensor& result) {
   OpCommand cmd;
   cmd.Name("Tan")
       .Input(self)
@@ -31,27 +32,21 @@ Tensor& tan_out_npu_nocheck(const Tensor& self, Tensor& result) {
   return result;
 }
 
-Tensor& tan_out_npu(const Tensor& self, Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
-
-  OpPipeWithDefinedOut pipe;
-  return pipe.CheckMemory({self}, {result})
-      .Func([&self](Tensor& result){tan_out_npu_nocheck(self, result);})
-      .Call(result);
-}
-
 Tensor tan_npu(const Tensor& self) {
-  // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self);
-
-  // calculate the output result of the NPU
-  tan_out_npu_nocheck(self, result);
-
+  tan_out_npu(self, result);
   return result;
 }
 
 Tensor& tan_npu_(Tensor& self) {
-  tan_out_npu(self, self);
+  OpPreparation::CheckMemory({self}, {self});
+  if (!NpuUtils::check_match(&self)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    Tensor result = tan_out_npu(contiguousSelf, contiguousSelf);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+      tan_out_npu(self, self);
+    }
 
   return self;
 }

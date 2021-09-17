@@ -14,18 +14,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include <torch/csrc/autograd/function.h>
-#include <torch/csrc/autograd/variable.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
-
-using namespace torch::autograd;
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include <torch/csrc/autograd/custom_function.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
+using namespace torch::autograd;
 
 constexpr int input_batch_size_dim = 0;
 constexpr int output_batch_size_dim = 0;
@@ -104,6 +102,7 @@ inline SmallVector<int64_t, N> conv_input_size(
   return input_size;
 }
 
+
 void view1d_as_2d(
     SmallVector<int64_t, N>& stride,
     SmallVector<int64_t, N>& padding,
@@ -140,7 +139,7 @@ Tensor conv2d_npu_(
 Tensor _conv3d_npu(
     const Tensor& input,
     const Tensor& weight,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation,
@@ -160,6 +159,27 @@ Tensor _conv3d_npu(
 }
 
 Tensor conv_transpose2d_npu_(
+    const Tensor& input,
+    const Tensor& weight,
+    const c10::optional<Tensor>& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    int64_t groups,
+    IntArrayRef dilation) {
+  return at::convolution(
+      input,
+      weight,
+      bias,
+      stride,
+      padding,
+      dilation,
+      true,
+      output_padding,
+      groups);
+}
+
+Tensor conv_transpose3d_npu_(
     const Tensor& input,
     const Tensor& weight,
     const c10::optional<Tensor>& bias,
@@ -268,17 +288,7 @@ Tensor _convolution_npu(
   }
 
   Tensor output;
-  if (is_depthwise(input, weight, groups, transposed)) {
-    auto kernel_size = weight.sizes().slice(2);
-    output = at::thnn_conv_depthwise2d(
-        input.contiguous(),
-        weight,
-        kernel_size,
-        bias_opt_,
-        stride,
-        padding,
-        dilation);
-  } else if (!transposed) {
+  if (!transposed) {
     output = at::npu_convolution(
         input, weight, bias_opt_, stride, padding, dilation, groups);
   } else {
@@ -302,6 +312,7 @@ Tensor convolution_kernel_npu(
     IntArrayRef dilation,
     int64_t groups) {
   int64_t dim = input.ndimension();
+  auto kernel_size = weight.sizes().slice(2);
 
   Tensor output;
   if (dim == 4) {
@@ -310,8 +321,17 @@ Tensor convolution_kernel_npu(
   }
 
   if (dim == 5) {
-    output = at::npu_conv3d(
-        input, weight, bias_opt, stride, padding, dilation, groups);
+    bool is_dilated = false;
+    for (int d : dilation) {
+      is_dilated |= (d != 1);
+    }
+    if (groups == 1 && !is_dilated) {
+      output = at::slow_conv3d(
+          input, weight, kernel_size, bias_opt, stride, padding);
+    } else {
+      output = at::npu_conv3d(
+          input, weight, bias_opt, stride, padding, dilation, groups);
+    }
   }
 
   return output;
@@ -352,8 +372,31 @@ tuple<Tensor, Tensor, Tensor> convolution_kernel_backward_npu(
         groups,
         grad_input_mask);
   }
-
+  // Note:weight.grad should be equal weight
+  if (std::get<1>(output).defined()) {
+    std::get<1>(output) = std::get<1>(output).npu_dtype_cast(weight.scalar_type());
+  }
   return output;
+}
+
+std::tuple<Tensor, Tensor, Tensor> npu_convolution_double_backward(
+    const optional<Tensor>& ggI, const optional<Tensor>& ggW, const optional<Tensor>& ggb,
+    const Tensor& input, const Tensor& gO_r, const Tensor& weight_r,
+    IntArrayRef stride_, IntArrayRef padding_, IntArrayRef dilation_,
+    int64_t groups_, std::array<bool, 3> grad_input_mask) {
+  int64_t dim = input.ndimension();
+  Tensor ggO;
+  Tensor gI;
+  Tensor gW;
+  if (dim == 4) {
+      std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_,
+          {{1, 1}}, false, {{0, 0}}, 1, false, false, false, false, grad_input_mask);
+  }
+  if (dim == 5) {
+      std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_,
+          {{1, 1, 1}}, false, {{0, 0, 0}}, 1, false, false, false, false, grad_input_mask);
+  }
+  return std::tie(ggO, gI, gW);
 }
 
 Tensor _convolution_nogroup_npu(
@@ -488,19 +531,19 @@ Tensor _convolution_new_npu(
     bool deterministic,
     bool cudnn_enabled,
     bool allow_tf32) {
-    ///TODO:
-    return  _convolution_npu (input_,
-                              weight_,
-                              bias_,
-                              stride_,
-                              padding_,
-                              dilation_,
-                              transposed_,
-                              output_padding_,
-                              groups_,
-                              benchmark,
-                              deterministic,
-                              cudnn_enabled);
+
+    return _convolution_npu(input_,
+        weight_,
+        bias_,
+        stride_,
+        padding_,
+        dilation_,
+        transposed_,
+        output_padding_,
+        groups_,
+        benchmark,
+        deterministic,
+        cudnn_enabled);
 }
 
 class NPUConvlutionFunction : public torch::autograd::Function<NPUConvlutionFunction> {
@@ -553,10 +596,10 @@ public:
     tensor_list output = {std::get<0>(result),
         std::get<1>(result),
         std::get<2>(result),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        Tensor(),
+        Tensor(),
+        Tensor(),
+        Tensor()};
     return output;
   }
 };
@@ -596,6 +639,7 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("thnn_conv2d_forward", TORCH_FN(thnn_conv2d_forward_npu));
   m.impl("thnn_conv_depthwise2d.out", TORCH_FN(thnn_conv_depthwise2d_out_npu));
   m.impl("thnn_conv_depthwise2d", TORCH_FN(thnn_conv_depthwise2d_npu));
+  m.impl("conv_transpose3d.input", TORCH_FN(conv_transpose3d_npu_));
 }
 } // namespace native
 } // namespace at

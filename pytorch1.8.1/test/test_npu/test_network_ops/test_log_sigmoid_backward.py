@@ -12,63 +12,79 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import torch
 import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
+cpu_input_grad = None
+npu_input_grad = None
 
-class TestLogsigmoid(TestCase):
+def cpu_input_grad_hook(grad):
+    global cpu_input_grad
+    cpu_input_grad = grad.numpy()
 
+def cpu_float16_input_grad_hook(grad):
+    global cpu_input_grad
+    cpu_input_grad = grad.numpy()
+    cpu_input_grad = cpu_input_grad.astype(np.float16)
+
+def npu_input_grad_hook(grad):
+    global npu_input_grad
+    npu_input_grad = grad.cpu().numpy()
+
+class TestLogSigmoidBackward(TestCase):
     def cpu_op_exec(self, input1):
+        input1.requires_grad = True
+        input1.register_hook(cpu_input_grad_hook)
         output = torch.nn.functional.logsigmoid(input1)
-        output = output.numpy()
-        return output
+        z = output.sum()
+        z.backward()
 
     def npu_op_exec(self, input1):
+        input1.requires_grad = True
+        input1.register_hook(npu_input_grad_hook)
         output = torch.nn.functional.logsigmoid(input1)
-        output = output.to("cpu")
-        output = output.numpy()
-        return output
+        z = output.sum()
+        z.backward()
 
-    def test_log_sigmoid_shape_format(self, device):
+    def test_log_sigmoid_backward_shape_format(self, device):
         shape_format = [
             [[np.float32, 0, (6, 4)]],
             [[np.float32, 3, (2, 4, 5)]],
             [[np.float32, 4, (1, 2, 3, 3)]],
-            [[np.float32, 29, (11, 22, 33, 43)]],
+            [[np.float32, 29, (10, 3, 5, 3)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], -50, 50)
-            cpu_output = self.cpu_op_exec(cpu_input)
-            npu_output = self.npu_op_exec(npu_input)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.cpu_op_exec(cpu_input)
+            self.npu_op_exec(npu_input)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-    def test_log_sigmoid_float16_shape_format(self, device):
+    def test_log_sigmoid_backward_float16_shape_format(self, device):
         def cpu_op_exec_fp16(input1):
+            input1.requires_grad = True
+            input1.register_hook(cpu_float16_input_grad_hook)
             input1 = input1.to(torch.float32)
             output = torch.nn.functional.logsigmoid(input1)
-            output = output.numpy()
-            output = output.astype(np.float16)
-            return output
+            z = output.sum()
+            z.backward()
 
         shape_format = [
             [[np.float16, 0, (6, 4)]],
             [[np.float16, 3, (2, 4, 5)]],
             [[np.float16, 4, (1, 2, 3, 3)]],
-            [[np.float16, 29, (10, 22, 33, 33)]],
+            [[np.float16, 29, (10, 3, 5, 3)]],
         ]
 
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -50, 50)
-            cpu_output = cpu_op_exec_fp16(cpu_input1)
-            npu_output = self.npu_op_exec(npu_input1)
-            self.assertRtolEqual(cpu_output, npu_output)
+            cpu_op_exec_fp16(cpu_input1)
+            self.npu_op_exec(npu_input1)
+            self.assertRtolEqual(cpu_input_grad, npu_input_grad)
 
-
-instantiate_device_type_tests(TestLogsigmoid, globals(), except_for="cpu")
+instantiate_device_type_tests(
+    TestLogSigmoidBackward, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:5")
     run_tests()

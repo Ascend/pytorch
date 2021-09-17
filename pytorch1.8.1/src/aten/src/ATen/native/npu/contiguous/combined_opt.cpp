@@ -44,9 +44,8 @@ class CombinedContiguousOpt : public ContiguousOpt {
 
     if (can_use_combined(src, viewInfos, viewOffsets, maxLen)) {
       RECORD_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
-
       // Record src infos for recovering after trans-contiguous
-      auto src_npu_desc = src.storage().get_npu_desc();
+      const auto& src_npu_desc = src.storage().get_npu_desc();
 
       // Construct base tensor(contiguous)
       Tensor base_tensor = at::empty(src_npu_desc.base_sizes_, src.options());
@@ -103,7 +102,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
   bool copy_optimize_contiguous_by_given_cases(
       const Tensor& tensor,
       Tensor& self,
-      std::vector<string> optimizations) {
+      std::vector<string>& optimizations) {
     // Set "OpenCombined = false" to avoid recursion.
     return TransContiguous::ContiguousOptimizeWithBaseFormat(
         self, tensor, optimizations, false);

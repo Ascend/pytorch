@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,8 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
-
+#include<ATen/NamedTensorUtils.h>
 namespace at {
 namespace native {
 using namespace at::native::npu;
@@ -98,7 +97,6 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("log_softmax.int", TORCH_FN(log_softmax_npu));
   m.impl("log_softmax.Dimname", TORCH_FN(log_softmax_dim_name_npu));
   m.impl("_log_softmax", TORCH_FN(_log_softmax_npu));
-} 
-
+}
 } // namespace native
 } // namespace at

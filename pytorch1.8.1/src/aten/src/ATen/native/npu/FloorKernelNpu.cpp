@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -26,7 +26,7 @@ Tensor& floor_out_npu_nocheck(const Tensor& self, Tensor& result) {
       .Input(self)
       .Output(result)
       .Run();
-      
+
   return result;
 }
 
@@ -34,9 +34,7 @@ Tensor& floor_out_npu(const Tensor& self, Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(self),
-      self.scalar_type(),
-      self.sizes());
+      self);
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -51,11 +49,7 @@ Tensor& floor_npu_(Tensor& self) {
 }
 
 Tensor floor_npu(const Tensor& self) {
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   floor_out_npu_nocheck(self, result);
   return result;
 }
@@ -65,6 +59,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("floor_", TORCH_FN(floor_npu_));
   m.impl("floor.out", TORCH_FN(floor_out_npu));
 }
-
 } // namespace native
 } // namespace at

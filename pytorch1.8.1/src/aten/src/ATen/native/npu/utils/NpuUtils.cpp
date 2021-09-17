@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,19 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <mutex>
 #include "NpuUtils.h"
-#include "c10/npu/NPUCachingAllocator.h"
-
+#include "c10/npu/register/OptionRegister.h"
 #include "CalcuOpUtil.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/StorageDescHelper.h"
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
+#include "ATen/native/npu/interface/EnvVariables.h"
+#include <set>
 
 namespace at {
 namespace native {
 namespace npu {
-
 
 void NpuUtils::format_fresh_view(
     Tensor& x,
@@ -211,7 +212,7 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
 
 Tensor tensors_convert_contiguous(const Tensor& src) {
   std::vector<string> optimizations{"slice"};
-  auto formatTempTensor = 
+  auto formatTempTensor =
       TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations);
   if (formatTempTensor.has_value()) {
     return formatTempTensor.value();
@@ -220,7 +221,7 @@ Tensor tensors_convert_contiguous(const Tensor& src) {
 }
 
 Tensor metadata_convert_match(const Tensor& src) {
-  auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
   bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
   // Only when a tensor monopolizes a storage can NpuStorageDesc be refreshed.
   // When the original format is not NCHW, the npu_format_cast to NCHW will generate
@@ -250,6 +251,7 @@ Tensor metadata_with_offset_padding_convert_match(const Tensor& src) {
 }
 
 Tensor NpuUtils::format_contiguous(const Tensor& src) {
+  // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
     RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
     return tensors_convert_contiguous(src);
@@ -289,7 +291,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
     // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
     // [3] copy_: Universal method
     std::vector<string> optimizations_reshape{"reshapeV2"};
-    auto reshapeTensor = 
+    auto reshapeTensor =
         TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
     if (reshapeTensor.has_value()) {
       return reshapeTensor.value();

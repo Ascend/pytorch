@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -59,22 +58,13 @@ Tensor& adaptive_avg_pool2d_backward_out_npu(
 Tensor adaptive_avg_pool2d_backward_npu(
     const Tensor& grad_output,
     const Tensor& self) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   adaptive_avg_pool2d_backward_out_npu(result, grad_output, self);
-
   return result;
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("_adaptive_avg_pool2d_backward", TORCH_FN(adaptive_avg_pool2d_backward_npu));
 }
-
 } // namespace native
 } // namespace at

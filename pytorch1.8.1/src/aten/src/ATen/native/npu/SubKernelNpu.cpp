@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 
@@ -64,7 +63,7 @@ Tensor& sub_out_npu_nocheck(
         .Output(result)
         .Run();
   }
-  
+
   return result;
 }
 
@@ -76,13 +75,13 @@ Tensor& sub_out_npu(
   Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
+    {self},
+    result,
     CalcuOpUtil::get_tensor_npu_format(outputTensor),
-    self.scalar_type(), 
+    self.scalar_type(),
     outputSize);
   sub_out_npu_nocheck(result, self, other, alpha);
-  
+
   return result;
 }
 
@@ -154,6 +153,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("sub.Scalar", TORCH_FN(sub_scalar_npu));
   m.impl("sub_.Scalar", TORCH_FN(sub_scalar_npu_));
 }
-
 } // namespace native
 } // namespace at

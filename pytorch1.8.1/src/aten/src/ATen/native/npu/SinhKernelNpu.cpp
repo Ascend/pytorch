@@ -1,6 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
-// All rights reserved.
+// Copyright (c) 2020, Huawei Technologies.All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,13 +13,12 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& sinh_out_npu_nocheck(const Tensor& self, Tensor& result) {
+Tensor& sinh_out_npu(const Tensor& self, Tensor& result) {
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("Sinh")
@@ -32,28 +29,25 @@ Tensor& sinh_out_npu_nocheck(const Tensor& self, Tensor& result) {
   return result;
 }
 
-Tensor& sinh_out_npu(const Tensor& self, Tensor& result) {
-  OpPreparation::CheckOut({self}, result, self);
-
-  OpPipeWithDefinedOut pipe;
-  return pipe.CheckMemory({self}, {result})
-      .Func([&self](Tensor& result){sinh_out_npu_nocheck(self, result);})
-      .Call(result);
-}
-
 Tensor sinh_npu(const Tensor& self) {
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
-  sinh_out_npu_nocheck(self, result);
+  sinh_out_npu(self, result);
 
   return result;
 }
 
 Tensor& sinh_npu_(Tensor& self) {
-  sinh_out_npu(self, self);
-
+  OpPreparation::CheckMemory({self}, {self});
+  if (!NpuUtils::check_match(&self)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    Tensor result = sinh_out_npu(contiguousSelf, contiguousSelf);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+    sinh_out_npu(self, self);
+  }
   return self;
 }
 
@@ -62,6 +56,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("sinh_", TORCH_FN(sinh_npu_));
   m.impl("sinh.out", TORCH_FN(sinh_out_npu));
 }
-
 } // namespace native
 } // namespace at

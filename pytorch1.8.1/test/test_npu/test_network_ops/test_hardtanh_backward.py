@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -26,7 +26,7 @@ class TestHardtanhBackward(TestCase):
         input.requires_grad_(True)
         output = torch.nn.functional.hardtanh(input, min, max)
         output.backward(w)
-        res = input.grad        
+        res = input.grad
         return output, res
 
     def npu_op_exec(self, input, min, max):
@@ -35,8 +35,8 @@ class TestHardtanhBackward(TestCase):
         input.requires_grad_(True)
         output = torch.nn.functional.hardtanh(input, min, max)
         output.backward(w)
-        res = input.grad.to("cpu") 
-        output = output.to("cpu")        
+        res = input.grad.to("cpu")
+        output = output.to("cpu")
         return output, res
 
     def test_floor_shape_format(self, device):

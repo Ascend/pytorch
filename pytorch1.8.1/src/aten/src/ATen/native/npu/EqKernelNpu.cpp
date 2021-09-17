@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -57,23 +56,23 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
 }
 
 Tensor& eq_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
-  auto outputSize = broadcast_ops_npu_output_size(self, other);  
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other}, 
-    result, 
-    CalcuOpUtil::get_tensor_npu_format(self), 
-    ScalarType::Bool, 
+    {self, other},
+    result,
+    ACL_FORMAT_ND,
+    result.scalar_type(),
     IntArrayRef(outputSize));
   eq_out_npu_nocheck(result, self, other);
   return result;
 }
 
-Tensor& eq_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) { 
+Tensor& eq_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) {
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
-    CalcuOpUtil::get_tensor_npu_format(self), 
-    ScalarType::Bool, 
+    {self},
+    result,
+    ACL_FORMAT_ND,
+    result.scalar_type(),
     self.sizes());
   eq_out_npu_nocheck(result, self, other);
   return result;
@@ -82,7 +81,7 @@ Tensor& eq_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) {
 Tensor eq_npu(const Tensor& self, const Tensor& other) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);;
   Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);;
-  
+
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
@@ -99,7 +98,7 @@ Tensor eq_npu(const Tensor& self, const Tensor& other) {
 
 Tensor eq_scalar_npu(const Tensor& self, Scalar other) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
-  
+
   // calculate the output size
   auto outputSize = input_same_output_size(formatCastOfSelf);
 
@@ -169,6 +168,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("eq.Scalar", TORCH_FN(eq_scalar_npu));
   m.impl("eq.Scalar_out", TORCH_FN(eq_scalar_out_npu));
 }
-
 } // namespace native
 } // namespace at

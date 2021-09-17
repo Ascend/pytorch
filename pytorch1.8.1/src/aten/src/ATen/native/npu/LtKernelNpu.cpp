@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -24,7 +24,8 @@ using namespace at::native::npu;
 Tensor& lt_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& other) {
   Tensor selfCast = self;
   Tensor otherCast = other;
-  if(self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int){
+  if(self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int
+      || self.dtype() == ScalarType::Bool || other.dtype() == ScalarType::Bool){
     selfCast = self.to(ScalarType::Float);
     otherCast = other.to(ScalarType::Float);
   }
@@ -48,8 +49,8 @@ Tensor& lt_tensor_out_npu(const Tensor& self, const Tensor& other, Tensor& resul
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-      result.scalar_type(),
+      ACL_FORMAT_ND,
+      kBool,
       outputSize);
 
   lt_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
@@ -58,7 +59,7 @@ Tensor& lt_tensor_out_npu(const Tensor& self, const Tensor& other, Tensor& resul
 
 Tensor& lt_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
   Tensor selfCast = self;
-  if(self.dtype() == ScalarType::Int){
+  if(self.dtype() == ScalarType::Int || self.dtype() == ScalarType::Bool){
     selfCast = self.to(ScalarType::Float);
   }
   OpCommand cmd;
@@ -77,8 +78,8 @@ Tensor& lt_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
-      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-      result.scalar_type(),
+      ACL_FORMAT_ND,
+      kBool,
       outputSize);
 
   lt_out_npu_nocheck(result, formatCastOfSelf, other);
@@ -172,7 +173,6 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("lt.Tensor_out", TORCH_FN(lt_tensor_out_npu));
   m.impl("lt_.Tensor", TORCH_FN(lt_tensor_npu_));
   m.impl("lt_.Scalar", TORCH_FN(lt_scalar_npu_));
-} 
-
+}
 } // namespace native
 } // namespace at

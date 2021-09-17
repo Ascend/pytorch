@@ -14,16 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/csrc/autograd/function.h>
-#include <torch/csrc/autograd/variable.h>
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include <torch/csrc/autograd/custom_function.h>
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 using namespace torch::autograd;
 
-Tensor convolution_transpose_backward_input_out_npu(
+Tensor conv_transpose2d_backward_input_out_npu(
     Tensor& gradInput,
     const Tensor& input,
     const Tensor& grad_output,
@@ -54,7 +53,7 @@ Tensor convolution_transpose_backward_input_out_npu(
   return gradInput;
 }
 
-Tensor convolution_transpose_backward_weight_out_npu(
+Tensor conv_transpose2d_backward_weight_out_npu(
     Tensor& gradWeight,
     const Tensor& input,
     const Tensor& grad_output,
@@ -90,7 +89,7 @@ Tensor convolution_transpose_backward_weight_out_npu(
   return gradWeight;
 }
 
-Tensor convolution_transpose_backward_bias_out_npu(
+Tensor conv_transpose2d_backward_bias_out_npu(
     Tensor& gradBias,
     const Tensor& input,
     const Tensor& grad_output,
@@ -105,7 +104,7 @@ Tensor convolution_transpose_backward_bias_out_npu(
 
   return gradBias;
 }
-tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
+tuple<Tensor&, Tensor&, Tensor&> conv_transpose2d_backward_out_npu(
     Tensor& gradInput,
     Tensor& gradWeight,
     Tensor& gradBias,
@@ -120,24 +119,24 @@ tuple<Tensor&, Tensor&, Tensor&> convolution_transpose_backward_out_npu(
     std::array<bool, 3> output_mask) {
   // calculate the output result of the NPU
   if (output_mask[0]) {
-    convolution_transpose_backward_input_out_npu(
+    conv_transpose2d_backward_input_out_npu(
         gradInput, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   if (output_mask[1]) {
-    convolution_transpose_backward_weight_out_npu(
+    conv_transpose2d_backward_weight_out_npu(
         gradWeight, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   if (output_mask[2]) {
-    convolution_transpose_backward_bias_out_npu(
+    conv_transpose2d_backward_bias_out_npu(
         gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups);
   }
 
   return std::tie(gradInput, gradWeight, gradBias);
 }
 
-tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
+tuple<Tensor, Tensor, Tensor> conv_transpose2d_backward_npu(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -168,20 +167,104 @@ tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
   }
 
   // calculate the output result of the NPU
-  convolution_transpose_backward_out_npu(gradInput,
-      gradWeight,
-      gradBias,
-      input,
-      grad_output,
-      weight,
-      padding,
-      output_padding,
-      stride,
-      dilation,
-      groups,
-      output_mask);
+  conv_transpose2d_backward_out_npu(
+      gradInput, gradWeight, gradBias, input, grad_output, weight, padding, output_padding, stride, dilation, groups, output_mask);
 
   return std::tie(gradInput, gradWeight, gradBias);
+}
+
+
+SmallVector<int64_t, SIZE> convolution_transpose3d_npu_output_size(
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  int64_t N = input.size(0);
+  int64_t D = input.size(2);
+  int64_t H = input.size(3);
+  int64_t W = input.size(4);
+  int64_t Co = weight.size(1) * groups;
+  auto kernel_size = weight.sizes().slice(2);
+
+  int64_t Do = (D - 1) * stride[0] - 2 * padding[0] +
+      dilation[0] * (kernel_size[0] - 1) + output_padding[0] + 1;
+  int64_t Ho = (H - 1) * stride[1] - 2 * padding[1] +
+      dilation[1] * (kernel_size[1] - 1) + output_padding[1] + 1;
+  int64_t Wo = (W - 1) * stride[2] - 2 * padding[2] +
+      dilation[2] * (kernel_size[2] - 1) + output_padding[2] + 1;
+
+  SmallVector<int64_t, SIZE> outputSize = {N, Co, Do, Ho, Wo};
+
+  return outputSize;
+}
+
+Tensor& convolution_transpose3d_out_npu_nocheck(
+    Tensor& result,
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+  SmallVector<int64_t, N> paddings = {
+      padding[0], padding[0], padding[1], padding[1], padding[2], padding[2]};
+  SmallVector<int64_t, N> outputpadding = {0, 0, 0, 0, 0};
+  SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
+  SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1], dilation[2]};
+  string dataFormat = "NCDHW";
+
+  SmallVector<int64_t, N> sizeVec = array_to_small_vector(result.sizes());
+  OpCommand cmd;
+  cmd.Name("Conv3DTranspose")
+      .Input(sizeVec, at::kInt)
+      .Input(input)
+      .Input(weight);
+  if (bias.defined()){
+    cmd.Input(bias);
+  }
+  cmd.Output(result)
+      .Attr("pads", paddings)
+      .Attr("output_padding", outputpadding)
+      .Attr("strides", stridesSize)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
+
+  return result;
+}
+
+Tensor convolution_transpose3d_npu(
+    const Tensor& input,
+    const Tensor& weight,
+    const c10::optional<Tensor>& bias_opt,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups) {
+
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+
+  // calculate the output size
+  auto outputSize = convolution_transpose3d_npu_output_size(
+      input, weight, bias, padding, output_padding, stride, dilation, groups);
+
+  // construct the output tensor of the NPU
+  Tensor result =
+      OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NDC1HWC0);
+
+  // calculate the output result of the NPU
+  convolution_transpose3d_out_npu_nocheck(
+      result, input, weight, bias, padding, output_padding, stride, dilation, groups);
+
+  return result;
 }
 
 Tensor convolution_transpose_kernel_npu(
@@ -201,6 +284,57 @@ Tensor convolution_transpose_kernel_npu(
         input, weight, bias, padding, output_padding, stride, dilation, groups);
   }
 
+  if (dim == 5) {
+    output = convolution_transpose3d_npu(
+        input, weight, bias, padding, output_padding, stride, dilation, groups);
+  }
+
+  return output;
+}
+
+
+tuple<Tensor, Tensor, Tensor> convolution_transpose_backward_npu(
+    const Tensor& input,
+    const Tensor& grad,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef stride,
+    IntArrayRef dilation,
+    int64_t groups,
+    std::array<bool, 3> grad_input_mask) {
+  int64_t dim = input.ndimension();
+
+  tuple<Tensor, Tensor, Tensor> output;
+  if (dim == 4) {
+    output = at::npu_conv_transpose2d_backward(
+        input,
+        grad,
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
+  }
+
+  if (dim == 5) {
+    output = at::npu_conv_transpose3d_backward(
+        input,
+        grad,
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
+  }
+  // Note:weight.grad should be equal weight
+  if (std::get<1>(output).defined()) {
+    std::get<1>(output) = std::get<1>(output).npu_dtype_cast(weight.scalar_type());
+  }
   return output;
 }
 
@@ -266,11 +400,11 @@ public:
     tensor_list output = {std::get<0>(result),
         std::get<1>(result),
         std::get<2>(result),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor(),
-        torch::Tensor()};
+        Tensor(),
+        Tensor(),
+        Tensor(),
+        Tensor(),
+        Tensor()};
     return output;
   }
 };

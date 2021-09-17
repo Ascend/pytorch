@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -28,15 +26,12 @@ Tensor& trunc_out_npu(const Tensor& self, Tensor& result) {
       .Input(self)
       .Output(result)
       .Run();
-      
+
   return result;
 }
 
 Tensor& trunc_npu_(Tensor& self) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
+  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     Tensor result = trunc_out_npu(contiguousSelf, contiguousSelf);
@@ -49,26 +44,15 @@ Tensor& trunc_npu_(Tensor& self) {
 }
 
 Tensor trunc_npu(const Tensor& self) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, 
-      self.options(), 
-      CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self);
   trunc_out_npu(self, result);
   return result;
 }
-
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("trunc", TORCH_FN(trunc_npu));
   m.impl("trunc_", TORCH_FN(trunc_npu_));
   m.impl("trunc.out", TORCH_FN(trunc_out_npu));
 }
-
 } // namespace native
 } // namespace at

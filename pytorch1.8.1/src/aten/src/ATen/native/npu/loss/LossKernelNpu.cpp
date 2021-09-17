@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,7 +17,7 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
-#include <torch/script.h>
+#include <torch/library.h>
 
 namespace at {
 namespace native {
@@ -75,9 +75,9 @@ Tensor& nll_loss2d_out_npu(
 }
 
 Tensor & multilabel_margin_loss_out_npu(
-    Tensor & output, 
+    Tensor & output,
     const Tensor & self,
-    const Tensor & target, 
+    const Tensor & target,
     int64_t reduction) {
   SmallVector<int64_t, SIZE> outputSize;
   const auto ndims = self.dim();
@@ -93,13 +93,13 @@ Tensor & multilabel_margin_loss_out_npu(
   }
   output = at::empty_with_format(outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
   Tensor is_target = at::empty_with_format(
-        target.sizes(), target.options(), CalcuOpUtil::get_tensor_npu_format(target));  
+        target.sizes(), target.options(), CalcuOpUtil::get_tensor_npu_format(target));
   return std::get<0>(at::multilabel_margin_loss_forward_out(output, is_target, self, target, reduction));
 }
 
 Tensor multilabel_margin_loss_npu(
-    const Tensor & self, 
-    const Tensor & target, 
+    const Tensor & self,
+    const Tensor & target,
     int64_t reduction) {
   return std::get<0>(at::multilabel_margin_loss_forward(self, target, reduction));
 }

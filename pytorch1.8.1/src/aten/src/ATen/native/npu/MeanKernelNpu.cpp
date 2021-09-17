@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,14 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
 
 Tensor& mean_out_npu_no_dtype_nocheck(
     Tensor& result,
@@ -47,7 +45,7 @@ Tensor& mean_out_npu_no_dtype_nocheck(
   cmd.Name("ReduceMean")
     .Input(self)
     .Input(dimVec, at::kLong)
-    .Output(result)      
+    .Output(result)
     .Attr("keep_dims",keepdim)
     .Run();
   return result;
@@ -105,7 +103,7 @@ Tensor& mean_dimlist_out_npu(
     bool keepdim,
     optional<ScalarType> dtype,
     Tensor& result) {
-  return mean_out_npu(self, dimnames_to_positions(self, dim), keepdim, dtype,result);
+  return mean_out_npu(self, dimnames_to_positions(self, dim), keepdim, dtype, result);
 }
 
 Tensor mean_dim_npu(
@@ -152,6 +150,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("mean.names_dim", TORCH_FN(mean_dimlist_npu));
   m.impl("mean.names_out", TORCH_FN(mean_dimlist_out_npu));
 }
-
 } // namespace native
 } // namespace at

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -56,7 +57,7 @@ Tensor& dtype_cast_npu_(Tensor& self, const Tensor& src) {
   }
 
   if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    Tensor contiguousSelf = OpPreparation::ApplyTensor(self.sizes(), self.options().dtype(self.dtype()), self);
     Tensor result = cast_nocheck(contiguousSelf, src);
     NpuUtils::format_fresh_view(self, result);
   } else {

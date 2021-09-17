@@ -26,6 +26,11 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize=0);
 void copy_d2d_dtype(Tensor& self, const Tensor& src, bool non_blocking);
 bool try_to_optimize_copy_with_any_format(Tensor& self, const Tensor& src);
 Tensor matmul_by_bmmV2(const Tensor& tensor1, const Tensor& tensor2);
+
+/**
+  Refresh base tensor's metadata of an unmatch tensor to obtain matched tensor
+  */
+void npu_fast_reshape_(Tensor& tensor);
 } // namespace native
 } // namespace at
 

@@ -16,8 +16,6 @@
 
 import torch
 import numpy as np
-import sys
-import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -49,8 +47,8 @@ class TestLeakRelu(TestCase):
 
     def test_leaky_relu_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 4, 8)], [np.float32, 0, (1, 6, 8)]],
-               [ [np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 5, 10)],  [np.float32, 3, (2, 4, 10)]]
+               [[np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 4, 8)], [np.float32, 0, (1, 6, 8)]],
+               [[np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 5, 10)],  [np.float32, 3, (2, 4, 10)]]
                ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -60,8 +58,8 @@ class TestLeakRelu(TestCase):
 
     def test_leaky_relu_shape_format_fp16(self, device):
         shape_format = [
-               [ [np.float16, 0, (1, 6, 4)]],
-               [ [np.float16, 3, (2, 4, 5)]]
+               [[np.float16, 0, (1, 6, 4)]],
+               [[np.float16, 3, (2, 4, 5)]]
                ]
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -79,8 +77,8 @@ class TestLeakRelu(TestCase):
 
     def test_leaky_relu_negative_slope_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 4, 8)], [np.float32, 0, (1, 6, 8)], 0.02],
-               [ [np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 5, 10)],  [np.float32, 3, (2, 4, 10)], 0.03]            
+               [[np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 4, 8)], [np.float32, 0, (1, 6, 8)], 0.02],
+               [[np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 5, 10)],  [np.float32, 3, (2, 4, 10)], 0.03]
                ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -90,8 +88,8 @@ class TestLeakRelu(TestCase):
 
     def test_leaky_relu_negative_slope_shape_format_fp16(self, device):
         shape_format = [
-               [ [np.float16, 0, (1, 6, 4)], [np.int32, 0, (1, 4, 8)], [np.int32, 0, (1, 6, 8)], 0.05],
-               [ [np.float16, 0, (2, 4, 5)], [np.int32, 0, (2, 5, 10)], [np.int32, 0, (2, 4, 10)], 0.1],
+               [[np.float16, 0, (1, 6, 4)], [np.int32, 0, (1, 4, 8)], [np.int32, 0, (1, 6, 8)], 0.05],
+               [[np.float16, 0, (2, 4, 5)], [np.int32, 0, (2, 5, 10)], [np.int32, 0, (2, 4, 10)], 0.1],
                ]
         def cpu_op_negative_slope_exec_fp16(input1, negativeSlope):
             input1 = input1.to(torch.float32)
@@ -106,10 +104,6 @@ class TestLeakRelu(TestCase):
             npu_output = self.npu_op_negative_slope_exec(npu_input,item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-
 instantiate_device_type_tests(TestLeakRelu, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:6")
     run_tests()
-
-

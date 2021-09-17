@@ -23,6 +23,7 @@
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/npu_log.h>
 #include <ATen/native/npu/frame/NPUDefine.h>
+#include <c10/npu/interface/AclInterface.h>
 #include <stdint.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
@@ -48,20 +49,21 @@ using std::vector;
 #define ASCEND_ALWAYS_INLINE inline
 #endif
 
-#define ACL_REQUIRE_OK_OP(expr, opstr)     \
-  do {                                     \
-    if (ASCEND_UNLIKELY((expr) != 0)) {                     \
-      printf("%s\n", opstr);               \
-      TORCH_CHECK(                         \
-          (expr) == 0,                     \
-          __func__,                        \
-          ":",                             \
-          __FILE__,                        \
-          ":",                             \
-          __LINE__,                        \
-          " NPU error,NPU error code is:", \
-          expr);                           \
-    }                                      \
+#define ACL_REQUIRE_OK_OP(expr, opstr)            \
+  do {                                            \
+    if (ASCEND_UNLIKELY((expr) != 0)) {           \
+      printf("%s\n", opstr);                      \
+      TORCH_CHECK(                                \
+          (expr) == 0,                            \
+          __func__,                               \
+          ":",                                    \
+          __FILE__,                               \
+          ":",                                    \
+          __LINE__,                               \
+          " NPU error,NPU error code is:",        \
+          expr, "\n",                             \
+          c10::npu::acl::AclGetErrMsg());  \
+    }                                             \
   } while (0)
 
 namespace at {
@@ -191,7 +193,7 @@ class CalcuOpUtil {
   static aclDataType convert_to_acl_data_type(const ScalarType data_type);
   static aclDataType convert_to_acl_data_type(
       const ScalarType data_type,
-      const string realDataType);
+      const string& realDataType);
   static Scalar ConvertTensorToScalar(const Tensor& tensor);
   static Tensor CopyScalarToDevice(
       const Scalar& cpu_scalar,

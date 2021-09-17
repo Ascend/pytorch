@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -15,10 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
 #include <c10/npu/OptionsManager.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -32,12 +31,21 @@ Tensor mul_dest_output(const Tensor& self, const Tensor& other) {
 Tensor& muls_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
-  cmd.Name("Mul")
-      .Expect(unified_result)
-      .Input(self)
-      .Input(other, self.scalar_type())
-      .Output(result)
-      .Run();
+  if (c10::npu::OptionsManager::CheckDynamicOptimizer("MUL")) {
+    cmd.Name("Mul")
+        .Expect(unified_result)
+        .Input(self)
+        .Input(other, self.scalar_type())
+        .Output(result)
+        .Run();
+  } else {
+    cmd.Name("Muls")
+        .Expect(unified_result)
+        .Input(self)
+        .Output(result)
+        .Attr("value", other)
+        .Run();
+  }
 
   return result;
 }
@@ -66,10 +74,10 @@ Tensor& mul_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
   Tensor outputTensor = mul_dest_output(self, other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
+    {self},
+    result,
     CalcuOpUtil::get_tensor_npu_format(outputTensor),
-    self.scalar_type(), 
+    self.scalar_type(),
     outputSize);
   mul_out_npu_nocheck(result, self, other);
 
@@ -77,9 +85,16 @@ Tensor& mul_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
 }
 
 Tensor mul_npu(const Tensor& self, const Tensor& other) {
+  Tensor selfCast = self;
+  Tensor otherCast = other;
+  if(self.dtype() == ScalarType::Bool && other.dtype() == ScalarType::Bool) {
+    selfCast = self.to(ScalarType::Float);
+    otherCast = other.to(ScalarType::Float);
+  }
+
   // calculate the output size
-  Tensor outputTensor = mul_dest_output(self, other);
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  Tensor outputTensor = mul_dest_output(selfCast, otherCast);
+  auto outputSize = broadcast_ops_npu_output_size(selfCast, otherCast);
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
@@ -88,7 +103,11 @@ Tensor mul_npu(const Tensor& self, const Tensor& other) {
       CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
   // calculate the output result of the NPU
-  mul_out_npu_nocheck(result, self, other);
+  mul_out_npu_nocheck(result, selfCast, otherCast);
+
+  if(self.dtype() == ScalarType::Bool && other.dtype() == ScalarType::Bool) {
+    result = result.to(ScalarType::Bool);
+  }
 
   return result;
 }
@@ -144,6 +163,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("mul.Scalar", TORCH_FN(mul_scalar_npu));
   m.impl("mul_.Scalar", TORCH_FN(mul_scalar_npu_));
 }
-
 } // namespace native
 } // namespace at

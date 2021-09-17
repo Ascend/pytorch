@@ -17,13 +17,15 @@
 #include "CalcuOpUtil.h"
 #include <Python.h>
 #include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_op_compiler.h>
+#include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <ATen/record_function.h>
 #include "ATen/native/npu/frame/InferFormat.h"
 #include "ATen/native/npu/mirror/NPUMemoryOverlap.h"
 #include "NpuUtils.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
+#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
 namespace native {
@@ -60,6 +62,7 @@ static std::map<const at::ScalarType, const string> AT_SCALAR_TYPE_NAME_MAP = {
 static std::map<const string, const aclDataType>
     STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
         {"uint16", ACL_UINT16},
+        {"uint8", ACL_UINT8}
 };
 
 string GetAtScalarTypeName(const ScalarType data_type) {
@@ -73,7 +76,7 @@ string GetAtScalarTypeName(const ScalarType data_type) {
 } // namespace
 
 aclDataType CalcuOpUtil::convert_to_acl_data_type(const ScalarType data_type) {
-  auto iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
+  const auto& iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
   if (iter == AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.end()) {
     NPU_LOGE(
         "Unsupport data type: %s.", GetAtScalarTypeName(data_type).c_str());
@@ -85,7 +88,7 @@ aclDataType CalcuOpUtil::convert_to_acl_data_type(const ScalarType data_type) {
 
 aclDataType CalcuOpUtil::convert_to_acl_data_type(
     const ScalarType data_type,
-    const string realDataType) {
+    const string& realDataType) {
   auto iter = AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.find(data_type);
   if (iter == AT_SCALAR_TYPE_TO_ACL_TYPE_MAP.end()) {
     NPU_LOGE(
@@ -343,18 +346,7 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
         input[i].tensorDescType == NPUTensorDesc::TensorDescType::TENSOR) {
       Tensor* aclInput = &input[i].tensor;
       SmallVector<int64_t, 5> dims;
-      if (opName == "MatMul") {
-        auto dims_pre = aclInput->sizes();
-        if (attrs[i].boolAttrValue == 1) {
-          dims.push_back(dims_pre[1]);
-          dims.push_back(dims_pre[0]);
-        } else if (attrs[i].boolAttrValue == 0) {
-          dims.push_back(dims_pre[0]);
-          dims.push_back(dims_pre[1]);
-        }
-      } else {
-        dims = aclInput->storage().get_npu_desc().base_sizes_;
-      }
+      dims = aclInput->storage().get_npu_desc().base_sizes_;
       auto storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
       int64_t numel = 1;
       for (int j = 0; j < storageDims.size(); j++) {
@@ -366,9 +358,9 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
           dims.size(),
           dims.data(),
           aclInput->storage().get_npu_desc().origin_format_);
-      aclSetTensorStorageFormat(
+      aclSetTensorFormat(
           acl_tensor_desc, aclInput->storage().get_npu_desc().npu_format_);
-      aclSetTensorStorageShape(
+      aclSetTensorShape(
           acl_tensor_desc, storageDims.size(), storageDims.data());
       if (input[i].tensorDescName != "") {
         aclSetTensorDescName(acl_tensor_desc, input[i].tensorDescName.c_str());
@@ -427,9 +419,9 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
         dims.size(),
         dims.data(),
         aclOutput->storage().get_npu_desc().origin_format_);
-    aclSetTensorStorageFormat(
+    aclSetTensorFormat(
         acl_tensor_desc, aclOutput->storage().get_npu_desc().npu_format_);
-    aclSetTensorStorageShape(
+    aclSetTensorShape(
         acl_tensor_desc, storageDims.size(), storageDims.data());
     aclTensorOutputDescArr[i] = acl_tensor_desc;
     aclDataOutputBuffArr[i] = aclCreateDataBuffer(
@@ -618,44 +610,59 @@ void CalcuOpUtil::execute_npu_operate(
 
   auto stream = c10::npu::getCurrentNPUStream();
   RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
-
+  bool reset_flag = false;
+  if (env::CheckFuzzyEnable() &&
+      FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    reset_flag = true;
+  }
   NPU_LOGD("Op %s aclopCompileAndExecute Run.", opName.c_str());
   if (PyGILState_Check()) {
     Py_BEGIN_ALLOW_THREADS
-    ACL_REQUIRE_OK_OP(
-        aclopCompileAndExecute(
-            opName.c_str(),
-            params.input_num,
-            params.input_desc,
-            params.input_data_buf,
-            params.output_num,
-            params.output_desc,
-            params.output_data_buf,
-            attr,
-            ACL_ENGINE_SYS,
-            ACL_COMPILE_SYS,
-            NULL,
-            stream),
-        opName.c_str());
+    aclError ret;
+    int index = 0;
+    do {
+      ret = aclopCompileAndExecute(
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
+      ++index;
+    } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    ACL_REQUIRE_OK_OP(ret, opName.c_str());
     Py_END_ALLOW_THREADS
   } else {
-    ACL_REQUIRE_OK_OP(
-        aclopCompileAndExecute(
-            opName.c_str(),
-            params.input_num,
-            params.input_desc,
-            params.input_data_buf,
-            params.output_num,
-            params.output_desc,
-            params.output_data_buf,
-            attr,
-            ACL_ENGINE_SYS,
-            ACL_COMPILE_SYS,
-            NULL,
-            stream),
-        opName.c_str());
+    aclError ret;
+    int index = 0;
+    do {
+      ret = aclopCompileAndExecute(
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
+      ++index;
+    } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    ACL_REQUIRE_OK_OP(ret, opName.c_str());
   }
-
+  if (reset_flag) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+  }
   aclopDestroyAttr(attr);
   NPUStatus ret = DestroyAclParams(params);
 
@@ -672,13 +679,15 @@ int64_t CalcuOpUtil::completePad(
   int64_t needpads = 0;
   int64_t sizeP = s_size + p_size * 2;
   int64_t leftLen = sizeP - k_size;
+  if (stride == 0) {
+      AT_ERROR("completePad stride is zero!");
+  }
   auto reminder = leftLen % stride;
   if (reminder != 0) {
     needpads = stride - reminder;
   }
   return needpads;
 }
-
 } // namespace npu
 } // namespace native
 } // namespace at

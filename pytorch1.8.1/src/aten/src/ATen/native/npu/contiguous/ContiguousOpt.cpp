@@ -74,11 +74,11 @@ bool TransContiguous::CanOptimize(
 bool TransContiguous::ContiguousOptimizeWithAnyFormat(
     Tensor& self,
     const Tensor& src,
-    std::vector<string> optimizations) {
+    const std::vector<string>& optimizations) {
   if (!CheckClone(src, self)) {
     return false;
   }
-  for (auto opt : optimizations) {
+  for (auto& opt : optimizations) {
     bool res =
         register_opt::CopyOptRegister::GetInstance()->Run(opt, src, self);
     if (res) {
@@ -90,7 +90,7 @@ bool TransContiguous::ContiguousOptimizeWithAnyFormat(
 
 c10::optional<Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
     const Tensor& src,
-    std::vector<string> optimizations) {
+    const std::vector<string>& optimizations) {
   auto self = at::empty_with_format(
       src.sizes(),
       src.options(),

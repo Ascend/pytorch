@@ -689,7 +689,7 @@
 
 - func: bartlett_window.periodic(int window_length, bool periodic, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
-  
+
 - func: batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor? running_mean, Tensor? running_var, bool training, float momentum, float eps, bool cudnn_enabled) -> Tensor
 
 - func: quantized_batch_norm(Tensor input, Tensor? weight, Tensor? bias, Tensor mean, Tensor var, float eps, float output_scale, int output_zero_point) -> Tensor
@@ -3650,7 +3650,7 @@
   variants: function, method
   dispatch:
     CPU, CUDA: sum
-  
+
 - func: sum.dim_IntList(Tensor self, int[1] dim, bool keepdim=False, *, ScalarType? dtype=None) -> Tensor
   variants: function, method
   dispatch:
@@ -8519,6 +8519,8 @@
   dispatch:
     CPU: slow_conv_transpose2d_out_cpu
     CUDA: slow_conv_transpose2d_out_cuda
+  npu_dispatch:
+    NPU: slow_conv_transpose2d_out_npu
 
 - func: slow_conv_transpose2d(Tensor self, Tensor weight, int[2] kernel_size, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] output_padding=0, int[2] dilation=1) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8526,6 +8528,8 @@
   dispatch:
     CPU: slow_conv_transpose2d_cpu
     CUDA: slow_conv_transpose2d_cuda
+  npu_dispatch:
+    NPU: slow_conv_transpose2d_npu
 
 - func: slow_conv_transpose2d_backward.grad_output(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, Tensor columns, Tensor ones, *, Tensor(a!) grad_input, Tensor(b!) grad_weight, Tensor(c!) grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8533,12 +8537,16 @@
   dispatch:
     CPU: slow_conv_transpose2d_backward_out_cpu
     CUDA: slow_conv_transpose2d_backward_out_cuda
+  npu_dispatch:
+    NPU: slow_conv_transpose2d_backward_out_npu
 
 - func: slow_conv_transpose2d_backward.output_mask(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, Tensor columns, Tensor ones, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
   python_module: nn
   dispatch:
     CPU: slow_conv_transpose2d_backward_cpu
     CUDA: slow_conv_transpose2d_backward_cuda
+  npu_dispatch:
+    NPU: slow_conv_transpose2d_backward_npu
 
 - func: slow_conv_transpose3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] output_padding=0, int[3] dilation=1, *, Tensor(a!) out) -> Tensor(a!)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8636,22 +8644,30 @@
 - func: slow_conv3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, *, Tensor(a!) out) -> Tensor(a!)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
+  npu_dispatch:
+    NPU: slow_conv3d_out_npu
 
 - func: slow_conv3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
+  npu_dispatch:
+    NPU: slow_conv3d_npu
 
 - func: slow_conv3d_forward.output(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding, *, Tensor(a!) output, Tensor(b!) finput, Tensor(c!) fgrad_input) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
   dispatch:
     CPU: slow_conv3d_forward_out_cpu
+  npu_dispatch:
+    NPU: slow_conv3d_forward_out_npu
 
 - func: slow_conv3d_forward(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding) -> (Tensor output, Tensor finput, Tensor fgrad_input)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
   dispatch:
     CPU: slow_conv3d_forward_cpu
+  npu_dispatch:
+    NPU: slow_conv3d_forward_npu
 
 - func: slow_conv3d_backward.grad_input(Tensor grad_output, Tensor self, Tensor weight, int[3] kernel_size, int[3] stride, int[3] padding, Tensor finput, Tensor fgrad_input, *, Tensor(a!) grad_input, Tensor(b!) grad_weight, Tensor(c!) grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8670,12 +8686,16 @@
   dispatch:
     CPU: slow_conv_dilated2d_cpu
     CUDA: slow_conv_dilated2d_cuda
+  npu_dispatch:
+    NPU: slow_conv_dilated2d_npu
 
 - func: slow_conv_dilated2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
   python_module: nn
   dispatch:
     CPU: slow_conv_dilated2d_backward_cpu
     CUDA: slow_conv_dilated2d_backward_cuda
+  npu_dispatch:
+    NPU: slow_conv_dilated2d_backward_npu
 
 - func: slow_conv_dilated3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] dilation=1) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -9305,14 +9325,22 @@
 
 - func: npu_slice.out(Tensor self, int[] offsets, int[] size, *, Tensor(a!) out) -> Tensor(a!)
 
-- func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides) -> Tensor
+- func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0) -> Tensor
   variants: function, method
-  
-- func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, *, Tensor(a!) out) -> Tensor(a!)
+
+- func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)
 
 - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
 
 - func: npu_convolution_transpose_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+
+- func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: conv_transpose2d_backward_npu
+
+- func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: conv_transpose3d_backward_npu
 
 - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
 
@@ -9332,6 +9360,10 @@
 
 - func: npu_conv3d_backward(Tensor input, Tensor grad, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
 
+- func: npu_convolution_double_backward(Tensor? ggI, Tensor? ggW, Tensor? ggb, Tensor input, Tensor gO, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: npu_convolution_double_backward
+
 - func: one_(Tensor(a!) self) -> Tensor(a!)
   variants: method, function
 
@@ -9339,7 +9371,7 @@
   variants: function, method
   npu_dispatch_only:
     NPU: one_hot_npu
-  
+
 - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
   variants: function, method
   npu_dispatch_only:
@@ -9349,3 +9381,8 @@
   variants: function, method
   npu_dispatch_only:
     NPU: softmax_cross_entropy_with_logits_backward_npu
+
+- func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: bmm_v2_npu

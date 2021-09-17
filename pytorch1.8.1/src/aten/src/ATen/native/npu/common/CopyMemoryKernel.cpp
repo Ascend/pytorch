@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-#include <torch/script.h>
+#include <torch/library.h>
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/npu/Exceptions.h>
@@ -61,8 +61,8 @@ Tensor& copy_memory_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
     src_size = (src_element > src_storage) ? src_storage : src_element;
   }
 
-  // TODO(Ascend): Temporary plan. Wait for ND plan to verify.
   c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
+
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
   AT_NPU_CHECK(aclrtMemcpyAsync(
@@ -72,10 +72,9 @@ Tensor& copy_memory_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
       dst_size * self.itemsize(),
       ACL_MEMCPY_DEVICE_TO_DEVICE,
       stream));
-    if (!non_blocking) {
-      AT_NPU_CHECK(aclrtSynchronizeStream(stream));
-    }
-
+  if (!non_blocking) {
+    AT_NPU_CHECK(aclrtSynchronizeStream(stream));
+  }
   return self;
 }
 

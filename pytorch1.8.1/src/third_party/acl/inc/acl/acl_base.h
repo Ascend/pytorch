@@ -31,7 +31,7 @@ typedef int aclError;
 typedef uint16_t aclFloat16;
 typedef struct aclDataBuffer aclDataBuffer;
 typedef struct aclTensorDesc aclTensorDesc;
-
+typedef struct aclprofStepInfo aclprofStepInfo;
 static const int ACL_ERROR_NONE = 0;
 
 static const int ACL_ERROR_INVALID_PARAM = 100000;
@@ -145,6 +145,11 @@ typedef enum {
     ACL_MEMTYPE_DEVICE = 0,
     ACL_MEMTYPE_HOST = 1,   
 } aclMemType;
+
+typedef enum {
+    ACL_STEP_START = 0,
+    ACL_STEP_END = 1,
+} aclprofStepTag;
 
 /**
  * @ingroup AscendCL
@@ -400,29 +405,6 @@ ACL_FUNC_VISIBILITY aclError aclTransTensorDescFormat(const aclTensorDesc *srcDe
 
 /**
  * @ingroup AscendCL
- * @brief Set the storage format specified by the tensor description
- *
- * @param  desc [IN|OUT]     pointer to the instance of aclTensorDesc
- * @param  format [IN]       the storage format
- * @retval ACL_ERROR_NONE    The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclSetTensorStorageFormat(aclTensorDesc *desc, aclFormat format);
-
-/**
- * @ingroup AscendCL
- * @brief Set the storage shape specified by the tensor description
- *
- * @param  desc [IN|OUT]      pointer to the instance of aclTensorDesc
- * @param  numDims [IN]       the number of dimensions of the shape
- * @param  dims [IN]          the size of the specified dimension
- * @retval ACL_ERROR_NONE     The function is successfully executed.
- * @retval OtherValues Failure
- */
-ACL_FUNC_VISIBILITY aclError aclSetTensorStorageShape(aclTensorDesc *desc, int numDims, const int64_t *dims);
-
-/**
- * @ingroup AscendCL
  * @brief Set the format specified by the tensor description
  *
  * @param  desc [IN|OUT]     pointer to the instance of aclTensorDesc
@@ -519,7 +501,6 @@ ACL_FUNC_VISIBILITY aclError aclSetTensorDynamicInput(aclTensorDesc *desc, const
  */
 ACL_FUNC_VISIBILITY void aclAppLog(aclLogLevel logLevel, const char *func, const char *file, uint32_t line,
     const char *fmt, ...);
-
 
 
 ACL_FUNC_VISIBILITY aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type);

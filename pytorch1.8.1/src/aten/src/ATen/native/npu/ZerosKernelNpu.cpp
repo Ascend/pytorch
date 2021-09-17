@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <torch/script.h>
+#include <torch/library.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
@@ -28,14 +28,19 @@ Tensor& zeros_out_npu(IntArrayRef size, Tensor& result) {
   return result.zero_();
 }
 
-Tensor zeros_npu(IntArrayRef size, 
+Tensor zeros_npu(IntArrayRef size,
     c10::optional<ScalarType> dtype_opt,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
+  Tensor result = at::empty_with_format(size,
+      dtype_opt,
+      layout_opt,
+      device_opt,
+      pin_memory_opt,
+      ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
   return result.zero_();
@@ -50,8 +55,12 @@ Tensor zeros_npu_names(
     c10::optional<bool> pin_memory_opt) {
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
-
+  Tensor result = at::empty_with_format(size,
+      dtype_opt,
+      layout_opt,
+      device_opt,
+      pin_memory_opt,
+      ACL_FORMAT_ND);
   // calculate the output result of the NPU
   return result.zero_();
 }
@@ -61,16 +70,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("zeros", TORCH_FN(zeros_npu));
   m.impl("zeros.names",TORCH_FN(zeros_npu_names));
 }
-
-Tensor zeros(IntArrayRef size,
-    c10::optional<ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
-    c10::optional<bool> pin_memory_opt) {
-
-  // calculate the output result of the NPU
-  return zeros_npu(size, dtype_opt, layout_opt, device_opt, pin_memory_opt);
-}
-
 } // namespace native
 } // namespace at

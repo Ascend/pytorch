@@ -29,16 +29,16 @@ class TestLogsigmoidForward(TestCase):
 
     def npu_op_exec(self, input1):
         m = torch.nn.LogSigmoid().to("npu")
-        output = m.forward(input1)       
-        output = output.to("cpu")        
+        output = m.forward(input1)
+        output = output.to("cpu")
         return output.numpy()
 
-    def test_sigmoidForward_shape_format(self, device):
+    def test_sigmoid_forward_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (6, 4)]],
-               [ [np.float32, 3, (2, 4, 5)]],
-               [ [np.float32, 4, (1, 2,3, 3)]],
-               [ [np.float32, 29, (1, 2,3, 3)]]
+               [[np.float32, 0, (6, 4)]],
+               [[np.float32, 3, (2, 4, 5)]],
+               [[np.float32, 4, (1, 2,3, 3)]],
+               [[np.float32, 29, (1, 2,3, 3)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -46,12 +46,12 @@ class TestLogsigmoidForward(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_sigmoidForward_fp16_shape_format(self, device):
+    def test_sigmoid_forward_fp16_shape_format(self, device):
         shape_format = [
-               [ [np.float16, 0, (6, 4)]],
-               [ [np.float16, 3, (2, 4, 5)]],
-               [ [np.float16, 4, (1, 2,3, 3)]],
-               [ [np.float16, 29, (1, 2,3, 3)]]
+               [[np.float16, 0, (6, 4)]],
+               [[np.float16, 3, (2, 4, 5)]],
+               [[np.float16, 4, (1, 2,3, 3)]],
+               [[np.float16, 29, (1, 2,3, 3)]]
         ]
         def cpu_op_fp16_exec(input1):
             input1 = input1.to(torch.float32)
@@ -67,5 +67,4 @@ class TestLogsigmoidForward(TestCase):
 
 instantiate_device_type_tests(TestLogsigmoidForward, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:6")
     run_tests()

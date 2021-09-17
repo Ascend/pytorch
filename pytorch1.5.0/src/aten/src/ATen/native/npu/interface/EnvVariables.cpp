@@ -20,12 +20,20 @@
 #include "ATen/native/npu/utils/NpuProfilingDispatch.h"
 #include <third_party/acl/inc/acl/acl_mdl.h>
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
+#include <limits.h>
 #include "ATen/native/npu/profiler/NpuProfiling.h"
 
 namespace at {
 namespace native {
 namespace npu {
 namespace env {
+
+void ValidPathCheck(const std::string& file_path) {
+  char abs_path[PATH_MAX] = {'\0'};
+  if (realpath(file_path.c_str(), abs_path) == nullptr) {
+    TORCH_CHECK(0, "configPath path Fails, path %s", (char*)file_path.c_str());
+  }
+}
 
 REGISTER_OPTION(autotune)
 REGISTER_OPTION_BOOL_FUNCTION(AutoTuneEnabled, autotune, "disable", "enable")
@@ -37,7 +45,10 @@ REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string& val) {
   if (val == "enable") { aclmdlInitDump(); }
   else { aclmdlFinalizeDump(); }
   })
-REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string& val) { aclmdlSetDump(val.c_str()); })
+REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string& val) {
+  ValidPathCheck(val);
+  aclmdlSetDump(val.c_str());
+  })
 
 REGISTER_OPTION_HOOK(fuzzycompileswitch, [](const std::string& val) {
   if (val == "enable") { AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ); }
@@ -48,13 +59,15 @@ REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, fuzzycompileswitch, "disable", "
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string& val) { 
   aclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());
  })
-REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string& val) { 
+REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string& val) {
+  ValidPathCheck(val);
   aclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str());
  })
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string& val) { 
   aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_MODE, val.c_str());
  })
-REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string& val) { 
+REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string& val) {
+  ValidPathCheck(val);
   aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
  })
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string& val) { 

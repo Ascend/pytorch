@@ -1,3 +1,7 @@
 Add acl libs here:
-    libacl_train.so
-    libop_exec_train.so
+    libhccl.so
+    libpython3.7m.so
+    libascendcl.so
+    libacl_op_compiler.so
+    libge_runner.so
+    libgraph.so

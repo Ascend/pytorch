@@ -48,7 +48,6 @@ public:
   static FormatShape GetStorageSizes(aclFormat format, sizeType ori_size);
   // GetStorageSizes used to calculate the storage sizes of op at npu device at different format.
   static FormatShape GetStorageSizes(NPUStorageDesc desc);
-  static FormatShape GetSizeOfBaseFormat(const Tensor& src, aclFormat dst_format);
 
 private:
   static bool IsPadded(aclFormat format);
@@ -64,7 +63,6 @@ private:
     bool isPadded = false;
   } FormatInfo;
   static std::unordered_map<aclFormat, FormatInfo> info;
-  static std::unordered_map<aclFormat, std::unordered_map<aclFormat, baseFormatConverter>> base_format_convert_info;
 }; // class FormatHelper
 
 // template impl
@@ -79,7 +77,6 @@ FormatShape FormatHelper::GetStorageSizes(aclFormat format, sizeType ori_size) {
   AT_ERROR("unsupport InferShape with format ", GetFormatName(format), "with shape", ori_size);
   return {};
 }
-
 } // npu
 } // native
 } // at

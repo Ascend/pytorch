@@ -111,6 +111,19 @@ void OpPreparation::CheckOut(
 }
 
 void OpPreparation::CheckOut(
+    const std::initializer_list<Tensor>& inputs,
+    Tensor& output,
+    Tensor dst,
+    IntArrayRef shape) {
+  CheckOut(
+      inputs,
+      output, 
+      CalcuOpUtil::get_tensor_npu_format(dst),
+      dst.scalar_type(),
+      shape);
+}
+
+void OpPreparation::CheckOut(
     const std::initializer_list<Tensor>& input,
     Tensor& output,
     int64_t format,
@@ -197,22 +210,12 @@ Tensor OpPreparation::ApplyTensorWithFormat(const Tensor& src, IntArrayRef sizes
 
 Tensor OpPreparation::ApplyTensorWithFormat(IntArrayRef sizes, const TensorOptions& options, int64_t format) {
   auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-  return at::empty_with_format(sizes,
-                               typeMetaToScalarType(options.dtype()),
-                               options.layout_opt(),
-                               options.device_opt(),
-                               options.pinned_memory(),
-                               fixFormat);
+  return at::empty_with_format(sizes, options, fixFormat);
 }
 
 Tensor OpPreparation::ApplyTensorWithSizes(IntArrayRef sizes, const TensorOptions& options) {
   auto format = InferFormat::GuessBaseFormat(sizes);
-  return at::empty_with_format(sizes,
-                               typeMetaToScalarType(options.dtype()),
-                               options.layout_opt(),
-                               options.device_opt(),
-                               options.pinned_memory(),
-                               format);
+  return at::empty_with_format(sizes, options, format);
 }
 
 void OpPreparation::CheckMemory(const std::initializer_list<Tensor>& inputs, const std::initializer_list<Tensor>& outputs) {

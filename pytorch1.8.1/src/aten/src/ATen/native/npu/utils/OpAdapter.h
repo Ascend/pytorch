@@ -18,4 +18,3 @@
 #include "ATen/native/npu/utils/OpPipeWithMultiOut.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include <torch/library.h>
-#include <torch/script.h>

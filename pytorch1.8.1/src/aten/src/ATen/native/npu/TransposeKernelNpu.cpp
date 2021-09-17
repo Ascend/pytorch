@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,8 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include <ATen/record_function.h>
 
 namespace at {
 namespace native {
@@ -26,24 +27,18 @@ Tensor& transpose_out_npu(
     IntArrayRef perm,
     Tensor& result) {
   SmallVector<int64_t, N> permVec = array_to_small_vector(perm);
-  OpCommand cmd;
-  cmd.Name("Transpose")
-      .Input(self)
-      .Input(perm, at::kInt)
-      .Output(result)
-      .Run();
+    OpCommand cmd;
+    cmd.Name("Transpose")
+        .Input(self)
+        .Input(perm)
+        .Output(result)
+        .Run();
   return result;
 }
 
 Tensor transpose_npu(const Tensor& self, IntArrayRef perm) {
-  // calculate the output size
   auto outputSize = transpose_npu_output_size(self, perm);
- 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   transpose_out_npu(self, perm, result);
 
   return result;

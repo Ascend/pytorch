@@ -21,15 +21,15 @@ namespace native {
 namespace npu {
 
 void ExecuteParas::Release() {
-  // if useDynamicCompile, this attr will be freed in dynamic compile. 
+  // if useDynamicCompile, this attr will be freed in dynamic compile.
   if (!isCompiling) {
     aclopDestroyAttr(attr);
-  }  
+  }
   DestroyConstParams(constParams);
   NPUStatus ret = DestroyAclParams(paras);
   if (ret != SUCCESS) {
     NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
-  } 
+  }
   hostMemory.clear();
   return;
 }
@@ -99,12 +99,12 @@ NPUStatus DestroyAclParams(ACL_PARAMS& params) {
   return SUCCESS;
 }
 
-void DestroyConstParams(CONST_PARAMS& params) { 
+void DestroyConstParams(CONST_PARAMS& params) {
   if (params.constList != nullptr) {
     for (int i = 0; i < params.constNum; ++i) {
       if (params.constList[i] != nullptr) {
         delete[] params.constList[i];
-      }    
+      }
     }
     delete[] params.constList;
     params.constList = nullptr;
@@ -115,7 +115,6 @@ void DestroyConstParams(CONST_PARAMS& params) {
     params.constIdx = nullptr;
   }
 }
-
 } // namespace npu
 } // namespace native
 } // namespace at

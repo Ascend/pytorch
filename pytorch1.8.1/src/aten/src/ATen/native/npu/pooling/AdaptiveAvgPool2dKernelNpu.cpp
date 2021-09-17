@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include <torch/script.h>
 
 namespace at {
 namespace native {
@@ -59,7 +58,7 @@ Tensor _adaptive_avg_pool2d_npu(const Tensor& self, IntArrayRef output_size) {
   TORCH_CHECK(
       (self.dim() == 3 || self.dim() == 4),
       "non-empty 3D or 4D (batch mode) tensor expected for input");
-  
+
   auto outputSize = array_to_small_vector(self.sizes());
   outputSize[self.dim()-1] = output_size[1];
   outputSize[self.dim()-2] = output_size[0];
@@ -76,6 +75,5 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("_adaptive_avg_pool2d", TORCH_FN(_adaptive_avg_pool2d_npu));
   m.impl("adaptive_avg_pool2d.out", TORCH_FN(adaptive_avg_pool2d_out_npu));
 }
-
 } // namespace native
 } // namespace at
