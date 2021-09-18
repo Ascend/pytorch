@@ -69,7 +69,7 @@ Tensor& upsample_bilinear2d_out_npu_nocheck(
         .Run();    
     }
   } else {
-    cmd = cmd.Name("PTUpsampleBilinear2D")
+    cmd.Name("PTUpsampleBilinear2D")
       .Input(self)
       .Output(result)
       .Attr("output_size", output_size)
@@ -77,10 +77,10 @@ Tensor& upsample_bilinear2d_out_npu_nocheck(
 
     // optional attr
     if (scales_h.has_value()) {
-      cmd = cmd.Attr("scales_h", static_cast<float>(scales_h.value()));
+      cmd.Attr("scales_h", static_cast<float>(scales_h.value()));
     }
     if (scales_w.has_value()) {
-      cmd = cmd.Attr("scales_w", static_cast<float>(scales_w.value()));
+      cmd.Attr("scales_w", static_cast<float>(scales_w.value()));
     }
     cmd.Run();
   }

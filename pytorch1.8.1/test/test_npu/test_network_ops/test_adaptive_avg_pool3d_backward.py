@@ -14,7 +14,6 @@
 
 import torch
 import numpy as np
-import sys
 from torch.nn import functional as F
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
@@ -33,16 +32,16 @@ class TestAdaptiveAvgPool3dBackward(TestCase):
 
     def npu_op_exec(self, input_x,  output_size):
         input_x.requires_grad_(True)
-        m = torch.nn.AdaptiveAvgPool3d( output_size)
+        m = torch.nn.AdaptiveAvgPool3d(output_size)
         output = m(input_x)
         ones = torch.ones_like(output)
         output.backward(ones)
         out = input_x.grad.cpu()
         return out.numpy()
 
-    def test_adaptiveAvgPool3d_backward(self, device):
+    def test_adaptive_avg_pool3d_backward(self, device):
         dtype_list = [np.float16, np.float32]
-        format_list = [0, 29]
+        format_list = [-1]
         shape_list = [
             [2, 3, 7, 7],
             [1, 2, 3, 6, 6],
@@ -58,7 +57,6 @@ class TestAdaptiveAvgPool3dBackward(TestCase):
             for output_size in output_sizes:
                 cpu_output = self.cpu_op_exec(cpu_input, output_size)
                 npu_output = self.npu_op_exec(npu_input, output_size)
-
                 self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestAdaptiveAvgPool3dBackward, globals(), except_for="cpu")

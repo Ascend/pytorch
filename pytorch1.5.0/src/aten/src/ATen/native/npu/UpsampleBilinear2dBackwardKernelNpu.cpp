@@ -62,7 +62,7 @@ Tensor& upsample_bilinear2d_backward_out_npu(
       .Attr("half_pixel_centers", half_pixel_centers)
       .Run();
   } else {
-    cmd = cmd.Name("PTUpsampleBilinear2dGrad")
+    cmd.Name("PTUpsampleBilinear2dGrad")
       .Input(grad_output)
       .Output(grad_input)
       .Attr("output_size", output_size)
@@ -71,10 +71,10 @@ Tensor& upsample_bilinear2d_backward_out_npu(
 
     // optional attr
     if (scales_h.has_value()) {
-      cmd = cmd.Attr("scales_h", static_cast<float>(scales_h.value()));
+      cmd.Attr("scales_h", static_cast<float>(scales_h.value()));
     }
     if (scales_w.has_value()) {
-      cmd = cmd.Attr("scales_w", static_cast<float>(scales_w.value()));
+      cmd.Attr("scales_w", static_cast<float>(scales_w.value()));
     }
     cmd.Run();
   }

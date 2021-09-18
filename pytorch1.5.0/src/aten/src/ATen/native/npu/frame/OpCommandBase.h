@@ -44,6 +44,11 @@ class OpCommandBase {
   }
   virtual ~OpCommandBase() {}
 
+  OpCommandBase(const OpCommandBase& other) = delete;
+  OpCommandBase(OpCommandBase&& other) = delete;
+  OpCommandBase& operator=(const OpCommandBase&) = delete;
+  OpCommandBase& operator=(OpCommandBase&&) = delete;
+
   Derived& Name(const string& name) {
     aclCmd->SetName(name);
     return static_cast<Derived&>(*this);

@@ -14,13 +14,11 @@
 
 import torch
 import numpy as np
-import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor
 
-cpu_input_grad=None
-npu_input_grad=None
+cpu_input_grad = None
+npu_input_grad = None
 
 def cpu_input_grad_hook(grad):
     global cpu_input_grad
@@ -71,8 +69,7 @@ class TestSoftShrinkBackward(TestCase):
         self.cpu_op_exec(input_x, input_grad, 0.5)
         self.npu_op_exec(input_x, input_grad, 0.5)
         self.assertRtolEqual(cpu_input_grad, npu_input_grad)
-        
+
 instantiate_device_type_tests(TestSoftShrinkBackward, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:3")
     run_tests()

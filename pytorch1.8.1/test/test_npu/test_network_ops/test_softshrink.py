@@ -14,10 +14,8 @@
 
 import torch
 import numpy as np
-import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor
 
 class TestSoftShrink(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -56,7 +54,7 @@ class TestSoftShrink(TestCase):
         cpu_output1 = self.cpu_op_exec(input_x1, 0.5)
         npu_output1 = self.npu_op_exec(input_x1, 0.5)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_softshrink_3_3_float16(self, device):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
@@ -76,7 +74,7 @@ class TestSoftShrink(TestCase):
         cpu_output1 = self.cpu_op_exec(input_x1, 0.5)
         npu_output1 = self.npu_op_exec(input_x1, 0.5)
         self.assertRtolEqual(cpu_output1, npu_output1)
-    
+
     def test_softshrink_3_3_out_float32(self, device):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3), np.float32)
@@ -97,8 +95,7 @@ class TestSoftShrink(TestCase):
         cpu_output1 = self.cpu_op_exec(input_x1, 0.5)
         npu_output1 = self.npu_op_exec_out(input_x1, 0.5, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
-        
+
 instantiate_device_type_tests(TestSoftShrink, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:3")
     run_tests()

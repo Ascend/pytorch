@@ -20,24 +20,23 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestAdaptiveAvgPool3d(TestCase):
-    def cpu_op_exec(self, input, output_size):
+    def cpu_op_exec(self, input1, output_size):
         m = nn.AdaptiveAvgPool3d(output_size)
-        output= m(input)
+        output = m(input1)
         return output.numpy()
 
-    def npu_op_exec(self, input, output_size):
+    def npu_op_exec(self, input1, output_size):
         m = nn.AdaptiveAvgPool3d(output_size)
-        output= m(input).cpu()
+        output = m(input1).cpu()
         return output.numpy()
-    
-    def test_AdaptiveAvgPool3d_shape_format_fp16(self, device):
+
+    def test_adaptive_avg_pool3d_shape_format_fp16(self, device):
         shape_format = [
-                [np.float16, 0, (64, 10, 16, 32)],
-                [np.float16, 0, (4, 16, 8, 4, 2)],
-                [np.float16, 29, (2, 16, 4, 32)],
-                [np.float16, 29, (4, 16, 8, 4, 16)]
+                [np.float16, -1, (64, 10, 16, 32)],
+                [np.float16, -1, (4, 16, 8, 4, 2)],
+                [np.float16, -1, (2, 16, 4, 32)],
+                [np.float16, -1, (4, 16, 8, 4, 16)]
         ]
-        # output_list = [(4, 2, 4), (2, 2, 2), (2, 4, 4), (4, 4, 2)]
         output_list = [(1, 1, 1)]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 1, 10)
@@ -48,14 +47,13 @@ class TestAdaptiveAvgPool3d(TestCase):
                 cpu_output = cpu_output.astype(npu_output.dtype)
                 self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_AdaptiveAvgPool3d_shape_format_fp32(self, device):
+    def test_adaptive_avg_pool3d_shape_format_fp32(self, device):
         shape_format = [
-                [np.float32, 0, (64, 10, 16, 32)],
-                [np.float32, 0, (4, 2, 2, 4, 316)],
-                [np.float32, 29, (2, 16, 4, 32)],
-                [np.float32, 29, (4, 16, 8, 4, 16)]
+                [np.float32, -1, (64, 10, 16, 32)],
+                [np.float32, -1, (4, 2, 2, 4, 316)],
+                [np.float32, -1, (2, 16, 4, 32)],
+                [np.float32, -1, (4, 16, 8, 4, 16)]
         ]
-        # output_list = [(4, 2, 4), (2, 2, 2), (2, 4, 4), (4, 4, 2)]
         output_list = [(1, 1, 1)]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 1, 10)
@@ -67,5 +65,5 @@ class TestAdaptiveAvgPool3d(TestCase):
 instantiate_device_type_tests(TestAdaptiveAvgPool3d, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
-    
+
 

@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -33,7 +33,7 @@ class TestSoftplus(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def cpu_default_op_exec(self, input1):
         softplus = torch.nn.Softplus()
         output = softplus(input1)
@@ -64,7 +64,7 @@ class TestSoftplus(TestCase):
                 cpu_output = self.cpu_default_op_exec(cpu_input1)
                 npu_output = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_softplus_shape_format_fp16(self, device):
         shape_format = [
                 [[np.float16, 0, (2, 3)]],
@@ -82,7 +82,6 @@ class TestSoftplus(TestCase):
                 cpu_output = self.cpu_default_op_exec(cpu_input1.to(torch.float32))
                 npu_output = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)
-
 
 instantiate_device_type_tests(TestSoftplus, globals(), except_for="cpu")
 if __name__ == "__main__":

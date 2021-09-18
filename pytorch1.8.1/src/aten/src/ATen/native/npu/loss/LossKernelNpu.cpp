@@ -14,10 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include <torch/library.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -40,11 +37,7 @@ Tensor& nll_loss_out_npu(
     int64_t reduction,
     int64_t ignore_index,
     Tensor& output) {
-
-  Tensor total_weight = at::empty_with_format(
-      {},
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor total_weight = OpPreparation::ApplyTensor({}, self.options(), self);
   return std::get<0>(at::nll_loss_forward_out(
       output, total_weight, self, target, weight, reduction, ignore_index));
 }
@@ -52,7 +45,7 @@ Tensor& nll_loss_out_npu(
 Tensor nll_loss2d_npu(
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight,
     int64_t reduction,
     int64_t ignore_index) {
   return std::get<0>(
@@ -60,25 +53,22 @@ Tensor nll_loss2d_npu(
 }
 
 Tensor& nll_loss2d_out_npu(
-    Tensor& output,
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight,
     int64_t reduction,
-    int64_t ignore_index) {
-  Tensor total_weight = at::empty_with_format(
-      {},
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+    int64_t ignore_index,
+    Tensor& output) {
+  Tensor total_weight = OpPreparation::ApplyTensor({}, self.options(), self);
   return std::get<0>(at::nll_loss2d_forward_out(
       output, total_weight, self, target, weight, reduction, ignore_index));
 }
 
 Tensor & multilabel_margin_loss_out_npu(
-    Tensor & output,
     const Tensor & self,
     const Tensor & target,
-    int64_t reduction) {
+    int64_t reduction,
+    Tensor & output) {
   SmallVector<int64_t, SIZE> outputSize;
   const auto ndims = self.dim();
   int64_t nframe;
@@ -91,9 +81,8 @@ Tensor & multilabel_margin_loss_out_npu(
   if (reduction == Reduction::None) {
     outputSize = {nframe};
   }
-  output = at::empty_with_format(outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-  Tensor is_target = at::empty_with_format(
-        target.sizes(), target.options(), CalcuOpUtil::get_tensor_npu_format(target));
+  output = OpPreparation::ApplyTensor(outputSize, self.options(), self);
+  Tensor is_target = OpPreparation::ApplyTensor(target);
   return std::get<0>(at::multilabel_margin_loss_forward_out(output, is_target, self, target, reduction));
 }
 
@@ -107,6 +96,10 @@ Tensor multilabel_margin_loss_npu(
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("nll_loss", TORCH_FN(nll_loss_npu));
   m.impl("nll_loss.out", TORCH_FN(nll_loss_out_npu));
+  m.impl("multilabel_margin_loss.out", TORCH_FN(multilabel_margin_loss_out_npu));
+  m.impl("multilabel_margin_loss", TORCH_FN(multilabel_margin_loss_npu));
+  m.impl("nll_loss2d.out", TORCH_FN(nll_loss2d_out_npu));
+  m.impl("nll_loss2d", TORCH_FN(nll_loss2d_npu));
 }
 
 } // namespace native

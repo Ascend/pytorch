@@ -75,6 +75,7 @@ public:
 
 private:
   FunctionRegister() = default;
+  ~FunctionRegister() = default;
   mutable std::mutex mu_;
   mutable std::unordered_map<std::string, ::std::unique_ptr<FunctionLoader>> registry;
 }; // class FunctionRegister
@@ -92,6 +93,7 @@ public:
     ctr
     */
   FunctionRegisterBuilder(const std::string& soName, const std::string& funcName);
+  ~FunctionRegisterBuilder() = default;
 }; // class FunctionRegisterBuilder
 
 } // namespace register_function

@@ -362,7 +362,8 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
     throw TypeError("npu option must be a dict.");
   }
 
-  PyObject *key, *value;
+  PyObject *key = nullptr;
+  PyObject *value = nullptr;
   Py_ssize_t pos = 0;
   std::map<std::string, std::string> option;
 

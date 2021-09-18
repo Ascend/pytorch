@@ -35,7 +35,8 @@ class OptionInterface {
   /**
     dctr
     */
-    OptionInterface(OptionCallBack callback=nullptr);
+  OptionInterface(OptionCallBack callback=nullptr);
+  ~OptionInterface() = default;
   /**
     This API is used to store value.
     */
@@ -91,6 +92,7 @@ class OptionRegister {
 class OptionInterfaceBuilder {
  public:
   OptionInterfaceBuilder(const std::string& name, ::std::unique_ptr<OptionInterface>& ptr, const std::string& type = "cli");
+  ~OptionInterfaceBuilder() = default;
 };
 
 } // namespace register_options

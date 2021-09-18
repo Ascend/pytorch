@@ -76,8 +76,12 @@ class dumper(object):
         self.use_dump = use_dump
         self.use_load = use_load
         self.check_overflow = check_overflow
-        self.dump_path = dump_path
-        self.load_file_path = load_file_path
+        self.dump_path = None
+        self.load_file_path = None
+        if dump_path is not None:
+            self.dump_path = path.realpath(dump_path)
+        if load_file_path is not None:
+            self.load_file_path = path.realpath(load_file_path)
         self.load_with_acl_dump = load_with_acl_dump
         if not isinstance(use_dump, bool) or \
             not isinstance(use_load, bool) or \
@@ -105,13 +109,17 @@ class dumper(object):
             self._set_dump_path(self.dump_path)
             torch._C._set_dumper_mode(DumpMode.DUMP.value)
         elif self.use_load:
-            if path.isfile(self.load_file_path):
+            if self.load_file_path is not None and \
+                path.isfile(self.load_file_path) and \
+                self.load_file_path.endswith(".h5"):
                 if path.abspath(self.load_file_path) == path.abspath(self.dump_path):
                     raise RuntimeError("dump_path and load_file_path can not be same!")
                 torch._C._set_loader_path(self.load_file_path)
                 self._set_dump_path(self.dump_path)
             else:
-                raise RuntimeError("please input a file path")
+                raise RuntimeError(
+                    "load_file_path error, please input a real h5 file path"
+                )
             torch._C._set_dumper_mode(DumpMode.LOAD.value)
             torch._C._set_load_with_acl_dump_flag(self.load_with_acl_dump)
         elif self.check_overflow:
@@ -122,12 +130,24 @@ class dumper(object):
     @staticmethod
     def _set_dump_path(paths):
         if paths is not None:
-            filename = path.basename(paths)
+            if path.isdir(paths):
+                dirname = paths
+                filename = ""
+            else:
+                dirname = path.dirname(paths)
+                if len(dirname) != 0 and not path.isdir(dirname):
+                    raise RuntimeError(
+                        "dump_path error, the directory '{}' does not exist, "
+                        "please input a valid one".format(dirname)
+                    )
+                filename = path.basename(paths)
             if len(filename) == 0:
                 filename = get_time_stamp() + ".h5"
-            dirname = path.dirname(paths)
-            if len(dirname) != 0 and not path.isdir(dirname):
-                raise RuntimeError("the directory '{}' does not exist, please input a valid one".format(dirname))
+            elif not filename.endswith(".h5"):
+                raise RuntimeError(
+                    "dump_path error, filename '{}' "
+                    "should be end with .h5".format(filename)
+                )
             new_paths = path.join(dirname, filename)
             torch._C._set_dumper_path(new_paths)
         else:

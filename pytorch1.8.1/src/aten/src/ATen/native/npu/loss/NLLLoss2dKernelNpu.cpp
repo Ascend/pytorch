@@ -25,7 +25,6 @@ tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
 nll_loss2d_npu_output_size(
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
     int64_t reduction,
     int64_t ignore_index) {
   SmallVector<int64_t, SIZE> outputSize;
@@ -41,13 +40,14 @@ nll_loss2d_npu_output_size(
 } // namespace
 
 tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
-    Tensor& result,
-    Tensor& total_weight,
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight_opt,
     int64_t reduction,
-    int64_t ignore_index) {
+    int64_t ignore_index,
+    Tensor& result,
+    Tensor& total_weight) {
+  Tensor weight = c10::value_or_else(weight_opt, [] {return Tensor();});
   Tensor weight_tensor;
   if (weight.defined()) {
     weight_tensor = NpuUtils::format_contiguous(weight);
@@ -67,6 +67,8 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
 
+  OpPreparation::CheckMemory({self, target, weight_tensor}, {result, total_weight});
+
   auto reductionStr = CalcuOpUtil::get_reduction_str(reduction) ;
   OpCommand cmd;
   cmd.Name("NLLLoss")
@@ -74,7 +76,6 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
       .Input(target)
       .Input(weight_tensor)
       .Attr("reduction", reductionStr)
-      .Attr("ignore_index", ignore_index)
       .Output(result)
       .Output(total_weight)
       .Run();
@@ -85,26 +86,19 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
 tuple<Tensor, Tensor> nll_loss2d_forward_npu(
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight_opt,
     int64_t reduction,
     int64_t ignore_index) {
-  // Check Target Dtype
-  auto scalar_type = target.scalar_type();
-  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt,
-      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
-      " for argument 'target'  in call to nll_loss2d_forward");
-  Tensor targetCast = target.to(at::kInt);
-
   auto self_input = self.contiguous();
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = targetCast.contiguous();
-  target_input = targetCast.reshape({-1});
+  auto target_input = target.contiguous();
+  target_input = target.reshape({-1});
 
   // calculate the output size
   auto outputSizes =
-      nll_loss2d_npu_output_size(self, target, weight, reduction, ignore_index);
+      nll_loss2d_npu_output_size(self, target, reduction, ignore_index);
 
   // construct the output tensor of the NPU
   Tensor result =
@@ -114,15 +108,19 @@ tuple<Tensor, Tensor> nll_loss2d_forward_npu(
 
   // calculate the output result of the NPU
   nll_loss2d_forward_out_npu(
-      result,
-      total_weight,
       self_input,
       target_input,
-      weight,
+      weight_opt,
       reduction,
-      ignore_index);
+      ignore_index,
+      result,
+      total_weight);
 
   return tuple<Tensor, Tensor>(result, total_weight);
+}
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("nll_loss2d_forward", TORCH_FN(nll_loss2d_forward_npu));
+  m.impl("nll_loss2d_forward.output", TORCH_FN(nll_loss2d_forward_out_npu));
 }
 } // namespace native
 } // namespace at
