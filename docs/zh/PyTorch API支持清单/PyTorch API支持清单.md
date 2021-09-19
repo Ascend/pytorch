@@ -4484,7 +4484,7 @@
 </tbody>
 </table>
 
-<h2 id="Layers-(torch-nn)md">Layers \(torch.nn\)</h2>
+<h2 id="Layers-(torch-nn)md">Layers (torch.nn)</h2>
 
 <a name="table8705205810121"></a>
 <table><thead align="left"><tr id="row2070595881212"><th class="cellrowborder" valign="top" width="8.000000000000002%" id="mcps1.1.4.1.1"><p id="p8163151816433"><a name="p8163151816433"></a><a name="p8163151816433"></a>序号</p>
@@ -6710,7 +6710,7 @@
 </tbody>
 </table>
 
-<h2 id="Functions(torch-nn-functional)md">Functions\(torch.nn.functional\)</h2>
+<h2 id="Functions(torch-nn-functional)md">Functions(torch.nn.functional)</h2>
 
 <a name="table9911195161614"></a>
 <table><thead align="left"><tr id="row591155115160"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1339212174419"><a name="p1339212174419"></a><a name="p1339212174419"></a>序号</p>
