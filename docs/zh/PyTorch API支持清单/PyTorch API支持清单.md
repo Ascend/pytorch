@@ -1,17 +1,17 @@
 # PyTorch API支持清单
--   [Tensors](#Tensors.md)
--   [Generators](#Generators.md)
--   [Random sampling](#Random-sampling.md)
--   [Serialization](#Serialization.md)
--   [Math operations](#Math-operations.md)
--   [Utilities](#Utilities.md)
--   [Other](#Other.md)
--   [torch.Tensor](#torch-Tensor.md)
--   [Layers \(torch.nn\)](#Layers-&#40;torch-nn&#41;.md)
--   [Functions\(torch.nn.functional\)](#Functions&#40;torch-nn-functional&#41;.md)
--   [torch.distributed](#torch-distributed.md)
--   [NPU和CUDA功能对齐](#NPU和CUDA功能对齐.md)
-<h2 id="Tensors.md">Tensors</h2>
+-   [Tensors](#Tensorsmd)
+-   [Generators](#Generatorsmd)
+-   [Random sampling](#Random-samplingmd)
+-   [Serialization](#Serializationmd)
+-   [Math operations](#Math-operationsmd)
+-   [Utilities](#Utilitiesmd)
+-   [Other](#Othermd)
+-   [torch.Tensor](#torch-Tensormd)
+-   [Layers \(torch.nn\)](#Layers-torch-nnmd)
+-   [Functions\(torch.nn.functional\)](#Functionstorch-nn-functionalmd)
+-   [torch.distributed](#torch-distributedmd)
+-   [NPU和CUDA功能对齐](#NPU和CUDA功能对齐md)
+<h2 id="Tensorsmd">Tensors</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p960817567348"><a name="p960817567348"></a><a name="p960817567348"></a>序号</p>
@@ -361,7 +361,7 @@
 </tbody>
 </table>
 
-<h2 id="Generators.md">Generators</h2>
+<h2 id="Generatorsmd">Generators</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p16697450143718"><a name="p16697450143718"></a><a name="p16697450143718"></a>序号</p>
@@ -424,7 +424,7 @@
 </tbody>
 </table>
 
-<h2 id="Random-sampling.md">Random sampling</h2>
+<h2 id="Random-samplingmd">Random sampling</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p382722114388"><a name="p382722114388"></a><a name="p382722114388"></a>序号</p>
@@ -641,7 +641,7 @@
 </tbody>
 </table>
 
-<h2 id="Serialization.md">Serialization</h2>
+<h2 id="Serializationmd">Serialization</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p12952172303918"><a name="p12952172303918"></a><a name="p12952172303918"></a>序号</p>
@@ -669,7 +669,7 @@
 </tbody>
 </table>
 
-<h2 id="Math-operations.md">Math operations</h2>
+<h2 id="Math-operationsmd">Math operations</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p7641165016399"><a name="p7641165016399"></a><a name="p7641165016399"></a>序号</p>
@@ -1440,7 +1440,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p48781832301"><a name="p48781832301"></a><a name="p48781832301"></a>torch.cummax</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p158788321506"><a name="p158788321506"></a><a name="p158788321506"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p158788321506"><a name="p158788321506"></a><a name="p158788321506"></a>是</p>
 </td>
 </tr>
 <tr id="row839916045311"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p16625134212409"><a name="p16625134212409"></a><a name="p16625134212409"></a>110</p>
@@ -1594,7 +1594,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p28801032606"><a name="p28801032606"></a><a name="p28801032606"></a>torch.triu_indices</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p168802321904"><a name="p168802321904"></a><a name="p168802321904"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p168802321904"><a name="p168802321904"></a><a name="p168802321904"></a>是</p>
 </td>
 </tr>
 <tr id="row640119035312"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p11626204224011"><a name="p11626204224011"></a><a name="p11626204224011"></a>132</p>
@@ -1671,7 +1671,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p158813321502"><a name="p158813321502"></a><a name="p158813321502"></a>torch.dot</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p58817321900"><a name="p58817321900"></a><a name="p58817321900"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p58817321900"><a name="p58817321900"></a><a name="p58817321900"></a>是</p>
 </td>
 </tr>
 <tr id="row94051306531"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p11627242104014"><a name="p11627242104014"></a><a name="p11627242104014"></a>143</p>
@@ -1769,7 +1769,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p38827323019"><a name="p38827323019"></a><a name="p38827323019"></a>torch.matrix_rank</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p16882532306"><a name="p16882532306"></a><a name="p16882532306"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p16882532306"><a name="p16882532306"></a><a name="p16882532306"></a>是</p>
 </td>
 </tr>
 <tr id="row17406500530"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p1062711429402"><a name="p1062711429402"></a><a name="p1062711429402"></a>157</p>
@@ -1825,7 +1825,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p1088213329013"><a name="p1088213329013"></a><a name="p1088213329013"></a>torch.svd</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p6882153210010"><a name="p6882153210010"></a><a name="p6882153210010"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p6882153210010"><a name="p6882153210010"></a><a name="p6882153210010"></a>是</p>
 </td>
 </tr>
 <tr id="row74071017534"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p7628124218408"><a name="p7628124218408"></a><a name="p7628124218408"></a>165</p>
@@ -1846,7 +1846,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p3883432304"><a name="p3883432304"></a><a name="p3883432304"></a>torch.symeig</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p8883163218013"><a name="p8883163218013"></a><a name="p8883163218013"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p8883163218013"><a name="p8883163218013"></a><a name="p8883163218013"></a>是</p>
 </td>
 </tr>
 <tr id="row154081406539"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p3628204212404"><a name="p3628204212404"></a><a name="p3628204212404"></a>168</p>
@@ -1867,13 +1867,13 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p18831532508"><a name="p18831532508"></a><a name="p18831532508"></a>torch.triangular_solve</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p2088333216013"><a name="p2088333216013"></a><a name="p2088333216013"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p2088333216013"><a name="p2088333216013"></a><a name="p2088333216013"></a>是</p>
 </td>
 </tr>
 </tbody>
 </table>
 
-<h2 id="Utilities.md">Utilities</h2>
+<h2 id="Utilitiesmd">Utilities</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p22242584402"><a name="p22242584402"></a><a name="p22242584402"></a>序号</p>
@@ -1915,7 +1915,7 @@
 </tbody>
 </table>
 
-<h2 id="Other.md">Other</h2>
+<h2 id="Othermd">Other</h2>
 
 <a name="table155791359155219"></a>
 <table><thead align="left"><tr id="row038419012538"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p143036271411"><a name="p143036271411"></a><a name="p143036271411"></a>序号</p>
@@ -1978,7 +1978,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-Tensor.md">torch.Tensor</h2>
+<h2 id="torch-Tensormd">torch.Tensor</h2>
 
 <a name="table1895120221777"></a>
 <table><thead align="left"><tr id="row1595142219714"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p182711720423"><a name="p182711720423"></a><a name="p182711720423"></a>序号</p>
@@ -2553,7 +2553,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p7527139782"><a name="p7527139782"></a><a name="p7527139782"></a>torch.Tensor.cummax</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p85281339382"><a name="p85281339382"></a><a name="p85281339382"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p85281339382"><a name="p85281339382"></a><a name="p85281339382"></a>是</p>
 </td>
 </tr>
 <tr id="row159571822579"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p67715019438"><a name="p67715019438"></a><a name="p67715019438"></a>82</p>
@@ -2686,7 +2686,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p752983919818"><a name="p752983919818"></a><a name="p752983919818"></a>torch.Tensor.dot</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p115291939589"><a name="p115291939589"></a><a name="p115291939589"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p115291939589"><a name="p115291939589"></a><a name="p115291939589"></a>是</p>
 </td>
 </tr>
 <tr id="row199583220716"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p878009436"><a name="p878009436"></a><a name="p878009436"></a>101</p>
@@ -4023,7 +4023,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p65456391181"><a name="p65456391181"></a><a name="p65456391181"></a>torch.Tensor.slogdet</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p17545839986"><a name="p17545839986"></a><a name="p17545839986"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p17545839986"><a name="p17545839986"></a><a name="p17545839986"></a>是</p>
 </td>
 </tr>
 <tr id="row119719221710"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p149619014316"><a name="p149619014316"></a><a name="p149619014316"></a>292</p>
@@ -4177,14 +4177,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p78108341695"><a name="p78108341695"></a><a name="p78108341695"></a>torch.Tensor.svd</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p198103344916"><a name="p198103344916"></a><a name="p198103344916"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p198103344916"><a name="p198103344916"></a><a name="p198103344916"></a>是</p>
 </td>
 </tr>
 <tr id="row149731641091"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p89819019431"><a name="p89819019431"></a><a name="p89819019431"></a>314</p>
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p88108349918"><a name="p88108349918"></a><a name="p88108349918"></a>torch.Tensor.symeig</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0810173417913"><a name="p0810173417913"></a><a name="p0810173417913"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p0810173417913"><a name="p0810173417913"></a><a name="p0810173417913"></a>是</p>
 </td>
 </tr>
 <tr id="row2133351910"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p19816004317"><a name="p19816004317"></a><a name="p19816004317"></a>315</p>
@@ -4296,7 +4296,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="70%" headers="mcps1.1.4.1.2 "><p id="p7813123413917"><a name="p7813123413917"></a><a name="p7813123413917"></a>torch.Tensor.triangular_solve</p>
 </td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p188131234099"><a name="p188131234099"></a><a name="p188131234099"></a>否</p>
+<td class="cellrowborder" valign="top" width="20%" headers="mcps1.1.4.1.3 "><p id="p188131234099"><a name="p188131234099"></a><a name="p188131234099"></a>是</p>
 </td>
 </tr>
 <tr id="row252410713915"><td class="cellrowborder" valign="top" width="10%" headers="mcps1.1.4.1.1 "><p id="p498190164318"><a name="p498190164318"></a><a name="p498190164318"></a>331</p>
@@ -4484,7 +4484,7 @@
 </tbody>
 </table>
 
-<h2 id="Layers-(torch-nn).md">Layers \(torch.nn\)</h2>
+<h2 id="Layers-(torch-nn)md">Layers \(torch.nn\)</h2>
 
 <a name="table8705205810121"></a>
 <table><thead align="left"><tr id="row2070595881212"><th class="cellrowborder" valign="top" width="8.000000000000002%" id="mcps1.1.4.1.1"><p id="p8163151816433"><a name="p8163151816433"></a><a name="p8163151816433"></a>序号</p>
@@ -4975,14 +4975,14 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p17600191111510"><a name="p17600191111510"></a><a name="p17600191111510"></a>torch.nn.MaxUnpool2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p935153282615"><a name="p935153282615"></a><a name="p935153282615"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p935153282615"><a name="p935153282615"></a><a name="p935153282615"></a>是</p>
 </td>
 </tr>
 <tr id="row1770915813123"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p812835394314"><a name="p812835394314"></a><a name="p812835394314"></a>70</p>
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p26001315158"><a name="p26001315158"></a><a name="p26001315158"></a>torch.nn.MaxUnpool3d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p2600617159"><a name="p2600617159"></a><a name="p2600617159"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p2600617159"><a name="p2600617159"></a><a name="p2600617159"></a>是</p>
 </td>
 </tr>
 <tr id="row1670905812123"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p512875316433"><a name="p512875316433"></a><a name="p512875316433"></a>71</p>
@@ -5080,7 +5080,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p760113181511"><a name="p760113181511"></a><a name="p760113181511"></a>torch.nn.ReflectionPad2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4601201141519"><a name="p4601201141519"></a><a name="p4601201141519"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p4601201141519"><a name="p4601201141519"></a><a name="p4601201141519"></a>是</p>
 </td>
 </tr>
 <tr id="row271085831215"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p191291653154315"><a name="p191291653154315"></a><a name="p191291653154315"></a>85</p>
@@ -5094,7 +5094,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p36011419159"><a name="p36011419159"></a><a name="p36011419159"></a>torch.nn.ReplicationPad2d</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p46011819152"><a name="p46011819152"></a><a name="p46011819152"></a>否</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p46011819152"><a name="p46011819152"></a><a name="p46011819152"></a>是</p>
 </td>
 </tr>
 <tr id="row87107585120"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p19129135314436"><a name="p19129135314436"></a><a name="p19129135314436"></a>87</p>
@@ -5423,7 +5423,7 @@
 </td>
 <td class="cellrowborder" valign="top" width="71.50000000000001%" headers="mcps1.1.4.1.2 "><p id="p16052116159"><a name="p16052116159"></a><a name="p16052116159"></a>torch.nn.LSTM</p>
 </td>
-<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p13774122824812"><a name="p13774122824812"></a><a name="p13774122824812"></a>是，DynamicRNN场景暂不支持</p>
+<td class="cellrowborder" valign="top" width="20.5%" headers="mcps1.1.4.1.3 "><p id="p13774122824812"><a name="p13774122824812"></a><a name="p13774122824812"></a>是</p>
 </td>
 </tr>
 <tr id="row571335815120"><td class="cellrowborder" valign="top" width="8.000000000000002%" headers="mcps1.1.4.1.1 "><p id="p21361053164313"><a name="p21361053164313"></a><a name="p21361053164313"></a>134</p>
@@ -6710,7 +6710,7 @@
 </tbody>
 </table>
 
-<h2 id="Functions(torch-nn-functional).md">Functions\(torch.nn.functional\)</h2>
+<h2 id="Functions(torch-nn-functional)md">Functions\(torch.nn.functional\)</h2>
 
 <a name="table9911195161614"></a>
 <table><thead align="left"><tr id="row591155115160"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1339212174419"><a name="p1339212174419"></a><a name="p1339212174419"></a>序号</p>
@@ -7417,7 +7417,7 @@
 </tbody>
 </table>
 
-<h2 id="torch-distributed.md">torch.distributed</h2>
+<h2 id="torch-distributedmd">torch.distributed</h2>
 
 <a name="table2583230111811"></a>
 <table><thead align="left"><tr id="row11583113018186"><th class="cellrowborder" valign="top" width="10%" id="mcps1.1.4.1.1"><p id="p1356195214418"><a name="p1356195214418"></a><a name="p1356195214418"></a>序号</p>
@@ -7641,7 +7641,7 @@
 </tbody>
 </table>
 
-<h2 id="NPU和CUDA功能对齐.md">NPU和CUDA功能对齐</h2>
+<h2 id="NPU和CUDA功能对齐md">NPU和CUDA功能对齐</h2>
 
 <a name="table1125623115220"></a>
 <table><thead align="left"><tr id="row72566317225"><th class="cellrowborder" valign="top" width="7.5200000000000005%" id="mcps1.1.5.1.1"><p id="p15384153811454"><a name="p15384153811454"></a><a name="p15384153811454"></a>序号</p>
