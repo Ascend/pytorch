@@ -38,8 +38,8 @@ Tensor& batch_norm_elemt_nocheck(
   Tensor mean_ = mean.defined() ? mean : ones_npu({dimC}, options);
   Tensor invstd_ = invstd.defined() ? invstd : ones_npu({dimC}, options);
   Tensor one = at::ones({1}, options);
-  auto variance = at::div(one, invstd_);
-  variance = at::mul(variance, variance) - eps;
+  auto variance = at::mul(invstd_, invstd_);
+  variance = at::div(one, variance) - eps;
   int64_t selfDim = self.dim();
   Tensor self5d(self);
   SmallVector<int64_t, N> selfShape = array_to_small_vector(self.sizes());

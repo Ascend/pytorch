@@ -35,6 +35,7 @@ class TestUpsampleBilinear2d(TestCase):
 
     def test_UpsampleBilinear2d_common_shape_format(self, device):
         shape_format = [
+            [[np.float32, -1, (1, 1, 3000, 3000)], (2500, 2500)],
             [[np.float32, -1, (4, 3, 1, 5)], (2, 2)],
             [[np.float32, -1, (2, 3, 2, 1)], (3, 3)],
             [[np.float32, -1, (1, 4, 2, 2)], (4, 4)],

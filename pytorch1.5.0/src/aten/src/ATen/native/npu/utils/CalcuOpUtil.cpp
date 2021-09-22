@@ -686,6 +686,10 @@ int64_t CalcuOpUtil::completePad(
   int64_t needpads = 0;
   int64_t sizeP = s_size + p_size * 2;
   int64_t leftLen = sizeP - k_size;
+  TORCH_CHECK(stride > 0,
+      "stride should be greater than zero ",
+      "but got ",
+      stride);
   auto reminder = leftLen % stride;
   if (reminder != 0) {
     needpads = stride - reminder;

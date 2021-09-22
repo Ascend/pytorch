@@ -33,13 +33,13 @@ Tensor constant_pad_nd_out_npu_nocheck(Tensor& result, const Tensor& self, IntAr
 
   float val = CalcuOpUtil::get_scalar_float_value(value);
 
-  SmallVector<int64_t, N> value_tensor = {(int64_t)val};
+  Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
 
   OpCommand cmd;
   cmd.Name("PadV3")
     .Input(self)
     .Input(vectorInt, at::kInt)
-    .Input(value_tensor, self.scalar_type())
+    .Input(value_tensor)
     .Output(result)
     .Attr("mode", (string)"constant")
     .Attr("paddings_contiguous", true)
@@ -106,7 +106,7 @@ Tensor constant_pad_nd_npu(const Tensor& self, IntArrayRef pad, Scalar value){
       end_list.emplace_back(self.size(i) + pad_vec[max_pad_size - 1 - 2 * i]);
       strides.emplace_back(1);
     }
-    
+
     return at::npu_indexing(self, begin_list, end_list, strides);
   }
 
