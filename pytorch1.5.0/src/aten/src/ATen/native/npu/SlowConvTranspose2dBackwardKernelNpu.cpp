@@ -233,9 +233,6 @@ tuple<Tensor,Tensor,Tensor> slow_conv_transpose2d_backward_npu(
       dilation,
       columns,
       ones);
-
-  // return std::make_tuple(
-  //     std::move(grad_input), std::move(grad_weight), std::move(grad_bias));
 }
 
 } // namespace native

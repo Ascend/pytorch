@@ -183,7 +183,12 @@ void DynamicShapeUtil::CreateAclParamsDesc(
     aclFormat format = aclGetTensorDescFormat(desc);
     int dims = (int)aclGetTensorDescNumDims(desc);
     int storageDims = inStorageDims[i];
-    string compileName = aclGetTensorDescName(desc);
+
+    const char* name = aclGetTensorDescName(desc);
+    string compileName = "";
+    if (name != nullptr) {
+        compileName = string(name);
+    }
 
     NPU_LOGD(
         "CreateAclParamsInputDesc Run, TensorDescName %s .",

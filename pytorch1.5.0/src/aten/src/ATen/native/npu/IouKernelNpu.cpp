@@ -57,7 +57,6 @@ Tensor& iou_out_npu(
   // executing the NPU operator
   CalcuOpUtil::execute_npu_operate("Iou", inputs, outputs, attrs);
 
-  // return std::make_tuple(boxes, idx, mask);
   return overlap;
 }
 

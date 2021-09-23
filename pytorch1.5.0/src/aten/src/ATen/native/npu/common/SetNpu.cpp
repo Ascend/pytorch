@@ -68,10 +68,7 @@ void set_storage_npu_(
     ptrdiff_t storageOffset_,
     at::IntArrayRef size_,
     at::IntArrayRef stride_) {
-  if (stride_.data()) {
-    // AT_CHECK(size_.size() == stride_.size(), "inconsistent size/stride
-    // sizes");
-  }
+
   set_storage_nd_npu(
       self,
       storage_,

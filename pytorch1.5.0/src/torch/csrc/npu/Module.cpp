@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -116,7 +116,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
 
 PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
-  int device;
+  int device = -1;
   torch::utils::npu_lazy_init();
   C10_NPU_CHECK(aclrtGetDevice(&device));
   return PyLong_FromLong(device);
@@ -380,7 +380,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
     const char *pValue = PyUnicode_AsUTF8(value);
     option[pKey] = pValue;
   }
-  
+
   torch::utils::npu_lazy_init();
   {
     pybind11::gil_scoped_release no_gil;
@@ -399,7 +399,7 @@ static struct PyMethodDef _THNPModule_methods[] = {
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
-    {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr}, 
+    {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
     {"_npu_increaseStep", (PyCFunction)THNPModule_increaseStep_wrap,METH_NOARGS,nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},

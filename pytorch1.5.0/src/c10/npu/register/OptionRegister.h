@@ -35,8 +35,9 @@ class OptionInterface {
   /**
     dctr
     */
-  OptionInterface(OptionCallBack callback=nullptr);
-  ~OptionInterface() = default;
+    OptionInterface(OptionCallBack callback=nullptr);
+
+    ~OptionInterface() = default;
   /**
     This API is used to store value.
     */
@@ -49,7 +50,7 @@ class OptionInterface {
 /**
   Its used to store hook.
   */
-  OptionCallBack callback = nullptr; 
+  OptionCallBack callback = nullptr;
   std::string val;
 };
 
@@ -139,6 +140,15 @@ c10::optional<std::string> GetOption(const std::string& key);
       return true;                                                  \
     }                                                               \
     return false;                                                   \
+  }
+
+#define REGISTER_OPTION_BOOL_FUNCTION_UNIQ(func, key, defaultVal, trueVal)  \
+  bool func() {                                                             \
+    static auto val = c10::npu::GetOption(#key);                            \
+    if (val.value_or(defaultVal) == trueVal) {                              \
+      return true;                                                          \
+    }                                                                       \
+    return false;                                                           \
   }
 
 } // namespace npu

@@ -85,11 +85,23 @@ namespace at {
   using stringmap = std::unordered_map<string, string>;
   stringmap IrNameMapper = {
     {"NpuConvolutionBackward", "CudnnConvolutionBackward"},
+    {"CudnnConvolutionBackward", "NpuConvolutionBackward"},
     {"NativeBatchNormBackward", "CudnnBatchNormBackward"},
+    {"CudnnBatchNormBackward", "NativeBatchNormBackward"},
   };
   std::unordered_map<string, stringmap> IrParamNameMapper = {
     {"NpuConvolutionBackward", {{"input", "self"},}},
+    {"CudnnConvolutionBackward", {{"self", "input"},}},
     {"NativeBatchNormBackward", {{"eps", "epsilon"},}},
+    {"CudnnBatchNormBackward", {{"epsilon", "eps"},}},
+  };
+
+  // These params not exist in npu op, but exist in gpu op
+  // when matching or copying, these params are ignored;
+  // To do: are these params neccessary to recover the op?
+  std::unordered_map<string, std::vector<string>> IgnoreParamMapper = {
+    {"NpuConvolutionBackward", {"benchmark", "deterministic"}},
+    {"NativeBatchNormBackward", {"result3",}},
   };
 
   void MaybeMapTensorName(const string& irName, std::vector<TensorDesc>& tensorDescVec) {
@@ -179,10 +191,22 @@ namespace at {
     return true;
   }
 
+  bool CheckSkip(const string &nameIr, const string &nameParam) {
+    for (auto it = IgnoreParamMapper[nameIr].begin(); it != IgnoreParamMapper[nameIr].end(); it++) {
+      if (nameParam == (*it)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<double>>& descVec) {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -213,6 +237,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -244,6 +271,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -283,6 +313,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -313,6 +346,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -343,6 +379,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = tensorVec.begin(); it != tensorVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).nameTensor)) {
+        continue;
+      }
       if (!(*it).tensor.has_storage()) {
         continue;
       }
@@ -373,7 +412,8 @@ namespace at {
         attr.read(attr.getDataType(), &dtypeValue);
         // some ops on npu only support int32 while those ops support long on GPU
         // need more tests to verify these cases
-        if (dtypeValue == ScalarTypeToDumpType(c10::kLong) && (*it).tensor.scalar_type() == c10::kInt) {
+        if ((dtypeValue == ScalarTypeToDumpType(c10::kLong) && (*it).tensor.scalar_type() == c10::kInt) || 
+            (dtypeValue == ScalarTypeToDumpType(c10::kInt) && (*it).tensor.scalar_type() == c10::kLong)) {
           ;
         } else if (dtypeValue != ScalarTypeToDumpType((*it).tensor.scalar_type())) {
           is_matched = false;
@@ -388,6 +428,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }  
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -419,6 +462,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*(*it)).Name())) {
+        continue;
+      }  
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*(*it)).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -442,6 +488,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*(*it)).Name())) {
+        continue;
+      }  
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*(*it)).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -465,6 +514,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }  
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -495,6 +547,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      } 
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -540,6 +595,9 @@ namespace at {
     bool is_matched = true;
     std::string h5IRPath;
     for (auto it = descVec.begin(); it != descVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).Name())) {
+        continue;
+      }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
@@ -721,6 +779,9 @@ namespace at {
   void TensorCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.tensorDescVec.begin(); it != commDesc.tensorDescVec.end(); it++) {
+      if (CheckSkip(nameIr, (*it).nameTensor)) {
+        continue;
+      } 
       if (!(*it).tensor.has_storage()) {
         continue;
       }
@@ -746,8 +807,11 @@ namespace at {
       Tensor thArray;
       if ((*it).tensor.scalar_type() != ScalarType::Half) {
         TensorOptions options;
+        // for long and int, use adata type in h5 instead of that of tensor on the device
         if (dataset.getDataType() == PredType::STD_I64LE) {
           options = at::TensorOptions().dtype(ScalarType::Long);
+        } else if (dataset.getDataType() == PredType::STD_I32LE) {
+          options = at::TensorOptions().dtype(ScalarType::Int);
         } else {
           options = at::TensorOptions().dtype((*it).tensor.scalar_type());
         }
@@ -770,28 +834,30 @@ namespace at {
       }
       delete data;
     }
-
   }
 
   void ScalarCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.scalarDescVec.begin(); it != commDesc.scalarDescVec.end(); it++) {
+      if (CheckSkip(nameIr, (*(*it)).Name())) {
+        continue;
+      } 
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*(*it)).Name();
       DataSet dataset = file->openDataSet(h5DataSetPath);
       DataSpace dataSpace = dataset.getSpace();
       auto kType = (*(*it)).GetValue().type();
       if (kType == ScalarType::Double) {
-        double data = 0;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(at::Scalar(data));
+        double dataFp64 = 0;
+        dataset.read(&dataFp64, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(at::Scalar(dataFp64));
       } else if (kType == ScalarType::Long) {
-        int64_t data = 0;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(at::Scalar(data));
+        int64_t dataInt64 = 0;
+        dataset.read(&dataInt64, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(at::Scalar(dataInt64));
       } else if (kType == ScalarType::Bool) {
-        bool data = 0;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(at::Scalar(data));
+        bool dataBool = 0;
+        dataset.read(&dataBool, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(at::Scalar(dataBool));
       }
     }
   }
@@ -799,22 +865,25 @@ namespace at {
   void OptionalScalarCopying(const int &seqH5, const string &nameIr, const H5File* file, CommDesc& commDesc) {
     std::string h5DataSetPath;
     for (auto it = commDesc.optionalScalarDescVec.begin(); it != commDesc.optionalScalarDescVec.end(); it++) {
+      if (CheckSkip(nameIr, (*(*it)).Name())) {
+        continue;
+      }
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*(*it)).Name();
       DataSet dataset = file->openDataSet(h5DataSetPath);
       DataSpace dataSpace = dataset.getSpace();
       auto kType = (*(*it)).GetValue().value().type();
       if (kType == ScalarType::Double) {
-        double data = 0;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(c10::optional<at::Scalar>(data));
+        double dataFp64 = 0;
+        dataset.read(&dataFp64, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(c10::optional<at::Scalar>(dataFp64));
       } else if (kType == ScalarType::Long) {
-        int64_t data = 0;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(c10::optional<at::Scalar>(data));
+        int64_t dataInt64 = 0;
+        dataset.read(&dataInt64, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(c10::optional<at::Scalar>(dataInt64));
       } else if (kType == ScalarType::Bool) {
-        bool data = true;
-        dataset.read(&data, dataset.getDataType(), dataSpace, dataSpace);
-        (*(*it)).SetValue(c10::optional<at::Scalar>(data));
+        bool dataBool = true;
+        dataset.read(&dataBool, dataset.getDataType(), dataSpace, dataSpace);
+        (*(*it)).SetValue(c10::optional<at::Scalar>(dataBool));
       }
     }    
   }

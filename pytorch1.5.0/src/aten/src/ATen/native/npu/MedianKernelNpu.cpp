@@ -115,17 +115,6 @@ std::tuple<Tensor&, Tensor&> median_out_npu(
 
   median_out_npu_nocheck(values, indices, self, dim, keepdim);
   return tuple<Tensor&, Tensor&>(values, indices);
-
-//   auto func = [&self, &dim, &keepdim](Tensor& values, Tensor& indices) {
-//     median_out_npu_nocheck(values, indices, self, dim, keepdim);
-//     return;
-//   };
-
-//   OpPipeWithMultiOut<Tensor&, Tensor&> pipe(values, indices);
-//   return pipe.FixOutputExceptDtype<0>({self}, self, outputSize)
-//             .FixOutputExceptDtype<1>({self}, ACL_FORMAT_NCHW, ScalarType::Int, outputSize)
-//             .Call(func)
-//             .ReturnRef<Tensor&, Tensor&>();
 }
 
 std::tuple<Tensor&, Tensor&> median_out_npu(

@@ -52,7 +52,6 @@ Tensor& relu_out_npu(Tensor& result, const Tensor& self) {
 }
 
 Tensor relu_npu(const Tensor& self) {
-  // return at::threshold(self, 0, 0);
   // calculate the output size
   auto outputSize = input_same_output_size(self);
 
@@ -66,7 +65,6 @@ Tensor relu_npu(const Tensor& self) {
 }
 
 Tensor& relu_npu_(Tensor& self) {
-  // return at::threshold_(self, 0, 0);
   if (!NpuUtils::check_match(&self)) {
     Tensor selfContiguous = NpuUtils::format_contiguous(self);
     Tensor result = relu_out_npu(selfContiguous, selfContiguous);

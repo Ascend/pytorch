@@ -147,8 +147,6 @@ Tensor& arange_out_npu(
    .Func([&start, &end, &step](Tensor& result){arange_out_npu_nocheck(result, start, end, step);})
    .Call(result);
 
-  //arange_out_npu_nocheck(result, start, end, step);
-
   return result;
 }
 

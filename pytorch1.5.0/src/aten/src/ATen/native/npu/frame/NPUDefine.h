@@ -25,8 +25,10 @@ namespace npu {
 
 struct ACL_PARAMS {
   ACL_PARAMS() {
+    input_num = 0;
     input_desc = nullptr;
     input_data_buf = nullptr;
+    output_num = 0;
     output_desc = nullptr;
     output_data_buf = nullptr;
     inputDims = nullptr;
@@ -51,8 +53,10 @@ struct ACL_PARAMS {
 
 struct ACL_DYNAMIC_PARAMS {
   ACL_DYNAMIC_PARAMS() {
+    int input_num = 0;
     input_desc = nullptr;
     input_data_buf = nullptr;
+    int output_num = 0;
     output_desc = nullptr;
     output_data_buf = nullptr;
     inputDims = nullptr;
@@ -96,9 +100,9 @@ struct ExecuteParas {
   ACL_PARAMS paras;
   ACL_DYNAMIC_PARAMS dynamicParam;
   CONST_PARAMS constParams;
-  const aclopAttr* attr;
-  const aclopAttr* dynamicCompileAttr;
-  const aclopAttr* dynamicRunAttr;
+  const aclopAttr* attr = nullptr;
+  const aclopAttr* dynamicCompileAttr = nullptr;
+  const aclopAttr* dynamicRunAttr = nullptr;
   int64_t constIdx = -1;
   SmallVector<Tensor, N> hostMemory;
   ExecuteParas(

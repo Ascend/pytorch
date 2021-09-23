@@ -28,10 +28,6 @@ SmallVector<NPUTensorDesc, N> take_npu_input(
   for (int i = 0; i < inputTensor.size(); i++) {
     if (i == 0) {
       int64_t input_size = 1;
-      // int64_t dim = inputTensor[i].sizes().size();
-      // for (int64_t d = 0; d<dim; d++) {
-      //     input_size *= inputTensor[i].size(d);
-      // }
       Tensor input_tensor = inputTensor[i].reshape(-1);
       contiguousTensor = NpuUtils::format_contiguous(input_tensor);
     } else {

@@ -168,7 +168,7 @@ Tensor convolution_transpose3d_npu(
       input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   // construct the output tensor of the NPU
-  Tensor result = 
+  Tensor result =
       OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NDC1HWC0);
 
   // calculate the output result of the NPU
@@ -395,7 +395,7 @@ Tensor npu_convolution(
 
   if (dim == 5) {
     bool is_dilated = false;
-    for (int d : dilation) {
+    for (unsigned int d : dilation) {
       is_dilated |= (d != 1);
     }
     if (groups == 1 && !is_dilated) {
@@ -532,11 +532,11 @@ tuple<Tensor, Tensor, Tensor> npu_convolution_double_backward(
   Tensor gI;
   Tensor gW;
   if (dim == 4) {
-    std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_, 
+    std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_,
                                     {{1, 1}}, false, {{0, 0}}, 1, false, false, false, grad_input_mask);
   }
   if (dim == 5) {
-    std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_, 
+    std::tie(ggO, gI, gW) = at::_convolution_double_backward(ggI, ggW, ggb, gO_r, weight_r, input, stride_, padding_,
                                     {{1, 1, 1}}, false, {{0, 0, 0}}, 1, false, false, false, grad_input_mask);
   }
   return std::tie(ggO, gI, gW);

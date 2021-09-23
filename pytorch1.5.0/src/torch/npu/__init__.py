@@ -284,3 +284,4 @@ from .memory import *
 
 from .streams import Stream, Event
 from .npu_frontend_enhance import *
+from .global_mm_bmm_nd import *

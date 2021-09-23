@@ -865,7 +865,7 @@ struct THNCachingAllocator {
         C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
       }
 
-      aclrtEvent event;
+      aclrtEvent event = nullptr;
       aclrtCreateEvent(&event);
       aclrtRecordEvent(event, it->stream());
 

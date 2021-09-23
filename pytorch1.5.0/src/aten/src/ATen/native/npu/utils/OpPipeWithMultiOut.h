@@ -67,6 +67,8 @@ class OpPipeWithMultiOut {
  public:
   explicit OpPipeWithMultiOut(Ts... params) : funcParams(params...) {}
 
+  ~OpPipeWithMultiOut() = default;
+
   OpPipeWithMultiOut& Func(const std::function<void(Ts...)>& func) {
     this->func = func;
     return *this;

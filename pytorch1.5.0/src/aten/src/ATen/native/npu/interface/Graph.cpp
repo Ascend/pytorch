@@ -85,8 +85,6 @@ Graph& Graph::Output(const aclTensorDesc* outDesc) {
 Graph& Graph::SetConst(void* const_data_buffer, const size_t &const_data_len) {
   TORCH_CHECK(inputs.size()>0, "The input vector can not be null!");
   // SetConstData function only support in CANN 5.0.3 (after 2021/08/15)
-  // std::shared_ptr<void> data_ptr((void*) const_data_buffer, [](void*) {;});
-  // inputs.back().SetConstData(data_ptr, const_data_len);
   return *this;
 }
 

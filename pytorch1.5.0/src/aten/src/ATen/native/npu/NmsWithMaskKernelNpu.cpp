@@ -57,7 +57,6 @@ tuple<Tensor&, Tensor&, Tensor&> nms_with_mask_out_npu(
   // executing the NPU operator
   CalcuOpUtil::execute_npu_operate("NMSWithMask", inputs, outputs, attrs);
 
-  // return std::make_tuple(boxes, idx, mask);
   return std::tuple<Tensor&, Tensor&, Tensor&>(boxes, idx, mask);
 }
 

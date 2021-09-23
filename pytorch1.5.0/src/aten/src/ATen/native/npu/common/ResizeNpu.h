@@ -29,9 +29,6 @@ static void storage_resize_npu(
     StorageImpl& storage,
     ptrdiff_t size,
     IntArrayRef new_size) {
-  // AT_CHECK(size > 0, "invalid size");
-  // AT_CHECK(storage.allocator() != nullptr, "Try to resize a tensor with
-  // null allocator");
   if (!storage.resizable()) {
     AT_ERROR("Trying to resize storage that is not resizable");
     return;
@@ -118,7 +115,6 @@ static void resize_nd_npu(
     int nDimension,
     const int64_t* size,
     const int64_t* stride) {
-  // AT_CHECK(nDimension >= 0, "resizeNd nDimension must be non-negative");
   at::IntArrayRef sizes(size, nDimension);
   at::optional<at::IntArrayRef> strides;
   if (stride != nullptr) {

@@ -28,6 +28,7 @@ bool AutoTuneEnabled();
 bool CheckBmmV2Enable();
 bool CheckFuzzyEnable();
 bool CheckProfilingEnable();
+bool CheckMmBmmNDEnable();
 
 } // namespace env
 } // namespace npu

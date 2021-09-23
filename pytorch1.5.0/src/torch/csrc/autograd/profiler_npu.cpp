@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -55,7 +55,7 @@ struct NPUMethods : public CUDAStubs {
   float npu_elapsed(aclrtEvent event, aclrtEvent event2) {
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event));
     TORCH_NPU_CHECK(aclrtSynchronizeEvent(event2));
-    float ms;
+    float ms = 0.0f;
     TORCH_NPU_CHECK(aclrtEventElapsedTime(&ms, event, event2));
     return ms*1000.0;
   }

@@ -35,7 +35,6 @@ Tensor& resize_npu_(
   }
   auto* self_ = self.unsafeGetTensorImpl();
   resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
-  // self_->maybe_zero_dim(size.size() == 0);
   return self;
 }
 

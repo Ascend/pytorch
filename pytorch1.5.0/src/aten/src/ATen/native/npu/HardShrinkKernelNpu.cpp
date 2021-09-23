@@ -32,7 +32,6 @@ Tensor& hardshrink_nocheck(Tensor& result, const Tensor& self, Scalar lambd) {
 } // namespace
 
 Tensor hardshrink_npu(const Tensor& self, Scalar lambd) {
-  // Tensor outputTensor = logical_or_dest_output(self, other);
   Tensor result = OpPreparation::ApplyTensor(self);
   hardshrink_nocheck(result, self, lambd);
 

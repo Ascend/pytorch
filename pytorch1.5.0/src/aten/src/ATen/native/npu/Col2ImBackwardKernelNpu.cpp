@@ -41,7 +41,6 @@ SmallVector<NPUAttrDesc, N> col2im_backward_npu_attr(
 
   SmallVector<int64_t, N> stridesSize = {1, stride[0], stride[1], 1};
 
-//    SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1], padding[1]};
   string paddings = "SAME";
      
   SmallVector<int64_t, N> dilations = {1, dilation[0], dilation[1], 1};

@@ -90,7 +90,6 @@ Tensor logical_and_npu(const Tensor& self, const Tensor& other) {
   logical_and_out_npu_nocheck(result, self, other);
 
   return result.toType(kBool);
-  //return result;
 }
 
 Tensor& logical_and_npu_(Tensor& self, const Tensor& other) {

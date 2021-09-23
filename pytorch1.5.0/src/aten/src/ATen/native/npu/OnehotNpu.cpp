@@ -41,10 +41,6 @@ SmallVector<NPUTensorDesc, N> one_hot_npu_input(
     Scalar off_value) {
   SmallVector<NPUTensorDesc, N> inputs;
 
-  // auto inputTensor = CalcuOpUtil::create_npu_input_tensor_desc({self});
-  // auto inputScalar =
-  //    CalcuOpUtil::create_npu_input_tensor_desc({on_value, off_value},
-  //    ScalarType::Float);
   Tensor on_tmp = at::empty_with_format(
                       {1},
                       self.options().dtype(ScalarType::Float),
@@ -58,7 +54,6 @@ SmallVector<NPUTensorDesc, N> one_hot_npu_input(
   auto inputTensor =
       CalcuOpUtil::create_npu_input_tensor_desc({self, on_tmp, off_tmp});
   inputs.insert(inputs.end(), inputTensor.begin(), inputTensor.end());
-  // inputs.insert(inputs.end(), inputScalar.begin(), inputScalar.end());
 
   return inputs;
 }

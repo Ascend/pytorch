@@ -162,7 +162,7 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
 bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
   for (size_t i = 0; i < devices_.size(); ++i) {
     // Checking Event completed by Eventquery
-    aclrtEventStatus status;
+    aclrtEventStatus status = aclrtEventStatus::ACL_EVENT_STATUS_COMPLETE;
     auto ret = aclrtQueryEvent(npuEvents_[i], &status);
     if (ret != ACL_ERROR_NONE || status == ACL_EVENT_STATUS_NOT_READY) {
       return false;

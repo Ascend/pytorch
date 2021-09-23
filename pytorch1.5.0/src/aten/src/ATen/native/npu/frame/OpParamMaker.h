@@ -381,7 +381,7 @@ class OpCommandImpl {
     execParam.constIdxs.clear();
     execParam.constLists.clear();
     execParam.hostMem.clear();
-    
+
     // recover
     execParam.hasAttr = false;
     execParam.attr = nullptr;
@@ -428,13 +428,13 @@ class OpCommandImpl {
 
 // This class maintain the position of the current
 // OpCommandImpl object in vector, the resources in
-// the object is 
+// the object is
 class OpCommandImpls {
 public:
   static OpCommandImpls* GetInstance();
   void Push(OpCommandImpl*& ptr);
   void Pop();
-  
+
 private:
   int32_t offset = -1;
   SmallVector<OpCommandImpl, N> objs;

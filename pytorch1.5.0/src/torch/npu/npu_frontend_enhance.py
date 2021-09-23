@@ -17,7 +17,6 @@
 import torch._C
 import os
 import contextlib
-
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_dump", "init_dump", "finalize_dump", "global_step_inc", "set_start_fuzz_compile_step", 
@@ -27,9 +26,11 @@ def set_option(option):
     if not isinstance(option, dict):
         raise TypeError("npu option must be a dict.")
 
+    if option.get("MM_BMM_ND_ENABLE") is "enable":
+        torch.npu.set_mm_bmm_format_nd(True)
+
     for option_name, option_value in option.items():
         option[option_name] = str(option_value)
-
     torch._C._npu_setOption(option)
 
 def init_dump():

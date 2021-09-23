@@ -80,8 +80,7 @@ Tensor& logical_or_out_npu(Tensor& result, const Tensor& self, const Tensor& oth
 }
 
 Tensor logical_or_npu(const Tensor& self, const Tensor& other) {
-  // calculate the output size  
-  //Tensor outputTensor = logical_or_dest_output(self, other);
+  // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
   Tensor result = at::empty_with_format(
@@ -92,7 +91,6 @@ Tensor logical_or_npu(const Tensor& self, const Tensor& other) {
   logical_or_out_npu_nocheck(result, self, other);
 
   return result.toType(kBool);
-  //return result;
 }
 
 

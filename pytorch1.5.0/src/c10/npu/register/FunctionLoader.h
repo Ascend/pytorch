@@ -93,6 +93,7 @@ public:
     ctr
     */
   FunctionRegisterBuilder(const std::string& soName, const std::string& funcName);
+
   ~FunctionRegisterBuilder() = default;
 }; // class FunctionRegisterBuilder
 
