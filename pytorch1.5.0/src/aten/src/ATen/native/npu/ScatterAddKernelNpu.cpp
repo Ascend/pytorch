@@ -26,15 +26,13 @@ Tensor scatter_add_out_npu(
     const Tensor& index,
     const Tensor& src) {
   OpCommand cmd;
-  cmd.Name("PTScatterAdd")
+  cmd.Name("ScatterAddWithAxis")
      .Input(self)
      .Input(index)
      .Input(src)
      .Output(result)
-     .Attr("dim", dim)
-     .Attr("kernel_name", "PTScatterAdd")
+     .Attr("axis", dim)
      .Run();
-
   return result;
 }
 
@@ -42,7 +40,7 @@ Tensor scatter_add_npu(
     const Tensor& self,
     int64_t dim,
     const Tensor& index,
-    const Tensor& src) {  
+    const Tensor& src) {
   return self.clone(at::MemoryFormat::Contiguous).scatter_add_(dim, index, src);
 }
 
