@@ -16,12 +16,41 @@ from common_utils import TestCase, run_tests
 from common_device_type import instantiate_device_type_tests
 
 class TestIou(TestCase):
-    def test_iou_fp32(self, device):
-        bboxes = torch.tensor([[-1, 2, 3, -4],[-5, 6, -7, 8]], dtype=torch.int32).to("npu")
-        gtboxes = torch.tensor([[-2, 1, -3, 5],[4, -3, 1, -2]], dtype=torch.int32).to("npu")
-        expect_output = torch.tensor([[65504, 65504],[0, 0]], dtype=torch.int32)
-        output = torch.npu_iou(bboxes, gtboxes, 1)
-        self.assertRtolEqual(expect_output, output.cpu())
+    def test_iou_fp16(self, device):
+        bboxes = torch.tensor([[0, 0, 10, 10],
+                               [10, 10, 20, 20],
+                               [32, 32, 38, 42]], dtype=torch.float16).to("npu")
+        gtboxes = torch.tensor([[0, 0, 10, 20],
+                               [0, 10, 10, 10],
+                               [10, 10, 20, 20]], dtype=torch.float16).to("npu")
+        expect_iof = torch.tensor([[0.4990, 0.0000, 0.0000],
+                                      [0.0000, 0.0000, 0.0000],
+                                      [0.0000, 0.9980, 0.0000]], dtype=torch.float16)
+        output_iof = torch.npu_iou(bboxes, gtboxes, 1)
+        self.assertRtolEqual(expect_iof, output_iof.cpu())
+
+        expect_iou = torch.tensor([[0.4985, 0.0000, 0.0000],
+                                      [0.0000, 0.0000, 0.0000],
+                                      [0.0000, 0.9961, 0.0000]], dtype=torch.float16)
+        output_iou = torch.npu_iou(bboxes, gtboxes, 0)
+        self.assertRtolEqual(expect_iou, output_iou.cpu())
+
+    def test_iou_fp16_pt(self, device):
+        bboxs = torch.tensor([[1,  2,  3,  4],
+                              [5,  6,  7,  8],
+                              [9, 10, 11, 12],
+                              [13, 14, 15, 16]], dtype = torch.float16).npu()
+        gtboxes = torch.tensor([[1, 2, 3, 4],
+                                [5, 6, 7, 8]], dtype = torch.float16).npu()
+        expect_iof = torch.tensor([[0.9902, 0.0000, 0.0000, 0.0000],
+                                      [0.0000, 0.9902, 0.0000, 0.0000]], dtype = torch.float16)
+        output_iof = torch.npu_ptiou(bboxs, gtboxes, 1)
+        self.assertRtolEqual(expect_iof, output_iof.cpu(), 1.e-3)
+
+        expect_iou = torch.tensor([[0.9805, 0.0000, 0.0000, 0.0000],
+                                      [0.0000, 0.9805, 0.0000, 0.0000]], dtype = torch.float16)
+        output_iou = torch.npu_ptiou(bboxs, gtboxes, 0)
+        self.assertRtolEqual(expect_iou, output_iou.cpu(), 1.e-3)
 
 instantiate_device_type_tests(TestIou, globals(), except_for="cpu")
 if __name__ == "__main__":
