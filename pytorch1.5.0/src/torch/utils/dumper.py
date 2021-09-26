@@ -157,3 +157,17 @@ class dumper(object):
     def __exit__(self, exc_type, exc_value, traceback):
         torch._C._set_dumper_mode(DumpMode.OFF.value)
 
+
+def get_op_map():
+    ir_list = torch._C._get_ir_map()
+    param_list = torch._C._get_param_map()
+    ir_map = dict(ir_list)
+
+    param_map = dict()
+    for p in param_list:
+        base_map = param_map.get(p[0], {})
+        child = {p[1]: p[2]}
+        base_map.update(child)
+        param_map[p[0]] = base_map
+
+    return ir_map, param_map

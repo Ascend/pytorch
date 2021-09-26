@@ -24,8 +24,11 @@ using std::vector;
 
 namespace at {
 
+using stringmap = std::unordered_map<string, string>;
 C10_API void SetLoadPath(string path);
 C10_API void SetLoadWithAclDumpFlag(bool flag);
+C10_API std::unordered_map<string, string> GetIrMapper();
+C10_API std::unordered_map<string, stringmap> GetParamMapper();
 
 struct TensorDesc {
   Tensor tensor;

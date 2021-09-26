@@ -104,6 +104,14 @@ namespace at {
     {"NativeBatchNormBackward", {"result3",}},
   };
 
+  std::unordered_map<string, string> GetIrMapper() {
+    return IrNameMapper;
+  };
+
+  std::unordered_map<string, stringmap> GetParamMapper() {
+    return IrParamNameMapper;
+  };
+
   void MaybeMapTensorName(const string& irName, std::vector<TensorDesc>& tensorDescVec) {
     for (auto it = tensorDescVec.begin(); it != tensorDescVec.end(); it++) {
       auto tensorName = (*it).nameTensor;
@@ -317,6 +325,9 @@ namespace at {
         continue;
       }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).Name();
+      if (nameIr == "ThnnConvDepthwise2DBackward" && (*it).Name() == "groups") {
+        continue;
+      }
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
         break; 
@@ -386,6 +397,9 @@ namespace at {
         continue;
       }
       h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + (*it).nameTensor;
+      if (nameIr == "ThnnConvDepthwise2DBackward" && (*it).nameTensor == "input") {
+        h5IRPath = "/" + nameIr + "/" + seqH5 + "/input/" + "self";
+      }
       if (!file->nameExists(h5IRPath)) {
         is_matched = false;
         break;
@@ -786,6 +800,9 @@ namespace at {
         continue;
       }
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*it).nameTensor;
+      if (nameIr == "ThnnConvDepthwise2DBackward" && (*it).nameTensor == "input") {
+        h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + "self";
+      }
       DataSet dataset = file->openDataSet(h5DataSetPath);
       DataSpace dataSpace = dataset.getSpace();
       int rank = dataSpace.getSimpleExtentNdims();

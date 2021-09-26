@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -34,8 +34,12 @@ function main()
     export PYTORCH_BUILD_NUMBER=1
     USE_FBGEMM=0 DEBUG=0 USE_DISTRIBUTED=1 USE_QNNPACK=0 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_XNNPACK=0 python3.7 setup.py build bdist_wheel
     if [ $? != 0 ]; then
-        echo "Failed to compile the wheel file. Please check the source code by yourself."
-        exit 1
+        USE_FBGEMM=0 DEBUG=0 USE_DISTRIBUTED=1 USE_QNNPACK=0 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_XNNPACK=0 python3.7 setup.py build bdist_wheel
+        if [ $? != 0 ]; then
+            echo "Failed to compile the wheel file. Please check the source code by yourself."
+            exit 1
+        fi
+        exit 0
     fi
 
     exit 0

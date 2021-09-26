@@ -16,7 +16,7 @@
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "climits"
-   
+
 namespace at {
 namespace native {
 using namespace at::native::npu;
@@ -45,21 +45,23 @@ Tensor& norm_out_npu_nocheck(
     IntArrayRef dim,
     bool keepdim,
     ScalarType dtype) {
-  // calculate the output size
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-
-  // construct the output tensor of the NPU
-  Tensor resultTemp = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
-  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  Tensor fp32Self(self);
+  if (self.scalar_type() != at::ScalarType::Float) {
+    fp32Self = fp32Self.to(at::ScalarType::Float);
+  }
+  auto outputSize = reduce_ops_npu_output_size(fp32Self, dim, keepdim);
+  Tensor resultTemp = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
+  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
 
   auto pvalue = calculate_p(p);
   OpCommand cmd1;
   cmd1.Name("LpNormReduce")
-      .Input(self)
+      .Input(fp32Self)
       .Output(resultTemp)
       .Attr("p", pvalue)
       .Attr("axes", dim)
       .Attr("keepdim", keepdim)
+      .Attr("epsilon", static_cast<float>(0))
       .Run();
 
   OpCommand cmd2;
@@ -67,17 +69,15 @@ Tensor& norm_out_npu_nocheck(
       .Input(resultTemp)
       .Output(result)
       .Attr("p", pvalue)
+      .Attr("epsilon", static_cast<float>(0))
       .Run();
-
   // trans dtype for output
   if (result.scalar_type() != dtype) {
     result = result.to(dtype);
   }
-
   // until now, can not support resize shape of out correctly,
   // so the shape of out must be equal to outputSize
   out = out.copy_(result);
-  
   return out;
 }
 
@@ -90,11 +90,11 @@ Tensor& norm_out_npu(
     bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
   OpPreparation::CheckOut(
-    {self}, 
-    out, 
-    ACL_FORMAT_ND, 
-    self.scalar_type(), 
-    outputSize); 
+    {self},
+    out,
+    ACL_FORMAT_ND,
+    self.scalar_type(),
+    outputSize);
   norm_out_npu_nocheck(out, self, p, dim, keepdim, self.scalar_type());
 
   return out;
@@ -109,11 +109,11 @@ Tensor& norm_out_npu(
     ScalarType dtype) {
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
   OpPreparation::CheckOut(
-    {self}, 
-    out, 
-    ACL_FORMAT_ND, 
-    self.scalar_type(), 
-    outputSize); 
+    {self},
+    out,
+    ACL_FORMAT_ND,
+    self.scalar_type(),
+    outputSize);
   norm_out_npu_nocheck(out, self, p, dim, keepdim, dtype);
 
   return out;
@@ -123,17 +123,14 @@ Tensor norm_npu(
     const Tensor& self,
     optional<Scalar> p,
     IntArrayRef dim,
-    bool keepdim, 
+    bool keepdim,
     ScalarType dtype) {
   // calculate the output size
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-
   // construct the output tensor of the NPU
   Tensor out = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(dtype));
-
   // calculate the output result of the NPU
   norm_out_npu_nocheck(out, self, p, dim, keepdim, dtype);
-  
   return out;
 }
 
@@ -160,6 +157,6 @@ Tensor norm_npu(
     bool keepdim) {
   return norm_npu(self, p, dim, keepdim, self.scalar_type());
 }
-  
+
 } // namespace native
 } // namespace at
