@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -60,7 +60,7 @@ batch_norm_stats_out_npu_nocheck(
       .Attr("unbiased", false)
       .Attr("keepdim", false)
       .Attr("invert", true)
-      .Attr("eps", static_cast<float>(eps))
+      .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
   return std::tie(mean, invstd);

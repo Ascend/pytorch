@@ -235,6 +235,10 @@ Tensor bmm_v2_npu(const Tensor& self, const Tensor& mat2, IntArrayRef output_siz
 
   // forward propagation
   if (expect_output_size.empty()) {
+    // special issure for dim n*n
+    if (tmp_self.dim() == tmp_mat2.dim()) {
+      return pure_bmm_v2_npu(tmp_self, tmp_mat2, infer_output_size);
+    }
     // avoid some accuracy error caused by transdata
     expand_tensor(tmp_self, tmp_mat2, infer_output_size);
     expect_output_size = infer_output_size;
@@ -270,6 +274,10 @@ Tensor bmm_v2_npu(const Tensor& self, const Tensor& mat2, IntArrayRef output_siz
 
   // no reduce_sum
   if (axis_reduce.empty()) {
+    // special issure for dim n*n
+    if (tmp_self.dim() == tmp_mat2.dim()) {
+      return pure_bmm_v2_npu(tmp_self, tmp_mat2, infer_output_size);
+    }
     // avoid some accuracy error caused by transdata
     expand_tensor(tmp_self, tmp_mat2, infer_output_size);
     infer_output_size = bmm_v2_output_size(tmp_self, tmp_mat2);
