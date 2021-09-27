@@ -62,7 +62,10 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
 def npu_bbox_coder_encode_xyxy2xywh(bboxes,
                                     gt_bboxes,
                                     means=[0., 0., 0., 0.],
-                                    stds=[1., 1., 1., 1.]):
+                                    stds=[1., 1., 1., 1.],
+                                    is_normalized=False,
+                                    normalized_scale=10000.,
+                                    ):
     """ Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
 
     Following the practice in `R-CNN <https://arxiv.org/abs/1311.2524>`.
@@ -70,11 +73,18 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
     Reference implementation link:
     https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L98
 
+    .. note::
+        Because this interface on the NPU is provided for conventional coordinate values,
+        if the coordinate values have been regularized,
+        they need to be restored to the conventional coordinate values.
+
     Args:
         bboxes (Tensor): Boxes to be transformed, shape (N, 4). Support dtype: float, half.
         gt_bboxes (Tensor): Gt bboxes to be used as base, shape (N, 4). Support dtype: float, half.
         means (List[float]): Denormalizing means of target for delta coordinates.
         stds (List[float]): Denormalizing standard deviation of target for delta coordinates.
+        is_normalized (Bool): Whether the value of coordinates has been normalized.
+        normalized_scale (Float): Sets the normalization scale for restoring coordinates.
 
     Returns:
         torch.Tensor: Box transformation deltas
@@ -85,6 +95,10 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
 
     bboxes = box_dtype_check(bboxes)
     gt_bboxes = box_dtype_check(gt_bboxes)
+
+    if is_normalized:
+        bboxes = bboxes * normalized_scale
+        gt_bboxes = gt_bboxes * normalized_scale
 
     bboxes_encoded = torch.npu_bounding_box_encode(
         bboxes, gt_bboxes, means[0], means[1], means[2],
@@ -165,6 +179,7 @@ def _npu_bbox_coder_encode_xyxy2xywh():
     gt_bboxes = gt_bboxes.npu()
 
     out = npu_bbox_coder_encode_xyxy2xywh(bboxes, gt_bboxes)
+    out = npu_bbox_coder_encode_xyxy2xywh(bboxes/512., gt_bboxes/512., is_normalized=True, normalized_scale=512.)
     torch.npu.synchronize()
     print('_npu_bbox_coder_encode_xyxy2xywh done. output shape is ', out.shape)
 

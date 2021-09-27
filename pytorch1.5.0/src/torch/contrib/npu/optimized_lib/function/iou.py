@@ -19,7 +19,12 @@ def box_dtype_check(box):
         return box.float()
 
 
-def npu_ptiou(boxes1, boxes2):
+def npu_iou(boxes1,
+            boxes2,
+            mode="ptiou",
+            is_normalized=False,
+            normalized_scale=100.,
+            ):
     """ Applies an NPU based IOU operation.
 
     Given two lists of boxes of size N and M,
@@ -27,78 +32,76 @@ def npu_ptiou(boxes1, boxes2):
     between __all__ N x M pairs of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
-    Compute Function: insect_area / (union_area + 0.001)
+    Compute Function:
+    iou: (insect_area + 0.001) / (union_area + 0.001)
+    ptiou: insect_area / (union_area + 0.001)
 
     .. note::
         This function is commonly used when bbox and anchor match.
         Until now, this function has no corresponding backward operator,
         so it cannot be used in IOU_Loss.
 
+        Since 0.001 is added to the denominator in the calculation formula to avoid dividing by 0,
+        when the input boxes are normalized data, the component of 0.001 will be too heavy.
+        At this time, it is necessary to enlarge the input value to avoid excessive influence of 0.001.
+
     Args:
         boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
+        mode (String): Select the calculation mode of iou. Default ptiou.
+        is_normalized (Bool): Whether the value of coordinates has been normalized. Default False.
+        normalized_scale (Float): Sets the normalization scale for restoring coordinates. Default 100.
 
     Returns:
         Tensor: IoU, sized [N,M].
     """
 
-    boxes1 = box_dtype_check(boxes1)
-    boxes2 = box_dtype_check(boxes2)
-
-    out = torch.npu_ptiou(boxes2, boxes1)
-    return out
-
-
-def npu_iou(boxes1, boxes2):
-    """ Applies an NPU based IOU operation.
-
-    Given two lists of boxes of size N and M,
-    compute the IoU (intersection over union)
-    between __all__ N x M pairs of boxes.
-    The box order must be (xmin, ymin, xmax, ymax).
-
-    Compute Function: (insect_area + 0.001) / (union_area + 0.001)
-
-    .. note::
-        This function is commonly used when bbox and anchor match.
-        Until now, this function has no corresponding backward operator,
-        so it cannot be used in IOU_Loss.
-
-    Args:
-        boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
-
-    Returns:
-        Tensor: IoU, sized [N,M].
-    """
+    assert mode in ["iou", "ptiou"]
 
     boxes1 = box_dtype_check(boxes1)
     boxes2 = box_dtype_check(boxes2)
 
-    out = torch.npu_iou(boxes2, boxes1)
+    if is_normalized:
+        boxes1 = boxes1 * normalized_scale
+        boxes2 = boxes2 * normalized_scale
+
+    if mode == "iou":
+        out = torch.npu_iou(boxes2, boxes1)
+    elif mode == "ptiou":
+        out = torch.npu_ptiou(boxes2, boxes1)
+
     return out
 
+npu_ptiou = npu_iou
 
 if __name__ == "__main__":
     torch.npu.set_device(0)
 
-    boxes1 = torch.FloatTensor([[10,55,85,160]])
-    boxes2 = torch.FloatTensor([[18,45,80,130], [38,85,70,230]])
-    boxes1 = boxes1.float().npu()
-    boxes2 = boxes2.float().npu()
-    iou1 = npu_iou(boxes1, boxes2)
-    iou2 = npu_ptiou(boxes1, boxes2)
+    box1 = torch.FloatTensor([[10, 55, 85, 160]])
+    box2 = torch.FloatTensor([[18, 45, 80, 130], [38, 85, 70, 230]])
+    box1 = box1.float().npu()
+    box2 = box2.float().npu()
+    iou1 = npu_iou(box1, box2, mode="iou")
+    iou2 = npu_iou(box1, box2)
     print(iou1.shape, iou1.max(), iou1.min())
     print(iou2.shape, iou2.max(), iou2.min())
 
+    box1 = torch.FloatTensor([[10, 55, 85, 160]])
+    box2 = torch.FloatTensor([[18, 45, 80, 130], [38, 85, 70, 230]])
+    box1 = box1.float().npu() / 100.
+    box2 = box2.float().npu() / 100.
+    iou1 = npu_iou(box1, box2, mode="iou", is_normalized=True, normalized_scale=100.)
+    iou2 = npu_iou(box1, box2, is_normalized=True, normalized_scale=100.)
+    print(iou1.shape, iou1.max(), iou1.min())
+    print(iou2.shape, iou2.max(), iou2.min())
 
     N = 32
     M = 32 * 32
 
-    boxes1 = torch.randint(0, 256, size=(N, 4))
-    boxes2 = torch.randint(0, 256, size=(M, 4))
-    boxes1 = boxes1.float().npu()
-    boxes2 = boxes2.float().npu()
-    iou1 = npu_iou(boxes1, boxes2)
-    iou2 = npu_ptiou(boxes1, boxes2)
+    box1 = torch.randint(0, 256, size=(N, 4))
+    box2 = torch.randint(0, 256, size=(M, 4))
+    box1 = box1.float().npu()
+    box2 = box2.float().npu()
+    iou1 = npu_iou(box1, box2, mode="iou")
+    iou2 = npu_iou(box1, box2)
     print(iou1.shape, iou1.max(), iou1.min())
     print(iou2.shape, iou2.max(), iou2.min())
-
