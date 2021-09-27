@@ -57,6 +57,7 @@ Tensor& max_unpool2d_backward_out_npu(
   indicesContiguous = indicesContiguous.reshape({n, c, h * w});
   gradInput.resize_as_(self);
   gradInput.zero_();
+  gradInput = gradInput.reshape({n, c, h * w});
   const int dim = 2;
   gradInput = at::native::gather_out_npu(gradInput, gradOutputContiguous, dim, indicesContiguous);
 
