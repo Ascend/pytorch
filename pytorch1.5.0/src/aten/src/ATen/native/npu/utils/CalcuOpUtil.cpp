@@ -601,6 +601,9 @@ void CalcuOpUtil::execute_npu_operate(
     cur_paras.attr = std::get<0>(attrRes);
     cur_paras.attrInfo = std::get<1>(attrRes);
     if (c10::npu::OptionsManager::CheckQueueEnable()) {
+      if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
+        cur_paras.isFuzzy = true;
+      }
       c10::npu::enCurrentNPUStream(&cur_paras);
     } else {
       auto stream = c10::npu::getCurrentNPUStream();

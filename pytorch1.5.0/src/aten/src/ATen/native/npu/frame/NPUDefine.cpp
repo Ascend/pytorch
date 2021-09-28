@@ -63,6 +63,7 @@ void ExecuteParas::Copy(ExecuteParas& other) {
     this->dynamicParam = srcPtr->dynamicParam;
   }
   this->hostMemory = srcPtr->hostMemory;
+  this->isFuzzy = srcPtr->isFuzzy;
 }
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {

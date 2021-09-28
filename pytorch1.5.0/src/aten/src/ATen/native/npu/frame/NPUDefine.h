@@ -97,6 +97,7 @@ struct ExecuteParas {
   std::string opDynamicType;
   std::string attrInfo;
   bool isCompiling = false;
+  bool isFuzzy = false;
   ACL_PARAMS paras;
   ACL_DYNAMIC_PARAMS dynamicParam;
   CONST_PARAMS constParams;

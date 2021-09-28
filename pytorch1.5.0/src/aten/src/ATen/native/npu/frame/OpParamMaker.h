@@ -20,6 +20,7 @@
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include "ATen/native/npu/frame/NPUDefine.h"
 #include "ATen/native/npu/interface/Graph.h"
+#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "c10/npu/NPUStream.h"
 
 namespace at {
@@ -336,6 +337,9 @@ class OpCommandImpl {
     params.constParams.constList = constListArr;
     params.constParams.constIdx = constIdxArr;
     params.hostMemory = execParam.hostMem;
+    if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
+      params.isFuzzy = true;
+    }
   }
 
   void Run();

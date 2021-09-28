@@ -20,7 +20,6 @@
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/aoe/AutoTune.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
-#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
@@ -193,7 +192,7 @@ int ExecFunc(void* in, aclrtStream stream) {
   aclError ret;
   if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     bool reset_flag = false;
-    if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras->opType) && env::CheckFuzzyEnable()) {
+    if (!cur_paras->isFuzzy) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;
     }

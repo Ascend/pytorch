@@ -135,6 +135,9 @@ void OpDynamicCommandImpl::ExportDynamicParams(ExecuteParas& params) {
   params.dynamicParam.compile_input_desc = aclDynamciCompileTensorInputDescArr;
   params.dynamicParam.compile_output_desc = aclDynamciCompileTensorOutputDescArr;
   params.dynamicParam.dynamicKey = *(dynamicKeys.begin() + execDynamicParam.opCountDynamicOffset.back());
+  if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(params.opDynamicType) && env::CheckFuzzyEnable()) {
+    params.isFuzzy = true;
+  }
 }
   
 void OpDynamicCommandImpl::ReleaseDynamicSource(bool no_blocking) {
