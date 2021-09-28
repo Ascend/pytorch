@@ -24,10 +24,12 @@ Tensor& __ilshift___out_npu(
     Tensor& result,
     Tensor& self,
     Scalar other) {
+  // TODO: The op does not support the inconsistent shape of the two input
+  Tensor otherBroadcast = at::empty(self.sizes(), self.options()).fill_(other); 
   OpCommand cmd;
   cmd.Name("LeftShift")
      .Input(self)
-     .Input(other,self.scalar_type())
+     .Input(otherBroadcast)
      .Output(result)
      .Run();
 
@@ -38,10 +40,12 @@ Tensor& __ilshift___out_npu(
     Tensor& result,
     Tensor& self,
     const Tensor& other) {
+    // TODO: The op does not support the inconsistent shape of the two input
+    Tensor otherBroadcast = other.expand(self.sizes());
     OpCommand cmd;
     cmd.Name("LeftShift")
        .Input(self)
-       .Input(other)
+       .Input(otherBroadcast)
        .Output(result)
        .Run(); 
 

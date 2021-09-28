@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -34,7 +35,7 @@ Tensor iou_npu(
   }
 
   auto outputSize = {gtboxes.size(0), bboxes.size(0)};
-  Tensor overlap = OpPreparation::ApplyTensor(bboxes, outputSize);
+  Tensor overlap = OpPreparation::ApplyTensorWithFormat(bboxesFP16, outputSize, CalcuOpUtil::get_tensor_npu_format(bboxes));
   string modeStr = "iou";
   if (mode == 1) {
     modeStr = "iof";
