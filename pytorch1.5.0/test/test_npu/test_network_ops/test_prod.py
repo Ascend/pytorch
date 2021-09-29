@@ -259,7 +259,7 @@ class TestProd(TestCase):
     # dim-------------------------------------------------------------
 
     def test_prod_dim_shape_format_fp16_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1), j] for i in format_list
                         for j in keepdim_list
@@ -267,7 +267,7 @@ class TestProd(TestCase):
         self.prod_dim_result(shape_format)
 
     def test_prod_dim_shape_format_fp32_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1), j] for i in format_list
                         for j in keepdim_list
@@ -325,7 +325,7 @@ class TestProd(TestCase):
     #prod.int_out
 
     def test_prod_dim_out_shape_format_fp16_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1), j] for i in format_list
                         for j in keepdim_list
@@ -333,7 +333,7 @@ class TestProd(TestCase):
         self.prod_dim_out_result(shape_format)
 
     def test_prod_dim_out_shape_format_fp32_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1), j] for i in format_list
                         for j in keepdim_list
@@ -389,7 +389,7 @@ class TestProd(TestCase):
         self.prod_dim_out_result(shape_format)
 
     def test_prod_dim_name_shape_format_fp32_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18], ('N',)], np.random.randint(0, 1), j]
                          for i in format_list for j in keepdim_list
@@ -421,7 +421,7 @@ class TestProd(TestCase):
         self.prod_dim_name_result(shape_format)
 
     def test_prod_dim_name_out_shape_format_fp32_1d(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18], ('N',)], np.random.randint(0, 1), j]
                          for i in format_list for j in keepdim_list

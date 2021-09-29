@@ -324,14 +324,14 @@ class TestMax(TestCase):
 
     # ---------------------------------------dim
     def test_max_dim_shape_format_fp16_1d(self, device):
-        format_list = [0, 3, 4, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result_dim(shape_format)
 
     def test_max_dim_shape_format_fp32_1d(self, device):
-        format_list = [0, 3, 4, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in
                         keepdim_list
@@ -387,14 +387,14 @@ class TestMax(TestCase):
         self.max_result_dim(shape_format)
 
     def test_max_dim_shape_format_fp16_1d_(self, device):
-        format_list = [0, 3, 4, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self._max_result_dim(shape_format)
 
     def test_max_dim_shape_format_fp32_1d_(self, device):
-        format_list = [0, 3, 4, 29]
+        format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in
                         keepdim_list
