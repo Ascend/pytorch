@@ -8,10 +8,13 @@
     -   [前提条件](#前提条件md)
     -   [获取PyTorch源码](#获取PyTorch源码md)
     -   [注册算子开发](#注册算子开发md)
+        -   [概述](#概述md)
+        -   [PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)
+        -   [PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)
     -   [算子适配插件开发](#算子适配插件开发md)
     -   [编译和安装PyTorch框架](#编译和安装PyTorch框架md)
 -   [算子功能验证](#算子功能验证md)
-    -   [概述](#概述md)
+    -   [概述](#概述-0md)
     -   [实现过程](#实现过程md)
 -   [FAQ](#FAQmd)
     -   [Pillow==5.3.0安装失败](#Pillow-5-3-0安装失败md)
@@ -33,7 +36,7 @@
 
 <h2 id="算子开发流程md">算子开发流程</h2>
 
-Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
+PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 1.  TBE算子开发：昇腾AI软件栈中不包含相应的算子，需要先完成TBE算子的开发，再进行PyTorch框架下的算子适配。
 
@@ -128,38 +131,26 @@ Pytorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h3 id="环境准备md">环境准备</h3>
 
-#### 前提条件<a name="zh-cn_topic_0000001125736787_section12464163765320"></a>
-
 -   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+-   需安装python版本为3.7.5或3.8。
 -   需安装3.12.0及以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南》中的“安装7.3.0版本gcc”章节。
 -   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下:
     -   Ubuntu系统
 
         ```
+        apt-get install patch
         apt-get install git
         ```
 
     -   CentOS系统
 
         ```
+        yum install patch
         yum install git
         ```
 
 
-
-#### 安装PyTorch依赖环境<a name="zh-cn_topic_0000001125736787_section18699192116550"></a>
-
-如果使用非root用户安装Python及其依赖，用户需要在每句命令末尾加上**--user**，保证安装的正常进行。命令示例为：**pip3.7 install pyyaml --user**
-
-```
-pip3.7 install pyyaml
-pip3.7 install wheel
-pip3.7 install Pillow==5.3.0
-```
-
->![](public_sys-resources/icon-note.gif) **说明：** 
->若以上过程出错，请参考[FAQ](#FAQmd)尝试解决问题。
 
 <h3 id="算子速查md">算子速查</h3>
 
@@ -197,24 +188,24 @@ pip3.7 install Pillow==5.3.0
 
 <h3 id="获取PyTorch源码md">获取PyTorch源码</h3>
 
-从gitee上获取适配昇腾AI处理器的PyTorch源代码，获取地址为：  [https://gitee.com/ascend/pytorch-develop](https://gitee.com/ascend/pytorch-develop)  。用户可以通过执行下面git命令行下载源代码。
-
-```
-git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
-```
-
-下载成功后，得到pytorch文件目录。
-
->![](public_sys-resources/icon-note.gif) **说明：** 
->如无权限获取代码，请联系华为技术支持申请加入“Ascend”组织。
+目前只支持PyTorch1.5.0和1.8.1版本，PyTorch源码获取请参见《PyTorch安装指南》中“安装PyTorch框架”章节，完成在"pytorch/pytorch"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
 
 <h3 id="注册算子开发md">注册算子开发</h3>
 
-#### 概述<a name="zh-cn_topic_0000001125315887_section693616257599"></a>
+-   **[概述](#概述md)**  
+
+-   **[PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)**  
+
+-   **[PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)**  
+
+
+<h4 id="概述md">概述</h4>
 
 当前制定的NPU适配派发原则是NPU算子的派发不经过框架公共函数，直接派发成NPU适配的函数，即算子执行调用栈中只包含NPU适配的函数调用，不包含框架公共函数。PyTorch框架在编译时，会根据 native\_functions.yaml 的定义，按框架中定义的类型和设备分发原则，生成相应的新算子的中间层的调用说明。对于NPU，会生成在 build/aten/src/ATen/NPUType.cpp。
 
-#### 注册算子开发方法<a name="zh-cn_topic_0000001125315887_section16610942811"></a>
+<h4 id="PyTorch1-5-0-注册算子开发md">PyTorch1.5.0 注册算子开发</h4>
+
+##### 注册算子开发方法<a name="section575212111125"></a>
 
 1.  打开native\_functions.yaml文件。
 
@@ -227,7 +218,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
     -   yaml中未存在的自定义算子
 
-        由于yaml中没有相关算子的信息，需要手动添加相关函数，包括函数名，参数信息，返回类型信息。
+        由于yaml中没有相关算子的信息，需要手动添加相关函数，包括函数名，参数信息，返回类型信息。添加规则及方法请参见“pytorch/aten/src/ATen/native/README.md“。
 
         ```
         - func：适配算子名称(输入参数信息) -> 返回类型
@@ -258,7 +249,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
     >该格式供参考，算子适配开发过程中的函数名需与NPU\_Adapt\_Fun\_Name保持一致。
 
 
-#### 示例<a name="zh-cn_topic_0000001125315887_section3651235962"></a>
+##### 示例<a name="section434031421219"></a>
 
 以torch.add\(\)算子为例介绍注册算子开发过程。
 
@@ -344,6 +335,94 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 
 
+<h4 id="PyTorch1-8-1-注册算子开发md">PyTorch1.8.1 注册算子开发</h4>
+
+##### 注册算子开发方法<a name="section575212111125"></a>
+
+1.  打开native\_functions.yaml文件。
+
+    native\_functions.yaml 文件中，定义了所有算子函数原型，包括函数名称和参数等信息，每个算子函数支持不同硬件平台的派发信息。该文件所在路径为pytorch/aten/src/ATen/native/native\_functions.yaml。
+
+2.  确定需要派发函数。
+    -   yaml 中已存在的算子
+
+        将所有与待适配算子相关的函数进行派发。
+
+    -   yaml中未存在的自定义算子
+
+        由于yaml中没有相关算子的信息，需要手动添加相关函数，包括函数名，参数信息，返回类型信息。添加规则及方法请参见“pytorch/aten/src/ATen/native/README.md“。
+
+        ```
+        - func：适配算子名称(输入参数信息) -> 返回类型
+        ```
+
+
+
+##### 示例<a name="section434031421219"></a>
+
+以torch.add\(\)算子为例介绍注册算子开发过程。
+
+1.  打开native\_functions.yaml文件。
+2.  搜索相关函数。
+
+    在yaml中搜索add，找到与add算子相关的函数描述func。由于add是PyTorch内置算子，不需要手动添加func。若是自定义算子，需要手动添加func。
+
+3.  确定算子相关函数名称及其类型的func描述。
+    -   add.Tensor 的函数分发描述。
+
+        ```
+        - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
+          structured_delegate: add.out
+          variants: function, method
+          dispatch:
+            SparseCPU, SparseCUDA: add_sparse
+            MkldnnCPU: mkldnn_add
+        ```
+
+    -   add.Scalar 的函数分发描述。
+
+        ```
+        - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
+          variants: function, method
+          dispatch:
+            DefaultBackend: add
+        ```
+
+    -   add\_.Tensor 的函数分发描述。
+
+        ```
+        - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
+          variants: method
+          structured_delegate: add.out
+          dispatch:
+            SparseCPU, SparseCUDA: add_sparse_
+            MkldnnCPU: mkldnn_add_
+        ```
+
+    -   add\_.Scalar 的函数分发描述。
+
+        ```
+        - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
+          variants: method
+          dispatch:
+            DefaultBackend: add_
+        ```
+
+    -   add.out 的函数分发描述。
+
+        ```
+        - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
+          structured: True
+          structured_inherits: TensorIteratorBase
+          dispatch:
+            CPU, CUDA: add_out
+            SparseCPU: add_out_sparse_cpu
+            SparseCUDA: add_out_sparse_cuda
+            MkldnnCPU: mkldnn_add_out
+        ```
+
+
+
 <h3 id="算子适配插件开发md">算子适配插件开发</h3>
 
 #### 简介<a name="zh-cn_topic_0000001125315877_section16410139174517"></a>
@@ -370,6 +449,21 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 4.  分别实现适配主体函数。
 
     实现算子适配主题函数，根据TBE算子原型构造得到对应的input、output、attr。
+
+5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子开发中native\_functions.yaml文件的算子描述func。
+
+    TORCH\_LIBRARY\_IMPL是PyTorch提供的用于注册算子分发的宏，使用方法如下。
+
+    ```
+    Torch_LIBRARY_IMPL(aten, PrivateUse1, m){
+        m.impl("yaml中算子func方法名1", TORCH_FN("对应的适配主体函数名1"))
+        m.impl("yaml中算子func方法名2", TORCH_FN("对应的适配主体函数名2"))
+    }
+    ```
+
+    -   aten为命名空间，可以根据实现文件命名空间自行定义。
+    -   PrivateUse1为dispatchKey,  固定设置NPU。
+    -   m为固定字段。
 
 
 #### 示例<a name="zh-cn_topic_0000001125315877_section18021337113012"></a>
@@ -524,6 +618,14 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
         }
         ```
 
+5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子。
+
+    ```
+    TORCH_LIBRARY_IMPL(aten, NPU, m) {  
+        m.impl("add.Tensor", TORCH_FN(add_npu));  
+        m.impl("add_.Tensor", TORCH_FN(add_npu_));  
+        m.impl("add.out", TORCH_FN(add_out_npu));}
+    ```
 
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -533,50 +635,48 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 #### 编译PyTorch框架<a name="zh-cn_topic_0000001125736777_section470105143317"></a>
 
-1.  进入PyTorch工作目录 ：“pytorch“。
-2.  给脚本文件赋权限：
+1.  进入PyTorch工作目录 ：“pytorch/pytorch“。
+2.  依赖库安装。
 
-    **chmod +x build.sh**
+    ```
+    pip3 install -r requirements.txt
+    ```
 
-3.  执行如下命令进行编译：
+3.  编译生成pytorch的二进制安装包。
 
-    **./build.sh**
+    ```
+    bash build.sh --python=3.7
+    或
+    bash build.sh --python=3.8
+    ```
 
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >首次编译持续的时间较长，可能超过30分钟，建议：若无必要，无需执行"make clean"。
+    请指定环境中python版本进行编译。编译成功后，会在pytorch/pytorch/dist”文件夹目录下生成二进制包 torch-\*.whl ，例如：torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl或者torch-1.8.1+ascend-cp37-cp37m-linux\_x86.whl。
 
-4.  编译成功后，会在“**pytorch/dist**” 下生成 torch-\*.whl 包，例如：torch-1.5.0a0-cp37-cp37m-linux\_x86.whl。
 
 #### 安装PyTorch框架<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
 
-1.  将[编译和安装PyTorch框架](#编译和安装PyTorch框架md)生成的torch-\*.whl包上传到服务器任一路径。
-2.  进入torch-\*.whl 所在的目录，使用pip命令完成torch安装。
+进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
 
-    当前登录用户为root用户时，执行：
+```
+pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+```
 
-    ```
-    pip3.7 install torch-*.whl
-    ```
-
-    当前登录用户为非root用户时，执行：
-
-    ```
-    pip3.7 install torch-*.whl --user
-    ```
-
+**\{arch\}**表示架构信息，为aarch64或x86\_64。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->-   修改代码之后，需要重新执行“编译”和“安装”PyTorch过程。
->-   安装过程中，可能会出现错误提示"torchvision 0.6.0" 版本不匹配，此问题无影响，忽略即可。
+>若环境中已安装PyTorch时，需要先卸载环境中已安装的PyTorch软件包再执行，可以通过执行如下命令查询环境上是否已安装PyTorch。
+>**pip3 list | grep torch**
+
+修改代码之后，需要重新执行“编译”和“安装”PyTorch过程。
 
 <h2 id="算子功能验证md">算子功能验证</h2>
 
--   **[概述](#概述md)**  
+-   **[概述](#概述-0md)**  
 
 -   **[实现过程](#实现过程md)**  
 
 
-<h3 id="概述md">概述</h3>
+<h3 id="概述-0md">概述</h3>
 
 #### 简介<a name="zh-cn_topic_0000001117556616_section29881459155718"></a>
 
@@ -588,7 +688,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
 
 进行自定义算子功能验证，通过PyTorch前端构造自定义算子的函数并运行验证。
 
-在https://gitee.com/ascend/pytorch-develop中 "pytorch/test/test\_npu/test\_network\_ops"目录下提供了测试用例及测试工具，供用户参考。
+在https://gitee.com/ascend/pytorch中 "pytorch/test/test\_npu"目录下提供了测试用例及测试工具，供用户参考。
 
 <h3 id="实现过程md">实现过程</h3>
 
@@ -633,7 +733,7 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
             output = output.numpy()
             return output
     
-        # 定义add对应场景通用函数，该函数中负责场景对应输入数据和对比CPU和NPU返回结果
+        # 定义add对应场景通用函数，该函数负责输入数据并对比CPU和NPU的计算结果
         def add_result(self, shape_format):
             for item in shape_format:
                 cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
@@ -656,7 +756,6 @@ git clone https://gitee.com/ascend/pytorch-develop.git --deepth=1
     
     instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
-        torch.npu.set_device("npu:0")
         run_tests()
     ```
 

@@ -422,7 +422,7 @@ keep\_dim：可选，keep\_dim默认为1，支持1或0。
 
 【约束】
 
-算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
+算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -454,7 +454,7 @@ axis：数据类型为int，含义：指定计算轴；取值范围：\[-r, r-1\
 
 【约束】
 
-算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
+算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -820,7 +820,7 @@ kernel\_shape\_H或kernel\_shape\_W取值超过\[1,255\]，或者kernel\_shape\_
 
 ceil\_mode参数仅在auto\_pad='NOTSET'时生效；
 
-不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入；
+不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入；
 
 auto\_pad属性值SAME\_UPPER, SAME\_LOWER统一使用的TBE的SAME属性，即TBE算子没有根据这个属性区分pad的填充位置，可能会带来精度问题
 
@@ -1170,7 +1170,7 @@ dilations只支持1
 
 output\_shape支持限制：实现部分功能。现在支持output shape的大小，小于原始输入大小，但是不支持大于原始输入大小
 
-算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32，fp64的输入
+算子不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32，float64的输入
 
 属性auto\_pad不支持 "SAME\_UPPER"，"SAME\_LOWER"
 
@@ -1252,7 +1252,7 @@ strides：4个整数的列表，指定沿高度H和宽度W的卷积步长。H和
 
 当输出张量的W = 1，H != 1时，算子不支持
 
-不支持atc工具--precision\_mode=must\_keep\_origin\_dtype参数时输入类型为fp32和fp64
+不支持atc工具--precision\_mode=must\_keep\_origin\_dtype参数时输入类型为float32和float64
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -1440,7 +1440,7 @@ modulated：bool，指定DeformableConv2D版本，true表示v2版本，false表�
 
 权重张量，W维度取值范围为\[1, 63\]，H取值范围为\[1, 63\]
 
-不支持atc工具--precision\_mode=must\_keep\_origin\_dtype参数时输入类型为fp32和fp64
+不支持atc工具--precision\_mode=must\_keep\_origin\_dtype参数时输入类型为float32和float64
 
 ### 支持的ONNX版本<a name="section19647924181413"></a>
 
@@ -1950,7 +1950,7 @@ beta：float，该参数暂不支持
 
 【约束】
 
-v8/v9/v10版本不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
+v8/v9/v10版本不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -2438,7 +2438,7 @@ y：tensor，数据类型：float16
 
 【属性】
 
-auto\_pad：string，默认为NOTSET，支持：NOTSET, SAME\_UPPER, SAME\_LOWER 或者 VALID
+auto\_pad：string，默认为NOTSET，支持：NOTSET, SAME\_UPPER或者 VALID
 
 kernel\_shape：必选，int列表，kernel每个轴上的尺寸
 
@@ -2447,10 +2447,6 @@ p：int，范数，默认为2
 pads：int列表
 
 strides：int列表
-
-【约束】
-
-auto\_pad属性值SAME\_UPPER, SAME\_LOWER统一使用的TBE的SAME属性，即TBE算子没有根据这个属性区分pad的填充位置，可能会带来精度问题
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -2655,7 +2651,7 @@ kernel\_shape\_H或kernel\_shape\_W取值超过\[1,255\]，或者kernel\_shape\_
 
 auto\_pad属性是VALID时，ceil\_mode属性值必须为0
 
-不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
+不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入
 
 pads属性和auto\_pad属性不可同时使用
 
@@ -2689,7 +2685,7 @@ spatial\_scale： float，默认值：1.0
 
 【约束】
 
-不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32类型输入
+不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32类型输入
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -3691,7 +3687,7 @@ spatial\_scale：float，默认为1.0，含义：相对于输入图像的空间�
 
 batch\_indices数据类型只能写int32不能写int64
 
-不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时fp32，fp64的输入
+不支持atc工具参数--precision\_mode=must\_keep\_origin\_dtype时float32，float64的输入
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
@@ -3885,7 +3881,7 @@ Opset v9/v10/v11/ v12/v13
 
 一个输入
 
-x：fp16,fp32,double类型的tensor
+x：float16,float32,double类型的tensor
 
 两个属性
 
@@ -4531,11 +4527,17 @@ x：数据类型支持float16、float32、int32
 
 pads：数据类型支持int32 、int64
 
+constant\_value：可选。默认情况下为0、空字符串或False，如果选择的模式为\`constant\`，则要使用的标量值。
+
 【输出】
 
 一个输出
 
 y：数据类型和输入x一致
+
+【属性】
+
+mode：str类型，支持模式有：constant，reflect，edge
 
 【约束】
 
@@ -4543,7 +4545,7 @@ y：数据类型和输入x一致
 
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
-Opset v8/v9/v10/v11/v12/v13
+Opset v11
 
 <h2 id="Powmd">Pow</h2>
 
