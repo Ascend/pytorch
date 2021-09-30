@@ -14,26 +14,26 @@
         -   [多P训练模型迁移](#多P训练模型迁移md)
         -   [PyTorch接口替换](#PyTorch接口替换md)
     -   [混合精度](#混合精度md)
-    -   [性能优化](#性能优化md)
-        -   [概述](#概述-0md)
-        -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)
-        -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)
-        -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)
-        -   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)
 -   [模型训练](#模型训练md)
 -   [性能调优和分析](#性能调优和分析md)
     -   [前提条件](#前提条件md)
     -   [调测过程](#调测过程md)
         -   [总体思路](#总体思路md)
         -   [采集训练过程相关数据](#采集训练过程相关数据md)
-        -   [性能优化](#性能优化-1md)
+        -   [host侧性能优化](#host侧性能优化md)
+            -   [概述](#概述-0md)
+            -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)
+            -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)
+            -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)
+            -   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)
+        -   [训练过程性能优化](#训练过程性能优化md)
     -   [亲和库](#亲和库md)
         -   [来源介绍](#来源介绍md)
-        -   [功能介绍](#功能介绍-2md)
+        -   [功能介绍](#功能介绍-1md)
 -   [精度调测](#精度调测md)
-    -   [前提条件](#前提条件-3md)
-    -   [调测过程](#调测过程-4md)
-        -   [总体思路](#总体思路-5md)
+    -   [前提条件](#前提条件-2md)
+    -   [调测过程](#调测过程-3md)
+        -   [总体思路](#总体思路-4md)
         -   [精度调优方法](#精度调优方法md)
             -   [单算子溢出检测](#单算子溢出检测md)
             -   [整网调测](#整网调测md)
@@ -49,7 +49,7 @@
             -   [分布式训练修改](#分布式训练修改md)
         -   [脚本执行](#脚本执行md)
     -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例md)
-        -   [样例获取](#样例获取-6md)
+        -   [样例获取](#样例获取-5md)
         -   [模型评估](#模型评估md)
         -   [网络迁移](#网络迁移md)
         -   [网络调测](#网络调测md)
@@ -68,11 +68,12 @@
         -   [在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevicemd)
         -   [在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncsmd)
         -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecutemd)
+        -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-0-INTERNAL-ASSERTmd)
         -   [在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-somd)
         -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initializemd)
         -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-errormd)
         -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failedmd)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7md)
+        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-6md)
         -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecutemd)
         -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failedmd)
     -   [模型调测常见问题](#模型调测常见问题md)
@@ -225,8 +226,6 @@
 -   **[手工迁移](#手工迁移md)**  
 
 -   **[混合精度](#混合精度md)**  
-
--   **[性能优化](#性能优化md)**  
 
 
 <h3 id="工具迁移md">工具迁移</h3>
@@ -803,7 +802,7 @@ def main():
     # 需屏蔽掉初始化方式
     dist.init_process_group(backend='hccl',# init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
-    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu]) # model需要下发到npu上
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
@@ -1104,7 +1103,171 @@ def main():
     ```
 
 
-<h3 id="性能优化md">性能优化</h3>
+<h2 id="模型训练md">模型训练</h2>
+
+训练脚本迁移完成后，需要参见[配置环境变量](#zh-cn_topic_0000001144082004md)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行md)。
+
+>![](public_sys-resources/icon-note.gif) **说明：** 
+>执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
+
+<h2 id="性能调优和分析md">性能调优和分析</h2>
+
+-   **[前提条件](#前提条件md)**  
+
+-   **[调测过程](#调测过程md)**  
+
+-   **[亲和库](#亲和库md)**  
+
+
+<h3 id="前提条件md">前提条件</h3>
+
+1.  参见[样例说明](#样例说明md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
+2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
+3.  优先打通单卡功能，再打通多卡功能。
+
+<h3 id="调测过程md">调测过程</h3>
+
+-   **[总体思路](#总体思路md)**  
+
+-   **[采集训练过程相关数据](#采集训练过程相关数据md)**  
+
+-   **[host侧性能优化](#host侧性能优化md)**  
+
+-   **[训练过程性能优化](#训练过程性能优化md)**  
+
+
+<h4 id="总体思路md">总体思路</h4>
+
+1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
+2.  当吞吐量指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
+    -   算子瓶颈，在某个算子上执行过慢。
+    -   copy瓶颈，非连续转连续时进行copy带来的瓶颈。
+    -   框架瓶颈，由于算子格式转换带来了额外操作。
+    -   编译瓶颈，由于shape或属性来回变化造成反复编译。
+
+3.  针对以上制约性能瓶颈的原因进行分析与优化。
+
+<h4 id="采集训练过程相关数据md">采集训练过程相关数据</h4>
+
+##### Profiling数据采集<a name="section141471611314"></a>
+
+当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。Profiling数据采集分为PyTorch层面和CANN层面的采集，PyTorch层面采集的是PyTorch API的数据，CANN层面采集的是TBE算子的数据。
+
+请参见以下方式进行profiling数据的获取，并根据实际情况选择需要的数据采集方式。
+
+-   PyTorch层面Profiling数据采集。
+    1.  获取chrome\_trace文件。
+
+        使用profile接口对原始代码的loss计算和优化过程进行改造。
+
+        ```
+        # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
+        with torch.autograd.profiler.profile(use_npu=True) as prof:
+            out = model(input_tensor)
+            loss=loss_func(out)
+            loss.backward()
+            optimizer.zero_grad()
+            optimizer.step()
+        # 导出chrome_trace文件到指定路径
+        output_path = '/home/HwHiAiUser/profile_data.json'
+        prof.export_chrome_trace(output_path)
+        ```
+
+    2.  查看chrome\_trace文件。
+
+        chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
+
+
+-   CANN层面Profiling数据采集。
+    1.  获取性能数据文件。
+
+        ```
+        profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
+        with torch.npu.profile(profiler_result_path):
+            out = model(input_tensor)
+            loss=loss_func(out,target)
+            loss.backward()
+            optimizer.zero_grad()
+            optimizer.step()
+        ```
+
+        >![](public_sys-resources/icon-note.gif) **说明：** 
+        >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
+
+    2.  解析性能数据文件。
+
+        请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
+
+
+
+##### 获取算子信息OP\_INFO<a name="section15654162853114"></a>
+
+网络模型最终是以OP执行的，通过OPInfo日志，我们可以获取实际执行时的算子及其属性。通过get\_ascend\_op\_info.py脚本获取。
+
+1.  编写get\_ascend\_op\_info.py脚本获取算子信息，脚本内容如下。
+
+    ```
+    # -*- coding: utf-8 -*-
+    """用于导出OPINFO
+    """
+    import os
+    import sys
+    import argparse
+    
+    def func(host_log_folder):
+        """
+        :param host_log_folder: where host_log_folder addr is.
+        :return:
+        """
+        host_log_files = os.listdir(host_log_folder)
+        result = {}
+    
+        for host_log in host_log_files:
+            if not host_log.endswith('.log') or host_log.endswith('.out'):
+                continue
+            with open(os.path.join(host_log_folder, host_log), 'r')as f:
+                host_log_lines = f.readlines()
+                for line in host_log_lines:
+                    if line.startswith('[INFO] ASCENDCL') and "aclopCompile::aclOp" in line:
+                        op_info = line.split('OpType: ')[1][:-2]
+                        op_type = op_info.split(',')[0]
+                        op_param = op_info[len(op_type) + 2:]
+                        if op_type not in result.keys():
+                            result[op_type] = [op_param]
+                        else:
+                            result[op_type].append(op_param)
+    
+        with open('ascend_op_info_summary.txt', 'w')as f:
+            for k, v in result.items():
+                v_set = set(v)
+                for info in v_set:
+                    f.write(k + " " + info + "\n")
+    
+    if __name__ == "__main__":
+        parser = argparse.ArgumentParser(description='trans the log')
+        parser.add_argument('--host_log_folder', default="./",
+                            help="input the dir name, trans the current dir with default")
+        ags = parser.parse_args()
+        func(ags.host_log_folder)
+    ```
+
+2.  设置环境变量，将host日志打屏。
+
+    ```
+    export ASCEND_SLOG_PRINT_TO_STDOUT=1
+    ```
+
+3.  设置日志级别为info，参考《CANN 日志参考》设置日志级别。
+4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
+5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
+
+    ```
+    python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
+    ```
+
+6.  分析TaskInfo中额外的task，尤其关注transdata。
+
+<h4 id="host侧性能优化md">host侧性能优化</h4>
 
 -   **[概述](#概述-0md)**  
 
@@ -1117,16 +1280,17 @@ def main():
 -   **[（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)**  
 
 
-<h4 id="概述-0md">概述</h4>
+<h5 id="概述-0md">概述</h5>
 
-在进行PyTorch模型迁移训练时，部分网络模型会出现1秒内识别的图像数（fps）较低、性能不达标的情况。此时需要针对服务器进行以下优化。
+在进行PyTorch模型迁移训练时，部分网络模型会出现FPS较低、性能不达标的情况。可以考虑对服务器进行以下优化尝试提高训练性能。
 
 -   修改CPU性能模式。
 -   安装高性能pillow库。
+-   （可选）安装指定版本OpenCV库。
 
-<h4 id="修改CPU性能模式（X86服务器）md">修改CPU性能模式（X86服务器）</h4>
+<h5 id="修改CPU性能模式（X86服务器）md">修改CPU性能模式（X86服务器）</h5>
 
-##### 设置电源策略为高性能模式<a name="section18832114453814"></a>
+###### 设置电源策略为高性能模式<a name="section18832114453814"></a>
 
 提升网络性能需要在X86服务器BIOS设置中将电源策略设为高性能模式，具体操作如下。
 
@@ -1153,7 +1317,7 @@ def main():
 
 6.  按下“F10”保存配置并重启服务器。
 
-##### 将CPU设置为performance模式<a name="section20155620469"></a>
+###### 将CPU设置为performance模式<a name="section20155620469"></a>
 
 请使用root用户执行如下操作。
 
@@ -1231,9 +1395,9 @@ def main():
 
 4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
-<h4 id="修改CPU性能模式（ARM服务器）md">修改CPU性能模式（ARM服务器）</h4>
+<h5 id="修改CPU性能模式（ARM服务器）md">修改CPU性能模式（ARM服务器）</h5>
 
-##### 设置电源策略为高性能模式<a name="section18832114453814"></a>
+###### 设置电源策略为高性能模式<a name="section18832114453814"></a>
 
 在某些对Host侧CPU要求较高的模型中，例如目标检测类模型，需要进行较为复杂的图像预处理，开启电源高性能模式能一定程度上提高性能和稳定性。ARM服务器提升网络性能需要在BIOS设置中将电源策略设为高性能模式，具体操作如下。
 
@@ -1260,7 +1424,7 @@ def main():
 
 6.  按下“F10”保存配置并重启服务器。
 
-<h4 id="安装高性能pillow库（X86服务器）md">安装高性能pillow库（X86服务器）</h4>
+<h5 id="安装高性能pillow库（X86服务器）md">安装高性能pillow库（X86服务器）</h5>
 
 1.  安装高性能pillow库相关依赖，命令如下。
 
@@ -1311,173 +1475,14 @@ def main():
     ```
 
 
-<h4 id="（可选）安装指定版本OpenCV库md">（可选）安装指定版本OpenCV库</h4>
+<h5 id="（可选）安装指定版本OpenCV库md">（可选）安装指定版本OpenCV库</h5>
 
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
 1.  获取源码：[获取地址](https://opencv.org/releases/)。
 2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
-<h2 id="模型训练md">模型训练</h2>
-
-训练脚本迁移完成后，需要参见[配置环境变量](#zh-cn_topic_0000001144082004)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行md)。
-
->![](public_sys-resources/icon-note.gif) **说明：** 
->执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
-
-<h2 id="性能调优和分析md">性能调优和分析</h2>
-
--   **[前提条件](#前提条件md)**  
-
--   **[调测过程](#调测过程md)**  
-
--   **[亲和库](#亲和库md)**  
-
-
-<h3 id="前提条件md">前提条件</h3>
-
-1.  参见[样例说明](#样例说明md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
-2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
-3.  优先打通单卡功能，再打通多卡功能。
-
-<h3 id="调测过程md">调测过程</h3>
-
--   **[总体思路](#总体思路md)**  
-
--   **[采集训练过程相关数据](#采集训练过程相关数据md)**  
-
--   **[性能优化](#性能优化-1md)**  
-
-
-<h4 id="总体思路md">总体思路</h4>
-
-1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
-2.  当吞吐量指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
-    -   算子瓶颈，在某个算子上执行过慢。
-    -   copy瓶颈，非连续转连续时进行copy带来的瓶颈。
-    -   框架瓶颈，由于算子格式转换带来了额外操作。
-    -   编译瓶颈，由于shape或属性来回变化造成反复编译。
-
-3.  针对以上制约性能瓶颈的原因进行分析与优化。
-
-<h4 id="采集训练过程相关数据md">采集训练过程相关数据</h4>
-
-##### Profiling数据采集<a name="section141471611314"></a>
-
-当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。Profiling数据采集分为PyTorch层面和CANN层面的采集，PyTorch层面采集的是PyTorch API的数据，CANN层面采集的是TBE算子的数据。
-
-请参见以下方式进行profiling数据的获取，并根据实际情况选择需要的数据采集方式。
-
--   PyTorch层面Profiling数据采集。
-    1.  获取chrome\_trace文件。
-
-        使用profile接口对原始代码的loss计算和优化过程进行改造。
-
-        ```
-        # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
-            out = model(input_tensor)
-            loss=loss_func(out)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-        # 导出chrome_trace文件到指定路径
-        output_path = '/home/HwHiAiUser/profile_data.json'
-        prof.export_chrome_trace(output_path)
-        ```
-
-    2.  查看chrome\_trace文件。
-
-        chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
-
-
--   CANN层面Profiling数据采集。
-    1.  获取性能数据文件。
-
-        ```
-        profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
-        with torch.npu.profile(profiler_result_path) as prof:
-            out = model(input_tensor)
-            loss=loss_func(out)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-        ```
-
-    2.  解析性能数据文件。
-
-        请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
-
-
-
-##### 获取算子信息OP\_INFO<a name="section15654162853114"></a>
-
-网络模型最终是以OP执行的，通过OPInfo日志，我们可以获取实际执行时的算子及其属性。通过get\_ascend\_op\_info.py脚本获取。
-
-1.  编写get\_ascend\_op\_info.py脚本获取算子信息，脚本内容如下。
-
-    ```
-    # -*- coding: utf-8 -*-
-    """用于导出OPINFO
-    """
-    import os
-    import sys
-    import argparse
-    
-    def func(host_log_folder):
-        """
-        :param host_log_folder: where host_log_folder addr is.
-        :return:
-        """
-        host_log_files = os.listdir(host_log_folder)
-        result = {}
-    
-        for host_log in host_log_files:
-            if not host_log.endswith('.log') or host_log.endswith('.out'):
-                continue
-            with open(os.path.join(host_log_folder, host_log), 'r')as f:
-                host_log_lines = f.readlines()
-                for line in host_log_lines:
-                    if line.startswith('[INFO] ASCENDCL') and "aclopCompile::aclOp" in line:
-                        op_info = line.split('OpType: ')[1][:-2]
-                        op_type = op_info.split(',')[0]
-                        op_param = op_info[len(op_type) + 2:]
-                        if op_type not in result.keys():
-                            result[op_type] = [op_param]
-                        else:
-                            result[op_type].append(op_param)
-    
-        with open('ascend_op_info_summary.txt', 'w')as f:
-            for k, v in result.items():
-                v_set = set(v)
-                for info in v_set:
-                    f.write(k + " " + info + "\n")
-    
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description='trans the log')
-        parser.add_argument('--host_log_folder', default="./",
-                            help="input the dir name, trans the current dir with default")
-        ags = parser.parse_args()
-        func(ags.host_log_folder)
-    ```
-
-2.  设置环境变量，将host日志打屏。
-
-    ```
-    export ASCEND_SLOG_PRINT_TO_STDOUT=1
-    ```
-
-3.  设置日志级别为info，参考《CANN 日志参考》设置日志级别。
-4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
-5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
-
-    ```
-    python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
-    ```
-
-6.  分析TaskInfo中额外的task，尤其关注transdata。
-
-<h4 id="性能优化-1md">性能优化</h4>
+<h4 id="训练过程性能优化md">训练过程性能优化</h4>
 
 ##### 算子瓶颈优化<a name="section8727652134111"></a>
 
@@ -1526,14 +1531,14 @@ def main():
 
 -   **[来源介绍](#来源介绍md)**  
 
--   **[功能介绍](#功能介绍-2md)**  
+-   **[功能介绍](#功能介绍-1md)**  
 
 
 <h4 id="来源介绍md">来源介绍</h4>
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
-<h4 id="功能介绍-2md">功能介绍</h4>
+<h4 id="功能介绍-1md">功能介绍</h4>
 
 <a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>函数名</p>
@@ -1580,23 +1585,23 @@ def main():
 
 <h2 id="精度调测md">精度调测</h2>
 
--   **[前提条件](#前提条件-3md)**  
+-   **[前提条件](#前提条件-2md)**  
 
--   **[调测过程](#调测过程-4md)**  
+-   **[调测过程](#调测过程-3md)**  
 
 
-<h3 id="前提条件-3md">前提条件</h3>
+<h3 id="前提条件-2md">前提条件</h3>
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h3 id="调测过程-4md">调测过程</h3>
+<h3 id="调测过程-3md">调测过程</h3>
 
--   **[总体思路](#总体思路-5md)**  
+-   **[总体思路](#总体思路-4md)**  
 
 -   **[精度调优方法](#精度调优方法md)**  
 
 
-<h4 id="总体思路-5md">总体思路</h4>
+<h4 id="总体思路-4md">总体思路</h4>
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
@@ -1641,12 +1646,12 @@ def main():
 
 <h5 id="单算子溢出检测md">单算子溢出检测</h5>
 
-用户通过采集训练过程中各算子的运算结果（即Dump数据），然后查看算子是否产生溢出，从而帮助开发人员快速定位并解决算子精度问题。
+用户通过算子溢出检测功能检测算子是否有溢出，然后采集溢出算子的数据，从而帮助开发人员快速定位并解决算子精度问题。
 
 ###### 约束说明<a name="section52762019181510"></a>
 
 -   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)；
--   本功能只提供IR级别的算子溢出检测，且只支持AICORE的溢出检测，不支持Atomic溢出检测；
+-   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic；
 -   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。
 
     ```
@@ -1658,13 +1663,13 @@ def main():
 
 -   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能。
 
-###### 采集算子Dump数据<a name="section121407268191"></a>
+###### 采集溢出算子数据<a name="section121407268191"></a>
 
 ```
 # check_overflow为溢出检测控制开关
 # dump_path为dump文件保存路径
 with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
-    # 需要算子采集的代码片段
+    # 需要检测算子溢出的代码片段
 ```
 
 模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
@@ -2491,7 +2496,7 @@ if __name__ == "__main__":
 
 ##### 配置环境变量<a name="section13239217203"></a>
 
-请参考[配置环境变量](#zh-cn_topic_0000001144082004)配置环境变量。
+请参考[配置环境变量](#zh-cn_topic_0000001144082004md)配置环境变量。
 
 ##### 执行命令<a name="section624019171308"></a>
 
@@ -2536,7 +2541,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 <h3 id="ShuffleNet模型调优示例md">ShuffleNet模型调优示例</h3>
 
--   **[样例获取](#样例获取-6md)**  
+-   **[样例获取](#样例获取-5md)**  
 
 -   **[模型评估](#模型评估md)**  
 
@@ -2545,7 +2550,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 -   **[网络调测](#网络调测md)**  
 
 
-<h4 id="样例获取-6md">样例获取</h4>
+<h4 id="样例获取-5md">样例获取</h4>
 
 ##### 样例获取<a name="section1155115015182"></a>
 
@@ -2647,10 +2652,10 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 详细说明如下：
 
--   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#性能优化-1md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
--   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#性能优化-1md)所描述Copy瓶颈。
+-   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#训练过程性能优化md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
+-   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#训练过程性能优化md)所描述Copy瓶颈。
 -   适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
--   设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#性能优化-1md)所描述框架瓶颈。
+-   设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#训练过程性能优化md)所描述框架瓶颈。
 -   修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
 
 ##### 整网排查<a name="section1261194410241"></a>
@@ -3108,6 +3113,7 @@ for group in [2, 4, 8]:
         def cpu_op_exec(self, input1):
             # 调用算子 
             output = torch.max(input1)
+            output = output.to('cpu')
             output = output.numpy()
             return output
     
@@ -3303,14 +3309,37 @@ torch.npu.finalize_dump()
 
 2.  开启重定向日志到stdout，用于导出host日志到屏幕。
 
-    **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=1**
+    **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
 
 3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考《CANN 日志参考》设置日志级别。
+
+    **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
+
 4.  dump图，主要用于查看图结构。
 
     **export DUMP\_GE\_GRAPH=2**
 
     **export DUMP\_GRAPH\_LEVEL=3**
+
+5.  设置Event日志开启标志。
+
+    **export ASCEND\_GLOBAL\_EVENT\_ENABLE=0**
+
+6.  设置是否开启PTCopy。
+
+    **export PTCOPY\_ENABLE=1**
+
+7.  设置是否开启combined标志。
+
+    **export COMBINED\_ENABLE=1**
+
+8.  设置特殊场景是否需要重新编译,不需要修改。
+
+    **export DYNAMIC\_OP="ADD\#MUL"**
+
+9.  HCCL白名单开关。
+
+    **export HCCL\_WHITELIST\_DISABLE=1**
 
 
 <h3 id="dump-op方法md">dump op方法</h3>
@@ -3341,14 +3370,16 @@ torch.npu.set_option(option) # 以dict方式进行设置
 ACL_OP_SELECT_IMPL_MODE,      //选择算子是高精度实现还是高性能实现
 ACL_OPTYPELIST_FOR_IMPLMODE,  //列举算子类型的列表，该列表中的算子使用ACL_OP_SELECT_IMPL_MODE指定的模式
 ACL_OP_DEBUG_LEVEL,           //TBE算子编译debug功能开关
-ACL_DEBUG_DIR,                //保存模型转换、网络迁移过程中算子编译生成的调试相关过程文件的路径，包括算子.o/.json/.cce等文件。
+ACL_DEBUG_DIR,                //保存模型转换、网络迁移过程中算子编译生成的调试相关过程文件的路径，包括算子.o/.json/.cce等文件。路径必须已经存在。
 ACL_OP_COMPILER_CACHE_MODE,   //算子编译磁盘缓存模式
-ACL_OP_COMPILER_CACHE_DIR,    //算子编译磁盘缓存的目录
+ACL_OP_COMPILER_CACHE_DIR,    //算子编译磁盘缓存的路径，路径必须已经存在。
 
 key对应的val值解释和可设置值如下：
-ACL_OPTYPELIST_FOR_IMPLMODE： 用于选择算子是高精度实现还是高性能实现。如果不配置该编译选项，默认采用high_precision。
+ACL_OP_SELECT_IMPL_MODE： 用于选择算子是高精度实现还是高性能实现。如果不配置该编译选项，默认采用high_precision。
     high_precision：表示网络模型中所有算子选择高精度实现。
     high_performance：表示网络模型中所有算子选择高性能实现。
+
+ACL_OPTYPELIST_FOR_IMPLMODE：设置optype列表中算子的实现方式，该参数当前仅支持设置某个具体算子的实现方式，不支持设置多个算子。当前仅支持配置的算子为Pooling、SoftmaxV2、LRN、ROIAlign。算子类型的列表中的算子使用ACL_OP_SELECT_IMPL_MODE指定的模式。
 
 ACL_OP_DEBUG_LEVEL：用于配置TBE算子编译debug功能开关。
     0：不开启算子debug功能。在执行atc命令当前路径算子编译生成的kernel_meta文件夹中不保留.o（算子二进制文件）和.json文件（算子描述文件）。
@@ -3533,7 +3564,9 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   **[在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncsmd)**  
 
--   **[在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecutemd)**  
+-   **[在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecutemd)**  
+
+-   **[在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-0-INTERNAL-ASSERTmd)**  
 
 -   **[在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-somd)**  
 
@@ -3543,11 +3576,11 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failedmd)**  
 
--   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7md)**  
+-   **[在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-6md)**  
 
--   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecutemd)**  
+-   **[在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecutemd)**  
 
--   **[在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed)md)**  
+-   **[在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failedmd)**  
 
 
 <h4 id="在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevicemd">在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”</h4>
@@ -3594,6 +3627,50 @@ pip3.7 install pillow==5.3.0安装失败。
 
 -   查看具体的host报错日志信息。日志默认路径为/var/log/npu/slog/host-0/，根据时间标识查找以host-0为前缀的日志文件，打开日志文件，搜索“ERROR”，查询具体的报错信息。
 -   关闭多线程下发\(export TASK\_QUEUE\_ENABLE=0\)，再次运行代码，一般可根据终端报错信息定位错误原因。
+
+<h4 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-0-INTERNAL-ASSERTmd">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT”</h4>
+
+##### 现象描述<a name="section5498445105118"></a>
+
+```
+import torch
+
+npu = "npu"
+
+def test_cpu():
+    input = torch.randn(2000, 1000).detach().requires_grad_()
+    output = torch.sum(input)
+    output.backward(torch.ones_like(output))
+
+def test_npu():
+    input = torch.randn(2000, 1000).detach().requires_grad_().npu()
+    output = torch.sum(input)
+    output.backward(torch.ones_like(output))
+
+if __name__ == "__main__":
+    test_cpu()
+    torch.npu.set_device(f"{npu}:1")
+    test_npu()
+```
+
+执行代码后出现如下报错。
+
+![](figures/zh-cn_image_0000001208897433.png)
+
+##### 可能原因<a name="section440935995113"></a>
+
+在运行backward运算后，通过set\_decice\(\)方法手动设置device设备，导致报错。在运行backward运算时，若没有设置device，程序会自动默认初始化device为0，相当于执行了set\_device\("npu:0"\)。由于目前不支持切换device进行计算，若再通过set\_decice\(\)方法手动设置device设备，则可能出现该错误。
+
+##### 处理方法<a name="section1828321115218"></a>
+
+在运行backward运算前，通过set\_decice\(\)方法手动设置device。修改如下。
+
+```
+if __name__ == "__main__":
+    torch.npu.set_device(f"{npu}:1")
+    test_cpu()
+    test_npu()
+```
 
 <h4 id="在模型运行时遇到报错-ImportError-libhccl-somd">在模型运行时遇到报错“ImportError: libhccl.so.”</h4>
 
@@ -3732,7 +3809,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 4.  打印stack所有参数的shape、dtype、npu\_format，通过构造单算子用例复现问题。定位到问题原因为减法计算输入参数数据类型不同，导致a-b和b-a结果的数据类型不一致，最终在stack算子中报错。
 5.  将stack入参数据类型转换为一致即可临时规避问题。
 
-<h4 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-7md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h4>
+<h4 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-6md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h4>
 
 ##### 现象描述<a name="section1785905019184"></a>
 

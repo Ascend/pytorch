@@ -5,19 +5,18 @@
     -   [安装PyTorch框架](#安装PyTorch框架md)
     -   [配置环境变量](#配置环境变量md)
     -   [安装混合精度模块](#安装混合精度模块md)
--   [使用Ascend Hub镜像](#使用Ascend-Hub镜像md)
-    -   [Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像md)
-    -   [配置环境变量](#配置环境变量-0md)
 -   [参考信息](#参考信息md)
     -   [CMake安装方法](#CMake安装方法md)
     -   [安装7.3.0版本gcc](#安装7-3-0版本gccmd)
     -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)
 <h2 id="简介md">简介</h2>
 
-用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块，或直接获取Ascend Hub镜像中心提供的基础镜像（镜像中已安装PyTorch模块和混合精度模块），进行模型的开发、运行。
+用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块。
 
 **图 1**  环境准备流程图<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
-![](figures/环境准备流程图.png "环境准备流程图")
+
+
+![](figures/210926103326800.png)
 
 <h2 id="手动编译安装md">手动编译安装</h2>
 
@@ -37,6 +36,7 @@
 -   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
 -   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
+-   需安装python版本为3.7.5或3.8。
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
     -   Ubuntu系统
 
@@ -79,36 +79,32 @@
         下载的源码主要目录结构如下所示：
 
         ```
-        pytorch
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─test              # 测试用例存放目录
-        │ ├─README.md
+        ├── patch                            # 昇腾AI处理器适配补丁目录
+        │   ├── pytorch1.5.0_npu.patch      # pytorch1.5.0版本补丁
+        │   └── pytorch1.8.1_npu.patch      # pytorch1.8.1版本补丁
+        ├── pytorch1.5.0                     # pytorch1.5.0源码及测试目录
+        │   ├── access_control_test.py
+        │   ├── src                         # 源码目录
+        │   └── test                        # 测试用例存放目录
+        ├── pytorch1.8.1                     # pytorch1.8.1源码及测试目录
+        │   ├── access_control_test.py
+        │   ├── src                         # 源码目录
+        │   └── test                        # 测试用例存放目录
+        └── scripts                          # 编译构建目录
         ```
 
-    2.  运行如下命令，进入“pytorch“目录，并获取原生PyTorch源代码。
+    2.  在当前仓根目录“/pytorch“下获取原生PyTorch源代码。
+        -   若安装pytorch1.5.0版本，执行如下命令。
 
-        ```
-        cd pytorch
-        git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-        ```
+            ```
+            git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
+            ```
 
-        下载原生pytorch源码后，代码主要目录结构如下所示：
+        -   若安装pytorch1.8.1版本，执行如下命令。
 
-        ```
-        pytorch
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─pytorch           # 原生pytorch代码目录
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─test              # 测试用例存放目录
-        │ ├─README.md
-        ```
+            ```
+            git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
+            ```
 
     3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
 
@@ -126,26 +122,37 @@
 
         ```
         cd ../scripts
+        # 若安装1.5.0版本
         bash gen.sh
+        # 若安装1.8.1版本
+        bash gen.sh -v 1.8.1
         ```
 
         将在"pytorch/pytorch"目录中生成适配昇腾AI处理器的全量代码。
 
-    2.  进入适配后的全量代码目录，即“pytorch/pytorch“目录，编译生成pytorch的二进制安装包。
+    2.  进入到“pytorch/pytorch/“目录，依赖库安装。
 
         ```
         cd ../pytorch
-        bash build.sh
+        pip3 install -r requirements.txt
         ```
 
-        生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
+    3.  编译生成pytorch的二进制安装包。
+
+        ```
+        bash build.sh --python=3.7
+        或
+        bash build.sh --python=3.8
+        ```
+
+        请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
 
 5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch。
 
     进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
 
     ```
-    pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_{arch}.whl
+    pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
     ```
 
     **\{arch\}**表示架构信息，为aarch64或x86\_64。
@@ -178,7 +185,7 @@
 3.  （可选）NPU场景下配置功能或性能环境变量。默认为不开启。
 
     ```
-    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1
+    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1（PyTorch1.8.1不支持该环境变量）
     export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
     export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1
     export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
@@ -276,22 +283,22 @@
 </tr>
 <tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1（PyTorch1.8.1不支持该环境变量）。</p>
 </td>
 </tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1。</p>
 </td>
 </tr>
 <tr id="row17630155212342"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p66309527341"><a name="p66309527341"></a><a name="p66309527341"></a>RI_COMBINED_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p19630185220345"><a name="p19630185220345"></a><a name="p19630185220345"></a>（可选）非连续三个算子组合类场景优化，开启设置为1</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p19630185220345"><a name="p19630185220345"></a><a name="p19630185220345"></a>（可选）非连续三个算子组合类场景优化，开启设置为1。</p>
 </td>
 </tr>
 <tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1。</p>
 </td>
 </tr>
 <tr id="row27481914203518"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p674813144357"><a name="p674813144357"></a><a name="p674813144357"></a>DYNAMIC_OP</p>
@@ -335,7 +342,6 @@
         │    ├─gen.sh
         │ ├─src               # 源码目录
         │ ├─tests              # 测试用例存放目录
-        │ ├─README.md
         ```
 
     2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
@@ -356,7 +362,6 @@
         │    ├─gen.sh
         │ ├─src               # 源码目录
         │ ├─tests              # 测试用例存放目录
-        │ ├─README.md
         ```
 
     3.  进入原生apex代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
@@ -364,7 +369,6 @@
         ```
         cd apex
         git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
-        cd ..
         ```
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -387,14 +391,14 @@
         python3 setup.py --cpp_ext --npu_float_status bdist_wheel
         ```
 
-        生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
+        Python版本需与PyTorch使用的Python一致，生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
 
 4.  <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
 
     进入“apex/apex/dist“文件夹目录，执行如下命令安装。
 
     ```
-    pip3.7 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
+    pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
     ```
 
     **\{arch\}**表示架构信息，为aarch64或x86\_64。
@@ -403,51 +407,6 @@
     >若对环境中的Apex进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[4. 安装apex。](#zh-cn_topic_0000001106176190_li425495374416)可以通过执行如下命令查询环境上是否已安装PyTorch。
     >**pip3 list | grep apex**
 
-
-<h2 id="使用Ascend-Hub镜像md">使用Ascend Hub镜像</h2>
-
--   **[Ascend Hub获取PyTorch镜像](#Ascend-Hub获取PyTorch镜像md)**  
-
--   **[配置环境变量](#配置环境变量-0md)**  
-
-
-<h3 id="Ascend-Hub获取PyTorch镜像md">Ascend Hub获取PyTorch镜像</h3>
-
-#### 前提条件<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0275872734_section108914373254"></a>
-
--   已准备好相应硬件环境驱动和固件的安装，请参见各硬件产品[“驱动和固件安装升级指南”](https://support.huawei.com/enterprise/zh/category/ai-computing-platform-pid-1557196528909)。需要在硬件设备上安装与CANN版本配套的固件与驱动。
--   宿主机上已安装Docker。
-
-#### 获取并使用镜像<a name="zh-cn_topic_0000001118701830_section108941734162613"></a>
-
-用户可登录[Ascend Hub](https://ascendhub.huawei.com/#/home)获取相应镜像（首次申请需要激活账号）。
-
-当前支持的镜像列表如[表1](#zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_table1519011227314)所示。用户可根据实际选择所需的镜像进行下载并使用。
-
-**表 1**  镜像列表
-
-<a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_table1519011227314"></a>
-<table><thead align="left"><tr id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_row0190152218319"><th class="cellrowborder" valign="top" width="55.00000000000001%" id="mcps1.2.4.1.1"><p id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1419132211315"><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1419132211315"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1419132211315"></a>镜像名称</p>
-</th>
-<th class="cellrowborder" valign="top" width="20%" id="mcps1.2.4.1.2"><p id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p75071327115313"><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p75071327115313"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p75071327115313"></a>镜像版本</p>
-</th>
-<th class="cellrowborder" valign="top" width="25%" id="mcps1.2.4.1.3"><p id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1024411406234"><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1024411406234"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1024411406234"></a>配套CANN版本</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_row71915221134"><td class="cellrowborder" valign="top" width="55.00000000000001%" headers="mcps1.2.4.1.1 "><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_ul81691515131910"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_ul81691515131910"></a><ul id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_ul81691515131910"><li>ARM架构：<a href="https://ascendhub.huawei.com/#/detail?name=ascend-pytorch-arm" target="_blank" rel="noopener noreferrer">ascend-pytorch-arm</a></li><li>x86架构：<a href="https://ascendhub.huawei.com/#/detail?name=ascend-pytorch-x86" target="_blank" rel="noopener noreferrer">ascend-pytorch-x86</a></li></ul>
-</td>
-<td class="cellrowborder" valign="top" width="20%" headers="mcps1.2.4.1.2 "><p id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p14648161414516"><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p14648161414516"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p14648161414516"></a>21.0.2</p>
-</td>
-<td class="cellrowborder" valign="top" width="25%" headers="mcps1.2.4.1.3 "><p id="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1264815147514"><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1264815147514"></a><a name="zh-cn_topic_0000001118701830_zh-cn_topic_0000001074498056_p1264815147514"></a><a href="https://support.huawei.com/enterprise/zh/ascend-computing/cann-pid-251168373" target="_blank" rel="noopener noreferrer">5.0.2</a></p>
-</td>
-</tr>
-</tbody>
-</table>
-
-<h3 id="配置环境变量-0md">配置环境变量</h3>
-
-启动并进入镜像容器后，请参见[配置环境变量](#配置环境变量md)配置模型训练依赖的环境变量。
 
 <h2 id="参考信息md">参考信息</h2>
 
