@@ -24,6 +24,7 @@
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include "ATen/native/npu/interface/EnvVariables.h"
+#include "ATen/native/npu/frame/OpParamMaker.h"
 #include <set>
 
 namespace at {
@@ -189,15 +190,13 @@ void NpuUtils::RefreshFormat(const Tensor& tensor) {
 Tensor deal_with_5d_5d_match(const Tensor& src) {
     auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
     Tensor src_new = at::empty_with_format(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
-    c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     int64_t numel = src_new.numel();
-    aclError error = aclrtMemcpyAsync(
-        src_new.data_ptr(),
-        numel * src_new.element_size(),
-        (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
-        numel * src.element_size(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE,
-        copy_stream);
+    aclError error = LaunchAsyncCopyTask(
+      src_new.data_ptr(),
+      numel * src_new.element_size(),
+      (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
+      numel * src.element_size(),
+      ACL_MEMCPY_DEVICE_TO_DEVICE);
     src_new.set_(src_new.storage(), src.storage_offset(), src.sizes(), src.strides());
 
     src_new.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NCHW;

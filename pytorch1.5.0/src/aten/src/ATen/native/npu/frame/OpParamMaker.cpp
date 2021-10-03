@@ -23,10 +23,21 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
+#include "aten/src/THNPU/THNPUCachingHostAllocator.h"
 
 namespace at {
 namespace native {
 namespace npu {
+class AsyncCopyTask {
+  public:
+    AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
+    AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Tensor& holdTensor);
+    ~AsyncCopyTask() = default;
+    void LaunchCopyTask();
+    void LaunchCopyTask(bool isPinnedMem);
+  private:
+    CopyParas copyParam;
+};
 
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
@@ -186,7 +197,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
 }
 
 int ExecFunc(void* in, aclrtStream stream) {
-  auto cur_paras = (ExecuteParas*)in;
+  auto cur_paras = (ExecuteParas*)(((QueueParas*)in)->paramVal);
   NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
   aclError ret;
@@ -229,31 +240,89 @@ int ExecFunc(void* in, aclrtStream stream) {
   return ret;
 }
 
+int MemcopyAsyncFunc(void* in, aclrtStream stream) {
+  auto cur_paras = (CopyParas*)(((QueueParas*)in)->paramVal);
+  aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
+    cur_paras->srcLen, cur_paras->kind, stream);
+  if (ret != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
+  }
+  return ret;
+}
+
+int RecordEventFunc(void* in, aclrtStream stream) {
+  auto cur_paras = (EventParas*)(((QueueParas*)in)->paramVal);
+  aclError ret = aclrtRecordEvent(cur_paras->event, stream);
+  if (ret != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
+  }
+  return ret;
+}
+
 void CopyFunc(void* dst, void* src) {
-  auto dstPtr = (ExecuteParas*)dst;
-  auto srcPtr = (ExecuteParas*)src;
-  dstPtr->Copy(*srcPtr);
+  auto dstPtr = (QueueParas*)dst;
+  auto srcPtr = (QueueParas*)src;
+  dstPtr->paramVal = ((int8_t*)dst) + sizeof(QueueParas);
+  if (dstPtr->paramType == COMPILE_AND_EXECUTE) {
+    ((ExecuteParas*)(dstPtr->paramVal))->hostMemory.clear();
+  }
+  if (dstPtr->paramType == ASYNC_MEMCPY_EX) {
+    ((CopyParas*)(dstPtr->paramVal))->pinMem.clear();
+  }
+  dstPtr->paramType = srcPtr->paramType;
+  dstPtr->paramLen = srcPtr->paramLen;
+  memset(dstPtr->paramVal, 0, sizeof(ExecuteParas));
+  if (srcPtr->paramType == COMPILE_AND_EXECUTE) {
+    ((ExecuteParas*)dstPtr->paramVal)->Copy(*((ExecuteParas*)srcPtr->paramVal));
+  } else if (srcPtr->paramType == ASYNC_MEMCPY) {
+    memcpy(dstPtr->paramVal, srcPtr->paramVal, sizeof(CopyParas));
+  } else if (srcPtr->paramType == ASYNC_MEMCPY_EX) {
+    ((CopyParas*)dstPtr->paramVal)->Copy(*((CopyParas*)srcPtr->paramVal));
+  }else {
+    memcpy(dstPtr->paramVal, srcPtr->paramVal, sizeof(EventParas));
+  }
 }
 
 void ReleaseFunc(void* ptr) {
-  auto cur_paras = (ExecuteParas*)ptr;
-  if (cur_paras->opDynamicType != "") {
-    cur_paras->DynamicRelease();
-    cur_paras->opDynamicType = "";
+  auto type = ((QueueParas *)ptr)->paramType;
+  if (type == COMPILE_AND_EXECUTE) {
+    auto cur_paras = (ExecuteParas*)(((QueueParas *)ptr)->paramVal);
+    if (!cur_paras->opDynamicType.empty()) {
+      cur_paras->DynamicRelease();
+      cur_paras->opDynamicType = "";
+    }
+    cur_paras->Release();
   }
-  cur_paras->Release();
 }
 
 void* NewFunc(int caption, int& size) {
-  size = sizeof(ExecuteParas);
-  return (void*)new ExecuteParas[caption];
+  size_t maxSize = sizeof(ExecuteParas) > sizeof(CopyParas) ? sizeof(ExecuteParas) : sizeof(CopyParas);
+  maxSize = maxSize > sizeof(EventParas) ? maxSize : sizeof(EventParas);
+  size = sizeof(QueueParas) + maxSize;
+  void *ptr = malloc(size * caption);
+  return ptr;
 }
 
 void DeleteFunc(void* ptr) {
-  delete[](ExecuteParas*) ptr;
+  free(ptr);
 }
 
-REGISTER_QUEUE_FUNC(ExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc)
+typedef int (*Func)(void*, aclrtStream);
+using AsyncFuncMap = std::map<QueueParamType, Func>;
+AsyncFuncMap funcMap = {
+  {COMPILE_AND_EXECUTE, ExecFunc},
+  {ASYNC_MEMCPY, MemcopyAsyncFunc},
+  {ASYNC_MEMCPY_EX, MemcopyAsyncFunc},
+  {RECORD_EVENT, RecordEventFunc}
+};
+
+int AsncExecFunc(void* data, aclrtStream stream) {
+  auto type = ((QueueParas *)data)->paramType;
+  auto ret = funcMap[type](data, stream);
+  return ret;
+}
+
+REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc)
 
 OpCommandImpls* OpCommandImpls::GetInstance() {
   static OpCommandImpls impl;
@@ -282,6 +351,74 @@ void OpCommandImpls::Pop() {
   offset -= 1;
 }
 
+AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
+{
+  copyParam.dst = dst;
+  copyParam.dstLen = dstLen;
+  copyParam.src = src;
+  copyParam.srcLen = srcLen;
+  copyParam.kind = kind;
+}
+
+AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
+  Tensor& holdTensor)
+{
+  copyParam.dst = dst;
+  copyParam.dstLen = dstLen;
+  copyParam.src = src;
+  copyParam.srcLen = srcLen;
+  copyParam.kind = kind;
+  copyParam.pinMem.emplace_back(holdTensor);
+}
+
+void AsyncCopyTask::LaunchCopyTask()
+{
+  if (c10::npu::OptionsManager::CheckQueueEnable()) {
+    QueueParas params(ASYNC_MEMCPY, sizeof(CopyParas), &copyParam);
+    c10::npu::enCurrentNPUStream(&params);
+  } else {
+    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
+    AT_NPU_CHECK(aclrtMemcpyAsync(
+      copyParam.dst,
+      copyParam.dstLen,
+      copyParam.src,
+      copyParam.srcLen,
+      copyParam.kind,
+      stream));
+  }
+}
+
+void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem)
+{
+  if (c10::npu::OptionsManager::CheckQueueEnable() && isPinnedMem) {
+    QueueParas params(ASYNC_MEMCPY_EX, sizeof(CopyParas), &copyParam);
+    c10::npu::enCurrentNPUStream(&params);
+  } else {
+    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
+    AT_NPU_CHECK(aclrtMemcpyAsync(
+      copyParam.dst,
+      copyParam.dstLen,
+      copyParam.src,
+      copyParam.srcLen,
+      copyParam.kind,
+      stream));
+  }
+}
+
+aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
+{
+  npu::AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind);
+  copyTask.LaunchCopyTask();
+  return ACL_ERROR_NONE;
+}
+
+aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
+  Tensor& holdTensor, bool isPinMem)
+{
+  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, holdTensor);
+  copyTask.LaunchCopyTask(is_pinned);
+  return ACL_ERROR_NONE;
+}
 } // namespace npu
 } // namespace native
 } // namespace at
