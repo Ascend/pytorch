@@ -29,6 +29,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 | AscendPyTorch版本 | CANN版本 |
 | :------------ | :----------- |
 | 2.0.2 | CANN 5.0.2 |
+| 2.0.3 | CANN 5.0.3 |
 
 
 # 使用方式 --生成全量代码并编译
