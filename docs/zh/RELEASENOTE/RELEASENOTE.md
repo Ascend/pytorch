@@ -9,7 +9,7 @@
 
 本框架基于Facebook主导的开源PyTorch1.5.0进行修改，延续原生的PyTorch特性，使用NPU进行动态图训练；以算子粒度进行模型适配，代码重用性好，支持现有的网络只修改设备类型或数据类型，即可迁移到NPU上使用。
 
-从此版本开始，PyTorch.8.1版本提供支持，此版本延续PyTorch1.5.0特性，功能保持一致（profiling工具除外）。除此之外，对后端算子适配提供较好开发体验。当期1.8.1版本仅支持Resent50网络模型。
+从此版本开始，PyTorch1.8.1版本提供支持，此版本延续PyTorch1.5.0特性，功能保持一致（profiling工具除外）。除此之外，对后端算子适配提供较好开发体验。当期1.8.1版本仅支持Resent50网络模型。
 
 <h2 id='新增特性md'>新增特性</h2>
 
@@ -27,9 +27,9 @@
 </thead>
 <tbody><tr id="row7979351559"><td class="cellrowborder" rowspan="5" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>适配NPU的PyTorch特性</p>
 </td>
-<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>支持PyTorch.8.1版本</p>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>支持PyTorch1.8.1版本</p>
 </td>
-<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>增加PyTorch.8.1版本, 当前仅支持resnet50网络，包括其DDP分布式训练场景。</p>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>增加PyTorch1.8.1版本, 当前仅支持resnet50网络，包括其DDP分布式训练场景。</p>
 </td>
 </tr>
 <tr id="row109719353511"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p18983183315515"><a name="p18983183315515"></a><a name="p18983183315515"></a>支持python3.8</p>
