@@ -100,7 +100,7 @@ bash build.sh --python=3.8
 
 torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_x86_64.whl)
 
-```python
+```shell
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 ```
@@ -110,7 +110,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 
 torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_aarch64.whl)
 
-```python
+```shell
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 ```
@@ -190,6 +190,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 ## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
 
 pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
+
 pip3 install pyyaml
 pip3 install typing_extensions
 
