@@ -151,34 +151,20 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 
 验证运行, 输出结果OK
 
-```python
+```shell
 // 根据前述版本，选择对应的测试脚本，以下为1.5.0版本
 python3 pytorch1.5.0/test/test_npu/test_div.py
 // 以下为1.8.1版本
 python3 pytorch1.8.1/test/test_npu/test_div.py
 ```
 
-# 路标
+# 文档
 
-以下将展示AscendPyTorch近期的计划，我们会根据用户的反馈诉求，持续调整计划的优先级。
+有关安装指南、模型迁移和训练/推理教程和API列表等更多详细信息，请参考[用户文档](docs/zh)。
 
-总体而言，我们会努力在以下几个方面不断改进。
+# 建议与交流
 
-    1、pytorch AICPU多核能力补齐
-    
-    2、pytorch单算子模式const节点输入
-    
-    3、pytorch场景支持算子非连续输入
-    
-    4、pytorch单算子模式支持动态shape
-    
-    5、NLP网络格式转化方案完善
-    
-    6、pytorch的基线格式调整
-    
-    7、reshapeType总体方案梳理优化
-    
-    8、AICPU针对pytorch方案梳理优化
+如果您有好的想法和建议，请在issue中体现，我们会尽快给您回复。
 
 热忱希望各位在用户社区加入讨论，并贡献您的建议。
 
@@ -202,6 +188,14 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 
 # FAQ
+
+## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
+
+pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
+pip3 install pyyaml
+pip3 install typing_extensions
+
+安装成功后，注意需要执行make clean在执行bash build.sh进行编译，否则可能因缓存出现未知编译错误。
 
 ## 运行遇到找不到te问题
 
@@ -257,3 +251,6 @@ Ubuntu环境
 apt install libopenblas-dev
 ```
 
+# 版本说明
+
+版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
