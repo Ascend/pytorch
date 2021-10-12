@@ -35,7 +35,10 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "Conv2DTransposeD",
     "Conv2DBackpropInputD",
     "Conv2DBackpropFilterD",
-    "StridedSlice"};
+    "StridedSlice",
+    "BroadcastTo",
+    "SigmoidCrossEntropyWithLogitsV2",
+    "SigmoidCrossEntropyWithLogitsGradV2"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {

@@ -1698,3 +1698,6 @@
 
 - name: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   self, gtboxes: npu_giou_backward(grad, self, gtboxes, trans, is_cross, mode)
+
+- name: npu_silu(Tensor self) -> Tensor
+  self: npu_silu_backward(grad, self, result)
