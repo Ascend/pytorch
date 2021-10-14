@@ -135,7 +135,7 @@ NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& exec
 // a large amount of device memory is occupied at the same time;
 // if the capacity is too small, and the main thread is fast enough,
 // it does not make full use of concurrent design capabilities.
-static constexpr size_t kQueueCapacity = 1000;
+static constexpr size_t kQueueCapacity = 4096;
 
 RepoStatus Repository::GetStatus() const {
   if (initialized == false) {

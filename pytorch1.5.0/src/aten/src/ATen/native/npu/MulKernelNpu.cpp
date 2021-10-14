@@ -35,7 +35,7 @@ Tensor& muls_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
     cmd.Name("Mul")
         .Expect(unified_result)
         .Input(self)
-        .Input(other, self.scalar_type())
+        .Input(other, self.scalar_type(), MemoryType::MEMORY_HOST)
         .Output(result)
         .Run();
   } else {

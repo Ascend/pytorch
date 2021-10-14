@@ -46,11 +46,19 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
     selfCast = self.to(ScalarType::Float);
   }
   OpCommand cmd;
-  cmd.Name("Equal")
+  if (c10::npu::OptionsManager::CheckDynamicOptimizer("EQ")) {
+    cmd.Name("Equal")
+    .Input(selfCast)
+    .Input(other, selfCast.scalar_type(), MemoryType::MEMORY_HOST)
+    .Output(result)
+    .Run();
+  } else {
+    cmd.Name("Equal")
     .Input(selfCast)
     .Input(other, selfCast.scalar_type())
     .Output(result)
     .Run();
+  }
 
   return result;
 }
