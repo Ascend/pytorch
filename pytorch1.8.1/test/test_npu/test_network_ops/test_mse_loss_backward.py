@@ -1,31 +1,29 @@
-# Copyright 2020 Huawei Technologies Co., Ltd
+# Copyright (c) 2020 Huawei Technologies Co., Ltd
+# All rights reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Licensed under the BSD 3-Clause License  (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+# https://opensource.org/licenses/BSD-3-Clause
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import torch
 from torch.autograd import Variable
 import numpy as np
-import sys
-import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestMseLossGrad(TestCase):
 
-    def generate_data(self, min, max, shape, dtype):
-        input1 = np.random.uniform(min, max, shape).astype(dtype)
-        input2 = np.random.uniform(min, max, shape).astype(dtype)
+    def generate_mse_grad_inputs(self, min_ref, max_ref, shape, dtype):
+        input1 = np.random.uniform(min_ref, max_ref, shape).astype(dtype)
+        input2 = np.random.uniform(min_ref, max_ref, shape).astype(dtype)
 
         npu_input1 = torch.from_numpy(input1)
         npu_input2 = torch.from_numpy(input2)
@@ -109,35 +107,35 @@ class TestMseLossGrad(TestCase):
         input1.register_hook(save_grad('x'))
         torch_result.backward()
 
-        output = grads['x'].to("cpu").numpy()
+        output = grads['x'].to("cpu").detach().numpy()
         return output
 
     def test_mse_loss_grad_float32(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec_default(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_default(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_mean(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_none(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "none")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "none")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_float32_sum(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_mse_loss_grad_shape_0(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (0,4), np.float32)
+        npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (0,4), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)

@@ -20,23 +20,23 @@ from util_test import create_common_tensor
 
 
 class TestAvgPool2dBackward(TestCase):
-    def cpu_op_exec(self, input):
+    def cpu_op_exec(self, input1):
         m = nn.AvgPool2d(kernel_size=2, stride=2)
-        input.requires_grad = True
-        output = m(input)
+        input1.requires_grad = True
+        output = m(input1)
         output.backward(torch.ones_like(output))
-        output_grad = input.grad
+        output_grad = input1.grad
         output_grad = output_grad.detach().numpy()
         output = output.detach().numpy()
 
         return output_grad, output
 
-    def npu_op_exec(self, input):
+    def npu_op_exec(self, input1):
         m = nn.AvgPool2d(kernel_size=2, stride=2).npu()
-        input.requires_grad = True
-        output = m(input)
+        input1.requires_grad = True
+        output = m(input1)
         output.backward(torch.ones_like(output))
-        output_grad = input.grad
+        output_grad = input1.grad
         output_grad = output_grad.to("cpu")
         output_grad = output_grad.detach().numpy()
         output = output.to("cpu")
@@ -45,7 +45,7 @@ class TestAvgPool2dBackward(TestCase):
         return output_grad, output
 
     def test_avg_pool2d_backward_shape_format_fp16(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3]
         shape_list = [(5, 20, 8, 8)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
@@ -62,7 +62,7 @@ class TestAvgPool2dBackward(TestCase):
             self.assertRtolEqual(cpu_output_grad, npu_output_grad)
 
     def test_avg_pool2d_backward_shape_format_fp32(self, device):
-        format_list = [0, 3, 29]
+        format_list = [0, 3]
         shape_list = [(5, 20, 8, 8)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list
