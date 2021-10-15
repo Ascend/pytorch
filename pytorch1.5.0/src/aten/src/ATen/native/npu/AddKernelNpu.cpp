@@ -57,11 +57,19 @@ Tensor& adds_out_npu_nocheck(
     }
     cmd.Expect(unified_result);
   }
-  cmd.Name("Add")
-      .Input(self)
-      .Input(value, self.scalar_type())
-      .Output(result, real_type)
-      .Run();
+  if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD")) {
+    cmd.Name("Add")
+        .Input(self)
+        .Input(value, self.scalar_type(), MemoryType::MEMORY_HOST)
+        .Output(result, real_type)
+        .Run();
+  } else {
+    cmd.Name("Add")
+        .Input(self)
+        .Input(value, self.scalar_type())
+        .Output(result, real_type)
+        .Run();
+  }
 
   return result;
 }
@@ -104,7 +112,7 @@ Tensor& add_out_npu_nocheck(
         cmd.Name("AxpyV2")
             .Input(self)
             .Input(other)
-            .Input(alpha, self.scalar_type())
+            .Input(alpha, self.scalar_type(), MemoryType::MEMORY_HOST)
             .Output(result)
             .Run();
       } else {

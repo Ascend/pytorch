@@ -24,12 +24,21 @@ using namespace at::native::npu;
 Tensor& div_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
-  cmd.Name("Div")
+  if (c10::npu::OptionsManager::CheckDynamicOptimizer("DIV")) {
+    cmd.Name("Div")
+        .Expect(unified_result)
+        .Input(self)
+        .Input(other, self.scalar_type(), MemoryType::MEMORY_HOST)
+        .Output(result)
+        .Run();
+  } else {
+    cmd.Name("Div")
         .Expect(unified_result)
         .Input(self)
         .Input(other, self.scalar_type())
         .Output(result)
         .Run();
+  }
 
   return result;
 }

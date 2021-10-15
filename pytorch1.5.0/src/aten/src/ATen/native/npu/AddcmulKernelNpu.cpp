@@ -27,13 +27,23 @@ Tensor& addcmul_out_npu_nocheck(
     const Tensor& tensor2,
     const Scalar value) {
   OpCommand cmd;
-  cmd.Name("Addcmul")
+  if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADDCMUL")) {
+    cmd.Name("Addcmul")
+      .Input(self)
+      .Input(tensor1)
+      .Input(tensor2)
+      .Input(value, self.scalar_type(), MemoryType::MEMORY_HOST)
+      .Output(result)
+      .Run();
+  } else {
+    cmd.Name("Addcmul")
       .Input(self)
       .Input(tensor1)
       .Input(tensor2)
       .Input(value, self.scalar_type())
       .Output(result)
       .Run();
+  }
 
   return result;
 }

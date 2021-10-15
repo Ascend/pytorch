@@ -53,10 +53,10 @@ struct ACL_PARAMS {
 
 struct ACL_DYNAMIC_PARAMS {
   ACL_DYNAMIC_PARAMS() {
-    int input_num = 0;
+    input_num = 0;
     input_desc = nullptr;
     input_data_buf = nullptr;
-    int output_num = 0;
+    output_num = 0;
     output_desc = nullptr;
     output_data_buf = nullptr;
     inputDims = nullptr;

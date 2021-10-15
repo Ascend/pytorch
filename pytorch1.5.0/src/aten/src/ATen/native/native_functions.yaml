@@ -8647,3 +8647,11 @@
 - func: npu_giou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> (Tensor, Tensor)
   npu_dispatch_only:
     NPU: giou_backward_npu
+
+- func: npu_silu(Tensor self) -> Tensor
+  npu_dispatch_only:
+    NPU: silu_npu
+
+- func: npu_silu_backward(Tensor grad_output, Tensor x0, Tensor x1) -> Tensor
+  npu_dispatch_only:
+    NPU: silu_backward_npu

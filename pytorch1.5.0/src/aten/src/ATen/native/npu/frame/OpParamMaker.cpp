@@ -416,7 +416,7 @@ aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
   Tensor& holdTensor, bool isPinMem)
 {
   AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, holdTensor);
-  copyTask.LaunchCopyTask(is_pinned);
+  copyTask.LaunchCopyTask(isPinMem);
   return ACL_ERROR_NONE;
 }
 } // namespace npu

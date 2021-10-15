@@ -9386,3 +9386,12 @@
   variants: function, method
   npu_dispatch_only:
     NPU: bmm_v2_npu
+
+- func: npu_alloc_float_status(Tensor self) -> Tensor
+  variants: function, method
+
+- func: npu_get_float_status(Tensor self) -> Tensor
+  variants: function, method
+
+- func: npu_clear_float_status(Tensor self) -> Tensor
+  variants: function, method

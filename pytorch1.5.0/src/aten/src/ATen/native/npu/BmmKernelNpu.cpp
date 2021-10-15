@@ -73,8 +73,10 @@ Tensor bmm_npu(const Tensor& self, const Tensor& mat2) {
   if ((self.scalar_type() == ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
     // check is 16-algined with high-performance
     auto isAligin = [&]() {
-      return (!(self.size(1) & 0x0000000F)) && (!(self.size(2) & 0x0000000F)) &&
-             (!(mat2.size(1) & 0x0000000F)) && (!(mat2.size(2) & 0x0000000F));
+      return (!(static_cast<uint64_t>(self.size(1)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(self.size(2)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(mat2.size(1)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(mat2.size(2)) & 0x0000000F));
     };
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
     if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) && 

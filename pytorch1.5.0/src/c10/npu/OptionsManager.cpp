@@ -120,7 +120,8 @@ bool OptionsManager::CheckDynamicOnly() {
 
 bool OptionsManager::CheckDynamicOptimizer(const char* op) {
   static int isGetOps = 0;
-  static std::map<std::string, bool> op_map = {{"ADD", false}, {"MUL", false}};
+  static std::map<std::string, bool> op_map = {{"ADD", false}, {"MUL", false}, {"DIV", false}, {"EQ", false},
+    {"MASKFill", false}, {"ADDCDIV", false}, {"ADDCMUL", false}};
   if (isGetOps == 0) {
     char* dynamicOptimizerEnv = std::getenv("DYNAMIC_OP");
     if (dynamicOptimizerEnv != nullptr) {

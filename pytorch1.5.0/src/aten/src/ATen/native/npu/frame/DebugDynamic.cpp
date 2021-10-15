@@ -43,7 +43,7 @@ bool DebugDynamic::CheckInConfig(const string& opName) {
   }
 
   // check securse path
-  std::string pattern{"/[\\w]+/[\\w]+.txt"};
+  std::string pattern{"/[\\w]+/[\\w]+.conf"};
   std::regex re(pattern);
   bool ret = std::regex_match(configPath, re);
   if (ret == false) {
