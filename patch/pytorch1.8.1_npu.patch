@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/CMakeLists.txt pytorch-develop-181/aten/CMakeLists.txt
 --- pytorch-v1.8.1/aten/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/CMakeLists.txt	2021-10-18 12:00:47.610543541 +0800
++++ pytorch-develop-181/aten/CMakeLists.txt	2021-10-19 12:02:13.767105031 +0800
 @@ -22,9 +22,11 @@
  set(ATen_CPU_INCLUDE)
  set(ATen_THIRD_PARTY_INCLUDE)
@@ -52,7 +52,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_CPU_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt pytorch-develop-181/aten/src/ATen/CMakeLists.txt
 --- pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/CMakeLists.txt	2021-10-18 12:00:47.610543541 +0800
++++ pytorch-develop-181/aten/src/ATen/CMakeLists.txt	2021-10-19 12:02:13.767105031 +0800
 @@ -85,6 +85,10 @@
  file(GLOB native_quantized_h "native/quantized/*.h" "native/quantized/cpu/*.h")
  file(GLOB native_cpu_h "native/cpu/*.h")
@@ -103,7 +103,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_HIP_SRCS ${ATen_HIP_SRCS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/VariableFallbackKernel.cpp pytorch-develop-181/aten/src/ATen/core/VariableFallbackKernel.cpp
 --- pytorch-v1.8.1/aten/src/ATen/core/VariableFallbackKernel.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/core/VariableFallbackKernel.cpp	2021-10-18 12:00:47.618543561 +0800
++++ pytorch-develop-181/aten/src/ATen/core/VariableFallbackKernel.cpp	2021-10-19 12:02:13.775105056 +0800
 @@ -48,4 +48,8 @@
    m.fallback(torch::CppFunction::makeFallthrough());
  }
@@ -115,7 +115,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/Convolution.cpp pytorch-develop-181/aten/src/ATen/native/Convolution.cpp
 --- pytorch-v1.8.1/aten/src/ATen/native/Convolution.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/Convolution.cpp	2021-10-18 12:00:47.630543593 +0800
++++ pytorch-develop-181/aten/src/ATen/native/Convolution.cpp	2021-10-19 12:02:13.787105094 +0800
 @@ -603,7 +603,9 @@
      const Tensor& input, const Tensor& weight, const Tensor& bias,
      IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
@@ -129,7 +129,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  at::Tensor _convolution(
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/Memory.cpp pytorch-develop-181/aten/src/ATen/native/Memory.cpp
 --- pytorch-v1.8.1/aten/src/ATen/native/Memory.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/Memory.cpp	2021-10-18 12:00:47.634543603 +0800
++++ pytorch-develop-181/aten/src/ATen/native/Memory.cpp	2021-10-19 12:02:13.791105106 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -180,7 +180,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        detail::computeStorageNbytes(
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/native_functions.yaml pytorch-develop-181/aten/src/ATen/native/native_functions.yaml
 --- pytorch-v1.8.1/aten/src/ATen/native/native_functions.yaml	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/native_functions.yaml	2021-10-18 12:00:47.666543686 +0800
++++ pytorch-develop-181/aten/src/ATen/native/native_functions.yaml	2021-10-19 12:02:13.823105207 +0800
 @@ -2073,6 +2073,8 @@
    dispatch:
      CPU, CUDA: isnan
@@ -496,7 +496,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/NPUVariableMethodStubs.cpp pytorch-develop-181/aten/src/ATen/native/NPUVariableMethodStubs.cpp
 --- pytorch-v1.8.1/aten/src/ATen/native/NPUVariableMethodStubs.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/NPUVariableMethodStubs.cpp	2021-10-18 12:00:47.634543603 +0800
++++ pytorch-develop-181/aten/src/ATen/native/NPUVariableMethodStubs.cpp	2021-10-19 12:02:13.791105106 +0800
 @@ -0,0 +1,259 @@
 +#include "ATen/native/npu/common/FormatCastHelper.h"
 +#include "ATen/native/npu/frame/FormatHelper.h"
@@ -1675,7 +1675,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -}
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/TensorFactories.cpp pytorch-develop-181/aten/src/ATen/native/TensorFactories.cpp
 --- pytorch-v1.8.1/aten/src/ATen/native/TensorFactories.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/TensorFactories.cpp	2021-10-18 12:00:47.646543635 +0800
++++ pytorch-develop-181/aten/src/ATen/native/TensorFactories.cpp	2021-10-19 12:02:13.803105144 +0800
 @@ -1,3 +1,20 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -1708,7 +1708,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  namespace {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/native/vulkan/api/vk_mem_alloc.h pytorch-develop-181/aten/src/ATen/native/vulkan/api/vk_mem_alloc.h
 --- pytorch-v1.8.1/aten/src/ATen/native/vulkan/api/vk_mem_alloc.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/native/vulkan/api/vk_mem_alloc.h	2021-10-18 12:00:47.694543760 +0800
++++ pytorch-develop-181/aten/src/ATen/native/vulkan/api/vk_mem_alloc.h	2021-10-19 12:02:13.855105307 +0800
 @@ -1,19229 +1,19229 @@
 -//
 -// Copyright (c) 2017-2020 Advanced Micro Devices, Inc. All rights reserved.
@@ -40170,7 +40170,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +#endif // #ifdef VMA_IMPLEMENTATION
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h pytorch-develop-181/aten/src/ATen/templates/TensorBody.h
 --- pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/templates/TensorBody.h	2021-10-18 12:00:47.698543770 +0800
++++ pytorch-develop-181/aten/src/ATen/templates/TensorBody.h	2021-10-19 12:02:13.859105320 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40203,7 +40203,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    bool is_xpu() const;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp pytorch-develop-181/aten/src/ATen/templates/TensorMethods.cpp
 --- pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/templates/TensorMethods.cpp	2021-10-18 12:00:47.698543770 +0800
++++ pytorch-develop-181/aten/src/ATen/templates/TensorMethods.cpp	2021-10-19 12:02:13.859105320 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40248,7 +40248,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/Utils.cpp pytorch-develop-181/aten/src/ATen/Utils.cpp
 --- pytorch-v1.8.1/aten/src/ATen/Utils.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/ATen/Utils.cpp	2021-10-18 12:00:47.614543552 +0800
++++ pytorch-develop-181/aten/src/ATen/Utils.cpp	2021-10-19 12:02:13.771105044 +0800
 @@ -1,3 +1,18 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40292,7 +40292,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/TH/generic/THStorage.cpp pytorch-develop-181/aten/src/TH/generic/THStorage.cpp
 --- pytorch-v1.8.1/aten/src/TH/generic/THStorage.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/TH/generic/THStorage.cpp	2021-10-18 12:00:47.702543781 +0800
++++ pytorch-develop-181/aten/src/TH/generic/THStorage.cpp	2021-10-19 12:02:13.863105332 +0800
 @@ -1,9 +1,32 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40405,7 +40405,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/TH/generic/THStorage.h pytorch-develop-181/aten/src/TH/generic/THStorage.h
 --- pytorch-v1.8.1/aten/src/TH/generic/THStorage.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/aten/src/TH/generic/THStorage.h	2021-10-18 12:00:47.702543781 +0800
++++ pytorch-develop-181/aten/src/TH/generic/THStorage.h	2021-10-19 12:02:13.863105332 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40444,7 +40444,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/CMakeLists.txt pytorch-develop-181/c10/CMakeLists.txt
 --- pytorch-v1.8.1/c10/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/CMakeLists.txt	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/CMakeLists.txt	2021-10-19 12:02:13.875105370 +0800
 @@ -79,6 +79,14 @@
    message(STATUS "don't use NUMA")
  endif()
@@ -40473,7 +40473,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # not checked in
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Backend.h pytorch-develop-181/c10/core/Backend.h
 --- pytorch-v1.8.1/c10/core/Backend.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/Backend.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/Backend.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40567,7 +40567,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.cpp pytorch-develop-181/c10/core/Device.cpp
 --- pytorch-v1.8.1/c10/core/Device.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/Device.cpp	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/Device.cpp	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40598,7 +40598,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        types.begin(),
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.h pytorch-develop-181/c10/core/Device.h
 --- pytorch-v1.8.1/c10/core/Device.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/Device.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/Device.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40633,7 +40633,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    bool is_cpu() const noexcept {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.cpp pytorch-develop-181/c10/core/DeviceType.cpp
 --- pytorch-v1.8.1/c10/core/DeviceType.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DeviceType.cpp	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DeviceType.cpp	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40673,7 +40673,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        return false;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.h pytorch-develop-181/c10/core/DeviceType.h
 --- pytorch-v1.8.1/c10/core/DeviceType.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DeviceType.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DeviceType.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40715,7 +40715,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  constexpr DeviceType kMSNPU = DeviceType::MSNPU;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.cpp pytorch-develop-181/c10/core/DispatchKey.cpp
 --- pytorch-v1.8.1/c10/core/DispatchKey.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DispatchKey.cpp	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DispatchKey.cpp	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,18 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40764,7 +40764,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      case DispatchKey::PrivateUse1:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.h pytorch-develop-181/c10/core/DispatchKey.h
 --- pytorch-v1.8.1/c10/core/DispatchKey.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DispatchKey.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DispatchKey.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40811,7 +40811,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    PrivateUse3_PreAutograd = AutogradPrivateUse3,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.cpp pytorch-develop-181/c10/core/DispatchKeySet.cpp
 --- pytorch-v1.8.1/c10/core/DispatchKeySet.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DispatchKeySet.cpp	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DispatchKeySet.cpp	2021-10-19 12:02:13.875105370 +0800
 @@ -11,6 +11,7 @@
          DispatchKey::XLA,
          DispatchKey::NestedTensor,
@@ -40831,7 +40831,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      case DispatchKey::AutogradXPU:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.h pytorch-develop-181/c10/core/DispatchKeySet.h
 --- pytorch-v1.8.1/c10/core/DispatchKeySet.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/DispatchKeySet.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/DispatchKeySet.h	2021-10-19 12:02:13.875105370 +0800
 @@ -193,6 +193,7 @@
      DispatchKey::AutogradCPU,
      DispatchKey::AutogradCUDA,
@@ -40842,7 +40842,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      DispatchKey::AutogradPrivateUse1,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Storage.h pytorch-develop-181/c10/core/Storage.h
 --- pytorch-v1.8.1/c10/core/Storage.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/Storage.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/Storage.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40876,7 +40876,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  };
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h pytorch-develop-181/c10/core/StorageImpl.h
 --- pytorch-v1.8.1/c10/core/StorageImpl.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/StorageImpl.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/StorageImpl.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,12 +1,42 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40936,7 +40936,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorImpl.h pytorch-develop-181/c10/core/TensorImpl.h
 --- pytorch-v1.8.1/c10/core/TensorImpl.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/TensorImpl.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/TensorImpl.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -40979,7 +40979,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        return ts.has(DispatchKey::SparseCPU) ||
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorOptions.h pytorch-develop-181/c10/core/TensorOptions.h
 --- pytorch-v1.8.1/c10/core/TensorOptions.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/core/TensorOptions.h	2021-10-18 12:00:47.718543822 +0800
++++ pytorch-develop-181/c10/core/TensorOptions.h	2021-10-19 12:02:13.875105370 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -41020,7 +41020,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    } else if (tid == DispatchKey::QuantizedXPU) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/macros/Export.h pytorch-develop-181/c10/macros/Export.h
 --- pytorch-v1.8.1/c10/macros/Export.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/c10/macros/Export.h	2021-10-18 12:00:47.722543832 +0800
++++ pytorch-develop-181/c10/macros/Export.h	2021-10-19 12:02:13.879105382 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -41089,7 +41089,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #define C10_API_ENUM C10_API
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/caffe2/CMakeLists.txt pytorch-develop-181/caffe2/CMakeLists.txt
 --- pytorch-v1.8.1/caffe2/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/caffe2/CMakeLists.txt	2021-10-18 12:00:47.726543843 +0800
++++ pytorch-develop-181/caffe2/CMakeLists.txt	2021-10-19 12:02:13.883105395 +0800
 @@ -76,6 +76,7 @@
    # Add source, includes, and libs to lists
    list(APPEND Caffe2_CPU_SRCS ${ATen_CPU_SRCS})
@@ -41106,7 +41106,20 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
    list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
    list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
-@@ -770,6 +772,14 @@
+@@ -610,6 +612,12 @@
+     install(TARGETS caffe2_nvrtc DESTINATION "${TORCH_INSTALL_LIB_DIR}")
+   endif()
+ 
++  if(USE_NPU)
++    list(APPEND Caffe2_NPU_SRCS
++      ${TORCH_SRC_DIR}/csrc/autograd/profiler_npu.cpp
++    )
++  endif()
++
+   if(NOT NO_API)
+     list(APPEND TORCH_SRCS
+       ${TORCH_SRC_DIR}/csrc/api/src/cuda.cpp
+@@ -770,6 +778,14 @@
      target_link_libraries(torch_hip PRIVATE __caffe2_nccl)
      target_compile_definitions(torch_hip PRIVATE USE_NCCL)
    endif()
@@ -41121,7 +41134,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  elseif(USE_CUDA)
    set(CUDA_LINK_LIBRARIES_KEYWORD PRIVATE)
    if(CUDA_SEPARABLE_COMPILATION)
-@@ -904,7 +914,12 @@
+@@ -904,7 +920,12 @@
      ${CMAKE_CURRENT_BINARY_DIR}/../aten/src/ATen
      ${CMAKE_BINARY_DIR}/aten/src)
  
@@ -41135,7 +41148,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    list(APPEND ATen_CPU_INCLUDE ${TBB_ROOT_DIR}/include)
    target_link_libraries(torch_cpu PUBLIC tbb)
  endif()
-@@ -1139,6 +1154,10 @@
+@@ -1139,6 +1160,10 @@
  # Set standard properties on the target
  torch_set_target_props(torch_cpu)
  
@@ -41146,7 +41159,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
  target_compile_options(torch_cpu PRIVATE "-DCAFFE2_BUILD_MAIN_LIB")
  if(BUILD_SPLIT_CUDA)
-@@ -1156,6 +1175,9 @@
+@@ -1156,6 +1181,9 @@
  elseif(USE_ROCM)
    target_compile_options(torch_hip PRIVATE "-DTORCH_HIP_BUILD_MAIN_LIB")
    target_compile_definitions(torch_hip PRIVATE "-DTORCH_HIP_BUILD_MAIN_LIB")
@@ -41156,7 +41169,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
  
  set(EXPERIMENTAL_SINGLE_THREAD_POOL "0" CACHE STRING
-@@ -1249,6 +1271,8 @@
+@@ -1249,6 +1277,8 @@
    endif()
  elseif(USE_ROCM)
    caffe2_interface_library(torch_hip torch_hip_library)
@@ -41165,7 +41178,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
  
  caffe2_interface_library(torch torch_library)
-@@ -1263,6 +1287,8 @@
+@@ -1263,6 +1293,8 @@
    endif()
  elseif(USE_ROCM)
    install(TARGETS torch_hip torch_hip_library EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
@@ -41174,7 +41187,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
  install(TARGETS torch torch_library EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
  
-@@ -1288,6 +1314,8 @@
+@@ -1288,6 +1320,8 @@
      install(FILES $<TARGET_PDB_FILE:torch_cuda> DESTINATION "${TORCH_INSTALL_LIB_DIR}" OPTIONAL)
    elseif(USE_ROCM)
      install(FILES $<TARGET_PDB_FILE:torch_hip> DESTINATION "${TORCH_INSTALL_LIB_DIR}" OPTIONAL)
@@ -41183,7 +41196,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    endif()
  endif()
  
-@@ -1377,6 +1405,15 @@
+@@ -1377,6 +1411,15 @@
    install(TARGETS torch_global_deps DESTINATION "${TORCH_INSTALL_LIB_DIR}")
  endif()
  
@@ -41201,7 +41214,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # Call again since Caffe2_HIP_INCLUDE is extended with ATen include dirs.
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/BuildVariables.cmake pytorch-develop-181/cmake/BuildVariables.cmake
 --- pytorch-v1.8.1/cmake/BuildVariables.cmake	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/cmake/BuildVariables.cmake	2021-10-18 12:00:47.798544030 +0800
++++ pytorch-develop-181/cmake/BuildVariables.cmake	2021-10-19 12:02:13.959105633 +0800
 @@ -11,6 +11,7 @@
  # CMakeLists.txt files under each folder respectively.
  set(Caffe2_CPU_SRCS)
@@ -41225,7 +41238,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # symbols. However, if the lib is whole linked in caffe2 lib, we don't want
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Codegen.cmake pytorch-develop-181/cmake/Codegen.cmake
 --- pytorch-v1.8.1/cmake/Codegen.cmake	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/cmake/Codegen.cmake	2021-10-18 12:00:47.798544030 +0800
++++ pytorch-develop-181/cmake/Codegen.cmake	2021-10-19 12:02:13.959105633 +0800
 @@ -208,13 +208,14 @@
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt generated_cpp)
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt-cuda cuda_generated_cpp)
@@ -41258,7 +41271,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  function(append_filelist name outputvar)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Dependencies.cmake pytorch-develop-181/cmake/Dependencies.cmake
 --- pytorch-v1.8.1/cmake/Dependencies.cmake	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/cmake/Dependencies.cmake	2021-10-18 12:00:47.802544041 +0800
++++ pytorch-develop-181/cmake/Dependencies.cmake	2021-10-19 12:02:13.959105633 +0800
 @@ -1771,6 +1771,13 @@
    endif(NOT C_HAS_THREAD)
  endif()
@@ -41275,7 +41288,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Summary.cmake pytorch-develop-181/cmake/Summary.cmake
 --- pytorch-v1.8.1/cmake/Summary.cmake	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/cmake/Summary.cmake	2021-10-18 12:00:47.802544041 +0800
++++ pytorch-develop-181/cmake/Summary.cmake	2021-10-19 12:02:13.959105633 +0800
 @@ -127,6 +127,7 @@
      message(STATUS "  USE_MKLDNN_CBLAS      : ${USE_MKLDNN_CBLAS}")
    endif()
@@ -41294,7 +41307,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    message(STATUS "  Private Dependencies : ${Caffe2_DEPENDENCY_LIBS}")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/TorchConfig.cmake.in pytorch-develop-181/cmake/TorchConfig.cmake.in
 --- pytorch-v1.8.1/cmake/TorchConfig.cmake.in	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/cmake/TorchConfig.cmake.in	2021-10-18 12:00:47.802544041 +0800
++++ pytorch-develop-181/cmake/TorchConfig.cmake.in	2021-10-19 12:02:13.959105633 +0800
 @@ -158,6 +158,11 @@
    list(APPEND TORCH_LIBRARIES ${TORCH_CUDA_LIBRARIES})
  endif()
@@ -41309,7 +41322,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=@GLIBCXX_USE_CXX11_ABI@")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/CMakeLists.txt pytorch-develop-181/CMakeLists.txt
 --- pytorch-v1.8.1/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/CMakeLists.txt	2021-10-18 12:00:47.602543520 +0800
++++ pytorch-develop-181/CMakeLists.txt	2021-10-19 12:02:13.759105006 +0800
 @@ -261,6 +261,10 @@
      "USE_DISTRIBUTED" OFF)
  option(USE_TBB "Use TBB" OFF)
@@ -41353,7 +41366,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  if(APPLE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/setup.py pytorch-develop-181/setup.py
 --- pytorch-v1.8.1/setup.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/setup.py	2021-10-18 12:00:47.814544071 +0800
++++ pytorch-develop-181/setup.py	2021-10-19 12:02:13.975105683 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -41422,7 +41435,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  'utils/benchmark/utils/valgrind_wrapper/*.h',
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/derivatives.yaml pytorch-develop-181/tools/autograd/derivatives.yaml
 --- pytorch-v1.8.1/tools/autograd/derivatives.yaml	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/autograd/derivatives.yaml	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/autograd/derivatives.yaml	2021-10-19 12:02:14.423107090 +0800
 @@ -1976,3 +1976,10 @@
  
  - name: nonzero(Tensor self) -> Tensor
@@ -41436,7 +41449,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +  mat2: npu_bmm_v2_mat2_backward(grad, self, mat2, mat2.sizes())
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/gen_python_functions.py pytorch-develop-181/tools/autograd/gen_python_functions.py
 --- pytorch-v1.8.1/tools/autograd/gen_python_functions.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/autograd/gen_python_functions.py	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/autograd/gen_python_functions.py	2021-10-19 12:02:14.423107090 +0800
 @@ -1,3 +1,20 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -41460,7 +41473,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # The bindings are generated as methods on python_variable or functions on the
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/Functions.cpp pytorch-develop-181/tools/autograd/templates/Functions.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/Functions.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/autograd/templates/Functions.cpp	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/autograd/templates/Functions.cpp	2021-10-19 12:02:14.423107090 +0800
 @@ -14,6 +14,35 @@
  
  namespace torch { namespace autograd { namespace generated {
@@ -41499,7 +41512,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }}} // namespace torch::autograd::generated
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp pytorch-develop-181/tools/autograd/templates/python_torch_functions.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/autograd/templates/python_torch_functions.cpp	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/autograd/templates/python_torch_functions.cpp	2021-10-19 12:02:14.427107103 +0800
 @@ -30,7 +30,7 @@
  #include "torch/csrc/autograd/generated/variable_factories.h"
  #include "torch/csrc/utils/structseq.h"
@@ -41535,7 +41548,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return torch::range(start, end, step, options);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp pytorch-develop-181/tools/autograd/templates/python_variable_methods.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/autograd/templates/python_variable_methods.cpp	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/autograd/templates/python_variable_methods.cpp	2021-10-19 12:02:14.427107103 +0800
 @@ -20,7 +20,13 @@
  #ifdef USE_CUDA
  #include "torch/csrc/cuda/Event.h"
@@ -41603,7 +41616,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"has_names", THPVariable_has_names, METH_NOARGS, NULL},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/build_variables.bzl pytorch-develop-181/tools/build_variables.bzl
 --- pytorch-v1.8.1/tools/build_variables.bzl	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/build_variables.bzl	2021-10-18 12:00:48.262545237 +0800
++++ pytorch-develop-181/tools/build_variables.bzl	2021-10-19 12:02:14.427107103 +0800
 @@ -362,6 +362,7 @@
  libtorch_cuda_core_sources = [
      "torch/csrc/CudaIPCTypes.cpp",
@@ -41622,7 +41635,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      "torch/csrc/utils/python_arg_parser.cpp",
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/codegen/gen.py pytorch-develop-181/tools/codegen/gen.py
 --- pytorch-v1.8.1/tools/codegen/gen.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/codegen/gen.py	2021-10-18 12:00:48.266545248 +0800
++++ pytorch-develop-181/tools/codegen/gen.py	2021-10-19 12:02:14.427107103 +0800
 @@ -815,7 +815,7 @@
      core_fm = make_file_manager(core_install_dir)
      cpu_fm = make_file_manager(options.install_dir)
@@ -41670,7 +41683,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      main()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/codegen/model.py pytorch-develop-181/tools/codegen/model.py
 --- pytorch-v1.8.1/tools/codegen/model.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/tools/codegen/model.py	2021-10-18 12:00:48.266545248 +0800
++++ pytorch-develop-181/tools/codegen/model.py	2021-10-19 12:02:14.431107115 +0800
 @@ -79,6 +79,7 @@
      SparseHIP = auto()
      SparseXPU = auto()
@@ -41812,18 +41825,154 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/autograd/profiler.py pytorch-develop-181/torch/autograd/profiler.py
 --- pytorch-v1.8.1/torch/autograd/profiler.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/autograd/profiler.py	2021-10-18 12:00:48.270545258 +0800
-@@ -351,6 +351,9 @@
++++ pytorch-develop-181/torch/autograd/profiler.py	2021-10-19 12:02:14.431107115 +0800
+@@ -38,13 +38,16 @@
+     """A list of Events (for pretty printing)"""
+     def __init__(self, *args, **kwargs):
+         use_cuda = kwargs.pop('use_cuda', True)
++        use_npu = kwargs.pop('use_npu', True)
+         profile_memory = kwargs.pop('profile_memory', False)
+         with_flops = kwargs.pop('with_flops', False)
+         super(EventList, self).__init__(*args, **kwargs)
+         self._use_cuda = use_cuda
++        self._use_npu = use_npu
+         self._profile_memory = profile_memory
+         self._tree_built = False
+         self._with_flops = with_flops
++        assert not (self._use_cuda and self._use_npu), "use_cuda and use_npu can't be True simultaneously."
  
+     def _build_tree(self):
+         self._populate_cpu_children()
+@@ -232,35 +235,66 @@
+                         else f'" node_id:{evt.node_id}, thread_id:{evt.thread} "',
+                     )
+                 )
+-                for k in evt.kernels:
+-                    # 's' and 'f' draw Flow arrows from
+-                    # the CPU launch to the GPU kernel
+-                    f.write('{"name": "%s", '
+-                            '"ph": "s", '
+-                            '"ts": %s, '
+-                            '"tid": %s, '
+-                            '"pid": "CPU functions", '
+-                            '"id": %s, '
+-                            '"cat": "cpu_to_cuda", '
+-                            '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
+-                                               evt.thread, next_id))
+-                    f.write('{"name": "%s", '
+-                            '"ph": "f", '
+-                            '"ts": %s, '
+-                            '"tid": %s, '
+-                            '"pid": "CUDA functions", '
+-                            '"id": %s, '
+-                            '"cat": "cpu_to_cuda", '
+-                            '"args": {}}, ' % (k.name, k.interval.start, k.device, next_id))
+-                    f.write('{"name": "%s", '
+-                            '"ph": "X", '
+-                            '"ts": %s, '
+-                            '"dur": %s, '
+-                            '"tid": %s, '
+-                            '"pid": "CUDA functions", '
+-                            '"args": {}}, ' % (k.name, k.interval.start,
+-                                               k.interval.elapsed_us(), k.device))
+-                    next_id += 1
++                if self._use_cuda:
++                    for k in evt.kernels:
++                        # 's' and 'f' draw Flow arrows from
++                        # the CPU launch to the GPU kernel
++                        f.write('{"name": "%s", '
++                                '"ph": "s", '
++                                '"ts": %s, '
++                                '"tid": %s, '
++                                '"pid": "CPU functions", '
++                                '"id": %s, '
++                                '"cat": "cpu_to_cuda", '
++                                '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
++                                                evt.thread, next_id))
++                        f.write('{"name": "%s", '
++                                '"ph": "f", '
++                                '"ts": %s, '
++                                '"tid": %s, '
++                                '"pid": "CUDA functions", '
++                                '"id": %s, '
++                                '"cat": "cpu_to_cuda", '
++                                '"args": {}}, ' % (k.name, k.interval.start, k.device, next_id))
++                        f.write('{"name": "%s", '
++                                '"ph": "X", '
++                                '"ts": %s, '
++                                '"dur": %s, '
++                                '"tid": %s, '
++                                '"pid": "CUDA functions", '
++                                '"args": {}}, ' % (k.name, k.interval.start,
++                                                k.interval.elapsed_us(), k.device))
++                        next_id += 1
++                elif self._use_npu:
++                    for k in evt.kernels:
++                        # 's' and 'f' draw Flow arrows from
++                        # the CPU launch to the GPU kernel
++                        f.write('{"name": "%s", '
++                                '"ph": "s", '
++                                '"ts": %s, '
++                                '"tid": %s, '
++                                '"pid": "CPU functions", '
++                                '"id": %s, '
++                                '"cat": "cpu_to_npu", '
++                                '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
++                                                evt.thread, next_id))
++                        f.write('{"name": "%s", '
++                                '"ph": "f", '
++                                '"ts": %s, '
++                                '"tid": %s, '
++                                '"pid": "NPU functions", '
++                                '"id": %s, '
++                                '"cat": "cpu_to_npu", '
++                                '"args": {}}, ' % (k.name, k.interval.start, k.device, next_id))
++                        f.write('{"name": "%s", '
++                                '"ph": "X", '
++                                '"ts": %s, '
++                                '"dur": %s, '
++                                '"tid": %s, '
++                                '"pid": "NPU functions", '
++                                '"args": {}}, ' % (k.name, k.interval.start,
++                                                k.interval.elapsed_us(), k.device))
++                        next_id += 1 
+ 
+             # remove trailing whitespace and comma
+             f.seek(f.tell() - 2, os.SEEK_SET)
+@@ -268,6 +302,8 @@
+             f.write("]")
+ 
+     def supported_export_stacks_metrics(self):
++        if self._use_npu:
++            return ["self_cpu_time_total", "self_npu_time_total"]
+         return ["self_cpu_time_total", "self_cuda_time_total"]
+ 
+     def export_stacks(self, path: str, metric: str):
+@@ -312,11 +348,12 @@
+                 key += event.stack[:group_by_stack_n]
+             return tuple(key)
+         for evt in self:
+-            stats[get_key(evt, group_by_input_shapes, group_by_stack_n)].add(evt)
++            stats[get_key(evt, group_by_input_shapes, group_by_stack_n)].add(evt, self._use_cuda, self._use_npu)
+ 
+         avg_list = EventList(
+             stats.values(),
+             use_cuda=self._use_cuda,
++            use_npu=self._use_npu,
+             profile_memory=self._profile_memory,
+             with_flops=self._with_flops)
+         for evt in avg_list:
+@@ -352,6 +389,9 @@
          use_cuda (bool, optional): Enables timing of CUDA events as well using the cudaEvent API.
              Adds approximately 4us of overhead to each tensor operation.
-+        
-+        use_npu (bool, optional): Enables timing of NPU events as well using the npuEvent API.
-+            Default: ``False``
  
++        use_npu (bool, optional): Enables timing of NPU events as well using the aclEvent API.
++            Adds approximately 4us of overhead to each tensor operation.
++
          record_shapes (bool, optional): If shapes recording is set, information
              about input dimensions will be collected. This allows one to see which
-@@ -415,6 +418,7 @@
+             dimensions have been used under the hood and further group by them
+@@ -415,6 +455,7 @@
              enabled=True,
              *,
              use_cuda=False,
@@ -41831,7 +41980,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              record_shapes=False,
              with_flops=False,
              profile_memory=False,
-@@ -425,6 +429,7 @@
+@@ -425,6 +466,7 @@
          if not self.enabled:
              return
          self.use_cuda = use_cuda
@@ -41839,17 +41988,31 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          self.function_events = None
          self.entered = False
          self.record_shapes = record_shapes
-@@ -453,6 +458,9 @@
+@@ -448,11 +490,15 @@
+                 self.kineto_activities.add(
+                     # uses CUPTI
+                     torch.autograd.ProfilerActivity.CUDA)
++            if self.use_npu:
++                raise TypeError("when use_kineto=True, use_npu should be False.")
+             assert len(self.kineto_activities) > 0, \
+                 "No activities specified for Kineto profiler"
          elif self.use_cuda:
              # legacy CUDA mode
              self.profiler_kind = torch.autograd.ProfilerState.CUDA
 +        elif self.use_npu:
-+            # legacy CUDA mode
 +            self.profiler_kind = torch.autograd.ProfilerState.NPU
          else:
              self.profiler_kind = torch.autograd.ProfilerState.CPU
  
-@@ -815,10 +823,13 @@
+@@ -505,6 +551,7 @@
+         self.function_events = EventList(
+             parsed_results,
+             use_cuda=self.use_cuda,
++            use_npu=self.use_npu,
+             profile_memory=self.profile_memory,
+             with_flops=self.with_flops)
+         self.function_events._build_tree()
+@@ -815,10 +862,13 @@
      """
      cpu_time_str = attr_formatter('cpu_time')
      cuda_time_str = attr_formatter('cuda_time')
@@ -41863,51 +42026,74 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
      @property
      def cpu_time(self):
-@@ -828,6 +839,10 @@
+@@ -828,6 +878,9 @@
      def cuda_time(self):
          return 0.0 if self.count == 0 else 1.0 * self.cuda_time_total / self.count  # type: ignore
  
 +    @property
 +    def npu_time(self):
 +        return 0.0 if self.count == 0 else 1.0 * self.npu_time_total / self.count  # type: ignore
-+
  
  class Interval(object):
      def __init__(self, start, end):
-@@ -929,6 +944,10 @@
-     def cuda_time_total(self):
-         if self.is_async:
-             return 0
-+
-+        if self.device_type == DeviceType.NPU:
-+            return 0.0
-+
-         if self.device_type == DeviceType.CPU:
-             if not self.is_legacy:
-                 # account for the kernels in the children ops
-@@ -940,6 +959,12 @@
-         else:
-             assert self.device_type == DeviceType.CUDA
-             return self.time_range.elapsed_us()
-+    
-+    @property
-+    def npu_time_total(self):
-+        if self.device_type != DeviceType.NPU:
-+            return 0.0
-+        return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
+@@ -845,9 +898,9 @@
+     """Profiling information about a single function."""
+     def __init__(
+             self, id, name, thread, start_us, end_us, fwd_thread=None, input_shapes=None,
+-            stack=None, scope=0, cpu_memory_usage=0, cuda_memory_usage=0, is_async=False,
+-            is_remote=False, sequence_nr=-1, node_id=-1, device_type=DeviceType.CPU, device_index=0,
+-            is_legacy=False, flops=None, trace_name=None):
++            stack=None, scope=0, cpu_memory_usage=0, cuda_memory_usage=0, npu_memory_usage=0,
++            is_async=False, is_remote=False, sequence_nr=-1, node_id=-1, device_type=DeviceType.CPU,
++            device_index=0, is_legacy=False, flops=None, trace_name=None):
+         self.id: int = id
+         self.node_id: int = node_id
+         self.name: str = name
+@@ -864,6 +917,7 @@
+         self.scope: int = scope
+         self.cpu_memory_usage: int = cpu_memory_usage
+         self.cuda_memory_usage: int = cuda_memory_usage
++        self.npu_memory_usage: int = npu_memory_usage
+         self.is_async: bool = is_async
+         self.is_remote: bool = is_remote
+         self.sequence_nr: int = sequence_nr
+@@ -918,6 +972,14 @@
+         )
  
      @property
-     def self_cuda_time_total(self):
-@@ -953,6 +978,17 @@
++    def self_npu_memory_usage(self):
++        if self.is_async or self.device_type != DeviceType.CPU:
++            return 0
++        return self.npu_memory_usage - sum(
++            [child.npu_memory_usage for child in self.cpu_children]
++        )
++
++    @property
+     def self_cpu_time_total(self):
+         if self.is_async or self.device_type != DeviceType.CPU:
+             return 0
+@@ -953,6 +1015,29 @@
              return self.cuda_time_total
  
      @property
++    def npu_time_total(self):
++        if self.is_async:
++            return 0
++        if self.device_type == DeviceType.CPU:
++            assert self.is_legacy, "profiling with NPU only support for legacy."
++            # each legacy cpu events has a single (fake) kernel
++            return sum(kinfo.interval.elapsed_us() for kinfo in self.kernels)
++        else:
++            assert self.device_type == DeviceType.NPU
++            return self.time_range.elapsed_us()
++
++    @property
 +    def self_npu_time_total(self):
 +        if self.is_async:
 +            return 0
 +        if self.device_type == DeviceType.CPU:
-+            return self.cuda_time_total - \
-+                sum([child.cuda_time_total for child in self.cpu_children])
++            return self.npu_time_total - \
++                sum([child.npu_time_total for child in self.cpu_children])
 +        else:
 +            assert(self.device_type == DeviceType.NPU)
 +            return self.npu_time_total
@@ -41916,7 +42102,141 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      def cpu_time_total(self):
          if self.device_type == DeviceType.CPU:
              return self.time_range.elapsed_us()
-@@ -1236,8 +1272,10 @@
+@@ -966,8 +1051,8 @@
+     def __repr__(self):
+         return (
+             '<FunctionEvent id={} name={} device_type={} node_id={} cpu_time={} start_us={} end_us={} '
+-            'cpu_children={} cuda_time={} name={} thread={} input_shapes={} '
+-            'cpu_memory_usage={} cuda_memory_usage={} is_async={} is_remote={} seq_nr={} is_legacy={}>'.format(
++            'cpu_children={} cuda_time={} npu_time={} name={} thread={} input_shapes={} '
++            'cpu_memory_usage={} cuda_memory_usage={} npu_memory_usage={} is_async={} is_remote={} seq_nr={} is_legacy={}>'.format(
+                 self.id,
+                 self.name,
+                 self.device_type,
+@@ -977,11 +1062,13 @@
+                 self.time_range.end,
+                 str([child.id for child in self.cpu_children]),
+                 self.cuda_time_str,
++                self.npu_time_str,
+                 self.name,
+                 self.thread,
+                 str(self.input_shapes),
+                 self.cpu_memory_usage,
+                 self.cuda_memory_usage,
++                self.npu_memory_usage,
+                 self.is_async,
+                 self.is_remote,
+                 self.sequence_nr,
+@@ -998,24 +1085,32 @@
+         self.node_id: int = 0
+         self.is_async: bool = False
+         self.is_remote: bool = False
++        self.use_cuda = True
++        self.use_npu = False
+         self.cpu_time_total: int = 0
+         self.cuda_time_total: int = 0
++        self.npu_time_total: int = 0
+         self.self_cpu_time_total: int = 0
+         self.self_cuda_time_total: int = 0
++        self.self_npu_time_total: int = 0
+         self.input_shapes: Optional[List[List[int]]] = None
+         self.stack: Optional[List] = None
+         self.scope: Optional[int] = None
+         self.cpu_memory_usage: int = 0
+         self.cuda_memory_usage: int = 0
++        self.npu_memory_usage: int = 0
+         self.self_cpu_memory_usage: int = 0
+         self.self_cuda_memory_usage: int = 0
++        self.self_npu_memory_usage: int = 0
+         self.cpu_children: Optional[List[FunctionEvent]] = None
+         self.cpu_parent: Optional[FunctionEvent] = None
+         self.device_type: DeviceType = DeviceType.CPU
+         self.is_legacy: bool = False
+         self.flops: float = 0.0
+ 
+-    def add(self, other):
++    def add(self, other, use_cuda=True, use_npu=False):
++        self.use_cuda = use_cuda
++        self.use_npu = use_npu
+         if self.key is None:
+             # First function being recorded as part of FunctionEventAvg, propagate
+             # fields.
+@@ -1035,14 +1130,20 @@
+         assert isinstance(other, (FunctionEvent, FunctionEventAvg))
+         assert other.key == self.key
+         self.cpu_time_total += other.cpu_time_total
+-        self.cuda_time_total += other.cuda_time_total
+         self.self_cpu_time_total += other.self_cpu_time_total
+-        self.self_cuda_time_total += other.self_cuda_time_total
+         self.cpu_memory_usage += other.cpu_memory_usage
+-        self.cuda_memory_usage += other.cuda_memory_usage
+         self.self_cpu_memory_usage += other.self_cpu_memory_usage
+-        self.self_cuda_memory_usage += other.self_cuda_memory_usage
+         self.count += other.count
++        if self.use_cuda:
++            self.cuda_time_total += other.cuda_time_total
++            self.self_cuda_time_total += other.self_cuda_time_total
++            self.cuda_memory_usage += other.cuda_memory_usage
++            self.self_cuda_memory_usage += other.self_cuda_memory_usage   
++        elif self.use_npu:
++            self.npu_time_total += other.npu_time_total
++            self.self_npu_time_total += other.self_npu_time_total
++            self.npu_memory_usage += other.npu_memory_usage
++            self.self_npu_memory_usage += other.self_npu_memory_usage
+         if self.flops is None:
+             self.flops = other.flops
+         elif other.flops is not None:
+@@ -1053,20 +1154,36 @@
+         return self.add(other)
+ 
+     def __repr__(self):
+-        return (
+-            '<FunctionEventAvg key={} self_cpu_time={} cpu_time={} '
+-            ' self_cuda_time={} cuda_time={} input_shapes={} '
+-            'cpu_memory_usage={} cuda_memory_usage={}>'.format(
+-                self.key,
+-                self.self_cpu_time_total_str,
+-                self.cpu_time_str,
+-                self.self_cuda_time_total_str,
+-                self.cuda_time_str,
+-                str(self.input_shapes),
+-                self.cpu_memory_usage,
+-                self.cuda_memory_usage,
++        if self.use_cuda:
++            return (
++                '<FunctionEventAvg key={} self_cpu_time={} cpu_time={} '
++                ' self_cuda_time={} cuda_time={} input_shapes={} '
++                'cpu_memory_usage={} cuda_memory_usage={}>'.format(
++                    self.key,
++                    self.self_cpu_time_total_str,
++                    self.cpu_time_str,
++                    self.self_cuda_time_total_str,
++                    self.cuda_time_str,
++                    str(self.input_shapes),
++                    self.cpu_memory_usage,
++                    self.cuda_memory_usage,
++                )
+             )
+-        )
++        elif self.use_npu:
++            return (
++                '<FunctionEventAvg key={} self_cpu_time={} cpu_time={} '
++                ' self_npu_time={} npu_time={} input_shapes={} '
++                'cpu_memory_usage={} npu_memory_usage={}>'.format(
++                    self.key,
++                    self.self_cpu_time_total_str,
++                    self.cpu_time_str,
++                    self.self_npu_time_total_str,
++                    self.npu_time_str,
++                    str(self.input_shapes),
++                    self.cpu_memory_usage,
++                    self.npu_memory_usage,
++                )
++            )           
+ 
+ 
+ ################################################################################
+@@ -1236,19 +1353,25 @@
      next_id = 0
      start_record = None
      cuda_records = {}
@@ -41927,81 +42247,165 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
      # cuda start events and the overall profiler start event don't happen
      # at exactly the same time because we need to record an event on each device
-@@ -1247,8 +1285,12 @@
-     def adjusted_time(cuda_record, cuda_records_map):
-         assert cuda_record.device() != -1
+     # and each record takes ~4us. So we adjust here by the difference
+     # adding the difference in CPU time between the profiler start event
+     # and the CPU time of the cuda start event for the device
+-    def adjusted_time(cuda_record, cuda_records_map):
+-        assert cuda_record.device() != -1
++    def adjusted_time(device_record, device_records_map):
++        assert device_record.device() != -1
          assert start_record is not None
 -        cuda_time_0 = cuda_records_map[(cuda_record.node_id(), cuda_record.device())]
 -        return cuda_time_0.cuda_elapsed_us(cuda_record) + start_record.cpu_elapsed_us(cuda_time_0)
-+        if cuda_record.has_cuda():
-+            cuda_time_0 = cuda_records_map[(cuda_record.node_id(), cuda_record.device())]
-+            return cuda_time_0.cuda_elapsed_us(cuda_record) + start_record.cpu_elapsed_us(cuda_time_0)
-+        elif cuda_record.has_npu():
-+            npu_time_0 = cuda_records_map[(cuda_record.node_id(), cuda_record.device())]
-+            return npu_time_0.npu_elapsed_us(cuda_record) + start_record.cpu_elapsed_us(npu_time_0)
++        if device_record.has_cuda():
++            cuda_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
++            return cuda_time_0.cuda_elapsed_us(device_record) + start_record.cpu_elapsed_us(cuda_time_0)
++        elif device_record.has_npu():
++            npu_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
++            return npu_time_0.npu_elapsed_us(device_record) + start_record.cpu_elapsed_us(npu_time_0) 
  
      # '__start_profile' is not guaranteed to be first, so we must find it here
      for record in itertools.chain(*thread_records):
-@@ -1263,6 +1305,10 @@
+@@ -1261,6 +1384,14 @@
+             # key for cuda_records is (node_id, device) in case of multiple nodes
+             # having the same device
              cuda_records[(record.node_id(), record.device())] = record
++            profiler_type = DeviceType.CUDA
++        elif '__npu_start_event' in name:
++            # N.B.: Each NPU device has its own __npu_start_event.
++            assert record.device() != -1
++            # key for npu_records is (node_id, device) in case of multiple nodes
++            # having the same device
++            npu_records[(record.node_id(), record.device())] = record
++            profiler_type = DeviceType.NPU
  
      assert start_record is not None and not start_record.is_remote()
-+    if len(npu_records) >= 1:
-+        profiler_type = DeviceType.NPU
-+    elif len(cuda_records) >= 1:
-+        profiler_type = DeviceType.CUDA
  
-     for thread_record_list in thread_records:
+@@ -1268,6 +1399,7 @@
          # accumulated memory allocations per handle
-@@ -1343,6 +1389,13 @@
+         cpu_memory_allocs = {}
+         cuda_memory_allocs = {}
++        npu_memory_allocs = {}
+         # ranges per handle
+         range_starts = {}
+ 
+@@ -1296,6 +1428,7 @@
+                 range_starts[record_key] = record
+                 cpu_memory_allocs[record_key] = 0
+                 cuda_memory_allocs[record_key] = 0
++                npu_memory_allocs[record_key] = 0
+             elif record.kind() == 'pop':
+                 assert (
+                     record_key in range_starts
+@@ -1308,6 +1441,7 @@
+ 
+                 cpu_memory_usage = cpu_memory_allocs[record_key]
+                 cuda_memory_usage = cuda_memory_allocs[record_key]
++                npu_memory_usage = npu_memory_allocs[record_key]
+                 is_async = start.thread_id() != record.thread_id()
+                 is_remote_event = record.is_remote()
+                 start_flops = start.flops()
+@@ -1326,6 +1460,7 @@
+                     scope=start.scope(),
+                     cpu_memory_usage=cpu_memory_usage,
+                     cuda_memory_usage=cuda_memory_usage,
++                    npu_memory_usage=npu_memory_usage,
+                     is_async=is_async,
+                     is_remote=is_remote_event,
+                     sequence_nr=start.sequence_nr(),
+@@ -1343,10 +1478,20 @@
                              start.device(),
                              cuda_start,
                              cuda_end)
-+                elif start.has_npu():
++                elif not is_async and start.has_npu():
 +                    npu_start = adjusted_time(start, npu_records)
 +                    npu_end = adjusted_time(record, npu_records)
-+                    fe.append_kernel(start.name(),
-+                                     start.device(),
-+                                     npu_start,
-+                                     npu_end)
++                    if (npu_end - npu_start) > 0:
++                        fe.append_kernel(
++                            start.name(),
++                            start.device(),
++                            npu_start,
++                            npu_end)
                  functions.append(fe)
                  del range_starts[record_key]
                  del cpu_memory_allocs[record_key]
-@@ -1379,6 +1432,11 @@
+                 del cuda_memory_allocs[record_key]
++                del npu_memory_allocs[record_key]
+             elif record.kind() == 'memory_alloc':
+                 num_open_handles_cpu = len(cpu_memory_allocs)
+                 num_open_handles_cuda = len(cuda_memory_allocs)
+@@ -1355,6 +1500,8 @@
+                     cpu_memory_allocs[handle] += record.cpu_memory_usage()
+                 for handle in cuda_memory_allocs.keys():
+                     cuda_memory_allocs[handle] += record.cuda_memory_usage()
++                for handle in npu_memory_allocs.keys():
++                    npu_memory_allocs[handle] += record.npu_memory_usage()
+                 if num_open_handles_cpu == 0:
+                     # output event as a top-level memory event
+                     fe = FunctionEvent(
+@@ -1367,6 +1514,7 @@
+                         stack=[],
+                         cpu_memory_usage=record.cpu_memory_usage(),
+                         cuda_memory_usage=record.cuda_memory_usage(),
++                        npu_memory_usage=record.npu_memory_usage(),
+                         is_legacy=True,
+                     )
+                     functions.append(fe)
+@@ -1379,6 +1527,10 @@
      # the outermost nested call first. This adds stability
      # in how FunctionEvents appear
      functions.sort(key=lambda evt: [evt.time_range.start, -evt.time_range.end])
-+
 +    if profiler_type == DeviceType.NPU:
-+      for record in itertools.chain(*thread_records):
-+          if record.has_npu():
-+              record.npu_destroy_event()
++        for record in itertools.chain(*thread_records):
++            if record.has_npu():
++                record.npu_destropy_event()
      return functions
  
  
-@@ -1479,6 +1537,7 @@
-         return ""
+@@ -1480,13 +1632,15 @@
  
      has_cuda_time = any([event.self_cuda_time_total > 0 for event in events])
-+    has_npu_time = any([event.self_npu_time_total > 0 for event in events])
      has_cuda_mem = any([event.self_cuda_memory_usage > 0 for event in events])
++    has_npu_time = any([event.self_npu_time_total > 0 for event in events])
++    has_npu_mem = any([event.self_npu_memory_usage > 0 for event in events])
      has_input_shapes = any(
          [(event.input_shapes is not None and len(event.input_shapes) > 0) for event in events])
-@@ -1516,6 +1575,13 @@
-         'CPU total',
-         'CPU time avg',
-     ]
-+    
+ 
+     if sort_by is not None:
+         events = EventList(sorted(
+             events, key=lambda evt: getattr(evt, sort_by), reverse=True
+-        ), use_cuda=has_cuda_time, profile_memory=profile_memory, with_flops=with_flops)
++        ), use_cuda=has_cuda_time, use_npu=has_npu_time, profile_memory=profile_memory, with_flops=with_flops)
+ 
+     MAX_NAME_COLUMN_WIDTH = 55
+     name_column_width = max([len(evt.key) for evt in events]) + 4
+@@ -1523,6 +1677,13 @@
+             'CUDA total',
+             'CUDA time avg',
+         ])
 +    if has_npu_time:
 +        headers.extend([
-+            'NPU total %',
++            'Self NPU',
++            'Self NPU %',
 +            'NPU total',
 +            'NPU time avg',
 +        ])
-     if has_cuda_time:
+     if profile_memory:
          headers.extend([
-             'Self CUDA',
-@@ -1611,6 +1677,7 @@
+             'CPU Mem',
+@@ -1533,6 +1694,11 @@
+                 'CUDA Mem',
+                 'Self CUDA Mem',
+             ])
++        if has_npu_mem:
++            headers.extend([
++                'NPU Mem',
++                'Self NPU Mem',
++            ])
+     headers.append(
+         '# of Calls'
+     )
+@@ -1611,14 +1777,19 @@
  
      sum_self_cpu_time_total = sum([event.self_cpu_time_total for event in events])
      sum_self_cuda_time_total = 0
@@ -42009,7 +42413,9 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      for evt in events:
          if evt.device_type == DeviceType.CPU:
              # in legacy profiler, kernel info is stored in cpu events
-@@ -1619,6 +1686,9 @@
+             if evt.is_legacy:
+                 sum_self_cuda_time_total += evt.self_cuda_time_total
++                sum_self_npu_time_total += evt.self_npu_time_total
          elif evt.device_type == DeviceType.CUDA:
              # in kineto profiler, there're events with the correct device type (e.g. CUDA)
              sum_self_cuda_time_total += evt.self_cuda_time_total
@@ -42019,32 +42425,45 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
      # Actual printing
      if header is not None:
-@@ -1670,6 +1740,14 @@
+@@ -1670,6 +1841,14 @@
                  evt.cuda_time_total_str,
                  evt.cuda_time_str,  # Cuda time avg
              ])
 +        if has_npu_time:
 +            row_values.extend([
-+                evt.self_cuda_time_total_str,
++                evt.self_npu_time_total_str,
 +                # NPU time total %
 +                format_time_share(evt.self_npu_time_total, sum_self_npu_time_total),
 +                evt.npu_time_total_str,
-+                evt.npu_time_str,  # NPU time avg
++                evt.npu_time_str,  # Npu time avg
 +            ])
          if profile_memory:
              row_values.extend([
                  # CPU Mem Total
-@@ -1714,5 +1792,7 @@
-     append(header_sep)
+@@ -1684,6 +1863,13 @@
+                     # Self CUDA Mem Total
+                     format_memory(evt.self_cuda_memory_usage),
+                 ])
++            if has_npu_mem:
++                row_values.extend([
++                    # NPU Mem Total
++                    format_memory(evt.npu_memory_usage),
++                    # Self NPU Mem Total
++                    format_memory(evt.self_npu_memory_usage),
++                ])
+         row_values.append(
+             evt.count,  # Number of calls
+         )
+@@ -1715,4 +1901,6 @@
      append("Self CPU time total: {}".format(format_time(sum_self_cpu_time_total)))
      if has_cuda_time:
-+        append("NPU time total: {}".format(format_time(sum_self_npu_time_total)))
-+    if has_cuda_time:
          append("Self CUDA time total: {}".format(format_time(sum_self_cuda_time_total)))
++    if has_npu_time:
++        append("Self NPU time total: {}".format(format_time(sum_self_npu_time_total)))
      return ''.join(result)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_C/_autograd.pyi pytorch-develop-181/torch/_C/_autograd.pyi
 --- pytorch-v1.8.1/torch/_C/_autograd.pyi	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/_C/_autograd.pyi	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/_C/_autograd.pyi	2021-10-19 12:02:14.431107115 +0800
 @@ -9,14 +9,17 @@
      CUDA = ...
      NVTX = ...
@@ -42065,7 +42484,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  class ProfilerConfig:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/CMakeLists.txt pytorch-develop-181/torch/CMakeLists.txt
 --- pytorch-v1.8.1/torch/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/CMakeLists.txt	2021-10-18 12:00:48.266545248 +0800
++++ pytorch-develop-181/torch/CMakeLists.txt	2021-10-19 12:02:14.431107115 +0800
 @@ -131,6 +131,20 @@
  
  endif()
@@ -42089,7 +42508,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      list(APPEND TORCH_PYTHON_SRCS ${GENERATED_THNN_CXX_CUDA})
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/engine.cpp pytorch-develop-181/torch/csrc/autograd/engine.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/engine.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/autograd/engine.cpp	2021-10-18 12:00:48.274545269 +0800
++++ pytorch-develop-181/torch/csrc/autograd/engine.cpp	2021-10-19 12:02:14.439107140 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42186,7 +42605,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto outputs = call_function(graph_task, func, inputs);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp pytorch-develop-181/torch/csrc/autograd/functions/tensor.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/autograd/functions/tensor.cpp	2021-10-18 12:00:48.278545279 +0800
++++ pytorch-develop-181/torch/csrc/autograd/functions/tensor.cpp	2021-10-19 12:02:14.439107140 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42216,9 +42635,43 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          grad_inputs[1] = grad.to(
              src_options,
              /*non_blocking=*/false,
+diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/init.cpp pytorch-develop-181/torch/csrc/autograd/init.cpp
+--- pytorch-v1.8.1/torch/csrc/autograd/init.cpp	2021-03-24 10:28:21.000000000 +0800
++++ pytorch-develop-181/torch/csrc/autograd/init.cpp	2021-10-19 12:02:14.439107140 +0800
+@@ -52,6 +52,7 @@
+       .value("Disabled", ProfilerState::Disabled)
+       .value("CPU", ProfilerState::CPU)
+       .value("CUDA", ProfilerState::CUDA)
++      .value("NPU", ProfilerState::NPU)
+       .value("NVTX", ProfilerState::NVTX)
+       .value("KINETO", ProfilerState::KINETO);
+ 
+@@ -70,10 +71,14 @@
+       .def("device", &LegacyEvent::device)
+       .def("cpu_elapsed_us", &LegacyEvent::cpuElapsedUs)
+       .def("cuda_elapsed_us", &LegacyEvent::cudaElapsedUs)
++      .def("npu_elapsed_us", &LegacyEvent::npuElapsedUs)
++      .def("npu_destropy_event", &LegacyEvent::npu_destropy_event)
+       .def("has_cuda", &LegacyEvent::hasCuda)
++      .def("has_npu", &LegacyEvent::hasNpu)
+       .def("shapes", &LegacyEvent::shapes)
+       .def("cpu_memory_usage", &LegacyEvent::cpuMemoryUsage)
+       .def("cuda_memory_usage", &LegacyEvent::cudaMemoryUsage)
++      .def("npu_memory_usage", &LegacyEvent::npuMemoryUsage)
+       .def("handle", &LegacyEvent::handle)
+       .def("node_id", &LegacyEvent::nodeId)
+       .def("is_remote", &LegacyEvent::isRemote)
+@@ -87,6 +92,7 @@
+   py::enum_<c10::DeviceType>(m, "DeviceType")
+       .value("CPU", c10::DeviceType::CPU)
+       .value("CUDA", c10::DeviceType::CUDA)
++      .value("NPU", c10::DeviceType::NPU)
+       .value("MKLDNN", c10::DeviceType::MKLDNN)
+       .value("OPENGL", c10::DeviceType::OPENGL)
+       .value("OPENCL", c10::DeviceType::OPENCL)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp pytorch-develop-181/torch/csrc/autograd/input_buffer.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/autograd/input_buffer.cpp	2021-10-18 12:00:48.278545279 +0800
++++ pytorch-develop-181/torch/csrc/autograd/input_buffer.cpp	2021-10-19 12:02:14.439107140 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42268,9 +42721,412 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
  
    auto& old_var = buffer[pos];
+diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.cpp pytorch-develop-181/torch/csrc/autograd/profiler_legacy.cpp
+--- pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.cpp	2021-03-24 10:28:21.000000000 +0800
++++ pytorch-develop-181/torch/csrc/autograd/profiler_legacy.cpp	2021-10-19 12:02:14.439107140 +0800
+@@ -147,7 +147,7 @@
+ constexpr const CUDAStubs* default_stubs_addr = &default_stubs;
+ // Constant initialization, so it is guaranteed to be initialized before
+ // static initialization calls which may invoke registerCUDAMethods
+-inline const CUDAStubs*& cuda_stubs() {
++inline const CUDAStubs*& device_stubs() {
+   static const CUDAStubs* stubs_ = default_stubs_addr;
+   return stubs_;
+ }
+@@ -175,18 +175,19 @@
+   return result;
+ }
+ 
+-void ProfilerThreadLocalState::mark(std::string name, bool include_cuda) {
++void ProfilerThreadLocalState::mark(std::string name, bool include_device) {
+   if (config_.state == ProfilerState::Disabled) {
+     return;
+   }
+   if (config_.state == ProfilerState::NVTX) {
+-    cuda_stubs()->nvtxMarkA(name.c_str());
++    device_stubs()->nvtxMarkA(name.c_str());
+   } else {
+     LegacyEvent evt(
+         EventKind::Mark,
+         at::StringView(std::move(name)),
+         at::RecordFunction::currentThreadId(),
+-        include_cuda && config_.state == ProfilerState::CUDA);
++        include_device && (config_.state == ProfilerState::CUDA || config_.state == ProfilerState::NPU),
++        config_.state);
+     evt.setNodeId(at::RecordFunction::getDefaultNodeId());
+     getEventList().record(std::move(evt));
+   }
+@@ -205,21 +206,22 @@
+ 
+ void ProfilerThreadLocalState::pushRange(
+     const at::RecordFunction& fn,
+-    const bool record_cuda,
++    const bool record_device,
+     const char* msg,
+     std::vector<std::vector<int64_t>>&& shapes) {
+   if (config_.state == ProfilerState::Disabled) {
+     return;
+   }
+   if (config_.state == ProfilerState::NVTX) {
+-    cuda_stubs()->nvtxRangePushA(getNvtxStr(
++    device_stubs()->nvtxRangePushA(getNvtxStr(
+         fn.name(), msg, fn.seqNr(), shapes).c_str());
+   } else {
+     LegacyEvent evt(
+         EventKind::PushRange,
+         fn.name(),
+         at::RecordFunction::currentThreadId(),
+-        record_cuda,
++        record_device,
++        config_.state,
+         fn.handle(),
+         std::move(shapes),
+         at::RecordFunction::getDefaultNodeId());
+@@ -245,12 +247,12 @@
+   }
+ }
+ 
+-void ProfilerThreadLocalState::popRange(const at::RecordFunction& fn, const bool record_cuda) {
++void ProfilerThreadLocalState::popRange(const at::RecordFunction& fn, const bool record_device) {
+   if (config_.state == ProfilerState::Disabled) {
+     return;
+   }
+   if (config_.state == ProfilerState::NVTX) {
+-    cuda_stubs()->nvtxRangePop();
++    device_stubs()->nvtxRangePop();
+   } else {
+     // In some cases RecordFunction (and popRange) may be
+     // called on a different thread than pushRange
+@@ -260,7 +262,8 @@
+         EventKind::PopRange,
+         at::StringView(""),
+         at::RecordFunction::currentThreadId(),
+-        record_cuda,
++        record_device,
++        config_.state,
+         fn.handle());
+     evt.setNodeId(at::RecordFunction::getDefaultNodeId());
+     getEventList(fn.threadId()).record(std::move(evt));
+@@ -277,7 +280,8 @@
+         EventKind::MemoryAlloc,
+         at::StringView(""),
+         thread_id,
+-        config_.state == ProfilerState::CUDA);
++        config_.state == ProfilerState::CUDA || config_.state == ProfilerState::NPU,
++        config_.state);
+     evt.updateMemoryStats(alloc_size, device);
+     getEventList(thread_id).record(std::move(evt));
+   }
+@@ -425,6 +429,8 @@
+         }
+         bool record_cuda =
+             state_ptr->config().state == ProfilerState::CUDA;
++        bool record_npu =
++            state_ptr->config().state == ProfilerState::NPU;
+         if (record_cuda && disable_cuda_profiling.find(fn.name().str()) != disable_cuda_profiling.end()) {
+           record_cuda = false;
+         }
+@@ -432,9 +438,9 @@
+         auto* msg = (fn.seqNr() >= 0) ? ", seq = " : "";
+         if (state_ptr->config().report_input_shapes) {
+           auto sizes = inputSizes(fn);
+-          state_ptr->pushRange(fn, record_cuda, msg, std::move(sizes));
++          state_ptr->pushRange(fn, record_cuda || record_npu, msg, std::move(sizes));
+         } else {
+-          state_ptr->pushRange(fn, record_cuda, msg);
++          state_ptr->pushRange(fn, record_cuda || record_npu, msg);
+         }
+ 
+         return nullptr;
+@@ -446,10 +452,12 @@
+         }
+         bool record_cuda =
+             state_ptr->config().state == ProfilerState::CUDA;
++        bool record_npu =
++            state_ptr->config().state == ProfilerState::NPU;
+         if (record_cuda && disable_cuda_profiling.find(fn.name().str()) != disable_cuda_profiling.end()) {
+           record_cuda = false;
+         }
+-        state_ptr->popRange(fn, record_cuda);
++        state_ptr->popRange(fn, record_cuda || record_npu);
+       })
+     .needsInputs(state_ptr->config().report_input_shapes)
+     .needsIds(true));
+@@ -457,11 +465,12 @@
+ }
+ 
+ const int kCUDAWarmupStart = 5;
++const int kNPUWarmupStart = 5;
+ 
+ } // namespace
+ 
+ void registerCUDAMethods(CUDAStubs* stubs) {
+-  cuda_stubs() = stubs;
++  device_stubs() = stubs;
+ }
+ 
+ at::IValue ProfilerConfig::toIValue() const {
+@@ -505,7 +514,7 @@
+ }
+ 
+ void enableProfilerLegacy(const ProfilerConfig& new_config) {
+-  TORCH_CHECK(new_config.state != ProfilerState::NVTX || cuda_stubs()->enabled(),
++  TORCH_CHECK(new_config.state != ProfilerState::NVTX || device_stubs()->enabled(),
+     "Can't use NVTX profiler - PyTorch was compiled without CUDA");
+ 
+   TORCH_CHECK(new_config.state != ProfilerState::KINETO);
+@@ -521,19 +530,36 @@
+     // event recording appears to have some startup overhead, so we need to
+     // to generate some dummy events first before recording synchronization events
+     for (int idx = 0; idx < kCUDAWarmupStart; ++idx) {
+-      cuda_stubs()->onEachDevice([state](int /* unused */) {
++      device_stubs()->onEachDevice([state](int /* unused */) {
+           state->mark("__cuda_startup");
+-          cuda_stubs()->synchronize();
++          device_stubs()->synchronize();
+       });
+     }
+ 
+     // cuda events must be on the same device, so we need a start event recorded
+     // for each gpu. we then use this event to synchronize time on the GPU
+     // with the CPU clock.
+-    cuda_stubs()->onEachDevice([state](int d) {
++    device_stubs()->onEachDevice([state](int d) {
+         state->mark("__cuda_start_event");
+     });
+   }
++  else if (new_config.state == ProfilerState::NPU) {
++    // event recording appears to have some startup overhead, so we need to
++    // to generate some dummy events first before recording synchronization events
++    for (int idx = 0; idx < kNPUWarmupStart; ++idx) {
++      device_stubs()->onEachDevice([state](int /* unused */) {
++          state->mark("__npu_startup");
++          device_stubs()->synchronize();
++      });
++    }
++
++    // npu events must be on the same device, so we need a start event recorded
++    // for each npu. we then use this event to synchronize time on the NPU
++    // with the CPU clock.
++    device_stubs()->onEachDevice([state](int d) {
++        state->mark("__npu_start_event");
++    });
++  }
+   state->mark("__start_profile", false);
+ }
+ 
+@@ -571,10 +597,13 @@
+   state_ptr->setOrAddRemoteProfiledEvents(std::move(profiledEvents));
+ }
+ 
+-void LegacyEvent::record(bool record_cuda) {
+-  if (record_cuda) {
+-    cuda_stubs()->record(&device_, &cuda_event, &cpu_ns_);
++void LegacyEvent::record(bool record_device) {
++  if (record_device && state_ == ProfilerState::CUDA) {
++    device_stubs()->record(&device_, &cuda_event, &cpu_ns_);
+     return;
++  } else if (record_device && state_ == ProfilerState::NPU) {
++    device_stubs()->record(&device_, &npu_event, &cpu_ns_);
++    return;  
+   }
+   cpu_ns_ = getTime();
+ }
+@@ -666,6 +695,22 @@
+   return at::IValue(eventIValueList);
+ }
+ 
++double LegacyEvent::npuElapsedUs(const LegacyEvent& e) const {
++  TORCH_CHECK(e.hasNpu() && hasNpu(), "Events were not recorded for NPU");
++  TORCH_CHECK(
++      e.device() == device(),
++      c10::str(
++          "Events are not on the same device: ", e.device(), " vs ", device()));
++  return device_stubs()->elapsed(npu_event, e.npu_event);
++}
++
++void  LegacyEvent::npu_destropy_event() {
++  if (!hasNpu()) {
++    throw std::logic_error("Events were not recorded for NPU");
++  }
++  device_stubs()->npu_destropy_event(npu_event);
++}
++
+ double LegacyEvent::cudaElapsedUs(const LegacyEvent& e) const {
+   TORCH_CHECK(e.hasCuda() && hasCuda(), "Events were not recorded for CUDA");
+   TORCH_CHECK(
+@@ -677,7 +722,7 @@
+     TORCH_INTERNAL_ASSERT(cuda_us_ >= 0 && e.cuda_us_ >= 0);
+     return static_cast<double>(e.cuda_us_ - cuda_us_);
+   }
+-  return cuda_stubs()->elapsed(&cuda_event, &e.cuda_event);
++  return device_stubs()->elapsed(&cuda_event, &e.cuda_event);
+ }
+ 
+ CUDAStubs::~CUDAStubs() = default;
+diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.h pytorch-develop-181/torch/csrc/autograd/profiler_legacy.h
+--- pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.h	2021-03-24 10:28:21.000000000 +0800
++++ pytorch-develop-181/torch/csrc/autograd/profiler_legacy.h	2021-10-19 12:02:14.439107140 +0800
+@@ -19,6 +19,8 @@
+ #include <sys/time.h> // for gettimeofday()
+ #endif
+ 
++#include <third_party/acl/inc/acl/acl.h>
++
+ #include <ATen/record_function.h>
+ 
+ #include <torch/csrc/jit/frontend/source_range.h>
+@@ -32,14 +34,35 @@
+ 
+ namespace profiler {
+ 
++enum class C10_API_ENUM ProfilerState {
++  Disabled = 0,
++  CPU, // CPU-only profiling
++  CUDA, // CPU + CUDA events
++  NPU, // CPU + NPU events
++  NVTX,  // only emit NVTX markers
++  KINETO, // use libkineto
++  NUM_PROFILER_STATES, // must be the last one
++};
++
+ struct TORCH_API CUDAStubs {
+   virtual void record(int* device, CUDAEventStub* event, int64_t* cpu_ns) const {
+     fail();
+   }
++  virtual void record(int* device, aclrtEvent* event, int64_t* cpu_ns) const {
++    fail();
++  }
+   virtual float elapsed(const CUDAEventStub* event, const CUDAEventStub* event2) const {
+     fail();
+     return 0.f;
+   }
++  virtual float elapsed(const aclrtEvent& event1, const aclrtEvent& event2) const {
++    fail();
++    return 0.f;
++  }
++  virtual void npu_destropy_event(aclrtEvent event) const {
++    fail();
++    return;
++  }
+   virtual void nvtxMarkA(const char* name) const {
+     fail();
+   }
+@@ -104,7 +127,8 @@
+       EventKind kind,
+       at::StringView name,
+       uint16_t thread_id,
+-      bool record_cuda,
++      bool record_device,
++      ProfilerState state = ProfilerState::CPU,
+       at::RecordFunctionHandle handle = 0,
+       std::vector<std::vector<int64_t>>&& shapes = {},
+       int node_id = -1)
+@@ -113,8 +137,9 @@
+         thread_id_(thread_id),
+         handle_(handle),
+         shapes_(shapes),
+-        node_id_(node_id) {
+-    record(record_cuda);
++        node_id_(node_id),
++        state_(state) {
++    record(record_device);
+   }
+ 
+   // Constructor to be used in conjunction with LegacyEvent::fromIValue.
+@@ -159,7 +184,7 @@
+   // Reconstructs an event from IValues given by toIValue.
+   static LegacyEvent fromIValue(const at::IValue& eventIValue);
+ 
+-  void record(bool record_cuda);
++  void record(bool record_device);
+ 
+   std::string kindStr() const {
+     switch (kind_) {
+@@ -201,6 +226,14 @@
+     return cuda_event != nullptr || (isRemote() && device_ != -1);
+   }
+ 
++  double npuElapsedUs(const LegacyEvent& e) const;
++
++  void  npu_destropy_event();
++
++  bool hasNpu() const {
++    return npu_event != nullptr || (state_ == ProfilerState::NPU && device_ != -1);
++  }
++
+   int device() const {
+     return device_;
+   }
+@@ -213,7 +246,9 @@
+         device.type() == c10::DeviceType::MKLDNN ||
+         device.type() == c10::DeviceType::IDEEP) {
+       cpu_memory_usage_ = alloc_size;
+-    } else {
++    } else if (device.type() == c10::DeviceType::NPU) {
++        npu_memory_usage_ = alloc_size;
++    }else {
+       LOG(WARNING) << "Unsupported memory profiling device: " << device;
+     }
+   }
+@@ -226,6 +261,10 @@
+     return cuda_memory_usage_;
+   }
+ 
++  int64_t npuMemoryUsage() const {
++    return npu_memory_usage_;
++  }
++
+   at::RecordFunctionHandle handle() const {
+     return handle_;
+   }
+@@ -311,6 +350,7 @@
+  private:
+   // signed to allow for negative intervals, initialized for safety.
+   int64_t cpu_ns_ = 0;
++  ProfilerState state_;
+   at::StringView name_;
+   EventKind kind_;
+   uint64_t thread_id_;
+@@ -319,8 +359,10 @@
+   std::vector<std::vector<int64_t>> shapes_;
+   int64_t cpu_memory_usage_ = 0;
+   int64_t cuda_memory_usage_ = 0;
++  int64_t npu_memory_usage_ = 0;
+   int device_ = -1;
+   CUDAEventStub cuda_event = nullptr;
++  aclrtEvent npu_event = nullptr;
+   int node_id_ = 0;
+   bool is_remote_ = false;
+   int64_t cuda_us_ = -1;
+@@ -373,15 +415,6 @@
+   static const size_t kReservedCapacity = 1024;
+ };
+ 
+-enum class C10_API_ENUM ProfilerState {
+-  Disabled = 0,
+-  CPU, // CPU-only profiling
+-  CUDA, // CPU + CUDA events
+-  NVTX,  // only emit NVTX markers
+-  KINETO, // use libkineto
+-  NUM_PROFILER_STATES, // must be the last one
+-};
+-
+ struct TORCH_API ProfilerConfig {
+   ProfilerConfig(
+       ProfilerState state,
+@@ -512,7 +545,7 @@
+ 
+   thread_event_lists consolidate();
+ 
+-  void mark(std::string name, bool include_cuda = true);
++  void mark(std::string name, bool include_device = true);
+ 
+   void setOrAddRemoteProfiledEvents(
+       std::vector<LegacyEvent>&& remoteProfiledEvents);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/python_variable.cpp pytorch-develop-181/torch/csrc/autograd/python_variable.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/python_variable.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/autograd/python_variable.cpp	2021-10-18 12:00:48.278545279 +0800
++++ pytorch-develop-181/torch/csrc/autograd/python_variable.cpp	2021-10-19 12:02:14.439107140 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42324,7 +43180,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"is_mkldnn", (getter)THPVariable_is_mkldnn, nullptr, nullptr, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp pytorch-develop-181/torch/csrc/autograd/python_variable_indexing.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/autograd/python_variable_indexing.cpp	2021-10-18 12:00:48.278545279 +0800
++++ pytorch-develop-181/torch/csrc/autograd/python_variable_indexing.cpp	2021-10-19 12:02:14.439107140 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42357,7 +43213,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/distributed/c10d/init.cpp pytorch-develop-181/torch/csrc/distributed/c10d/init.cpp
 --- pytorch-v1.8.1/torch/csrc/distributed/c10d/init.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/distributed/c10d/init.cpp	2021-10-18 12:00:48.282545290 +0800
++++ pytorch-develop-181/torch/csrc/distributed/c10d/init.cpp	2021-10-19 12:02:14.443107153 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42524,7 +43380,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      torch::class_<::c10d::DistributedC10d>("dist_c10d", "frontend")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp pytorch-develop-181/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/DynamicTypes.cpp	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/csrc/DynamicTypes.cpp	2021-10-19 12:02:14.435107128 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42573,7 +43429,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return it->second;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/Generator.cpp pytorch-develop-181/torch/csrc/Generator.cpp
 --- pytorch-v1.8.1/torch/csrc/Generator.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/Generator.cpp	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/csrc/Generator.cpp	2021-10-19 12:02:14.435107128 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42620,7 +43476,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
               " is not supported for torch.Generator() api.");
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/generic/serialization.cpp pytorch-develop-181/torch/csrc/generic/serialization.cpp
 --- pytorch-v1.8.1/torch/csrc/generic/serialization.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/generic/serialization.cpp	2021-10-18 12:00:48.282545290 +0800
++++ pytorch-develop-181/torch/csrc/generic/serialization.cpp	2021-10-19 12:02:14.447107165 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42718,7 +43574,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/generic/Storage.cpp pytorch-develop-181/torch/csrc/generic/Storage.cpp
 --- pytorch-v1.8.1/torch/csrc/generic/Storage.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/generic/Storage.cpp	2021-10-18 12:00:48.282545290 +0800
++++ pytorch-develop-181/torch/csrc/generic/Storage.cpp	2021-10-19 12:02:14.447107165 +0800
 @@ -1,7 +1,25 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42798,7 +43654,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        for (Py_ssize_t i = 0; i < length; i++) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/generic/StorageMethods.cpp pytorch-develop-181/torch/csrc/generic/StorageMethods.cpp
 --- pytorch-v1.8.1/torch/csrc/generic/StorageMethods.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/generic/StorageMethods.cpp	2021-10-18 12:00:48.282545290 +0800
++++ pytorch-develop-181/torch/csrc/generic/StorageMethods.cpp	2021-10-19 12:02:14.447107165 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -42878,7 +43734,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  };
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/Module.cpp pytorch-develop-181/torch/csrc/Module.cpp
 --- pytorch-v1.8.1/torch/csrc/Module.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/Module.cpp	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/csrc/Module.cpp	2021-10-19 12:02:14.435107128 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43004,7 +43860,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      if (incref) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/tensor/python_tensor.cpp pytorch-develop-181/torch/csrc/tensor/python_tensor.cpp
 --- pytorch-v1.8.1/torch/csrc/tensor/python_tensor.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/tensor/python_tensor.cpp	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/csrc/tensor/python_tensor.cpp	2021-10-19 12:02:14.471107240 +0800
 @@ -1,3 +1,18 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43042,7 +43898,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/python_arg_parser.h pytorch-develop-181/torch/csrc/utils/python_arg_parser.h
 --- pytorch-v1.8.1/torch/csrc/utils/python_arg_parser.h	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/utils/python_arg_parser.h	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/csrc/utils/python_arg_parser.h	2021-10-19 12:02:14.471107240 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43077,7 +43933,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return at::Device(device_str);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_layouts.cpp pytorch-develop-181/torch/csrc/utils/tensor_layouts.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_layouts.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/utils/tensor_layouts.cpp	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/csrc/utils/tensor_layouts.cpp	2021-10-19 12:02:14.471107240 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43108,7 +43964,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    PyObject *sparse_coo_layout = THPLayout_New(at::Layout::Sparse, "torch.sparse_coo");
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp pytorch-develop-181/torch/csrc/utils/tensor_new.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/utils/tensor_new.cpp	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/csrc/utils/tensor_new.cpp	2021-10-19 12:02:14.471107240 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43240,7 +44096,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          dispatch_key);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp pytorch-develop-181/torch/csrc/utils/tensor_types.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/csrc/utils/tensor_types.cpp	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/csrc/utils/tensor_types.cpp	2021-10-19 12:02:14.471107240 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -43290,7 +44146,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/distributed/distributed_c10d.py pytorch-develop-181/torch/distributed/distributed_c10d.py
 --- pytorch-v1.8.1/torch/distributed/distributed_c10d.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/distributed/distributed_c10d.py	2021-10-18 12:00:48.310545363 +0800
++++ pytorch-develop-181/torch/distributed/distributed_c10d.py	2021-10-19 12:02:14.475107253 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -43381,7 +44237,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  prefix_store,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/__init__.py pytorch-develop-181/torch/__init__.py
 --- pytorch-v1.8.1/torch/__init__.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/__init__.py	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/__init__.py	2021-10-19 12:02:14.431107115 +0800
 @@ -675,3 +675,11 @@
  # class usage. We add these lines here to preserve backward compatibility.
  quantized_lstm = torch.ops.aten.quantized_lstm
@@ -43397,7 +44253,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/c10d/CMakeLists.txt pytorch-develop-181/torch/lib/c10d/CMakeLists.txt
 --- pytorch-v1.8.1/torch/lib/c10d/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/lib/c10d/CMakeLists.txt	2021-10-18 12:00:48.318545384 +0800
++++ pytorch-develop-181/torch/lib/c10d/CMakeLists.txt	2021-10-19 12:02:14.479107266 +0800
 @@ -27,6 +27,10 @@
    option(USE_C10D_NCCL "USE C10D NCCL" ON)
  endif()
@@ -43450,7 +44306,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    copy_header(ProcessGroupMPI.hpp)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/c10d/comm.cpp pytorch-develop-181/torch/lib/c10d/comm.cpp
 --- pytorch-v1.8.1/torch/lib/c10d/comm.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/lib/c10d/comm.cpp	2021-10-18 12:00:48.318545384 +0800
++++ pytorch-develop-181/torch/lib/c10d/comm.cpp	2021-10-19 12:02:14.483107278 +0800
 @@ -12,6 +12,26 @@
  
  class BroadcastWork {
@@ -43539,7 +44395,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    while (!in_flight.empty()) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/c10d/reducer.cpp pytorch-develop-181/torch/lib/c10d/reducer.cpp
 --- pytorch-v1.8.1/torch/lib/c10d/reducer.cpp	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/lib/c10d/reducer.cpp	2021-10-18 12:00:48.318545384 +0800
++++ pytorch-develop-181/torch/lib/c10d/reducer.cpp	2021-10-19 12:02:14.483107278 +0800
 @@ -18,6 +18,18 @@
  namespace c10d {
  namespace {
@@ -43715,7 +44571,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  // A bucket with one or more dense tensors needs to be unflattened.
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/libshm/CMakeLists.txt pytorch-develop-181/torch/lib/libshm/CMakeLists.txt
 --- pytorch-v1.8.1/torch/lib/libshm/CMakeLists.txt	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/lib/libshm/CMakeLists.txt	2021-10-18 12:00:48.318545384 +0800
++++ pytorch-develop-181/torch/lib/libshm/CMakeLists.txt	2021-10-19 12:02:14.483107278 +0800
 @@ -41,8 +41,11 @@
  set_target_properties(shm PROPERTIES
    PREFIX "lib"
@@ -43731,7 +44587,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # https://github.com/libgit2/libgit2/issues/2128#issuecomment-35649830
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/nn/modules/batchnorm.py pytorch-develop-181/torch/nn/modules/batchnorm.py
 --- pytorch-v1.8.1/torch/nn/modules/batchnorm.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/nn/modules/batchnorm.py	2021-10-18 12:00:48.322545394 +0800
++++ pytorch-develop-181/torch/nn/modules/batchnorm.py	2021-10-19 12:02:14.483107278 +0800
 @@ -1,3 +1,18 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -43753,7 +44609,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  from ._functions import SyncBatchNorm as sync_batch_norm
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/nn/modules/module.py pytorch-develop-181/torch/nn/modules/module.py
 --- pytorch-v1.8.1/torch/nn/modules/module.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/nn/modules/module.py	2021-10-18 12:00:48.322545394 +0800
++++ pytorch-develop-181/torch/nn/modules/module.py	2021-10-19 12:02:14.487107291 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -43879,7 +44735,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              if convert_to_format is not None and t.dim() == 4:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/nn/modules/normalization.py pytorch-develop-181/torch/nn/modules/normalization.py
 --- pytorch-v1.8.1/torch/nn/modules/normalization.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/nn/modules/normalization.py	2021-10-18 12:00:48.322545394 +0800
++++ pytorch-develop-181/torch/nn/modules/normalization.py	2021-10-19 12:02:14.487107291 +0800
 @@ -167,8 +167,11 @@
              init.zeros_(self.bias)
  
@@ -43896,7 +44752,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          return '{normalized_shape}, eps={eps}, ' \
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/nn/parallel/distributed.py pytorch-develop-181/torch/nn/parallel/distributed.py
 --- pytorch-v1.8.1/torch/nn/parallel/distributed.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/nn/parallel/distributed.py	2021-10-18 12:00:48.322545394 +0800
++++ pytorch-develop-181/torch/nn/parallel/distributed.py	2021-10-19 12:02:14.487107291 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -43928,7 +44784,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  output = self.module(*inputs[0], **kwargs[0])
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/serialization.py pytorch-develop-181/torch/serialization.py
 --- pytorch-v1.8.1/torch/serialization.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/serialization.py	2021-10-18 12:00:48.330545414 +0800
++++ pytorch-develop-181/torch/serialization.py	2021-10-19 12:02:14.495107316 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -44017,7 +44873,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      See also: `saving-loading-tensors`
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/storage.py pytorch-develop-181/torch/storage.py
 --- pytorch-v1.8.1/torch/storage.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/storage.py	2021-10-18 12:00:48.330545414 +0800
++++ pytorch-develop-181/torch/storage.py	2021-10-19 12:02:14.495107316 +0800
 @@ -8,6 +8,7 @@
  class _StorageBase(object):
      _cdata: Any
@@ -44037,7 +44893,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          else:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/tensor.py pytorch-develop-181/torch/tensor.py
 --- pytorch-v1.8.1/torch/tensor.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/tensor.py	2021-10-18 12:00:48.330545414 +0800
++++ pytorch-develop-181/torch/tensor.py	2021-10-19 12:02:14.495107316 +0800
 @@ -1,3 +1,18 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -44099,7 +44955,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      def __reversed__(self):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_tensor_str.py pytorch-develop-181/torch/_tensor_str.py
 --- pytorch-v1.8.1/torch/_tensor_str.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/_tensor_str.py	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/_tensor_str.py	2021-10-19 12:02:14.431107115 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -44143,7 +44999,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      # TODO: add an API to map real -> complex dtypes
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/utils/data/dataloader.py pytorch-develop-181/torch/utils/data/dataloader.py
 --- pytorch-v1.8.1/torch/utils/data/dataloader.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/utils/data/dataloader.py	2021-10-18 12:00:48.338545435 +0800
++++ pytorch-develop-181/torch/utils/data/dataloader.py	2021-10-19 12:02:14.499107329 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -44204,7 +45060,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              pin_memory_thread.start()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/utils/data/_utils/pin_memory.py pytorch-develop-181/torch/utils/data/_utils/pin_memory.py
 --- pytorch-v1.8.1/torch/utils/data/_utils/pin_memory.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/utils/data/_utils/pin_memory.py	2021-10-18 12:00:44.574535658 +0800
++++ pytorch-develop-181/torch/utils/data/_utils/pin_memory.py	2021-10-19 12:02:10.727095490 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -44250,7 +45106,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      # logic of this function.
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_utils.py pytorch-develop-181/torch/_utils.py
 --- pytorch-v1.8.1/torch/_utils.py	2021-03-24 10:28:21.000000000 +0800
-+++ pytorch-develop-181/torch/_utils.py	2021-10-18 12:00:48.270545258 +0800
++++ pytorch-develop-181/torch/_utils.py	2021-10-19 12:02:14.431107115 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 

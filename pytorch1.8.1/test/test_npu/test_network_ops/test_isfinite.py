@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -23,20 +23,19 @@ from util_test import create_common_tensor
 class TestIsfinite(TestCase):
     def test_isfinite(self, device):
         x = torch.Tensor([1, 2, -10]).to("npu")
-        self.assertEqual(torch.isfinite(x).to("cpu"), torch.BoolTensor([True, True, True]))
-    
-    
-    def cpu_op_exec(self, input):
-        output = torch.isfinite(input)
+        self.assertRtolEqual(torch.isfinite(x).to("cpu"), torch.BoolTensor([True, True, True]))
+
+    def cpu_op_exec(self, input1):
+        output = torch.isfinite(input1)
         output = output.numpy()
         return output
-    
-    def npu_op_exec(self, input):
-        output = torch.isfinite(input)
+
+    def npu_op_exec(self, input1):
+        output = torch.isfinite(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
-    
+
     def test_isfinite_shape_format(self, device):
         shape_format = [
                 [np.int16, 0, (1, 2, 2, 5)],

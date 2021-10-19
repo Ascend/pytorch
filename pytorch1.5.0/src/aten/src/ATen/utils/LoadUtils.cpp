@@ -796,7 +796,7 @@ namespace at {
       if (CheckSkip(nameIr, (*it).nameTensor)) {
         continue;
       } 
-      if (!(*it).tensor.has_storage()) {
+      if (!(*it).tensor.has_storage() || tensor.numel() <= 0) {
         continue;
       }
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*it).nameTensor;
@@ -813,6 +813,7 @@ namespace at {
       for (int i = 0;i < rank; i++) {
         numel *= dims_out[i];
       }
+
       unsigned char *data = new unsigned char[numel * (dataset.getDataType().getSize())];
       dataset.read(data, dataset.getDataType(), dataSpace, dataSpace);
       delete dims_out;
