@@ -123,9 +123,8 @@ class OpCommandBase {
 
   void Run(){
     if (c10::npu::OptionsManager::CheckQueueEnable()) {
-      ExecuteParas execParams;
-      aclCmd->ExportParams(execParams);
-      QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+      ExecuteParas params;
+      aclCmd->ExportParams(params);
       c10::npu::enCurrentNPUStream(&params);
       aclCmd->releaseSource(false);
     } else if (c10::npu::OptionsManager::CheckDynamicEnable()) {

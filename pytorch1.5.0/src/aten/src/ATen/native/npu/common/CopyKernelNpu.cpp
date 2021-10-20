@@ -15,7 +15,6 @@
 
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 #include "ATen/native/npu/common/InnerNpuNativeFunction.h"
 #include "c10/npu/NPUStream.h"
 
@@ -110,14 +109,16 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize) {
     return;
   }
 
-  aclError error = npu::LaunchAsyncCopyTask(
-    dst.data_ptr(),
-    size * dst.element_size(),
-    src.data_ptr(),
-    size * dst.element_size(),
-    ACL_MEMCPY_DEVICE_TO_DEVICE);
+  c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
+  aclError error = aclrtMemcpyAsync(
+      dst.data_ptr(),
+      size * dst.element_size(),
+      src.data_ptr(),
+      size * dst.element_size(),
+      ACL_MEMCPY_DEVICE_TO_DEVICE,
+      copy_stream);
   if (error != ACL_ERROR_NONE) {
-    AT_ERROR("async copy device to device error.");
+    AT_ERROR("aclrtMemcpy device to device error.");
     return;
   }
 }

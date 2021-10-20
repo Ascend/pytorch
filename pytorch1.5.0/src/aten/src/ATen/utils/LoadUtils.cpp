@@ -796,7 +796,7 @@ namespace at {
       if (CheckSkip(nameIr, (*it).nameTensor)) {
         continue;
       } 
-      if (!(*it).tensor.has_storage() || tensor.numel() <= 0) {
+      if (!(*it).tensor.has_storage() || (*it).tensor.numel() <= 0) {
         continue;
       }
       h5DataSetPath = "/" + nameIr + "/" + to_string(seqH5) + "/input/" + (*it).nameTensor;

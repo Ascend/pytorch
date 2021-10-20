@@ -59,10 +59,6 @@ struct CAFFE2_API NPUHooksInterface {
       TORCH_CHECK(false, "Cannot initialize NPU without building library with options USE_NPU = 1.", NPU_HELP);
     }
 
-    virtual bool isPinnedPtr(void* data) const {
-      return false;
-    }
-
     virtual Generator* getDefaultNPUGenerator(DeviceIndex device_index = -1) const {
       TORCH_CHECK(false, "Cannot get default NPU generator without ATen_cuda library. ", NPU_HELP);
     }

@@ -162,12 +162,6 @@ struct HostAllocator {
     return ACL_ERROR_NONE;
   }
 
-  bool isPinndPtr(void* ptr)
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    return blocks.find(ptr) != blocks.end();
-  }
-
   aclError processEvents() {
     // Process outstanding cudaEvents. Events that are completed are removed
     // from the queue, and the 'event_count' for the corresponding allocation
@@ -292,10 +286,6 @@ aclError THNPUCachingHostAllocator_recordEvent(
     void* ptr,
     at::npu::NPUStream stream) {
   return allocator.recordEvent(ptr, stream);
-}
-
-bool THNPUCachingHostAllocator_isPinndPtr(void* ptr) {
-  return allocator.isPinndPtr(ptr);
 }
 
 void THNPUCachingHostAllocator_emptyCache() {

@@ -28,7 +28,6 @@ namespace detail {
 struct NPUHooks : public at::NPUHooksInterface {
   NPUHooks(at::NPUHooksArgs) {}
   void initNPU() const override;
-  bool isPinnedPtr(void* data) const override;
   Generator* getDefaultNPUGenerator(DeviceIndex device_index = -1) const override;
   bool hasNPU() const override;
   int64_t current_device() const override;

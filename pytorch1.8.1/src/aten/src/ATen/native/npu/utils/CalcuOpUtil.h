@@ -246,6 +246,11 @@ class CalcuOpUtil {
 
   static SmallVector<int64_t, N> get_dimlist_for_tensor(const Tensor& self);
   static int64_t completePad(int64_t s_size, int64_t p_size, int64_t k_size, int64_t stride);
+  static SmallVector<int64_t, 3> compute_output_size(
+      c10::IntArrayRef input_size,
+      c10::optional<c10::IntArrayRef> output_size,
+      c10::optional<c10::ArrayRef<double>> scale_factors);
+  static c10::optional<double> get_scale_value(c10::optional<c10::ArrayRef<double>> scales, int idx);
 };
 
 } // namespace npu

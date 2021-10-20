@@ -21,13 +21,13 @@ from util_test import create_common_tensor
 import time
 # 接口为torch.nn.functional.interpolate 无法做.out接口测试
 class TestUpsamleNearest2D(TestCase):
-    def cpu_op_exec(self, input, size):
-        output = torch.nn.functional.interpolate(input, size, mode="nearest")
+    def cpu_op_exec(self, input1, size):
+        output = torch.nn.functional.interpolate(input1, size, mode="nearest")
         output = output.numpy()
         return output
-    
-    def npu_op_exec(self, input, size):
-        output = torch.nn.functional.interpolate(input, size, mode="nearest")
+
+    def npu_op_exec(self, input1, size):
+        output = torch.nn.functional.interpolate(input1, size, mode="nearest")
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -42,7 +42,7 @@ class TestUpsamleNearest2D(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]

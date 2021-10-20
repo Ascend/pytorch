@@ -124,34 +124,6 @@ struct ExecuteParas {
   void Copy(ExecuteParas& other);
 };
 
-struct CopyParas {
-    void *dst = nullptr;
-    size_t dstLen = 0;
-    void *src = nullptr;
-    size_t srcLen = 0;
-    aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
-    SmallVector<Tensor, 1> pinMem;
-    void Copy(CopyParas& other);
-};
-
-struct EventParas {
-  aclrtEvent event = nullptr;
-};
-
-enum QueueParamType {
-    COMPILE_AND_EXECUTE,
-    ASYNC_MEMCPY,
-    ASYNC_MEMCPY_EX,
-    RECORD_EVENT
-};
-
-struct QueueParas {
-  QueueParas(QueueParamType type, size_t len, void *val) : paramType(type), paramLen(len), paramVal(val) {}
-  QueueParamType paramType = COMPILE_AND_EXECUTE;
-  size_t paramLen = 0;
-  void* paramVal = nullptr;
-};
-
 NPUStatus DestroyAclParams(ACL_PARAMS& params);
 NPUStatus DestroyDynamicAclParams(ACL_DYNAMIC_PARAMS& params);
 void DestroyConstParams(CONST_PARAMS& params);

@@ -21,7 +21,6 @@
 #include <ATen/native/npu/frame/StorageDescHelper.h>
 #include <ATen/native/npu/utils/OpTemplate.h>
 #include <ATen/npu/Exceptions.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 #include <THNPU/THNPUCachingHostAllocator.h>
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/OptionsManager.h>
@@ -215,10 +214,8 @@ void copy_between_host_and_device(
   void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
   c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-  Tensor tmp = dst.is_npu() ? src : dst;
-  bool is_pinned = tmp.is_pinned();
   AT_NPU_CHECK(
-    LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmp, is_pinned));
+      aclrtMemcpyAsync(dst_ptr, nbytes, src_ptr, nbytes, kind, stream));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");

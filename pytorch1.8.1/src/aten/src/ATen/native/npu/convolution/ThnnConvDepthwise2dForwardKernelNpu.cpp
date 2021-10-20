@@ -21,14 +21,15 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& thnn_conv_depthwise2d_forward_out_npu(
-    Tensor& out,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
-    IntArrayRef dilation) {
+    IntArrayRef dilation,
+    Tensor& out) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
   const Tensor& weightModify = weight.permute({1, 0, 2, 3});
 
   // constructs the input and output NPUTensorDesc
@@ -56,7 +57,7 @@ Tensor thnn_conv_depthwise2d_forward_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation) {
@@ -70,14 +71,16 @@ Tensor thnn_conv_depthwise2d_forward_npu(
   int64_t Wo = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) /
           stride[1] + 1;
   SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
-
-  // construct the output tensor of NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
 
-  // calculate the output result of the NPU
   thnn_conv_depthwise2d_forward_out_npu(
-      result, self, weight, kernel_size, bias, stride, padding, dilation);
+      self, weight, kernel_size, bias_opt, stride, padding, dilation, result);
   return result;
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m){
+  m.impl("thnn_conv_depthwise2d_forward.out", TORCH_FN(thnn_conv_depthwise2d_forward_out_npu));
+  m.impl("thnn_conv_depthwise2d_forward", TORCH_FN(thnn_conv_depthwise2d_forward_npu));
 }
 
 } // namespace native

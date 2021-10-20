@@ -20,19 +20,19 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestUpsampleNearest2DBackward(TestCase):
-    def cpu_op_exec(self, input, size):
-        input.requires_grad_(True)
-        output = F.interpolate(input, size, mode = "nearest")
+    def cpu_op_exec(self, input1, size):
+        input1.requires_grad_(True)
+        output = F.interpolate(input1, size, mode = "nearest")
         output.backward(torch.ones_like(output))
-        return output.detach().numpy(), input.grad.numpy()
-    
-    def npu_op_exec(self, input, size):
-        input.requires_grad_(True)
-        output = F.interpolate(input, size, mode = "nearest")
+        return output.detach().numpy(), input1.grad.numpy()
+
+    def npu_op_exec(self, input1, size):
+        input1.requires_grad_(True)
+        output = F.interpolate(input1, size, mode = "nearest")
         inputback = torch.ones_like(output)
         output.backward(inputback)
         out = output.to("cpu")
-        grad = input.grad
+        grad = input1.grad
         grad = grad.to("cpu")
         return out.detach().numpy(), grad.detach().numpy()
 
@@ -44,11 +44,11 @@ class TestUpsampleNearest2DBackward(TestCase):
                         [[np.float16, 0, (5, 3, 6, 4)], [10, 10]],
                         [[np.float32, 0, (2, 3, 2, 4)], [10, 10]],
                         [[np.float16, -1, (2, 3, 2, 3)], [10, 10]]
-                        ] 
+                        ]
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             cpu_output, cpu_grad = self.cpu_op_exec(cpu_input, item[1])

@@ -73,16 +73,15 @@ void thnn_conv_depthwise2d_backward_weight_out_npu(
 }
 
 tuple<Tensor&, Tensor&> thnn_conv_depthwise2d_backward_out_npu(
-    Tensor& grad_input,
-    Tensor& grad_weight,
     const Tensor& grad_output,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
     IntArrayRef stride,
     IntArrayRef padding,
-    IntArrayRef dilation) {
-
+    IntArrayRef dilation,
+    Tensor& grad_input,
+    Tensor& grad_weight) {
   Tensor weight_ex = weight.permute({1, 0, 2, 3});
   if (grad_input.defined()) {
       thnn_conv_depthwise2d_backward_input_out_npu(
@@ -96,15 +95,15 @@ tuple<Tensor&, Tensor&> thnn_conv_depthwise2d_backward_out_npu(
           dilation);
   }
   if (grad_weight.defined()) {
-      thnn_conv_depthwise2d_backward_weight_out_npu(
-          grad_weight,
-          grad_output,
-          self,
-          weight_ex,
-          kernel_size,
-          stride,
-          padding,
-          dilation);
+    thnn_conv_depthwise2d_backward_weight_out_npu(
+        grad_weight,
+        grad_output,
+        self,
+        weight_ex,
+        kernel_size,
+        stride,
+        padding,
+        dilation);
   }
 
   return tuple<Tensor&, Tensor&>(grad_input, grad_weight);
@@ -131,17 +130,21 @@ tuple<Tensor, Tensor> thnn_conv_depthwise2d_backward_npu(
     grad_weight = OpPreparation::ApplyTensorWithFormat(weight, ACL_FORMAT_NCHW);
   }
 
-  // calculate the output result of the NPU
   return thnn_conv_depthwise2d_backward_out_npu(
-      grad_input,
-      grad_weight,
       grad_output,
       self,
       weight,
       kernel_size,
       stride,
       padding,
-      dilation);
+      dilation,
+      grad_input,
+      grad_weight);
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m){
+  m.impl("thnn_conv_depthwise2d_backward.output_mask", TORCH_FN(thnn_conv_depthwise2d_backward_npu));
+  m.impl("thnn_conv_depthwise2d_backward.grad_input", TORCH_FN(thnn_conv_depthwise2d_backward_out_npu));
 }
 
 } // namespace native

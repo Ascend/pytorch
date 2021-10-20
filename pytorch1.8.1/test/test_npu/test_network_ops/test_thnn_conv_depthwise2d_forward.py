@@ -26,17 +26,16 @@ class TestThnnConvDepthwise2d(TestCase):
     weight_grad = []
     input_grad = []
 
-    def getWeightGrad(self, grad):
+    def get_weight_grad(self, grad):
         self.weight_grad.append(grad.to("cpu"))
 
-    def getInputGrad(self, grad):
+    def get_input_grad(self, grad):
         self.input_grad.append(grad.to("cpu"))
 
-    def op_exec_cpu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
-        input1 = input
+    def op_exec_cpu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
         weight1 = weight
         input1.requires_grad = True
-        input1.register_hook(lambda grad: self.getInputGrad(grad))
+        input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
         if bias != None:
@@ -44,7 +43,7 @@ class TestThnnConvDepthwise2d(TestCase):
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=group)
         m1.weight.data = weight1
-        m1.weight.register_hook(lambda grad: self.getWeightGrad(grad))
+        m1.weight.register_hook(lambda grad: self.get_weight_grad(grad))
         cpuOutput = m1(input1)
         cpuOutput = cpuOutput.requires_grad_()
         tmp = torch.ones_like(cpuOutput)
@@ -52,11 +51,10 @@ class TestThnnConvDepthwise2d(TestCase):
 
         return cpuOutput
 
-    def op_exec_npu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
-        input1 = input
+    def op_exec_npu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
         weight1 = weight
         input1.requires_grad = True
-        input1.register_hook(lambda grad: self.getInputGrad(grad))
+        input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
         if bias != None:
@@ -64,7 +62,7 @@ class TestThnnConvDepthwise2d(TestCase):
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=group)
         m1.weight.data = weight1
-        m1.weight.register_hook(lambda grad: self.getWeightGrad(grad))
+        m1.weight.register_hook(lambda grad: self.get_weight_grad(grad))
         m1 = m1.to("npu")
         npuOutput = m1(input1)
         npuOutput = npuOutput.to("cpu")
@@ -94,17 +92,17 @@ class TestThnnConvDepthwise2d(TestCase):
         if weight_cpu.dtype == torch.float16:
             weight_cpu = weight_cpu.to(torch.float32)
         kernel_size = (item[1][2][2], item[1][2][3])
-        cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size, 
+        cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
                                         padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
         weight_npu = weight_npu.to("cpu")
         npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
                                         padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
         cpu_output = cpu_output.to(npu_output.dtype)
-        
+
         if item[5] == True:
-            self.assertRtolEqual( cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.005 )
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.005 )
         else:
-            self.assertRtolEqual( cpu_output.detach().numpy(), npu_output.detach().numpy() )
+            self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy() )
 
     def test_thnn_conv_depthwise2d_0(self, device):
         item = self.thnn_conv_depthwise2d_format(0)
@@ -113,7 +111,7 @@ class TestThnnConvDepthwise2d(TestCase):
     def test_thnn_conv_depthwise2d_1(self, device):
         item = self.thnn_conv_depthwise2d_format(1)
         self.thnn_conv_depthwise2d_execute(item, 3)
-        
+
     def test_thnn_conv_depthwise2d_2(self, device):
         item = self.thnn_conv_depthwise2d_format(2)
         self.thnn_conv_depthwise2d_execute(item, 3)

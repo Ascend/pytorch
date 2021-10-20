@@ -18,7 +18,6 @@
 
 #include <ATen/ATen.h>
 #include <ATen/native/npu/utils/NpuUtils.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 #include <TH/THTensor.hpp>
 #include <c10/npu/NPUStream.h>
 #include "ATen/native/npu/frame/StorageDescHelper.h"
@@ -51,12 +50,14 @@ static void storage_resize_npu(
       copy_size = storage.numel();
     }
     if (copy_size > 0) {
-      aclError error = npu::LaunchAsyncCopyTask(
-        storage.data(),
-        storage.itemsize() * copy_size,
-        old_data.get(),
-        storage.itemsize() * copy_size,
-        ACL_MEMCPY_DEVICE_TO_DEVICE);
+      c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
+      aclError error = aclrtMemcpyAsync(
+          storage.data(),
+          storage.itemsize() * copy_size,
+          old_data.get(),
+          storage.itemsize() * copy_size,
+          ACL_MEMCPY_DEVICE_TO_DEVICE,
+          copy_stream);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
         return;

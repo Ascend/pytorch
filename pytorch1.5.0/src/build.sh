@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -48,7 +48,7 @@ function parse_script_args() {
     fi
 
     while true; do
-        case "${1}" in 
+        case "${1}" in
         --python=*)
             PY_VERSION=$(echo "${1}"|cut -d"=" -f2)
             args_num=$((args_num-1))
@@ -101,7 +101,7 @@ function main()
     # make clean
     export TORCH_PACKAGE_NAME=torch
     export PYTORCH_BUILD_VERSION='1.5.0+ascend'
-    export PYTORCH_BUILD_NUMBER=3
+    export PYTORCH_BUILD_NUMBER=4
 
     if ! parse_script_args "$@"; then
         echo "Failed to parse script args. Please check your inputs."
