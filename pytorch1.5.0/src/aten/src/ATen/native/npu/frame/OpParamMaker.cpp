@@ -229,7 +229,8 @@ int ExecFunc(void* in, aclrtStream stream) {
   return ret;
 }
 
-void CopyFunc(void* dst, void* src) {
+void CopyFunc(void* dst, void* src, uint32_t queueLen) {
+  RECORD_FUNCTION("Enqueue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
   auto dstPtr = (ExecuteParas*)dst;
   auto srcPtr = (ExecuteParas*)src;
   dstPtr->Copy(*srcPtr);

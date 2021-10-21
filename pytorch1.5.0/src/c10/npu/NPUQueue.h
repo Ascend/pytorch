@@ -110,7 +110,7 @@ class Repository : public NPUQueueBase {
 };
 
 using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*)>;
+using ACL_COPY_FUNC     = std::function<void(void*, void*, uint32_t)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;

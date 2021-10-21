@@ -78,10 +78,10 @@ public:
     return this->execFunc(dstPtr, stream);
   }
 
-  void Copy(void* dstHead, int offset, void* src) {
+  void Copy(void* dstHead, int offset, void* src, uint32_t queueLen) {
     TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
-    return this->copyFunc(dstPtr, src);
+    return this->copyFunc(dstPtr, src, queueLen);
   }
 
   void Release(void* head, int offset) {
@@ -237,7 +237,8 @@ bool Repository::WriteQueue(void* cur_paras) {
   }
 
   std::lock_guard<std::mutex> lock(mu_enqueue);
-  manager().Copy(datas, write_idx.idx, cur_paras);
+  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
+  manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
   __sync_synchronize();
 
   write_idx.idx++;
