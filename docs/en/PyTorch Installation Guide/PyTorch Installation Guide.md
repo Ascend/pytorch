@@ -1,15 +1,15 @@
 # PyTorch Installation Guide
--   [Overview](#overview.md)
--   [Manual Build and Installation](#manual-build-and-installation.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Installing the PyTorch Framework](#installing-the-pytorch-framework.md)
-    -   [Configuring Environment Variables](#configuring-environment-variables.md)
-    -   [Installing the Mixed Precision Module](#installing-the-mixed-precision-module.md)
--   [References](#references.md)
-    -   [Installing CMake](#installing-cmake.md)
-    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)
-    -   [What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)
-<h2 id="overview.md">Overview</h2>
+-   [Overview](#overviewmd)
+-   [Manual Build and Installation](#manual-build-and-installationmd)
+    -   [Prerequisites](#prerequisitesmd)
+    -   [Installing the PyTorch Framework](#installing-the-pytorch-frameworkmd)
+    -   [Configuring Environment Variables](#configuring-environment-variablesmd)
+    -   [Installing the Mixed Precision Module](#installing-the-mixed-precision-modulemd)
+-   [References](#referencesmd)
+    -   [Installing CMake](#installing-cmakemd)
+    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)
+    -   [What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)
+<h2 id="overviewmd">Overview</h2>
 
 When setting up the environment for PyTorch model development and running, you can manually build and install the modules adapted to the PyTorch framework on a server.
 
@@ -18,24 +18,24 @@ When setting up the environment for PyTorch model development and running, you c
 
 ![](figures/210926103326800.png)
 
-<h2 id="manual-build-and-installation.md">Manual Build and Installation</h2>
+<h2 id="manual-build-and-installationmd">Manual Build and Installation</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisitesmd)**  
 
--   **[Installing the PyTorch Framework](#installing-the-pytorch-framework.md)**  
+-   **[Installing the PyTorch Framework](#installing-the-pytorch-frameworkmd)**  
 
--   **[Configuring Environment Variables](#configuring-environment-variables.md)**  
+-   **[Configuring Environment Variables](#configuring-environment-variablesmd)**  
 
--   **[Installing the Mixed Precision Module](#installing-the-mixed-precision-module.md)**  
+-   **[Installing the Mixed Precision Module](#installing-the-mixed-precision-modulemd)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h3 id="prerequisitesmd">Prerequisites</h3>
 
-## Prerequisites<a name="en-us_topic_0000001105856382_en-us_topic_0275872734_section108914373254"></a>
+#### Prerequisites<a name="en-us_topic_0000001105856382_en-us_topic_0275872734_section108914373254"></a>
 
 -   The development or operating environment of CANN has been installed. For details, see the  _CANN Software Installation Guide_.
--   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmake.md).
--   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md).
+-   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmakemd).
+-   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md).
 -   Python 3.7.5 or 3.8 has been installed.
 -   The Patch and Git tools have been installed in the environment. To install the tools for Ubuntu and CentOS, run the following commands:
     -   Ubuntu
@@ -54,9 +54,9 @@ When setting up the environment for PyTorch model development and running, you c
 
 
 
-<h2 id="installing-the-pytorch-framework.md">Installing the PyTorch Framework</h2>
+<h3 id="installing-the-pytorch-frameworkmd">Installing the PyTorch Framework</h3>
 
-## Installation Process<a name="en-us_topic_0000001152776301_section1611810384557"></a>
+#### Installation Process<a name="en-us_topic_0000001152776301_section1611810384557"></a>
 
 1.  Log in to the server as the  **root**  user or a non-root user.
 2.  Run the following commands in sequence to install the PyTorch dependencies.
@@ -162,7 +162,7 @@ When setting up the environment for PyTorch model development and running, you c
     >**pip3 list | grep torch**
 
 
-<h2 id="configuring-environment-variables.md">Configuring Environment Variables</h2>
+<h3 id="configuring-environment-variablesmd">Configuring Environment Variables</h3>
 
 After the software packages are installed, configure environment variables to use Ascend PyTorch. For details about the environment variables, see  [Table 1](#en-us_topic_0000001152616261_table42017516135).
 
@@ -211,7 +211,7 @@ After the software packages are installed, configure environment variables to us
 <tbody><tr id="en-us_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p688241953218"><a name="en-us_topic_0000001152616261_p688241953218"></a><a name="en-us_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p1888291915322"><a name="en-us_topic_0000001152616261_p1888291915322"></a><a name="en-us_topic_0000001152616261_p1888291915322"></a>Dynamic library search path. Set this variable based on the preceding example.</p>
-<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>If you need to upgrade GCC in OSs such as CentOS, Debian, and BC-Linux, add <strong id="b6163826603"><a name="b6163826603"></a><a name="b6163826603"></a><em id="i161631926505"><a name="i161631926505"></a><a name="i161631926505"></a>${install_path}</em>/lib64</strong> to the <span class="parmname" id="parmname161637265015"><a name="parmname161637265015"></a><a name="parmname161637265015"></a><b>LD_LIBRARY_PATH</b></span> variable of the dynamic library search path. Replace <em id="i01649261704"><a name="i01649261704"></a><a name="i01649261704"></a><strong id="b1216317261109"><a name="b1216317261109"></a><a name="b1216317261109"></a>{install_path}</strong></em> with the GCC installation path. For details, see <a href="#how-do-i-install-gcc-7-3-0.md#en-us_topic_0000001135347812_en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li9745165315131">5</a>.</p>
+<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>If you need to upgrade GCC in OSs such as CentOS, Debian, and BC-Linux, add <strong id="b6163826603"><a name="b6163826603"></a><a name="b6163826603"></a><em id="i161631926505"><a name="i161631926505"></a><a name="i161631926505"></a>${install_path}</em>/lib64</strong> to the <span class="parmname" id="parmname161637265015"><a name="parmname161637265015"></a><a name="parmname161637265015"></a><b>LD_LIBRARY_PATH</b></span> variable of the dynamic library search path. Replace <em id="i01649261704"><a name="i01649261704"></a><a name="i01649261704"></a><strong id="b1216317261109"><a name="b1216317261109"></a><a name="b1216317261109"></a>{install_path}</strong></em> with the GCC installation path. For details, see <a href="#how-do-i-install-gcc-7-3-0md#en-us_topic_0000001135347812_en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li9745165315131">5</a>.</p>
 </td>
 </tr>
 <tr id="en-us_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p16195185523019"><a name="en-us_topic_0000001152616261_p16195185523019"></a><a name="en-us_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
@@ -314,14 +314,14 @@ After the software packages are installed, configure environment variables to us
 </tbody>
 </table>
 
-<h2 id="installing-the-mixed-precision-module.md">Installing the Mixed Precision Module</h2>
+<h3 id="installing-the-mixed-precision-modulemd">Installing the Mixed Precision Module</h3>
 
-## Prerequisites<a name="en-us_topic_0000001106176190_section3225481020"></a>
+#### Prerequisites<a name="en-us_topic_0000001106176190_section3225481020"></a>
 
 1.  Ensure that the PyTorch framework adapted to Ascend AI Processors in the operating environment can be used properly.
-2.  Before building and installing Apex, you have configured the environment variables on which the build depends. See  [Configuring Environment Variables](#configuring-environment-variables.md).
+2.  Before building and installing Apex, you have configured the environment variables on which the build depends. See  [Configuring Environment Variables](#configuring-environment-variablesmd).
 
-## Installation Process<a name="en-us_topic_0000001106176190_section11880164819567"></a>
+#### Installation Process<a name="en-us_topic_0000001106176190_section11880164819567"></a>
 
 1.  Log in to the server as the  **root**  user or a non-root user.
 2.  Obtain the Apex source code.
@@ -408,16 +408,16 @@ After the software packages are installed, configure environment variables to us
     >**pip3 list | grep apex**
 
 
-<h2 id="references.md">References</h2>
+<h2 id="referencesmd">References</h2>
 
--   **[Installing CMake](#installing-cmake.md)**  
+-   **[Installing CMake](#installing-cmakemd)**  
 
--   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)**  
+-   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)**  
 
--   **[What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md)**  
+-   **[What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)**  
 
 
-<h2 id="installing-cmake.md">Installing CMake</h2>
+<h3 id="installing-cmakemd">Installing CMake</h3>
 
 Procedure for upgrading CMake to 3.12.1
 
@@ -456,7 +456,7 @@ Procedure for upgrading CMake to 3.12.1
     If the message "cmake version 3.12.1" is displayed, the installation is successful.
 
 
-<h2 id="how-do-i-install-gcc-7-3-0.md">How Do I Install GCC 7.3.0?</h2>
+<h3 id="how-do-i-install-gcc-7-3-0md">How Do I Install GCC 7.3.0?</h3>
 
 Perform the following steps as the  **root**  user.
 
@@ -537,19 +537,19 @@ Perform the following steps as the  **root**  user.
     >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 
-<h2 id="what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installed.md">What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h2>
+<h3 id="what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd">What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h3>
 
-## Symptom<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section197270431505"></a>
 
 During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" " is displayed.
 
 ![](figures/en-us_image_0000001190081735.png)
 
-## Possible Causes<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Causes<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section169499490501"></a>
 
 When the PyTorch is installed, the version check is automatically triggered. The version of the torchvision installed in the environment is 0.6.0. During the check, it is found that the version of the  **torch-**_\*_**.whl**  is inconsistent with the required version 1.5.0. As a result, an error message is displayed, but the installation is successful.
 
-## Solution<a name="en-us_topic_0000001105856364_section108142031907"></a>
+#### Solution<a name="en-us_topic_0000001105856364_section108142031907"></a>
 
 This problem has no impact on the actual result, and no action is required.
 
