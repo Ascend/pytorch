@@ -15,43 +15,25 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpTemplate.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> gelu_backward_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> gelu_backward_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> gelu_backward_npu_attr(const Tensor& self) {
-  SmallVector<NPUAttrDesc, N> attrs = {};
-
-  return attrs;
-}
-
 Tensor& gelu_backward_out_npu(
     Tensor& grad_input,
     const Tensor& grad,
     const Tensor& self) {
-  // constructs the input and output NPUTensorDesc
   Tensor unused = grad;
-  auto inputs = gelu_backward_npu_input({grad,self,unused});
-  auto outputs = gelu_backward_npu_output({grad_input});
-  
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = gelu_backward_npu_attr(self);
-  
-  
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("GeluGrad", inputs, outputs, attrs);
-  
+  OpCommand cmd;
+  cmd.Name("GeluGrad")
+     .Input(grad)
+     .Input(self)
+     .Input(unused)
+     .Output(grad_input)
+     .Run();
+
   return grad_input;
 }
 

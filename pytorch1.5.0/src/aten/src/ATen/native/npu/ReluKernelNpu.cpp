@@ -17,36 +17,18 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpTemplate.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> relu_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> relu_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> relu_npu_attr(const Tensor& self) {
-  SmallVector<NPUAttrDesc, N> attrs = {};
-  return attrs;
-}
-
 Tensor& relu_out_npu(Tensor& result, const Tensor& self) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = relu_npu_input({self});
-  auto outputs = relu_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = relu_npu_attr(self);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Relu", inputs, outputs, attrs);
+  OpCommand cmd;
+  cmd.Name("Relu")
+     .Input(self)
+     .Output(result)
+     .Run();
 
   return result;
 }
