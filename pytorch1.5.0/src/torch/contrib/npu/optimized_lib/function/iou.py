@@ -14,6 +14,7 @@
 
 import torch
 
+
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
@@ -29,12 +30,12 @@ def npu_iou(boxes1,
 
     Given two lists of boxes of size N and M,
     compute the IoU (intersection over union)
-    between __all__ N x M pairs of boxes.
+    between all N x M pairs of boxes.
     The box order must be (xmin, ymin, xmax, ymax).
 
     Compute Function:
-    iou: (insect_area + 0.001) / (union_area + 0.001)
-    ptiou: insect_area / (union_area + 0.001)
+    iou = (overlap_area + 0.001) / (union_area + 0.001)
+    ptiou = overlap_area / (union_area + 0.001)
 
     .. note::
         This function is commonly used when bbox and anchor match.
@@ -44,6 +45,11 @@ def npu_iou(boxes1,
         Since 0.001 is added to the denominator in the calculation formula to avoid dividing by 0,
         when the input boxes are normalized data, the component of 0.001 will be too heavy.
         At this time, it is necessary to enlarge the input value to avoid excessive influence of 0.001.
+
+    Examples::
+    >>> box1 = torch.randint(0, 256, size=(32, 4))
+    >>> box2 = torch.randint(0, 256, size=(16, 4))
+    >>> iou1 = npu_iou(box1, box2) # (32, 16)
 
     Args:
         boxes1(N,4),boxes2(M,4): two `Boxes`. Contains N & M boxes, respectively. Support dtype: float, half.
@@ -71,7 +77,67 @@ def npu_iou(boxes1,
 
     return out
 
+
 npu_ptiou = npu_iou
+
+
+def npu_giou(boxes1,
+             boxes2,
+             is_permuted=True,
+             ):
+    """ Applies an NPU based GIOU operation.
+
+    Given two lists of boxes of size N and M,
+    compute the IoU (intersection over union)
+    between all N x M pairs of boxes.
+    The box order must be (xmin, ymin, xmax, ymax).
+
+    Compute Function:
+    iou = overlap_area / union_area
+    enclose_area = (max(x2) - min(x1)) * (max(y2) - min(y1))
+    giou = iou - (enclose_area - union_area) / enclose_area
+
+    .. note::
+        This function is corresponding to a backward operator,
+        so it can be used in IOU_Loss.
+
+        Util now, only trans=True(only support xywh, not support xyxy),
+        is_cross=False(only support boxes1.shape == boxes2.shape -- One-to-one calculation, not support ((n,4), (m,4)))
+        in torch.npu_giou is supported, please don't use other pram.
+
+    Examples::
+    >>> box1 = torch.randn(32, 4)
+    >>> box1.requires_grad = True
+    >>> box2 = torch.randn(32, 4)
+    >>> iou1 = npu_giou(box1, box2) # (32, 1)
+    >>> l = iou1.sum()
+    >>> l.backward()
+
+    Args:
+        boxes1 (Tensor): Predicted bboxes of format xywh, shape (n, 4).
+        boxes2 (Tensor): Corresponding gt bboxes, shape (n, 4).
+        is_permuted (Bool): Whether the value of coordinates has been normalized. Default True.
+
+    Returns:
+        Tensor: IoU, sized [n, 1].
+
+    .. _Generalized Intersection over Union\: A Metric and A Loss for Bounding Box Regression:
+        https://arxiv.org/abs/1902.09630
+    """
+
+    assert boxes1.shape == boxes2.shape
+
+    boxes1 = box_dtype_check(boxes1)
+    boxes2 = box_dtype_check(boxes2)
+
+    if is_permuted:
+        boxes1 = boxes1.permute(1, 0)
+        boxes2 = boxes2.permute(1, 0)
+
+    out = torch.npu_giou(boxes1, boxes2, trans=True, is_cross=False)
+
+    return out
+
 
 if __name__ == "__main__":
     torch.npu.set_device(0)
@@ -96,12 +162,24 @@ if __name__ == "__main__":
 
     N = 32
     M = 32 * 32
-
     box1 = torch.randint(0, 256, size=(N, 4))
     box2 = torch.randint(0, 256, size=(M, 4))
     box1 = box1.float().npu()
     box2 = box2.float().npu()
     iou1 = npu_iou(box1, box2, mode="iou")
     iou2 = npu_iou(box1, box2)
+    print(iou1.shape, iou1.max(), iou1.min())
+    print(iou2.shape, iou2.max(), iou2.min())
+
+    N = 32
+    M = N
+    box1 = torch.randn(N, 4)
+    box1.requires_grad = True
+    box2 = torch.randn(M, 4)
+    box1 = box1.float().npu()
+    box2 = box2.float().npu()
+    iou1 = npu_giou(box1, box2)
+    l = iou1.sum()
+    l.backward()
     print(iou1.shape, iou1.max(), iou1.min())
     print(iou2.shape, iou2.max(), iou2.min())

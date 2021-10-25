@@ -38,7 +38,9 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "StridedSlice",
     "BroadcastTo",
     "SigmoidCrossEntropyWithLogitsV2",
-    "SigmoidCrossEntropyWithLogitsGradV2"};
+    "SigmoidCrossEntropyWithLogitsGradV2",
+    "ROIAlign",
+    "ROIAlignGrad"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {

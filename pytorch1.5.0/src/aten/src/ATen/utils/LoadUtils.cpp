@@ -83,11 +83,11 @@ namespace at {
   }
 
   using stringmap = std::unordered_map<string, string>;
-  stringmap IrNameMapper = {
-    {"NpuConvolutionBackward", "CudnnConvolutionBackward"},
-    {"CudnnConvolutionBackward", "NpuConvolutionBackward"},
-    {"NativeBatchNormBackward", "CudnnBatchNormBackward"},
-    {"CudnnBatchNormBackward", "NativeBatchNormBackward"},
+  std::unordered_map<string, std::vector<string>> IrNameMapper = {
+    {"NpuConvolutionBackward", {"CudnnConvolutionBackward", "ThnnConvDepthwise2DBackward"}},
+    {"CudnnConvolutionBackward", {"NpuConvolutionBackward"}},
+    {"NativeBatchNormBackward", {"CudnnBatchNormBackward"}},
+    {"CudnnBatchNormBackward", {"NativeBatchNormBackward"}},
   };
   std::unordered_map<string, stringmap> IrParamNameMapper = {
     {"NpuConvolutionBackward", {{"input", "self"},}},
@@ -104,7 +104,7 @@ namespace at {
     {"NativeBatchNormBackward", {"result3",}},
   };
 
-  std::unordered_map<string, string> GetIrMapper() {
+  std::unordered_map<string, std::vector<string>> GetIrMapper() {
     return IrNameMapper;
   };
 
@@ -148,7 +148,7 @@ namespace at {
     }
     if (IrNameMapper.find(commDesc.nameIr) != IrNameMapper.end()) {
       auto oriNameIr = commDesc.nameIr;
-      commDesc.nameIr = IrNameMapper[commDesc.nameIr];
+      commDesc.nameIr = IrNameMapper[commDesc.nameIr][0];
       MaybeMapTensorName(oriNameIr, commDesc.tensorDescVec);
       MaybeMapValueName(oriNameIr, commDesc.int64VecDescVec);
       MaybeMapValueName(oriNameIr, commDesc.int64DescVec);
