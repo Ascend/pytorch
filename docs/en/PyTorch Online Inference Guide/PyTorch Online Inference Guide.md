@@ -1,48 +1,48 @@
 # PyTorch Online Inference Guide
--   [Application Scenario](#application-scenario.md)
--   [Basic Workflow](#basic-workflow.md)
-    -   [Prerequisites](#prerequisites.md)
-    -   [Online Inference Process](#online-inference-process.md)
-    -   [Environment Variable Configuration](#environment-variable-configuration.md)
-    -   [Sample Reference](#sample-reference.md)
--   [Special Topics](#special-topics.md)
-    -   [Mixed Precision](#mixed-precision.md)
--   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0.md)
-<h2 id="application-scenario.md">Application Scenario</h2>
+-   [Application Scenario](#application-scenariomd)
+-   [Basic Workflow](#basic-workflowmd)
+    -   [Prerequisites](#prerequisitesmd)
+    -   [Online Inference Process](#online-inference-processmd)
+    -   [Environment Variable Configuration](#environment-variable-configurationmd)
+    -   [Sample Reference](#sample-referencemd)
+-   [Special Topics](#special-topicsmd)
+    -   [Mixed Precision](#mixed-precisionmd)
+-   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)
+<h2 id="application-scenariomd">Application Scenario</h2>
 
 Online inference, unlike offline inference, allows developers to perform inference directly with PyTorch models using the  **model.eval\(\)**  method.
 
 In this way, PyTorch-based inference apps can be directly ported to the  Ascend AI Processor, which is especially useful in the data center inference scenarios.
 
-## Supported Processors<a name="section15598658104219"></a>
+### Supported Processors<a name="section15598658104219"></a>
 
 Ascend 910 AI Processor
 
 Ascend 710 AI Processor
 
-<h2 id="basic-workflow.md">Basic Workflow</h2>
+<h2 id="basic-workflowmd">Basic Workflow</h2>
 
--   **[Prerequisites](#prerequisites.md)**  
+-   **[Prerequisites](#prerequisitesmd)**  
 
--   **[Online Inference Process](#online-inference-process.md)**  
+-   **[Online Inference Process](#online-inference-processmd)**  
 
--   **[Environment Variable Configuration](#environment-variable-configuration.md)**  
+-   **[Environment Variable Configuration](#environment-variable-configurationmd)**  
 
--   **[Sample Reference](#sample-reference.md)**  
+-   **[Sample Reference](#sample-referencemd)**  
 
 
-<h2 id="prerequisites.md">Prerequisites</h2>
+<h3 id="prerequisitesmd">Prerequisites</h3>
 
 The PyTorch framework and mixed precision module have been installed. For details, see the  _PyTorch Installation Guide_.
 
-<h2 id="online-inference-process.md">Online Inference Process</h2>
+<h3 id="online-inference-processmd">Online Inference Process</h3>
 
 [Figure 1](#fig13802941161818)  shows the online inference process.
 
 **Figure  1**  Online inference process<a name="fig13802941161818"></a>  
 ![](figures/online-inference-process.png "online-inference-process")
 
-<h2 id="environment-variable-configuration.md">Environment Variable Configuration</h2>
+<h3 id="environment-variable-configurationmd">Environment Variable Configuration</h3>
 
 The following are the environment variables required for starting the inference process on PyTorch:
 
@@ -82,7 +82,7 @@ export TASK_QUEUE_ENABLE=0
 <tbody><tr id="row2732273481"><td class="cellrowborder" valign="top" width="46.75467546754676%" headers="mcps1.2.4.1.1 "><p id="p57382719481"><a name="p57382719481"></a><a name="p57382719481"></a>LD_LIBRARY_PATH</p>
 </td>
 <td class="cellrowborder" valign="top" width="43.18431843184319%" headers="mcps1.2.4.1.2 "><p id="p07319271480"><a name="p07319271480"></a><a name="p07319271480"></a>Dynamic library search path. Set this variable based on the preceding example.</p>
-<div class="note" id="note119943144912"><a name="note119943144912"></a><a name="note119943144912"></a><span class="notetitle"> NOTE: </span><div class="notebody"><p id="p49933104915"><a name="p49933104915"></a><a name="p49933104915"></a>If GCC 7.3.0 is installed in OSs such as CentOS 7.6, Debian, and BC-Linux, configure the related environment variables. For details, see <a href="#how-do-i-install-gcc-7-3-0.md#en-us_topic_0000001146754749_en-us_topic_0000001072593337_l5e5c9395407d46439788b12f0e6342bc">5</a>.</p>
+<div class="note" id="note119943144912"><a name="note119943144912"></a><a name="note119943144912"></a><span class="notetitle"> NOTE: </span><div class="notebody"><p id="p49933104915"><a name="p49933104915"></a><a name="p49933104915"></a>If GCC 7.3.0 is installed in OSs such as CentOS 7.6, Debian, and BC-Linux, configure the related environment variables. For details, see <a href="#how-do-i-install-gcc-7-3-0md#en-us_topic_0000001146754749_en-us_topic_0000001072593337_l5e5c9395407d46439788b12f0e6342bc">5</a>.</p>
 </div></div>
 </td>
 <td class="cellrowborder" valign="top" width="10.061006100610062%" headers="mcps1.2.4.1.3 "><p id="p187352744817"><a name="p187352744817"></a><a name="p187352744817"></a>Required</p>
@@ -133,9 +133,9 @@ export TASK_QUEUE_ENABLE=0
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >For more log information, see the  _CANN Log Reference_.
 
-<h2 id="sample-reference.md">Sample Reference</h2>
+<h3 id="sample-referencemd">Sample Reference</h3>
 
-## Sample Code<a name="section2017032418274"></a>
+#### Sample Code<a name="section2017032418274"></a>
 
 Try to minimize the initialization frequency across the app lifetime during inference. The inference mode is set using the  **model.eval\(\)**  method, and the inference process must run under the code branch  **with torch.no\_grad\(\):**.
 
@@ -406,7 +406,7 @@ if __name__ == '__main__':
     main()
 ```
 
-## Sample Running<a name="section340764716270"></a>
+#### Sample Running<a name="section340764716270"></a>
 
 The following uses the ResNet-50 model as an example to describe how to perform online inference.
 
@@ -420,7 +420,7 @@ The following uses the ResNet-50 model as an example to describe how to perform 
 
 3.  Run inference.
 
-    Set environment variables by referring to  [Environment Variable Configuration](#environment-variable-configuration.md)  and then run the following command:
+    Set environment variables by referring to  [Environment Variable Configuration](#environment-variable-configurationmd)  and then run the following command:
 
     ```
     python3 pytorch-resnet50-apex.py --data /data/imagenet \
@@ -433,14 +433,14 @@ The following uses the ResNet-50 model as an example to describe how to perform 
     >The preceding command is an example only. Modify the arguments as needed.
 
 
-<h2 id="special-topics.md">Special Topics</h2>
+<h2 id="special-topicsmd">Special Topics</h2>
 
--   **[Mixed Precision](#mixed-precision.md)**  
+-   **[Mixed Precision](#mixed-precisionmd)**  
 
 
-<h2 id="mixed-precision.md">Mixed Precision</h2>
+<h3 id="mixed-precisionmd">Mixed Precision</h3>
 
-## Overview<a name="section14734122962615"></a>
+#### Overview<a name="section14734122962615"></a>
 
 Based on the architecture features of the NPU, mixed precision is involved in the model computing, that is, the scenario where the float16 and float32 data types are used together. Replacing float32 with float16 has the following advantages:
 
@@ -450,7 +450,7 @@ Based on the architecture features of the NPU, mixed precision is involved in th
 
 However, the mixed precision training is limited by the precision range expressed by float16. If float32 is converted into float16, the training convergence is affected. To use float16 for acceleration in some computations and ensure training convergence, the mixed precision module Apex is used. The mixed precision module Apex is a comprehensive optimization library that features high optimization performance and precision.
 
-## Supported Features<a name="section175201458521"></a>
+#### Supported Features<a name="section175201458521"></a>
 
 [Table 1](#en-us_topic_0278765773_table10717173813332)  describes the functions and optimization of the mixed precision module.
 
@@ -489,7 +489,7 @@ However, the mixed precision training is limited by the precision range expresse
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >In the current version, Apex is implemented using Python and does not support AscendCL or CUDA optimization.
 
-## Initializing the Mixed Precision Model<a name="section18178125518268"></a>
+#### Initializing the Mixed Precision Model<a name="section18178125518268"></a>
 
 1.  To use the mixed precision module Apex, you need to import the amp module from the Apex library as follows:
 
@@ -503,20 +503,20 @@ However, the mixed precision training is limited by the precision range expresse
     model, optimizer = amp.initialize(model, optimizer)
     ```
 
-    For details, see "Initialize the mixed precision model."# in  [Sample Code](#sample-reference.md).
+    For details, see "Initialize the mixed precision model."# in  [Sample Code](#sample-referencemd).
 
     ```
     model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=1024, verbosity=1)
     ```
 
 
-## Mixed Precision Inference<a name="section818071513288"></a>
+#### Mixed Precision Inference<a name="section818071513288"></a>
 
 After the mixed precision model is initialized, perform model forward propagation.
 
-Sample code: For details, see the implementation of  **validate\(val\_loader, model, args\)**  in  [Sample Code](#sample-reference.md).
+Sample code: For details, see the implementation of  **validate\(val\_loader, model, args\)**  in  [Sample Code](#sample-referencemd).
 
-<h2 id="how-do-i-install-gcc-7-3-0.md">How Do I Install GCC 7.3.0?</h2>
+<h2 id="how-do-i-install-gcc-7-3-0md">How Do I Install GCC 7.3.0?</h2>
 
 Perform the following steps as the  **root**  user.
 
