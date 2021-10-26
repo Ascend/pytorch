@@ -1,40 +1,40 @@
 # FrameworkPTAdapter 2.0.3 Release Notes
--   [FrameworkPTAdapter 2.0.3](#frameworkptadapter-2-0-3.md)
-    -   [Before You Start](#before-you-start.md)
-    -   [New Features](#new-features.md)
-    -   [Modified Features](#modified-features.md)
-    -   [Resolved Issues](#resolved-issues.md)
-    -   [Known Issues](#known-issues.md)
-    -   [Compatibility](#compatibility.md)
--   [FrameworkPTAdapter 2.0.2](#frameworkptadapter-2-0-2.md)
-    -   [Before You Start](#before-you-start-0.md)
-    -   [New Features](#new-features-1.md)
-    -   [Modified Features](#modified-features-2.md)
-    -   [Resolved Issues](#resolved-issues-3.md)
-    -   [Known Issues](#known-issues-4.md)
-    -   [Compatibility](#compatibility-5.md)
-<h2 id="frameworkptadapter-2-0-3.md">FrameworkPTAdapter 2.0.3</h2>
+-   [FrameworkPTAdapter 2.0.3](#frameworkptadapter-2-0-3md)
+    -   [Before You Start](#before-you-startmd)
+    -   [New Features](#new-featuresmd)
+    -   [Modified Features](#modified-featuresmd)
+    -   [Resolved Issues](#resolved-issuesmd)
+    -   [Known Issues](#known-issuesmd)
+    -   [Compatibility](#compatibilitymd)
+-   [FrameworkPTAdapter 2.0.2](#frameworkptadapter-2-0-2md)
+    -   [Before You Start](#before-you-start-0md)
+    -   [New Features](#new-features-1md)
+    -   [Modified Features](#modified-features-2md)
+    -   [Resolved Issues](#resolved-issues-3md)
+    -   [Known Issues](#known-issues-4md)
+    -   [Compatibility](#compatibility-5md)
+<h2 id="frameworkptadapter-2-0-3md">FrameworkPTAdapter 2.0.3</h2>
 
--   **[Before You Start](#before-you-start.md)**  
+-   **[Before You Start](#before-you-startmd)**  
 
--   **[New Features](#new-features.md)**  
+-   **[New Features](#new-featuresmd)**  
 
--   **[Modified Features](#modified-features.md)**  
+-   **[Modified Features](#modified-featuresmd)**  
 
--   **[Resolved Issues](#resolved-issues.md)**  
+-   **[Resolved Issues](#resolved-issuesmd)**  
 
--   **[Known Issues](#known-issues.md)**  
+-   **[Known Issues](#known-issuesmd)**  
 
--   **[Compatibility](#compatibility.md)**  
+-   **[Compatibility](#compatibilitymd)**  
 
 
-<h2 id="before-you-start.md">Before You Start</h2>
+<h3 id="before-you-startmd">Before You Start</h3>
 
 This framework is modified based on the open-source PyTorch 1.5.0 developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
 PyTorch 1.8.1 is supported by this version and later, and this version inherits the features of PyTorch 1.5.0 and provides the same functions, except for the profiling tool. In addition, it optimizes the backend operator adaptation. Currently, PyTorch 1.8.1 supports only the ResNet-50 network model.
 
-<h2 id="new-features.md">New Features</h2>
+<h3 id="new-featuresmd">New Features</h3>
 
 **Table  1**  Features supported by  PyTorch
 
@@ -209,15 +209,15 @@ PyTorch 1.8.1 is supported by this version and later, and this version inherits 
 </tbody>
 </table>
 
-<h2 id="modified-features.md">Modified Features</h2>
+<h3 id="modified-featuresmd">Modified Features</h3>
 
 N/A
 
-<h2 id="resolved-issues.md">Resolved Issues</h2>
+<h3 id="resolved-issuesmd">Resolved Issues</h3>
 
 N/A
 
-<h2 id="known-issues.md">Known Issues</h2>
+<h3 id="known-issuesmd">Known Issues</h3>
 
 <a name="table1969972073016"></a>
 <table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
@@ -256,32 +256,32 @@ N/A
 </tbody>
 </table>
 
-<h2 id="compatibility.md">Compatibility</h2>
+<h3 id="compatibilitymd">Compatibility</h3>
 
 Atlas 800 \(model 9010\): CentOS 7.6, Ubuntu 18.04, BC-Linux 7.6, Debian 9.9, Debian 10, and openEuler 20.03 LTS.
 
 Atlas 800 \(model 9000\): CentOS 7.6, Euler 2.8, Kylin v10, BC-Linux 7.6, OpenEuler 20.03 LTS, and UOS 20 1020e.
 
-<h2 id="frameworkptadapter-2-0-2.md">FrameworkPTAdapter 2.0.2</h2>
+<h2 id="frameworkptadapter-2-0-2md">FrameworkPTAdapter 2.0.2</h2>
 
--   **[Before You Start](#before-you-start-0.md)**  
+-   **[Before You Start](#before-you-start-0md)**  
 
--   **[New Features](#new-features-1.md)**  
+-   **[New Features](#new-features-1md)**  
 
--   **[Modified Features](#modified-features-2.md)**  
+-   **[Modified Features](#modified-features-2md)**  
 
--   **[Resolved Issues](#resolved-issues-3.md)**  
+-   **[Resolved Issues](#resolved-issues-3md)**  
 
--   **[Known Issues](#known-issues-4.md)**  
+-   **[Known Issues](#known-issues-4md)**  
 
--   **[Compatibility](#compatibility-5.md)**  
+-   **[Compatibility](#compatibility-5md)**  
 
 
-<h2 id="before-you-start-0.md">Before You Start</h2>
+<h3 id="before-you-start-0md">Before You Start</h3>
 
 This framework is modified based on the open-source PyTorch 1.5.0 primarily developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
-<h2 id="new-features-1.md">New Features</h2>
+<h3 id="new-features-1md">New Features</h3>
 
 **Table  1**  Features supported by  PyTorch
 
@@ -356,15 +356,15 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 </tbody>
 </table>
 
-<h2 id="modified-features-2.md">Modified Features</h2>
+<h3 id="modified-features-2md">Modified Features</h3>
 
 N/A
 
-<h2 id="resolved-issues-3.md">Resolved Issues</h2>
+<h3 id="resolved-issues-3md">Resolved Issues</h3>
 
 N/A
 
-<h2 id="known-issues-4.md">Known Issues</h2>
+<h3 id="known-issues-4md">Known Issues</h3>
 
 <a name="table1969972073016"></a>
 <table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
@@ -403,7 +403,7 @@ N/A
 </tbody>
 </table>
 
-<h2 id="compatibility-5.md">Compatibility</h2>
+<h3 id="compatibility-5md">Compatibility</h3>
 
 Atlas 800 \(model 9010\): CentOS 7.6/Ubuntu 18.04/BC-Linux 7.6/Debian 9.9/Debian 10/openEuler 20.03 LTS
 
