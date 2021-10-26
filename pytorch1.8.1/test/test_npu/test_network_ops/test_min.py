@@ -363,69 +363,6 @@ class TestMin(TestCase):
                         ]
         self.min_result_dim(shape_format)
 
-    def test_min_dim_shape_format_fp16_1d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float16, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp32_1d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [18]], np.random.randint(0, 1), j] for i in format_list for j in
-                        keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp16_2d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float16, i, [18, 256]], np.random.randint(0, 2), j] for i in format_list for j in
-                        keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp32_2d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [18, 256]], np.random.randint(0, 2), j] for i in format_list for j in
-                        keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp16_3d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float16, i, [18, 256, 64]], np.random.randint(0, 3), j] for i in format_list for j in
-                        keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp32_3d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [18, 256, 64]], np.random.randint(0, 3), j] for i in format_list for j in
-                        keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp16_4d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float16, i, [18, 256, 64, 34]], np.random.randint(0, 4), j] for i in format_list for j
-                        in keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
-    def test_min_dim_shape_format_fp32_4d_(self, device):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [18, 256, 64, 34]], np.random.randint(0, 4), j] for i in format_list for j
-                        in keepdim_list
-                        ]
-        self._min_result_dim(shape_format)
-
     # -----------------------------other
 
     def test_min_other_shape_format_fp16_1d(self, device):

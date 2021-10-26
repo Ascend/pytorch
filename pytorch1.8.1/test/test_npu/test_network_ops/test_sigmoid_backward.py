@@ -34,25 +34,25 @@ def npu_input_grad_hook(grad):
 
 
 class TestSigmoidBackward(TestCase):
-    def cpu_op_exec(self, input, is_contiguous = True):
+    def cpu_op_exec(self, input1, is_contiguous = True):
         if is_contiguous is False :
-            input = input.as_strided([2,2], [1,2], 1)
-        input.requires_grad = True
-        input.register_hook(input_grad_hook)
-        output = torch.sigmoid(input)
+            input1 = input1.as_strided([2,2], [1,2], 1)
+        input1.requires_grad = True
+        input1.register_hook(input_grad_hook)
+        output = torch.sigmoid(input1)
         z = output.sum()
         z.backward()
 
-    def npu_op_exec(self, input, is_contiguous = True):
+    def npu_op_exec(self, input1, is_contiguous = True):
         if is_contiguous is False :
-            input = input.as_strided([2,2], [1,2], 1)
-        input.requires_grad = True
-        input.register_hook(npu_input_grad_hook)
+            input1 = input1.as_strided([2,2], [1,2], 1)
+        input1.requires_grad = True
+        input1.register_hook(npu_input_grad_hook)
 
-        output = torch.sigmoid(input)
+        output = torch.sigmoid(input1)
         z = output.sum()
         z.backward()
-        input = input.cpu()
+        input1 = input1.cpu()
 
     def test_sigmoid_backward_shape_format_fp16(self, device):
         format_list = [0]
@@ -76,7 +76,7 @@ class TestSigmoidBackward(TestCase):
             input_grad = input_grad.astype(np.float16)
             self.assertRtolEqual(input_grad, npu_input_grad)
 
-    def test_sigmoid_backward_shape_format_fp32(self, device):   
+    def test_sigmoid_backward_shape_format_fp32(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [(256, 2048, 7, 7)]
         shape_format = [

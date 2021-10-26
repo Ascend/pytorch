@@ -12,49 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> nll_loss2d_backward_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> nll_loss2d_backward_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> nll_loss2d_backward_npu_attr(int64_t reduction) {
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
-
-  NPUAttrDesc npuAttrReduction = NPUAttrDesc("reduction", reductionStr);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrReduction};
-
-  return attrs;
-}
-
 Tensor& nll_loss2d_backward_out_npu(
-    Tensor& grad_input,
     const Tensor& grad_output,
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight_opt,
     int64_t reduction,
     int64_t ignore_index,
-    const Tensor& total_weight) {
+    const Tensor& total_weight,
+    Tensor& grad_input) {
+  Tensor weight = c10::value_or_else(weight_opt, [] {return Tensor();});
   Tensor weight_tensor;
   if (weight.defined()) {
     weight_tensor = NpuUtils::format_contiguous(weight);
@@ -74,17 +48,19 @@ Tensor& nll_loss2d_backward_out_npu(
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
 
-  // constructs the input and output NPUTensorDesc
-  auto inputs = nll_loss2d_backward_npu_input(
-      {self, grad_output, target, weight_tensor, total_weight});
-  auto outputs = nll_loss2d_backward_npu_output({grad_input});
+  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction);
 
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = nll_loss2d_backward_npu_attr(reduction);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("NLLLossGrad", inputs, outputs, attrs);
-
+  OpPreparation::CheckMemory({self, grad_output, target, weight_tensor, total_weight}, {grad_input});
+  OpCommand cmd;
+  cmd.Name("NLLLossGrad")
+      .Input(self)
+      .Input(grad_output)
+      .Input(target)
+      .Input(weight_tensor)
+      .Input(total_weight)
+      .Attr("reduction", reductionStr)
+      .Output(grad_input)
+      .Run();
   return grad_input;
 }
 
@@ -92,7 +68,7 @@ Tensor nll_loss2d_backward_npu(
     const Tensor& grad_output,
     const Tensor& self,
     const Tensor& target,
-    const Tensor& weight,
+    const c10::optional<Tensor>& weight_opt,
     int64_t reduction,
     int64_t ignore_index,
     const Tensor& total_weight) {
@@ -115,31 +91,28 @@ Tensor nll_loss2d_backward_npu(
     grad_output_reshape = grad_output_reshape.reshape({-1});
   }
 
-  // calculate the output size
-  auto outputSize = input_same_output_size(self_input);
-
-  // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
-      outputSize,
-      self_input.options(),
-      CalcuOpUtil::get_tensor_npu_format(self_input));
-
+  Tensor grad_input = OpPreparation::ApplyTensor(self_input);
   // calculate the output result of the NPU
   nll_loss2d_backward_out_npu(
-      grad_input,
       grad_output_reshape,
       self_input,
       target_input,
-      weight,
+      weight_opt,
       reduction,
       ignore_index,
-      total_weight);
+      total_weight,
+      grad_input);
 
   grad_input =
       grad_input.reshape({self.size(0), self.size(2), self.size(3), self.size(1)});
   grad_input = grad_input.permute({0, 3, 1, 2});
 
   return grad_input;
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("nll_loss2d_backward", TORCH_FN(nll_loss2d_backward_npu));
+  m.impl("nll_loss2d_backward.grad_input", TORCH_FN(nll_loss2d_backward_out_npu));
 }
 } // namespace native
 } // namespace at
