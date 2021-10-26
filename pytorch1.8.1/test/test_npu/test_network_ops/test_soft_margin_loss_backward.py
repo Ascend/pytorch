@@ -13,17 +13,12 @@
 # limitations under the License.
 
 import torch
-
 import torch.nn.functional as F
-import copy
 import torch.nn as nn
 import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-
-
-
 
 class Testcdist(TestCase):
     def generate_data(self, min_n, max_n, shape_predict, shape_label, src_type):
@@ -61,7 +56,6 @@ class Testcdist(TestCase):
 
         gradient = predict.grad.cpu().numpy()
         
-
         if device == 'cpu' and is_fp16:
             gradient = gradient.astype(np.float16)
         return gradient
@@ -374,5 +368,4 @@ class Testcdist(TestCase):
 
 instantiate_device_type_tests(Testcdist, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:3")
     run_tests()

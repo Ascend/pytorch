@@ -14,8 +14,6 @@
 
 import torch
 import numpy as np
-import sys
-import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -32,14 +30,14 @@ class TestSoftMarginLoss(TestCase):
         return npu_input1, npu_input2
 
     def cpu_op_exec_default(self,input1, input2):
-        stype=input1.dtype
-        if stype==torch.float16:
-            input1=input1.float()
-            input2=input2.float()
+        stype = input1.dtype
+        if stype == torch.float16:
+            input1 = input1.float()
+            input2 = input2.float()
         loss = torch.nn.SoftMarginLoss()
-        output=loss(input1, input2)
-        if stype==torch.float16:
-            output=output.half()
+        output = loss(input1, input2)
+        if stype == torch.float16:
+            output = output.half()
         output = output.numpy()
         return output
 
@@ -53,14 +51,14 @@ class TestSoftMarginLoss(TestCase):
         return output
 
     def cpu_op_exec(self,input1, input2, reduct):
-        stype=input1.dtype
-        if stype==torch.float16:
-            input1=input1.float()
-            input2=input2.float()
+        stype = input1.dtype
+        if stype == torch.float16:
+            input1 = input1.float()
+            input2 = input2.float()
         loss = torch.nn.SoftMarginLoss(reduction=reduct)
         output = loss(input1, input2)
-        if stype==torch.float16:
-            output=output.half()
+        if stype == torch.float16:
+            output = output.half()
         output = output.numpy()
         return output
 
@@ -72,27 +70,31 @@ class TestSoftMarginLoss(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
- 
+
     def test_soft_margin_loss_float16(self, device):
-        npu_input1, npu_input2 =self.generate_data(-2, 2, (5, 13, 2, 7, 18, 83, 5, 22), (5, 13, 2, 7, 18, 83, 5, 22), np.float16)
+        npu_input1, npu_input2 = self.generate_data(-2, 2, (5, 13, 2, 7, 18, 83, 5, 22),
+                                                    (5, 13, 2, 7, 18, 83, 5, 22), np.float16)
         cpu_output = self.cpu_op_exec_default(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_default(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_soft_margin_loss_float16_mean(self, device):
-        npu_input1, npu_input2 = self.generate_data(-2, 2, (3, 19, 19, 3, 11, 11, 2), (3, 1, 19, 3, 11, 11, 1), np.float16)
+        npu_input1, npu_input2 = self.generate_data(-2, 2, (3, 19, 19, 3, 11, 11, 2),
+                                                    (3, 1, 19, 3, 11, 11, 1), np.float16)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_soft_margin_loss_float16_none(self, device):
-        npu_input1, npu_input2 = self.generate_data(-2, 2, (5, 13, 2, 7, 18, 83, 5, 22), (5, 13, 2, 1, 18, 83, 1, 22), np.float16)
+        npu_input1, npu_input2 = self.generate_data(-2, 2, (5, 13, 2, 7, 18, 83, 5, 22),
+                                                    (5, 13, 2, 1, 18, 83, 1, 22), np.float16)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "none")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "none")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_soft_margin_loss_float16_sum(self, device):
-        npu_input1, npu_input2 = self.generate_data(-2, 2, (37, 8, 20, 20, 5, 8, 10, 8), (37, 8, 20, 20, 1, 1, 1, 1), np.float16)
+        npu_input1, npu_input2 = self.generate_data(-2, 2, (1, 8, 2, 2, 5, 8, 2, 8),
+                                                   (1, 8, 2, 2, 1, 1, 1, 1), np.float16)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
         self.assertRtolEqual(cpu_output, npu_output)
@@ -111,8 +113,8 @@ class TestSoftMarginLoss(TestCase):
 
     def test_soft_margin_loss_float32_none(self, device):
         npu_input1, npu_input2 = self.generate_data(-2, 2, (25, 25, 25), (25, 1, 25), np.float32)
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
-        npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
+        cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "none")
+        npu_output = self.npu_op_exec(npu_input1, npu_input2, "none")
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_soft_margin_loss_float32_sum(self, device):
@@ -123,5 +125,4 @@ class TestSoftMarginLoss(TestCase):
 
 instantiate_device_type_tests(TestSoftMarginLoss, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:2")
     run_tests()

@@ -241,7 +241,10 @@ class OpCommandBase {
     storage.emplace_back(std::move(cpuTensor));
     return storage.back();
   }
-  Tensor CreateScalarTensor(const Scalar& scalar, const ScalarType type) {
+  Tensor CreateScalarTensor(const Scalar& scalar, ScalarType type) {
+    if (commonType.has_value()) {
+      type = commonType.value();
+    }
     storage.emplace_back(scalar_to_tensor(scalar).to(type));
     return storage.back();
   }
