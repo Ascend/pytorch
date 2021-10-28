@@ -13,34 +13,34 @@
 # limitations under the License.
 
 import sys
-sys.path.append('..')
 import copy
 import torch
 import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
+sys.path.append('..')
 
-class TestNe(TestCase):
+class TestEqual(TestCase):
     def cpu_op_exec(self, input1, input2):
-        output = torch.ne(input1, input2)
+        output = torch.eq(input1, input2)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, input2):
-        output = torch.ne(input1, input2)
+        output = torch.eq(input1, input2)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def npu_op_exec_out(self, input1, input2):
         input3 = torch.empty(0).bool().npu()
-        torch.ne(input1, input2, out=input3)
+        torch.eq(input1, input2, out=input3)
         output = input3.to("cpu")
         output = output.numpy()
         return output
 
-    def test_ne_shape_format_fp32(self, device):
+    def test_equal_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -54,7 +54,7 @@ class TestNe(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)            
             self.assertRtolEqual(cpu_output, npu_output)
             
-    def test_ne_shape_format_fp16(self, device):
+    def test_equal_shape_format_fp16(self, device):
         dtype_list = [np.float16]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -69,10 +69,10 @@ class TestNe(TestCase):
             if cpu_input1.dtype == torch.float16:
                 cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)          
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_ne_out_shape_format_fp32(self, device):
+    def test_equal_out_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -85,8 +85,8 @@ class TestNe(TestCase):
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)           
             self.assertRtolEqual(cpu_output, npu_output_out)
-
-    def test_ne_scalar_out_shape_format_fp32(self, device):
+            
+    def test_equal_scalar_out_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -96,16 +96,16 @@ class TestNe(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -10, 10)
             npu_output_out = self.npu_op_exec_out(npu_input1, 5)
-            cpu_output = self.cpu_op_exec(cpu_input1, 5)
+            cpu_output = self.cpu_op_exec(cpu_input1, 5)           
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    def test_ne_mix_dtype(self, device):
+    def test_equal_mix_dtype(self, device):
         cpu_input1, npu_input1 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestNe, globals(), except_for="cpu")
+instantiate_device_type_tests(TestEqual, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
