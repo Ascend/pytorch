@@ -121,10 +121,9 @@ conv2d_backward_npu_output_size(
     int64_t groups);
 
 SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
-	const Tensor& x1,
-	int64_t dim,
-	bool keepdim
-);
+    const Tensor& x1,
+    int64_t dim,
+    bool keepdim);
 
 tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> 
 conv_transpose2d_backward_npu_output_size(
@@ -183,8 +182,8 @@ SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
     bool scale_grad_by_freq);
 
 SmallVector<int64_t, SIZE> index_npu_output_size(
-  const Tensor& self, 
-  TensorList indices);
+    const Tensor& self, 
+    TensorList indices);
 
 SmallVector<int64_t, SIZE> index_select_npu_output_size(
     const Tensor& self,
@@ -197,36 +196,36 @@ SmallVector<int64_t, SIZE> iou_npu_output_size(
 
 tuple<IntArrayRef, IntArrayRef, IntArrayRef>
 layer_norm_backward_npu_output_size(
-  const Tensor& dY,
-  const Tensor& X,
-  const Tensor& mean,
-  const Tensor& rstd,
-  const Tensor& gamma,
-  int64_t M,
-  int64_t N);
+    const Tensor& dY,
+    const Tensor& X,
+    const Tensor& mean,
+    const Tensor& rstd,
+    const Tensor& gamma,
+    int64_t M,
+    int64_t N);
 
 SmallVector<int64_t, SIZE> lstm_npu_output_size(
     const Tensor& input,
-	const Tensor& weight,
-	const Tensor& bias,
-	const Tensor& h,
-	const Tensor& c,
-	bool has_biases,
-	int64_t num_layers,
-	double dropout,
-	bool train,
-	bool bidirectional,
-	bool batch_first);
+    const Tensor& weight,
+    const Tensor& bias,
+    const Tensor& h,
+    const Tensor& c,
+    bool has_biases,
+    int64_t num_layers,
+    double dropout,
+    bool train,
+    bool bidirectional,
+    bool batch_first);
 
 SmallVector<int64_t, SIZE> mm_npu_output_size(
     const Tensor& self,
     const Tensor& mat2);
 
 SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
-  const Tensor& input,
-  const Tensor& weight,
-  IntArrayRef padding,
-  IntArrayRef stride);
+    const Tensor& input,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef stride);
 
 tuple<
     SmallVector<int64_t, SIZE>,

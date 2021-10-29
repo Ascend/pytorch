@@ -21,9 +21,9 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor conv3d_backward_inputmask(Tensor &gradInput, const Tensor &input,
-                                     const Tensor &grad, const Tensor &weight,
-                                     IntArrayRef stride, IntArrayRef padding,
-                                     IntArrayRef dilation, int64_t groups) {
+    const Tensor &grad, const Tensor &weight,
+    IntArrayRef stride, IntArrayRef padding,
+    IntArrayRef dilation, int64_t groups) {
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
   SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1],
                                       padding[1], padding[2], padding[2]};
@@ -61,9 +61,9 @@ Tensor conv3d_backward_inputmask(Tensor &gradInput, const Tensor &input,
 }
 
 Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
-                                      const Tensor &grad, const Tensor &weight,
-                                      IntArrayRef stride, IntArrayRef padding,
-                                      IntArrayRef dilation, int64_t groups) {
+    const Tensor &grad, const Tensor &weight,
+    IntArrayRef stride, IntArrayRef padding,
+    IntArrayRef dilation, int64_t groups) {
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
   SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1],
                                       padding[1], padding[2], padding[2]};
@@ -101,9 +101,9 @@ Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
 }
 
 Tensor conv3d_backward_biasmask(Tensor &gradBias, const Tensor &input,
-                                    const Tensor &grad, const Tensor &weight,
-                                    IntArrayRef stride, IntArrayRef padding,
-                                    IntArrayRef dilation, int64_t groups) {
+    const Tensor &grad, const Tensor &weight,
+    IntArrayRef stride, IntArrayRef padding,
+    IntArrayRef dilation, int64_t groups) {
   // constructs the input and output NPUTensorDesc
   if (input.numel() == input.size(0) * input.size(1) * input.size(2)) {
     Tensor gradView =
@@ -118,19 +118,18 @@ Tensor conv3d_backward_biasmask(Tensor &gradBias, const Tensor &input,
   return gradBias;
 }
 
-//interface
-tuple<Tensor, Tensor, Tensor>
-conv3d_backward_npu(const Tensor &input, const Tensor &grad,
-                    const Tensor &weight, IntArrayRef stride,
-                    IntArrayRef padding, IntArrayRef dilation, int64_t groups,
-                    std::array<bool, 3> grad_input_mask) {
+// interface
+tuple<Tensor, Tensor, Tensor> conv3d_backward_npu(const Tensor &input, const Tensor &grad,
+    const Tensor &weight, IntArrayRef stride,
+    IntArrayRef padding, IntArrayRef dilation, 
+    int64_t groups, std::array<bool, 3> grad_input_mask) {
 
   Tensor gradInput;
   Tensor gradWeight;
   Tensor gradBias;
  
   if (grad_input_mask[0]) {
-    //format should be NDC1HWC0
+    // format should be NDC1HWC0
     gradInput = at::empty_with_format(
         input.sizes(), input.options(), ACL_FORMAT_NDC1HWC0);
     
@@ -139,7 +138,7 @@ conv3d_backward_npu(const Tensor &input, const Tensor &grad,
   }
 
   if (grad_input_mask[1]) {
-    //format should be FRACTAL_Z_3D
+    // format should be FRACTAL_Z_3D
     gradWeight = at::empty_with_format(
         weight.sizes(), weight.options().dtype(kFloat), ACL_FRACTAL_Z_3D);
     
@@ -148,7 +147,7 @@ conv3d_backward_npu(const Tensor &input, const Tensor &grad,
   }
 
   if (grad_input_mask[2]) {
-    //format should be NCHW, gradias.size = grad.size(1)
+    // format should be NCHW, gradias.size = grad.size(1)
     gradBias = at::empty_with_format(
         {grad.size(1)}, grad.options(), ACL_FORMAT_NCHW);
     

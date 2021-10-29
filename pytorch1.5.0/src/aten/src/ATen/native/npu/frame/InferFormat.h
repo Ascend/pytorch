@@ -56,7 +56,7 @@ public:
   // unsqueeze/squeeze/select/flatten/view will change meta data, they will call
   // as_strided and view
   static bool IsDefiniteTensorWhenMetaDataChanges(const Tensor& tensor, const IntArrayRef& size);
-}; //class InferFormat
+}; // class InferFormat
 
 
 } // namespace npu

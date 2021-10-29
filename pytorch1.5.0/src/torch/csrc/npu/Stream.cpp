@@ -32,7 +32,7 @@
 PyObject *THNPStreamClass = nullptr;
 
 static PyObject * THNPStream_pynew(
-  PyTypeObject *type, PyObject *args, PyObject *kwargs){
+    PyTypeObject *type, PyObject *args, PyObject *kwargs){
   HANDLE_TH_ERRORS
 
   int current_device;
@@ -83,43 +83,22 @@ static PyObject * THNPStream_get_npu_stream(THNPStream *self, void *unused) {
   END_HANDLE_TH_ERRORS
 }
 
-//TODO:lack of npu_stream.priority()
+// TODO:lack of npu_stream.priority()
 static PyObject * THNPStream_get_priority(THNPStream *self, void *unused) {
-#if 0
-  HANDLE_TH_ERRORS
-  return PyLong_FromLong(self->npu_stream.priority());
-  END_HANDLE_TH_ERRORS
-#else
   std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return 0;
-#endif
+  return nullptr;
 }
 
-//TODO:lack of at::npu::NPUStream::priority_range()
+// TODO:lack of at::npu::NPUStream::priority_range()
 static PyObject * THNPStream_priority_range() {
-#if 0
-  HANDLE_TH_ERRORS
-  int least_priority, greatest_priority;
-  std::tie(least_priority, greatest_priority) =
-    at::npu::NPUStream::priority_range();
-  return Py_BuildValue("(ii)", least_priority, greatest_priority);
-  END_HANDLE_TH_ERRORS
-#else
   std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return 0;
-#endif
+  return nullptr;
 }
 
-//TODO:lack of npu_stream.query()
+// TODO:lack of npu_stream.query()
 static PyObject * THNPStream_query(THNPStream *self, PyObject *noargs) {
-#if 0
-  HANDLE_TH_ERRORS
-  return PyBool_FromLong(self->npu_stream.query());
-  END_HANDLE_TH_ERRORS
-#else
   std::cout<<__FILE__<<":"<<__LINE__<<":not support\r\n";
-  return 0;
-#endif
+  return nullptr;
 }
 
 static PyObject * THNPStream_synchronize(THNPStream *self, PyObject *noargs) {

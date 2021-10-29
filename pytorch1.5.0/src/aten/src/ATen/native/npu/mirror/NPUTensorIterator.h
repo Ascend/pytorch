@@ -58,7 +58,7 @@ struct NPUOperandInfo {
   ScalarType target_dtype = ScalarType::Undefined;
   ScalarType current_dtype = ScalarType::Undefined;
   bool is_output = false;
-}; //class NPUOperandInfo
+}; // class NPUOperandInfo
 
 enum class CommonDTypeStrategy : uint8_t {
   NONE, // Do not compute a common dtype
@@ -145,7 +145,7 @@ class NPUTensorIterator {
   ScalarType common_dtype_ = ScalarType::Undefined;
   bool is_reduction_ = false;
   CommonDTypeStrategy common_dtype_strategy_ = CommonDTypeStrategy::CHECK;
-};//class NPUTensorIterator
+}; // class NPUTensorIterator
 
 } // namespace npu
 } // namespace native

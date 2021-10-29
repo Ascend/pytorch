@@ -141,11 +141,11 @@ def device_count():
 
 def set_device(device):
     if isinstance(device, torch.device):
-      torch._C._npu_setDevice(device.index)
+        torch._C._npu_setDevice(device.index)
     elif torch.device(device) :
-      torch._C._npu_setDevice(torch.device(device).index)
+        torch._C._npu_setDevice(torch.device(device).index)
     else :
-      raise AssertionError("input can not convert to torch.device")
+        raise AssertionError("input can not convert to torch.device")
 
 
 def current_device():

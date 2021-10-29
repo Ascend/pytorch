@@ -61,9 +61,9 @@ void OpAttrMaker::Set(aclopAttr* attr, const string& name, Scalar value) {
 
 
 void OpAttrMaker::Set(
-      aclopAttr* attr,
-      const string& name,
-      at::ArrayRef<IntArrayRef> value) {
+    aclopAttr* attr,
+    const string& name,
+    at::ArrayRef<IntArrayRef> value) {
   // Pointer to values of each listInt.
   SmallVector<int64_t*, N> attrValue;
   // Pointer to number of each listInt.
@@ -113,8 +113,8 @@ void AttrInfoMaker::Add(IntArrayRef value, string& attrInfo) {
 }
 
 void AttrInfoMaker::Add(
-      at::ArrayRef<float> value,
-      string& attrInfo) {
+    at::ArrayRef<float> value,
+    string& attrInfo) {
   auto vec = value.vec();
   for (unsigned i = 0; i < vec.size(); i++)
     attrInfo += to_string(vec.at(i)) + ",";

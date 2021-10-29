@@ -26,12 +26,12 @@ namespace at {
 namespace native {
 namespace npu {
 
-//get common dtype and shape from op adapter layer 
+// get common dtype and shape from op adapter layer 
 struct UnifiedResult {
   c10::optional<ScalarType> common_type = c10::nullopt;
   c10::optional<IntArrayRef> common_shape = c10::nullopt;
-  //judge result tensor's dtype is defined or not. 
-  //if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
+  // judge result tensor's dtype is defined or not. 
+  // if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
   bool result_type_defined = false;
 };
 

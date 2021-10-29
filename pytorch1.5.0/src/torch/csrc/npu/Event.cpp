@@ -43,10 +43,6 @@ static PyObject * THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *
   }
 
   THNPEvent* self = (THNPEvent *)ptr.get();
-  //unsigned int flags =
-  //  (blocking ? cudaEventBlockingSync : cudaEventDefault) |
-  //  (enable_timing ? cudaEventDefault : cudaEventDisableTiming) |
-  //  (interprocess ? cudaEventInterprocess : cudaEventDefault);
 
   new (&self->npu_event) at::npu::NPUEvent();
 
