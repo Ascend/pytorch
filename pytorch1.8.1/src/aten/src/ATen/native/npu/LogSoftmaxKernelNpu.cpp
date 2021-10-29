@@ -56,7 +56,7 @@ Tensor log_softmax_nocheck(
   log_softmax_nocheck(result, self.toType(dstType), dim);
   return result;
 }
-}//namespace
+} // namespace
 
 Tensor log_softmax_npu(
     const Tensor& self,

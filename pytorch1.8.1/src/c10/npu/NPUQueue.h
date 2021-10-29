@@ -67,7 +67,7 @@ public:
 class Repository : public NPUQueueBase {
  public:
   Repository() = default;
-  ~Repository();
+  ~Repository() override;
   RepoStatus GetStatus() const override;
   void SetStatus(RepoStatus desired) override;
   void ChangeStatus(RepoStatus expected, RepoStatus desired) override;

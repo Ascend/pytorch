@@ -1172,7 +1172,7 @@ std::shared_ptr<void> getIpcDevPtr(std::string handle) {
   // It doesn't overwrite when key already exists(ptr expired).
   // But in the deleter for sp we erased the entry,
   // this should be safe to do now.
-  ipcMemHandle_to_devptr.insert(iter, {handle, wp});*/
+  ipcMemHandle_to_devptr.insert(iter, {handle, wp}); */
   std::shared_ptr<void> sp;
   return sp;
 }

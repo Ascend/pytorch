@@ -234,11 +234,11 @@ Tensor empty_like_new_npu(
 }
 
 Tensor empty_new_with_format_npu(IntArrayRef size,
-              c10::optional<ScalarType> dtype_opt,
-              c10::optional<Layout> layout_opt,
-              c10::optional<Device> device_opt,
-              c10::optional<bool> pin_memory_opt,
-              int64_t dst_format) {
+    c10::optional<ScalarType> dtype_opt,
+    c10::optional<Layout> layout_opt,
+    c10::optional<Device> device_opt,
+    c10::optional<bool> pin_memory_opt,
+    int64_t dst_format) {
   AT_ASSERT(device_or_default(device_opt).type() == DeviceType::NPU);
   TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
@@ -268,8 +268,8 @@ Tensor empty_new_with_format_npu(IntArrayRef size,
 }
 
 Tensor empty_with_format_npu(IntArrayRef size,
-              const TensorOptions& options,
-              int64_t dst_format) {
+    const TensorOptions& options,
+    int64_t dst_format) {
   AT_ASSERT(options.device().type() == DeviceType::NPU);
   AT_ASSERT(options.backend() == at::Backend::NPU);
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
@@ -300,12 +300,12 @@ Tensor empty_with_format_npu(IntArrayRef size,
 }
 
 Tensor empty_new_with_format_name_npu(IntArrayRef size,
-              c10::optional<DimnameList> names,
-              c10::optional<ScalarType> dtype_opt,
-              c10::optional<Layout> layout_opt,
-              c10::optional<Device> device_opt,
-              c10::optional<bool> pin_memory_opt,
-              int64_t dst_format) {
+    c10::optional<DimnameList> names,
+    c10::optional<ScalarType> dtype_opt,
+    c10::optional<Layout> layout_opt,
+    c10::optional<Device> device_opt,
+    c10::optional<bool> pin_memory_opt,
+    int64_t dst_format) {
   caffe2::TypeMeta dtype = scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
   TensorOptions options;
   options.dtype(dtype);
@@ -322,9 +322,9 @@ Tensor empty_new_with_format_name_npu(IntArrayRef size,
   return result;
 }
 Tensor empty_with_format_npu(IntArrayRef size,
-              c10::optional<DimnameList> names,
-              const TensorOptions& options,
-              int64_t dst_format) {
+    c10::optional<DimnameList> names,
+    const TensorOptions& options,
+    int64_t dst_format) {
   Tensor result =
       at::empty_with_format(size, options, dst_format);
   if (names.has_value()) {
@@ -335,9 +335,9 @@ Tensor empty_with_format_npu(IntArrayRef size,
 }
 
 Tensor empty_with_format_name_npu(IntArrayRef size,
-              c10::optional<DimnameList> names,
-              const TensorOptions& options,
-              int64_t dst_format) {
+    c10::optional<DimnameList> names,
+    const TensorOptions& options,
+    int64_t dst_format) {
   Tensor result =
       at::empty_with_format(size, options, dst_format);
   if (names.has_value()) {

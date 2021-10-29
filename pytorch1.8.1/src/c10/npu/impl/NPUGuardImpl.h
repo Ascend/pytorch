@@ -29,7 +29,6 @@
 #include <third_party/acl/inc/acl/acl_rt.h>
 #include <cassert>
 
-//#include <cuda_runtime_api.h>
 
 namespace c10 {
 namespace npu {
@@ -119,10 +118,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
     int orig_device;
-    // C10_NPU_CHECK_WARN(cudaGetDevice(&orig_device));
-    // C10_NPU_CHECK_WARN(cudaSetDevice(device_index));
     C10_NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
-    // C10_NPU_CHECK_WARN(cudaSetDevice(orig_device));
   }
 
   void record(

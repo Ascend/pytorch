@@ -21,7 +21,6 @@
 #include <c10/util/Exception.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <c10/npu/interface/AclInterface.h>
-//#include <cuda.h>
 
 #define C10_NPU_SHOW_ERR_MSG()                            \
 do {                                                      \

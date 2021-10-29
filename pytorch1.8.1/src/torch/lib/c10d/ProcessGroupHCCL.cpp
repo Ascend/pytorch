@@ -638,9 +638,9 @@ c10::intrusive_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather(
 }
 
 c10::intrusive_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather_base(
-    at::Tensor& /*unused */,
-    at::Tensor& /*unused */,
-    const AllgatherOptions& /*unused */) {
+    at::Tensor& /* unused */,
+    at::Tensor& /* unused */,
+    const AllgatherOptions& /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support allgather_base");
 }
 

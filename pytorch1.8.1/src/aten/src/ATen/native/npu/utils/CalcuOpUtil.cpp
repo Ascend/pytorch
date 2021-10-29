@@ -207,8 +207,9 @@ int64_t CalcuOpUtil::make_wrap_dim(int64_t dim, int64_t dim_post_expr) {
 
   int64_t min = -dim_post_expr;
   int64_t max = dim_post_expr - 1;
-  if (dim < 0)
+  if (dim < 0) {
     dim += dim_post_expr;
+  }
   return dim;
 }
 

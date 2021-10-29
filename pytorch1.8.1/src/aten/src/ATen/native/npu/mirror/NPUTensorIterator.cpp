@@ -143,7 +143,7 @@ static std::tuple<ScalarType, bool> compute_common_type_(at::ArrayRef<NPUOperand
   for (const auto& op: operands) {
     if (!op.tensor.defined()) 
       continue;
-    //don't handle scalars
+    // don't handle scalars
     if (op.tensor.dim() > 0) {
       ScalarType current = op.current_dtype;
       if (current == ScalarType::Undefined) {

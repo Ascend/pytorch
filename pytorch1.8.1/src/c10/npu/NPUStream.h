@@ -88,7 +88,7 @@ class C10_NPU_API NPUStream {
       }
 
       return false;
-  }*/
+  } */
 
   void synchronize() const {
     DeviceGuard guard{stream_.device()};
