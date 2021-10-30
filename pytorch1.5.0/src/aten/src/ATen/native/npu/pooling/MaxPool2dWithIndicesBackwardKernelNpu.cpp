@@ -50,7 +50,7 @@ Tensor& max_pool2d_with_indices_backward_out_npu(
   cmd.Name("MaxPoolGradWithArgmaxV1")
       .Input(self)
       .Input(grad_output)
-      .Input(indices, "", "uint16")
+      .Input(indices, "", nullopt, "uint16")
       .Output(grad_input)
       .Attr("ksize", kernelSize)
       .Attr("strides", stridesSize)

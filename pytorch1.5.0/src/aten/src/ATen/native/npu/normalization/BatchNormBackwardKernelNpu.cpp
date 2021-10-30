@@ -36,12 +36,12 @@ tuple<Tensor&, Tensor&> batch_norm_backward_training_update_nocheck(
     double eps) {
   OpCommand cmd;
   cmd.Name("BNTrainingUpdateGrad")
-      .Input(grad_out)
-      .Input(self)
-      .Input(save_mean)
-      .Input(save_invstd)
-      .Output(grad_weight)
-      .Output(grad_bias)
+      .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+      .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+      .Output(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+      .Output(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
   
@@ -63,14 +63,14 @@ Tensor& batch_norm_backward_training_reduce_nocheck(
     double eps) {
   OpCommand cmd;
   cmd.Name("BNTrainingReduceGrad")
-      .Input(grad_out)
-      .Input(self)
-      .Input(grad_weight)
-      .Input(grad_bias)
-      .Input(weight)
-      .Input(save_mean)
-      .Input(save_invstd)
-      .Output(grad_input)
+      .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+      .Input(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+      .Input(weight, "scale", ACL_FORMAT_NCHW)
+      .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+      .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+      .Output(grad_input, "y", ACL_FORMAT_NCHW)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 

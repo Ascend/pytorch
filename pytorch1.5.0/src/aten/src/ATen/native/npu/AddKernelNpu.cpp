@@ -61,13 +61,13 @@ Tensor& adds_out_npu_nocheck(
     cmd.Name("Add")
         .Input(self)
         .Input(value, self.scalar_type(), MemoryType::MEMORY_HOST)
-        .Output(result, real_type)
+        .Output(result, "", nullopt, real_type)
         .Run();
   } else {
     cmd.Name("Add")
         .Input(self)
         .Input(value, self.scalar_type())
-        .Output(result, real_type)
+        .Output(result, "", nullopt, real_type)
         .Run();
   }
 
@@ -105,7 +105,7 @@ Tensor& add_out_npu_nocheck(
       cmd.Name("Add")
           .Input(self)
           .Input(other)
-          .Output(result, real_type)
+          .Output(result, "", nullopt, real_type)
           .Run();
     } else {
       if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD")) {

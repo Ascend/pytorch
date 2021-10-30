@@ -74,6 +74,7 @@ class OpCommandBase {
   Derived& Input(
     const Tensor& input,
     const string& descName = "",
+    const optional<aclFormat>& sensitive_format = nullopt,
     const string& realData = "") {
     return AddTensorInput(Contiguous(input), ScalarType::Undefined, descName, realData);
   }
@@ -117,7 +118,10 @@ class OpCommandBase {
   }
 
   // TODO(ascend): 这个类型的参数应该是一个bug
-  Derived& Output(Tensor& output, const string& realType = "") {
+  Derived& Output(Tensor& output,
+                  const string& descName = "",
+                  const optional<aclFormat>& sensitive_format = nullopt,
+                  const string& realType = "") {
     return AddOutput(output, realType);
   }
 

@@ -56,12 +56,12 @@ Tensor& conv2d_out_npu(
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   OpCommand cmd;
   cmd.Name("Conv2D")
-      .Input(input)
-      .Input(weight);
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW);
   if (bias.defined()) {
       cmd.Input(bias);
   }
-  cmd.Output(result)
+  cmd.Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
