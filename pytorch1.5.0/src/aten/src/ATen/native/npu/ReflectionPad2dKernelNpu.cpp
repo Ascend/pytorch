@@ -52,7 +52,7 @@ Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArr
     vectorInt.emplace_back(paddingsVector[i - 1]);
   }
   
-  //constructs the attr of the NPUAttrDesc
+  // constructs the attr of the NPUAttrDesc
   SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
   if(self.dtype() == kHalf) {
@@ -77,9 +77,9 @@ Tensor& reflection_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntArr
 }
 
 Tensor& reflection_pad2d_out_npu(Tensor& result, const Tensor& self, IntArrayRef padding){
-  //calculate the output size
+  // calculate the output size
   auto outputSize = reflection_pad2d_npu_output_size(self, padding);
-  //construct the output tensor of the NPU
+  // construct the output tensor of the NPU
   OpPreparation::CheckOut(
   {self},
   result,
@@ -92,11 +92,11 @@ Tensor& reflection_pad2d_out_npu(Tensor& result, const Tensor& self, IntArrayRef
 
 Tensor reflection_pad2d_npu(const Tensor& self, IntArrayRef padding) {
   TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
-  //calculate the output size
+  // calculate the output size
   auto outputSize = reflection_pad2d_npu_output_size(self, padding);
-  //construct the output tensor of the NPU
+  // construct the output tensor of the NPU
   Tensor out = OpPreparation::ApplyTensor(self, outputSize);
-  //calculate the output result of the NPU
+  // calculate the output result of the NPU
   reflection_pad2d_out_npu_nocheck(out, self, padding);
 
   return out;

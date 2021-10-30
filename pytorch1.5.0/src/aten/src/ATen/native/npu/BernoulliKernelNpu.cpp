@@ -69,7 +69,7 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
   OpPreparation::CheckMemory({self}, {self});
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
-  Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);;
+  Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
   if (self.scalar_type() == ScalarType::Half) {
     selfFp32 = self.to(ScalarType::Float);
     pFp32 = p.to(ScalarType::Float);

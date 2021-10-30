@@ -115,7 +115,7 @@ Tensor _cdist_forward_npu(
   Tensor tensor1_broadcast = tensor1_expanded.expand(tensor_broadcast_size).contiguous();
   Tensor tensor2_broadcast = tensor2_expanded.expand(tensor_broadcast_size).contiguous();
   
-  //Executing the NPU operator.
+  // Executing the NPU operator.
   auto output_size = cdist_npu_output_size(x1, x2);
 
   Tensor result = at::empty_with_format(

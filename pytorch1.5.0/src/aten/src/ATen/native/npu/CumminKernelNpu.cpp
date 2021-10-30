@@ -22,10 +22,10 @@ namespace native {
 using namespace at::native::npu;
 
 void cummin_out_npu_nocheck (   
-  Tensor& values,
-  Tensor& indices,
-  const Tensor& self,
-  int64_t dim) {
+    Tensor& values,
+    Tensor& indices,
+    const Tensor& self,
+    int64_t dim) {
   OpCommand cmd;
   cmd.Name("Cummin")
     .Input(self)
@@ -36,7 +36,7 @@ void cummin_out_npu_nocheck (
 }
 
 void cummin_helper_npu(const Tensor& self, Tensor& values, Tensor& indices, int64_t dim) {   
-  //process aicpu
+  // process aicpu
   if(self.scalar_type() == ScalarType::Long){
     Tensor valuesTemp = OpPreparation::ApplyTensor(self);
     Tensor indicesTemp = OpPreparation::ApplyTensor(self, self.options().dtype(kLong)); 
@@ -44,7 +44,7 @@ void cummin_helper_npu(const Tensor& self, Tensor& values, Tensor& indices, int6
     values.copy_(valuesTemp);
     indices.copy_(indicesTemp);
   } else {
-    //process aicore
+    // process aicore
     int64_t firstDim = CalcuOpUtil::make_wrap_dim(0, self.dim());
     if (dim != firstDim) {
       SmallVector<int64_t, SHAPE_SIZE> perm;
@@ -59,7 +59,7 @@ void cummin_helper_npu(const Tensor& self, Tensor& values, Tensor& indices, int6
       Tensor transposeIndices = OpPreparation::ApplyTensor(outputSize, self.options().dtype(kInt), self); 
 
       cummin_out_npu_nocheck(transposeValue, transposeIndices, transposeSelf, firstDim);
-      //Indices must to be long
+      // Indices must to be long
       transposeIndices = transposeIndices.to(kLong);
       at::npu_transpose_out(values, transposeValue, perm);
       at::npu_transpose_out(indices, transposeIndices, perm);

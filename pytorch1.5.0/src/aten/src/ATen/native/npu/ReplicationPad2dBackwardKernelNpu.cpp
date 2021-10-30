@@ -19,10 +19,10 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& replication_pad2d_backward_out_npu_nocheck(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
   SmallVector<int64_t, N> vectorInt;
   SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
   paddingsVector.resize(2 * input.dim(), 0);
@@ -44,10 +44,10 @@ Tensor& replication_pad2d_backward_out_npu_nocheck(
 }
 
 Tensor& replication_pad2d_backward_out_npu(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
   OpPreparation::CheckOut(
   {input, gradOutput},
   gradInput,
@@ -56,9 +56,9 @@ Tensor& replication_pad2d_backward_out_npu(
 }
 
 Tensor replication_pad2d_backward_npu(
-  const Tensor& gradOutput,
-  const Tensor& input, 
-  IntArrayRef padding) {
+    const Tensor& gradOutput,
+    const Tensor& input, 
+    IntArrayRef padding) {
   Tensor gradInput = OpPreparation::ApplyTensor(input);
   replication_pad2d_backward_out_npu(gradInput, gradOutput, input, padding);
 

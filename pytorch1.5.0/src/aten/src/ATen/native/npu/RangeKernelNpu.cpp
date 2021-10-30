@@ -34,7 +34,7 @@ Tensor range_npu(
   float end_value = CalcuOpUtil::get_scalar_float_value(end);
   float step_value = CalcuOpUtil::get_scalar_float_value(step);
 
-  //Check step start end
+  // Check step start end
   TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
       "upper bound and larger bound inconsistent with step sign");

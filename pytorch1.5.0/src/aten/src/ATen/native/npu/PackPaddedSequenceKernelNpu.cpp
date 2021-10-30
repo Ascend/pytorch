@@ -61,7 +61,7 @@ std::tuple<Tensor, Tensor> _pack_padded_sequence_npu(const Tensor& _input, const
     TORCH_CHECK(l >= prevL);
   }
   
-  //input must have 2 dim for  rnn
+  // input must have 2 dim for  rnn
   int64_t lastDim = _input.size(2);
   Tensor inputDim2 = _input.contiguous().view({-1, lastDim});
   

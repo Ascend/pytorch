@@ -29,7 +29,7 @@ SmallVector<int64_t, SIZE> roi_align_npu_output_size(
       rois.size(0),
       self.size(1),
       pooled_height,
-      pooled_width}; //{N, C, H1, W1}
+      pooled_width}; // {N, C, H1, W1}
 }
 
 Tensor& roi_align_out_npu(

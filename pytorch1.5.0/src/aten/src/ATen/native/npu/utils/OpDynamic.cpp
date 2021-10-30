@@ -140,9 +140,10 @@ OpDynamicCommand& OpDynamicCommand::DynamicName(string name) {
 
 void OpDynamicCommand::DynamicOpRun(){
   if (c10::npu::OptionsManager::CheckQueueEnable()) {
-    ExecuteParas params;
-    aclCmd->ExportParams(params);
-    aclDynamicCmd->ExportDynamicParams(params);
+    ExecuteParas execParams;
+    aclCmd->ExportParams(execParams);
+    aclDynamicCmd->ExportDynamicParams(execParams);
+    QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10::npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
     aclDynamicCmd->ReleaseDynamicSource(false);

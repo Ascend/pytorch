@@ -28,7 +28,7 @@ Tensor& addbmm_out_npu(
   Tensor bmmResult = at::bmm(MulResult,batch2);
   int64_t dim[2] = {batch1.size(1), batch2.size(2)};
   Tensor sumResult = at::sum_to(bmmResult, dim);
-  //sumResult + self*beta
+  // sumResult + self*beta
   at::add_out(result, sumResult, self, beta); 
   return result;
 }

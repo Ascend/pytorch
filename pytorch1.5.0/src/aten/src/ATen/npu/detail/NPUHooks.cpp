@@ -43,6 +43,10 @@ void NPUHooks::initNPU() const {
   }
 }
 
+bool NPUHooks::isPinnedPtr(void* data) const {
+  return THNPUCachingHostAllocator_isPinndPtr(data);
+}
+
 Generator* NPUHooks::getDefaultNPUGenerator(DeviceIndex device_index) const {
   return at::npu::detail::getDefaultNPUGenerator(device_index);
 }

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -125,7 +125,7 @@ SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
     int64_t dim,
     bool keepdim);
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> 
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
 conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
@@ -175,10 +175,10 @@ nms_v4_npu_output_size(Scalar max_output_size);
 SmallVector<int64_t, SIZE> equal_npu_output_size(void);
 
 SmallVector<int64_t, SIZE> embedding_dense_backward_npu_output_size(
-    const Tensor& grad_output, 
-    const Tensor& indices, 
-    int64_t num_weights, 
-    int64_t padding_idx, 
+    const Tensor& grad_output,
+    const Tensor& indices,
+    int64_t num_weights,
+    int64_t padding_idx,
     bool scale_grad_by_freq);
 
 SmallVector<int64_t, SIZE> index_npu_output_size(
@@ -264,8 +264,8 @@ SmallVector<int64_t, SIZE> range_npu_output_size(
 
 IntArrayRef renorm_npu_output_size(
     const Tensor& self,
-    Scalar p, 
-    int dim, 
+    Scalar p,
+    int dim,
     Scalar maxnorm);
 
 SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
@@ -275,13 +275,16 @@ SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
 
 SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,IntArrayRef padding);
 
+SmallVector<int64_t, SIZE> roi_align_backward_npu_output_size(
+    IntArrayRef xdiff_shape);
+
 SmallVector<int64_t, SIZE> repeat_npu_output_size(
     const Tensor& self,
     IntArrayRef repeats);
 
 SmallVector<int64_t, SIZE> soft_margin_loss_npu_output_size(
     const Tensor &self,
-    const Tensor &target, 
+    const Tensor &target,
     int64_t reduction
 );
 
@@ -293,23 +296,23 @@ SmallVector<int64_t, SIZE> slow_conv_dilated2d_npu_output_size(
     IntArrayRef dilation);
 
 tuple<IntArrayRef, IntArrayRef, IntArrayRef> slow_conv_dilated2d_backward_npu_output_size(
-    const Tensor& grad_output, 
-    const Tensor& self, 
-    const Tensor& weight, 
-    IntArrayRef kernel_size, 
-    IntArrayRef stride, 
-    IntArrayRef padding, 
+    const Tensor& grad_output,
+    const Tensor& self,
+    const Tensor& weight,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef padding,
     IntArrayRef dilation);
-    
+
 tuple<IntArrayRef, IntArrayRef,IntArrayRef> slow_conv_transpose2d_backward_npu_output_size(
     const Tensor& grad_output,
-    const Tensor& self,  
-    const Tensor& weight, 
-    IntArrayRef kernel_size, 
-    IntArrayRef stride, 
-    IntArrayRef padding, 
+    const Tensor& self,
+    const Tensor& weight,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef padding,
     IntArrayRef output_padding,
-    IntArrayRef dilation, 
+    IntArrayRef dilation,
     const Tensor& columns,
     const Tensor& ones);
 

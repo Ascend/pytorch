@@ -67,14 +67,14 @@ void kthvalue_shape_modify(
 }
 
 void kthvalue_calculate(
-  const Tensor& self,
-  Tensor& result,
-  Tensor x, 
-  int64_t k,
-  int64_t dim, 
-  bool keepdim,
-  bool changeType,
-  bool isIndices) {
+    const Tensor& self,
+    Tensor& result,
+    Tensor x, 
+    int64_t k,
+    int64_t dim, 
+    bool keepdim,
+    bool changeType,
+    bool isIndices) {
   Tensor index = at::empty_with_format(
       {1}, 
       self.options().dtype(kInt), 
@@ -126,14 +126,14 @@ tuple<Tensor&, Tensor&> kthvalue_out_npu(
     int64_t k,
     int64_t dim,
     bool keepdim) {
-  //Check the type of input
+  // Check the type of input
   TORCH_CHECK(
       self.scalar_type() == at::kHalf ||
       self.scalar_type() == at::kFloat ||
       self.scalar_type() == at::kInt,
       "the type of input must be float16, float32, or int32");
 
-  //Check whether k meets the requirements.
+  // Check whether k meets the requirements.
   dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
   TORCH_CHECK(
       k >= 0 && k <= (self.dim() > 0 ? self.size(dim) : 1),

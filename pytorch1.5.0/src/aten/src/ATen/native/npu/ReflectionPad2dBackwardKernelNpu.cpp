@@ -21,10 +21,10 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& reflection_pad2d_backward_out_npu_nocheck(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
   TORCH_CHECK(input.scalar_type() != ScalarType::Float,
     "PadV3Grad don't supports torch.float!");      
   SmallVector<int64_t, N> vectorInt;
@@ -48,17 +48,17 @@ Tensor& reflection_pad2d_backward_out_npu_nocheck(
 }
 
 Tensor& reflection_pad2d_backward_out_npu(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
-    OpPreparation::CheckOut(
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
+  OpPreparation::CheckOut(
       {input, gradOutput},
       gradInput,
       input); 
 
-    OpPipeWithDefinedOut pipe;
-    return pipe.CheckMemory({input, gradOutput}, {gradInput})
+  OpPipeWithDefinedOut pipe;
+  return pipe.CheckMemory({input, gradOutput}, {gradInput})
     .Func([&gradOutput, &input, &padding](Tensor& gradInput)
     {reflection_pad2d_backward_out_npu_nocheck(
       gradInput, 
@@ -67,7 +67,6 @@ Tensor& reflection_pad2d_backward_out_npu(
       padding);})
     .Call(gradInput); 
 }
-
 
 Tensor reflection_pad2d_backward_npu(
     const Tensor& gradOutput,

@@ -26,7 +26,7 @@ Tensor& replication_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntAr
     vectorInt.emplace_back(paddingsVector[i - 2]);
     vectorInt.emplace_back(paddingsVector[i - 1]);
   }
-  //constructs the attr of the NPUAttrDesc
+  // constructs the attr of the NPUAttrDesc
   SmallVector<int64_t, N> value_tensor = {(int64_t)0};
   OpCommand cmd;
   cmd.Name("PadV3")
@@ -42,7 +42,7 @@ Tensor& replication_pad2d_out_npu_nocheck(Tensor& out, const Tensor& self, IntAr
 }
 
 Tensor& replication_pad2d_out_npu(Tensor& out, const Tensor& self, IntArrayRef padding) {
-  //calculate the output size
+  // calculate the output size
   auto outputSize = replication_pad2d_npu_output_size(self, padding);
   OpPreparation::CheckOut(
   {self},
@@ -53,12 +53,12 @@ Tensor& replication_pad2d_out_npu(Tensor& out, const Tensor& self, IntArrayRef p
 }
 
 Tensor replication_pad2d_npu(const Tensor& self, IntArrayRef padding) {
-  //calculate the output size
+  // calculate the output size
   auto outputSize = replication_pad2d_npu_output_size(self, padding);
-  //construct the output tensor of the NPU
+  // construct the output tensor of the NPU
   Tensor out = OpPreparation::ApplyTensor(self, outputSize);
 
-  //calculate the output result of the NPU
+  // calculate the output result of the NPU
   replication_pad2d_out_npu(out, self, padding);
 
   return out;

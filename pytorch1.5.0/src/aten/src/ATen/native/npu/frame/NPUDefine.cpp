@@ -29,8 +29,7 @@ void ExecuteParas::Release() {
   NPUStatus ret = DestroyAclParams(paras);
   if (ret != SUCCESS) {
     NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
-  } 
-  hostMemory.clear();
+  }
   return;
 }
 
@@ -50,20 +49,28 @@ void ExecuteParas::DynamicRelease() {
 }
 
 void ExecuteParas::Copy(ExecuteParas& other) {
-  auto srcPtr = &other;
-  this->opType = srcPtr->opType;
-  this->attrInfo = srcPtr->attrInfo;
-  this->paras = srcPtr->paras;
-  this->attr = srcPtr->attr;
-  this->constParams = srcPtr->constParams;
-  if (srcPtr->opDynamicType != "") {
-    this->opDynamicType = srcPtr->opDynamicType;
-    this->dynamicCompileAttr = srcPtr->dynamicCompileAttr;
-    this->dynamicRunAttr = srcPtr->dynamicRunAttr;
-    this->dynamicParam = srcPtr->dynamicParam;
+  this->opType = other.opType;
+  this->attrInfo = other.attrInfo;
+  this->paras = other.paras;
+  this->attr = other.attr;
+  this->constParams = other.constParams;
+  if (other.opDynamicType != "") {
+    this->opDynamicType = other.opDynamicType;
+    this->dynamicCompileAttr = other.dynamicCompileAttr;
+    this->dynamicRunAttr = other.dynamicRunAttr;
+    this->dynamicParam = other.dynamicParam;
   }
-  this->hostMemory = srcPtr->hostMemory;
-  this->isFuzzy = srcPtr->isFuzzy;
+  this->hostMemory = other.hostMemory;
+  this->isFuzzy = other.isFuzzy;
+}
+
+void CopyParas::Copy(CopyParas& other) {
+  this->dst = other.dst;
+  this->dstLen = other.dstLen;
+  this->src = other.src;
+  this->srcLen = other.srcLen;
+  this->kind = other.kind;
+  this->pinMem = other.pinMem;
 }
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {

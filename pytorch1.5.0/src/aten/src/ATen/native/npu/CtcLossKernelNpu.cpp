@@ -33,7 +33,7 @@ std::tuple<Tensor, Tensor> ctc_loss_npu(
     logProbsNeed = logProbsNeed.to(ScalarType::Float);
   }
   
-  //Aicore supports only the int type
+  // Aicore supports only the int type
   Tensor targetsCast = targets;
   if(targets.scalar_type() == ScalarType::Long){
     targetsCast = targetsCast.to(ScalarType::Int);
