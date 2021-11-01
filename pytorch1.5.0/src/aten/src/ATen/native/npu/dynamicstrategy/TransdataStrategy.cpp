@@ -33,7 +33,7 @@ public:
 };
 
 void TransDataStrategy::CreateInputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   // create input shape
   for (int64_t i = 0; i < params.input_num; ++i) {
     aclTensorDesc* desc = const_cast<aclTensorDesc*>(params.input_desc[i]);
@@ -58,7 +58,7 @@ void TransDataStrategy::CreateInputDescInfo(ACL_PARAMS& params,
 }
 
 void TransDataStrategy::CreateOutputDescInfo(ACL_PARAMS& params, 
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   // create output shape
   for (int64_t i = 0; i < params.output_num; ++i) {
     aclTensorDesc* desc = const_cast<aclTensorDesc*>(params.output_desc[i]);

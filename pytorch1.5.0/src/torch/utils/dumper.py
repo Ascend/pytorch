@@ -91,6 +91,7 @@ class dumper(object):
         if not self.enabled:
             return
         self.entered = False
+
     def __enter__(self):
         if not self.enabled:
             return

@@ -21,19 +21,23 @@ from util_test import create_common_tensor
 class TestGridSampler2dBackward(TestCase):
     def cpu_op_exec(self, input, sample):
         input.requires_grad = True
-        out = torch.grid_sampler(input, sample, 0, 0, True)
-        grad_output = torch.ones(out.size(), dtype=torch.float)
-        out.backward(gradient=grad_output)
-        output = input.grad.numpy()
-        return output
+        sample.requires_grad = True
+        out = torch.grid_sampler_2d(input, sample, 0, 0, True)
+        out.backward(torch.ones_like(out))
+        dx = input.grad.numpy()
+        dgrid = sample.grad.numpy()
+        return dx, dgrid
 
     def npu_op_exec(self, input, sample): 
         input.requires_grad = True
-        out = torch.grid_sampler(input, sample, 0, 0, True)
-        grad_output = torch.ones(out.size(), dtype=torch.float).npu()
-        out.backward(gradient=grad_output)
-        output = input.grad.to("cpu").numpy()
-        return output
+        sample.requires_grad = True
+        out = torch.grid_sampler_2d(input, sample, 0, 0, True)
+        out.backward(torch.ones_like(out))
+        dx = input.grad
+        dgrid = sample.grad
+        dx = dx.to("cpu").numpy()
+        dgrid = dgrid.to("cpu").numpy()
+        return dx, dgrid
 
     def test_grid_sampler_2d_backward_fp32(self, device):
         shape_list = [[100, 1, 28, 28], [100, 64, 32, 28]]
@@ -44,21 +48,24 @@ class TestGridSampler2dBackward(TestCase):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
-            cpu_output = self.cpu_op_exec(cpu_input, cpu_sample)
-            # npu_output = self.npu_op_exec(npu_input, npu_sample)
-            # self.assertRtolEqual(cpu_output, npu_output)
+            cpu_output_dx, cpu_output_dgrid = self.cpu_op_exec(cpu_input, cpu_sample)
+            npu_output_dx, npu_output_dgrid = self.npu_op_exec(npu_input, npu_sample)
+            self.assertRtolEqual(cpu_output_dx, npu_output_dx)
+            self.assertRtolEqual(cpu_output_dgrid, npu_output_dgrid)
     
     def test_grid_sampler_2d_backward_fp16(self, device):
         def cpu_op_fp16_exec(input, sample):
             input = input.to(torch.float32)
             sample = sample.to(torch.float32)
             input.requires_grad = True
+            sample.requires_grad = True
             out = torch.grid_sampler(input, sample, 0, 0, True)
-            grad_output = torch.ones(out.size(), dtype=torch.float)
-            out.backward(gradient=grad_output)
-            output = input.grad.numpy()
-            output = output.astype(np.float16)
-            return output
+            out.backward(torch.ones_like(out))
+            dx = input.grad
+            dgrid = sample.grad
+            dx = dx.numpy().astype(np.float16)
+            dgrid = dgrid.numpy().astype(np.float16)
+            return dx, dgrid
 
         shape_list = [[100, 1, 28, 28], [100, 64, 32, 28]]
         shape_format = [
@@ -68,9 +75,10 @@ class TestGridSampler2dBackward(TestCase):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
-            cpu_output = cpu_op_fp16_exec(cpu_input, cpu_sample)
-            # npu_output = self.npu_op_exec(npu_input, npu_sample)
-            # self.assertRtolEqual(cpu_output, npu_output.astype(np.float16))
+            cpu_output_dx, cpu_output_dgrid = cpu_op_fp16_exec(cpu_input, cpu_sample)
+            npu_output_dx, npu_output_dgrid = self.npu_op_exec(npu_input, npu_sample)
+            self.assertRtolEqual(cpu_output_dx, npu_output_dx)
+            self.assertRtolEqual(cpu_output_dgrid, npu_output_dgrid)
 
 instantiate_device_type_tests(TestGridSampler2dBackward, globals(), except_for="cpu")
 if __name__ == "__main__":

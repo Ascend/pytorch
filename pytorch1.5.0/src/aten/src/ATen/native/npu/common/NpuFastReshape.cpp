@@ -33,11 +33,11 @@ void npu_fast_reshape_(Tensor& tensor) {
   if (!tensor.is_contiguous()) {
     return;
   }
-  //restriction 2
+  // restriction 2
   if (!FormatHelper::IsBaseFormatType(tensor)) {
     return;
   }
-  //restriction 3: reshape case without any numels change 
+  // restriction 3: reshape case without any numels change 
   if ((tensor.numel() != StorageDescHelper::GetMemorySize(tensor)) ||
       StorageDescHelper::MetaDataAreMatch(&tensor)) {
     return;

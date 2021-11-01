@@ -20,12 +20,12 @@ from util_test import create_common_tensor
 
 class TestGridSampler2D(TestCase):
     def cpu_op_exec(self, input1, grid):
-        output = torch.grid_sampler(input1, grid, 0, 0, True)
+        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, grid):
-        output = torch.grid_sampler(input1, grid, 0, 0, True)
+        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -33,7 +33,7 @@ class TestGridSampler2D(TestCase):
     def cpu_op_fp16_exec(self, input1, grid):
         input1 = input1.to(torch.float32)
         grid = grid.to(torch.float32)
-        output = torch.grid_sampler(input1, grid, 0, 0, True)
+        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
         output = output.numpy()
         output = output.astype(np.float16)
         return output

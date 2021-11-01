@@ -163,11 +163,11 @@ aclError AclProfilingFinalize() {
 }
 
 aclprofConfig *AclProfilingCreateConfig(
-  uint32_t *deviceIdList,
-  uint32_t deviceNums,
-  aclprofAicoreMetrics aicoreMetrics,
-  aclprofAicoreEvents *aicoreEvents,
-  uint64_t dataTypeConfig) {
+    uint32_t *deviceIdList,
+    uint32_t deviceNums,
+    aclprofAicoreMetrics aicoreMetrics,
+    aclprofAicoreEvents *aicoreEvents,
+    uint64_t dataTypeConfig) {
   typedef aclprofConfig *(*AclProfCreateConfigFunc) \
     (uint32_t *, uint32_t, aclprofAicoreMetrics, aclprofAicoreEvents *, uint64_t);
   static AclProfCreateConfigFunc func = nullptr;

@@ -26,9 +26,9 @@ void _amp_non_finite_check_and_unscale_out_npu_(
   TORCH_CHECK(found_inf.scalar_type() == at::ScalarType::Float, "found_inf must be a float tensor.");
   TORCH_CHECK(self.layout() == at::kStrided, "self must be a strided (not sparse) Tensor.");
 
-//The nan and INF judgments are left alone, and found_inf is set to 0.0 by default
+  // The nan and INF judgments are left alone, and found_inf is set to 0.0 by default
   found_inf[0] = 0.0;
-//  CalcuOpUtil::execute_npu_operate("Mul", inputs, outputs, attrs);
+  // CalcuOpUtil::execute_npu_operate("Mul", inputs, outputs, attrs);
   OpCommand cmd;
   cmd.Name("Mul")
       .Input(self)

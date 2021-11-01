@@ -25,7 +25,7 @@ Tensor& smooth_l1_loss_out_npu_nocheck(
     const Tensor& self,
     const Tensor& target,
     int64_t reduction) {
-  //Check the self empty
+  // Check the self empty
   if (self.numel()==0) {
     // In this scenario, needs to return nan. And the nan of the NPU can only be fp32.
     result = result.to(at::kFloat).fill_(0);

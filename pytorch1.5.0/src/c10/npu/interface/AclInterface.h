@@ -81,11 +81,11 @@ aclError AclProfilingStart(const aclprofConfig *profilerConfig);
 aclError AclProfilingStop(const aclprofConfig *profilerConfig);
 aclError AclProfilingFinalize();
 aclprofConfig * AclProfilingCreateConfig(
-  uint32_t *deviceIdList,
-  uint32_t deviceNums,
-  aclprofAicoreMetrics aicoreMetrics,
-  aclprofAicoreEvents *aicoreEvents,
-  uint64_t dataTypeConfig);
+    uint32_t *deviceIdList,
+    uint32_t deviceNums,
+    aclprofAicoreMetrics aicoreMetrics,
+    aclprofAicoreEvents *aicoreEvents,
+    uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
 
 } // namespace acl

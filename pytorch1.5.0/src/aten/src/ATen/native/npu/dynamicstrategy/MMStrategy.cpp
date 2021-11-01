@@ -33,7 +33,7 @@ public:
 };
 
 void MMStrategy::CreateInputDescInfo(ACL_PARAMS& params, 
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   
   CreateDefaultDescInfo(params.input_desc,
     params.input_num,
@@ -44,7 +44,7 @@ void MMStrategy::CreateInputDescInfo(ACL_PARAMS& params,
 }
 
 void MMStrategy::CreateOutputDescInfo(ACL_PARAMS& params, 
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   
   aclTensorDesc* desc = const_cast<aclTensorDesc*>(params.output_desc[0]);
   int64_t dim = (int64_t)aclGetTensorDescNumDims(desc);

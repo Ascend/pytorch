@@ -23,15 +23,14 @@ namespace native {
 using namespace at::native::npu;
 
 std::tuple<Tensor&, Tensor&> max_pool3d_with_indices_out_npu(
-  Tensor& result,
-  Tensor& indice,
-  const Tensor& self,
-  IntArrayRef kernel_size,
-  IntArrayRef stride,
-  IntArrayRef pads,
-  IntArrayRef dilation,
-  bool ceil_mode)
-{
+    Tensor& result,
+    Tensor& indice,
+    const Tensor& self,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef pads,
+    IntArrayRef dilation,
+    bool ceil_mode) {
   int64_t strideT = 1;
   int64_t strideH = 1;
   int64_t strideW = 1;
@@ -77,15 +76,14 @@ std::tuple<Tensor&, Tensor&> max_pool3d_with_indices_out_npu(
 }
 
 std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
-  const Tensor& self,
-  IntArrayRef kernel_size,
-  IntArrayRef stride,
-  IntArrayRef pads,
-  IntArrayRef dilation,
-  bool ceil_mode)
-{
+    const Tensor& self,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef pads,
+    IntArrayRef dilation,
+    bool ceil_mode) {
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 3,
-    "max_pool3d: kernel_size must either be a single int, or a tuple of three ints")
+      "max_pool3d: kernel_size must either be a single int, or a tuple of three ints")
   const int kT = safe_downcast<int, int64_t>(kernel_size[0]);
   const int kH = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[1]);
   const int kW = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[2]);
@@ -93,7 +91,7 @@ std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
   IntArrayRef kernel_sizess = IntArrayRef(kernel_sizes);
 
   TORCH_CHECK(stride.size() == 0 || stride.size() == 1 || stride.size() == 3,
-    "max_pool3d: stride must either be omitted, a single int, or a tuple of three ints")
+      "max_pool3d: stride must either be omitted, a single int, or a tuple of three ints")
   const int dT = stride.empty() ? kT : safe_downcast<int, int64_t>(stride[0]);
   const int dH = stride.empty() ? kH :
                  stride.size() == 1 ? dT : safe_downcast<int, int64_t>(stride[1]);
@@ -103,7 +101,7 @@ std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
   IntArrayRef stridess = IntArrayRef(strides);
 
   TORCH_CHECK(pads.size() == 1 || pads.size() == 3,
-    "max_pool3d: padding must be either be a single int, or a tuple of three ints");
+      "max_pool3d: padding must be either be a single int, or a tuple of three ints");
   const int pT = safe_downcast<int, int64_t>(pads[0]);
   const int pH = pads.size() == 1 ? pT : safe_downcast<int, int64_t>(pads[1]);
   const int pW = pads.size() == 1 ? pT : safe_downcast<int, int64_t>(pads[2]);
@@ -111,7 +109,7 @@ std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
   IntArrayRef padss = IntArrayRef(paddings);
 
   TORCH_CHECK(dilation.size() == 1 || dilation.size() == 3,
-    "max_pool3d: dilation must be either a single int, or a tuple of three ints");
+      "max_pool3d: dilation must be either a single int, or a tuple of three ints");
   const int dilationT = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationH = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[1]);
   const int dilationW = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[2]);
@@ -119,9 +117,9 @@ std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
   IntArrayRef dilationss = IntArrayRef(dilations);
 
   TORCH_CHECK((self.ndimension() == 5 || self.ndimension() == 4),
-        "maxpool3d expected input to be non-empty 5D(batch mode) or 4D tensor",
-        "but input has dim: ",
-        self.ndimension());
+      "maxpool3d expected input to be non-empty 5D(batch mode) or 4D tensor",
+      "but input has dim: ",
+      self.ndimension());
 
   const int64_t nslices = self.size(-4);
   const int64_t itime = self.size(-3);
@@ -133,18 +131,18 @@ std::tuple<Tensor, Tensor> max_pool3d_with_indices_npu(
   const int64_t owidth = pooling_output_shape<int64_t>(iwidth, kW, pW, dW, dilationW, ceil_mode);
 
   pool3d_shape_check(
-    self,
-    nslices,
-    kT, kH, kW,
-    dT, dH, dW,
-    pT, pH, pW,
-    dilationT, dilationH, dilationW,
-    itime, iheight, iwidth,
-    otime, oheight, owidth);
+      self,
+      nslices,
+      kT, kH, kW,
+      dT, dH, dW,
+      pT, pH, pW,
+      dilationT, dilationH, dilationW,
+      itime, iheight, iwidth,
+      otime, oheight, owidth);
   Tensor selfCp = self.ndimension() == 4 ? self.unsqueeze(0) : self;
   SmallVector<int64_t, SIZE> outputSize = {selfCp.size(0), selfCp.size(1), otime, oheight, owidth};
   Tensor result = at::empty_with_format(
-    outputSize, selfCp.options(), ACL_FORMAT_NCDHW);
+      outputSize, selfCp.options(), ACL_FORMAT_NCDHW);
   
   max_pool3d_with_indices_out_npu(result, result, selfCp, kernel_sizess, stridess, padss, dilationss, ceil_mode);
   result = self.ndimension() == 4 ? result.squeeze(0) : result;

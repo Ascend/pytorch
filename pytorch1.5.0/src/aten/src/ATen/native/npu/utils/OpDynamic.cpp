@@ -69,12 +69,12 @@ OpDynamicCommand& OpDynamicCommand::DynamicOutput(Tensor& output, string realTyp
 }
 
 OpDynamicCommand& OpDynamicCommand::DynamicInput(
-  SmallVector<int64_t, N>& dimList,
-  ScalarType originType,
-  ScalarType toType,
-  string descName,
-  bool isConst,
-  shapeStrage strage) {
+    SmallVector<int64_t, N>& dimList,
+    ScalarType originType,
+    ScalarType toType,
+    string descName,
+    bool isConst,
+    shapeStrage strage) {
   
   Tensor cpuTensor = from_blob((void*)dimList.data(), {dimList.size()}, originType).to(toType);
   Tensor npuTensor = CopyHostToDevice(cpuTensor);
@@ -88,10 +88,10 @@ OpDynamicCommand& OpDynamicCommand::DynamicInput(
 }
 
 OpDynamicCommand& OpDynamicCommand::DynamicInput(const Tensor& npu_input,
-  string descName,
-  string realData,
-  c10::optional<Tensor> cpu_tensor,
-  shapeStrage strage) {
+    string descName,
+    string realData,
+    c10::optional<Tensor> cpu_tensor,
+    shapeStrage strage) {
   std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> runRes;
   aclTensorDesc* compileRes = nullptr;
   Tensor npuTensor = Contiguous(npu_input);

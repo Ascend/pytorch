@@ -21,13 +21,13 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestAcos(TestCase):
-    def cpu_op_exec(self, input):
-        output = torch.acos(input) 
+    def cpu_op_exec(self, input_para):
+        output = torch.acos(input_para) 
         output = output.numpy()
         return output
  
-    def npu_op_exec(self, input):
-        output = torch.acos(input) 
+    def npu_op_exec(self, input_para):
+        output = torch.acos(input_para) 
         output = output.to("cpu") 
         output = output.numpy()
         return output  
@@ -45,9 +45,9 @@ class TestAcos(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_acos_float16_shape_format(self, device):
-        def cpu_op_exec_fp16(input):
-            input = input.to(torch.float32)
-            output = torch.acos(input)
+        def cpu_op_exec_fp16(input_para):
+            input_para = input_para.to(torch.float32)
+            output = torch.acos(input_para)
             output = output.numpy()
             output = output.astype(np.float16)
             return output
@@ -66,6 +66,5 @@ class TestAcos(TestCase):
 
 instantiate_device_type_tests(TestAcos, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:5")
     run_tests()
         

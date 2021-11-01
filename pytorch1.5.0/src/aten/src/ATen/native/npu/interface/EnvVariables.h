@@ -35,4 +35,4 @@ bool CheckMmBmmNDEnable();
 } // namespace native
 } // namespace at
 
-#endif //__NATIVE_NPU_INTERFACE_ENVVARIABLES__
+#endif // __NATIVE_NPU_INTERFACE_ENVVARIABLES__

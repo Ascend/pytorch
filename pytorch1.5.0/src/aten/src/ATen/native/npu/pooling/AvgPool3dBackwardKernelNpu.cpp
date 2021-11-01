@@ -22,15 +22,15 @@ namespace native {
 using namespace at::native::npu;
 
 void avg_pool3d_backward_out_npu_nocheck(
-  Tensor& grad_output,
-  const Tensor& grad_input,
-  const Tensor& self,
-  IntArrayRef kernel_sizess,
-  IntArrayRef stridess,
-  IntArrayRef paddingss,
-  bool ceil_mode,
-  bool count_include_pad,
-  c10::optional<int64_t> divisor_override) {
+    Tensor& grad_output,
+    const Tensor& grad_input,
+    const Tensor& self,
+    IntArrayRef kernel_sizess,
+    IntArrayRef stridess,
+    IntArrayRef paddingss,
+    bool ceil_mode,
+    bool count_include_pad,
+    c10::optional<int64_t> divisor_override) {
   Tensor input = self;
   Tensor grads = grad_input.contiguous();
   if (self.ndimension() == 4) {

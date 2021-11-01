@@ -36,4 +36,4 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
 } // namespace native
 } // namespace at
 
-#endif //__NATIVE_NPU_INTERFACE_ACLOPCOMPILE__
+#endif // __NATIVE_NPU_INTERFACE_ACLOPCOMPILE__

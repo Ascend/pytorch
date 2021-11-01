@@ -41,10 +41,10 @@ const string& OpDynamicCommandImpl::GetDynamicName() {
 }
 
 void OpDynamicCommandImpl::AddDynamicInput(
-  const aclTensorDesc* desc,
-  const aclDataBuffer* buffer,
-  int64_t dim,
-  aclFormat format) {
+    const aclTensorDesc* desc,
+    const aclDataBuffer* buffer,
+    int64_t dim,
+    aclFormat format) {
   execDynamicParam.inDynamicDesc.emplace_back(desc);
   execDynamicParam.inDynamicBuffer.emplace_back(buffer);
   execDynamicParam.inDynamicDims.emplace_back(dim);
@@ -60,10 +60,10 @@ void OpDynamicCommandImpl::AddDynamicOutputDesc(const aclTensorDesc* desc) {
 }
 
 void OpDynamicCommandImpl::AddDynamicOutput(
-  const aclTensorDesc* desc,
-  aclDataBuffer* buffer,
-  int64_t dim,
-  aclFormat format) {
+    const aclTensorDesc* desc,
+    aclDataBuffer* buffer,
+    int64_t dim,
+    aclFormat format) {
   
   execDynamicParam.outDynamicDesc.emplace_back(desc);
   execDynamicParam.outDynamicBuffer.emplace_back(buffer);

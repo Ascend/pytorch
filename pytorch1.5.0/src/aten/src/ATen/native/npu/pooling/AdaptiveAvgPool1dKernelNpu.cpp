@@ -50,4 +50,4 @@ Tensor adaptive_avg_pool1d_npu(const Tensor& self, IntArrayRef output_size) {
 } // namespace native
 } // namespace at
 
-//only support(ksize=inW/outW,  stride=inW/outW  padding=valid)
+// only support(ksize=inW/outW,  stride=inW/outW  padding=valid)

@@ -96,7 +96,7 @@ Tensor nll_loss2d_backward_npu(
     int64_t reduction,
     int64_t ignore_index,
     const Tensor& total_weight) {
-  //Check Target Dtype
+  // Check Target Dtype
   auto scalar_type = target.scalar_type();
   TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
       "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,

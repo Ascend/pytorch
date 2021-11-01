@@ -30,8 +30,9 @@ namespace native {
 namespace npu {
 
 void FuzzyCompileBlacklist::RegisterBlacklist(const std::string& blacklist) {
-  if (blacklist.size() <= 0)
+  if (blacklist.size() <= 0) {
     return;
+  }
   auto value = blacklist;
   std::string delimiter = ",";
   auto start = 0U;
@@ -44,7 +45,7 @@ void FuzzyCompileBlacklist::RegisterBlacklist(const std::string& blacklist) {
     start = end + delimiter.size();
     end = value.find(delimiter, start);
   }
-  //if start + end > value.size(), substring only split(start, value.size() - start) 
+  // if start + end > value.size(), substring only split(start, value.size() - start) 
   token = value.substr(start, end);
   if (token.size() > 0)
     black_list_.emplace(token);

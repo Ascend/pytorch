@@ -23,35 +23,37 @@
 namespace at {
 namespace native {
 namespace npu {
-  //It is better to set MAX_TUNE_THREADS = 8~64, support set to be 1~64
-constexpr std::size_t MAX_TUNE_THREADS=8;
-  // tune mode: 0 -> model mode, 2 -> op mode, 4 -> grad mode
-constexpr std::size_t AOE_TUNE_MODE=2;
+// It is better to set MAX_TUNE_THREADS = 8~64, support set to be 1~64
+constexpr std::size_t MAX_TUNE_THREADS = 8;
+// tune mode: 0 -> model mode, 2 -> op mode, 4 -> grad mode
+constexpr std::size_t AOE_TUNE_MODE = 2;
+
 AutotuneManager* AutotuneManager::GetInstance() {
   static AutotuneManager instance;
   return &instance;
 }
 
 AutotuneManager::AutotuneManager()
-  : isInited(false), thread_pool_(std::make_shared<TaskThreadPool>(MAX_TUNE_THREADS)){
-    sessionOptions["job_type"] = std::to_string(AOE_TUNE_MODE).c_str();;
+    : isInited(false)
+    , thread_pool_(std::make_shared<TaskThreadPool>(MAX_TUNE_THREADS)) {
+  sessionOptions["job_type"] = std::to_string(AOE_TUNE_MODE).c_str();
 }
 
 AutotuneManager::~AutotuneManager() {
-    DeInit();
+  DeInit();
 }
 
 void AutotuneManager::Init() {
   if (isInited) {
-      return;
+    return;
   }
   std::map<ge::AscendString, ge::AscendString> globalOptions;
   // graph tune parallel num, only support to be 1~64, default=8
   globalOptions["tuning_parallel_num"] = std::to_string(MAX_TUNE_THREADS).c_str();
   auto ret = aoe::initialize(globalOptions);
   if (ret) {
-      TORCH_CHECK(ret, "aoe::initialize failed. error code:", ret);
-      return;
+    TORCH_CHECK(ret, "aoe::initialize failed. error code:", ret);
+    return;
   }
   isInited = true;
 }
@@ -93,7 +95,7 @@ void AutotuneManager::PushGraph(const std::string& name, Graph& tuningGraph) {
     return;
   }
   if (!isInited) {
-      Init();
+    Init();
   }
   ge::Graph ge_graph;
   tuningGraph.GeGraph(ge_graph);
@@ -113,12 +115,12 @@ void AutotuneManager::DoGraphsTune() {
     for (auto it=this->ge_graphs.begin(); it<this->ge_graphs.begin() + alive_thread_nums && it<this->ge_graphs.end(); it++) {
       tune_ops += 1;
       thread_pool_->run(std::bind(
-        &AutotuneManager::DoGraphTune,
-        this,
-        *it,
-        this->sessionIDs[tune_ops]));
-        // need to sleep some seconds in master thread to ensure all threads are up!
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+          &AutotuneManager::DoGraphTune,
+          this,
+          *it,
+          this->sessionIDs[tune_ops]));
+          // need to sleep some seconds in master thread to ensure all threads are up!
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 }
@@ -139,16 +141,16 @@ void AutotuneManager::DoGraphTune(ge::Graph& ge_graph, aoe::SessionId sessionId)
 
 void AutotuneManager::TuningGraphs() {
   if (this->ge_graphs.size() == MAX_TUNE_THREADS && 
-      thread_pool_->numAvailable() == MAX_TUNE_THREADS) {
-        this->CreatSessions();
-        this->DoGraphsTune();
-        this->WaitThreadsFinished();
-        this->ge_graphs.clear();
-        this->DestroySessions();
-      } else {
-        TORCH_CHECK(false, "TuningGraphs failed, the size of ge_graphs"
-        " and thread_pool's numAvailable should be same to MAX_TUNE_THREADS");
-      }
+    thread_pool_->numAvailable() == MAX_TUNE_THREADS) {
+      this->CreatSessions();
+      this->DoGraphsTune();
+      this->WaitThreadsFinished();
+      this->ge_graphs.clear();
+      this->DestroySessions();
+    } else {
+      TORCH_CHECK(false, "TuningGraphs failed, the size of ge_graphs"
+      " and thread_pool's numAvailable should be same to MAX_TUNE_THREADS");
+    }
 }
 
 void AutotuneManager::WaitThreadsFinished() {

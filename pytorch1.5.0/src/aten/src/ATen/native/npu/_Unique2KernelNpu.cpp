@@ -47,7 +47,7 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
     bool sorted,
     bool return_inverse,
     bool return_counts) {
-  if(self.numel() == 0){
+  if (self.numel() == 0) {
     Tensor result= OpPreparation::ApplyTensor(self, {0});
     Tensor yInverse = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
     Tensor yCounts = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);

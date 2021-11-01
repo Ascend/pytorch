@@ -26,16 +26,16 @@ class TestLstm(TestCase):
     def test_lstm(self, device):
         # shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
-                        [[np.float16, (16, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, True], 
-                        [[np.float16, (5, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, False],
-                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)],64, 64, True],
-                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)], 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], [np.float16, (1, 2560, 256)], 512, 256, False],
-                        [[np.float32, (10, 33, 128)], [np.float32, (1, 33, 64)], 128, 64, False],
+                        [[np.float16, (16, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, True, True], 
+                        [[np.float16, (5, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, False, True],
+                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)],64, 64, True, False],
+                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)], 64, 64, False, False],
+                        [[np.float32, (26, 2560, 512)], [np.float16, (1, 2560, 256)], 512, 256, False, True],
+                        [[np.float32, (10, 33, 128)], [np.float32, (1, 33, 64)], 128, 64, False, False],
         ]
 
         for item in shape_format: 
-            cpu_lstm = torch.nn.LSTM(input_size=item[2], hidden_size=item[3],
+            cpu_lstm = torch.nn.LSTM(input_size=item[2], hidden_size=item[3], batch_first=item[5],
                      num_layers=1, bidirectional=False, bias=False)
             cpu_lstm.training = item[4]
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
@@ -66,54 +66,49 @@ class TestLstm(TestCase):
     def test_lstm_double_layer(self, device):
         # shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
         shape_format = [
-                        [[np.float16, (16, 32, 64)], 64, 32, True], 
-                        [[np.float16, (5, 32, 64)], 64, 32, False],
-                        [[np.float32, (5, 32, 64)], 64, 64, True],
-                        [[np.float32, (5, 32, 64)], 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], 512, 256, False],
+                        [[np.float16, (16, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, True, True], 
+                        [[np.float16, (5, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, False, True],
+                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)],64, 64, True, False],
+                        [[np.float32, (5, 32, 64)], [np.float16, (1, 32, 64)], 64, 64, False, False],
+                        [[np.float32, (26, 2560, 512)], [np.float16, (1, 2560, 256)], 512, 256, False, True],
+                        [[np.float32, (10, 33, 128)], [np.float32, (1, 33, 64)], 128, 64, False, False],
         ]
 
-        for item in shape_format:
-            # double layer 
-            lstm = torch.nn.LSTM(input_size=item[1], hidden_size=item[2], num_layers=2, bidirectional=False, bias=True)
-            lstm.training = item[3]
-            npu_lstm = lstm.npu()
+        for item in shape_format: 
+            cpu_lstm = torch.nn.LSTM(input_size=item[2], hidden_size=item[3], batch_first=item[5],
+                     num_layers=2, bidirectional=False, bias=False)
+            cpu_lstm.training = item[4]
+            npu_lstm = copy.deepcopy(cpu_lstm).npu()
 
-            #h_0 and c_0 of shape (num_layers * num_directions, batch, hidden_size)
-            h0 = torch.randn(2, item[0][1][1], item[2]).npu()
-            c0 = torch.randn(2, item[0][1][1], item[2]).npu()
+            cut_value = item[3]
+            iw = cpu_lstm.weight_ih_l0.split(cut_value)
+            hw = cpu_lstm.weight_hh_l0.split(cut_value)
+            iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
+            hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
+            cpu_lstm.weight_ih_l0.data = iwt
+            cpu_lstm.weight_hh_l0.data = hwt
+            
+            iw1 = cpu_lstm.weight_ih_l1.split(cut_value)
+            hw1 = cpu_lstm.weight_hh_l1.split(cut_value)
+            iwt1 = torch.cat([iw1[0], iw1[2], iw1[1], iw1[3]], 0)
+            hwt1 = torch.cat([hw1[0], hw1[2], hw1[1], hw1[3]], 0)
+            cpu_lstm.weight_ih_l1.data = iwt1
+            cpu_lstm.weight_hh_l1.data = hwt1
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
 
+            cpu_input1 = torch.from_numpy(input1)
+            cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
+
             npu_input1 = torch.from_numpy(input1.astype(item[0][0])).npu()
-            output, (hn, cn) = npu_lstm(npu_input1,(h0, c0))
+            npu_output_y, (npu_output_h, npu_output_c) = npu_lstm(npu_input1)
 
-            # single layer
-            lstm1 = torch.nn.LSTM(input_size=item[1], hidden_size=item[2], num_layers=1, bidirectional=False, bias=True)
-            lstm1.training = item[3]
-            npu_lstm1 = lstm1.npu()
-            npu_lstm1.weight_ih_l0.data= npu_lstm.weight_ih_l0.data
-            npu_lstm1.weight_hh_l0.data= npu_lstm.weight_hh_l0.data
-            npu_lstm1.bias_hh_l0.data= npu_lstm.bias_hh_l0.data
-            npu_lstm1.bias_ih_l0.data= npu_lstm.bias_ih_l0.data
-
-            lstm2 = torch.nn.LSTM(input_size=item[2], hidden_size=item[2], num_layers=1, bidirectional=False, bias=True)
-            lstm2.training = item[3]
-            npu_lstm2 = lstm2.npu()
-            npu_lstm2.weight_ih_l0.data= npu_lstm.weight_ih_l1.data
-            npu_lstm2.weight_hh_l0.data= npu_lstm.weight_hh_l1.data
-            npu_lstm2.bias_hh_l0.data= npu_lstm.bias_hh_l1.data
-            npu_lstm2.bias_ih_l0.data= npu_lstm.bias_ih_l1.data
-
-            output1, (hn1, cn1) = npu_lstm1(npu_input1, (h0[0:1,:,:], c0[0:1,:,:]))
-            output2, (hn2, cn2) = npu_lstm2(output1, (h0[1:,:,:], c0[1:,:,:]))
-            
-            hnf = torch.cat((hn1,hn2))
-            cnf = torch.cat((cn1,cn2))
-            
-            self.assertRtolEqual(output.cpu().detach().numpy(), output2.cpu().detach().numpy())
-            self.assertRtolEqual(hn.detach().cpu().numpy(), hnf.cpu().detach().numpy())
-            self.assertRtolEqual(cn.detach().cpu().numpy(), cnf.cpu().detach().numpy())
+            self.assertRtolEqual(cpu_output_y.detach().numpy(), 
+              npu_output_y.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+            self.assertRtolEqual(cpu_output_h.detach().numpy(), 
+              npu_output_h.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+            self.assertRtolEqual(cpu_output_c.detach().numpy(), 
+              npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
     def test_lstm_bidirection(self, device):
         # shape_format:[[dtype, (num_step, batch_size, input_size)], input_size, hidden_size, is_training]
