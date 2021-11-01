@@ -1,7 +1,7 @@
 # PyTorch网络模型移植&训练指南
--   [概述](#概述md)
+-   [概述](#概述)
 -   [约束与限制](#约束与限制md)
--   [迁移流程](#迁移流程md)
+-   [迁移流 程](#迁移流程md)
 -   [模型移植评估](#模型移植评估md)
 -   [环境准备](#环境准备md)
 -   [模型迁移](#模型迁移md)
@@ -1650,9 +1650,9 @@ def main():
 
 ###### 约束说明<a name="section52762019181510"></a>
 
--   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)；
--   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic；
--   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。
+-   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+-   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
+-   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。 
 
     ```
     修改前: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3 setup.py build bdist_wheel 
@@ -1680,7 +1680,93 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 ###### 解决方法<a name="section1729763162019"></a>
 
-请将算子溢出的打印截图及采集到的.h5文件通过Issue附件形式反馈给华为开发人员。
+1. 将采集到的.h5文件映射到TBE算子，映射方法请参见[IR与TBE算子映射](#IR与TBE算子映射)。
+
+2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
+
+##### IR与TBE算子映射
+
+###### 前提条件
+
+- 开启PyTorch框架dump功能。
+
+  在PyTorch源代码 “build.sh“ 文件中添加“USE\_DUMP=1”字段，编译安装PyTorch框架。
+
+- 需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+- 设置环境变量`export ACL_DUMP_DATA=0`。
+- 在脚本中避免使用`torch.npu.init.dump()`和`torch.npu.set.dump()`接口。
+
+###### 操作步骤
+
+1. 准备好需要映射的算子.h5文件。
+
+   - 算子溢出检测场景下，单算子溢出检测已生成需要映射的算子.h5文件。
+
+   - 精度对比场景下，需根据精度对比结果，参照下面命令提取需要映射的算子.h5文件。
+
+     ```
+     h5copy -pv -i "./input.h5" -o "./output.h5" -s "/op1/seqid/" -d "/op1/seqid/"
+     ```
+
+     -i 为输入精度对比结果的后文件路径
+
+     -o 为输出需要映射的算子.h5文件路径
+
+     -s 为需要提取的源算子名称及seqid
+
+     -d 为需要提取的目的算子名称及seqid
+
+     若需要提取多个算子，则修改-s、-d参数，多次执行该命令，可以把多算子追加提取到output.h5中。
+
+     该命令需-s和-d参数相同。
+
+     示例：
+
+     ```
+     h5copy -pv -i "./dump_npu.h5" -o "./output.h5" -s "/numpy_T/1/" -d "/numpy_T/1/"
+     ```
+
+     该示例表示从“./dump_npu.h5”中抽取seqid为1的numpy_T算子的输入、输出数据到"./output.h5"文件中。
+
+2. 配置acl.json文件。
+
+   在模型目录下创建acl dump功能所需的的配置文件acl.json
+
+   ```
+   {
+       "dump":
+   	    {
+               "dump_list":[]
+               "dump_path":"./oupput_IR2TBE"# 映射结果输出路径
+               "dump_mode":"all"
+               "dump_op_switch":"on"
+   	    }
+   
+   }
+   ```
+
+   需将`dump_path`修改为结果输出路径，其他字段不需要修改。
+
+3. 修改训练脚本。
+
+   在训练脚本中添加`with`语句开启IR映射TBE功能。
+
+   ```python
+   with torch.utils.dumper(use_load=True, dump_path="./",load_file_path="./output.h5", load_with_acl_dump=True) as dump:
+       # 模型计算代码，此处省略
+   ```
+
+4. 模型运行。
+
+   运行一步完整的模型计算过程，在计算过程中load遇到output.h5中的数据后，自动开启acl dump功能，执行IR，并dump出IR相对应的TBE算子的输入输出数据，IR执行结束，acl dump结束。
+
+5. 获得映射文件。
+
+   运行成功后，在acl.json配置文件中的`dump_path`路径下查看输出结果文件。
+
+
+
+
 
 <h5 id="整网调测md">整网调测</h5>
 
