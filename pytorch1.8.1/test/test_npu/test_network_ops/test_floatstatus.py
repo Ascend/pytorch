@@ -19,18 +19,24 @@ from common_utils import TestCase, run_tests
 
 class TestFloatStatus(TestCase):
     def test_float_status(self, device):
-        input1 = torch.randn([8]).npu().fill_(2)
+        float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
+        float_tensor = float_tensor + float_tensor;
+
+        input1 = torch.zeros(8).npu()
         float_status = torch.npu_alloc_float_status(input1)
-        temp = float_status.to("cpu")
         local_float_status = torch.npu_get_float_status(float_status)
-        exoutput = torch.tensor([0., 0., 0., 0., 0., 0., 0., 0.])
-        if(float_status.cpu()[0] != 0):
+        if (float_status.cpu()[0] != 0):
             cleared_float_status = torch.npu_clear_float_status(local_float_status)
             print("test_float_status overflow!!!")
-            self.assertRtolEqual(exoutput.numpy(), cleared_float_status.cpu().numpy())
+            input1 = torch.zeros(8).npu()
+            float_status = torch.npu_alloc_float_status(input1)
+            local_float_status = torch.npu_get_float_status(float_status)
+            if (float_status.cpu()[0] != 0):
+                self.assertFalse(True)
         else:
-            print("test_float_status success~~~")
-            self.assertRtolEqual(exoutput.numpy(), temp.numpy())
+            print("test_float_status failed!!!")
+            self.assertFalse(True)
+        self.assertTrue(True)
 
 instantiate_device_type_tests(TestFloatStatus, globals(), except_for="cpu")
 if __name__ == "__main__":

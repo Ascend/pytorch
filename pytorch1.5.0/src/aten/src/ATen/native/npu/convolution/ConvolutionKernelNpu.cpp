@@ -523,10 +523,10 @@ tuple<Tensor, Tensor, Tensor> npu_convolution_transpose_backward(
 }
 
 tuple<Tensor, Tensor, Tensor> npu_convolution_double_backward(
-  const Tensor& ggI, const Tensor& ggW, const Tensor& ggb,
-  const Tensor& input, const Tensor& gO_r, const Tensor& weight_r,
-  IntArrayRef stride_, IntArrayRef padding_, IntArrayRef dilation_,
-  int64_t groups_, std::array<bool, 3> grad_input_mask){
+    const Tensor& ggI, const Tensor& ggW, const Tensor& ggb,
+    const Tensor& input, const Tensor& gO_r, const Tensor& weight_r,
+    IntArrayRef stride_, IntArrayRef padding_, IntArrayRef dilation_,
+    int64_t groups_, std::array<bool, 3> grad_input_mask){
   int64_t dim = input.ndimension();
   Tensor ggO;
   Tensor gI;

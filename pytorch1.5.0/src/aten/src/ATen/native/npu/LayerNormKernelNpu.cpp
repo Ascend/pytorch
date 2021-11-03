@@ -45,10 +45,10 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
     int64_t numels = 1;
     int64_t begin_dim = 0;
     
-    //the output of mean and rstd is Multidimension
+    // the output of mean and rstd is Multidimension
     SmallVector<int64_t, 8> reduceDims;
     
-    //the input of weight is Multidimension
+    // the input of weight is Multidimension
     SmallVector<int64_t, 8> weightDims;
     for (int64_t i = 0; i < input.dim(); i++) {
       numels *= input.size(i);

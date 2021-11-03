@@ -58,7 +58,7 @@ Tensor transpose_npu(const Tensor& self, IntArrayRef perm) {
 }
 
 SmallVector<NPUTensorDesc, N> transpose_to_contiguous_npu_input(
-  const SmallVector<Tensor, N>& src) {
+    const SmallVector<Tensor, N>& src) {
 
   SmallVector<NPUTensorDesc, N> inputs;
   for (int i = 0; i < src.size(); i++) {
@@ -73,7 +73,7 @@ SmallVector<NPUTensorDesc, N> transpose_to_contiguous_npu_input(
 }
 
 SmallVector<NPUTensorDesc, N> transpose_to_contiguous_npu_output(
-  const SmallVector<Tensor, N>& result) {
+    const SmallVector<Tensor, N>& result) {
   return CalcuOpUtil::create_npu_output_tensor_desc(result);
 }
 

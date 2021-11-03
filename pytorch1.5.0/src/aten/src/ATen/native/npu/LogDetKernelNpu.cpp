@@ -32,12 +32,12 @@ SmallVector<int64_t, SIZE> logdet_npu_output_size(const Tensor& self) {
 }
 
 SmallVector<NPUTensorDesc, N> logdet_npu_input(
-  const SmallVector<Tensor, N>& inputTensor) {
+    const SmallVector<Tensor, N>& inputTensor) {
   return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
 }
 
 SmallVector<NPUTensorDesc, N> logdet_npu_output(
-  const SmallVector<Tensor, N>& outputTensor) {
+    const SmallVector<Tensor, N>& outputTensor) {
   return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
 }
 

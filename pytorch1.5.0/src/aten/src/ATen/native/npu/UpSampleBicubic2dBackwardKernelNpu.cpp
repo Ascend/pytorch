@@ -56,23 +56,23 @@ SmallVector<NPUAttrDesc, N> upsample_bicubic2d_backward_npu_attr(
   NPUAttrDesc npuAttrCoordinateTransformationMode = 
       NPUAttrDesc("coordinate_transformation_mode", coordinate_transformation_mode);
 
-  //cubic_coeff_a
-  //The coefficient 'a' used in cubic interpolation.
-  //Two common choice are -0.5 (in some cases of TensorFlow) and -0.75 (in PyTorch).
-  //This attribute is valid only if "mode" is "cubic".
+  // cubic_coeff_a
+  // The coefficient 'a' used in cubic interpolation.
+  // Two common choice are -0.5 (in some cases of TensorFlow) and -0.75 (in PyTorch).
+  // This attribute is valid only if "mode" is "cubic".
   float cu = -0.75;
   NPUAttrDesc npuAttrCubicCoeffA = NPUAttrDesc("cubic_coeff_a", cu);
 
-  //exclude_outside
-  //If set to 1, the weight of sampling locations outside the tensor will be set to 0
-  //and the weight will be renormalized so that their sum is 1.0. The default value is 0.
+  // exclude_outside
+  // If set to 1, the weight of sampling locations outside the tensor will be set to 0
+  // and the weight will be renormalized so that their sum is 1.0. The default value is 0.
   int64_t ex = 0;
   NPUAttrDesc npuAttrExcludeOutside = NPUAttrDesc("exclude_outside", ex);
 
-  //extrapolation_value
-  //When coordinate_transformation_mode is "tf_crop_and_resize" and x_original is outside
-  //the range [0, length_original - 1], this value is used as the corresponding output value.
-  //Default is 0.0f.
+  // extrapolation_value
+  // When coordinate_transformation_mode is "tf_crop_and_resize" and x_original is outside
+  // the range [0, length_original - 1], this value is used as the corresponding output value.
+  // Default is 0.0f.
   float ext = 0.0;
   NPUAttrDesc npuAttrExtrapolationValue = NPUAttrDesc("extrapolation_value", ext);
   string mode = "cubic";
@@ -140,5 +140,5 @@ Tensor upsample_bicubic2d_backward_npu(
   // calculate the output result of the NPU
   return upsample_bicubic2d_backward_out_npu(result, grad_output, output_size, input_size, align_corners, scales_h, scales_w);
 }
-}//namespace native
-}//namespace at
+} // namespace native
+} // namespace at

@@ -22,9 +22,8 @@ using namespace at::native::npu;
 
 std::tuple<SmallVector<int64_t, N>, SmallVector<int64_t, N>> 
 qr_npu_output_size(
-  const Tensor& self,
-  bool some)
-{
+    const Tensor& self,
+    bool some) {
   int m = self.size(-2);
   int n = self.size(-1);
   auto k = std::min<int>(m, n);
@@ -43,7 +42,7 @@ qr_npu_output_size(
 }
 
 static inline void qr_check(
-    const Tensor& self){
+    const Tensor& self) {
   TORCH_CHECK(
       self.ndimension() >= 2,
       "Expected nonempty least 2D tensor, but got a tensor with sizes ",
@@ -54,7 +53,7 @@ std::tuple<Tensor&, Tensor&> qr_out_npu_nocheck(
     Tensor& Q,
     Tensor& R,
     const Tensor& self,
-    bool some){
+    bool some) {
   bool full_matrices = !some;
   OpCommand cmd;
   cmd.Name("Qr")
@@ -70,7 +69,7 @@ std::tuple<Tensor&, Tensor&> qr_out_npu(
     Tensor& Q,
     Tensor& R,
     const Tensor& self,
-    bool some){
+    bool some) {
  qr_check(self);
  auto sizes = qr_npu_output_size(self, some);
  OpPreparation::CheckOut(
@@ -88,7 +87,7 @@ std::tuple<Tensor&, Tensor&> qr_out_npu(
 
 std::tuple<Tensor, Tensor> qr_npu(
     const Tensor& self,
-    bool some){
+    bool some) {
   qr_check(self);
   auto sizes = qr_npu_output_size(self, some);
   Tensor Q = OpPreparation::ApplyTensor(self, std::get<0>(sizes));

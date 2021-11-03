@@ -2687,6 +2687,8 @@
 - func: batch_norm_backward_elemt(Tensor grad_out, Tensor input, Tensor mean, Tensor invstd, Tensor? weight, Tensor mean_dy, Tensor mean_dy_xmu) -> Tensor
   dispatch:
     CUDA: batch_norm_backward_elemt_cuda
+  npu_dispatch:
+    NPU: batch_norm_backward_elemt_npu
 
 - func: batch_norm_update_stats(Tensor input, Tensor? running_mean, Tensor? running_var, float momentum) -> (Tensor, Tensor)
   dispatch:
@@ -5182,7 +5184,7 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
-  npu_dispatch:    
+  npu_dispatch:
     NPU: __lshift___npu
 
 - func: __lshift__.Tensor(Tensor self, Tensor other) -> Tensor
@@ -5191,7 +5193,7 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
-  npu_dispatch:    
+  npu_dispatch:
     NPU: __lshift___npu
 
 - func: __ilshift__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
@@ -6582,7 +6584,7 @@
     CUDA: legacy::cuda::_th_index_copy_
   npu_dispatch:
     NPU: index_copy_npu_
-    
+
 - func: _cumsum(Tensor self, int dim) -> Tensor
   use_c10_dispatcher: full
   dispatch:

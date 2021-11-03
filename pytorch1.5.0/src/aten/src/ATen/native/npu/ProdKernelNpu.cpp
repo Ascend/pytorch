@@ -22,16 +22,16 @@ namespace native {
 using namespace at::native::npu;
 
 namespace {
-  static inline int64_t calculate_prod_output_format(
+static inline int64_t calculate_prod_output_format(
     const Tensor& self, 
     IntArrayRef size) {
-    int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
-    // scalar scene no support nz
-    if (size.empty()) {
-        npu_format = ACL_FORMAT_ND;
-    }
-    return npu_format;  
+  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
+  // scalar scene no support nz
+  if (size.empty()) {
+    npu_format = ACL_FORMAT_ND;
   }
+  return npu_format;  
+}
 }
 
 Tensor& prod_out_npu_nocheck(
@@ -104,7 +104,7 @@ Tensor prod_npu(
     bool keepdim,
     optional<ScalarType> dtype) {
   Tensor self_tmp = self;
-  //Input transform：fp16 to fp32
+  // Input transform：fp16 to fp32
   if (self.scalar_type() == ScalarType::Half) {
     self_tmp = self.npu_dtype_cast(ScalarType::Float);
   }
@@ -140,7 +140,7 @@ Tensor prod_npu(
 
 Tensor prod_npu(const Tensor& self, optional<ScalarType> dtype) {
   Tensor self_tmp = self;
-  //Input transform：fp16 to fp32
+  // Input transform：fp16 to fp32
   if (self.scalar_type() == ScalarType::Half) {
     self_tmp = self.npu_dtype_cast(ScalarType::Float);
   }

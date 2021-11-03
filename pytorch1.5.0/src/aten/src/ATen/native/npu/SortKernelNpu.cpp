@@ -76,7 +76,7 @@ tuple<Tensor&, Tensor&> sort_out_npu(
         values, indices, self, lastDim, descending);
   }
   
-  //indices dtype transform Int64
+  // indices dtype transform Int64
   indices = indices.to(at::kLong);
   
   return std::tie(values, indices);

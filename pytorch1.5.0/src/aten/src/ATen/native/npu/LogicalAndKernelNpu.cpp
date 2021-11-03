@@ -53,13 +53,13 @@ Tensor& logical_and_out_npu_nocheck(
     const Tensor& self,
     const Tensor& other) {
 
-  //constructs the input and output NPUTensorDesc
+  // constructs the input and output NPUTensorDesc
   auto inputs = logical_and_npu_input(self, other);
   auto outputs = logical_and_npu_output({result});
-  //constructs the attr of the NPUAttrDesc
+  // constructs the attr of the NPUAttrDesc
   auto attrs = logical_and_npu_attr(self);
 
-  //executing the NPU operator
+  // executing the NPU operator
   CalcuOpUtil::execute_npu_operate("LogicalAnd", inputs, outputs, attrs);
 
   return result;

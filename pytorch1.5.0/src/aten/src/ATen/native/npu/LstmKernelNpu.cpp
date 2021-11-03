@@ -115,8 +115,8 @@ tuple<Tensor, Tensor> get_wb_double_layer_or_bidirec(
     const Tensor& input,
     TensorList params,
     bool hasBiases) {
-    Tensor weight;
-    Tensor bias; 
+  Tensor weight;
+  Tensor bias; 
   if (hasBiases) {
     weight = at::cat({params[4], params[5]}, 1).t().to(input.dtype());
     bias = at::add(params[6], params[7]).to(input.dtype());
