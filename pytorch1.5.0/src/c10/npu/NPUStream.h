@@ -18,7 +18,7 @@
 
 #include <cstdint>
 #include <mutex>
-
+#include "NPUQueue.h"
 #include <c10/core/DeviceGuard.h>
 #include <c10/core/Stream.h>
 #include <c10/npu/NPUException.h>
@@ -129,6 +129,7 @@ CAFFE2_API void npuSynchronizeDevice();
 
 CAFFE2_API void enCurrentNPUStream(
     void* cur_paras,
+    SmallVector<Storage, N>& needClearVec,
     DeviceIndex device_index = -1);
 
 CAFFE2_API void setCurrentNPUStream(NPUStream stream);

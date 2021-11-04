@@ -135,25 +135,6 @@ OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataT
   return std::tie(aclDesc, aclBuff, storageDim, npuDesc.npu_format_);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertTransDataTensorToAcl(
-    const Tensor& tensor) {
-  Tensor* tensorPtr = (Tensor*)&tensor;
-  aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(tensorPtr->scalar_type());
-
-  auto format = FormatHelper::GetFormat(tensor);
-  auto dims = InferFormat::GuessStorageSizeWhenConvertFormat(tensor);
-  AclTensorDescMaker desc;
-  auto aclDesc = desc.Create(aclDataType, dims, format).Get();
-
-  int nelements = prod_intlist(dims);
-  AclTensorBufferMaker buffer(
-      tensorPtr, tensorPtr->storage_offset(), nelements);
-  auto aclBuffer = buffer.Get();
-  int64_t storageDim = dims.size();
-  return std::tie(aclDesc, aclBuffer, storageDim, format);
-}
-
 } // npu
 } // native
 } // at

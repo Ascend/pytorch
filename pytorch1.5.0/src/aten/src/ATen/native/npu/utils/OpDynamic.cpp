@@ -143,10 +143,12 @@ void OpDynamicCommand::DynamicOpRun(){
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     aclDynamicCmd->ExportDynamicParams(execParams);
-    QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
-    c10::npu::enCurrentNPUStream(&params);
+    c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+    SmallVector<Storage, N> needClearVec;
+    c10::npu::enCurrentNPUStream(&params, needClearVec);
     aclCmd->releaseSource(false);
     aclDynamicCmd->ReleaseDynamicSource(false);
+    needClearVec.clear();
   } else if (c10::npu::OptionsManager::CheckDynamicEnable()) {
     ExecuteParas runParams;
     auto stream = c10::npu::getCurrentNPUStream();

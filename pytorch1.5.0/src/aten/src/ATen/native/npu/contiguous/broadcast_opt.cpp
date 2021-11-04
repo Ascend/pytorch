@@ -14,8 +14,8 @@
 // limitations under the License.
 
 #include <c10/npu/NPUStream.h>
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 
 namespace at {
 namespace native {
@@ -67,7 +67,7 @@ private:
     c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     if (temp_src.is_contiguous()) {
       auto temp_dst = broadcast_npu(temp_src, self.sizes());
-      LaunchAsyncCopyTask(
+      c10::npu::queue::LaunchAsyncCopyTask(
         self.data_ptr(),
         self.nbytes(),
         temp_dst.data_ptr(),

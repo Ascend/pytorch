@@ -142,15 +142,6 @@ class AclTensorDescMaker {
 //
 class AclTensorBufferMaker {
  public:
-  // base of Ctr
-  // params: tensor, offset, remained size
-  AclTensorBufferMaker(const Tensor* tensor, int64_t offset, int64_t n) {
-    uint8_t* header = reinterpret_cast<uint8_t*>(tensor->data_ptr()) -
-        tensor->itemsize() * offset;
-    size_t bufferSize = tensor->itemsize() * n;
-    ptr = aclCreateDataBuffer(header, bufferSize);
-  }
-
   // offset = 0
   AclTensorBufferMaker(const Tensor* tensor, int64_t n = 1) {
     if (tensor == nullptr || n == 0) {
@@ -215,7 +206,7 @@ class OpCommandImpl {
       aclFormat format,
       const Tensor& hostTensor) {
     AddInput(desc, buffer, dim, format);
-    execParam.hostMem.emplace_back(hostTensor);
+    execParam.hostMem.emplace_back(hostTensor.storage());
     execParam.graph.SetConst(hostTensor.data_ptr(), hostTensor.nbytes());
   }
 
@@ -406,8 +397,7 @@ class OpCommandImpl {
     SmallVector<aclFormat, N> outFormats;
     SmallVector<const int64_t*, N> constLists;
     SmallVector<int64_t, N> constIdxs;
-    SmallVector<Tensor, N> hostMem;
-
+    SmallVector<Storage, N> hostMem;
     aclopAttr* attr = nullptr;
     bool hasAttr = false;
     Graph graph;
@@ -443,10 +433,6 @@ private:
   int32_t offset = -1;
   SmallVector<OpCommandImpl, N> objs;
 }; // class OpCommandImpls
-
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-    Tensor& holdTensor, bool isPinMem);
 } // namespace npu
 } // namespace native
 } // namespace at

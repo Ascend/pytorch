@@ -17,6 +17,7 @@
 #include <THNPU/THNPUCachingHostAllocator.h>
 #include <c10/core/DeviceGuard.h>
 #include <c10/npu/npu_log.h>
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 
 #include <Python.h>
 
@@ -28,8 +29,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-
-#include <third_party/acl/inc/acl/acl.h>
 
 namespace {
 struct BlockSize {
@@ -70,6 +69,10 @@ struct HostAllocator {
   // outstanding ACL events
   std::deque<std::pair<aclrtEvent, void*>> npu_events;
 
+  // outstanding ACL events
+  std::set<aclrtEvent> complete_events;
+
+
   HostAllocator() : available(BlockComparator) {}
 
   aclError malloc(void** ptr, size_t size) {
@@ -106,38 +109,43 @@ struct HostAllocator {
   }
 
   aclError free(void* ptr) {
-    std::lock_guard<std::mutex> lock(mutex);
+    c10::SmallVector<c10::Storage, c10::npu::N> needClearVec;
+    {
+      std::lock_guard<std::mutex> lock(mutex);
 
-    if (!ptr) {
-      return ACL_ERROR_NONE;
+      if (!ptr) {
+        return ACL_ERROR_NONE;
+      }
+
+      // process outstanding cuda events which may have occurred
+      aclError err = processEvents();
+      if (err != ACL_ERROR_NONE) {
+        return err;
+      }
+
+      auto it = blocks.find(ptr);
+      AT_ASSERT(it != blocks.end());
+
+      Block& block = it->second;
+      AT_ASSERT(block.allocated);
+
+      // free (on valid memory) shouldn't fail, so mark unallocated before
+      // we process the streams.
+      block.allocated = false;
+
+      // insert CUDA events for each stream on which this block was used. This
+      err = insertEvents(block, needClearVec);
+      if (err != ACL_ERROR_NONE) {
+        return err;
+      }
+
+      if (block.event_count == 0) {
+        // the block can be re-used if there are no outstanding cuda events
+        available.insert(block);
+      }
     }
-
-    // process outstanding cuda events which may have occurred
-    aclError err = processEvents();
-    if (err != ACL_ERROR_NONE) {
-      return err;
-    }
-
-    auto it = blocks.find(ptr);
-    AT_ASSERT(it != blocks.end());
-
-    Block& block = it->second;
-    AT_ASSERT(block.allocated);
-
-    // free (on valid memory) shouldn't fail, so mark unallocated before
-    // we process the streams.
-    block.allocated = false;
-
-    // insert CUDA events for each stream on which this block was used. This
-    err = insertEvents(block);
-    if (err != ACL_ERROR_NONE) {
-      return err;
-    }
-
-    if (block.event_count == 0) {
-      // the block can be re-used if there are no outstanding cuda events
-      available.insert(block);
-    }
+    // free pin memory
+    needClearVec.clear();
     return ACL_ERROR_NONE;
   }
 
@@ -168,6 +176,12 @@ struct HostAllocator {
     return blocks.find(ptr) != blocks.end();
   }
 
+  void insertCompleteEvent(aclrtEvent event)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    complete_events.insert(event);
+  }
+
   aclError processEvents() {
     // Process outstanding cudaEvents. Events that are completed are removed
     // from the queue, and the 'event_count' for the corresponding allocation
@@ -177,6 +191,11 @@ struct HostAllocator {
     while (!npu_events.empty()) {
       auto& e = npu_events.front();
       aclrtEvent event = e.first;
+      // after acl thread has launched record event task, pytorch thread can destroy event
+      auto it = complete_events.find(event);
+      if (it == complete_events.end()) {
+        break;
+      }
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
       if (err != ACL_ERROR_NONE) {
@@ -197,6 +216,7 @@ struct HostAllocator {
         available.insert(block);
       }
       npu_events.pop_front();
+      complete_events.erase(it);
     }
     return ACL_ERROR_NONE;
   }
@@ -237,7 +257,7 @@ struct HostAllocator {
     }
   }
 
-  aclError insertEvents(Block& block) {
+  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, c10::npu::N>& needClearVec) {
     aclError err = ACL_ERROR_NONE;
 
     int prev_device = 0;
@@ -266,7 +286,7 @@ struct HostAllocator {
       if (err != ACL_ERROR_NONE)
         break;
 
-      err = aclrtRecordEvent(event, it->stream());
+      err = c10::npu::queue::LaunchRecordEventTask(event, *it, needClearVec);
       if (err != ACL_ERROR_NONE)
         break;
 
@@ -292,6 +312,10 @@ aclError THNPUCachingHostAllocator_recordEvent(
     void* ptr,
     at::npu::NPUStream stream) {
   return allocator.recordEvent(ptr, stream);
+}
+
+void THNPUCachingHostAllocator_insertCompleteEvent(aclrtEvent event) {
+  return allocator.insertCompleteEvent(event);
 }
 
 bool THNPUCachingHostAllocator_isPinndPtr(void* ptr) {

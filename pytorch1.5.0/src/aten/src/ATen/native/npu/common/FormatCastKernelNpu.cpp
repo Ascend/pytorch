@@ -17,6 +17,7 @@
 #include "ATen/native/npu/common/FormatCastHelper.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuStorageOffsetGuard.h"
 
 namespace at {
 namespace native {
@@ -33,13 +34,26 @@ Tensor format_cast_impl_out_npu(Tensor& dst, const Tensor& src) {
     }
     return dst;
   }
+  /*
+  In order to consider performance, The current adaptation uses the direct call format conversion operator `Transdata`,
+  Unfortunately, Different from ordinary computing operators, operator `Transdata` belongs to a special memory movement operator, 
+  which leads to too much special treatment in the existing framework, reduced scalability and maintainability.
 
-  TransDataOpCommand cmd;
-  cmd.Name("TransData")
-    .InputAndOutput(src, dst)
-    .Attr("src_format", srcFormat)
-    .Attr("dst_format", dstFormat)
-    .Run();
+  So, to solve the problem, we use the `Identity` operator instead of the `Transdata` operator to meet the current memory move function.
+  Then, it is determined by the FE framework to insert the transdata operator into the graph.
+
+  The purpose is to control the format conversion operator in the underlying FE framework.
+  */
+  // offset guard with InputWithoutContiguous
+  // view + transdata scene: we do transdata first, then we should set offset = 0 to keep results correct.
+  NpuStorageOffsetGuard guard_input(const_cast<Tensor &>(src));
+  NpuStorageOffsetGuard guard_output(dst);
+  OpCommand cmd;
+  cmd.Name("Identity")
+     .InputWithoutContiguous(src)
+     .Output(dst)
+     .Run();
+
   return dst;
 }
 

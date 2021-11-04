@@ -17,6 +17,7 @@
 #include <mutex>
 #include "NpuUtils.h"
 #include "c10/npu/register/OptionRegister.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 
 #include "CalcuOpUtil.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
@@ -24,7 +25,6 @@
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include "ATen/native/npu/interface/EnvVariables.h"
-#include "ATen/native/npu/frame/OpParamMaker.h"
 #include <set>
 
 namespace at {
@@ -191,7 +191,7 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
     Tensor src_new = at::empty_with_format(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
     int64_t numel = src_new.numel();
-    aclError error = LaunchAsyncCopyTask(
+    aclError error = c10::npu::queue::LaunchAsyncCopyTask(
       src_new.data_ptr(),
       numel * src_new.element_size(),
       (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),

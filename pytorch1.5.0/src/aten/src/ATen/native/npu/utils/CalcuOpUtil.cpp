@@ -22,11 +22,12 @@
 #include "ATen/native/npu/frame/InferFormat.h"
 #include "ATen/native/npu/mirror/NPUMemoryOverlap.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
-#include "ATen/native/npu/frame/OpParamMaker.h"
 #include "NpuUtils.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
+#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 
 namespace at {
 namespace native {
@@ -158,7 +159,7 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
     const void* src,
     size_t src_size,
     aclrtMemcpyKind kind) {
-  AT_NPU_CHECK(LaunchAsyncCopyTask(dst, dst_size, const_cast<void* >(src), src_size, kind));
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(dst, dst_size, const_cast<void* >(src), src_size, kind));
 
   return SUCCESS;
 }
@@ -604,8 +605,10 @@ void CalcuOpUtil::execute_npu_operate(
       if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
         cur_paras.isFuzzy = true;
       }
-      QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
-      c10::npu::enCurrentNPUStream(&params);
+      c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+      SmallVector<Storage, N> needClearVec;
+      c10::npu::enCurrentNPUStream(&params, needClearVec);
+      needClearVec.clear();
     } else {
       auto stream = c10::npu::getCurrentNPUStream();
       DynamicRun(cur_paras, stream);

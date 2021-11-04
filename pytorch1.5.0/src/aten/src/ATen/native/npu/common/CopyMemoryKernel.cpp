@@ -18,9 +18,9 @@
 
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUStream.h>
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <third_party/acl/inc/acl/acl.h>
 
 namespace at {
@@ -61,7 +61,7 @@ Tensor& copy_memory_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
 
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
-  AT_NPU_CHECK(LaunchAsyncCopyTask(
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
     self.data_ptr(),
     dst_size * self.itemsize(),
     src.data_ptr(),

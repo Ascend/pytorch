@@ -22,6 +22,7 @@
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 namespace at {
 namespace native {
 namespace npu {
@@ -79,6 +80,15 @@ class OpCommandBase {
     return AddTensorInput(Contiguous(input), ScalarType::Undefined, descName, realData);
   }
 
+  Derived& InputWithoutContiguous(
+    const Tensor& input) {
+    if (input.storage_offset() != 0) {
+      NPU_LOGE("[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy", 
+        input.storage_offset());
+    }
+    return AddTensorInput(const_cast<Tensor &>(input));
+  }
+
   Derived& Input(
     const Tensor& cpuTensor,
     SmallVector<int64_t, N> dimList,
@@ -129,9 +139,11 @@ class OpCommandBase {
     if (c10::npu::OptionsManager::CheckQueueEnable()) {
       ExecuteParas execParams;
       aclCmd->ExportParams(execParams);
-      QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
-      c10::npu::enCurrentNPUStream(&params);
+      c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+      SmallVector<Storage, N> needClearVec;
+      c10::npu::enCurrentNPUStream(&params, needClearVec);
       aclCmd->releaseSource(false);
+      needClearVec.clear();
     } else if (c10::npu::OptionsManager::CheckDynamicEnable()) {
       ExecuteParas runParams;
       aclCmd->ExportParams(runParams);

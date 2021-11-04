@@ -64,15 +64,6 @@ void ExecuteParas::Copy(ExecuteParas& other) {
   this->isFuzzy = other.isFuzzy;
 }
 
-void CopyParas::Copy(CopyParas& other) {
-  this->dst = other.dst;
-  this->dstLen = other.dstLen;
-  this->src = other.src;
-  this->srcLen = other.srcLen;
-  this->kind = other.kind;
-  this->pinMem = other.pinMem;
-}
-
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {
   if (params.input_num != 0) {
     if (params.input_desc != nullptr) {

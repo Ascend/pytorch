@@ -76,10 +76,10 @@ public:
     return this->execFunc(dstPtr, stream);
   }
 
-  void Copy(void* dstHead, int offset, void* src, uint32_t queueLen) {
+  void Copy(void* dstHead, int offset, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
     TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
-    return this->copyFunc(dstPtr, src, queueLen);
+    return this->copyFunc(dstPtr, src, needClearVec, queueLen);
   }
 
   void Release(void* head, int offset) {
@@ -227,7 +227,7 @@ bool Repository::NeedNotify(RepoRole role) const {
   return !working;
 }
 
-bool Repository::WriteQueue(void* cur_paras) {
+bool Repository::WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) {
   QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
   if (IsFullQueue()) {
     QUEUE_DEBUG("queue is full");
@@ -236,7 +236,7 @@ bool Repository::WriteQueue(void* cur_paras) {
 
   std::lock_guard<std::mutex> lock(mu_enqueue);
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
-  manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
+  manager().Copy(datas, write_idx.idx, cur_paras, needClearVec, queueLen);
   __sync_synchronize();
 
   write_idx.idx++;
@@ -279,7 +279,7 @@ bool Repository::ReadQueue() {
   return true;
 }
 
-void Repository::Enqueue(void* cur_paras) {
+void Repository::Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) {
   if (initialized == false) {
     NPU_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
     return;
@@ -294,7 +294,7 @@ void Repository::Enqueue(void* cur_paras) {
 
   DisableInterrupt(RepoRole::WRITER);
   while (ret == false) {
-    ret = WriteQueue(cur_paras);
+    ret = WriteQueue(cur_paras, needClearVec);
     if (ret == false) {
       EnableInterrupt(RepoRole::WRITER);
       __sync_synchronize();

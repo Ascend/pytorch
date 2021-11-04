@@ -15,8 +15,8 @@
 
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
 #include "ATen/native/npu/common/InnerNpuNativeFunction.h"
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "c10/npu/NPUStream.h"
 
 namespace at {
@@ -110,7 +110,7 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize) {
     return;
   }
 
-  aclError error = npu::LaunchAsyncCopyTask(
+  aclError error = c10::npu::queue::LaunchAsyncCopyTask(
     dst.data_ptr(),
     size * dst.element_size(),
     src.data_ptr(),

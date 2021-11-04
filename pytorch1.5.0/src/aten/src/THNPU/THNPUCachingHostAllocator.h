@@ -17,11 +17,15 @@
 #include <c10/core/Allocator.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/util/Exception.h>
+#include <third_party/acl/inc/acl/acl.h>
 
 C10_NPU_API c10::Allocator* getTHNPUCachingHostAllocator(void);
 
 C10_NPU_API aclError
 THNPUCachingHostAllocator_recordEvent(void* ptr, at::npu::NPUStream stream);
+
+C10_NPU_API void
+THNPUCachingHostAllocator_insertCompleteEvent(aclrtEvent event);
 
 C10_NPU_API bool
 THNPUCachingHostAllocator_isPinndPtr(void* ptr);
