@@ -166,7 +166,6 @@ class ProcessGroupHCCL : public ProcessGroup {
   // on-demand when a collective runs. If another collective is executed later,
   // against a different set of devices, the process group creates another NCCL
   // communicator. These HCCL communicators are cached and reused if possible.
-  //
   ProcessGroupHCCL(
       const c10::intrusive_ptr<Store>& store,
       int rank,

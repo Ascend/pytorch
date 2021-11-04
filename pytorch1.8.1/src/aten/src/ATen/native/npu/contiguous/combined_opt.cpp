@@ -184,7 +184,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
       for (auto i = 0; i < view_sizes.size(); i++) {
         map_shape_stride[view_strides[i]] = view_sizes[i];
       }
-      //除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
+      // 除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
       for (auto i = 0; i < view_sizes.size(); i++) {
         if (i == 0) {
           map_shape_stride[view_strides[0]] = view_sizes[0];

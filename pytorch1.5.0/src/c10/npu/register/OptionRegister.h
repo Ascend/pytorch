@@ -136,7 +136,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal)  \
   bool func() {                                                     \
     auto val = c10::npu::GetOption(#key);                           \
-    if (val.value_or(defaultVal) == trueVal) {                      \
+    if (val.value_or(defaultVal) == (trueVal)) {                    \
       return true;                                                  \
     }                                                               \
     return false;                                                   \
@@ -145,7 +145,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 #define REGISTER_OPTION_BOOL_FUNCTION_UNIQ(func, key, defaultVal, trueVal)  \
   bool func() {                                                             \
     static auto val = c10::npu::GetOption(#key);                            \
-    if (val.value_or(defaultVal) == trueVal) {                              \
+    if (val.value_or(defaultVal) == (trueVal)) {                            \
       return true;                                                          \
     }                                                                       \
     return false;                                                           \

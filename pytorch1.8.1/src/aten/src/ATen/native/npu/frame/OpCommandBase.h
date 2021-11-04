@@ -103,9 +103,6 @@ class OpCommandBase {
     return AddHostTensorInput(cpuTensor);
   }
 
-  // OpCommand& InputWithScalar(
-  //     const Tensor& input,
-  //     ScalarType forceScaleType = ScalarType::Undefined);
   Derived& Input(const Scalar& input, const ScalarType type, MemoryType memoryType=MemoryType::MEMORY_DEVICE) {
     if (memoryType == MemoryType::MEMORY_DEVICE) {
       return AddScalarInput(input, type);

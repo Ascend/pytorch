@@ -446,7 +446,7 @@ private:
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Tensor& holdTensor, bool isPinMem);
+    Tensor& holdTensor, bool isPinMem);
 } // namespace npu
 } // namespace native
 } // namespace at

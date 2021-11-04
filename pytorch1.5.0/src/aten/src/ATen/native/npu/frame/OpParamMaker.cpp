@@ -29,14 +29,14 @@ namespace at {
 namespace native {
 namespace npu {
 class AsyncCopyTask {
-  public:
-    AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
-    AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Tensor& holdTensor);
-    ~AsyncCopyTask() = default;
-    void LaunchCopyTask();
-    void LaunchCopyTask(bool isPinnedMem);
-  private:
-    CopyParas copyParam;
+public:
+  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
+  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Tensor& holdTensor);
+  ~AsyncCopyTask() = default;
+  void LaunchCopyTask();
+  void LaunchCopyTask(bool isPinnedMem);
+private:
+  CopyParas copyParam;
 };
 
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
@@ -363,7 +363,7 @@ AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
 }
 
 AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Tensor& holdTensor)
+    Tensor& holdTensor)
 {
   copyParam.dst = dst;
   copyParam.dstLen = dstLen;
@@ -416,7 +416,7 @@ aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
 }
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Tensor& holdTensor, bool isPinMem)
+    Tensor& holdTensor, bool isPinMem)
 {
   AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, holdTensor);
   copyTask.LaunchCopyTask(isPinMem);

@@ -46,7 +46,6 @@ struct NPUMethods : public CUDAStubs {
   }
   void npu_record(int* device, aclrtEvent* event, int64_t* cpu_ns) {
     TORCH_NPU_CHECK(aclrtGetDevice(device));
-    // TORCH_NPU_CHECK(aclrtCreateEvent(event));
     TORCH_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(event, ACL_EVENT_TIME_LINE));
     auto stream = c10::npu::getCurrentNPUStream();
     *cpu_ns = getTime();

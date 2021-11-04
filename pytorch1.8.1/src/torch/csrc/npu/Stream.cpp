@@ -32,7 +32,7 @@
 PyObject *THNPStreamClass = nullptr;
 
 static PyObject * THNPStream_pynew(
-  PyTypeObject *type, PyObject *args, PyObject *kwargs){
+    PyTypeObject *type, PyObject *args, PyObject *kwargs) {
   HANDLE_TH_ERRORS
 
   int current_device;

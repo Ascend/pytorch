@@ -43,7 +43,6 @@ Tensor fast_gelu_backward_npu(
     const Tensor& grad, 
     const Tensor& self) {
   // calculate the output size
-  // Tensor outputTensor = self;
   auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU

@@ -108,7 +108,6 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
         TORCH_CHECK(false, "NPU event received unknown flag");
     }*/
 
-    // C10_NPU_CHECK(cudaEventCreateWithFlags(cuda_event, cuda_flag));
     C10_NPU_CHECK(aclrtCreateEvent(acl_event));
   }
 
