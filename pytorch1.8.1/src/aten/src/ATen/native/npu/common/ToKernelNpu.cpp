@@ -142,7 +142,8 @@ Tensor to_dtype_npu(
     TORCH_WARN_ONCE("Unsupport Double dtype now, replace with float.");
   }
   dtype = (ScalarType::Double == dtype) ? ScalarType::Float : dtype;
-  return at::npu_dtype_cast(self, dtype);
+  return to_impl_npu(self, 
+      self.options().dtype(dtype).memory_format(optional_memory_format), non_blocking, copy);
 }
 
 Tensor to_other_npu(
