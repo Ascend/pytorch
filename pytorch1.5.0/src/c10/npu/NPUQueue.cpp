@@ -70,10 +70,10 @@ public:
     this->deleteFunc = func;
   }
 
-  int Call(void* head, int offset, aclrtStream stream) {
+  int Call(void* head, int offset, aclrtStream stream, uint32_t queueLen) {
     TORCH_CHECK(this->execFunc, "Failed to find execution function.");
     auto dstPtr = (uint8_t*)head + sizePerParams * offset;
-    return this->execFunc(dstPtr, stream);
+    return this->execFunc(dstPtr, stream, queueLen);
   }
 
   void Copy(void* dstHead, int offset, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
@@ -251,7 +251,8 @@ bool Repository::ReadQueue() {
     return false;
   }
 
-  auto ret = manager().Call(datas, read_idx.idx, calcu_stream_);
+  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
+  auto ret = manager().Call(datas, read_idx.idx, calcu_stream_, queueLen);
 
   if (ret != 0) {
     while (!IsEmptyQueue()) { // ignore other tasks

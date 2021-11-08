@@ -27,7 +27,7 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
           reshape_match_by_memory_repoint(src, self)) {
         return true;
       }
-      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
       copy_d2d_by_memcpy(
           self,
           src,
@@ -53,7 +53,7 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
   bool reshape_match_by_memory_repoint(const Tensor& src, Tensor& self) {
     // Memory-repointing optimization hasn't been fully demonstrated, Only FP16
     // and FP32 are supported.
-    RECORD_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
       case at::ScalarType::Half:
         ResetDataPtr(

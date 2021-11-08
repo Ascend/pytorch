@@ -208,6 +208,116 @@ bool CheckSkip(const string &nameIr, const string &nameParam) {
   return false;
 }
 
+bool LoadUtil::CheckWorkload(const at::Tensor& input, int stride) {
+  int w = input.size(3);  // same as h
+  int ch = input.size(1);
+  int bs = input.size(0);
+  if (stride==1) {
+    if (w >= 7) {
+      // All batch sizes and nb_channels
+      if (w >= 112) {
+        return true;
+      }
+
+      // large nb_channels
+      if (ch >= 1024) {
+        if (w >= 56) {
+          return true;
+        } else if (bs >= 32) {
+          return true;
+        }
+      }
+
+      // batch_size specific
+      if (bs >= 128) {
+        if (ch >= 512) {
+          return true;
+        } else if (ch >= 64) {
+          if (w >= 14) {
+            return true;
+          }
+        } else if ((ch >= 32) && (w >=28)) {
+          return true;
+        }
+      } else if (bs >= 64) {
+        if ((ch >= 256) && (w >= 14)) {
+          return true;
+        } else if ((ch >= 32) && (w >= 28)) {
+          return true;
+        }
+      } else if (bs >= 32) {
+        if ((ch >= 256) && (w >= 14)) {
+          return true;
+        } else if ((ch >= 128) && (w >= 28)) {
+          return true;
+        } else if ((ch >= 32) && (w >= 56)) {
+          return true;
+        }
+      } else if (bs >= 16) {
+        if ((ch >= 1024) && (w >= 14)) {
+          return true;
+        }
+        if ((ch >= 256) && (w >= 28)) {
+          return true;
+        } else if ((ch >= 32) && (w >= 56)) {
+          return true;
+        }
+      } else if (bs >= 8) {
+        if ((ch >= 512) && (w >= 28)) {
+          return true;
+        } else if ((ch >= 64) && (w >= 56)) {
+          return true;
+        }
+      }
+    }
+  } else if (stride==2) {
+    if (ch < 256) {
+      return false;
+    }
+
+    if (w >= 7) {
+      if (bs >= 128) {
+        if (ch >= 1024) {
+          return true;
+        } else if ((ch >= 512) && (w >= 14)) {
+          return true;
+        } else if (w >= 28) {
+          return true;
+        }
+      } else if (bs >= 64) {
+        if ((ch >= 512) && (w >= 14)) {
+          return true;
+        } else if (w >= 28) {
+          return true;
+        }
+      } else if (bs >= 32) {
+        if ((ch >= 1024) && (w >= 14)) {
+          return true;
+        } else if (w >= 28) {
+          return true;
+        }
+      } else if (bs >= 16) {
+        if ((ch >= 512) && (w >= 28)) {
+          return true;
+        } else if (w >= 56) {
+          return true;
+        }
+      } else if (bs >= 8) {
+        if ((ch >= 1024) && (w >= 28)) {
+          return true;
+        } else if (w >= 56) {
+          return true;
+        }
+      } else if (bs >= 1) {
+        if ((ch >= 512) && (w >=112)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 bool ValueMatching(const string& seqH5, const H5File* file, const string &nameIr, const std::vector<ArgDes<double>>& descVec) {
   bool is_matched = true;
   std::string h5IRPath;

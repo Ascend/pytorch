@@ -148,7 +148,7 @@ void AttrInfoMaker::Add(
 void OpCommandImpl::Run() {
   InitAttr();
   NPU_LOGD("Op %s Run.", opName.c_str());
-  RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
+  RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
 
   ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
 }
@@ -200,6 +200,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
     }
     int index = 0;
     do {
+      RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
       ret = aclopCompileAndExecute(
         (cur_paras->opType).c_str(),
         cur_paras->paras.input_num,
@@ -257,7 +258,7 @@ size_t GetMaxLen(size_t x, size_t y, size_t z)
 }
 
 void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
-  RECORD_FUNCTION("Enqueue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
+  RECORD_HOST_FUNCTION("Enqueue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
   auto dstPtr = static_cast<QueueParas* >(dst);
   auto srcPtr = static_cast<QueueParas* >(src);
   dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(QueueParas);
@@ -315,7 +316,8 @@ AsyncFuncMap funcMap = {
   {RECORD_EVENT, RecordEventFunc},
 };
 
-int AsncExecFunc(void* data, aclrtStream stream) {
+int AsncExecFunc(void* data, aclrtStream stream, uint32_t queueLen) {
+  RECORD_HOST_FUNCTION("Dequeue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
   auto queueParam = static_cast<QueueParas* >(data);
   auto type = queueParam->paramType;
   auto ret = funcMap[type](queueParam, stream);

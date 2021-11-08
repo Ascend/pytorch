@@ -623,7 +623,7 @@ void CalcuOpUtil::execute_npu_operate(
   aclopAttr* attr = std::get<0>(CalcuOpUtil::CreateNpuAttrDesc(attrs));
 
   auto stream = c10::npu::getCurrentNPUStream();
-  RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
+  RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
   bool reset_flag = false;
   if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {

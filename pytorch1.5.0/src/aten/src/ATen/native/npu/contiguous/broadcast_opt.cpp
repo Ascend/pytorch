@@ -29,7 +29,7 @@ public:
     }
 
     if (can_use_broadcast(src)) {
-      RECORD_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
       bool can_contiguous = broadcast_to_contiguous(src, self);
       return can_contiguous;
     }

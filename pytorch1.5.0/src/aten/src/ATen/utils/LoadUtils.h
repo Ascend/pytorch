@@ -161,6 +161,8 @@ class LoadUtil {
     return loadWithAclDump;
   }
 
+  bool CheckWorkload(const at::Tensor& input, int stride);
+
  private:
   LoadUtil();
   H5::H5File* file = nullptr;

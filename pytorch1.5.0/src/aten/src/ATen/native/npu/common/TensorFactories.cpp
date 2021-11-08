@@ -517,7 +517,7 @@ Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
   if (try_to_optimize_copy_with_any_format(formatSelf, src)) {
     return formatSelf;
   } else if (can_use_memcpy(formatSelf, src)) {
-    RECORD_FUNCTION("d2dCopyAsync with format", std::vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("d2dCopyAsync with format", std::vector<c10::IValue>({src}));
     copy_d2d_by_memcpy(formatSelf, src);
     return formatSelf;
   } else {

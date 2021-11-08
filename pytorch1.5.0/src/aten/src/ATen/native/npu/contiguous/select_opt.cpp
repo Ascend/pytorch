@@ -28,7 +28,7 @@ class SelectContiguousOpt : public ContiguousOpt {
     SmallVector<int64_t, SHAPE_SIZE> length;
 
     if (can_use_select(src, start, length)) {
-      RECORD_FUNCTION("select_npuSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("select_npuSliceD", std::vector<c10::IValue>({src}));
       select_to_contiguous(src, self, start, length);
       return true;
     }

@@ -29,7 +29,7 @@ public:
     int64_t fold_step;
 
     if (can_use_unfold(src, fold_dimension, fold_size, fold_step)) {
-      RECORD_FUNCTION("unfold_npuTransposeD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("unfold_npuTransposeD", std::vector<c10::IValue>({src}));
       unfold_to_contiguous(src, self, fold_dimension, fold_size, fold_step);
       return true;
     }

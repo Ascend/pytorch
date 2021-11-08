@@ -43,7 +43,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
     SmallVector<int64_t, 4> viewOffsets;
 
     if (can_use_combined(src, viewInfos, viewOffsets, maxLen)) {
-      RECORD_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
       // Record src infos for recovering after trans-contiguous
       auto src_npu_desc = src.storage().get_npu_desc();
 
@@ -84,7 +84,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
         (tensor.storage_offset() != npu_desc.base_offset_)) {
       return false;
     }
-    RECORD_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
+    RECORD_HOST_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
     StorageDescHelper::SetDesc(
         tensor,
         array_to_small_vector(tensor.sizes()),

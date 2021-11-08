@@ -78,7 +78,7 @@ SmallVector<NPUTensorDesc, N> transpose_to_contiguous_npu_output(
 }
 
 Tensor transpose_to_contiguous_npu(const Tensor& self) {
-  RECORD_FUNCTION("transpose_to_contiguous", vector<c10::IValue>({self}));
+  RECORD_HOST_FUNCTION("transpose_to_contiguous", vector<c10::IValue>({self}));
   int64_t self_format = CalcuOpUtil::get_tensor_npu_format(self);
   Tensor result = at::empty_with_format(self.sizes(), self.options(), self_format);
 

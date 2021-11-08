@@ -29,7 +29,7 @@ public:
     SmallVector<int64_t, SHAPE_SIZE> offsets;
     SmallVector<int64_t, SHAPE_SIZE> size;
     if (can_use_slice(src, offsets, size)) {
-      RECORD_FUNCTION("narrow_npuSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("narrow_npuSliceD", std::vector<c10::IValue>({src}));
       slice_to_contiguous(src, self, offsets, size);
       return true;
     }

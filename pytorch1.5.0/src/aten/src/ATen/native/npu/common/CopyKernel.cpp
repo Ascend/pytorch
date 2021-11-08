@@ -133,10 +133,10 @@ void copy_d2d_last_method(
     bool non_blocking) {
   // general copy method but Low performance
   if (c10::npu::OptionsManager::CheckPTcopy_Enable()) {
-    RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
     copy_kernel_npu(self, src, non_blocking);
   } else {
-    RECORD_FUNCTION(
+    RECORD_HOST_FUNCTION(
         "d2dCopyWithStreamSynchronize", std::vector<c10::IValue>({src}));
     copy_d2d_via_host(self, src, same_type);
   }
@@ -161,7 +161,7 @@ void copy_d2d_dtype_baseformat(
   } else {
     int64_t numel = self.numel();
     if (numel == src.numel()) {
-      RECORD_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
       NPU_LOGD("copy contiguous tensor inside device");
       return copy_d2d_by_memcpy(self, src, numel);
     }
@@ -179,7 +179,7 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
   if (!FormatHelper::IsBaseFormatType(
           self)) { // TODO(ascend): 必须要非NCHW的才行？
     if (can_use_memcpy(self, src)) {
-      RECORD_FUNCTION(
+      RECORD_HOST_FUNCTION(
           "d2dCopyAsync with format", std::vector<c10::IValue>({src}));
       return copy_d2d_by_memcpy(self, src);
     }

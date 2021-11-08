@@ -27,7 +27,7 @@ public:
     SmallVector<int64_t, SHAPE_SIZE> step;
 
     if (can_use_indexing(src, start, end, step)) {
-      RECORD_FUNCTION("npuStridedSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("npuStridedSliceD", std::vector<c10::IValue>({src}));
       indexing_to_contiguous(src, self, start, end, step);
       return true;
     }

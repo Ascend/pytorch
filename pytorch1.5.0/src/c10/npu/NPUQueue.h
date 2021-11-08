@@ -114,7 +114,7 @@ class Repository : public NPUQueueBase {
   aclrtStream calcu_stream_;
 };
 
-using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream)>;
+using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream, uint32_t)>;
 using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
