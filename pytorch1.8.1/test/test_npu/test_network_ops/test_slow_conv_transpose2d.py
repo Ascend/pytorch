@@ -87,7 +87,7 @@ class TestSlowConvTranspose2d(TestCase):
         shape_format = [
             [[np.float32, -1, [1, 1, 32, 32]], [np.float32, -1, [1, 1, 3, 3]], 3],
             [[np.float32, 0, [1, 4, 5, 5]], [np.float32, 0, [4, 4, 3, 3]], 3],
-            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]], 1]
+            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]], 1],
         ]
         for item in shape_format:
             input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)

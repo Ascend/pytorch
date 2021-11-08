@@ -31,7 +31,7 @@ class TestConv3d(TestCase):
         self.input_grad.append(grad.to("cpu"))
 
     def op_exec_cpu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, groups=1):
-        
+
         input1 = input
         weight1 = weight
         input1.requires_grad = True
@@ -46,7 +46,7 @@ class TestConv3d(TestCase):
         return cpuOutput
 
     def op_exec_npu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=False, groups=1):
-        
+
         input1 = input
         weight1 = weight
         input1.requires_grad = True
@@ -91,22 +91,16 @@ class TestConv3d(TestCase):
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].cpu().numpy())
 
     def test_conv3d_backward_shape_format_fp16(self, device):
-        shape_format = [  # input, weight, padding, stride, dilation, bias, groups                      
+        shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float16, 30, [128, 128, 4, 14, 14]], [np.float16, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
             [[np.float16, 30, [128, 64, 4, 14, 14]], [np.float16, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
-            [[np.float16, 30, [128, 256, 2, 7, 7]], [np.float16, 30, [256, 256, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float16, 30, [128, 512, 1, 4, 4]], [np.float16, 30, [512, 512, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float16, 30, [128, 256, 2, 7, 7]], [np.float16, 30, [512, 256, 1, 1, 1]], 0, [2,2,2], 1, None, 1]
         ]
         self.conv3d_backward_result(shape_format)
-        
+
     def test_conv3d_backward_shape_format_fp32(self, device):
-        shape_format = [  # input, weight, padding, stride, dilation, bias, groups                      
+        shape_format = [  # input, weight, padding, stride, dilation, bias, groups
             [[np.float32, 30, [128, 128, 4, 14, 14]], [np.float32, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
             [[np.float32, 30, [128, 64, 4, 14, 14]], [np.float32, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
-            [[np.float32, 30, [128, 256, 2, 7, 7]], [np.float32, 30, [256, 256, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float32, 30, [128, 512, 1, 4, 4]], [np.float32, 30, [512, 512, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float32, 30, [128, 256, 2, 7, 7]], [np.float32, 30, [512, 256, 1, 1, 1]], 0, [2,2,2], 1, None, 1]
         ]
         self.conv3d_backward_result(shape_format)
 

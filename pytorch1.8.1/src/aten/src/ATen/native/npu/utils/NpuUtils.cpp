@@ -324,6 +324,10 @@ bool NpuUtils::IsOomError(aclError ret, int index)
   }
   return false;
 }
+
+void NpuUtils::check_1d(const Tensor& t, const char* arg, const char* fn) {
+  TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ", t.dim(), "-D");
+}
 } // namespace npu
 } // namespace native
 } // namespace at

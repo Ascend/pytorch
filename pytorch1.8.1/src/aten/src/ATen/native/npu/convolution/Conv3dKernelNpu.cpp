@@ -14,10 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
 
 namespace at {
 namespace native {
@@ -84,7 +81,13 @@ Tensor &conv3d_out_npu(const Tensor &input,
                        int64_t groups,
                        Tensor &result) {
   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
-
+  auto outputSize = conv3d_npu_output_size(
+      input, weight, bias, stride, padding, dilation, groups);
+  OpPreparation::CheckOut(
+      {input, weight, bias},
+      result,
+      input,
+      outputSize);
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({input, weight, bias}, {result})
              .Func([&input, &weight, &bias, stride, padding, dilation, groups](Tensor &result) {
@@ -97,19 +100,13 @@ Tensor &conv3d_out_npu(const Tensor &input,
 Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const optional<Tensor> &bias_opt,
                   IntArrayRef stride, IntArrayRef padding, IntArrayRef dilation,
                   int64_t groups) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
 
-   const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
-
-  // calculate the output size
   auto outputSize = conv3d_npu_output_size(
       input, weight, bias, stride, padding, dilation, groups);
 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, input.options(), CalcuOpUtil::get_tensor_npu_format(input));
-
-  // calculate the output result of the NPU
-  conv3d_out_npu(input, weight, bias_opt, stride, padding, dilation, groups, result);
+  Tensor result = OpPreparation::ApplyTensor(input, outputSize);
+  conv3d_out_npu_nocheck(result, input, weight, bias, stride, padding, dilation, groups);
 
   return result;
 }
@@ -141,16 +138,17 @@ tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> slow_conv3d_npu_ou
   return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(outputSize, finputSize);
 }
 
-std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_out_npu(
-    Tensor& output,
-    Tensor& finput,
-    Tensor& fgrad_input,
+std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_npu_nocheck(
     const Tensor& input,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const optional<Tensor> & bias_opt,
     IntArrayRef stride,
-    IntArrayRef padding) {
+    IntArrayRef padding,
+    Tensor& output,
+    Tensor& finput,
+    Tensor& fgrad_input) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
   Tensor filter = weight.to(input.dtype());
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
   SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1],
@@ -174,64 +172,97 @@ std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_out_npu(
   return std::tuple<Tensor&, Tensor&, Tensor&>(output, finput, fgrad_input);
 }
 
-std::tuple<Tensor, Tensor, Tensor> slow_conv3d_forward_npu(
-    const Tensor& self,
+std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_out_npu(
+    const Tensor& input,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const optional<Tensor> & bias_opt,
     IntArrayRef stride,
-    IntArrayRef padding) {
+    IntArrayRef padding,
+    Tensor& output,
+    Tensor& finput,
+    Tensor& fgrad_input) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
   auto outputSize = slow_conv3d_npu_output_size(
-      self, weight, bias, stride, padding);
-  auto output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  auto finput = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
-  auto fgrad_input = at::empty({0}, self.options());
-
-  slow_conv3d_forward_out_npu(
+      input, weight, bias, stride, padding);
+  OpPreparation::CheckOut(
+      {input, weight, bias},
       output,
-      finput,
-      fgrad_input,
-      self,
+      input,
+      std::get<0>(outputSize));
+  slow_conv3d_forward_npu_nocheck(
+      input,
       weight,
       kernel_size,
-      bias,
+      bias_opt,
       stride,
-      padding);
-
+      padding,
+      output,
+      finput,
+      fgrad_input);
   return std::tuple<Tensor&, Tensor&, Tensor&>(output, finput, fgrad_input);
 }
 
 Tensor& slow_conv3d_out_npu(
-    Tensor& output,
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const optional<Tensor> & bias_opt,
     IntArrayRef stride,
-    IntArrayRef padding) {
+    IntArrayRef padding,
+    Tensor& output) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
-  output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
   Tensor finput = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
   Tensor fgrad_input = at::empty({0}, self.options());
 
-  return std::get<0>(slow_conv3d_forward_out_npu(
-      output,
-      finput,
-      fgrad_input,
+  return std::get<0>(slow_conv3d_forward_npu_nocheck(
       self,
       weight,
       kernel_size,
       bias,
       stride,
-      padding));
+      padding,
+      output,
+      finput,
+      fgrad_input));
+}
+
+std::tuple<Tensor, Tensor, Tensor> slow_conv3d_forward_npu(
+    const Tensor& self,
+    const Tensor& weight,
+    IntArrayRef kernel_size,
+    const c10::optional<Tensor>& bias_opt,
+    IntArrayRef stride,
+    IntArrayRef padding) {
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
+  auto outputSize = slow_conv3d_npu_output_size(
+      self, weight, bias, stride, padding);
+  auto output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
+  auto finput = OpPreparation::ApplyTensor(self, {0});
+  auto fgrad_input = OpPreparation::ApplyTensor(self, {0});
+
+
+  slow_conv3d_forward_npu_nocheck(
+      self,
+      weight,
+      kernel_size,
+      bias_opt,
+      stride,
+      padding,
+      output,
+      finput,
+      fgrad_input);
+
+  return std::tuple<Tensor&, Tensor&, Tensor&>(output, finput, fgrad_input);
 }
 
 Tensor slow_conv3d_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const optional<Tensor> & bias,
     IntArrayRef stride,
     IntArrayRef padding) {
   return std::get<0>(slow_conv3d_forward_npu(
@@ -241,6 +272,11 @@ Tensor slow_conv3d_npu(
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("npu_conv3d", TORCH_FN(conv3d_npu));
   m.impl("npu_conv3d.out", TORCH_FN(conv3d_out_npu));
+  m.impl("slow_conv3d.out", TORCH_FN(slow_conv3d_out_npu));
+  m.impl("slow_conv3d", TORCH_FN(slow_conv3d_npu));
+  m.impl("slow_conv3d_forward.output", TORCH_FN(slow_conv3d_forward_out_npu));
+  m.impl("slow_conv3d_forward", TORCH_FN(slow_conv3d_forward_npu));
 }
+
 } // namespace native
 } // namespace at

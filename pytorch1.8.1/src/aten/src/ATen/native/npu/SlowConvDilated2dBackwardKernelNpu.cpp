@@ -45,7 +45,6 @@ Tensor slow_conv_dilated2d_backward_input_out_npu(
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
       .Run();
-
   return grad_input;
 }
 
@@ -65,7 +64,6 @@ Tensor slow_conv_dilated2d_backward_weight_out_npu(
   int64_t groups = 1;
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   // executing the NPU operator
-
   OpCommand cmd;
   cmd.Name("Conv2DBackpropFilter")
       .Input(self)
@@ -147,23 +145,20 @@ tuple<Tensor, Tensor, Tensor> slow_conv_dilated2d_backward_npu(
     IntArrayRef dilation,
     std::array<bool, 3> output_mask) {
 
-  // calculate the output size
   auto outputSizes =  slow_conv_dilated2d_backward_npu_output_size(
       grad_output,self,weight,kernel_size,stride,padding, dilation);
 
   Tensor undefined;
 
-  // construct the output tensor of the NPU
   Tensor grad_input =
-      (output_mask[0] ? at::empty(self.sizes(), grad_output.options()) : undefined);
+      (output_mask[0] ? OpPreparation::ApplyTensor(grad_output, self.sizes()) : undefined);
 
   Tensor grad_weight =
-      (output_mask[1] ? at::empty(weight.sizes(), grad_output.options()) : undefined);
+      (output_mask[1] ? OpPreparation::ApplyTensor(grad_output, weight.sizes()) : undefined);
 
   Tensor grad_bias =
-      (output_mask[2] ? at::empty(weight.size(0), grad_output.options()) : undefined);
+      (output_mask[2] ? OpPreparation::ApplyTensor(grad_output, weight.size(0)) : undefined);
 
-  // calculate the output result of the NPU
   slow_conv_dilated2d_backward_out_npu(
       grad_input,
       grad_weight,
@@ -179,5 +174,10 @@ tuple<Tensor, Tensor, Tensor> slow_conv_dilated2d_backward_npu(
 
    return std::tie(grad_input, grad_weight, grad_bias);
 }
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("slow_conv_dilated2d_backward", TORCH_FN(slow_conv_dilated2d_backward_npu));
+}
+
 } // namespace native
 } // namespace at
