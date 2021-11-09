@@ -21,6 +21,7 @@ gcc -fPIC -shared -o libascendcl.so -I../inc acl.cpp
 
 gcc -fPIC -shared -o libacl_op_compiler.so -I../inc acl_op_compiler.cpp
 
-gcc -fPIC -shared -o libge_runner.so -I../inc ge_runner.cpp
+gcc -fPIC -shared -o libge_runner.so -I../inc ge_runner.cpp ge_api.cpp
 
-gcc -fPIC -shared -o libgraph.so -I../inc graph.cpp
+gcc -fPIC -shared -o libgraph.so -I../inc graph.cpp operator_factory.cpp operator.cpp tensor.cpp -D_GLIBCXX_USE_CXX11_ABI=0
+
