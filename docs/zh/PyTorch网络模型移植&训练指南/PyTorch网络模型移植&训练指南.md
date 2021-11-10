@@ -1,97 +1,25 @@
 # PyTorch网络模型移植&训练指南
+
 -   [概述](#概述md)
 -   [约束与限制](#约束与限制md)
 -   [迁移流程](#迁移流程md)
 -   [模型移植评估](#模型移植评估md)
 -   [环境准备](#环境准备md)
 -   [模型迁移](#模型迁移md)
-    -   [工具迁移](#工具迁移md)
-        -   [功能介绍](#功能介绍md)
-        -   [操作指南](#操作指南md)
-        -   [结果解析](#结果解析md)
-    -   [手工迁移](#手工迁移md)
-        -   [单P训练模型迁移](#单P训练模型迁移md)
-        -   [多P训练模型迁移](#多P训练模型迁移md)
-        -   [PyTorch接口替换](#PyTorch接口替换md)
-    -   [混合精度](#混合精度md)
 -   [模型训练](#模型训练md)
 -   [性能调优和分析](#性能调优和分析md)
-    -   [前提条件](#前提条件md)
-    -   [调测过程](#调测过程md)
-        -   [总体思路](#总体思路md)
-        -   [采集训练过程相关数据](#采集训练过程相关数据md)
-        -   [host侧性能优化](#host侧性能优化md)
-            -   [概述](#概述-0md)
-            -   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)
-            -   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)
-            -   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)
-            -   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)
-        -   [训练过程性能优化](#训练过程性能优化md)
-    -   [亲和库](#亲和库md)
-        -   [来源介绍](#来源介绍md)
-        -   [功能介绍](#功能介绍-1md)
 -   [精度调测](#精度调测md)
-    -   [前提条件](#前提条件-2md)
-    -   [调测过程](#调测过程-3md)
-        -   [总体思路](#总体思路-4md)
-        -   [精度调优方法](#精度调优方法md)
-            -   [单算子溢出检测](#单算子溢出检测md)
-            -   [整网调测](#整网调测md)
 -   [模型保存与转换](#模型保存与转换md)
-    -   [简介](#简介md)
-    -   [模型保存](#模型保存md)
-    -   [导出ONNX模型](#导出ONNX模型md)
 -   [样例说明](#样例说明md)
     -   [ResNet50模型迁移示例](#ResNet50模型迁移示例md)
-        -   [样例获取](#样例获取md)
-        -   [训练脚本迁移](#训练脚本迁移md)
-            -   [单P训练修改](#单P训练修改md)
-            -   [分布式训练修改](#分布式训练修改md)
-        -   [脚本执行](#脚本执行md)
     -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例md)
-        -   [样例获取](#样例获取-5md)
-        -   [模型评估](#模型评估md)
-        -   [网络迁移](#网络迁移md)
-        -   [网络调测](#网络调测md)
 -   [参考信息](#参考信息md)
-    -   [单算子样例编写说明](#单算子样例编写说明md)
-    -   [单算子dump方法](#单算子dump方法md)
-    -   [常用环境变量说明](#常用环境变量说明md)
-    -   [dump op方法](#dump-op方法md)
-    -   [编译选项设置](#编译选项设置md)
-    -   [安装7.3.0版本gcc](#安装7-3-0版本gccmd)
-    -   [编译安装hdf5](#编译安装hdf5md)
 -   [FAQ](#FAQmd)
     -   [软件安装常见问题](#软件安装常见问题md)
-        -   [pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败md)
     -   [模型和算子运行常见问题](#模型和算子运行常见问题md)
-        -   [在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevicemd)
-        -   [在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”](#在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncsmd)
-        -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-HelpACLExecutemd)
-        -   [在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT”](#在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what-0-INTERNAL-ASSERTmd)
-        -   [在模型运行时遇到报错“ImportError: libhccl.so.”](#在模型运行时遇到报错-ImportError-libhccl-somd)
-        -   [在模型运行时遇到报错“RuntimeError: Initialize.”](#在模型运行时遇到报错-RuntimeError-Initializemd)
-        -   [在模型运行时遇到报错“TVM/te/cce error.”](#在模型运行时遇到报错-TVM-te-cce-errormd)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failedmd)
-        -   [在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”](#在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-6md)
-        -   [在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”](#在模型运行时将多任务下发关闭export-TASK_QUEUE_ENABLE-0后仍然遇到报错-HelpACLExecutemd)
-        -   [在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”](#在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1failedmd)
     -   [模型调测常见问题](#模型调测常见问题md)
-        -   [在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”](#在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5md)
-        -   [在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”](#在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backendmd)
-        -   [在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错](#在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错md)
-        -   [在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”](#在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_Cmd)
     -   [其他操作相关问题](#其他操作相关问题md)
-        -   [cuda流同步操作报错](#cuda流同步操作报错md)
-        -   [aicpu\_kernels/libpt\_kernels.so不存在](#aicpu_kernels-libpt_kernels-so不存在md)
-        -   [使用npu-smi info查看显存时发现python进程残留](#使用npu-smi-info查看显存时发现python进程残留md)
-        -   [动态shape报错“match op inputs failed”](#动态shape报错-match-op-inputs-failedmd)
-        -   [Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported](#Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupportedmd)
-        -   [Hook失败](#Hook失败md)
-        -   [加载权重时遇到报错“load state\_dict error.”](#加载权重时遇到报错-load-state_dict-errormd)
     -   [模型分布式训练常见问题](#模型分布式训练常见问题md)
-        -   [在进行模型分布式训练时遇到报错“host not found.”](#在进行模型分布式训练时遇到报错-host-not-foundmd)
-        -   [在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”](#在进行模型分布式训练时遇到报错-RuntimeError-connect-timed-outmd)
 <h2 id="概述md">概述</h2>
 
 当前阶段针对PyTorch框架实现的对接适配昇腾AI处理器的方案为在线对接方案。
@@ -1177,7 +1105,7 @@ def main():
 
   2.  运行成功后会打印出profiler结果信息。
 
-      打印结果包含CPU和NPU的耗时等相关信息，详细信息参见[表2](#表2 profiler结果字段表)。
+      打印结果包含CPU和NPU的耗时等相关信息，详细信息参见 [表2](#表2 profiler结果字段表) 。
       
       <a name='表2 profiler结果字段表'>**表2** profiler结果字段表</a>
       
@@ -2800,6 +2728,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 **表 2**  整网排查
 
 <a name="table687975742418"></a>
+
 <table><thead align="left"><tr id="row487985710248"><th class="cellrowborder" valign="top" width="6.419999999999999%" id="mcps1.2.5.1.1"><p id="p10879125714244"><a name="p10879125714244"></a><a name="p10879125714244"></a>序号</p>
 </th>
 <th class="cellrowborder" valign="top" width="10.39%" id="mcps1.2.5.1.2"><p id="p887995716244"><a name="p887995716244"></a><a name="p887995716244"></a>time(ms)</p>
@@ -3046,26 +2975,26 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
             return out
     ```
 
--   同等语义改写。
+- 同等语义改写。
 
-```
-def channel_shuffle_index_select(x, groups=2):
-    N, C, H, W = x.shape
-    inp = C
-    # channel_shuffle操作是对C维按一定规则的重排的工作，可以被表达为一次简单的重排
-    group_len = inp // groups
-    index = torch.from_numpy(np.array(list(range(inp))).reshape(groups, group_len).transpose(1, 0).flatten()).long()
-
-    x = x.index_select(1, index)
-    return x
-
-# 对两个操作进行结果对比，可以看到语义是相等的
-x = torch.randn(2, 232, 14, 14)
-for group in [2, 4, 8]:
-    out1 = channel_shuffle(x, group)
-    out2 = channel_shuffle_index_select(x, group)
-    print((out1 - out2).sum())
-```
+  ```
+  def channel_shuffle_index_select(x, groups=2):
+      N, C, H, W = x.shape
+      inp = C
+      # channel_shuffle操作是对C维按一定规则的重排的工作，可以被表达为一次简单的重排
+      group_len = inp // groups
+      index = torch.from_numpy(np.array(list(range(inp))).reshape(groups, group_len).transpose(1, 0).flatten()).long()
+  
+      x = x.index_select(1, index)
+      return x
+  
+  # 对两个操作进行结果对比，可以看到语义是相等的
+  x = torch.randn(2, 232, 14, 14)
+  for group in [2, 4, 8]:
+      out1 = channel_shuffle(x, group)
+      out2 = channel_shuffle_index_select(x, group)
+      print((out1 - out2).sum())
+  ```
 
 -   昇腾AI处理器亲和写法。
 
@@ -3672,15 +3601,15 @@ ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该�
 
 <h4 id="pip3-7-install-Pillow-5-3-0安装失败md">pip3.7 install Pillow==5.3.0安装失败</h4>
 
-##### 现象描述<a name="zh-cn_topic_0175549220_section197270431505"></a>
+**现象描述**<a name="zh-cn_topic_0175549220_section197270431505"></a>
 
 pip3.7 install pillow==5.3.0安装失败。
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 缺少必要的依赖，如：libjpeg、python-devel、 zlib-devel 、libjpeg-turbo-devel等等。
 
-##### 处理方法<a name="section108142031907"></a>
+**处理方法**<a name="section108142031907"></a>
 
 安装相关依赖，通过如下命令安装：
 
@@ -3720,43 +3649,43 @@ pip3.7 install pillow==5.3.0安装失败。
 
 <h4 id="在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevicemd">在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ1.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 目前在一个线程内，只能调用一个NPU设备，当切换不同的npu device时，出现上述错误。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 检查代码中在调用torch.npu.set\_device\(device\)、tensor.to\(device\)或者model.to\(device\)时，同一个线程内前后调用时device名称不一致。对于多个线程情况（如多卡训练），每个线程同样只能调用固定的npu device。
 
 <h4 id="在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncsmd">在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ2.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 在torch初始化时，若未通过torch.npu.device\(id\)指定npu设备，则默认使用device 0设备。若直接使用其他NPU设备，如指定在device 1上创建tensor，那么在运行时会出现上述错误。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 在调用NPU设备之前，通过torch.npu.set\_device\(device\)指定需要使用的NPU设备即可。
 
 <h4 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecutemd">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ3.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 目前HelpACLExecute的报错信息无法直接找到报错位置，此处在task任务下发时报错，是由于开启了TASK多线程下发（export TASK\_QUEUE\_ENABLE=1），上层封装了报错信息，导致无法获取更加详细的报错日志。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 可通过如下两种方式处理：
 
@@ -3765,7 +3694,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 <h4 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-0-INTERNAL-ASSERTmd">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT”</h4>
 
-##### 现象描述<a name="section5498445105118"></a>
+**现象描述**<a name="section5498445105118"></a>
 
 ```
 import torch
@@ -3792,11 +3721,11 @@ if __name__ == "__main__":
 
 ![](figures/zh-cn_image_0000001208897433.png)
 
-##### 可能原因<a name="section440935995113"></a>
+**可能原因**<a name="section440935995113"></a>
 
 在运行backward运算后，通过set\_decice\(\)方法手动设置device设备，导致报错。在运行backward运算时，若没有设置device，程序会自动默认初始化device为0，相当于执行了set\_device\("npu:0"\)。由于目前不支持切换device进行计算，若再通过set\_decice\(\)方法手动设置device设备，则可能出现该错误。
 
-##### 处理方法<a name="section1828321115218"></a>
+**处理方法**<a name="section1828321115218"></a>
 
 在运行backward运算前，通过set\_decice\(\)方法手动设置device。修改如下。
 
@@ -3809,25 +3738,25 @@ if __name__ == "__main__":
 
 <h4 id="在模型运行时遇到报错-ImportError-libhccl-somd">在模型运行时遇到报错“ImportError: libhccl.so.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ7.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 目前对外发布的pytorch安装包，默认使用NPU和HCCL功能，因此在调用时需要将HCCL模块路径添加到环境变量中。根据报错信息“can not find libhccl.so”，出现上述错误原因为缺少hccl库文件。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 将hccl模块的路径添加到环境变量中，一般情况下hccl库文件路径为安装包下的.../fwkacllib/python/site-packages/hccl。
 
 <h4 id="在模型运行时遇到报错-RuntimeError-Initializemd">在模型运行时遇到报错“RuntimeError: Initialize.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ9.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 根据报错信息，初步判断为npu设备初始化错误。进一步查找host日志报错信息如下：
 
@@ -3835,7 +3764,7 @@ if __name__ == "__main__":
 
 根据日志信息定位报错原因为系统在拉起npu设备时报错。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 可通过以下步骤解决该问题。
 
@@ -3861,15 +3790,15 @@ if __name__ == "__main__":
 
 <h4 id="在模型运行时遇到报错-TVM-te-cce-errormd">在模型运行时遇到报错“TVM/te/cce error.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ10.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch、CANN/nnae和te版本需要一致。在更新CANN/nnae后，te等组件不会自动更新，当版本不匹配时，则会出现该报错。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 更新te等组件版本，具体需要更新te-_\*.whl和topi-\*_.whl安装包。在安装的CANN或者nnae的lib64子目录下（以root安装用户为例：默认安装路径在/usr/local/Ascend/ascend-toolkit/latest/lib64目录下，更新安装包即可。在该目录下有安装包topi-0.4.0-py3-none-any.whl和te-0.4.0-py3-none-any.whl，分别执行pip3 install --upgrade topi-0.4.0-py3-none-any.whl，pip install --upgrade te-0.4.0-py3-none-any.whl。
 
@@ -3877,7 +3806,7 @@ pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch�
 
 <h4 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failedmd">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 脚本：
 
@@ -3926,7 +3855,7 @@ shell报错信息：
     [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.717 [../../../../../../runtime/feature/src/api_c.cc:224]12828 rtKernelLaunch:ErrCode=207001, desc=[module new memory error], InnerCode=0x70a0002
 ```
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 根据shell和日志报错信息，两者报错信息不匹配。
 
@@ -3934,7 +3863,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 
 报错信息滞后可能是由于AI CPU算子的异步执行，导致报错信息滞后。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 对于该报错需要根据实际的错误来定位，可参考如下步骤进行处理：
 
@@ -3946,7 +3875,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 
 <h4 id="在模型运行时遇到报错-MemCopySync-drvMemcpy-failed-6md">在模型运行时遇到报错“MemCopySync:drvMemcpy failed.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 脚本：
 
@@ -3995,7 +3924,7 @@ shell报错信息：
     [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.717 [../../../../../../runtime/feature/src/api_c.cc:224]12828 rtKernelLaunch:ErrCode=207001, desc=[module new memory error], InnerCode=0x70a0002
 ```
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 根据shell和日志报错信息，两者报错信息不匹配。
 
@@ -4003,7 +3932,7 @@ shell报错是在同步操作中和ai cpu错误，而日志报错信息却是在
 
 报错信息滞后可能是由于AI cpu算子的异步执行，导致报错信息滞后。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 对于该报错需要根据实际的错误来定位，可参考如下步骤进行处理：
 
@@ -4015,15 +3944,15 @@ shell报错是在同步操作中和ai cpu错误，而日志报错信息却是在
 
 <h4 id="在模型运行时将多任务下发关闭(export-TASK_QUEUE_ENABLE-0)后仍然遇到报错-HelpACLExecutemd">在模型运行时将多任务下发关闭\(export TASK\_QUEUE\_ENABLE=0\)后仍然遇到报错“HelpACLExecute.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ8.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子。由于在上层报错信息显示为HelpACLExecute. 时，内部也正在对报错信息与日志进行完善，导致部分算子发生错误时，报错信息获取异常。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 查看host日志，确定报错算子和位置，日志默认路径为/var/log/npu/slog/host-0。查找对应时间的log文件，搜索ERROR字段，查找错误信息。如对上述的错误，查询日志中的ERROR字段为：
 
@@ -4035,17 +3964,17 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 <h4 id="在模型运行时遇到报错-55056-GetInputConstDataOut-ErrorNo--1(failed)md">在模型运行时遇到报错“55056 GetInputConstDataOut: ErrorNo: -1\(failed\)”</h4>
 
-##### 现象描述<a name="section170419711269"></a>
+**现象描述**<a name="section170419711269"></a>
 
 模型训练过程中，查看host训练日志（路径：“/root/ascend/log/plog/“），可能出现如下报错信息。
 
 ![](figures/20210720-102720(WeLinkPC).png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 该报错信息是由于调用某一公共API接口导致。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 该报错信息不影响训练功能与性能，可忽略该报错信息。
 
@@ -4062,45 +3991,45 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 <h4 id="在模型调测时遇到报错-RuntimeError-malloc-pytorch-c10-npu-NPUCachingAllocator-cpp-293-NPU-error-error-code-is-5md">在模型调测时遇到报错“RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ4.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 对于NPUCachingAllocator中malloc类型的错误原因一般为NPU显存不足，所需显存大于npu上可用显存。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 在模型调测中，可用通过减小batch size参数来减少NPU显存的分配，解决该问题。
 
 <h4 id="在模型调测时遇到报错-RuntimeError-Could-not-run-aten-trunc-out-with-arguments-from-the-NPUTensorId-backendmd">在模型调测时遇到报错“RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ5.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 目前npu设备仅支持pytorch部分算子，对于不支持的算子在使用时均会报上述错误，算子正在不断开发中。算子支持情况可参考[PyTorch原生算子](https://support.huaweicloud.com/opl-pytorch/atlasptol_09_0001.html)，持续更新。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 在模型调测中，可通过减小batch size参数，来减少NPU显存的占用，解决该问题。
 
 <h4 id="在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错md">在模型调测时遇到如MaxPoolGradWithArgmaxV1算子和max算子报错</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ6.png)
 
 ![](figures/FAQ6-1.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 在模型搭建中，算子输入参数是多样的。某些算子（如MaxPoolGradWithArgmaxV1算子和max算子）在特定参数下，计算报错或者不支持，根据报错信息可以定位到具体算子。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 根据报错信息定位到具体算子，解决步骤如下：
 
@@ -4118,15 +4047,15 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 <h4 id="在调用torch时遇到报错-ModuleNotFoundError-No-module-named-torch-_Cmd">在调用torch时遇到报错“ModuleNotFoundError: No module named 'torch.\_C'”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ11.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 首先确定报错位置，上述报错路径为.../code/pytorch/torch/\_\_init\_\_.py，而当前运行路径在.../code/pytorch下，在执行import torch时，默认首先在当前目录下查找torch文件夹，因此报错。此处应是调用在系统目录下安装的torch包，而不是当前目录下的torch。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 切换到其他目录执行脚本。
 
@@ -4149,15 +4078,15 @@ pytorch算子在npu上运行，通过ACL接口调用底层经过优化的算子�
 
 <h4 id="cuda流同步操作报错md">cuda流同步操作报错</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/model_faq11_20210728.jpg)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 npu未使用npu的流同步方法。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 使用NPU的流同步方法：
 
@@ -4168,15 +4097,15 @@ stream.synchronize()
 
 <h4 id="aicpu_kernels-libpt_kernels-so不存在md">aicpu\_kernels/libpt\_kernels.so不存在</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ13.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 未导入AICPU。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 导入AICPU（以root用户安装CANN软件包，安装路径为默认路径为例）：
 
@@ -4186,15 +4115,15 @@ export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest
 
 <h4 id="使用npu-smi-info查看显存时发现python进程残留md">使用npu-smi info查看显存时发现python进程残留</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ14.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 python进程残留，需要kill。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 终止python进程：
 
@@ -4204,38 +4133,38 @@ pkill -9 python
 
 <h4 id="动态shape报错-match-op-inputs-failedmd">动态shape报错“match op inputs failed”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ15.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 PTIndexPut编译的算子和输入的shape不一致， 并有acl\_dynamic\_shape\_op打头的日志字样，确定为动态shape报错。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 PTIndexPut对应tensor\[indices\] = value，需要在代码中找到对应的地方将动态shape修改为固定shape。
 
 <h4 id="Op-type-SigmoidCrossEntropyWithLogitsV2-of-ops-kernel-AIcoreEngine-is-unsupportedmd">Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ```
 [ERROR] GE(24836,python3.7):2021-01-27-18:27:51.562.111 [../../../../../../graphengine/ge/engine_manager/dnnengine_manager.cc:266]25155 GetDNNEngineName: ErrorNo: 1343242282(assign engine failed) GetDNNEngineName:Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported, reason:Op SigmoidCrossEntropyWithLogitsV2 not supported reason: The type of this op is not found in op store, check whether the op store has this type of op. Op store name is tbe-custom.
 The dtype, format or shape of input in op desc is not supported in op store, check the dtype, format or shape of input between the op store and the graph. Op store name is tbe-builtin.
 ```
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 SigmoidCrossEntropyWithLogitsV2算子输入了不支持的数据类型，可能是输入int64类型导致的错误。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 检查对应python代码中输入的数据类型，并修改。
 
 <h4 id="Hook失败md">Hook失败</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ```
 Traceback (most recent call last):
@@ -4260,11 +4189,11 @@ Traceback (most recent call last):
 StopIteration
 ```
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 mmdet的loss部分结构触发了pytorch原生hook的bug，导致死循环。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 解决方案是在/usr/local/python3.7.5/lib/python3.7/site-packages/torch/nn/modules/module.py这个文件的658行加上try跳过：
 
@@ -4291,17 +4220,17 @@ return result
 
 <h4 id="加载权重时遇到报错-load-state_dict-errormd">加载权重时遇到报错“load state\_dict error.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ18.png)
 
 ![](figures/FAQ18-1.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 模型训练后保存的state\_dict的key值与加载时state\_dict的key值不一致，保存时会在每个key的最前面多一个module前缀。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 加载权重时先遍历state\_dict字典，修改key值，并使用新建的字典，具体用例参考demo.py。
 
@@ -4327,29 +4256,29 @@ return result
 
 <h4 id="在进行模型分布式训练时遇到报错-host-not-foundmd">在进行模型分布式训练时遇到报错“host not found.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/FAQ19.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 对模型进行分布式训练时，会调用集合通信模块HCCL，需要根据实际情况设置IP和端口信息。根据报错信息，确定是IP地址设置错误。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 在运行脚本中设置正确的IP地址，对于单机情况，设置为本机的IP地址即可；对于多机情况，每个服务器上脚本中的IP需要设置为master节点的IP。
 
 <h4 id="在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-outmd">在进行模型分布式训练时遇到报错“RuntimeError：connect\(\) timed out.”</h4>
 
-##### 现象描述<a name="section1785905019184"></a>
+**现象描述**<a name="section1785905019184"></a>
 
 ![](figures/1234.png)
 
-##### 可能原因<a name="zh-cn_topic_0175549220_section169499490501"></a>
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
 模型进行分布式训练时，系统防火墙可能会阻截HCCL的集合通信端口的通信。需要根据报错信息，排查通信端口的开放情况，并进行相应设置。
 
-##### 处理方法<a name="section8970834202112"></a>
+**处理方法**<a name="section8970834202112"></a>
 
 查询出被系统防火墙阻截的集合通信端口，并开放相应端口。
 
