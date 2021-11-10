@@ -1155,48 +1155,101 @@ def main():
 
 请参见以下方式进行profiling数据的获取，并根据实际情况选择需要的数据采集方式。
 
--   PyTorch层面Profiling数据采集。
-    1.  获取chrome\_trace文件。
+- PyTorch层面Profiling数据采集。
+  1. 获取chrome\_trace文件。
 
-        使用profile接口对原始代码的loss计算和优化过程进行改造。
+     使用profile接口对原始代码的loss计算和优化过程进行改造。
 
+     ```
+     # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
+     with torch.autograd.profiler.profile(use_npu=True) as prof:
+         out = model(input_tensor)
+     	     loss=loss_func(out)
+         loss.backward()
+         optimizer.zero_grad()
+         optimizer.step()
+     # 打印profiler结果信息
+     print(prof)
+     # 导出chrome_trace文件到指定路径
+     output_path = '/home/HwHiAiUser/profile_data.json'
+     prof.export_chrome_trace(output_path)
+     ```
+
+  2.  运行成功后会打印出profiler结果信息。
+
+      打印结果包含CPU和NPU的耗时等相关信息，详细信息参见[表2](#表2 profiler结果字段表)。
+      
+      <a name='表2 profiler结果字段表'>**表2** profiler结果字段表</a>
+      
+      | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
+      | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
+      
+  3. 查看chrome\_trace文件。
+
+     chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器 中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
+
+  4.  profiler其他功能。
+      - 获取算子输入tensor的shape信息。
+
+        ```python
+        # 添加record_shapes参数，获取算子输入tensor的shape信息
+        with torch.autograd.profiler.profile(use_npu=True, record_shapes=True) as prof:
+            # 添加模型计算过程
+        print(prof)
         ```
-        # 使用ascend-pytorch适配的profile接口，即可获得，推荐只运行一个step
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
-            out = model(input_tensor)
-            loss=loss_func(out)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
+
+        打印结果中增加了每个算子的`Input Shape`信息。
+
+      - 获取使用NPU的内存信息。
+
+        ```python
+        # 添加profile参数，获取算子内存占用信息
+        with torch.autograd.profiler.profile(use_npu=True, profile_memory=True) as prof:
+            # 添加模型计算过程
+        print(prof)
+        ```
+
+        打印结果中增加了每个算子的`CPU Mem`、`Self CPU Mem`、`NPU Mem`、`Self NPU Mem`信息。
+
+        >![](public_sys-resources/icon-note.gif) **说明：** 
+        >
+        >该功能仅支持PyTorch1.8版本以上。
+
+      - 获取简洁的算子性能信息。
+
+        该功能只打印每个算子栈最底层的算子信息，使分析结果更简洁。
+
+        ```python
+        # 添加use_npu_simple参数，获取简洁的算子信息
+        with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
+            # 添加模型计算过程
         # 导出chrome_trace文件到指定路径
         output_path = '/home/HwHiAiUser/profile_data.json'
         prof.export_chrome_trace(output_path)
         ```
 
-    2.  查看chrome\_trace文件。
+        在Chrome浏览器中打开chrome\_trace结果文件，可查看简洁的算子性能信息。
 
-        chrome\_trace文件可以通过以下方式打开查看：在Chrome浏览器中输入“chrome://tracing“地址，然后将落盘文件拖到空白处即可打开文件内容，通过键盘W、A、S、D键，可以对profiler的结果进行缩放和移动。
+- CANN层面Profiling数据采集。
 
+  1.  获取性能数据文件。
 
--   CANN层面Profiling数据采集。
-    1.  获取性能数据文件。
+      ```
+      profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
+      with torch.npu.profile(profiler_result_path):
+          out = model(input_tensor)
+          loss=loss_func(out,target)
+          loss.backward()
+          optimizer.zero_grad()
+          optimizer.step()
+      ```
 
-        ```
-        profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
-        with torch.npu.profile(profiler_result_path):
-            out = model(input_tensor)
-            loss=loss_func(out,target)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-        ```
+      >![](public_sys-resources/icon-note.gif) **说明：** 
+      >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
-        >![](public_sys-resources/icon-note.gif) **说明：** 
-        >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
+  2.  解析性能数据文件。
 
-    2.  解析性能数据文件。
-
-        请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
+      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
 
 
 
