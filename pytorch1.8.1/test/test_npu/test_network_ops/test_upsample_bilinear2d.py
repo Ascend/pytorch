@@ -14,8 +14,6 @@
 
 import torch
 import numpy as np
-import sys
-import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -33,8 +31,9 @@ class TestUpsampleBilinear2d(TestCase):
         output = output.numpy()
         return output
 
-    def test_UpsampleBilinear2d_common_shape_format(self, device):
+    def test_upsample_bilinear2d_common_shape_format(self, device):
         shape_format = [
+            [[np.float32, -1, (1, 1, 3000, 3000)], (2500, 2500)],
             [[np.float32, -1, (4, 3, 1, 5)], (2, 2)],
             [[np.float32, -1, (2, 3, 2, 1)], (3, 3)],
             [[np.float32, -1, (1, 4, 2, 2)], (4, 4)],
@@ -51,8 +50,6 @@ class TestUpsampleBilinear2d(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-
 instantiate_device_type_tests(TestUpsampleBilinear2d, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:7")
     run_tests()

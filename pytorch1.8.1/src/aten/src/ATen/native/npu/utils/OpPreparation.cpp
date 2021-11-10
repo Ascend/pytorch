@@ -155,11 +155,6 @@ void OpPreparation::CheckOut(
     output.resize_(shape);
   }
 
-  if (!output.is_contiguous()) {
-    Tensor tmp = output.contiguous();
-    output.copy_(tmp);
-  }
-
   if (CalcuOpUtil::get_tensor_npu_format(output) != format) {
     if (output.scalar_type() == ScalarType::Float || output.scalar_type() == ScalarType::Half) {
       TORCH_CHECK(!is_read_write, "can not cast format when output is input");

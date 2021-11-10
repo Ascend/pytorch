@@ -34,11 +34,7 @@ void NpuUtils::format_fresh_view(
     const Tensor& y) {
   // x:NPU before inplace_op, y: NPU computed
   // now we fresh x according to y
-  if (check_match(&x) == true) {
-    return;
-  }
   RECORD_FUNCTION("format_fresh_view", vector<c10::IValue>({x, y}));
-
   x.copy_(y);
 }
 

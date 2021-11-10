@@ -14,56 +14,50 @@
 
 import torch
 import numpy as np
-import torch.nn.functional as F
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-import time
 
-class TestUpsamleBilinear2DBackward(TestCase):
-    def cpu_op_exec(self, input, size):
-        input.requires_grad_(True)
-        output = F.interpolate(input, size, mode = "bilinear")
+class TestUpsampleBilinear2dBackward(TestCase):
+
+    def cpu_op_exec(self, inputs, shapes):
+        inputs.requires_grad_(True)
+        output = torch._C._nn.upsample_bilinear2d(inputs, shapes, True, 0, 0)
         output.backward(torch.ones_like(output))
-        gradcpu = input.grad
+        gradcpu = inputs.grad
         return output.detach().numpy(), gradcpu.detach().numpy()
-    
-    def npu_op_exec(self, input, size):
-        input.requires_grad_(True)
-        output = F.interpolate(input, size, mode = "bilinear")
-        output = output.to("cpu")
+
+    def npu_op_exec(self, inputs, shapes):
+        inputs.requires_grad_(True)
+        output = torch._C._nn.upsample_bilinear2d(inputs, shapes, True, 0, 0)
         inputback = torch.ones_like(output)
-        inputback = inputback.to("npu")
-        output = output.to("npu")
         output.backward(inputback)
         out = output.to("cpu")
-        grad = input.grad
+        grad = inputs.grad
         grad = grad.to("cpu")
         return out.detach().numpy(), grad.detach().numpy()
 
-    def test_upsample_bilinear2d_shape_format(self, device):
+    def test_upsample_bilinear2d_common_shape_format(self, device):
         shape_format = [
-                        [[np.float32, 0, (2, 3, 4, 4)], [2, 2]],
-                        [[np.float16, 0, (2, 3, 4, 4)], [2, 2]],
-                        [[np.float32, 0, (5, 3, 6, 4)], [10, 10]],
-                        [[np.float16, 0, (5, 3, 6, 4)], [10, 10]],
-                        ]
-
+            [[np.float32, -1, (4, 3, 1, 5)], (2, 2)],
+            [[np.float32, -1, (2, 3, 2, 1)], (3, 3)],
+            [[np.float32, -1, (1, 4, 2, 2)], (4, 4)],
+            [[np.float16, -1, (4, 10, 16, 14)], (5, 5)],
+            [[np.float16, -1, (8, 8, 8, 8)], (1, 2)],
+            [[np.float16, -1, (10, 4, 3, 2)], (2, 4)]
+        ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
-            if cpu_input == torch.float16:
-                cpu_input = cpu_input.to(torch.float32)
-
-            size = item[1]
-
-            cpu_output, cpu_grad = self.cpu_op_exec(cpu_input, size)
-            npu_output, npu_grad = self.npu_op_exec(npu_input, size)
-
-            cpu_grad = cpu_grad.astype(npu_grad.dtype)
+            cpu_inputs, npu_inputs = create_common_tensor(item[0], 1, 100)
+            if cpu_inputs.dtype == torch.float16:
+                cpu_inputs = cpu_inputs.to(torch.float32)
+            cpu_output, cpu_grad = self.cpu_op_exec(cpu_inputs, item[1])
+            npu_output, npu_grad = self.npu_op_exec(npu_inputs, item[1])
             cpu_output = cpu_output.astype(npu_output.dtype)
+            cpu_grad = cpu_grad.astype(npu_grad.dtype)
+
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-instantiate_device_type_tests(TestUpsamleBilinear2DBackward, globals(), except_for="cpu")
+instantiate_device_type_tests(TestUpsampleBilinear2dBackward, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()
