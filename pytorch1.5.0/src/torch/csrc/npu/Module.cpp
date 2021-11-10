@@ -18,7 +18,6 @@
 
 #include <ATen/ATen.h>
 #include <ATen/npu/NPUGenerator.h>
-#include <ATen/native/npu/graph/execute/GraphExecutor.h>
 #include <TH/TH.h>
 #include <acl/acl.h>
 #include <c10/npu/NPUException.h>
@@ -26,7 +25,6 @@
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
-#include <c10/npu/NPURunMode.h>
 #include <c10/npu/register/OptionRegister.h>
 #include <ATen/native/npu/utils/DynamicShapeUtil.h>
 #include <torch/csrc/Generator.h>
@@ -128,39 +126,6 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
 PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(c10::npu::device_count());
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  c10::npu::NpuRunMode::SetNpuRunMode(c10::npu::ModeKind::GRAPH_MODE);
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_disable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  at::native::npu::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  c10::npu::NpuRunMode::SetNpuRunMode(c10::npu::ModeKind::SINGLE_OP_MODE);
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_launch_graph_wrap(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  at::native::npu::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
-  auto is_graph_mode = c10::npu::NpuRunMode::IsGraphMode();
-  return is_graph_mode ? Py_True : Py_False;
   END_HANDLE_TH_ERRORS
 }
 
@@ -432,10 +397,6 @@ static struct PyMethodDef _THNPModule_methods[] = {
     {"_npu_setDevice", (PyCFunction)THNPModule_setDevice_wrap, METH_O, nullptr},
     {"_npu_getDevice", (PyCFunction)THNPModule_getDevice_wrap, METH_NOARGS, nullptr},
     {"_npu_getDeviceCount", (PyCFunction)THNPModule_getDeviceCount_wrap, METH_NOARGS, nullptr},
-    {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_NOARGS, nullptr},
-    {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
-    {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
-    {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},

@@ -28,7 +28,7 @@ Tensor& addcdiv_out_npu(
     Scalar value) {
   
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADDCDIV")) {
+  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
     cmd.Name("Addcdiv")
       .Input(self)
       .Input(tensor1)

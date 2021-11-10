@@ -120,8 +120,7 @@ bool OptionsManager::CheckDynamicOnly() {
 
 bool OptionsManager::CheckDynamicOptimizer(const char* op) {
   static int isGetOps = 0;
-  static std::map<std::string, bool> op_map = {{"ADD", false}, {"MUL", false}, {"DIV", false}, {"EQ", false},
-    {"MASKFill", false}, {"ADDCDIV", false}, {"ADDCMUL", false}};
+  static std::map<std::string, bool> op_map = {{"ADD", false}, {"MUL", false}};
   if (isGetOps == 0) {
     char* dynamicOptimizerEnv = std::getenv("DYNAMIC_OP");
     if (dynamicOptimizerEnv != nullptr) {
@@ -151,6 +150,18 @@ bool OptionsManager::CheckDynamicOptimizer(const char* op) {
       op_map.find(op) != op_map.end(), "This op is not currently optimized.");
   return op_map[op];
 }
+
+bool OptionsManager::CheckScalarToHostMemEnable()
+{
+  static int32_t scalarToHostMemFlag = -1;
+  if (scalarToHostMemFlag == -1) {
+    // this env will be deleted when cann sets scalar input to data input
+    // whether in fuzzy compile or no fuzzy compile
+    scalarToHostMemFlag = GetBoolTypeOption("SCALAR_TO_HOST_MEM");
+  }
+  return (scalarToHostMemFlag == 1);
+}
+
 
 } // namespace npu
 } // namespace c10

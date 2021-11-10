@@ -31,11 +31,18 @@ Tensor mul_dest_output(const Tensor& self, const Tensor& other) {
 Tensor& muls_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckDynamicOptimizer("MUL")) {
+  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
     cmd.Name("Mul")
         .Expect(unified_result)
         .Input(self)
         .Input(other, self.scalar_type(), MemoryType::MEMORY_HOST)
+        .Output(result)
+        .Run();
+  } else if (c10::npu::OptionsManager::CheckDynamicOptimizer("MUL")) {
+    cmd.Name("Mul")
+        .Expect(unified_result)
+        .Input(self)
+        .Input(other, self.scalar_type())
         .Output(result)
         .Run();
   } else {

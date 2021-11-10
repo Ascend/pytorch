@@ -27,7 +27,7 @@ Tensor& addcmul_out_npu_nocheck(
     const Tensor& tensor2,
     const Scalar value) {
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADDCMUL")) {
+  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
     cmd.Name("Addcmul")
       .Input(self)
       .Input(tensor1)

@@ -66,7 +66,7 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
   }
 
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckDynamicOptimizer("MASKFill")) {
+  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
     cmd.Name("MaskedFill")
       .Input(self)
       .Input(maskBool)
