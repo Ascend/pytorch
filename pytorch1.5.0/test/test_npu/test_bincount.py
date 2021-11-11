@@ -19,13 +19,13 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestBincount(TestCase):
-    def cpu_op_exec(self, input, weights):
-        output = torch.bincount(input,weights) 
+    def cpu_op_exec(self, x, weights):
+        output = torch.bincount(x,weights) 
         output = output.numpy()
         return output
  
-    def npu_op_exec(self, input, weights):
-        output = torch.bincount(input,weights) 
+    def npu_op_exec(self, x, weights):
+        output = torch.bincount(x,weights) 
         output = output.to("cpu")
         output = output.numpy()
         return output  
@@ -63,5 +63,4 @@ class TestBincount(TestCase):
             
 instantiate_device_type_tests(TestBincount, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:6")
     run_tests()

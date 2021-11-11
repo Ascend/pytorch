@@ -669,6 +669,8 @@
   dispatch:
     CPU: _bincount_cpu
     CUDA: _bincount_cuda
+  npu_dispatch:
+    NPU: bincount_npu
 
 - func: bitwise_not(Tensor self) -> Tensor
   use_c10_dispatcher: full

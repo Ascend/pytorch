@@ -16,6 +16,7 @@ import torch
 import numpy as np
 import sys
 import copy
+import torch.nn.functional as F
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -126,12 +127,24 @@ class TestSoftmaxBackward(TestCase):
                 self.cpu_op_exec(input1, dim=item[1])
                 self.assertRtolEqual(input_grad.numpy(), npu_input_grad.numpy())
     
-    def test_softmax_backward_shape_format_nz(self, device):
+    def test_softmax_backward_shape_format_nz_fp32(self, device):
         shape_format = [
             [np.float32, 29, 5],
             [np.float32, 29, (64, 10)],
             [np.float32, 29, (32, 3, 3)],
             [np.float32, 29, (256, 2048, 7, 7)],
+        ]
+
+        for item in shape_format:
+            input1, npu_input1 = create_common_tensor(item, 10, 100)
+
+            cpu_input1_grad = self.cpu_op_exec_nz(input1)
+            npu_input1_grad = self.npu_op_exec_nz(npu_input1)
+
+            self.assertRtolEqual(cpu_input1_grad.numpy(), npu_input1_grad.numpy())
+
+    def test_softmax_backward_shape_format_nz_fp16(self, device):
+        shape_format = [
             [np.float16, 29, 5],
             [np.float16, 29, (64, 10)],
             [np.float16, 29, (32, 3, 3)],
@@ -148,6 +161,35 @@ class TestSoftmaxBackward(TestCase):
             npu_input1_grad = self.npu_op_exec_nz(npu_input1)
 
             self.assertRtolEqual(cpu_input1_grad.numpy(), npu_input1_grad.numpy())
+
+    def cpu_exec_case_in_hrnet_ocr(self, x, y, z):
+        x.requires_grad = True
+        mm1_out = x @ y
+        softmax_out = F.softmax(mm1_out, dim=-1)
+        mm2_out = softmax_out @ z
+        l = mm2_out.sum()
+        l.backward()
+        return x.grad
+    
+    def npu_exec_case_in_hrnet_ocr(self, x, y, z):
+        x.requires_grad = True
+        mm1_out = x @ y
+        mm1_out.npu_format_cast_(2)
+        softmax_out = F.softmax(mm1_out, dim=-1)
+        mm2_out = softmax_out @ z
+        l = mm2_out.sum()
+        l.backward()
+        return x.grad.cpu()
+
+    def test_softmax_backward_case_in_hrnet_ocr(self, device):
+        N  = 32768
+        cpu_x, npu_x = create_common_tensor([np.float16, -1, (1, 19, 16)], -2, 2)
+        cpu_y, npu_y = create_common_tensor([np.float16, -1, (1, 16, N)], -2, 2)
+        cpu_z, npu_z = create_common_tensor([np.float16, -1, (1, N, 16)], -2, 2)
+        
+        cpu_x_grad = self.cpu_exec_case_in_hrnet_ocr(cpu_x.float(), cpu_y.float(), cpu_z.float()).half()
+        npu_x_grad = self.npu_exec_case_in_hrnet_ocr(npu_x, npu_y, npu_z)
+        self.assertRtolEqual(cpu_x_grad.numpy(), npu_x_grad.numpy(), prec16=0.009)
 
 
 instantiate_device_type_tests(TestSoftmaxBackward, globals(), except_for="cpu")

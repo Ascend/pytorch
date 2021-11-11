@@ -48,6 +48,7 @@ static std::map<at::ScalarType, aclDataType> AT_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
     {at::ScalarType::Float, ACL_FLOAT},
     {at::ScalarType::Bool, ACL_BOOL},
     {at::ScalarType::Long, ACL_INT64},
+    {at::ScalarType::Double, ACL_DOUBLE},
 };
 
 static std::map<const at::ScalarType, const string> AT_SCALAR_TYPE_NAME_MAP = {
