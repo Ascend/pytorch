@@ -86,7 +86,7 @@ Tensor constant_pad_nd_npu(const Tensor& self, IntArrayRef pad, Scalar value){
     new_shape.emplace_back(new_dim);
   }
 
-  if (is_backward(pad)) {
+  if (is_backward(pad)) {  
     TORCH_CHECK(pad.size() % 2 == 0,
         "Length of pad must be even but instead it equals ", pad.size());
 
@@ -96,18 +96,31 @@ Tensor constant_pad_nd_npu(const Tensor& self, IntArrayRef pad, Scalar value){
       for (int64_t i = 0; i < max_pad_size - pad.size(); i++) {
         pad_vec.emplace_back(0);
       }
-    }
+    }        
 
-    SmallVector<int64_t, SIZE> begin_list = {};
-    SmallVector<int64_t, SIZE> end_list = {};
-    SmallVector<int64_t, SIZE> strides = {};
+    SmallVector<int64_t, SIZE> begin_list(self.dim(), 0);
+    SmallVector<int64_t, SIZE> end_list;
+    for(auto i: self.sizes())
+    {
+      end_list.push_back(i);
+      
+    }
+    SmallVector<int64_t, SIZE> strides(self.dim(), 1);
+    
+    Tensor result = self;
     for (int64_t i = 0; i < self.dim(); i++) {
-      begin_list.emplace_back(-pad_vec[max_pad_size - 2 * (i + 1)]);
-      end_list.emplace_back(self.size(i) + pad_vec[max_pad_size - 1 - 2 * i]);
-      strides.emplace_back(1);
+      if(pad_vec[max_pad_size - 2 * (i + 1)] == 0 && pad_vec[max_pad_size - 1 - 2 * i] == 0)
+      {
+          continue;
+      }
+      begin_list[i] = begin_list[i] + (-pad_vec[max_pad_size - 2 * (i + 1)]);      
+      end_list[i] = end_list[i] + pad_vec[max_pad_size - 1 - 2 * i];
+      result = at::npu_indexing(result, begin_list, end_list, strides);
+      begin_list[i] = 0;
+      end_list[i] = result.size(i);      
     }
 
-    return at::npu_indexing(self, begin_list, end_list, strides);
+    return result;
   }
 
   // construct the output tensor of the NPU
