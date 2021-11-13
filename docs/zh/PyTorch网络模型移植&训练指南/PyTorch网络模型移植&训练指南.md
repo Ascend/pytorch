@@ -1077,7 +1077,7 @@ def main():
 
   2.  运行成功后会打印出profiler结果信息。
 
-      打印结果包含CPU和NPU的耗时等相关信息，详细信息参见 [表2](#表2 profiler结果字段表) 。
+      打印结果包含CPU和NPU的耗时等相关信息，详细信息参见表2 。
       
       <a name='表2 profiler结果字段表'>**表2** profiler结果字段表</a>
       
@@ -1614,7 +1614,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
     # 需要检测算子溢出的代码片段
 ```
 
-模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
+运行一个step，模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
 
 查看Dump数据：<a name="section155351957142017"></a>
 
@@ -1650,7 +1650,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
      h5copy -pv -i "./input.h5" -o "./output.h5" -s "/op1/seqid/" -d "/op1/seqid/"
      ```
 
-     -i 为输入精度对比结果的后文件路径
+     -i 为输入精度对比文件
 
      -o 为输出需要映射的算子.h5文件路径
 
@@ -1679,7 +1679,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
        "dump":
    	    {
                "dump_list":[]
-               "dump_path":"./oupput_IR2TBE"# 映射结果输出路径
+               "dump_path":"./output_IR2TBE"# 映射结果输出路径
                "dump_mode":"all"
                "dump_op_switch":"on"
    	    }
@@ -1695,7 +1695,8 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
    ```python
    with torch.utils.dumper(use_load=True, dump_path="./",load_file_path="./output.h5", load_with_acl_dump=True) as dump:
-       # 模型计算代码，此处省略
+       # 模型计算代码，需用户自己添加
+       # x = model(input_data)
    ```
 
 4. 模型运行。
