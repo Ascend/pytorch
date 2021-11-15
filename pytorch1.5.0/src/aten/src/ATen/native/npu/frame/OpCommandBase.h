@@ -80,6 +80,14 @@ class OpCommandBase {
     return AddTensorInput(Contiguous(input), ScalarType::Undefined, descName, realData);
   }
 
+  Derived& InputWithoutContiguousGeneral(
+    const Tensor& input,
+    const string& descName = "",
+    const optional<aclFormat>& sensitive_format = nullopt,
+    const string& realData = "") {
+    return AddTensorInput(const_cast<Tensor &>(input), ScalarType::Undefined, descName, realData);
+  }
+
   Derived& InputWithoutContiguous(
     const Tensor& input) {
     if (input.storage_offset() != 0) {
@@ -102,9 +110,9 @@ class OpCommandBase {
     ScalarType toType = at::kLong) {
   
     Tensor& cpuTensor = CreateHostTensor((void*)dimList.data(),
-      dimList.size(),
-      TensorOptions(kCPU).dtype(at::kLong),
-      toType);
+        dimList.size(),
+        TensorOptions(kCPU).dtype(at::kLong),
+        toType);
     return AddHostTensorInput(cpuTensor);
   }
 

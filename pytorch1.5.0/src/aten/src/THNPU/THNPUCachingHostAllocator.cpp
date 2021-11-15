@@ -18,6 +18,8 @@
 #include <c10/core/DeviceGuard.h>
 #include <c10/npu/npu_log.h>
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "c10/npu/interface/AclInterface.h"
+#include "c10/npu/OptionsManager.h"
 
 #include <Python.h>
 
@@ -191,10 +193,13 @@ struct HostAllocator {
     while (!npu_events.empty()) {
       auto& e = npu_events.front();
       aclrtEvent event = e.first;
-      // after acl thread has launched record event task, pytorch thread can destroy event
+      // when TASK_QUEUE_ENABLE is set, pytorch thread can destroy event
+      // after acl thread has launched record event task
       auto it = complete_events.find(event);
-      if (it == complete_events.end()) {
-        break;
+      if (c10::npu::OptionsManager::CheckQueueEnable()) {
+        if (it == complete_events.end()) {
+          break;
+        }
       }
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
@@ -216,7 +221,9 @@ struct HostAllocator {
         available.insert(block);
       }
       npu_events.pop_front();
-      complete_events.erase(it);
+      if (c10::npu::OptionsManager::CheckQueueEnable()) {
+        complete_events.erase(it);
+      }
     }
     return ACL_ERROR_NONE;
   }
@@ -282,7 +289,7 @@ struct HostAllocator {
       }
 
       aclrtEvent event = nullptr;
-      err = aclrtCreateEvent(&event);
+      err = c10::npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE);
       if (err != ACL_ERROR_NONE)
         break;
 

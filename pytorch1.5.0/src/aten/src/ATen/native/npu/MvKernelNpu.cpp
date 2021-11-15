@@ -30,7 +30,7 @@ Tensor& mv_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& vec
 
   OpCommand cmd;
   cmd.Name("MatMul")
-      .Input(contiguousSelf)
+      .InputWithoutContiguousGeneral(contiguousSelf)
       .Input(vecT)
       .Attr("transpose_x1", isSelfT)
       .Attr("transpose_x2", false)

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from numpy.typing import _256Bit
 import torch
 import numpy as np
 import sys
@@ -20,50 +21,66 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
-class TestConstantPadNd(TestCase):  
-    def op_exec_cpu(self, input1, pad_shape):
-        output = torch.constant_pad_nd(input1, pad_shape)
-        output = output.numpy()        
+class TestConstantPadNd(TestCase):
+    def op_exec_cpu(self, input1, pad_shape, value=0):
+        output = torch.constant_pad_nd(input1, pad_shape, value=value)
+        output = output.numpy()
         return output
 
-    def op_exec_npu(self, input1, pad_shape):
+    def op_exec_npu(self, input1, pad_shape, value=0):
         input1 = input1.to("npu")
-        output = torch.constant_pad_nd(input1, pad_shape)
+        output = torch.constant_pad_nd(input1, pad_shape, value=value)
         output = output.to("cpu")
         output = output.numpy()
         return output
-        
+
     def constant_pad_nd_shape_format(self, shape_format):
         for item in shape_format:
-          input_cpu, input_npu = create_common_tensor(item[0], 1, 1)
-          pad_shape = item[1]
-          if input_cpu.dtype == torch.float16:
-              input_cpu = input_cpu.to(torch.float32)
-              input_npu = input_npu.to(torch.float32)
-          cpu_output = self.op_exec_cpu(input_cpu, pad_shape)
-          npu_output = self.op_exec_npu(input_npu, pad_shape) 
-          cpu_output = cpu_output.astype(npu_output.dtype)            
-          self.assertRtolEqual(cpu_output, npu_output)        
-        
+            value = item[-1] if len(item) > 2 else 0
+            input_cpu, input_npu = create_common_tensor(item[0], 1, 1)
+            pad_shape = item[1]
+            if input_cpu.dtype == torch.float16:
+                input_cpu = input_cpu.to(torch.float32)
+            cpu_output = self.op_exec_cpu(input_cpu, pad_shape, value=value)
+            npu_output = self.op_exec_npu(input_npu, pad_shape, value=value)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_constant_pad_nd_shape_with_value(self, device):
+        # Note: only fp16 suppport fill any float value currently!
+        dtype_list = [np.float16]
+        format_list = [0, 3]
+        pad_list = [(1,2,2,2),(1,2)]
+        shape_list = [(16,128), (1,2,16,128)]
+        value_list = [0.5, 1.47]
+        shape_format = [
+            [[i, j, k], l, m] for i in dtype_list
+                              for j in format_list
+                              for k in shape_list
+                              for l in pad_list
+                              for m in value_list
+        ]
+        self.constant_pad_nd_shape_format(shape_format)
+
     def test_constant_pad_nd_shape_1d(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [0, 3]
         pad_list = [(1,2)]
         shape_format = [
-            [[i, j, [18]], k]  for i in dtype_list for j in format_list for k in pad_list            
+            [[i, j, [18]], k]  for i in dtype_list for j in format_list for k in pad_list
         ]
-        
+
         self.constant_pad_nd_shape_format(shape_format)
-        
+
     def test_constant_pad_nd_shape_nd(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [0, 3]
         pad_list = [(1,2,2,2),(1,2)]
         shape_list = [(16,128), (2,16,128), (1,2,16,128)]
         shape_format = [
-            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list            
+            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]
-        
+
         self.constant_pad_nd_shape_format(shape_format)
 
     def test_constant_pad_nd_shape_nd_int32(self, device):
@@ -72,10 +89,10 @@ class TestConstantPadNd(TestCase):
         pad_list = [(1,2,2,2),(1,2)]
         shape_list = [(16,128), (2,16,128), (1,2,16,128)]
         shape_format = [
-            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list            
+            [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]
-        
-        self.constant_pad_nd_shape_format(shape_format)        
+
+        self.constant_pad_nd_shape_format(shape_format)
 
 instantiate_device_type_tests(TestConstantPadNd, globals(), except_for='cpu')
 if __name__ == "__main__":

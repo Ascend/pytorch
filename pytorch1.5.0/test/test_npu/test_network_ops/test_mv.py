@@ -64,7 +64,16 @@ class TestMv(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_mv_with_transpose(self, device):
+        cpu_mat = torch.rand(1, 256)
+        npu_mat = cpu_mat.npu()
+        cpu_vec = torch.tensor([1.])
+        npu_vec = cpu_vec.npu()
 
+        cpu_mv = torch.mv(cpu_mat.t(), cpu_vec)
+        npu_mv = torch.mv(npu_mat.t(), npu_vec)
+        self.assertRtolEqual(cpu_mv, npu_mv.cpu())
 
 
 instantiate_device_type_tests(TestMv, globals(), except_for="cpu")
