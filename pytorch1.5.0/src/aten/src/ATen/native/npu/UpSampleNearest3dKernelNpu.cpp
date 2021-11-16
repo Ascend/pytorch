@@ -20,7 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& upsample_nearest3d_out_npu(
+Tensor& upsample_nearest3d_out_npu_nocheck(
     Tensor& result,
     const Tensor& input,
     IntArrayRef output_size,
@@ -44,13 +44,48 @@ Tensor& upsample_nearest3d_out_npu(
 
   result.resize_({nbatch, channels, output_depth, output_height, output_width});
 
+  Tensor inputCopy = input;
+  Tensor resultCopy = result;
+  if (input.scalar_type() == ScalarType::Half) {
+    inputCopy = inputCopy.npu_dtype_cast(ScalarType::Float);
+    resultCopy = resultCopy.npu_dtype_cast(ScalarType::Float);
+  }
+
   OpCommand cmd;
   cmd.Name("UpsampleNearest3d")
-    .Input(input)
-    .Output(result)
+    .Input(inputCopy)
+    .Output(resultCopy)
     .Attr("output_size", output_size)
     .Run();
+  if (input.scalar_type() == ScalarType::Half) {
+    resultCopy = resultCopy.npu_dtype_cast(ScalarType::Half);
+  }
+  result.copy_(resultCopy);
+  return result;
+}
+
+Tensor& upsample_nearest3d_out_npu(
+    Tensor& result,
+    const Tensor& input,
+    IntArrayRef output_size,
+    c10::optional<double> scales_d,
+    c10::optional<double> scales_h,
+    c10::optional<double> scales_w) {
+  OpPreparation::CheckOut(
+      {input},
+      result,
+      input,
+      {1});
   
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    upsample_nearest3d_out_npu_nocheck(
+        contiguousResult, input, output_size, scales_d, scales_h, scales_w);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    upsample_nearest3d_out_npu_nocheck(
+        result, input, output_size, scales_d, scales_h, scales_w);
+  }
   return result;
 }
 
@@ -63,7 +98,7 @@ Tensor upsample_nearest3d_npu(
 
   Tensor result = OpPreparation::ApplyTensor(input, {1});
 
-  upsample_nearest3d_out_npu(result, input, output_size, scales_d, scales_h, scales_w);
+  upsample_nearest3d_out_npu_nocheck(result, input, output_size, scales_d, scales_h, scales_w);
 
   return result;
 }

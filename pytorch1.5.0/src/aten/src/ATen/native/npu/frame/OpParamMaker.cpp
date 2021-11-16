@@ -205,8 +205,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
       reset_flag = true;
     }
-    int index = 0;
-    do {
+    {
       RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
       ret = aclopCompileAndExecute(
         (cur_paras->opType).c_str(),
@@ -221,8 +220,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
         ACL_COMPILE_SYS,
         nullptr,
         stream);
-      ++index;
-    } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
+    }
     if (reset_flag) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
     }
