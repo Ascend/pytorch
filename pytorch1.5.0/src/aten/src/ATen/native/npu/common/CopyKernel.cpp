@@ -196,6 +196,11 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
 }
 
 void copy_d2d(Tensor& self, const Tensor& src, bool non_blocking) {
+  if (self.device() != src.device()) {
+    AT_ERROR("Cross-device copy is not supported.");
+    return;
+  }
+
   if (self.dtype() != src.dtype()) {
     self.npu_dtype_cast_(src); // npu_dtype_cast_ will call copy function.
     return;
