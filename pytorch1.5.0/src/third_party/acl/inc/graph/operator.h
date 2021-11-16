@@ -134,6 +134,8 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Operator {
 
   Operator &SetInput(const char *dst_name, const Operator &src_oprt, uint32_t index);
 
+  Operator &SetInput(uint32_t dst_index, const Operator &src_oprt, uint32_t src_index);
+
   Operator &AddControlInput(const Operator &src_oprt);
 
   ATTRIBUTED_DEPRECATED(graphStatus GetInputConstData(const char *, Tensor &) const)
