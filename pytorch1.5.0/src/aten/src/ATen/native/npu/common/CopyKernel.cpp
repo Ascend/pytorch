@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
@@ -404,6 +404,7 @@ Tensor& copy_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
     }
   } else {
     if (src.is_npu()) {
+      GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
       copy_d2h(self, src, non_blocking);
     }
   }

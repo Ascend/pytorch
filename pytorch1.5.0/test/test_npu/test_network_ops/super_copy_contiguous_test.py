@@ -38,16 +38,24 @@ class SuperContiguous(TestCase):
         dtype_list = [np.float16 ,np.float32, np.int32, np.int8, np.uint8]
         format_list = [0]
         shape_list = [
-                    [[1], [5]],
-                    [[ 1, 2], [3, 2]],
-                    [[1, 2, 1], [1, 2, 3]],
+                    [[1],          [5]],
+                    [[1, 2],       [3, 2]],
+                    [[1, 2, 1],    [1, 2, 3]],
+                    [[1, 2, 1, 3], [4, 2, 5, 3]],
+                    [[2, 3, 4],    [1, 2, 3, 4]],
+                    [[2, 3],       [1, 1, 2, 3]],
+                    [[1, 3],       [1, 1, 4, 3]],
+                    [[1, 3],       [2, 1, 4, 3]],
+                    [[1, 3],       [1, 2, 4, 3]],
+                    [[3, 1],       [2, 1, 3, 1]],
+                    [[3, 1],       [1, 2, 3, 1]],
                     ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
 
         broadcast_time = 0
-        broadcast_time_exper = 10
+        broadcast_time_exper = 30
 
         for item in shape_format: 
             a1_cpu, a1_npu = create_common_tensor_new(item, 0, 100)
@@ -58,12 +66,35 @@ class SuperContiguous(TestCase):
 
             cpu_out1 = a1_cpu.expand(item[2][1]).contiguous()
 
-            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())       
-  
+            npu_out1 = npu_out1.to("cpu");
+            self.assertEqual(npu_out1.size(), cpu_out1.size())
+            self.assertRtolEqual(npu_out1.numpy(), cpu_out1.numpy())
+
         print("------------------------Broadcast---------------------------") 
         print("Broadcast to contiguous uses: %.2f s " %(broadcast_time)) 
-        print("Typical time required: 7-10s, Ops: broadcastToD")
+        print("Typical time required: 25-30s, Ops: broadcastToD")
         self.assertTrue(broadcast_time < broadcast_time_exper)
+
+    def test_BroadcastAndTransposeToContiguous(self, device):
+        dtype_list = [np.float16 ,np.float32, np.int32, np.int8, np.uint8]
+        format_list = [0]
+        shape_list = [
+                    [[2, 1, 3],    [1, 2, 4, 3]],
+                    [[2, 1, 3],    [5, 2, 4, 3]],
+                    ]
+        shape_format = [
+            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
+            ]
+
+        for item in shape_format:
+            a1_cpu, a1_npu = create_common_tensor_new(item, 0, 100)
+            npu_out1 = a1_npu.expand(item[2][1]).transpose(1,3).contiguous()
+            cpu_out1 = a1_cpu.expand(item[2][1]).transpose(1,3).contiguous()
+
+            npu_out1 = npu_out1.to("cpu");
+            self.assertEqual(npu_out1.size(), cpu_out1.size())
+            self.assertRtolEqual(npu_out1.numpy(), cpu_out1.numpy())
+        print("------------------------Broadcast&Transpose---------------------------")
 
     def test_PermuteToContiguous(self, device):
         dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]

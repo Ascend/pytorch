@@ -21,7 +21,6 @@
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUFunctions.h>
 #include <c10/npu/NPUGraphContextManager.h>
-#include <c10/npu/NPUStream.h>
 #include <c10/npu/register/OptionRegister.h>
 
 #ifdef USE_NPU_GRAPH
@@ -136,7 +135,7 @@ void GraphExecutor::Init() {
     AT_ERROR("GE init failed!");
   }
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
-  session_.reset(new ge::Session(config));
+  session_ = std::make_unique<ge::Session>(config);
   C10_NPU_CHECK(aclrtSetDevice(init_device_id_));
   if (session_ == nullptr) {
     AT_ERROR("Create session failed!");
@@ -145,7 +144,7 @@ void GraphExecutor::Init() {
 
 void GraphExecutor::Finalize() {
   if (GraphExecutor::GetInstance().session_ != nullptr) {
-    session_.release();
+    session_.reset();
     session_ = nullptr;
     ge::GEFinalize();
   }

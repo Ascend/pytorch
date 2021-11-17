@@ -55,7 +55,7 @@ void Operator::RequiredAttrRegister(const string& name) {}
 
 void Operator::OutputRegister(const string& name) {}
 
-Operator& Operator::SetAttr(const string name, const string &attr_value) {
+Operator& Operator::SetAttr(const string &name, const string &attr_value) {
   return op;
 }
 #endif

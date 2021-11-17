@@ -38,14 +38,44 @@ public:
 
 private:
   bool can_use_broadcast(const Tensor& src) {
-    bool can_use = false;
-    for (int64_t i = 0; i < src.dim(); i++) {
-      if (src.stride(i) == 0) {
-        can_use = true;
-        break;
+    // Reshape is used to process dimension addition cases for expand/expand_as.
+    // Here, dimension expansion cases of expand/expand_as are processed.
+    const auto& base_sizes = src.storage().get_npu_desc().base_sizes_;
+    const auto& base_strides = src.storage().get_npu_desc().base_strides_;
+    const auto& view_sizes = src.sizes();
+    const auto& view_strides = src.strides();
+
+    // The new ones will be appended at the front.
+    // Any dimension of size 1 can be expanded to an arbitrary value.
+    auto base_dim = base_sizes.size();
+    auto view_dim = view_sizes.size();
+    auto expand_dims = view_dim - base_dim;
+    if (expand_dims < 0) {
+      return false;
+    }
+
+    bool has_zero_in_stride = false;
+    for (auto i = 0; i < base_dim; i++) {
+      if (view_strides[i + expand_dims] == 0) {
+        has_zero_in_stride = true;
+        if (base_sizes[i] != 1 || view_sizes[i + expand_dims] == 1) {
+          return false;
+        }
+      } else {
+        if (view_sizes[i + expand_dims] != base_sizes[i] ||
+            view_strides[i + expand_dims] != base_strides[i]) {
+          return false;
+        }
       }
     }
-    return can_use;
+
+    for (auto i = 0; i < expand_dims; i++) {
+      if (view_sizes[i] != 1 && view_strides[i] != 0) {
+        return false;
+      }
+      has_zero_in_stride = true;
+    }
+    return has_zero_in_stride;
   }
 
   bool broadcast_to_contiguous(const Tensor& src, Tensor& self) {

@@ -34,18 +34,26 @@ Tensor format_cast_impl_out_npu(Tensor& dst, const Tensor& src) {
     }
     return dst;
   }
+
   /*
-  In order to consider performance, The current adaptation uses the direct call format conversion operator `Transdata`,
-  Unfortunately, Different from ordinary computing operators, operator `Transdata` belongs to a special memory movement operator, 
-  which leads to too much special treatment in the existing framework, reduced scalability and maintainability.
+  In order to consider performance, The current adaptation uses the direct call
+  format conversion operator `Transdata`, Unfortunately, Different from ordinary
+  computing operators, operator `Transdata` belongs to a special memory movement
+  operator, which leads to too much special treatment in the existing framework,
+  reduced scalability and maintainability.
 
-  So, to solve the problem, we use the `Identity` operator instead of the `Transdata` operator to meet the current memory move function.
-  Then, it is determined by the FE framework to insert the transdata operator into the graph.
+  So, to solve the problem, we use the `Identity` operator instead of the
+  `Transdata` operator to meet the current memory move function. Then, it is
+  determined by the FE framework to insert the transdata operator into the
+  graph.
 
-  The purpose is to control the format conversion operator in the underlying FE framework.
+  The purpose is to control the format conversion operator in the underlying FE
+  framework.
   */
+
   // offset guard with InputWithoutContiguous
-  // view + transdata scene: we do transdata first, then we should set offset = 0 to keep results correct.
+  // view + transdata scene: we do transdata first, then we should set offset =
+  // 0 to keep results correct.
   NpuStorageOffsetGuard guard_input(const_cast<Tensor &>(src));
   NpuStorageOffsetGuard guard_output(dst);
   OpCommand cmd;

@@ -56,7 +56,28 @@ bool FormatCastHelper::format_cast_between_group(Tensor& dst, const Tensor& src,
       auto src_base_format = FormatHelper::GetBaseFormat(src);
       format_cast_as_base_format(src, FormatHelper::GetBaseFormat(dst)); // prepare: covert src to dst base format
       format_cast_inside_group(dst, src); // src base format (src format) -> dst base format
-      format_cast_as_base_format(src, src_base_format); // recover: dst base format -> dst format
+
+
+      // NB
+      // In Graph Mode
+      // a = torch.empty([2,3]).npu()
+      // a.npu_format_cast(nc1hwc0);
+      // a.npu_format_cast(nz);
+      // torch.npu.launch_graph()
+
+      // a base format change: ND-> NCHW -> ND
+      // when we run graph,
+      // FE get task : ND/ND -> NCHW/NC1HWC0, which will be failed
+      // so we judge condition below make a base format change become
+      // ND->NCHW->NCHW
+      // then FE get task : NCHW/NCHW -> NCHW/NC1HWC0 and NCHW/NCHW -> NCHW/NZ
+
+
+      if (c10::npu::NpuRunMode::IsGraphMode() && src_base_format == ACL_FORMAT_ND) {
+        return true;
+      }
+      // recover: dst base format -> dst format
+      format_cast_as_base_format(src, src_base_format);
       return true;
     }
   } else {
