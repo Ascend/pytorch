@@ -35,11 +35,15 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu_nocheck(
     Scalar max_grad_norm,
     Scalar global_grad_norm,
     Scalar weight_decay) {
+  Tensor var_tmp = var;
+  Tensor m_tmp = m;
+  Tensor v_tmp = v;
+
   OpCommand cmd;
   cmd.Name("ApplyAdamV2")
-      .Input(var)
-      .Input(m)
-      .Input(v)
+      .Input(var_tmp)
+      .Input(m_tmp)
+      .Input(v_tmp)
       .Input(lr, var.scalar_type())
       .Input(beta1, var.scalar_type())
       .Input(beta2, var.scalar_type())
@@ -48,10 +52,14 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu_nocheck(
       .Input(max_grad_norm, var.scalar_type())
       .Input(global_grad_norm, var.scalar_type())
       .Input(weight_decay, var.scalar_type())
-      .Output(var_out)
-      .Output(m_out)
-      .Output(v_out)
+      .Output(var_tmp)
+      .Output(m_tmp)
+      .Output(v_tmp)
       .Run();
+
+  var_out.copy_(var_tmp);
+  m_out.copy_(m_tmp);
+  v_out.copy_(v_tmp);
 
   return std::tie(var_out, m_out, v_out);
 }
@@ -76,7 +84,7 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_npu(
       var_out, m_out, v_out, var, m, v,
       lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
 
-  return std::tie(var, m, v);
+  return std::tie(var_out, m_out, v_out);
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
