@@ -17,10 +17,26 @@
 #include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-
+#ifdef USE_NPU_GRAPH
+#include "third_party/acl/inc/op_proto/split_combination_ops.h"
+#endif
 namespace at {
 namespace native {
 using namespace at::native::npu;
+
+#ifdef USE_NPU_GRAPH
+namespace {
+template <typename ge_op_type>
+at::native::npu::DynamicInputRegFunc concat_func =
+    [](DyNumAndIndex num_and_index,
+       std::string op_name) -> ge::OperatorPtr {
+  auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
+  ge_op->create_dynamic_input_byindex_x(
+      num_and_index.front().first, num_and_index.front().second);
+  return ge_op;
+};
+}
+#endif
 
 SmallVector<Tensor, N> cat_dest_tensor_list(TensorList tensors) {
   SmallVector<Tensor, N> dstTensorList;
@@ -104,14 +120,30 @@ Tensor& _cat_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
   if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
      OpCommand cmd;
      cmd.Name("ConcatD");
+
+     // In graph mode, if all of input tensors are null numel,
+     // these null tensors should be passed to ConcatD as inputs.
+     // Otherwise, an error will be reported when infershape.
+     bool tensors_empty_in_graph_mode = false;
+     if (c10::npu::NpuRunMode::IsGraphMode()) {
+       tensors_empty_in_graph_mode = true;
+       for (int i = 0; i < inputTensors.size(); i++) {
+         if (inputTensors[i].numel() != 0) {
+           tensors_empty_in_graph_mode = false;
+           break;
+         }
+       }
+     }
      input_number = 0;
      for (int i = 0; i < inputTensors.size(); i++) {
-       if (inputTensors[i].numel() == 0) {
-         continue;
+       if (inputTensors[i].numel() != 0 || tensors_empty_in_graph_mode) {
+         string inputName = "x" + to_string(input_number++);
+         cmd.Input(inputTensors[i], inputName);
        }
-       string inputName = "x" + to_string(input_number++);
-       cmd.Input(inputTensors[i], inputName);
      }
+#ifdef USE_NPU_GRAPH
+     cmd.DynamicInputReg(concat_func<ge::op::ConcatD>, {{input_number, 0}});
+#endif
      cmd.Output(result)
        .Attr("N", input_number)
        .Attr("concat_dim", dim)

@@ -71,7 +71,8 @@ struct HostAllocator {
   // outstanding ACL events
   std::deque<std::pair<aclrtEvent, void*>> npu_events;
 
-  // outstanding ACL events
+  // record events
+  std::mutex record_mutex;
   std::set<aclrtEvent> complete_events;
 
 
@@ -180,8 +181,23 @@ struct HostAllocator {
 
   void insertCompleteEvent(aclrtEvent event)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    complete_events.insert(event);
+    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+      std::lock_guard<std::mutex> lock(record_mutex);
+      complete_events.insert(event);
+    }
+  }
+
+  bool findAndEraseCompleteEvent(aclrtEvent event)
+  {
+    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+      std::lock_guard<std::mutex> lock(record_mutex);
+      auto it = complete_events.find(event);
+      if (it == complete_events.end()) {
+        return false;
+      }
+      complete_events.erase(it);
+    }
+    return true;
   }
 
   aclError processEvents() {
@@ -195,23 +211,23 @@ struct HostAllocator {
       aclrtEvent event = e.first;
       // when TASK_QUEUE_ENABLE is set, pytorch thread can destroy event
       // after acl thread has launched record event task
-      auto it = complete_events.find(event);
-      if (c10::npu::OptionsManager::CheckQueueEnable()) {
-        if (it == complete_events.end()) {
-          break;
-        }
+      if (!findAndEraseCompleteEvent(event)) {
+        break;
       }
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
       if (err != ACL_ERROR_NONE) {
-          return err;
+        insertCompleteEvent(event);
+        return err;
       }
       if (status != ACL_EVENT_STATUS_COMPLETE) {
+        insertCompleteEvent(event);
         break;
       }
 
       err = aclrtDestroyEvent(event);
       if (err != ACL_ERROR_NONE) {
+        insertCompleteEvent(event);
         return err;
       }
 
@@ -221,9 +237,6 @@ struct HostAllocator {
         available.insert(block);
       }
       npu_events.pop_front();
-      if (c10::npu::OptionsManager::CheckQueueEnable()) {
-        complete_events.erase(it);
-      }
     }
     return ACL_ERROR_NONE;
   }
