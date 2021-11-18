@@ -18,7 +18,9 @@ namespace ge {
 
 Operator op;
 
-Operator::Operator(const char* type){};
+Operator::Operator(const char* type){}
+
+Operator::Operator(const char* name, const char* type) {}
 
 Operator::Operator(const AscendString& name, const AscendString& type) {}
 
@@ -55,7 +57,12 @@ void Operator::RequiredAttrRegister(const string& name) {}
 
 void Operator::OutputRegister(const string& name) {}
 
-Operator& Operator::SetAttr(const string &name, const string &attr_value) {
+void Operator::DynamicInputRegisterByIndex(
+    const string& name,
+    const unsigned int num,
+    size_t index) {}
+
+Operator& Operator::SetAttr(const string& name, const string& attr_value) {
   return op;
 }
 #endif

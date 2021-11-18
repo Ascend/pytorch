@@ -39,10 +39,6 @@ private:
                         SmallVector<int64_t, SHAPE_SIZE>& start,
                         SmallVector<int64_t, SHAPE_SIZE>& end,
                         SmallVector<int64_t, SHAPE_SIZE>& step) {
-    // uncontiguous
-    if (src.is_contiguous()) {
-      return false;
-    }
     auto src_desc = src.storage().get_npu_desc();
     if (src.numel() >= prod_intlist(src_desc.base_sizes_)) {
       return false;

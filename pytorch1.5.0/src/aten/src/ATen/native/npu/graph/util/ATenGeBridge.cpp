@@ -203,7 +203,7 @@ void ATenGeBridge::AddNodeExtInfoIntoGeOp(
 
 void ATenGeBridge::PorcessDynamicInputReg(
     NodePtr node,
-    ge::OperatorPtr ge_op,
+    ge::OperatorPtr& ge_op,
     string op_name) {
   auto& ext_info = node->GetExtInfo();
   auto it = std::find_if(

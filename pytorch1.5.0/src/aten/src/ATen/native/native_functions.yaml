@@ -8663,3 +8663,12 @@
 - func: npu_silu_backward(Tensor grad_output, Tensor x0, Tensor x1) -> Tensor
   npu_dispatch_only:
     NPU: silu_backward_npu
+
+- func: npu_reshape(Tensor self, int[] shape, bool can_refresh=False) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: reshape_npu
+
+- func: npu_reshape.out(Tensor self, int[] shape, bool can_refresh=False, *, Tensor(a!) out) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: reshape_out_npu

@@ -15,6 +15,7 @@
 
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/utils/KernelNpuOutputSize.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -27,7 +28,6 @@ public:
     SmallVector<int64_t, SHAPE_SIZE> perm;
     SmallVector<int64_t, 5> sizes;
     if (can_use_permute(src, perm, sizes)) {
-      // TODO(ascend): delete call and implementation, after more test
       RECORD_HOST_FUNCTION("npuTransposeD", std::vector<c10::IValue>({src}));
       // create contiguous tensor for npu transpose
       Tensor temp_src = at::empty(sizes, src.options());
@@ -184,6 +184,8 @@ void optimize_permute(SmallVector<int64_t, SHAPE_SIZE> &perm, SmallVector<int64_
 
 template <typename T>
 void squeeze_shape_and_stride(T &shape, T &stride) {
+  IF_GRAPH_MODE_THEN_RUN( return; )
+
   for (auto i = 0; i < shape.size(); i++) {
     if (shape[i] == 1) {
       shape.erase(shape.begin() + i);

@@ -136,6 +136,10 @@ void copy_d2d_last_method(
     RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
     copy_kernel_npu(self, src, non_blocking);
   } else {
+    IF_GRAPH_MODE_THEN_RUN(
+      AT_ERROR("In graph mode, not support d2dCopyWithStreamSynchronize, "
+               "export PTCOPY_ENABLE=1 to enable PTcopy.");
+    );
     RECORD_HOST_FUNCTION(
         "d2dCopyWithStreamSynchronize", std::vector<c10::IValue>({src}));
     copy_d2d_via_host(self, src, same_type);
@@ -159,6 +163,15 @@ void copy_d2d_dtype_baseformat(
       return;
     }
   } else {
+    if (c10::npu::NpuRunMode::IsGraphMode()) {
+      // In graph mode, in order to identify and call the corresponding npu operators,
+      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
+      std::vector<std::string> contiguous_opt_cases = {"reshape", "slice", "select"};
+      if (TransContiguous::ContiguousOptimizeWithBaseFormat(
+            self, src, contiguous_opt_cases)) {
+        return;
+      }
+    }
     int64_t numel = self.numel();
     if (numel == src.numel()) {
       RECORD_HOST_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));

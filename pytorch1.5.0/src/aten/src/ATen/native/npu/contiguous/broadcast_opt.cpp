@@ -16,6 +16,7 @@
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -30,6 +31,18 @@ public:
 
     if (can_use_broadcast(src)) {
       RECORD_HOST_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
+
+      IF_GRAPH_MODE_THEN_RUN(
+        IntArrayRef target_shape = self.sizes();
+        OpCommand cmd;
+        cmd.Name("BroadcastTo")
+            .InputWithoutContiguous(src)
+            .Input(target_shape, at::kLong)
+            .Output(self)
+            .Run();
+        return true;
+      )
+
       bool can_contiguous = broadcast_to_contiguous(src, self);
       return can_contiguous;
     }

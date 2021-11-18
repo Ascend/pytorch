@@ -72,7 +72,7 @@ private:
 
   static void PorcessDynamicInputReg(
       NodePtr node,
-      ge::OperatorPtr ge_op,
+      ge::OperatorPtr& ge_op,
       string op_name);
 
   template <typename AttrType>

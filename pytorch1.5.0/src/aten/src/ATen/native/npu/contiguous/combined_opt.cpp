@@ -17,6 +17,7 @@
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/utils/KernelNpuOutputSize.h>
 #include <ATen/quantized/QTensorImpl.h>
+#include <c10/npu/NPURunMode.h>
 #include <map>
 
 namespace at {
@@ -426,8 +427,10 @@ class CombinedContiguousOpt : public ContiguousOpt {
     // Construct the first tensor and judge whether it can be optimized.
     if (reconstruct_tensor(src, view_infos, view_offsets)) {
       std::vector<string> optimizations_first{"reshape", "slice", "select"};
-      if (reshape_without_copy_match(src)) {
+      if ((!c10::npu::NpuRunMode::IsGraphMode()) && reshape_without_copy_match(src)) {
         // case 1 : The first tensor is reshape-type, refresh its info is enough
+        // In single op, refresh is inplace operation, but in graph mode, reshape is not.
+        // In graph mode, there is not matching operator for this case.
         return combined_to_contiguous(src, self, view_infos, view_offsets);
       } else if (can_be_optimize_from_default_cases(src)) {
         // case 2: The first tensor is discontiguous-type,

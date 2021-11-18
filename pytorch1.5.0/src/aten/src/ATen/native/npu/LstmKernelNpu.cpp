@@ -261,7 +261,7 @@ tuple<Tensor, Tensor, Tensor> lstm_npu(
     bool bidirectional,
     bool batchFirst) {
   // The operator of DynamicRnn only supports the T axis as the first axis.
-  auto input = batchFirst ? transpose_npu(_input, {1, 0, 2}) : _input;
+  auto input = batchFirst ? _input.transpose(0, 1) : _input;
 
   Tensor y;
   Tensor h;
@@ -284,7 +284,7 @@ tuple<Tensor, Tensor, Tensor> lstm_npu(
   }
 
   // the Bacth axis of output should be first axis when batchFirst is True!
-  auto output = batchFirst ? transpose_npu(y, {1, 0, 2}) : y; 
+  auto output = batchFirst ? y.transpose(0, 1) : y;  
   return std::tie(output, h, c);
 }
 

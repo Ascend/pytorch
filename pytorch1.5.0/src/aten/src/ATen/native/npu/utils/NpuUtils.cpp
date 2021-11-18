@@ -24,6 +24,7 @@
 #include "ATen/native/npu/frame/StorageDescHelper.h"
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
 #include <set>
 
@@ -228,11 +229,7 @@ Tensor metadata_convert_match(const Tensor& src) {
   // a temporary tensor, which always monopolizes its own storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
     Tensor tempTensor = at::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
-    auto& temp_desc =
-      tempTensor.storage().unsafeGetStorageImpl()->npu_desc_;
-    temp_desc.base_sizes_ = tempTensor.sizes();
-    temp_desc.base_strides_ = tempTensor.strides();
-    temp_desc.storage_sizes_ = tempTensor.sizes();
+    at::npu_reshape_out(tempTensor, tempTensor, tempTensor.sizes(), true);
     NpuUtils::RefreshFormat(tempTensor);
     return tempTensor;
   } else {
