@@ -122,6 +122,7 @@ struct ExecuteParas {
   void Release();
   void DynamicRelease();
   void Copy(ExecuteParas& other);
+  void CopyEx(ExecuteParas& other);
 };
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params);

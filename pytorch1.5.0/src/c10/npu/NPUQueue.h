@@ -50,6 +50,34 @@ enum RepoStatus {
 // smallvector max size
 const int N = 32;
 
+class ReleaseQueue {
+ public:
+  ReleaseQueue() = default;
+  ~ReleaseQueue();
+  void PushToReleaseQueue(void* cur_paras);
+  void PopFromReleaseQueue();
+  void InitReleaseQueue();
+  RepoStatus GetStatus() const;
+
+ private:
+  bool IsEmptyQueue() const;
+  bool IsFullQueue() const;
+  bool WriteToReleaseQueue(void* cur_paras);
+  bool ReadFromReleaseQueue();
+  void SetStatus(RepoStatus desired);
+  void ChangeStatus(RepoStatus expected, RepoStatus desired);
+
+ private:
+  void* datas = nullptr;
+  std::thread releaser;
+
+ private:
+  sring_idx read_idx;
+  sring_idx write_idx;
+  std::atomic<RepoStatus> repo_status;
+  bool initialized = false;
+};
+
 class NPUQueueBase {
  public:
   virtual ~NPUQueueBase() {}
@@ -112,25 +140,30 @@ class Repository : public NPUQueueBase {
   // case.
   std::mutex mu_enqueue;
   aclrtStream calcu_stream_;
+  ReleaseQueue releaseQueue;
 };
 
 using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream, uint32_t)>;
 using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
-using ACL_RELEASE_FUNC  = std::function<void(void*)>;
+using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;
+using ACL_COPY_RELEASE_PARM_FUNC = std::function<void(void*, void*)>;
+using ACL_RELEASE_PARAM_FUNC = std::function<void(void*)>;
 
 namespace register_queue_cb {
 class NPUCallBackRegisterBuilder {
 public:
-  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF, const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF);
+  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF,
+    const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF,
+    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF);
   ~NPUCallBackRegisterBuilder(){}
 };
 } // namespace register_queue_cb
 
-#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF)          \
-    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder    \
-        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF);
+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF)  \
+    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder                     \
+        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 
 } // namespace npu
 } // namespace c10

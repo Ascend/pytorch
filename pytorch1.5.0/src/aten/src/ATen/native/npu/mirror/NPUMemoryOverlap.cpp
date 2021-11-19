@@ -26,6 +26,9 @@ MemOverlap has_internal_overlap(const Tensor& tensor) {
 
 MemOverlap has_internal_overlap(TensorImpl* t) {
   AT_ASSERT(t->layout() == kStrided);
+  if (t->storage().data() == nullptr) {
+    return MemOverlap::IS_NULL;
+  }
 
   if (t->is_contiguous()) {
     return MemOverlap::NO;
@@ -59,6 +62,9 @@ MemOverlapStatus get_overlap_status(const Tensor& a, const Tensor& b) {
 
 MemOverlapStatus get_overlap_status(TensorImpl* a, TensorImpl* b) {
   if (a == b) return MemOverlapStatus::FULL;
+  if (a->storage().data() == nullptr || b->storage().data() == nullptr) {
+    return MemOverlapStatus::IS_NULL;
+  }
   if (a->numel() == 0 || b->numel() == 0) {
     return MemOverlapStatus::NO;
   }

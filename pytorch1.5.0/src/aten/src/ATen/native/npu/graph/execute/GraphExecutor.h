@@ -46,23 +46,23 @@ struct CombinedInfo {
   std::vector<hash_t> hash_of_shape;
 };
 
-class GraphExecutor {
+class TORCH_NPU_API GraphExecutor {
 public:
   GraphExecutor(const GraphExecutor&) = delete;
   GraphExecutor(GraphExecutor&&) = delete;
   GraphExecutor& operator=(const GraphExecutor&) = delete;
   GraphExecutor& operator=(GraphExecutor&&) = delete;
 
-  void TORCH_NPU_API ConstructAndExecuteGraph();
+  void ConstructAndExecuteGraph();
 
-  static GraphExecutor& TORCH_NPU_API GetInstance() {
+  static GraphExecutor& GetInstance() {
     static GraphExecutor instance;
     return instance;
   }
 
-  void TORCH_NPU_API Finalize();
+  void Finalize();
 
-private:
+ private:
   GraphExecutor() = default;
 
   void Init();

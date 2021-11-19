@@ -19,6 +19,7 @@
 #include "c10/npu/NPUQueue.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "c10/npu/NPUQueue.h"
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/aoe/AutoTune.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
@@ -26,6 +27,7 @@
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
+
 using namespace c10::npu::queue;
 
 namespace at {
@@ -287,17 +289,8 @@ void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint3
   }
 }
 
-void ReleaseFunc(void* ptr) {
-  auto queueParam = static_cast<QueueParas* >(ptr);
-  auto type = queueParam->paramType;
-  if (type == COMPILE_AND_EXECUTE) {
-    auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
-    if (!cur_paras->opDynamicType.empty()) {
-      cur_paras->DynamicRelease();
-      cur_paras->opDynamicType = "";
-    }
-    cur_paras->Release();
-  }
+void ReleaseFunc(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
+  releaseQueue.PushToReleaseQueue(ptr);
 }
 
 void* NewFunc(int caption, int& size) {
@@ -329,7 +322,32 @@ int AsncExecFunc(void* data, aclrtStream stream, uint32_t queueLen) {
   return ret;
 }
 
-REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc)
+void CopyReleaseParamFunc(void* dst, void* src)
+{
+  auto dstPtr = static_cast<QueueParas* >(dst);
+  auto srcPtr = static_cast<QueueParas* >(src);
+  dstPtr->paramType = srcPtr->paramType;
+  dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(QueueParas);
+  if (srcPtr->paramType == COMPILE_AND_EXECUTE) {
+    (static_cast<ExecuteParas* >(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
+  }
+}
+
+void  ReleaseParamFunc(void* ptr) {
+  auto queueParam = static_cast<QueueParas* >(ptr);
+  auto type = queueParam->paramType;
+  if (type == COMPILE_AND_EXECUTE) {
+    auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
+    if (!cur_paras->opDynamicType.empty()) {
+      cur_paras->DynamicRelease();
+      cur_paras->opDynamicType = "";
+    }
+    cur_paras->Release();
+  }
+}
+
+REGISTER_QUEUE_FUNC(AsncExecFunc, CopyFunc, ReleaseFunc, NewFunc, DeleteFunc,
+  CopyReleaseParamFunc, ReleaseParamFunc)
 
 OpCommandImpls* OpCommandImpls::GetInstance() {
   static OpCommandImpls impl;

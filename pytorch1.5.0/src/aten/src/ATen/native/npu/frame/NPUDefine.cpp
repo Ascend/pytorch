@@ -64,6 +64,18 @@ void ExecuteParas::Copy(ExecuteParas& other) {
   this->isFuzzy = other.isFuzzy;
 }
 
+void ExecuteParas::CopyEx(ExecuteParas& other)
+{
+  this->paras = other.paras;
+  this->attr = other.attr;
+  this->constParams = other.constParams;
+  if (other.opDynamicType != "") {
+    this->dynamicCompileAttr = other.dynamicCompileAttr;
+    this->dynamicRunAttr = other.dynamicRunAttr;
+    this->dynamicParam = other.dynamicParam;
+  }
+}
+
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {
   if (params.input_num != 0) {
     if (params.input_desc != nullptr) {

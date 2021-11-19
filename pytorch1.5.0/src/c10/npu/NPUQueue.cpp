@@ -62,6 +62,14 @@ public:
     this->releaseFunc = func;
   }
 
+  void SetCopyReleaseParam(const ACL_COPY_RELEASE_PARM_FUNC& func) {
+    this->copyReleaseParamFunc = func;
+  }
+
+  void SetReleaseParam(const ACL_RELEASE_PARAM_FUNC& func) {
+    this->releaseParamFunc = func;
+  }
+
   void SetNew(const ACL_NEW_FUNC& func) {
     this->newFunc = func;
   }
@@ -82,10 +90,22 @@ public:
     return this->copyFunc(dstPtr, src, needClearVec, queueLen);
   }
 
-  void Release(void* head, int offset) {
+  void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
     TORCH_CHECK(this->releaseFunc, "Failed to find release function.");
     auto ptr = (uint8_t*)head +  sizePerParams * offset;
-    return this->releaseFunc(ptr);
+    return this->releaseFunc(ptr, releaseQueue);
+  }
+
+  void CopyRealseParam(void* dstHead, int offset, void* src) {
+    TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.");
+    auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
+    return this->copyReleaseParamFunc(dstPtr, src);
+  }
+
+  void ReleaseParam(void* head, int offset) {
+    TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.");
+    auto ptr = (uint8_t*)head +  sizePerParams * offset;
+    return this->releaseParamFunc(ptr);
   }
 
   void* Init(int capacity) {
@@ -108,23 +128,35 @@ private:
   ACL_RELEASE_FUNC releaseFunc = nullptr;
   ACL_NEW_FUNC newFunc = nullptr;
   ACL_DELETE_FUNC deleteFunc = nullptr;
+  ACL_COPY_RELEASE_PARM_FUNC copyReleaseParamFunc = nullptr;
+  ACL_RELEASE_PARAM_FUNC releaseParamFunc = nullptr;
 }; // class CallBackManager
 
 CallBackManager& manager() {
   static CallBackManager instance;
   return instance;
 }
+
+CallBackManager& releaseManager() {
+  static CallBackManager releaseinstance;
+  return releaseinstance;
+}
 } // namespace
 
 namespace register_queue_cb {
 NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execFunc,
     const ACL_COPY_FUNC& copyFunc, const ACL_RELEASE_FUNC& releaseFunc,
-    const ACL_NEW_FUNC& newFunc, const ACL_DELETE_FUNC& deleteFunc) {
+    const ACL_NEW_FUNC& newFunc, const ACL_DELETE_FUNC& deleteFunc,
+    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF) {
   manager().SetExec(execFunc);
   manager().SetCopy(copyFunc);
   manager().SetRelease(releaseFunc);
   manager().SetNew(newFunc);
   manager().SetDelete(deleteFunc);
+  releaseManager().SetCopyReleaseParam(copyReleaseParamF);
+  releaseManager().SetReleaseParam(releaseParamF);
+  releaseManager().SetNew(newFunc);
+  releaseManager().SetDelete(deleteFunc);
 }
 } // namespace register_queue_cb
 
@@ -260,7 +292,7 @@ bool Repository::ReadQueue() {
               << ": device=" << device_idx << ", write_idx=" << write_idx.idx
               << ", read_idx=" << read_idx.idx << ", status=" << GetStatus()
               << ", ret = " << ret << std::endl;
-      manager().Release(datas, read_idx.idx);
+      manager().Release(datas, read_idx.idx, releaseQueue);
       read_idx.idx++;
       read_idx.idx %= kQueueCapacity;
     }
@@ -270,7 +302,7 @@ bool Repository::ReadQueue() {
     TORCH_CHECK(0, msg.str());
   }
 
-  manager().Release(datas, read_idx.idx);
+  manager().Release(datas, read_idx.idx, releaseQueue);
   __sync_synchronize();
 
   read_idx.idx++;
@@ -485,8 +517,139 @@ void Repository::InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) {
   device_idx = device_id;
   std::thread cur_consumer(StartConsume, this, device_id);
   consumer = std::move(cur_consumer);
+
+  releaseQueue.InitReleaseQueue();
 }
 
+static constexpr size_t kReleaseQueueCapacity = 1000;
+bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
+{
+  if (IsFullQueue()) {
+    QUEUE_DEBUG("Release queue is full");
+    return false;
+  }
 
+  releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
+
+  __sync_synchronize();
+  write_idx.idx++;
+  write_idx.idx %= kReleaseQueueCapacity;
+  return true;
+}
+
+void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
+  if (initialized == false) {
+    NPU_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
+    return;
+  }
+
+  bool ret = false;
+  while (ret == false) {
+    ret = WriteToReleaseQueue(cur_paras);
+    if (ret == true) {
+      break;
+    }
+  }
+}
+
+bool ReleaseQueue::ReadFromReleaseQueue() {
+  if (IsEmptyQueue()) {
+    QUEUE_DEBUG("Release queue is empty");
+    return false;
+  }
+
+  releaseManager().ReleaseParam(datas, read_idx.idx);
+
+  __sync_synchronize();
+  read_idx.idx++;
+  read_idx.idx %= kReleaseQueueCapacity;
+
+  return true;
+}
+
+void ReleaseQueue::PopFromReleaseQueue() {
+  if (initialized == false) {
+    NPU_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
+    return;
+  }
+
+  bool ret = false;
+  while ((ret == false) && (GetStatus() != RepoStatus::CAN_EXIT)) {
+    ret = ReadFromReleaseQueue();
+    if (ret == false) {
+      if (GetStatus() == RepoStatus::NEED_EXIT) {
+        ChangeStatus(NEED_EXIT, CAN_EXIT);
+        break;
+      }
+      usleep(2);
+    }
+  }
+}
+
+void StartRelease(ReleaseQueue* releaseQue) {
+  if (prctl(PR_SET_NAME, ("Release_thread")) != 0) {
+    std::cout << "set thread name failed!" << std::endl;
+  }
+
+  while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {
+    releaseQue->PopFromReleaseQueue();
+  }
+  return;
+}
+
+void ReleaseQueue::InitReleaseQueue() {
+  if (datas == nullptr) {
+    datas = releaseManager().Init(kReleaseQueueCapacity);
+  }
+
+  initialized = true;
+  SetStatus(INIT);
+  std::thread cur_releaser(StartRelease, this);
+  releaser = std::move(cur_releaser);
+}
+
+ReleaseQueue::~ReleaseQueue() {
+  if (initialized) {
+    if (releaser.joinable()) {
+      SetStatus(NEED_EXIT);
+      releaser.join();
+    }
+  }
+  releaseManager().DeInit(datas);
+}
+
+bool ReleaseQueue::IsEmptyQueue() const {
+  return read_idx.idx == write_idx.idx;
+}
+
+bool ReleaseQueue::IsFullQueue() const {
+  return ((write_idx.idx + 1) % kReleaseQueueCapacity) == read_idx.idx;
+}
+
+RepoStatus ReleaseQueue::GetStatus() const {
+  if (initialized == false) {
+    NPU_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
+  }
+
+  return repo_status.load();
+}
+
+void ReleaseQueue::SetStatus(RepoStatus desired) {
+  if (initialized == false) {
+    NPU_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
+    return;
+  }
+
+  repo_status = desired;
+}
+
+void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
+  if (initialized == false) {
+    NPU_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
+    return;
+  }
+
+  repo_status.compare_exchange_strong(expected, desired);
+}
 } // namespace npu
 } // namespace c10
