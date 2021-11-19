@@ -1575,15 +1575,60 @@ def main():
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-
-
 <h4 id="精度调优方法md">精度调优方法</h4>
 
 模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
 
 -   **[单算子溢出检测](#单算子溢出检测md)**  
-
 -   **[整网调测](#整网调测md)**  
+
+##### 环境准备
+
+- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+
+  若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
+
+- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见《PyTorch安装指南》。
+
+  - 在NPU环境PyTorch安装
+
+    编译前修改build.sh脚本，在脚本中增加`USE_DUMP=1`字段。
+
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
+    ```
+
+  - （可选）在GPU环境PyTorch安装，若对模型算子精度对比，请执行此操作，否则请忽略。
+
+    编译前修改build.sh，在脚本中增加`USE_DUMP=1`、`USE_NCCL=0`字段，将 `USE_HCCL`、`USE_NPU`字段的值修改为0，将`USE_CUDA`字段的值修改为1。
+
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
+    ```
+
+##### 模型算子精度对比
+
+用户使用精度对比工具，在相同输入的情况下，获取模型在GPU和NPU进行训练时模型内算子输出的精度差异，从而帮助开发者实现算子精度问题定位。
+
+约束说明：
+
+- 建议使用小batchsize，一般设置为8及以下。
+
+  由于每个算子输入、输出数据会存储在硬盘中，会占用较大空间，故建议使用小batchsize节省硬盘空间。
+
+- 建议仅dump一个step的数据进行精度对比。
+
+对比模式：
+
+
+
+
+
+
+
+
+
+
 
 
 <h5 id="单算子溢出检测md">单算子溢出检测</h5>
@@ -1592,17 +1637,7 @@ def main():
 
 约束说明：<a name="section52762019181510"></a>
 
--   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
 -   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
--   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。 
-
-    ```
-    修改前: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3 setup.py build bdist_wheel 
-    修改后: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python3 setup.py build
-    ```
-
-    并参见《PyTorch安装指南》的“手动编译安装”章节重新编译并安装PyTorch。
-
 -   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能。
 
 采集溢出算子数据：<a name="section121407268191"></a>
@@ -1626,15 +1661,10 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
 
-**IR与TBE算子映射**
+##### IR与TBE算子映射
 
 前提条件：
 
-- 开启PyTorch框架dump功能。
-
-  在PyTorch源代码 “build.sh“ 文件中添加“USE\_DUMP=1”字段，编译安装PyTorch框架。
-
-- 需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
 - 设置环境变量`export ACL_DUMP_DATA=0`。
 - 在脚本中避免使用`torch.npu.init.dump()`和`torch.npu.set.dump()`接口。
 
