@@ -26,10 +26,10 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend配套软件
 
-| AscendPyTorch版本 | CANN版本 |
-| :------------ | :----------- |
-| 2.0.2 | CANN 5.0.2 |
-| 2.0.3 | CANN 5.0.3 |
+| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 |
+| :------------ | :----------- | :----------- |
+| 2.0.2 | CANN 5.0.2 | 1.5.0 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0，1.8.1（仅支持resnet50模型） |
 
 # 使用方式 --生成全量代码并编译
 
