@@ -8532,6 +8532,14 @@
 - func: npu_max.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   npu_dispatch_only:
     NPU: max_v1_npu
+    
+- func: npu_min.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  npu_dispatch_only:
+    NPU: min_v1_npu
+
+- func: npu_min.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  npu_dispatch_only:
+    NPU: min_v1_npu
 
 - func: npu_scatter(Tensor self, Tensor indices, Tensor updates, int dim) -> Tensor
   variants: function, method
@@ -8541,6 +8549,10 @@
 - func: npu_max_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
   npu_dispatch_only:
     NPU: max_backward_npu
+    
+- func: npu_min_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
+  npu_dispatch_only:
+    NPU: min_backward_npu
 
 - func: npu_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:

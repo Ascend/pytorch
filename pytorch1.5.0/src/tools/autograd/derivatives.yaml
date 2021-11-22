@@ -1672,6 +1672,9 @@
 
 - name: npu_max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   self: npu_max_backward(grad, dim, indices, self.sizes(), keepdim)
+  
+- name: npu_min.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  self: npu_min_backward(grad, dim, indices, self.sizes(), keepdim)
 
 - name: fast_gelu(Tensor self) -> Tensor
   self: fast_gelu_backward(grad, self)

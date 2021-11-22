@@ -28,7 +28,7 @@ NpuProfiling& NpuProfiling::Instance() {
 void NpuProfiling::Init(const std::string &path) {
   TORCH_CHECK(status == PROFILING_FINALIZE, "init current profile status is: ", status, " error!")
   auto ret = c10::npu::acl::AclProfilingInit(path.c_str(), path.length());
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfInit fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
@@ -64,7 +64,7 @@ void NpuProfiling::Start() {
     return;
   }
   ret = c10::npu::acl::AclProfilingStart(profCfg);
-  if(ret){
+  if(ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)){
     NPU_LOGE("npu profiling AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
@@ -74,7 +74,7 @@ void NpuProfiling::Start() {
 void NpuProfiling::Stop() {
   TORCH_CHECK(status == PROFILING_START, "stop current profile status is: ", status, " error!")
   auto ret = c10::npu::acl::AclProfilingStop(profCfg);
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
@@ -86,20 +86,20 @@ void NpuProfiling::Finalize() {
     if (status != PROFILING_STOP) {
       NPU_LOGW("finalize current profile status ( %u ) is not stopped, and call stop now.", status);
       auto ret = c10::npu::acl::AclProfilingStop(profCfg);
-      if (ret) {
+      if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
         NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
     }
     auto ret = c10::npu::acl::AclProfilingDestroyConfig(profCfg);
-    if (ret) {
+    if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
       NPU_LOGE("npu AclProfDestoryConfig fail, error code: %d", ret);
       C10_NPU_SHOW_ERR_MSG();
     }
     profCfg = nullptr;
   }
   auto ret = c10::npu::acl::AclProfilingFinalize();
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfFinalize fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
