@@ -1618,17 +1618,74 @@ def main():
 
 - 建议仅dump一个step的数据进行精度对比。
 
-对比模式：
+- 目前支持精度为fp32、O1或O2训练过程的算子精度对比。
 
+对比模式： 
 
+- GPU的输入和输出为已知数据，将GPU的输入数据加载到NPU上执行得到输出数据，NPU与GPU输出数据对比。
+- NPU的输入和输出为已知数据，将NPU的输入数据加载到GPU上执行得到输出数据，NPU与GPU输出数据对比。
 
+操作步骤：
 
+1. 在GPU或NPU环境，使用dumper工具获取GPU或NPU的模型输入和算子输出数据。
 
+   修改训练代码，增加数据dump功能。在模型训练代码的正向、反向计算位置使用`with`语句增加`torch.utils.dumper()`方法dump数据。例如，在GPU环境下修改示例：
 
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, dump_path="./model_gpu.h5") as dump:
+           # 模型训练代码
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code 
+   ```
 
+   dump_path参数为dump数据保存文件路径及名称。建议仅dump一个step的数据用于精度对比，同时参数更新代码放在with语句外。
 
+2. 将在GPU(NPU)环境dump的数据model_gpu.h5拷贝到NPU(GPU)环境。
 
+3. 在NPU或NPU环境，使用dumper工具加载已经dump出的数据，并获取算子输出数据。
 
+   修改训练代码，增加数据load、dump功能。在模型训练代码的正向、反向计算位置使用`with`语句增加`torch.utils.dumper()`方法load、dump数据。例如，在NPU环境下修改示例：
+
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, load_file_path="./model_gpu.h5", dump_path="./model_npu.h5") as dump:
+           # 模型训练代码
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code
+   ```
+
+   load_file_path参数为从GPU或NPU获取的dump数据路径，dump_path参数为dump数据保存文件路径及名称。建议仅dump一个step的数据用于精度对比，同时参数更新代码放在with语句外。
+
+4. 使用msaccucmp.py对算子输出数据对比。
+
+   1. ascend-toolkit提供了msaccucmp.py工具脚本用具精度对比。
+
+      - 该脚本路径为："/user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py"，
+
+        路径仅供参考，请以ascend-toolkit实际安装路径为准。
+
+      - 也可以使用如下命令查找msaccucmp.py路径。
+
+        ```linux
+        find / -name msaccucmp.py
+        ```
+
+   2. 执行msaccucmp.py脚本，进行精度对比。
+
+      ```
+      python3 /user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py compare -m ./model_npu.h5 -g ./model_gpu.h5
+      ```
+
+      参数说明：
+
+      `-g`参数传入使用GPU获得的dump数据文件路径。
+
+      `-m`参数传入使用NPU获得的dump数据文件路径。
 
 
 <h5 id="单算子溢出检测md">单算子溢出检测</h5>
@@ -1736,6 +1793,10 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 5. 获得映射文件。
 
    运行成功后，在acl.json配置文件中的`dump_path`路径下查看输出结果文件。
+
+##### NPU与GPU算子映射
+
+请参见《开发辅助工具指南》中 ”精度对比工具使用指南（训练）“中 “数据准备章节” 中的 “[准备以PyTorch为原始训练网络的精度比对数据文件](https://support.huawei.com/enterprise/zh/doc/EDOC1100219269/2324edc8#ZH-CN_TOPIC_0000001162580808)”。
 
 <h5 id="整网调测md">整网调测</h5>
 
