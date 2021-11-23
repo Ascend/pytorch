@@ -21,11 +21,11 @@
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "c10/npu/NPUQueue.h"
 #include <torch/csrc/autograd/record_function.h>
-#include "ATen/native/npu/aoe/AutoTune.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
+#include "ATen/native/npu/profiler/AoeUtils.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
 
 using namespace c10::npu::queue;
@@ -163,7 +163,6 @@ void OpCommandImpl::Run() {
 }
 
 aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
-  AutotuneManager::GetInstance()->PushGraph(name, params.graph);
   auto stream = c10::npu::getCurrentNPUStream();
   auto inputSize = params.inBuffer.size();
   auto outputSize = params.outBuffer.size();
@@ -175,6 +174,25 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   aclError ret;
   int index = 0;
   do {
+    if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
+      ret = at::native::npu::AclGenGraphAndDumpForOp(        
+        name.c_str(),
+        inputSize,
+        params.inDesc.data(),
+        params.inBuffer.data(),
+        outputSize,
+        params.outDesc.data(),
+        params.outBuffer.data(),
+        params.attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+        at::native::npu::aoe::aoe_manager().CreateGraphDumpOption());
+      at::native::npu::aoe::aoe_manager().DestropyGraphDumpOption();
+      if (ret != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
+      }
+    }
     ret = aclopCompileAndExecute(
       name.c_str(),
       inputSize,
@@ -208,20 +226,39 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
       reset_flag = true;
     }
     {
+      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
+        ret = at::native::npu::AclGenGraphAndDumpForOp(        
+          (cur_paras->opType).c_str(),
+          cur_paras->paras.input_num,
+          cur_paras->paras.input_desc,
+          cur_paras->paras.input_data_buf,
+          cur_paras->paras.output_num,
+          cur_paras->paras.output_desc,
+          cur_paras->paras.output_data_buf,
+          cur_paras->attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+          at::native::npu::aoe::aoe_manager().CreateGraphDumpOption());
+        at::native::npu::aoe::aoe_manager().DestropyGraphDumpOption();
+        if (ret != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
+        }
+      }
       RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
       ret = aclopCompileAndExecute(
-        (cur_paras->opType).c_str(),
-        cur_paras->paras.input_num,
-        cur_paras->paras.input_desc,
-        cur_paras->paras.input_data_buf,
-        cur_paras->paras.output_num,
-        cur_paras->paras.output_desc,
-        cur_paras->paras.output_data_buf,
-        cur_paras->attr,
-        ACL_ENGINE_SYS,
-        ACL_COMPILE_SYS,
-        nullptr,
-        stream);
+          (cur_paras->opType).c_str(),
+          cur_paras->paras.input_num,
+          cur_paras->paras.input_desc,
+          cur_paras->paras.input_data_buf,
+          cur_paras->paras.output_num,
+          cur_paras->paras.output_desc,
+          cur_paras->paras.output_data_buf,
+          cur_paras->attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
     }
     if (reset_flag) {
       AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);

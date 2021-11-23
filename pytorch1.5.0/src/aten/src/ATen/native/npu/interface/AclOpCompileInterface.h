@@ -32,6 +32,46 @@ namespace npu {
  */
 aclError AclopSetCompileFlag(aclOpCompileFlag flag);
 
+/**
+ * @ingroup AscendCL
+ * @brief dump op graph for AOE
+ *
+ * @param opType [IN]           op type
+ * @param numInputs [IN]        number of inputs
+ * @param inputDesc [IN]        pointer to array of input tensor descriptions
+ * @param inputs [IN]           pointer to array of input buffers
+ * @param numOutputs [IN]       number of outputs
+ * @param outputDesc [IN]       pointer to array of output tensor descriptions
+ * @param outputs [IN]          pointer to array of outputs buffers
+ * @param attr [IN]             pointer to instance of aclopAttr.
+ *                              may pass nullptr if the op has no attribute
+ * @param engineType [IN]       engine type
+ * @param compileFlag [IN]      compile flag
+ * @param graphDumpPath [IN]    path to save dump graph of op
+ * @param aclGraphDumpOption [IN]  dump graph option
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclGenGraphAndDumpForOp(const char *opType,
+    int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
+    int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
+    const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
+    const char *graphDumpPath, aclGraphDumpOption* graphdumpOpt);
+
+/**
+ * @brief create the dump option for AclGenGraphAndDumpForOp API, used for AOE
+ * @retval created aclGraphDumpOption
+ */
+aclGraphDumpOption* AclCreateGraphDumpOpt(); 
+
+/**
+ * @brief destroy the dump option created by aclCreateGraphDumpOpt
+ * @param aclGraphDumpOpt [IN]     dump option created by aclCreateGraphDumpOpt
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt);
+
 } // namespace npu
 } // namespace native
 } // namespace at

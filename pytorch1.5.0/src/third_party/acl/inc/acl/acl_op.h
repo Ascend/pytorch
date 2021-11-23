@@ -546,7 +546,6 @@ ACL_FUNC_VISIBILITY aclError aclopInferShape(
 ACL_FUNC_VISIBILITY aclError
 aclSetTensorConst(aclTensorDesc* desc, void* dataBuffer, size_t length);
 
-
 #ifdef __cplusplus
 }
 #endif
