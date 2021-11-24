@@ -37,6 +37,9 @@ Return:
   False--Tensor is not transposed, proceed to format_contiguous.
 *****************************************/
 bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   if (tensor.dim() != 2) {
     return false;
   }
@@ -62,6 +65,9 @@ bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
 bool is_transpose_last_two_dims_strict(
     const Tensor& tensor,
     bool is_transpose_flex) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   auto base_sizes = tensor.storage().get_npu_desc().base_sizes_;
   if (is_transpose_flex && base_sizes.size() == tensor.dim() &&
       tensor.size(-1) == base_sizes[tensor.dim() - 2] &&

@@ -95,7 +95,7 @@ public:
 
   std::vector<StorageImpl*> GetAllInputStorages(DeviceIndex device_idx);
 
-  std::vector<DeviceIndex> GetDevicesHasInputs();
+  std::vector<DeviceIndex> GetDevicesHasLiveTensor();
 
 private:
   NpuGraphContextManager() = default;

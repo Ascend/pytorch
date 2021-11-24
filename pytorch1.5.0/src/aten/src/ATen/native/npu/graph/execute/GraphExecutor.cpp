@@ -58,8 +58,10 @@ void GraphExecutor::RunGraph(
   aclrtStream cal_stream =
       const_cast<aclrtStream>(c10::npu::getCurrentNPUStream().stream());
 
-  auto ret = GraphExecutor::GetInstance().session_->RunGraphWithStreamAsync(
-      graph_id, cal_stream, inputs.tensors, outputs.tensors);
+  auto ret = session_->RunGraphWithStreamAsync(graph_id,
+                                               cal_stream,
+                                               inputs.tensors,
+                                               outputs.tensors);
   TORCH_CHECK(ret == 0, "Run Graph Failed!");
 }
 
@@ -257,6 +259,12 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
   for (auto& output_storage : output_storages) {
     if (GraphUtils::IsTensorWithoutNode(output_storage) ||
         GraphUtils::IsDataTensor(output_storage)) {
+      if (output_storage->data() == nullptr) {
+        size_t nbytes = prod_intlist(output_storage->get_npu_desc().storage_sizes_) *
+                        output_storage->itemsize();
+        DataPtr data_ptr = c10::npu::NPUCachingAllocator::get()->allocate(nbytes);
+        output_storage->set_data_ptr(std::move(data_ptr));
+      }
       continue;
     }
     auto& graph_value =
@@ -273,7 +281,7 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
     output_infos.hash_of_topo_and_attr.emplace_back(topo_hash);
 
     hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
-    output_infos.hash_of_topo_and_attr.push_back(shape_hash);
+    output_infos.hash_of_shape.push_back(shape_hash);
   }
   return output_infos;
 }
@@ -301,7 +309,10 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
   // In the case of in-place operator
   // we can not call set_data_ptr
   // for this will cause the old data ptr to be released
-  if (!graph_desc.graph_value.GetDataNode().has_value()) {
+  // and if one value have data node which has no device memory
+  // we should malloc for it
+  if (!(graph_desc.graph_value.GetDataNode().has_value() &&
+        storage->data() != nullptr)) {
     data_ptr = c10::npu::NPUCachingAllocator::get()->allocate(nbytes);
     storage->set_data_ptr(std::move(data_ptr));
   }
@@ -325,7 +336,7 @@ void GraphExecutor::RefreshGraphInputs() {
                             .GetAllInputStorages(init_device_id_);
   std::for_each(
       input_storages.begin(), input_storages.end(), [&](StorageImpl* x) {
-        GraphUtils::ResetOp(x);
+        GraphUtils::SetDataOp(x);
       });
 }
 
@@ -337,9 +348,8 @@ void GraphExecutor::ClearDataStore() {
 bool GraphExecutor::CheckDeviceIdAndInit() {
   auto devices_has_input =
       c10::npu::graph::NpuGraphContextManager::GetInstance()
-          .GetDevicesHasInputs();
+          .GetDevicesHasLiveTensor();
   if (devices_has_input.empty()) {
-    TORCH_WARN("No device has input tensor, no graph will be launched");
     return false;
   } else if (devices_has_input.size() > 1) {
     AT_ERROR("In graph mode, you can not construct graph in different device");

@@ -36,7 +36,7 @@ Tensor matmul_npu(
   auto dim_tensor2 = tensor2.dim();
 
   if (dim_tensor1 == 1 && dim_tensor2 == 1) {
-    return has_out ? at::native::dot_out(out, tensor1, tensor2) : tensor1.dot(tensor2);
+    return has_out ? dot_out_npu(out, tensor1, tensor2) : tensor1.dot(tensor2);
   } else if (dim_tensor1 == 2 && dim_tensor2 == 1) {
     return has_out ? at::mv_out(out, tensor1, tensor2) : tensor1.mv(tensor2);
   } else if (dim_tensor1 == 1 && dim_tensor2 == 2) {
@@ -138,14 +138,14 @@ Tensor matmul_npu(
 
 Tensor matmul_npu(const Tensor & tensor1, const Tensor & tensor2) {
   auto maybe_outnames = namedinference::compute_matmul_outnames(tensor1, tensor2);
-  auto result = at::native::matmul_npu(c10::nullopt, tensor1, tensor2);
+  auto result = matmul_npu(c10::nullopt, tensor1, tensor2);
   namedinference::propagate_names_if_nonempty(result, maybe_outnames);
   return result;
 }
 
 Tensor& matmul_out_npu(Tensor &result, const Tensor & tensor1, const Tensor & tensor2) {
   auto maybe_outnames = namedinference::compute_matmul_outnames(tensor1, tensor2);
-  at::native::matmul_npu(c10::optional<Tensor>(result), tensor1, tensor2);
+  matmul_npu(c10::optional<Tensor>(result), tensor1, tensor2);
   namedinference::propagate_names_if_nonempty(result, maybe_outnames);
   return result;
 }

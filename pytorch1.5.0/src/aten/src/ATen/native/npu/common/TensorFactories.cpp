@@ -96,13 +96,13 @@ Tensor empty_npu(
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
 
-  // NB Store weak intrusive ptr of storage impl in graph mode
+  // NB
+  // Store weak intrusive ptr of storage impl in both graph mode and single op mode
+  // because we need to get all live tensor in context in mode change scene
   // we want to manage all storage without affect their life cycle
   // so in graph mode, we can get all live tensor storage
-  if (c10::npu::NpuRunMode::IsGraphMode()) {
-    c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
-        storage_impl);
-  }
+  c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      storage_impl);
 
   auto memory_format =
       optional_memory_format.value_or(MemoryFormat::Contiguous);
@@ -257,10 +257,8 @@ Tensor empty_with_format_npu(
   // NB Store weak intrusive ptr of storage impl in graph mode
   // see note above
 
-  if (c10::npu::NpuRunMode::IsGraphMode()) {
-    c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
-        storage_impl);
-  }
+  c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      storage_impl);
   auto tensor =
       detail::make_tensor<TensorImpl>(storage_impl, DispatchKey::NPUTensorId);
   // Default TensorImpl has size [0]

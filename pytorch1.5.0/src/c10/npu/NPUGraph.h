@@ -89,6 +89,7 @@ public:
     cur_node_ = other.cur_node_;
     value_index_ = other.value_index_;
     real_type_ = other.real_type_;
+    value_hash_ = other.value_hash_;
   }
 
   void ResetValue() {

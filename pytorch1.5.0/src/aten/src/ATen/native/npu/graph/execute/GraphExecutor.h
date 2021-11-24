@@ -78,7 +78,7 @@ public:
    */
   bool CheckDeviceIdAndInit();
 
-  static void RunGraph(
+  void RunGraph(
       uint32_t graph_id,
       CombinedInfo& inputs,
       CombinedInfo& outputs);

@@ -94,12 +94,12 @@ std::vector<StorageImpl*> NpuGraphContextManager::GetAllInputStorages(
   return data_storages;
 }
 
-std::vector<DeviceIndex> NpuGraphContextManager::GetDevicesHasInputs() {
+std::vector<DeviceIndex> NpuGraphContextManager::GetDevicesHasLiveTensor() {
   std::lock_guard<std::mutex> lock(lock_);
   std::vector<DeviceIndex> res;
-  for (auto &item : input_contexts_) {
+  for (auto &item : output_contexts_) {
     std::lock_guard<std::mutex> lock(item.second->ctx_lock);
-    if (!item.second->uid_of_input_in_ctx.empty()) {
+    if (!item.second->output_storage_impl.empty()) {
       res.push_back(item.first);
     }
   }

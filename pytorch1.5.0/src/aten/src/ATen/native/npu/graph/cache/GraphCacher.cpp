@@ -71,7 +71,7 @@ c10::optional<uint32_t> GraphCache::GetCacheGraphId(
       shape_map[shape_hash] = cur_graph_id;
     }
   } else {
-    graph_cache_[topo_hash] = {{topo_hash, cur_graph_id}};
+    graph_cache_[topo_hash] = {{shape_hash, cur_graph_id}};
   }
   return c10::nullopt;
 }
