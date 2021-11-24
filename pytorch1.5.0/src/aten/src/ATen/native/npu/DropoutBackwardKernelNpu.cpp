@@ -32,14 +32,12 @@ Tensor dropout_backward_npu(
       "mask should be torch.uint8 dtype");
   double retain =  1. - scale;
   Tensor result = OpPreparation::ApplyTensor(grad_output);
-  Tensor prob =
-      CalcuOpUtil::CopyScalarToDevice(retain, grad_output.scalar_type());
 
   OpCommand cmd;
   cmd.Name("DropOutDoMask")
       .Input(grad_output)
       .Input(mask)
-      .Input(prob)
+      .Input(retain, grad_output.scalar_type(), MemoryType::MEMORY_HOST)
       .Output(result)
       .Run();
 

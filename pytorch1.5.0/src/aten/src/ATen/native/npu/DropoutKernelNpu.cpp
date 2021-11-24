@@ -27,19 +27,19 @@ Tensor dropout_do_mask(
     Tensor& result,
     const Tensor& self,
     const Tensor& mask,
-    const Tensor& prob) {
+    Scalar prob) {
   OpCommand cmd;
   cmd.Name("DropOutDoMask")
       .Input(self)
       .Input(mask)
-      .Input(prob)
+      .Input(prob, self.scalar_type(), MemoryType::MEMORY_HOST)
       .Output(result)
       .Run();
 
   return result;
 }
 
-Tensor dropout_gen_mask(const Tensor& self, const Tensor& prob) {
+Tensor dropout_gen_mask(const Tensor& self, Scalar prob) {
   uint32_t length = (self.numel() + 128 - 1) / 128 * 128;
   Tensor mask = at::empty_with_format(
       {length / 8},
@@ -55,7 +55,7 @@ Tensor dropout_gen_mask(const Tensor& self, const Tensor& prob) {
   int64_t seed2 = 0;
   cmd.Name("DropOutGenMask")
       .Input(selfShape)
-      .Input(prob)
+      .Input(prob, self.scalar_type(), MemoryType::MEMORY_HOST)
       .Output(mask)
       .Attr("seed", seed)
       .Attr("seed2", seed2)
@@ -76,7 +76,7 @@ std::tuple<Tensor, Tensor> dropout_v1_npu_impl(
       "dropout only supports floating-point dtypes");
   
   double retain = 1. - p;
-  Tensor prob;
+  Scalar prob = Scalar(retain);
   Tensor mask;
   auto original_stream = c10::npu::getCurrentNPUStream();
   {
@@ -85,12 +85,10 @@ std::tuple<Tensor, Tensor> dropout_v1_npu_impl(
     // same time, according to the one-stream-one-pool principle, memory is also
     // alloced from the pool of the secondary stream.
     c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-    prob = scalar_to_tensor(retain).to(self.scalar_type());
     mask = dropout_gen_mask(self, prob);
   }
   // When tasks on multiple streams read and write the same block of memory,
   // recordStream needs to be called to ensure the correctness of memory reuse.
-  c10::npu::NPUCachingAllocator::recordStream(prob.storage().data_ptr(), original_stream);
   c10::npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   dropout_do_mask(result, self, mask, prob);
 
@@ -109,7 +107,7 @@ std::tuple<Tensor, Tensor> _dropout_npu_inplace(
   return dropout_v1_npu_impl(self, self, p);
 }
 
-Tensor dropout_npu(const Tensor& self, double p, bool train) {
+Tensor dropout_npu(const Tensor& self, double p, bool train) {    
   if (p == 0 || !train || self.numel() == 0) {
     return self;
   }
