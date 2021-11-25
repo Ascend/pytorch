@@ -8684,3 +8684,6 @@
 - func: npu_reshape.out(Tensor self, int[] shape, bool can_refresh=False, *, Tensor(a!) out) -> Tensor(a!)
   npu_dispatch_only:
     NPU: reshape_out_npu
+- func: npu_rotated_overlaps(Tensor self, Tensor query_boxes, bool trans=False) -> Tensor
+  npu_dispatch_only:
+    NPU: rotated_overlaps_npu
