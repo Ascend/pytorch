@@ -96,9 +96,9 @@ Tensor ctc_loss_npu(
   
   if (zeroInfinity) {
     res = at::where(
-      res == Scalar(std::numeric_limits<double>::infinity()), 
-      at::zeros({}, res.options()), 
-      res);   
+        res == Scalar(std::numeric_limits<double>::infinity()), 
+        at::zeros({}, res.options()), 
+        res);   
   }
 
   if (reduction == at::Reduction::Mean) {
@@ -125,8 +125,8 @@ Tensor ctc_loss_npu(
     int64_t blank,
     int64_t reduction,
     bool zeroInfinity) { 
-  TORCH_CHECK(isIntegralType(inputLengths.scalar_type(), /*includeBool=*/false), "input_lengths must be integral");
-  TORCH_CHECK(isIntegralType(targetLengths.scalar_type(), /*includeBool=*/false), "target_lengths must be integral");
+  TORCH_CHECK(isIntegralType(inputLengths.scalar_type(), false), "input_lengths must be integral");
+  TORCH_CHECK(isIntegralType(targetLengths.scalar_type(), false), "target_lengths must be integral");
 
   Tensor inputLengthsTensor = inputLengths.to(Device(at::kCPU), at::kLong).contiguous();
   Tensor targetLengthsTensor = targetLengths.to(Device(at::kCPU), at::kLong).contiguous();

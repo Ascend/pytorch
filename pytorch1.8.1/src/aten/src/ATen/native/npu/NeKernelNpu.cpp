@@ -68,11 +68,11 @@ Tensor& ne_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
   Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other},
-    result,
-    CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-    ScalarType::Bool,
-    IntArrayRef(outputSize));
+      {self, other},
+      result,
+      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      ScalarType::Bool,
+      IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
   return result;
 }
@@ -80,11 +80,11 @@ Tensor& ne_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
 Tensor& ne_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckOut(
-    {self},
-    result,
-    CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-    ScalarType::Bool,
-    formatCastOfSelf.sizes());
+      {self},
+      result,
+      CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
+      ScalarType::Bool,
+      formatCastOfSelf.sizes());
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;
 }

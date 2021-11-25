@@ -35,7 +35,7 @@ class OptionInterface {
   /**
     dctr
     */
-    OptionInterface(OptionCallBack callback=nullptr);
+  explicit OptionInterface(OptionCallBack callback=nullptr);
 
     ~OptionInterface() = default;
   /**

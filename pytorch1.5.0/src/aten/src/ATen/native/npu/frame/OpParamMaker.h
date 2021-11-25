@@ -143,7 +143,7 @@ class AclTensorDescMaker {
 class AclTensorBufferMaker {
  public:
   // offset = 0
-  AclTensorBufferMaker(const Tensor* tensor, int64_t n = 1) {
+  explicit AclTensorBufferMaker(const Tensor* tensor, int64_t n = 1) {
     if (tensor == nullptr || n == 0) {
       ptr = aclCreateDataBuffer(nullptr, 0);
     } else {
@@ -153,7 +153,7 @@ class AclTensorBufferMaker {
   }
 
   // offset = 0
-  AclTensorBufferMaker(const Tensor& tensor, int64_t n = 1) {
+  explicit AclTensorBufferMaker(const Tensor& tensor, int64_t n = 1) {
     ptr =
         aclCreateDataBuffer((void*)(tensor.data_ptr()), tensor.itemsize() * n);
   }

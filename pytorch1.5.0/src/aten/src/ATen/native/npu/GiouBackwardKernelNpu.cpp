@@ -20,8 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-std::tuple<Tensor&, Tensor&>
-giou_backward_inner_out_npu(
+std::tuple<Tensor&, Tensor&> giou_backward_inner_out_npu(
     Tensor& dbboxes,
     Tensor& dgtboxes,
     const Tensor& grad,
@@ -46,8 +45,7 @@ giou_backward_inner_out_npu(
   return std::tie(dbboxes, dgtboxes);
 }
 
-std::tuple<Tensor, Tensor>
-giou_backward_npu(
+std::tuple<Tensor, Tensor> giou_backward_npu(
     const Tensor& grad,
     const Tensor& bboxes,
     const Tensor& gtboxes,
@@ -55,11 +53,11 @@ giou_backward_npu(
     bool is_cross,
     int64_t mode){
   TORCH_CHECK(trans && !is_cross &&  mode == 0,
-            "giou backward only support trans==True, ",
-            "is_cross==False, ",
-            "mode==0('iou') current version ",
-            "if you need to back propagation, ",
-            "please ensure your parameter is correct!");
+      "giou backward only support trans==True, ",
+      "is_cross==False, ",
+      "mode==0('iou') current version ",
+      "if you need to back propagation, ",
+      "please ensure your parameter is correct!");
   // Op need form of [n] grad
   // Note: temp avoid! it'll be remove while op deal with fp16 issue!
   Tensor gradCp = at::squeeze(grad, 0);

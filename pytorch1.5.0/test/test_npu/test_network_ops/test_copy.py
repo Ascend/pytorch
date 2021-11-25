@@ -134,6 +134,17 @@ class TestCopy(TestCase):
         self.assertRtolEqual(chunk2_cpu.detach().numpy(), chunk2_npu.cpu().detach().numpy())
         self.assertRtolEqual(chunk3_cpu.detach().numpy(), chunk3_npu.cpu().detach().numpy())
 
+    def test_cross_device_copy_check(self, device):
+        device_count = torch.npu.device_count()
+        if device_count < 2:
+            return
+        
+        inputs = torch.randn(2, 3, 5).to("npu")
+        target_device = torch.npu.current_device() + 1
+        if target_device >= device_count:
+            target_device = 0
+        with self.assertRaisesRegex(RuntimeError, "Cross-device copy is not supported."):
+            inputs.to("npu:" + str(target_device))
 
 instantiate_device_type_tests(TestCopy, globals(), except_for='cpu')
 if __name__ == "__main__":

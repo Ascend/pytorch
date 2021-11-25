@@ -44,7 +44,7 @@ Tensor dropout_v2_backward_npu(const Tensor& grad_output, const Tensor& mask, do
               mask.scalar_type() == ScalarType::Float ||
               mask.scalar_type() == ScalarType::Char || 
               mask.scalar_type() == ScalarType::Byte,
-             "mask's dtype should be float32, float16, or int8 and uint8" );
+              "mask's dtype should be float32, float16, or int8 and uint8" );
   TORCH_CHECK(grad_output.sizes() == mask.sizes(),
               "grad_output must be the same shape with mask");
 

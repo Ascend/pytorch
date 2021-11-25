@@ -49,7 +49,7 @@ private:
 
 class EventTask {
 public:
-  EventTask(aclrtEvent event);
+  explicit EventTask(aclrtEvent event);
   ~EventTask() = default;
   void LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec);
 
@@ -67,7 +67,7 @@ AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
 }
 
 AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Storage& st)
+    Storage& st)
 {
   copyParam_.dst = dst;
   copyParam_.dstLen = dstLen;
@@ -125,7 +125,7 @@ aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
 }
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Storage& st, bool isPinMem)
+    Storage& st, bool isPinMem)
 {
   AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, st);
   copyTask.LaunchCopyTask(isPinMem);

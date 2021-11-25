@@ -79,7 +79,7 @@ Tensor _cdist_forward_npu(
   }
   else {
     TORCH_CHECK(p <= std::numeric_limits<float>::max(), "npu dose not support float64" );
-    p_float = (float) p;
+    p_float = static_cast<float>(p);
   }
 
   int64_t mode = compute_mode.value_or(0);

@@ -29,11 +29,11 @@ std::tuple<Tensor, Tensor> grid_sampler_3d_backward_npu(
     int64_t padding_mode,
     bool align_corners) {
   TORCH_CHECK(
-    (0 <= interpolation_mode && interpolation_mode <= 2),
-    "interpolation_mode must be in range [0~2].")
+      (0 <= interpolation_mode && interpolation_mode <= 2),
+      "interpolation_mode must be in range [0~2].")
   TORCH_CHECK(
-    (0 <= padding_mode && padding_mode <= 2),
-    "padding_mode must be in range [0~2].")
+      (0 <= padding_mode && padding_mode <= 2),
+      "padding_mode must be in range [0~2].")
   Tensor formatCastOfGrad = grad;
   Tensor formatCastOfInput = input;
   Tensor formatCastOfGrid = grid;

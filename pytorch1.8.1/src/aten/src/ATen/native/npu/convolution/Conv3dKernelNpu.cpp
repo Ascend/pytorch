@@ -20,11 +20,10 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<int64_t, SIZE>
-conv3d_npu_output_size(const Tensor &input, const Tensor &weight,
-                       const Tensor &bias, IntArrayRef stride,
-                       IntArrayRef padding, IntArrayRef dilation,
-                       int64_t groups) {
+SmallVector<int64_t, SIZE> conv3d_npu_output_size(const Tensor &input, const Tensor &weight,
+                                                  const Tensor &bias, IntArrayRef stride,
+                                                  IntArrayRef padding, IntArrayRef dilation,
+                                                  int64_t groups) {
   int64_t N = input.size(0);
   int64_t D = input.size(2);
   int64_t H = input.size(3);

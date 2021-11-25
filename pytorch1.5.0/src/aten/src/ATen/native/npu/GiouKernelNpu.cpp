@@ -67,11 +67,11 @@ Tensor giou_npu(
     bool is_cross,
     int64_t mode){
   TORCH_CHECK(trans && !is_cross &&  mode == 0,
-            "giou backward only support trans==True, ",
-            "is_cross==False, ",
-            "mode==0('iou') current version ",
-            "if you need to back propagation, ",
-            "please ensure your parameter is correct!");
+      "giou backward only support trans==True, ",
+      "is_cross==False, ",
+      "mode==0('iou') current version ",
+      "if you need to back propagation, ",
+      "please ensure your parameter is correct!");
   // Op need form of [n, 4], but pass should be [4, n];
   // Note: temp avoid! it'll be removed while op deal with fp16 issue!
   Tensor selfCp = self.permute({1, 0});

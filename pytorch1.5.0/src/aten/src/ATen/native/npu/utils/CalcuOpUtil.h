@@ -83,10 +83,10 @@ class NPUTensorDesc {
   NPUTensorDesc() {}
   ~NPUTensorDesc() = default;
 
-  NPUTensorDesc(const Tensor& tensor)
+  explicit NPUTensorDesc(const Tensor& tensor)
       : tensor(tensor), tensorDescType(TensorDescType::TENSOR) {}
 
-  NPUTensorDesc(const Scalar& scalar)
+  explicit NPUTensorDesc(const Scalar& scalar)
       : scalar(scalar), tensorDescType(TensorDescType::SCALAR) {}
 
   NPUTensorDesc(const Scalar& scalar, ScalarType scalarDataType)

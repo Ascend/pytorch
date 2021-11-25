@@ -29,15 +29,15 @@ Tensor& one_hot_out_npu(
     Scalar on_value,
     Scalar off_value) {
   Tensor on_tmp = OpPreparation::ApplyTensor(
-                                 {1},
-                                 self.options().dtype(ScalarType::Float),
-                                 self)
-                                 .fill_(on_value);
+      {1},
+      self.options().dtype(ScalarType::Float),
+      self)
+      .fill_(on_value);
   Tensor off_tmp = OpPreparation::ApplyTensor(
-                                  {1},
-                                  self.options().dtype(ScalarType::Float),
-                                  self)
-                                  .fill_(off_value);
+      {1},
+      self.options().dtype(ScalarType::Float),
+      self)
+      .fill_(off_value);
   OpCommand cmd;
   cmd.Name("OneHotD")
       .Input(self)

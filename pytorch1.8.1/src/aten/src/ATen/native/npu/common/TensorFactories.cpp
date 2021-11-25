@@ -357,11 +357,11 @@ Tensor empty_strided_npu(
   check_size_nonnegative(size);
   c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
   auto t = at::native::empty_npu({0},
-                        dtype_opt,
-                        layout_opt,
-                        device_opt,
-                        pin_memory_opt,
-						optional_memory_format);
+      dtype_opt,
+      layout_opt,
+      device_opt,
+      pin_memory_opt,
+      optional_memory_format);
   StorageDescHelper::SetDesc(t, size, stride);
   at::native::resize_impl_npu_(t.unsafeGetTensorImpl(), size, stride);
   return t;
@@ -420,7 +420,7 @@ Tensor blackman_window_npu(int64_t window_length,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return blackman_window_periodic_npu(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return blackman_window_periodic_npu(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -450,7 +450,7 @@ Tensor bartlett_window_periodic_npu(
     window_length += 1;
   }
   auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
-  const int64_t first_half_size = ((unsigned int64_t)(window_length - 1) >> 1) + 1;
+  const int64_t first_half_size = (static_cast<unsigned int64_t>(window_length - 1) >> 1) + 1;
   window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
@@ -461,7 +461,7 @@ Tensor bartlett_window_npu(int64_t window_length,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
-  return bartlett_window_periodic_npu(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return bartlett_window_periodic_npu(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hann_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -537,7 +537,7 @@ Tensor hamming_window_alpha_npu(
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window_beta_npu(window_length, periodic, alpha, /*beta=*/0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return hamming_window_beta_npu(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 Tensor hamming_window_periodic_npu(
@@ -547,7 +547,7 @@ Tensor hamming_window_periodic_npu(
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window_alpha_npu(window_length, periodic, /*alpha=*/0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return hamming_window_alpha_npu(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 
@@ -557,7 +557,7 @@ Tensor hamming_window_npu(int64_t window_length,
     c10::optional<Layout> layout_opt,
     c10::optional<Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  return hamming_window_periodic_npu(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return hamming_window_periodic_npu(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ tensor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

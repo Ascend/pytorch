@@ -20,13 +20,10 @@
 namespace at {
 namespace native {
 using namespace at::native::npu;
-std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu_nocheck(
+std::tuple<Tensor&, Tensor&, Tensor&> apply_adam_out_npu_nocheck(
     Tensor& var_out,
     Tensor& m_out,
     Tensor& v_out,
-    const Tensor& var,
-    const Tensor& m,
-    const Tensor& v,
     Scalar beta1_power,
     Scalar beta2_power,
     Scalar lr,
@@ -36,22 +33,19 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu_nocheck(
     const Tensor& grad,
     c10::optional<bool> use_locking,
     c10::optional<bool> use_nesterov) {
-  Tensor var_tmp = var;
-  Tensor m_tmp = m;
-  Tensor v_tmp = v;
   OpCommand cmd;
   cmd.Name("ApplyAdam")
-     .Input(var_tmp)
-     .Input(m_tmp)
-     .Input(v_tmp)
-     .Input(beta1_power, var.scalar_type())
-     .Input(beta2_power, var.scalar_type())
-     .Input(lr, var.scalar_type())
-     .Input(beta1, var.scalar_type())
-     .Input(beta2, var.scalar_type())
-     .Input(epsilon, var.scalar_type())
+     .Input(var_out)
+     .Input(m_out)
+     .Input(v_out)
+     .Input(beta1_power, var_out.scalar_type())
+     .Input(beta2_power, var_out.scalar_type())
+     .Input(lr, var_out.scalar_type())
+     .Input(beta1, var_out.scalar_type())
+     .Input(beta2, var_out.scalar_type())
+     .Input(epsilon, var_out.scalar_type())
      .Input(grad)
-     .Output(var_tmp);
+     .Output(var_out);
   if (use_locking != c10::nullopt) {
     cmd.Attr("use_locking", bool(use_locking));
   }
@@ -60,16 +54,10 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu_nocheck(
   }
   cmd.Run();
 
-  var_out.copy_(var_tmp);
-  m_out.copy_(m_tmp);
-  v_out.copy_(v_tmp);
   return std::tie(var_out, m_out, v_out);
 }
 
-std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
-    const Tensor& var,
-    const Tensor& m,
-    const Tensor& v,
+std::tuple<Tensor&, Tensor&, Tensor&> apply_adam_out_npu(
     Scalar beta1_power,
     Scalar beta2_power,
     Scalar lr,
@@ -78,11 +66,10 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
     Scalar epsilon,
     const Tensor& grad,
     c10::optional<bool> use_locking,
-    c10::optional<bool> use_nesterov) {
-  Tensor var_out = OpPreparation::ApplyTensor(var);
-  Tensor m_out = OpPreparation::ApplyTensor(m);
-  Tensor v_out = OpPreparation::ApplyTensor(v);
-
+    c10::optional<bool> use_nesterov,
+    Tensor& var,
+    Tensor& m,
+    Tensor& v) {
   bool var_match = NpuUtils::check_match(&var);
   bool m_match = NpuUtils::check_match(&m);
   bool v_match = NpuUtils::check_match(&v);
@@ -90,13 +77,7 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
     Tensor contiguous_var = var_match ? var : NpuUtils::format_contiguous(var);
     Tensor contiguous_m = m_match ? m : NpuUtils::format_contiguous(m);
     Tensor contiguous_v = v_match ? v : NpuUtils::format_contiguous(v);
-    var_out = OpPreparation::ApplyTensor(contiguous_var);
-    m_out = OpPreparation::ApplyTensor(contiguous_m);
-    v_out = OpPreparation::ApplyTensor(contiguous_v);
     apply_adam_out_npu_nocheck(
-        var_out,
-        m_out,
-        v_out,
         contiguous_var,
         contiguous_m,
         contiguous_v,
@@ -109,11 +90,17 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
         grad,
         use_locking,
         use_nesterov);
+    if (!var_match) {
+      NpuUtils::format_fresh_view(var, contiguous_var);
+    }
+    if (!m_match) {
+      NpuUtils::format_fresh_view(m, contiguous_m);
+    }
+    if (!v_match) {
+      NpuUtils::format_fresh_view(v, contiguous_v);
+    }
   } else {
     apply_adam_out_npu_nocheck(
-        var_out,
-        m_out,
-        v_out,
         var,
         m,
         v,
@@ -128,11 +115,11 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
         use_nesterov);
   }
 
-  return std::tie(var_out, m_out, v_out);
+  return std::tie(var, m, v);
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
-  m.impl("npu_apply_adam", TORCH_FN(apply_adam_npu));
+  m.impl("npu_apply_adam.out", TORCH_FN(apply_adam_out_npu));
 }
 } // namespace native
 } // namespace at

@@ -47,10 +47,10 @@ Tensor& fmod_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
 Tensor& fmod_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other}, 
-    result,
-    self, 
-    outputSize);
+      {self, other}, 
+      result,
+      self, 
+      outputSize);
   
   fmod_out_npu_nocheck(result, self, other);
   return result;

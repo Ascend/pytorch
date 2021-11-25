@@ -211,7 +211,7 @@ void DynamicShapeUtil::CreateAclParamsDesc(
     }
 
     desc = aclCreateTensorDesc(dtype, dims, shape[i].data(), format);
-    int64_t desc_dims_size = (int64_t)dims;
+    int64_t desc_dims_size = static_cast<int64_t>(dims);
     std::vector<int64_t> range(2 * desc_dims_size);
 
     for (int64_t k = 0; k < desc_dims_size * 2; k += 2) {

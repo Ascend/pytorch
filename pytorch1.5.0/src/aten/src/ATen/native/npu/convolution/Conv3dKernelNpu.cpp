@@ -166,9 +166,10 @@ std::tuple<Tensor, Tensor, Tensor> slow_conv3d_forward_npu(
     IntArrayRef padding) {
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
-  auto output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  auto finput = OpPreparation::ApplyTensor(self, {0});
-  auto fgrad_input = OpPreparation::ApplyTensor(self, {0});
+  // Assign NDC1HWC0 format to output for cutting down transdata.
+  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
+  auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
+  auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 
   slow_conv3d_forward_out_npu(
       output,

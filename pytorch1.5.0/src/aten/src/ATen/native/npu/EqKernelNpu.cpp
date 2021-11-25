@@ -66,22 +66,22 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
 Tensor& eq_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);  
   OpPreparation::CheckOut(
-    {self, other}, 
-    result, 
-    ACL_FORMAT_ND, 
-    result.scalar_type(), 
-    IntArrayRef(outputSize));
+      {self, other}, 
+      result, 
+      ACL_FORMAT_ND, 
+      result.scalar_type(), 
+      IntArrayRef(outputSize));
   eq_out_npu_nocheck(result, self, other);
   return result;
 }
 
 Tensor& eq_out_npu(Tensor& result, const Tensor& self, Scalar other) { 
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
-    ACL_FORMAT_ND,
-    result.scalar_type(), 
-    self.sizes());
+      {self}, 
+      result, 
+      ACL_FORMAT_ND,
+      result.scalar_type(), 
+      self.sizes());
   eq_out_npu_nocheck(result, self, other);
   return result;
 }

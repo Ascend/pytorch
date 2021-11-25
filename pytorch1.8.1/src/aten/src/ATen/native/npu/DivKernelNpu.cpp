@@ -58,11 +58,11 @@ Tensor& div_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
   Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self},
-    result,
-    CalcuOpUtil::get_tensor_npu_format(outputTensor),
-    self.scalar_type(),
-    outputSize);
+      {self},
+      result,
+      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      self.scalar_type(),
+      outputSize);
   div_out_npu_nocheck(self, other, result);
 
   return result;

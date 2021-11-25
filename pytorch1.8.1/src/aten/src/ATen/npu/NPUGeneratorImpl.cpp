@@ -98,7 +98,7 @@ Generator createNPUGenerator(DeviceIndex device_index) {
 NPUGeneratorImpl::NPUGeneratorImpl(DeviceIndex device_index)
   : c10::GeneratorImpl{Device(DeviceType::NPU, device_index),
               DispatchKeySet(c10::DispatchKey::NPU)} {
-  //at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
+  // at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
 }
 
 /**
@@ -285,7 +285,7 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
     uint64_t offset = this->philox_offset_per_thread_;
     this->philox_offset_per_thread_ += increment;
     return PhiloxNpuState(this->seed_, offset);
-  }*/
+  } */
 
   return PhiloxNpuState(this->seed_, 0);
 }

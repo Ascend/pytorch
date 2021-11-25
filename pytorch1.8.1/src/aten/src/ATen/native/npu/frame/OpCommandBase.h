@@ -208,10 +208,10 @@ class OpCommandBase {
     int deviceIndex = 0;
     AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
     auto tensor = cpuPinMemTensor.to(
-      c10::Device(DeviceType::NPU, deviceIndex),
-      cpuPinMemTensor.scalar_type(),
-      true,
-      true);
+        c10::Device(DeviceType::NPU, deviceIndex),
+        cpuPinMemTensor.scalar_type(),
+        true,
+        true);
     storage.emplace_back(tensor);
     return storage.back();
   }

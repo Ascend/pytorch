@@ -90,7 +90,7 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_npu(
     .Run();
 
   return std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor>(
-    yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc);
+      yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc);
 }
 
 tuple<Tensor, Tensor> get_wb_single_layer_direc(
@@ -300,7 +300,7 @@ Tensor get_mask(const Tensor& input, const Tensor& batchSizes, const Tensor& h, 
     lens.emplace_back(len);
   }
   Tensor length = CalcuOpUtil::copy_tensor_host_to_device(
-    from_blob(lens.data(), {lens.size()}, at::kLong));    
+      from_blob(lens.data(), {lens.size()}, at::kLong));    
   
   SmallVector<Tensor, N> maskList;
   // Slice by T axis

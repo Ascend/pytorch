@@ -22,7 +22,6 @@
 
 #include "c10/npu/OptionsManager.h"
 
-using namespace std;
 
 namespace at {
 namespace native {

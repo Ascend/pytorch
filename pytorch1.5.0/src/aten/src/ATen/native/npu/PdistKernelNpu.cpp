@@ -75,7 +75,7 @@ Tensor _pdist_forward_npu(const Tensor& self, double p) {
       p_float = std::numeric_limits<float>::infinity();
     } else {
       TORCH_CHECK(p <= std::numeric_limits<float>::max(), "npu dose not support float64" );
-      p_float = (float) p;
+      p_float = static_cast<float>(p);
     }
     auto outputSize =  pdist_npu_output_size(self, p_float);
     result = at::empty_with_format(

@@ -108,7 +108,7 @@ Tensor& normal_float_float_out_npu(
     Tensor& result) {
   TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
-  //the op of PTNormalFloatFloat only support format of ND
+  // the op of PTNormalFloatFloat only support format of ND
   Tensor formatCastOfResult = result.npu_format_cast(ACL_FORMAT_ND);
   if (formatCastOfResult.scalar_type() == ScalarType::Half) {
     formatCastOfResult = formatCastOfResult.to(ScalarType::Float);

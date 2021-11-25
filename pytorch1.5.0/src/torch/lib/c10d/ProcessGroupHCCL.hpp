@@ -73,7 +73,7 @@ class ProcessGroupHCCL : public ProcessGroup {
    public:
     // Constructor takes a list of NPU devices to adapt framework
     // But HCCL support one device only!!!
-    WorkHCCL(const std::vector<at::Device>& devices);
+    explicit WorkHCCL(const std::vector<at::Device>& devices);
     virtual ~WorkHCCL();
 
     // Checks if request has completed. In this specific case of HCCL, it checks
@@ -261,36 +261,6 @@ class ProcessGroupHCCL : public ProcessGroup {
   virtual std::shared_ptr<ProcessGroupHCCL::WorkHCCL> initWork(
       std::vector<at::Device> devices);
 
- private:
-  // Helper that encapsulates work shared across all collective communication
-  // primitives.  The callbacks have the following signatures:
-  //
-  //    HcclResult fn(at::Tensor& input, at::Tensor& output,
-  //                    ncclComm_t, at::cuda::CUDAStream&);
-  //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
-  template <typename Fn>
-  std::shared_ptr<ProcessGroup::Work> collective(
-      std::vector<at::Tensor>& input,
-      std::vector<at::Tensor>& output,
-      Fn fn);
-  template <typename Fn, typename PreProcess, typename PostProcess>
-  std::shared_ptr<ProcessGroup::Work> collective(
-      std::vector<at::Tensor>& input,
-      std::vector<at::Tensor>& output,
-      Fn fn,
-      PreProcess pre,
-      PostProcess post);
-
-  // Temporarily not implemented
-  // static std::exception_ptr checkForHCCLErrorsInternal(const
-  // std::vector<std::shared_ptr<HCCLComm>>& hcclComms); void
-  // ncclCommWatchdog(); void ncclCommWatchdogInternal();
-
-  // Limit the number of tasks issued to the HCCL stream.
-  // This interface will introduce RTS bug,
-  // so we withdraw it temporarily.
-  // void fluxLimit ( const std::string& key, const int index);
-
  protected:
   static const int64_t kWatchdogThreadSleepMillis;
 
@@ -387,5 +357,35 @@ class ProcessGroupHCCL : public ProcessGroup {
 
   // Temporarily not implemented
   // std::unordered_set<std::string> abortedComms_;
+
+ private:
+  // Helper that encapsulates work shared across all collective communication
+  // primitives.  The callbacks have the following signatures:
+  //
+  //    HcclResult fn(at::Tensor& input, at::Tensor& output,
+  //                    ncclComm_t, at::cuda::CUDAStream&);
+  //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
+  template <typename Fn>
+  std::shared_ptr<ProcessGroup::Work> collective(
+      std::vector<at::Tensor>& input,
+      std::vector<at::Tensor>& output,
+      Fn fn);
+  template <typename Fn, typename PreProcess, typename PostProcess>
+  std::shared_ptr<ProcessGroup::Work> collective(
+      std::vector<at::Tensor>& input,
+      std::vector<at::Tensor>& output,
+      Fn fn,
+      PreProcess pre,
+      PostProcess post);
+
+  // Temporarily not implemented
+  // static std::exception_ptr checkForHCCLErrorsInternal(const
+  // std::vector<std::shared_ptr<HCCLComm>>& hcclComms); void
+  // ncclCommWatchdog(); void ncclCommWatchdogInternal();
+
+  // Limit the number of tasks issued to the HCCL stream.
+  // This interface will introduce RTS bug,
+  // so we withdraw it temporarily.
+  // void fluxLimit ( const std::string& key, const int index);
 };
 } // namespace c10d

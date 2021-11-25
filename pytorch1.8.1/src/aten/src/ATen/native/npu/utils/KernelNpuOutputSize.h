@@ -110,8 +110,7 @@ SmallVector<int64_t, SIZE> cdist_npu_output_size(
     const Tensor& x1,
     const Tensor& x2);
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
-conv2d_backward_npu_output_size(
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> conv2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad,
     const Tensor& weight,
@@ -125,8 +124,7 @@ SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
     int64_t dim,
     bool keepdim);
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
-conv_transpose2d_backward_npu_output_size(
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -161,16 +159,14 @@ SmallVector<int64_t, SIZE> deformable_conv2d_npu_output_size(
 
 SmallVector<int64_t, SIZE> det_npu_output_size(const Tensor& self);
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-ctc_loss_npu_output_size(
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
     const Tensor& logProbs,
     const Tensor& targets,
     IntArrayRef targetLengths);
 
 SmallVector<int64_t, SIZE> dot_npu_output_size(const Tensor& self, const Tensor& other);
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-nms_v4_npu_output_size(Scalar max_output_size);
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nms_v4_npu_output_size(Scalar max_output_size);
 
 SmallVector<int64_t, SIZE> equal_npu_output_size(void);
 
@@ -229,8 +225,7 @@ SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
 tuple<
     SmallVector<int64_t, SIZE>,
     SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>>
-nms_with_mask_npu_output_size(const Tensor& self);
+    SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(const Tensor& self);
 
 SmallVector<int64_t, SIZE> nonzero_npu_output_size(const Tensor& self);
 
@@ -325,8 +320,8 @@ SmallVector<int64_t, SIZE> transpose_npu_output_size(
     const Tensor& self,
     IntArrayRef perm);
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-softmax_cross_entropy_with_logits_impl_npu_output_size(const Tensor& self);
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> softmax_cross_entropy_with_logits_impl_npu_output_size(
+    const Tensor& self);
 
 SmallVector<int64_t, SIZE> sum_npu_output_size(
     const Tensor& self,

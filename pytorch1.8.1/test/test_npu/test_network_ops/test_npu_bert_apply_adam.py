@@ -44,7 +44,7 @@ class TestNpuBertApplyAdam(TestCase):
         global_grad_norm = 0.
 
         var_out, m_out, v_out = torch.npu_bert_apply_adam(
-            var_in, m_in, v_in, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay)
+            lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, out = (var_in, m_in, v_in))
 
         self.assertRtolEqual(var_out[:3].cpu(), var_ans)
         self.assertRtolEqual(m_out[:3].cpu(), m_ans)

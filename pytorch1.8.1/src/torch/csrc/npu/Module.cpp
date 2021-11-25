@@ -134,7 +134,7 @@ PyObject * THNPModule_getCurrentStream_wrap(
     THPUtils_checkLong(device_index), "invalid argument to getCurrentStream");
   int64_t device = THPUtils_unpackLong(device_index);
   return PyLong_FromUnsignedLongLong(
-    c10::npu::getCurrentNPUStream(device).pack());
+      c10::npu::getCurrentNPUStream(device).pack());
   END_HANDLE_TH_ERRORS
 }
 

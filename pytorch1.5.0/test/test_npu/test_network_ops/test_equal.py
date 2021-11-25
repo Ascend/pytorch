@@ -106,5 +106,4 @@ class TestTensorEqual(TestCase):
             
 instantiate_device_type_tests(TestTensorEqual, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.set_device("npu:0")
     run_tests()

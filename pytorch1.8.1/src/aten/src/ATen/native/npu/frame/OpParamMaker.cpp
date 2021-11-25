@@ -81,11 +81,11 @@ void OpAttrMaker::Set(
   }
 
   aclopSetAttrListListInt(
-        attr,
-        name.c_str(),
-        attrValue.size(),
-        eachListIntNum.data(),
-        attrValue.data());
+      attr,
+      name.c_str(),
+      attrValue.size(),
+      eachListIntNum.data(),
+      attrValue.data());
 }
 
 
@@ -165,18 +165,18 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   int index = 0;
   do {
     ret = aclopCompileAndExecute(
-      name.c_str(),
-      inputSize,
-      params.inDesc.data(),
-      params.inBuffer.data(),
-      outputSize,
-      params.outDesc.data(),
-      params.outBuffer.data(),
-      params.attr,
-      ACL_ENGINE_SYS,
-      ACL_COMPILE_SYS,
-      NULL,
-      stream);
+        name.c_str(),
+        inputSize,
+        params.inDesc.data(),
+        params.inBuffer.data(),
+        outputSize,
+        params.outDesc.data(),
+        params.outBuffer.data(),
+        params.attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        NULL,
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (reset_flag) {
@@ -198,18 +198,18 @@ int ExecFunc(void* in, aclrtStream stream) {
   int index = 0;
   do {
     ret = aclopCompileAndExecute(
-      (cur_paras->opType).c_str(),
-      cur_paras->paras.input_num,
-      cur_paras->paras.input_desc,
-      cur_paras->paras.input_data_buf,
-      cur_paras->paras.output_num,
-      cur_paras->paras.output_desc,
-      cur_paras->paras.output_data_buf,
-      cur_paras->attr,
-      ACL_ENGINE_SYS,
-      ACL_COMPILE_SYS,
-      nullptr,
-      stream);
+        (cur_paras->opType).c_str(),
+        cur_paras->paras.input_num,
+        cur_paras->paras.input_desc,
+        cur_paras->paras.input_data_buf,
+        cur_paras->paras.output_num,
+        cur_paras->paras.output_desc,
+        cur_paras->paras.output_data_buf,
+        cur_paras->attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        nullptr,
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
 

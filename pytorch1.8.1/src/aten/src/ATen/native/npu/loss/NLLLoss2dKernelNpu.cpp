@@ -21,8 +21,7 @@ using namespace at::native::npu;
 
 namespace {
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-nll_loss2d_npu_output_size(
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nll_loss2d_npu_output_size(
     const Tensor& self,
     const Tensor& target,
     int64_t reduction,

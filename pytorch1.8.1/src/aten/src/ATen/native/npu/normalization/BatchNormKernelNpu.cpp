@@ -68,8 +68,7 @@ tuple<Tensor&, Tensor&> batch_norm_training_reduce_nocheck(
   return tuple<Tensor&, Tensor&>(sum, square_sum);
 }
 
-tuple<Tensor&, Tensor&, Tensor&>
-batch_norm_training_update_nocheck(
+tuple<Tensor&, Tensor&, Tensor&> batch_norm_training_update_nocheck(
     Tensor& result,
     Tensor& save_mean,
     Tensor& save_invstd,

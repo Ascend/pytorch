@@ -124,7 +124,7 @@ private:
     // recover contiguous base tensor
     Tensor temp_src = at::empty(base_size, src.options());
     temp_src.set_(src.storage(), temp_src.storage_offset(), 
-      temp_src.sizes(), temp_src.strides());
+        temp_src.sizes(), temp_src.strides());
 
     // call StridedSliceD op
     at::npu_indexing_out(self, temp_src, start, end, step);

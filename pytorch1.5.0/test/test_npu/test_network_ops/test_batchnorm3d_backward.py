@@ -49,7 +49,7 @@ class TestBn2d(TestCase):
         return output, input_npu
 
     def test_batchnorm3d_shape_format_fp16(self, device):
-        format_list = [30]
+        format_list = [30, 32]
         shape_list = [[256, 164, 7, 7, 7],[148, 16, 28, 28, 28]]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
@@ -65,7 +65,7 @@ class TestBn2d(TestCase):
             self.assertRtolEqual(cpu_input, npu_input)
 
     def test_batchnorm3d_shape_format_fp32(self, device):
-        format_list = [30]
+        format_list = [30, 32]
         shape_list = [(256, 32, 7, 7, 7)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list

@@ -100,18 +100,18 @@ std::tuple<Tensor&, Tensor&> median_out_npu(
     bool keepdim) {
   auto outputSize = median_npu_output_size(self, dim, keepdim);
   OpPreparation::CheckOut(
-    {self}, 
-    values, 
-    ACL_FORMAT_ND, 
-    self.scalar_type(), 
-    outputSize);
+      {self}, 
+      values, 
+      ACL_FORMAT_ND, 
+      self.scalar_type(), 
+      outputSize);
 
   OpPreparation::CheckOut(
-    {self}, 
-    indices, 
-    ACL_FORMAT_ND, 
-    ScalarType::Int, 
-    outputSize);
+      {self}, 
+      indices, 
+      ACL_FORMAT_ND, 
+      ScalarType::Int, 
+      outputSize);
 
   median_out_npu_nocheck(values, indices, self, dim, keepdim);
   return tuple<Tensor&, Tensor&>(values, indices);

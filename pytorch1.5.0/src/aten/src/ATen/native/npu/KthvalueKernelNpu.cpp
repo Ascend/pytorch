@@ -42,7 +42,7 @@ void kthvalue_shape_modify(
   auto outputSize = kthvalue_npu_output_size(self, dim, keepdim);
   if (values.defined()) {
     TORCH_CHECK(
-       values.dtype() == self.dtype(),
+        values.dtype() == self.dtype(),
         "output values must be of same type as input");
     TORCH_CHECK(
         values.device() == self.device(),
