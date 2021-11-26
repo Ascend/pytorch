@@ -17,9 +17,7 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include <third_party/acl/inc/graph/operator_factory.h>
 
-#ifdef USE_NPU_GRAPH
 #include <third_party/acl/inc/op_proto/array_ops.h>
-#endif
 
 namespace at {
 namespace native {
@@ -58,6 +56,13 @@ at::Tensor ConstructCpuTenosr(
   return cpu_tensor;
 }
 } // namespace
+
+template <>
+void ATenGeBridge::SetGeOpAttr<std::pair<string, string>>
+    (const c10::any& attr_val, ge::OperatorPtr ge_op) {
+  auto attr = TryToGetAnyValue<std::pair<string, string>>(attr_val);
+  ge_op->SetAttr(attr.first.c_str(), ge::AscendString(attr.second.c_str()));
+}
 
 ge::DataType ATenGeBridge::GetGeDType(ScalarType type) {
   auto iter = kScalarTypeToGeDType.find(type);
@@ -123,11 +128,9 @@ void ATenGeBridge::SetGeOpConstInput(
       reinterpret_cast<uint8_t*>(cpu_tensor.data_ptr()),
       cpu_tensor.nbytes()};
 
-#ifdef USE_NPU_GRAPH
   auto const_op = std::make_shared<ge::op::Const>();
   const_op->set_attr_value(ge_tenosr);
   ge_op->SetInput(std::get<0>(const_input_tuple), *const_op, 0);
-#endif
 }
 
 void ATenGeBridge::SetSensitiveFormat(
@@ -166,9 +169,7 @@ void ATenGeBridge::AddNodeExtInfoIntoGeOp(
         SetGeOpAttr<std::pair<string, float>>(info.second, ge_op);
         break;
       case NodeExtInfoType::ATTR_TYPE_STRING:
-#ifdef USE_NPU_GRAPH
         SetGeOpAttr<std::pair<string, string>>(info.second, ge_op);
-#endif
         break;
       case NodeExtInfoType::ATTR_TYPE_LIST_LONG:
         SetGeOpAttr<std::pair<string, vector<int64_t>>>(info.second, ge_op);

@@ -16,15 +16,12 @@
 
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#ifdef USE_NPU_GRAPH
 #include "third_party/acl/inc/op_proto/split_combination_ops.h"
-#endif
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-#ifdef USE_NPU_GRAPH
 namespace {
 at::native::npu::DynamicInputRegFunc stack_func =
     [](DyNumAndIndex num_and_index, std::string op_name) -> ge::OperatorPtr {
@@ -34,7 +31,6 @@ at::native::npu::DynamicInputRegFunc stack_func =
       return ge_op;
     };
 }
-#endif
 
 SmallVector<int64_t, SIZE> stack_npu_output_size(
     TensorList tensors,
@@ -56,10 +52,8 @@ Tensor& stack_out_npu_nocheck(Tensor& result, TensorList tensors, int64_t dim) {
   auto inputTensors = CalcuOpUtil::ConvertTensorListToSmallVector(tensors);
   auto dynamic_num = inputTensors.size();
   OpCommand cmd;
-  cmd.Name("Pack");
-#ifdef USE_NPU_GRAPH
-  cmd.DynamicInputReg(stack_func, {{dynamic_num, 0}});
-#endif
+  cmd.Name("Pack")
+     .DynamicInputReg(stack_func, {{dynamic_num, 0}});
   for (int i = 0; i < dynamic_num; i++) {
     string inputName = "x" + to_string(i);
     cmd.Input(inputTensors[i], inputName);

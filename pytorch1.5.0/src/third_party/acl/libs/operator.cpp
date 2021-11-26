@@ -18,54 +18,50 @@ namespace ge {
 
 Operator op;
 
-Operator::Operator(const char* type){}
+Operator::Operator(const char* type){};
 
 Operator::Operator(const char* name, const char* type) {}
 
 Operator::Operator(const AscendString& name, const AscendString& type) {}
 
-#ifdef USE_NPU_GRAPH
 void Operator::AttrRegister(
-    const string& name,
+    const char* name,
     const std::vector<int64_t>& attr_value) {}
 
-void Operator::AttrRegister(const string& name, const string& attr_value) {}
+void Operator::AttrRegister(const char* name, const AscendString& attr_value) {}
 
-void Operator::AttrRegister(const string& name, const Tensor& attr_value) {}
+void Operator::AttrRegister(const char* name, const Tensor& attr_value) {}
 
-void Operator::AttrRegister(const string& name, bool attr_value) {}
+void Operator::AttrRegister(const char* name, bool attr_value) {}
 
-void Operator::AttrRegister(
-    const string& name,
-    const ge::DataType& attr_value) {}
+void Operator::AttrRegister(const char* name, const ge::DataType& attr_value) {}
 
-void Operator::AttrRegister(const string& name, int64_t attr_value) {}
+void Operator::AttrRegister(const char* name, float attr_value) {}
 
-void Operator::InputRegister(const string& name) {}
+void Operator::AttrRegister(const char* name, int64_t attr_value) {}
+
+void Operator::InputRegister(const char* name) {}
+
+void Operator::DynamicInputRegisterByIndex(
+    const char* name,
+    const unsigned int num,
+    size_t index) {}
 
 void Operator::DynamicInputRegister(
-    const string& name,
+    const char* name,
     const unsigned int num,
     bool is_push_back) {}
 
 void Operator::DynamicOutputRegister(
-    const string& name,
+    const char* name,
     const unsigned int num,
     bool is_push_back) {}
 
-void Operator::RequiredAttrRegister(const string& name) {}
+void Operator::RequiredAttrRegister(const char* name) {}
 
-void Operator::OutputRegister(const string& name) {}
+void Operator::OutputRegister(const char* name) {}
 
-void Operator::DynamicInputRegisterByIndex(
-    const string& name,
-    const unsigned int num,
-    size_t index) {}
-
-Operator& Operator::SetAttr(const string& name, const string& attr_value) {
-  return op;
-}
-#endif
+Operator& Operator::SetAttr(const char* name, const AscendString& attr_value) {}
 
 graphStatus Operator::UpdateInputDesc(
     const char* name,
@@ -110,7 +106,6 @@ Operator& Operator::SetAttr(const char* name, uint32_t attr_value) {
   return op;
 }
 
-
 Operator& Operator::SetAttr(
     const char* name,
     const std::vector<int64_t>& attr_value) {
@@ -123,13 +118,11 @@ Operator& Operator::SetAttr(
   return op;
 }
 
-
 Operator& Operator::SetAttr(
     const char* name,
     const std::vector<uint32_t>& attr_value) {
   return op;
 }
-
 
 Operator& Operator::SetAttr(
     const char* name,
@@ -147,11 +140,9 @@ Operator& Operator::SetAttr(
   return op;
 }
 
-
 Operator& Operator::SetAttr(const char* name, AttrValue&& attr_value) {
   return op;
 }
-
 
 Operator& Operator::SetAttr(const char* name, const Tensor& attr_value) {
   return op;

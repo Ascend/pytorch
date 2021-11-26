@@ -160,7 +160,11 @@ PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   auto is_graph_mode = c10::npu::NpuRunMode::IsGraphMode();
-  return is_graph_mode ? Py_True : Py_False;
+  if (is_graph_mode) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
   END_HANDLE_TH_ERRORS
 }
 

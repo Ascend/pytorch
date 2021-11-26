@@ -57,12 +57,10 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
 
   if (ignore_index >= 0) {
     Tensor zero = at::zeros(1, self.options());
-    void* ignore_ptr = reinterpret_cast<uint8_t*>(weight_tensor.data_ptr()) +
-        ignore_index * weight_tensor.itemsize();
     CalcuOpUtil::AclrtMemcpyAsync(
-        ignore_ptr,
+        {weight_tensor, ignore_index},
         weight_tensor.itemsize(),
-        reinterpret_cast<void*>(zero.data_ptr()),
+        {zero, 0},
         weight_tensor.itemsize(),
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }

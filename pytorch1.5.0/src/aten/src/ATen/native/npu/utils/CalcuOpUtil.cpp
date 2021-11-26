@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include "CalcuOpUtil.h"
 #include <Python.h>
 #include <third_party/acl/inc/acl/acl_base.h>
@@ -155,12 +156,17 @@ Tensor CalcuOpUtil::copy_tensor_host_to_device(const Tensor& cpu_tensor) {
 }
 
 NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
-    void* dst,
+    const std::pair<Tensor, int64_t>& dst,
     size_t dst_size,
-    const void* src,
+    const std::pair<Tensor, int64_t>& src,
     size_t src_size,
     aclrtMemcpyKind kind) {
-  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(dst, dst_size, const_cast<void* >(src), src_size, kind));
+  GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
+  void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
+        dst.second * dst.first.itemsize();
+  void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
+        src.second * src.first.itemsize();
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, dst_size, const_cast<void* >(src_ptr), src_size, kind));
 
   return SUCCESS;
 }

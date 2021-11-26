@@ -200,9 +200,9 @@ class CalcuOpUtil {
       ScalarType scalar_data_type);
   static Tensor copy_tensor_host_to_device(const Tensor& cpu_tensor);
   static NPUStatus AclrtMemcpyAsync(
-      void* dst,
+      const std::pair<Tensor, int64_t>& dst,
       size_t dst_size,
-      const void* src,
+      const std::pair<Tensor, int64_t>& src,
       size_t src_size,
       aclrtMemcpyKind kind);
   static void check_memory_over_laps(

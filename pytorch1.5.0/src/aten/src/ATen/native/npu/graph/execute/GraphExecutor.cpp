@@ -23,9 +23,7 @@
 #include <c10/npu/NPUGraphContextManager.h>
 #include <c10/npu/register/OptionRegister.h>
 
-#ifdef USE_NPU_GRAPH
 #include <third_party/acl/inc/op_proto/array_ops.h>
-#endif
 
 #include <stack>
 namespace at {
@@ -195,9 +193,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
     auto op_ptr = data_node.value()->GetGeOp();
     if (data_node.value()->GetOpType() == kDataNodeType) {
       if (op_ptr == nullptr) {
-#ifdef USE_NPU_GRAPH
         data_node.value()->SetGeOp(std::make_shared<ge::op::Data>());
-#endif
         op_ptr = data_node.value()->GetGeOp();
       }
       op_ptr->SetAttr(kDataAttrIndex, static_cast<uint32_t>(index));
