@@ -142,10 +142,10 @@ tuple<Tensor, Tensor> gru_single_layer_bidirec_npu(
     rev_bias_input = params.second.b_ih.to(input.dtype());
     rev_bias_hidden = params.second.b_hh.to(input.dtype());
   } else {
-    fw_bias_input = OpPreparation::ApplyTensorWithFormat(fw_weight_input.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
-    fw_bias_hidden = OpPreparation::ApplyTensorWithFormat(fw_weight_hidden.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
-    rev_bias_input = OpPreparation::ApplyTensorWithFormat(rev_weight_input.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
-    rev_bias_hidden = OpPreparation::ApplyTensorWithFormat(rev_weight_hidden.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    fw_bias_input = OpPreparation::ApplyTensorWithFormat(fw_weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    fw_bias_hidden = OpPreparation::ApplyTensorWithFormat(fw_weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    rev_bias_input = OpPreparation::ApplyTensorWithFormat(rev_weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    rev_bias_hidden = OpPreparation::ApplyTensorWithFormat(rev_weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
   }
   Tensor seq_length = OpPreparation::ApplyTensorWithFormat({}, input.options(), ACL_FORMAT_ND);
   auto results = at::npu_gru(
@@ -207,8 +207,8 @@ tuple<Tensor, Tensor> gru_single_layer_direc_npu(
     bias_input = params.b_ih.to(input.dtype());
     bias_hidden = params.b_hh.to(input.dtype());
   } else {
-    bias_input = OpPreparation::ApplyTensorWithFormat(weight_input.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
-    bias_hidden = OpPreparation::ApplyTensorWithFormat(weight_hidden.size(0), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    bias_input = OpPreparation::ApplyTensorWithFormat(weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    bias_hidden = OpPreparation::ApplyTensorWithFormat(weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
   }
 
   Tensor seq_length = OpPreparation::ApplyTensorWithFormat({}, input.options(), ACL_FORMAT_ND);
@@ -256,7 +256,7 @@ tuple<Tensor, Tensor> apply_layer_stack(
                                       (*(params_it+i+3)).first, (*(params_it+i+3)).second));
     }
   } else {
-    for (int64_t i = 0; i < params_size; i = i + 4){
+    for (int64_t i = 0; i < params_size; i = i + 2){
       weights.emplace_back(CellParams((*(params_it+i)).first, (*(params_it+i)).second),
                            CellParams((*(params_it+i+1)).first, (*(params_it+i+1)).second));
     }
@@ -302,7 +302,7 @@ tuple<Tensor, Tensor> apply_layer_stack(
                                       *(params_it+i+2), *(params_it+i+3)));
     }
   } else {
-    for (int64_t i = 0; i < params_size; i = i + 4){
+    for (int64_t i = 0; i < params_size; i = i + 2){
       weights.emplace_back(CellParams(*(params_it+i), *(params_it+i+1)));
     }
   }
