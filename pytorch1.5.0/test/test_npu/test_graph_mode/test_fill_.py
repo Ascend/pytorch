@@ -91,7 +91,7 @@ class TestFill(TestCase):
             [np.float16, -1, (1, 8192)],
             [np.float16, -1, (1, 16384)],
             [np.float16, -1, (1, 32768)],
-            [np.float16, -1, ( 1, 131072)],
+            [np.float16, -1, (1, 131072)],
             [np.float16, -1, (1, 196608)],
             [np.float16, -1, (1, 262144)],
             [np.float16, -1, (1, 393216)],
@@ -131,5 +131,4 @@ class TestFill(TestCase):
 
 instantiate_device_type_tests(TestFill, globals(), except_for='cpu')
 if __name__ == '__main__':
-    #torch.npu.set_device("npu:7")
     run_tests()

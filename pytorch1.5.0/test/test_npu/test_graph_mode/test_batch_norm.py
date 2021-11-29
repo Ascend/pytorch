@@ -30,7 +30,7 @@ class TestBatchNorm(TestCase):
         m = torch.nn.BatchNorm2d(num_features, affine=affine)
         output = m(input1)
         if flag:
-          output = output.to(torch.float16)
+            output = output.to(torch.float16)
         output_cpu = output.detach().numpy()
         return output_cpu
 

@@ -60,8 +60,8 @@ class TestSqrt(TestCase):
     @RunFuncInGraphMode
     def test_sqrt_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)] ],
-               [ [np.float32, 3, (2, 4, 5)] ]
+               [[np.float32, 0, (1, 6, 4)] ],
+               [[np.float32, 3, (2, 4, 5)] ]
                ]
         for item in shape_format:            
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -72,10 +72,10 @@ class TestSqrt(TestCase):
     @RunFuncInGraphMode
     def test_sqrt_shape_format_fp16(self, device):
         shape_format = [
-                [ [np.float16, 0, (1, 6, 4)] ],
-                [ [np.float16, 0, (2, 4, 5)] ]
+                [[np.float16, 0, (1, 6, 4)] ],
+                [[np.float16, 0, (2, 4, 5)] ]
                 ]
-        def cpu_op_exec( input1):
+        def cpu_op_exec(input1):
             input1 = input1.to(torch.float32)
             output = torch.sqrt(input1)
             output = output.numpy()
@@ -91,8 +91,8 @@ class TestSqrt(TestCase):
     @RunFuncInGraphMode
     def test_sqrt_out_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 6, 4)] ],
-               [ [np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 4, 5)]]
+               [[np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 6, 4)] ],
+               [[np.float32, 3, (2, 4, 5)], [np.float32, 3, (2, 4, 5)]]
                ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -104,8 +104,8 @@ class TestSqrt(TestCase):
     @RunFuncInGraphMode
     def test_sqrt_out_shape_format_fp16(self, device):
         shape_format = [
-                [ [np.float16, 0, (1, 6, 4)], [np.float16, 0, (1, 6, 4)] ],
-                [ [np.float16, 0, (2, 4, 5)], [np.float16, 0, (2, 4, 5)] ]
+                [[np.float16, 0, (1, 6, 4)], [np.float16, 0, (1, 6, 4)] ],
+                [[np.float16, 0, (2, 4, 5)], [np.float16, 0, (2, 4, 5)] ]
                 ]
         def cpu_op_out_exec(input1, output):
             input1 = input1.to(torch.float32)
@@ -124,14 +124,15 @@ class TestSqrt(TestCase):
     @RunFuncInGraphMode
     def test_sqrt1_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)] ],
-               [ [np.float32, 3, (2, 4, 5)] ]
+               [[np.float32, 0, (1, 6, 4)] ],
+               [[np.float32, 3, (2, 4, 5)] ]
                ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_output = self.cpu_op_exec_(cpu_input)
             npu_output = self.npu_op_exec_(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
+
     @RunFuncInGraphMode
     def test_sqrt1_shape_format_fp16(self, device):
         def cpu_op_exec_(input1):
@@ -142,8 +143,8 @@ class TestSqrt(TestCase):
             return output
 
         shape_format = [
-                [ [np.float16, 0, (1, 6, 4)] ],
-                [ [np.float16, 0, (2, 4, 5)] ]
+                [[np.float16, 0, (1, 6, 4)] ],
+                [[np.float16, 0, (2, 4, 5)] ]
                 ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -154,5 +155,4 @@ class TestSqrt(TestCase):
         
 instantiate_device_type_tests(TestSqrt, globals(), except_for="cpu")
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:6")
     run_tests()

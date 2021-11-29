@@ -19,21 +19,21 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestGridSampler2D(TestCase):
-    def cpu_op_exec(self, input1, grid):
-        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
+    def cpu_op_exec(self, input1, grid, pad_mode, align):
+        output = torch.grid_sampler_2d(input1, grid, 0, pad_mode, align)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self, input1, grid):
-        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
+    def npu_op_exec(self, input1, grid, pad_mode, align):
+        output = torch.grid_sampler_2d(input1, grid, 0, pad_mode, align)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def cpu_op_fp16_exec(self, input1, grid):
+    def cpu_op_fp16_exec(self, input1, grid, pad_mode, align):
         input1 = input1.to(torch.float32)
         grid = grid.to(torch.float32)
-        output = torch.grid_sampler_2d(input1, grid, 0, 0, True)
+        output = torch.grid_sampler_2d(input1, grid, 0, pad_mode, align)
         output = output.numpy()
         output = output.astype(np.float16)
         return output
@@ -44,14 +44,21 @@ class TestGridSampler2D(TestCase):
                 [[np.float32, 0, (1,4,64, 10)],[np.float32, 0, (1,2,32,2)]],
                 [[np.float32, 0, (2, 2048, 7, 7)],[np.float32, 0, (2, 2048, 14, 2)]],
                 [[np.float32, 4, (32, 1, 3, 3)],[np.float32, 4, (32, 20, 30, 2)]],
-                [[np.float32, 29, (1,2,10, 128)],[np.float32, 4, (1, 10, 5, 2)]]     
+                [[np.float32, 29, (1,2,10, 128)],[np.float32, 4, (1, 10, 5, 2)]]
                 ]
+        attrs = [
+            [0, True],
+            [1, True],
+            [0, False],
+            [1, False]
+            ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
-            cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
-            cpu_output = self.cpu_op_exec(cpu_input, cpu_grid)
-            npu_output = self.npu_op_exec(npu_input, npu_grid)
-            self.assertRtolEqual(cpu_output, npu_output)
+            for attr in attrs:
+                cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
+                cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
+                cpu_output = self.cpu_op_exec(cpu_input, cpu_grid, *attr)
+                npu_output = self.npu_op_exec(npu_input, npu_grid, *attr)
+                self.assertRtolEqual(cpu_output, npu_output)
 
     def test_grid_sampler_2d_fp16_shape_format(self, device):
         shape_format = [
@@ -61,12 +68,19 @@ class TestGridSampler2D(TestCase):
                 [[np.float16, 4, (32, 1, 3, 3)],[np.float16, 4, (32, 20, 30, 2)]],
                 [[np.float16, 29, (1,2,10, 128)],[np.float16, 4, (1, 10, 5, 2)]]
                 ]
+        attrs = [
+            [0, True],
+            [1, True],
+            [0, False],
+            [1, False]
+            ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
-            cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
-            cpu_output = self.cpu_op_fp16_exec(cpu_input, cpu_grid)
-            npu_output = self.npu_op_exec(npu_input, npu_grid)
-            self.assertRtolEqual(cpu_output, npu_output)
+            for attr in attrs:
+                cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
+                cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
+                cpu_output = self.cpu_op_fp16_exec(cpu_input, cpu_grid, *attr)
+                npu_output = self.npu_op_exec(npu_input, npu_grid, *attr)
+                self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestGridSampler2D, globals(), except_for="cpu")
 if __name__ == "__main__":

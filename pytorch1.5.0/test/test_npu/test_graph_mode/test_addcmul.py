@@ -126,16 +126,7 @@ class TestAddCMul(TestCase):
 
     @RunFuncInGraphMode
     def test_addcmul_out_result(self, device):
-        shape_format = [
-            # [[np.float16, 0, [2, 6, 6, 3]], [np.float16, 0, [256, 116]]],
-            # [[np.float16, 0, [2, 3, 6]],  [np.float16, 0, [58, 58, 1, 1]]],
-            # [[np.float16, 0, [12, 2]],   [np.float16, 0, [128, 128]]],
-            # [[np.float16, 0, [12]], [np.float16, 0, [128, 116]]],
-            # [[np.float32, 0, [128, 64, 64, 32]], [np.float32, 0, [256, 116]]],
-            # [[np.float32, 0, [128, 32, 64]],   [np.float32, 0, [58, 58, 1, 1]]],
-            # [[np.float32, 0, [128, 32]],   [np.float32, 0, [128, 128]]],
-            # [[np.float32, 0, [128]], [np.float32, 0, [128, 116]]],
-        ]
+        shape_format = []
         self.addcmul_out_result(shape_format)
 
 

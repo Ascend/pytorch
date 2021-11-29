@@ -26,7 +26,7 @@ class TestBroadCastToD(TestCase):
     def test_broadcast(self, device, dtype):
         shapes = [
                     [[1], [5]],
-                    [[ 1, 2], [3, 2]],
+                    [[1, 2], [3, 2]],
                     [[1, 2, 1], [1, 2, 3]],
                 ]
         for item in shapes:

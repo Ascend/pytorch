@@ -30,7 +30,6 @@ class TestErf(TestCase):
         return output
 
     def npu_op_exec(self,input1):
-       # input1 = input1.to("npu")
         output = torch.erf(input1)
         output = output.to("cpu")
         output = output.numpy()
@@ -43,7 +42,6 @@ class TestErf(TestCase):
 
 
     def npu_op_exec_(self,input1):
-        #input1 = input1.to("npu")
         torch.erf_(input1)
         output = input1.to("cpu")
         output = output.numpy()
@@ -56,8 +54,6 @@ class TestErf(TestCase):
         return output
 
     def npu_op_exec_out(self,input1,npu_out):
-        #input1 = input1.to("npu")
-        #out = out.to("npu")
         torch.erf(input1, out = npu_out)
         output = npu_out.to("cpu")
         output = output.numpy()
@@ -68,8 +64,6 @@ class TestErf(TestCase):
         shape_format = [
                 [np.float32, 0 , (4, 3)],
                 [np.float32, -1, (2,4, 3)],
-               # [np.float32, 1, (100, 20, 10)],
-               # [np.float32, 2, (20, 13)],
                 [np.float32, 3, (20, 13)],
                 [np.float32, 4, (20, 13)],
                 [np.float32, 29, (20, 13)]
@@ -85,8 +79,6 @@ class TestErf(TestCase):
         shape_format = [
                 [np.float32, 0 , (4, 3)],
                 [np.float32, -1, (2,4, 3)],
-               # [np.float32, 1, (100, 20, 10)],
-               # [np.float32, 2, (20, 13)],
                 [np.float32, 3, (20, 13)],
                 [np.float32, 4, (20, 13)],
                 [np.float32, 29, (20, 13)]               
@@ -96,14 +88,12 @@ class TestErf(TestCase):
             cpu_output = self.cpu_op_exec_(cpu_input1)
             npu_output = self.npu_op_exec_(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
-	
+
     @RunFuncInGraphMode
     def test_erf_out_float32_common_shape_format(self, device):
         shape_format = [
                 [np.float32, 0 , (4, 3)],
                 [np.float32, -1, (2,4, 3)],
-               # [np.float32, 1, (100, 20, 10)],
-               # [np.float32, 2, (20, 13)],
                 [np.float32, 3, (20, 13)],
                 [np.float32, 4, (20, 13)],
                 [np.float32, 29, (20, 13)]      
@@ -117,5 +107,4 @@ class TestErf(TestCase):
    
 instantiate_device_type_tests(TestErf, globals(), except_for="cpu")
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:6")
     run_tests()

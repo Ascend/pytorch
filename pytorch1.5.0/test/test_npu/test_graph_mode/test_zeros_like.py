@@ -45,8 +45,8 @@ class TestZerosLike(TestCase):
     @RunFuncInGraphMode
     def test_zeros_like_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)] ],
-               [ [np.float32, 3, (2, 4, 5)] ]
+               [[np.float32, 0, (1, 6, 4)] ],
+               [[np.float32, 3, (2, 4, 5)] ]
                ]
         for item in shape_format:            
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
@@ -57,8 +57,8 @@ class TestZerosLike(TestCase):
     @RunFuncInGraphMode
     def test_zeros_like_dtype_shape_format(self, device):
         shape_format = [
-               [ [np.float32, 0, (1, 6, 4)], torch.float32],
-               [ [np.float32, 3, (2, 4, 5)], torch.float16 ],
+               [[np.float32, 0, (1, 6, 4)], torch.float32],
+               [[np.float32, 3, (2, 4, 5)], torch.float16 ],
                ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)

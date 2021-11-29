@@ -194,7 +194,7 @@ class TestSub(TestCase):
 
     @RunFuncInGraphMode
     def test_sub_mix_dtype_1(self,device):
-        npu_input1, npu_input2= self.generate_data(0, 100, (2, 3), np.int32)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (2, 3), np.int32)
         npu_input3, npu_input4 = self.generate_data(0, 100, (2, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
         npu_output = self.npu_op_exec(npu_input1, npu_input3)
@@ -211,5 +211,4 @@ class TestSub(TestCase):
 
 instantiate_device_type_tests(TestSub, globals(), except_for='cpu')
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:5")
     run_tests()

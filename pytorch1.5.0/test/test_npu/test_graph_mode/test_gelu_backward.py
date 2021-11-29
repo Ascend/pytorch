@@ -47,7 +47,7 @@ class TestGeluBackward(TestCase):
         
     @RunFuncInGraphMode
     def test_gelu_backward_float32_1(self, device):
-        input1= self.generate_single_data(0, 100, (4,3,1,1), np.float32)
+        input1 = self.generate_single_data(0, 100, (4, 3, 1, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
@@ -90,5 +90,4 @@ class TestGeluBackward(TestCase):
         
 instantiate_device_type_tests(TestGeluBackward, globals(), except_for="cpu")
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:2")
     run_tests()

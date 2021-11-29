@@ -42,7 +42,7 @@ class TestGelu(TestCase):
         
     @RunFuncInGraphMode
     def test_gelu_float32_1(self, device):
-        input1= self.generate_data(0, 100, (4,3), np.float32)
+        input1 = self.generate_data(0, 100, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
@@ -50,7 +50,7 @@ class TestGelu(TestCase):
 
     @RunFuncInGraphMode
     def test_gelu_float32_2(self, device):
-        input1= self.generate_data(0, 1000, (4,3), np.float32)
+        input1 = self.generate_data(0, 1000, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
@@ -58,7 +58,7 @@ class TestGelu(TestCase):
 
     @RunFuncInGraphMode
     def test_gelu_float32_3(self, device):
-        input1= self.generate_data(0, 1000, (4,3), np.float32)
+        input1 = self.generate_data(0, 1000, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
@@ -80,7 +80,7 @@ class TestGelu(TestCase):
             output = output.numpy().astype(np.float16)
             return output 
 
-        npu_input1 = self.generate_data(0, 100, (5,3), np.float16)
+        npu_input1 = self.generate_data(0, 100, (5, 3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = cpu_op_exec_fp16(cpu_input1)
         npu_output = npu_op_exec_fp16(npu_input1)
@@ -102,7 +102,7 @@ class TestGelu(TestCase):
             output = output.numpy().astype(np.float16)
             return output 
 
-        npu_input1 = self.generate_data(0, 1000, (5,3), np.float16)
+        npu_input1 = self.generate_data(0, 1000, (5, 3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = cpu_op_exec_fp16(cpu_input1)
         npu_output = npu_op_exec_fp16(npu_input1)
@@ -124,7 +124,7 @@ class TestGelu(TestCase):
             output = output.numpy().astype(np.float16)
             return output 
 
-        npu_input1 = self.generate_data(0, 1000, (3,3), np.float16)
+        npu_input1 = self.generate_data(0, 1000, (3, 3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = cpu_op_exec_fp16(cpu_input1)
         npu_output = npu_op_exec_fp16(npu_input1)
@@ -132,5 +132,4 @@ class TestGelu(TestCase):
 
 instantiate_device_type_tests(TestGelu, globals(), except_for='cpu')
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:2")
     run_tests()

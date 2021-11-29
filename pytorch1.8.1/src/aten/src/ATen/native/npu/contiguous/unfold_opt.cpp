@@ -94,7 +94,7 @@ private:
     }
 
     // step5 the last limitation
-    if (view_sizes[fold_dimension] == (base_sizes[fold_dimension] - fold_size) / fold_step + 1) {
+    if ((fold_step != 0) && (view_sizes[fold_dimension] == (base_sizes[fold_dimension] - fold_size) / fold_step + 1)) {
       return true;
     }
     return false;

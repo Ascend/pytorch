@@ -222,10 +222,8 @@ SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
     IntArrayRef padding,
     IntArrayRef stride);
 
-tuple<
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(const Tensor& self);
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(
+    const Tensor& self);
 
 SmallVector<int64_t, SIZE> nonzero_npu_output_size(const Tensor& self);
 

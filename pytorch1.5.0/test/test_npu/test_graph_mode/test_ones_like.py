@@ -81,5 +81,4 @@ class TestOnesLike(TestCase):
 
 instantiate_device_type_tests(TestOnesLike, globals(), except_for='cpu')
 if __name__ == "__main__":
-    #torch.npu.set_device("npu:5")
     run_tests()

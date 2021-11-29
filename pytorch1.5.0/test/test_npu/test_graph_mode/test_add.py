@@ -59,18 +59,16 @@ class TestAdd(TestCase):
         return scalar
 
     def generate_int_scalar(self, min_d, max_d):
-        scalar = np.random.randint( min_d, max_d)
+        scalar = np.random.randint(min_d, max_d)
         return scalar
 
     def cpu_op_exec(self, input1, input2):
         output = input1 + input2
-        # output = torch.add(input1, input2)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, input2):
         output = input1 + input2
-        # output = torch.add(input1, input2)
         output = output.to("cpu")
         output = output.numpy()
         return output    
@@ -79,14 +77,12 @@ class TestAdd(TestCase):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         output = input1 + input2
-        # output = torch.add(input1, input2)
         output = output.to("cpu")
         output = output.numpy()
         return output  
         
     def npu_op_exec_scalar(self, input1, input2):
         input1 = input1.to("npu")
-        # output = input1 + input2
         output = torch.add(input1, input2)
         output = output.to("cpu")
         output = output.numpy()

@@ -39,19 +39,7 @@ class TestEmbeddingBackward(TestCase):
 
     @RunFuncInGraphMode
     def test_shape_format_ext(self, device):
-        shape_format = [
-                        # [[np.float32, 0, [40,32]], [np.int64, 0, [40]]],
-                        # [[np.float32, 0, [40,1024]], [np.int64, 0, [40]]],
-                        # [[np.float32, 0, [40000,1024]], [np.int64, 0, [3125]]],
-                        # [[np.float32, 0, [40000,1024]], [np.int64, 0, [128,8]]],
-                        # [[np.float16, 0, [40,32]], [np.int64, 0, [40]]],
-                        # [[np.float16, 0, [40,1024]], [np.int64, 0, [128,8]]],
-                        # [[np.float16, 0, [33712,1024]], [np.int64, 0, [64,7]]],
-                        # [[np.float32, 3, [40000,1024]], [np.int64, 0, [3125]]],
-                        # [[np.float32, 2, [40000,1024]], [np.int64, 0, [128,8]]],
-                        # [[np.float16, 0, [40,32]], [np.int64, 0, [40]]],
-                        # [[np.float16, 29, [40,1024]], [np.int64, 0, [128,8]]]
-                        ]
+        shape_format = []
         for item in shape_format:
             weight_cpu, weight_npu = create_common_tensor(item[0], 1, 1)
             indices_cpu, indices_npu = create_common_tensor(item[1], 0, 1)

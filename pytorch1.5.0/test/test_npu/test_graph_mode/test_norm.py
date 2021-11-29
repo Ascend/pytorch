@@ -25,12 +25,12 @@ class TestNorm(TestCase):
     def norm_output_size(self, data, dimVal, keepdimVal):
         output_size = list(data.size())
         for i in dimVal:
-          if i < 0:
-            i = i + data.dim()
-          if i < data.dim() and keepdimVal == True:
-            output_size[i] = 1
-          if  i < data.dim() and keepdimVal == False:
-            output_size.pop(i)  
+            if i < 0:
+                i = i + data.dim()
+            if i < data.dim() and keepdimVal == True:
+                output_size[i] = 1
+            if  i < data.dim() and keepdimVal == False:
+                output_size.pop(i)  
         return output_size
         
     def cpu_dtype_out_exec(self, data, pVal, dimVal, keepdimVal, dtypeVal):
@@ -74,7 +74,6 @@ class TestNorm(TestCase):
                         ]
 
         for item in shape_format:
-            # norm.dtype_out
             self.dtype_out_test(item)
 
 instantiate_device_type_tests(TestNorm, globals(), except_for="cpu")

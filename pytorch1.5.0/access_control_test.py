@@ -30,9 +30,9 @@ class AccurateTest(metaclass=ABCMeta):
         """
         raise Exception("abstract method.")
     
-    def find_ut_by_regex(self, regex):
+    def find_ut_by_regex(self, regex, mindepth=2):
         ut_files = []
-        cmd = "find {} -name {}".format('test/test_npu', regex)
+        cmd = "find {} -mindepth {} -name {}".format('test/test_npu', mindepth, regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status:
             pass # 对于找不到的暂时不作处理

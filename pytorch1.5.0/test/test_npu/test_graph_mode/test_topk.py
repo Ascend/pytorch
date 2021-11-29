@@ -40,7 +40,6 @@ class TestTopk(TestCase):
     def test_topk_shape_format(self, device):
         np.random.seed(0)
         shape_format = [
-            # [k, dim, [input_type, input_format, input_shape, min, max], largest, sorted]
             # dim
             [3, 0, [np.float32, 0, [8, 10], 0, 100], True, True],
             [3, 1, [np.float32, 0, [8, 10], 0, 100], True, True],
@@ -63,7 +62,6 @@ class TestTopk(TestCase):
             npu_output, npu_index = self.npu_op_exec(npu_input, item[0], item[1], item[3], item[4])
             # 目前只支持fp16,fp32降低阈值判断
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
-            #self.assertRtolEqual(cpu_index, npu_index)
             cnt += 1
     
     @RunFuncInGraphMode
@@ -77,7 +75,6 @@ class TestTopk(TestCase):
 
         np.random.seed(0)
         shape_format = [
-            # [k, dim, [input_type, input_format, input_shape, min, max], largest, sorted]
             # dim
             [3, 0, [np.float16, 0, [8, 10], 0, 100], True, True],
             [3, 1, [np.float16, 0, [8, 10], 0, 100], True, True],
@@ -92,7 +89,6 @@ class TestTopk(TestCase):
             npu_output, npu_index = self.npu_op_exec(npu_input, item[0], item[1], item[3], item[4])
             cpu_index = cpu_index.astype(npu_index.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-            #self.assertRtolEqual(cpu_index, npu_index)
             cnt += 1
 
 instantiate_device_type_tests(TestTopk, globals(), except_for="cpu")

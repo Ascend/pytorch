@@ -55,14 +55,12 @@ class TestPow(TestCase):
         return output
 
     def npu_op_exec_tensor_scalar(self, input1, n):
-        # input1 = input1.to("npu")
         output = torch.pow(input1, n)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def npu_op_exec_tensor_scalar_out(self, input1, n, out):
-        # input1 = input1.to("npu")
         output = torch.pow(input1, n, out=out)
         output = out.to("cpu")
         output = output.numpy()
@@ -147,7 +145,6 @@ class TestPow(TestCase):
     def test_pow_shape_format_scalar_tensor_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
-        # shape_format = [np.float32, 0, [18]]
         self.pow_result_scalar_tensor(shape_format)
 
     @RunFuncInGraphMode

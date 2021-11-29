@@ -563,10 +563,8 @@ SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
   return outputSize;
 }
 
-tuple<
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(const Tensor& input) {
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(
+    const Tensor& input) {
   SmallVector<int64_t, SIZE> boxesSize = {input.size(0), 5};
   SmallVector<int64_t, SIZE> idxSize = {
       input.size(0),

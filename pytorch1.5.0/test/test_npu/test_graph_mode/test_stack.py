@@ -42,7 +42,7 @@ class TestStack(TestCase):
         output = output.numpy()
         return output
     
-    def npu_output_size(self, inputs = [], dim = 0):
+    def npu_output_size(self, inputs, dim = 0):
         shape = []
         for i in range(dim):
             shape.append(inputs[0].size(i))

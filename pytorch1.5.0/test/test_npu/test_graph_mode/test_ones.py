@@ -63,9 +63,9 @@ class TestOnes(TestCase):
                 [(10, 1, 7), torch.int8],
                 [(1, 2, 7), torch.uint8],
                 [(33, 44, 55), torch.float16],
-		]
+        ]
         for item in shape_format:
-            cpu_output =self.cpu_op_exec(item[0], item[1])
+            cpu_output = self.cpu_op_exec(item[0], item[1])
             npu_output = self.npu_op_exec(item[0], item[1])
 
             self.assertRtolEqual(cpu_output, npu_output)
@@ -78,7 +78,7 @@ class TestOnes(TestCase):
                 [(10, 1, 7), torch.int8],
                 [(1, 2, 7), torch.uint8],
                 [(33, 44, 55), torch.float16],
-		]
+        ]
         for item in shape_format:
             cpu_out = torch.randn(item[0],dtype=torch.float32)
             cpu_out = cpu_out.to(item[1])
@@ -96,7 +96,7 @@ class TestOnes(TestCase):
                 [(10, 1, 7), ('C','H','W'), torch.int8],
                 [(1, 2, 7), ('C','H','W'), torch.uint8],
                 [(33, 44, 55), ('C','H','W'),torch.float16],
-		]
+        ]
         for item in shape_format:
             cpu_output = self.cpu_op_name_exec(item[0], item[1], item[2])
             npu_output = self.npu_op_name_exec(item[0], item[1], item[2])

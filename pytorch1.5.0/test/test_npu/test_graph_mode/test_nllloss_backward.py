@@ -50,7 +50,6 @@ class TestNlllossbackward(TestCase):
 
     @RunFuncInGraphMode
     def test_nllloss_shape_format_fp32(self, device):
-        # 当前仅支持设置正数, 若np.sum(ignore_index == np_target) == 0,则ignore_index设置任意数值不影响
         ignore_index = 1 
         for reduction in ['mean', 'none', 'sum']:
             shape_format = [
@@ -71,7 +70,6 @@ class TestNlllossbackward(TestCase):
 
     @RunFuncInGraphMode
     def test_nllloss_shape_format_fp16(self, device):
-        # 当前仅支持设置正数, 若np.sum(ignore_index == np_target) == 0,则ignore_index设置任意数值不影响
         ignore_index = 1
         for reduction in ['mean', 'none', 'sum']:
             shape_format = [

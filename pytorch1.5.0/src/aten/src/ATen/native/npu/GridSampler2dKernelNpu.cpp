@@ -22,7 +22,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor grid_sampler_2d_npu(
-    const Tensor& self, 
+    const Tensor& self,
     const Tensor& grid,
     int64_t interpolation_mode,
     int64_t padding_mode,
@@ -51,17 +51,13 @@ Tensor grid_sampler_2d_npu(
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf, outputSize, ACL_FORMAT_ND);
 
-  std::string interMode[] = {"bilinear", "nearest", "bicubic"};
-  std::string paddingMode[] = {"zeros", "border", "reflection"};
-
-  // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("GridSampler2D")
       .Input(formatCastOfSelf)
       .Input(formatCastOfGrid)
       .Output(result)
-      .Attr("interpolation_mode", interMode[interpolation_mode])
-      .Attr("padding_mode", paddingMode[padding_mode])
+      .Attr("interpolation_mode", interpolation_mode)
+      .Attr("padding_mode", padding_mode)
       .Attr("align_corners", align_corners)
       .Run();
 

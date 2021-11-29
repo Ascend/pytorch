@@ -53,6 +53,6 @@ class TestMean(TestCase):
 
 instantiate_device_type_tests(TestMean, globals(), except_for="cpu")
 if __name__ == "__main__":
-     run_tests()
+    run_tests()
 
 
