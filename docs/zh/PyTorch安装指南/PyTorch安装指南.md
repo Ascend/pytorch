@@ -70,10 +70,12 @@
 
 3.  获取PyTorch源代码。
 
-    1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码。
+    1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码，并切换到所需的分支。
 
         ```
         git clone https://gitee.com/ascend/pytorch.git
+        # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
+        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
         ```
 
         下载的源码主要目录结构如下所示：
