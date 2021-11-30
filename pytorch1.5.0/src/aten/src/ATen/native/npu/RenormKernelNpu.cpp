@@ -96,24 +96,22 @@ Tensor& renorm_out_npu(
     self_no_name = self_no_name.npu_dtype_cast(c10::ScalarType::Float);
     result_no_name = result_no_name.npu_dtype_cast(c10::ScalarType::Float);
     renorm_compute(   
-      result_bak, 
-      self_no_name,
-      p, 
-      dim, 
-      maxnorm
-    );
+        result_bak, 
+        self_no_name,
+        p, 
+        dim, 
+        maxnorm);
     // broadcast and mul
     Tensor result_broadcast = at::npu_broadcast(result_bak, self.sizes());
     at::mul_out(result_no_name, result_broadcast, self_no_name);
     result.npu_dtype_cast_(result_no_name);
   } else {
     renorm_compute(   
-      result_bak, 
-      self,
-      p, 
-      dim, 
-      maxnorm
-    );
+        result_bak, 
+        self,
+        p, 
+        dim, 
+        maxnorm);
     // broadcast and mul
     Tensor result_broadcast = at::npu_broadcast(result_bak, self.sizes());
     at::mul_out(result, result_broadcast, self);

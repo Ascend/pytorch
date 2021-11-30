@@ -1,6 +1,6 @@
 import torch
 
-def RunFuncInGraphMode(func):
+def graph_mode(func):
     print("graph mode on")
     def wrapper(*args, **kw):
         print("runing: ", func.__name__)

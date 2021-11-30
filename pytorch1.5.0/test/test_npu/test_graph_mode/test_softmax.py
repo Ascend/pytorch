@@ -17,22 +17,22 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestSoftmax(TestCase):
-    def cpu_op_exec(self, input, dim):
+    def cpu_op_exec(self, input_data, dim):
         m = torch.nn.Softmax(dim) 
-        output = m(input)
+        output = m(input_data)
         output = output.numpy()
         return output
     
-    def npu_op_exec(self, input, dim):
+    def npu_op_exec(self, input_data, dim):
         m = torch.nn.Softmax(dim) 
-        output = m(input).to("cpu")
+        output = m(input_data).to("cpu")
         output = output.numpy()
         return output
             
-    @RunFuncInGraphMode     
+    @graph_mode     
     def test_softmax_shape_format_fp32(self, device):
         shape_format = [
                 [[np.float32, 0, (1, 12, 5, 8)], 0], 

@@ -16,7 +16,7 @@ import numpy as np
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 from common_utils import TestCase, run_tests
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestBatchMatMul(TestCase):
@@ -44,7 +44,7 @@ class TestBatchMatMul(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_batchmatmul_shape_format_fp16_3d(self, device):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]
@@ -57,7 +57,7 @@ class TestBatchMatMul(TestCase):
         shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
         self.bmm_auto_list_exec(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_batchmatmul_shape_format_fp32_3d(self, device):
         format_list = [0, 3, 29]
         shape_list = [(1, 3, 2)]

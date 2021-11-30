@@ -134,9 +134,9 @@ Tensor true_divide_npu(const Tensor& self, const Tensor& other) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-  outputSize,
-  outputTensor.options(),
-  CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      outputSize,
+      outputTensor.options(),
+      CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
   // calculate the output result of the NPU
   true_divide_out_npu(result,selftemp, othertemp);

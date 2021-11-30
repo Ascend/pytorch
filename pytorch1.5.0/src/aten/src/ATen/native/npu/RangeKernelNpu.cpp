@@ -22,7 +22,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor range_npu(Scalar start, Scalar end, const TensorOptions& options) {
-  return range_npu(start, end, /*step=*/1, options);
+  return range_npu(start, end, 1, options);
 }
 
 Tensor range_npu(

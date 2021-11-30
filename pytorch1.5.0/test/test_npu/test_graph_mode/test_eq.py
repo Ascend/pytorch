@@ -18,7 +18,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestEqual(TestCase):
     def cpu_op_exec(self, input1, input2):
@@ -39,7 +39,7 @@ class TestEqual(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_equal_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0, 3]
@@ -54,7 +54,7 @@ class TestEqual(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)            
             self.assertEqual(cpu_output, npu_output)
             
-    @RunFuncInGraphMode
+    @graph_mode
     def test_equal_shape_format_fp16(self, device):
         dtype_list = [np.float16]
         format_list = [0, 3]
@@ -74,7 +74,7 @@ class TestEqual(TestCase):
             cpu_output = cpu_output.astype(np.float16)            
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_equal_out_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0]
@@ -89,7 +89,7 @@ class TestEqual(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)           
             self.assertEqual(npu_output_out, npu_output)
             
-    @RunFuncInGraphMode
+    @graph_mode
     def test_equal_scalar_out_shape_format_fp32(self, device):
         dtype_list = [np.float32]
         format_list = [0]
@@ -103,7 +103,7 @@ class TestEqual(TestCase):
             npu_output = self.npu_op_exec(npu_input1, 5)           
             self.assertEqual(npu_output_out, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_equal_mix_dtype(self, device):
         npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)

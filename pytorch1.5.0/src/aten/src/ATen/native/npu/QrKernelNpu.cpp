@@ -20,8 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-std::tuple<SmallVector<int64_t, N>, SmallVector<int64_t, N>> 
-qr_npu_output_size(
+std::tuple<SmallVector<int64_t, N>, SmallVector<int64_t, N>> qr_npu_output_size(
     const Tensor& self,
     bool some) {
   int m = self.size(-2);
@@ -32,11 +31,11 @@ qr_npu_output_size(
   SmallVector<int64_t, N> Rsize(shape.begin(), shape.end()-2);
   // allocate size
   if(some){
-      Qsize.insert(Qsize.end(), {m, k});
-      Rsize.insert(Rsize.end(), {k, n});
+    Qsize.insert(Qsize.end(), {m, k});
+    Rsize.insert(Rsize.end(), {k, n});
   } else {
-      Qsize.insert(Qsize.end(), {m, m});
-      Rsize.insert(Rsize.end(), {m, n});
+    Qsize.insert(Qsize.end(), {m, m});
+    Rsize.insert(Rsize.end(), {m, n});
   }
   return std::tie(Qsize, Rsize);
 }
@@ -70,18 +69,18 @@ std::tuple<Tensor&, Tensor&> qr_out_npu(
     Tensor& R,
     const Tensor& self,
     bool some) {
- qr_check(self);
- auto sizes = qr_npu_output_size(self, some);
- OpPreparation::CheckOut(
-     {self},
-     Q,
-     self,
-     std::get<0>(sizes));
+  qr_check(self);
+  auto sizes = qr_npu_output_size(self, some);
   OpPreparation::CheckOut(
-     {self},
-     R,
-     self,
-     std::get<1>(sizes));
+      {self},
+      Q,
+      self,
+      std::get<0>(sizes));
+  OpPreparation::CheckOut(
+      {self},
+      R,
+      self,
+      std::get<1>(sizes));
   return qr_out_npu_nocheck(Q, R, self, some);
 }
 

@@ -81,10 +81,10 @@ Tensor& reflection_pad2d_out_npu(Tensor& result, const Tensor& self, IntArrayRef
   auto outputSize = reflection_pad2d_npu_output_size(self, padding);
   // construct the output tensor of the NPU
   OpPreparation::CheckOut(
-  {self},
-  result,
-  self,
-  outputSize);
+      {self},
+      result,
+      self,
+      outputSize);
   reflection_pad2d_out_npu_nocheck(result, self, padding);
 
   return result;

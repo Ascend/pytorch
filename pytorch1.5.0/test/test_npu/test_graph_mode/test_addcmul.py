@@ -18,7 +18,7 @@ import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestAddCMul(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -66,21 +66,21 @@ class TestAddCMul(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_3_3_float32(self, device):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float32)
         cpu_output = self.cpu_op_exec(input1, input2, input3, 0.5)
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_10_10_float32(self, device):
         input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float32)
         cpu_output = self.cpu_op_exec(input1, input2, input3, 0.5)
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_3_3_float16(self, device):
         input1, input2, input3 = self.generate_data(0, 100, (3, 3), np.float16)
         input1_cpu = input1.float()
@@ -90,7 +90,7 @@ class TestAddCMul(TestCase):
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_10_10_float16(self, device):
         input1, input2, input3 = self.generate_data(0, 100, (10, 10), np.float16)
         input1_cpu = input1.float()
@@ -100,7 +100,7 @@ class TestAddCMul(TestCase):
         npu_output = self.npu_op_exec(input1, input2, input3, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_10_23_float32(self, device):
         input1, input2, input3 = self.generate_data(0, 100, (10, 23), np.float32)
         cpu_output = self.cpu_op_exec(input1, input2, input3, 0.5)
@@ -124,8 +124,20 @@ class TestAddCMul(TestCase):
             cpu_output = cpu_output.astype(npu_output_out.dtype)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addcmul_out_result(self, device):
+        '''
+        shape_format = [
+            [[np.float16, 0, [2, 6, 6, 3]], [np.float16, 0, [256, 116]]],
+            [[np.float16, 0, [2, 3, 6]],  [np.float16, 0, [58, 58, 1, 1]]],
+            [[np.float16, 0, [12, 2]],   [np.float16, 0, [128, 128]]],
+            [[np.float16, 0, [12]], [np.float16, 0, [128, 116]]],
+            [[np.float32, 0, [128, 64, 64, 32]], [np.float32, 0, [256, 116]]],
+            [[np.float32, 0, [128, 32, 64]],   [np.float32, 0, [58, 58, 1, 1]]],
+            [[np.float32, 0, [128, 32]],   [np.float32, 0, [128, 128]]],
+            [[np.float32, 0, [128]], [np.float32, 0, [128, 116]]],
+        ]
+        '''
         shape_format = []
         self.addcmul_out_result(shape_format)
 

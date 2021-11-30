@@ -19,7 +19,7 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 import time
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestNorm(TestCase):
     def norm_output_size(self, data, dimVal, keepdimVal):
@@ -67,7 +67,7 @@ class TestNorm(TestCase):
         npu_out = self.npu_dtype_out_exec(npu_input, float("-inf"), [1,2], False, torch.float)
         self.assertRtolEqual(cpu_out, npu_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_norm_shape_format(self, device):
         shape_format = [
                         [[np.float32, 0, (64, 64, 64, 64)]],

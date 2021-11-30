@@ -21,7 +21,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestZerosLike(TestCase):
     def cpu_op_exec(self, input1):
@@ -42,7 +42,7 @@ class TestZerosLike(TestCase):
         output = output.to("cpu")
         return output
  
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_like_shape_format(self, device):
         shape_format = [
                [[np.float32, 0, (1, 6, 4)] ],
@@ -54,7 +54,7 @@ class TestZerosLike(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_like_dtype_shape_format(self, device):
         shape_format = [
                [[np.float32, 0, (1, 6, 4)], torch.float32],

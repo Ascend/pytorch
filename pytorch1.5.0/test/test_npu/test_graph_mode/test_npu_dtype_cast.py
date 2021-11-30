@@ -4,7 +4,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestCastNpuDtype(TestCase):
@@ -20,7 +20,7 @@ class TestCastNpuDtype(TestCase):
         output = output.numpy()
         return output
     
-    @RunFuncInGraphMode 
+    @graph_mode 
     def test_npu_dtype_cast_inplace(self, device):
         shape_format = [
             [[np.float32, -1, (4, 3)]],
@@ -35,7 +35,7 @@ class TestCastNpuDtype(TestCase):
             npu_output = self.npu_op_exec_inplace(npu_input1, npu_dtype_tensor)            
             self.assertEqual(cpu_input1, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_npu_dtype_cast(self, device):
         shape_format = [
             [[np.float32, -1, (4, 3)]],
@@ -49,7 +49,7 @@ class TestCastNpuDtype(TestCase):
             npu_output = self.npu_op_exec(npu_input1, cpu_input1.dtype)            
             self.assertEqual(cpu_input1, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_npu_dtype_cast_noneed(self, device):
         shape_format = [
             [[np.float32, -1, (4, 3)]],

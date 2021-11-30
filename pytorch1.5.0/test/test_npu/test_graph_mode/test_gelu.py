@@ -16,7 +16,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 #pylint: disable=unused-argument
 
 class TestGelu(TestCase):
@@ -40,7 +40,7 @@ class TestGelu(TestCase):
         output = output.numpy()
         return output    
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float32_1(self, device):
         input1 = self.generate_data(0, 100, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -48,7 +48,7 @@ class TestGelu(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float32_2(self, device):
         input1 = self.generate_data(0, 1000, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -56,7 +56,7 @@ class TestGelu(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float32_3(self, device):
         input1 = self.generate_data(0, 1000, (4, 3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -64,7 +64,7 @@ class TestGelu(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
                 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float16_1(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -86,7 +86,7 @@ class TestGelu(TestCase):
         npu_output = npu_op_exec_fp16(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)  
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float16_2(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -108,7 +108,7 @@ class TestGelu(TestCase):
         npu_output = npu_op_exec_fp16(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)  
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_float16_3(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)

@@ -49,9 +49,9 @@ Tensor& replication_pad2d_backward_out_npu(
     const Tensor& input,
     IntArrayRef padding) {
   OpPreparation::CheckOut(
-  {input, gradOutput},
-  gradInput,
-  input);
+      {input, gradOutput},
+      gradInput,
+      input);
   return replication_pad2d_backward_out_npu_nocheck(gradInput, gradOutput, input, padding);
 }
 

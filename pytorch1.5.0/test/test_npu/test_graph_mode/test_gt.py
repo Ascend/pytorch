@@ -18,12 +18,12 @@ import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestGt(TestCase):
-    def generate_scalar(self, min, max):
-        scalar = np.random.uniform(min, max)
+    def generate_scalar(self, min_num, max_num):
+        scalar = np.random.uniform(min_num, max_num)
         return scalar
 
     def cpu_op_exec(self, input1, input2):
@@ -60,8 +60,8 @@ class TestGt(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_exec_scalar(self, input, scalar):
-        output = torch.gt(input, scalar)
+    def cpu_op_exec_scalar(self, input_data, scalar):
+        output = torch.gt(input_data, scalar)
         output = output.numpy()
         return output
 
@@ -70,26 +70,26 @@ class TestGt(TestCase):
         output = input2.numpy()
         return output
 
-    def npu_op_exec_scalar(self, input, scalar):
-        output = torch.gt(input, scalar)
+    def npu_op_exec_scalar(self, input_data, scalar):
+        output = torch.gt(input_data, scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def cpu_op_inplace_exec_scalar(self, input, scalar):
-        output = input.gt_(scalar)
+    def cpu_op_inplace_exec_scalar(self, input_data, scalar):
+        output = input_data.gt_(scalar)
         output = output.numpy()
         return output
 
-    def npu_op_inplace_exec_scalar(self, input, scalar):
-        input = input.to("npu")
-        output = input.gt_(scalar)
+    def npu_op_inplace_exec_scalar(self, input_data, scalar):
+        input_data = input_data.to("npu")
+        output = input_data.gt_(scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_exec_scalar_out(self, input, scalar, output):
-        torch.gt(input, scalar, out=output)
+    def npu_op_exec_scalar_out(self, input_data, scalar, output):
+        torch.gt(input_data, scalar, out=output)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -143,7 +143,7 @@ class TestGt(TestCase):
 
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_tensor_out(self, device):
         shape_format = [
             [[np.float16, 0, [128, 116, 14, 14]], [np.float16, 0, [256, 116, 1, 1]]],
@@ -170,7 +170,7 @@ class TestGt(TestCase):
             cpu_output_out = cpu_output_out.astype(npu_output_out.dtype)
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_scalar_out(self, device):
         shape_format = [
             [[np.float16, 0, [12, 4, 12, 121]], [np.float16, 0, [256, 116, 1, 1]]],
@@ -183,7 +183,7 @@ class TestGt(TestCase):
         ]
         self.gt_scalar_out_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_scalar_float32(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -197,7 +197,7 @@ class TestGt(TestCase):
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_scalar_float16(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -213,7 +213,7 @@ class TestGt(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_scalar_int32(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -227,7 +227,7 @@ class TestGt(TestCase):
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_tensor_float32(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -240,7 +240,7 @@ class TestGt(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_tensor_float16(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -256,7 +256,7 @@ class TestGt(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_inplace_float32(self, device):
         format_list = [0, 3]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -269,7 +269,7 @@ class TestGt(TestCase):
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_inplace_float16(self, device):
         format_list = [0, 3]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -285,7 +285,7 @@ class TestGt(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_inplace_scalar_float32(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -299,7 +299,7 @@ class TestGt(TestCase):
             npu_output = self.npu_op_inplace_exec_scalar(npu_input, scalar)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_inplace_scalar_float16(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
@@ -315,7 +315,7 @@ class TestGt(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gt_mix_dtype(self, device):
         npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)

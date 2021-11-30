@@ -21,7 +21,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestAdd(TestCase):
 
@@ -98,7 +98,7 @@ class TestAdd(TestCase):
         return output
 
     # 推荐：使用如下优化后方式构建用例
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_common_shape_format(self, device):
         shape_format = [
                 [[np.float32, -1, (4, 3)],    [np.float32, -1, (4, 3)]],
@@ -113,7 +113,7 @@ class TestAdd(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)  
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_float16_shape_format(self, device):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
@@ -136,7 +136,7 @@ class TestAdd(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)  
 
     # 下面是优化前的用例设计方式，代码较多
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_float16(self, device):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
@@ -151,21 +151,21 @@ class TestAdd(TestCase):
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)           
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_float32(self, device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_float32_out(self, device):
         npu_input1, npu_input2, npu_input3  = self.generate_three_data(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_float32_broadcast(self, device):
         npu_input1 = self.generate_single_data(0, 100, (4,3,1), np.float32)
         npu_input2 = self.generate_single_data(0, 100, (4,1,5), np.float32)
@@ -173,14 +173,14 @@ class TestAdd(TestCase):
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_int32(self, device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (2,3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_scalar_float32(self, device):
         npu_input1, npu_input2 = self.generate_data(0, 100, (2,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, 1)
@@ -188,7 +188,7 @@ class TestAdd(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_add_uncontiguous_float32_scalar(self, device):
         def cpu_uncontiguous_op_exec_scalar(input1, input2):
             input1 = input1.as_strided([2,2], [1,2], 1)

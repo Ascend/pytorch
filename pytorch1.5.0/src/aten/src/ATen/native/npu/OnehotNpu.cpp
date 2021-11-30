@@ -42,15 +42,15 @@ SmallVector<NPUTensorDesc, N> one_hot_npu_input(
   SmallVector<NPUTensorDesc, N> inputs;
 
   Tensor on_tmp = at::empty_with_format(
-                      {1},
-                      self.options().dtype(ScalarType::Float),
-                      CalcuOpUtil::get_tensor_npu_format(self))
-                      .fill_(on_value);
+      {1},
+      self.options().dtype(ScalarType::Float),
+      CalcuOpUtil::get_tensor_npu_format(self))
+      .fill_(on_value);
   Tensor off_tmp = at::empty_with_format(
-                       {1},
-                       self.options().dtype(ScalarType::Float),
-                       CalcuOpUtil::get_tensor_npu_format(self))
-                       .fill_(off_value);
+      {1},
+      self.options().dtype(ScalarType::Float),
+      CalcuOpUtil::get_tensor_npu_format(self))
+      .fill_(off_value);
   auto inputTensor =
       CalcuOpUtil::create_npu_input_tensor_desc({self, on_tmp, off_tmp});
   inputs.insert(inputs.end(), inputTensor.begin(), inputTensor.end());

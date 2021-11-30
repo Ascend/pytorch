@@ -19,7 +19,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestNlllossbackward(TestCase):
@@ -48,7 +48,7 @@ class TestNlllossbackward(TestCase):
         res = res.numpy()
         return input_npu, res
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nllloss_shape_format_fp32(self, device):
         ignore_index = 1 
         for reduction in ['mean', 'none', 'sum']:
@@ -68,7 +68,7 @@ class TestNlllossbackward(TestCase):
                 self.assertRtolEqual(cpu_input, npu_input)
                 self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nllloss_shape_format_fp16(self, device):
         ignore_index = 1
         for reduction in ['mean', 'none', 'sum']:

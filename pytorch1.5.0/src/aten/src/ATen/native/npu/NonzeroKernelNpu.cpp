@@ -55,7 +55,7 @@ Tensor nonzero_npu(const Tensor& self) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-    outputSize, dtypeCastOfSelf.options().dtype(kLong), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, dtypeCastOfSelf.options().dtype(kLong), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
   nonzero_out_npu_nocheck(result, dtypeCastOfSelf);

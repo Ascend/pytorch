@@ -20,7 +20,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestErf(TestCase):
 
@@ -59,7 +59,7 @@ class TestErf(TestCase):
         output = output.numpy()
         return output
  
-    @RunFuncInGraphMode
+    @graph_mode
     def test_erf_float32_common_shape_format(self, device):
         shape_format = [
                 [np.float32, 0 , (4, 3)],
@@ -74,7 +74,7 @@ class TestErf(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_erf_float321_common_shape_format(self, device):
         shape_format = [
                 [np.float32, 0 , (4, 3)],
@@ -89,7 +89,7 @@ class TestErf(TestCase):
             npu_output = self.npu_op_exec_(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_erf_out_float32_common_shape_format(self, device):
         shape_format = [
                 [np.float32, 0 , (4, 3)],

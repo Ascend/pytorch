@@ -54,9 +54,9 @@ Tensor& sigmoid_backward_out_npu(
 Tensor sigmoid_backward_npu(const Tensor& grad_output, const Tensor& output) {
   // construct the output tensor of the NPU
   Tensor grad_input = at::empty_with_format(
-    grad_output.sizes(),
-    grad_output.options(),
-    CalcuOpUtil::get_tensor_npu_format(grad_output));
+      grad_output.sizes(),
+      grad_output.options(),
+      CalcuOpUtil::get_tensor_npu_format(grad_output));
 
   // calculate the output result of the NPU
   sigmoid_backward_out_npu_nocheck(grad_input, grad_output, output);

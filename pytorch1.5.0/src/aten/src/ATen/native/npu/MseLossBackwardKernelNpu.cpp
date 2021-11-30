@@ -62,11 +62,11 @@ Tensor mse_loss_backward_npu(
   Tensor grad_input = OpPreparation::ApplyTensor(self);
   
   mse_loss_backward_out_npu(
-    grad_input,
-    grad_out,
-    self,
-    target,
-    reduction);
+      grad_input,
+      grad_out,
+      self,
+      target,
+      reduction);
 
   return grad_input;
 }

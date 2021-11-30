@@ -21,7 +21,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestSqrt(TestCase):
     def cpu_op_exec(self, input1):
@@ -57,7 +57,7 @@ class TestSqrt(TestCase):
         output = output.numpy()
         return output
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt_shape_format(self, device):
         shape_format = [
                [[np.float32, 0, (1, 6, 4)] ],
@@ -69,7 +69,7 @@ class TestSqrt(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt_shape_format_fp16(self, device):
         shape_format = [
                 [[np.float16, 0, (1, 6, 4)] ],
@@ -88,7 +88,7 @@ class TestSqrt(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt_out_shape_format(self, device):
         shape_format = [
                [[np.float32, 0, (1, 6, 4)], [np.float32, 0, (1, 6, 4)] ],
@@ -101,7 +101,7 @@ class TestSqrt(TestCase):
             npu_output = self.npu_op_out_exec(npu_input, npu_out)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt_out_shape_format_fp16(self, device):
         shape_format = [
                 [[np.float16, 0, (1, 6, 4)], [np.float16, 0, (1, 6, 4)] ],
@@ -121,7 +121,7 @@ class TestSqrt(TestCase):
             npu_output = self.npu_op_out_exec(npu_input, npu_out)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt1_shape_format(self, device):
         shape_format = [
                [[np.float32, 0, (1, 6, 4)] ],
@@ -133,7 +133,7 @@ class TestSqrt(TestCase):
             npu_output = self.npu_op_exec_(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sqrt1_shape_format_fp16(self, device):
         def cpu_op_exec_(input1):
             input1 = input1.to(torch.float32)

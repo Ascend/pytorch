@@ -18,7 +18,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestLogSoftmax(TestCase):
@@ -46,7 +46,7 @@ class TestLogSoftmax(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
             
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp16_1d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -54,7 +54,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp32_1d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -62,7 +62,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp16_2d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -70,7 +70,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp32_2d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -78,7 +78,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp16_3d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -86,7 +86,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp32_3d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -94,7 +94,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp16_4d(self, device):
         format_list = [0, 3]
         shape_format = [
@@ -102,7 +102,7 @@ class TestLogSoftmax(TestCase):
         ]
         self.logsoftmax_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_logsoftmax_shape_format_fp32_4d(self, device):
         format_list = [0, 3]
         shape_format = [

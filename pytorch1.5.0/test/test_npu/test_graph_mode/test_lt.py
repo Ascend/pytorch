@@ -17,7 +17,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestLt(TestCase):
@@ -54,8 +54,8 @@ class TestLt(TestCase):
         output = output.numpy().astype(np.int32)
         return output
 
-    def cpu_op_exec_scalar(self, input, scalar):
-        output = torch.lt(input, scalar)
+    def cpu_op_exec_scalar(self, input_data, scalar):
+        output = torch.lt(input_data, scalar)
         output = output.numpy().astype(np.int32)
         return output
 
@@ -64,14 +64,14 @@ class TestLt(TestCase):
         output = input2.numpy().astype(np.int32)
         return output
 
-    def npu_op_exec_scalar(self, input, scalar):
-        output = torch.lt(input, scalar)
+    def npu_op_exec_scalar(self, input_data, scalar):
+        output = torch.lt(input_data, scalar)
         output = output.to("cpu")
         output = output.numpy().astype(np.int32)
         return output
 
-    def npu_op_exec_scalar_out(self, input, scalar, out):
-        torch.lt(input, scalar, out=out)
+    def npu_op_exec_scalar_out(self, input_data, scalar, out):
+        torch.lt(input_data, scalar, out=out)
         output = out.to("cpu")
         output = output.numpy().astype(np.int32)
         return output
@@ -94,7 +94,7 @@ class TestLt(TestCase):
 
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_tensor_out(self, device):
         shape_format = [
             [[np.float16, 0, [128, 116, 14, 14]], [np.float16, 0, [256, 116, 1, 1]]],
@@ -121,7 +121,7 @@ class TestLt(TestCase):
             cpu_output_out = cpu_output_out.astype(npu_output_out.dtype)
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_out(self, device):
         shape_format = [
             [[np.float16, 0, [4, 4, 128, 128]], [np.float16, 0, [256, 116, 1, 1]]],
@@ -165,104 +165,104 @@ class TestLt(TestCase):
 
             self.assertRtolEqual(cpu_output_scalar, npu_output_scalar)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp16_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, 5] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, 5] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp16_2d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, [5, 3]] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp32_2d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float32, i, [5, 3]] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp16_3d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, [16, 640, 640]] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp32_3d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [16, 640, 640]] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp16_4d(self, device):
         format_list = [-1, 3]
         shape_format = [[np.float16, i, [32, 3, 3, 3]] for i in format_list]
         self.lt_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_shape_format_fp32_4d(self, device):
         format_list = [-1, 3]
         shape_format = [[np.float32, i, [32, 3, 3, 3]] for i in format_list]
         self.lt_result(shape_format)
 
     # scalar-----------------------------------------------------------------------
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp16_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, 18] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp32_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp16_2d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, [5, 8]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp32_2d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float32, i, [5, 8]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp16_3d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, [4, 16, 32]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp32_3d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float32, i, [4, 16, 32]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp16_4d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float16, i, [32, 3, 3, 3]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_scalar_shape_format_fp32_4d(self, device):
         format_list = [-1, 0]
         shape_format = [[np.float32, i, [32, 3, 3, 3]] for i in format_list]
         self.lt_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_lt_mix_dtype(self, device):
         npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)

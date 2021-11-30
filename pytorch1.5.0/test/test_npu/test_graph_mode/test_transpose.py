@@ -16,10 +16,10 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestTransepose(TestCase):
-    @RunFuncInGraphMode
+    @graph_mode
     def test_transepose(self, device):
         def cpu_op_exec(input1, perm):
             output = input1.permute(perm)

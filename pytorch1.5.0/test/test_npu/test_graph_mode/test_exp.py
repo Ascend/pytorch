@@ -19,24 +19,24 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestExp(TestCase):
-    def cpu_op_exec(self, input):
-        dt = input.dtype
-        input = input.to(torch.float32)
-        output = torch.exp(input)
+    def cpu_op_exec(self, input_data):
+        dt = input_data.dtype
+        input_data = input_data.to(torch.float32)
+        output = torch.exp(input_data)
         output = output.to(dt)
         output = output.numpy()
         return output
  
-    def npu_op_exec(self, input):
-        output = torch.exp(input) 
+    def npu_op_exec(self, input_data):
+        output = torch.exp(input_data) 
         output = output.to("cpu") 
         output = output.numpy()
         return output  
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_exp_common_shape_format(self, device):
         shape_format = [
                 [[np.float32, -1, 1], 1, 10],

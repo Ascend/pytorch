@@ -18,7 +18,7 @@ import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 import time
 
 class TestTopk(TestCase):
@@ -36,7 +36,7 @@ class TestTopk(TestCase):
         index = index.numpy()
         return output, index
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_topk_shape_format(self, device):
         np.random.seed(0)
         shape_format = [
@@ -64,7 +64,7 @@ class TestTopk(TestCase):
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
             cnt += 1
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_topk_float16_shape_format(self, device):
         def cpu_op_exec_fp16(input1, k, dim, largest, sorted1):
             input1 = input1.to(torch.float32)

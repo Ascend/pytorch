@@ -18,7 +18,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestNeg(TestCase):
@@ -40,7 +40,7 @@ class TestNeg(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float16_1(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -54,7 +54,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float16_2(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -68,7 +68,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float16_3(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -82,7 +82,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float16_4(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -96,7 +96,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float16_5(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -110,70 +110,70 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_1(self, device):
         npu_input1 = self.generate_single_data(-1.1754943508e-38, -1.1754943508e-38, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_2(self, device):
         npu_input1 = self.generate_single_data(-3402823500.0, 3402823500.0, ((1, 32, 31, 1)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_3(self, device):
         npu_input1 = self.generate_single_data(-0.000030517578125, 0.000030517578125, ((2, 32, 149, 31)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_4(self, device):
         npu_input1 = self.generate_single_data(3402823500, 3402800000, ((128)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_5(self, device):
         npu_input1 = self.generate_single_data(-9.313225746154785e-10, 9.313225746154785e-10, ((184965, 1)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_6(self, device):
         npu_input1 = self.generate_single_data(-3402823500.0, -3402823500.0, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_7(self, device):
         npu_input1 = self.generate_single_data(-3402823500.0, 3402823500.0, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_8(self, device):
         npu_input1 = self.generate_single_data(-9.313225746154785e-10, 9.313225746154785e-10, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_9(self, device):
         npu_input1 = self.generate_single_data(-3402823500.0, -3402823500.0, ((1, 31, 149, 2)), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_10(self, device):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
                                           0.000000000000000000000000000000000000011754943508, ((2, 31, 149, 2)),
@@ -182,7 +182,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_11(self, device):
         npu_input1 = self.generate_single_data(0.000000000000000000000000000000000000011754943508,
                                           0.000000000000000000000000000000000000011754943508, ((4, 31, 149, 2)),
@@ -191,7 +191,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_12(self, device):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
                                           -0.000000000000000000000000000000000000011754943508, ((2048, 31, 1, 2)),
@@ -200,7 +200,7 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_float32_13(self, device):
         npu_input1 = self.generate_single_data(-0.000000000000000000000000000000000000011754943508,
                                           0.000000000000000000000000000000000000011754943508, ((8, 7, 149)), np.float32)
@@ -208,21 +208,21 @@ class TestNeg(TestCase):
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_int32_1(self, device):
         npu_input1 = self.generate_single_data(0, 100, (2, 3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_int32_2(self, device):
         npu_input1 = self.generate_single_data(2147483647, 2147483648, (2, 3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_neg_int32_3(self, device):
         npu_input1 = self.generate_single_data(-2147483648, -2147483647, (2, 3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1)

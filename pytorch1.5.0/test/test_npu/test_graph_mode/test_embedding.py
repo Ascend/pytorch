@@ -18,7 +18,7 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 import torch.nn.functional as F
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestEmbedding(TestCase):
     def cpu_op_exec(self, weight, indices):
@@ -32,7 +32,7 @@ class TestEmbedding(TestCase):
         out_npu = out.to("cpu")
         return out_npu.detach().numpy()
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_shape_format(self, device):
         shape_format = [
                         [[np.float32, 0, [40,32]], [np.int64, 0, [40]]],

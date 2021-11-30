@@ -20,7 +20,7 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 from torch.autograd import Variable
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestNllloss(TestCase):
     def cpu_op_exec(self, data, target, reduction):
@@ -37,7 +37,7 @@ class TestNllloss(TestCase):
         output = output.detach().numpy()
         return output
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_mean(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -52,7 +52,7 @@ class TestNllloss(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_none(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -67,7 +67,7 @@ class TestNllloss(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_sum(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -118,7 +118,7 @@ class TestNllloss(TestCase):
         output = grads['x'].to("cpu").numpy()
         return output
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_grad_mean(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -133,7 +133,7 @@ class TestNllloss(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_grad_none(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -148,7 +148,7 @@ class TestNllloss(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nll_loss_grad_sum(self, device):
         N, C = 5, 4
         data = torch.randn(N, C)
@@ -180,7 +180,7 @@ class TestNllloss(TestCase):
         output = output.numpy()
         return output
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nllloss_shape_format_fp32(self, device):
         ignore_index = 1 
         for reduction in ['mean', 'none', 'sum']:
@@ -199,7 +199,7 @@ class TestNllloss(TestCase):
                 npu_output = self.npu_op_exec_new(npu_input1, target, item[2], item[3])
                 self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nllloss_shape_format_fp16(self, device):
         ignore_index = 1
         for reduction in ['mean', 'none', 'sum']:
@@ -240,7 +240,7 @@ class TestNllloss(TestCase):
         return output
 
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_nllloss_graph_mid(self, device):
         ignore_index = 1
         for reduction in ['mean', 'none', 'sum']:

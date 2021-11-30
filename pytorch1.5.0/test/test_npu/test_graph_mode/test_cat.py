@@ -20,7 +20,7 @@ import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestCat(TestCase):
@@ -54,7 +54,7 @@ class TestCat(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_cat_shape_float32_format(self, device):
         shape_format = [
             [[np.float32, 0, [32, 16, 1024], 1], [np.float32, 0, [32, 16, 1024], 1], 1],
@@ -87,7 +87,7 @@ class TestCat(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output3, npu_output3)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_cat_shape_float16_format(self, device):
         shape_format = [
             [[np.float16, 3, [256, 32, 56, 56],   1], [np.float16, 3, [256, 64, 56, 56],   1], 1],
@@ -126,7 +126,7 @@ class TestCat(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output3, npu_output3)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_cat_null_tensor(self, device):
         x1 = torch.randn(15, 2, 1, 1)
         x2 = torch.randn(0, 2, 1, 1)

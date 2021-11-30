@@ -19,7 +19,7 @@ import torch.nn as nn
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestMatMul(TestCase):
@@ -64,7 +64,7 @@ class TestMatMul(TestCase):
             self.assertRtolEqual(cpu_mat2_grad.astype(npu_mat2_grad.dtype), npu_mat2_grad)
 
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case1(self, device):
         shape_format = [
             # mat1 1dim, mat2 1dim       
@@ -84,7 +84,7 @@ class TestMatMul(TestCase):
     #     ]
     #     self.matmul_backward_result(shape_format)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case3(self, device):
         shape_format = [
             # mat1 1dim, mat2 2dim       
@@ -96,7 +96,7 @@ class TestMatMul(TestCase):
         self.matmul_backward_result(shape_format)
         
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case4(self, device):
         shape_format = [
             # mat1 1dim, mat2 2dim       
@@ -107,7 +107,7 @@ class TestMatMul(TestCase):
         self.matmul_backward_result(shape_format)
     
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case5(self, device):
         shape_format = [
             # mat1 1dim, mat2 2dim       
@@ -120,7 +120,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case6(self, device):
         shape_format = [
             # mat1 >2dim, mat2 2dim       
@@ -130,7 +130,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case7(self, device):
         shape_format = [
             # mat1 1dim, mat2 >2dim       
@@ -141,7 +141,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case8(self, device):
         shape_format = [
             # mat1 2dim, mat2 >2dim       
@@ -153,7 +153,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_backward_shape_format_fp16_case9(self, device):
         shape_format = [       
             [[np.float16, 2, [5,7,10]], [np.float16, 2, [5,10,15]]],

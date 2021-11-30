@@ -18,7 +18,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestTanh(TestCase):
@@ -34,7 +34,7 @@ class TestTanh(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_tanh_common_shape_format(self, device):
         shape_format = [
             [[np.float32, -1, (4, 3, 3)], 1, 100],
@@ -69,7 +69,7 @@ class TestTanh(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_tanh_float16_shape_format(self, device):
         def cpu_op_exec_fp16(input1):
             input1 = input1.to(torch.float32)
@@ -109,7 +109,7 @@ class TestTanh(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_tanh_inplace_common_shape_format(self, device):
         def cpu_op_inplace_exec(input1):
             output = torch.tanh_(input1)

@@ -20,7 +20,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestFill(TestCase):
@@ -59,21 +59,21 @@ class TestFill(TestCase):
         return output
 
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_fill_scalar_int32(self, device):
         npu_input1, _ = self.generate_data(0, 100, (2, 3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, 1)
         npu_output = self.npu_op_exec_scalar(npu_input1, 1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_fill_scalar_float16(self, device):
         npu_input1, _ = self.generate_data(0, 100, (2, 3), np.float16)
         cpu_output = self.cpu_op_exec(npu_input1, 1)
         npu_output = self.npu_op_exec_scalar(npu_input1, 1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_fill_scalar_float32(self, device):
         npu_input1, _ = self.generate_data(0, 100, (2, 3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, 1)
@@ -81,7 +81,7 @@ class TestFill(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_fill_common_shape_format(self, device):
         shape_format = [
             [np.float32, -1, (4, 3)],
@@ -105,7 +105,7 @@ class TestFill(TestCase):
             npu_output = self.npu_op_exec_scalar(npu_input1, 1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_fill_float32_data_range(self, device):
         data_range = [
             [-1.1754943508e-38, -1.1754943508e-38],

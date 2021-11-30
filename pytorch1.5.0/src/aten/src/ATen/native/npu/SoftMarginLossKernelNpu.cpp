@@ -72,7 +72,7 @@ Tensor soft_margin_loss_npu(const Tensor& self, const Tensor& target, int64_t re
 
 // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-    outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
 // calculate the output result of the NPU
   soft_margin_loss_out_npu(result, self, target, reduction);

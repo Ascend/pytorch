@@ -19,22 +19,22 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestReciprocal(TestCase):
 
-    def cpu_op_exec(self, input):
-        output = torch.reciprocal(input)
+    def cpu_op_exec(self, input_data):
+        output = torch.reciprocal(input_data)
         output = output.numpy()
         return output
     
-    def npu_op_extc(self, input):
-        output = torch.reciprocal(input)
+    def npu_op_extc(self, input_data):
+        output = torch.reciprocal(input_data)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_reciprocal_common_shape_format(self, device):
         shape_format = [
             [[np.float32, -1, (2, 2)]],
@@ -47,11 +47,11 @@ class TestReciprocal(TestCase):
             npu_output = self.npu_op_extc(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_reciprocal_float16_shape_format(self, device):
-        def cpu_op_exec_fp16(input):
-            input = input.to(torch.float32)
-            output = torch.reciprocal(input)
+        def cpu_op_exec_fp16(input_data):
+            input_data = input_data.to(torch.float32)
+            output = torch.reciprocal(input_data)
             output = output.numpy()
             output = output.astype(np.float16)
             return output

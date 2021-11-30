@@ -19,7 +19,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestRelu(TestCase):
@@ -53,7 +53,7 @@ class TestRelu(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_relu_shape_format_fp32(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [(1000, 1280), (32, 3, 3), (1024, 464, 7, 7)]
@@ -71,7 +71,7 @@ class TestRelu(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_res, npu_res)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_relu_shape_format_fp16(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [(1000, 1280), (32, 3, 3), (1024, 464, 7, 7)]
@@ -89,7 +89,7 @@ class TestRelu(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_res, npu_res)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_relu_shape_format_fp16_inp(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [(1000, 1280), (32, 3, 3), (1024, 464, 7, 7)]

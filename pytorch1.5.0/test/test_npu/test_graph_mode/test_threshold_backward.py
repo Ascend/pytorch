@@ -19,7 +19,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestThresholdBackward(TestCase):
 
@@ -41,7 +41,7 @@ class TestThresholdBackward(TestCase):
         output = output.detach().to("cpu")
         return output.numpy(), out.numpy()
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_threshold_backward_common_shape_format(self, device):
         shape_format = [
                 [[np.float32, 0, (1,5)], [1.0], [20.0]],

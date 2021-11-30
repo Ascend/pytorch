@@ -128,24 +128,22 @@ tuple<Tensor&, Tensor&> var_mean_out_npu(
     variance_no_name = variance_no_name.npu_dtype_cast(c10::ScalarType::Float);
     mean_no_name = mean_no_name.npu_dtype_cast(c10::ScalarType::Float);
     var_mean_compute(
-      variance_no_name,
-      mean_no_name,
-      self_no_name,
-      dim_now,
-      unbiased,
-      keepdim
-    );
+        variance_no_name,
+        mean_no_name,
+        self_no_name,
+        dim_now,
+        unbiased,
+        keepdim);
     variance.npu_dtype_cast_(variance_no_name);
     mean.npu_dtype_cast_(mean_no_name);
   } else {
     var_mean_compute(
-      variance,
-      mean,
-      self,
-      dim_now,
-      unbiased,
-      keepdim
-    );
+        variance,
+        mean,
+        self,
+        dim_now,
+        unbiased,
+        keepdim);
   }
   if(self.has_names()){
     auto names = get_result_names(self, dim_now, keepdim);

@@ -39,9 +39,9 @@ std::tuple<Tensor, Tensor, Tensor> npu_expand_outplace(
   auto expanded_size = broadcast_ops_npu_output_size(expanded_size12, to_expand3.sizes());
 
   return std::make_tuple(
-      to_expand1.expand(expanded_size, /*implicit=*/true), // see [expand implicit]
-      to_expand2.expand(expanded_size, /*implicit=*/true),
-      to_expand3.expand(expanded_size, /*implicit=*/true));
+      to_expand1.expand(expanded_size, true), // see [expand implicit]
+      to_expand2.expand(expanded_size, true),
+      to_expand3.expand(expanded_size, true));
 }
 
 Tensor _s_where_npu(
@@ -72,7 +72,7 @@ Tensor where_npu(
               " respectively");
   if (condition.scalar_type() != ScalarType::Byte && condition.scalar_type() != ScalarType::Bool) {
     AT_ERROR("Expected condition to have ScalarType Byte, but got ScalarType ",
-                  toString(condition.scalar_type()));
+             toString(condition.scalar_type()));
   }
   Tensor b_condition, b_self, b_other;
   std::tie(b_condition, b_self, b_other) = npu_expand_outplace(condition, self, other, "where_npu");

@@ -22,24 +22,24 @@ import torch.nn as nn
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestConv2d(TestCase):
     weight_grad = []
     input_grad = []
 
-    def getWeightGrad(self, grad):
+    def get_weight_grad(self, grad):
         self.weight_grad.append(grad.to("cpu"))
 
-    def getInputGrad(self, grad):
+    def get_input_grad(self, grad):
         self.input_grad.append(grad.to("cpu"))
 
-    def op_exec_cpu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True):
-        input1 = input
+    def op_exec_cpu(self, input_data, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True):
+        input1 = input_data
         weight1 = weight
         input1.requires_grad = True
-        input1.register_hook(lambda grad: self.getInputGrad(grad))
+        input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
         if bias != None:
@@ -47,18 +47,18 @@ class TestConv2d(TestCase):
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=1)
         m1.weight.data = weight1
-        m1.weight.register_hook(lambda grad: self.getWeightGrad(grad))
+        m1.weight.register_hook(lambda grad: self.get_weight_grad(grad))
         cpuOutput = m1(input1)
         tmp = torch.ones_like(cpuOutput)
         cpuOutput.backward(tmp)
 
         return cpuOutput
 
-    def op_exec_npu(self, input, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True):
-        input1 = input
+    def op_exec_npu(self, input_data, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True):
+        input1 = input_data
         weight1 = weight
         input1.requires_grad = True
-        input1.register_hook(lambda grad: self.getInputGrad(grad))
+        input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
         if bias != None:
@@ -66,7 +66,7 @@ class TestConv2d(TestCase):
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=1)
         m1.weight.data = weight1
-        m1.weight.register_hook(lambda grad: self.getWeightGrad(grad))
+        m1.weight.register_hook(lambda grad: self.get_weight_grad(grad))
         m1 = m1.to("npu")
         npuOutput = m1(input1)
         tmp = torch.ones_like(npuOutput)
@@ -74,7 +74,7 @@ class TestConv2d(TestCase):
 
         return npuOutput.to("cpu")
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_conv2d_backward_shape_format(self, device):
         shape_format = [  # input, weight, padding, stride, dilation, bias
             [[np.float16, 3, [256, 128, 7, 7]], [np.float16, 4, [32, 128, 3, 3]], (1, 1), 1, 1, None],

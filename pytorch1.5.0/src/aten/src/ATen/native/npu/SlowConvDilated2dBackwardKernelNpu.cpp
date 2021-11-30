@@ -179,7 +179,7 @@ tuple<Tensor, Tensor, Tensor> slow_conv_dilated2d_backward_npu(
 
   // calculate the output size
   auto outputSizes =  slow_conv_dilated2d_backward_npu_output_size(
-     grad_output,self,weight,kernel_size,stride,padding, dilation);
+      grad_output,self,weight,kernel_size,stride,padding, dilation);
   
   Tensor undefined;
   
@@ -195,17 +195,17 @@ tuple<Tensor, Tensor, Tensor> slow_conv_dilated2d_backward_npu(
   
   // calculate the output result of the NPU
   slow_conv_dilated2d_backward_out_npu(
-       grad_input, 
-       grad_weight, 
-       grad_bias,
-       grad_output, 
-       self, 
-       weight, 
-       kernel_size, 
-       stride, 
-       padding, 
-       dilation,
-       output_mask);
+      grad_input, 
+      grad_weight, 
+      grad_bias,
+      grad_output, 
+      self, 
+      weight, 
+      kernel_size, 
+      stride, 
+      padding, 
+      dilation,
+      output_mask);
 
    return std::tie(grad_input, grad_weight, grad_bias);
 }

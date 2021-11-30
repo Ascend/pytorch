@@ -19,7 +19,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 def input_grad_hook(grad):
@@ -34,28 +34,28 @@ def npu_input_grad_hook(grad):
 
 class TestSoftmaxBackward(TestCase):
 
-    def cpu_op_exec(self, input, is_contiguous=True, dim=-1):
+    def cpu_op_exec(self, input_data, is_contiguous=True, dim=-1):
         if is_contiguous is False:
-            input = input.as_strided([2, 2], [1, 2], 1)
-        input.requires_grad = True
-        input.register_hook(input_grad_hook)
+            input_data = input_data.as_strided([2, 2], [1, 2], 1)
+        input_data.requires_grad = True
+        input_data.register_hook(input_grad_hook)
 
-        output = torch.softmax(input, dim=dim)
+        output = torch.softmax(input_data, dim=dim)
         z = output.sum()
         z.backward()
 
-    def npu_op_exec(self, input, is_contiguous=True, dim=-1):
+    def npu_op_exec(self, input_data, is_contiguous=True, dim=-1):
         if is_contiguous is False:
-            input = input.as_strided([2, 2], [1, 2], 1)
-        input.requires_grad = True
-        input.register_hook(npu_input_grad_hook)
+            input_data = input_data.as_strided([2, 2], [1, 2], 1)
+        input_data.requires_grad = True
+        input_data.register_hook(npu_input_grad_hook)
 
-        output = torch.softmax(input, dim=dim)
+        output = torch.softmax(input_data, dim=dim)
         z = output.sum()
         z.backward()
-        input = input.cpu()
+        input_data = input_data.cpu()
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_softmax_backward_shape_format(self, device):
         shape_format = [
             [np.float32, 0, 5],
@@ -78,7 +78,7 @@ class TestSoftmaxBackward(TestCase):
             self.assertRtolEqual(input_grad.numpy(), npu_input_grad.numpy())
             '''
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_softmax_backward_shape_format_fp16(self, device):
         shape_format = [
             [np.float16, 0, 5],

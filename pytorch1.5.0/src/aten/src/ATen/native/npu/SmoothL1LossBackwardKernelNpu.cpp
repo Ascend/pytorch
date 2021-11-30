@@ -58,7 +58,7 @@ Tensor smooth_l1_loss_backward_npu(
 
   // calculate the output grad_input of the NPU
   smooth_l1_loss_backward_out_npu(
-    grad_input, grad_out, self, target, reduction);
+      grad_input, grad_out, self, target, reduction);
 
   return grad_input;
 }

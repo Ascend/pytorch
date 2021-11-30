@@ -19,13 +19,13 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestDiv(TestCase):
     '''
     @dtypes(torch.float)
-    @RunFuncInGraphMode
+    @graph_mode
     def test_div(self, device, dtype):
         m1 = torch.randn(10, 10, dtype=torch.float, device="cpu").to(dtype=dtype)
         m1 = m1.to("npu")
@@ -54,7 +54,7 @@ class TestDiv(TestCase):
         output = output.to("cpu")
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_div_shape_format(self, device):
         shape_format = [
                 [[np.float32, 0, 1], [np.float32, 0, 1]],

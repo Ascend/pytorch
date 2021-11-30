@@ -18,11 +18,11 @@ import torch
 import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestBroadCastToD(TestCase):
     @dtypes(torch.float, torch.float16, torch.int32, torch.int8, torch.uint8, torch.bool)
-    @RunFuncInGraphMode
+    @graph_mode
     def test_broadcast(self, device, dtype):
         shapes = [
                     [[1], [5]],

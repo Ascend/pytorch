@@ -45,10 +45,10 @@ Tensor& replication_pad2d_out_npu(Tensor& out, const Tensor& self, IntArrayRef p
   // calculate the output size
   auto outputSize = replication_pad2d_npu_output_size(self, padding);
   OpPreparation::CheckOut(
-  {self},
-  out,
-  self,
-  outputSize);
+      {self},
+      out,
+      self,
+      outputSize);
   return replication_pad2d_out_npu_nocheck(out, self, padding);
 }
 

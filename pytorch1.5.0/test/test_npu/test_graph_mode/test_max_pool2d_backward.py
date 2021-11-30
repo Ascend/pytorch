@@ -21,7 +21,7 @@ import torch.nn.functional as F
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestMaxPool2dBackward(TestCase):
@@ -45,7 +45,7 @@ class TestMaxPool2dBackward(TestCase):
         output1 = dataNpu.to("cpu").detach()
         return output1, npu_grad
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_max_pool2d_backward_shape_format(self, device):
         shape_format = [
             [[np.float16, 3, [256, 64, 112, 112]], [3, 3], [2, 2], 1],

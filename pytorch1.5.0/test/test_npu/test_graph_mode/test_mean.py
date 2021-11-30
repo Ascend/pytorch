@@ -23,7 +23,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestMean(TestCase):
     def cpu_op_exec(self,input1, dtype):
@@ -38,7 +38,7 @@ class TestMean(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_mean_shape_format(self, device):
         shape_format = [
                  [[np.float32,3,[256, 1280, 7, 7]],torch.float32],

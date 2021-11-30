@@ -68,11 +68,11 @@ Tensor& upsample_bilinear2d_out_npu(
       self, output_size, align_corners, scales_h, scales_w);
 
   OpPreparation::CheckOut(
-    {self},
-    result,
-    (aclFormat)CalcuOpUtil::get_tensor_npu_format(self),
-    ScalarType::Float,
-    outputSize);
+      {self},
+      result,
+      (aclFormat)CalcuOpUtil::get_tensor_npu_format(self),
+      ScalarType::Float,
+      outputSize);
 
   upsample_bilinear2d_out_npu_nocheck(
       result, self, output_size, align_corners, scales_h, scales_w);

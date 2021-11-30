@@ -20,15 +20,15 @@ import sys
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestAddmm(TestCase):
-    def generate_scalar(self, dtype, min, max):
+    def generate_scalar(self, dtype, min_num, max_num):
         if dtype == "float32":
-            scalar = np.random.uniform(min, max)
+            scalar = np.random.uniform(min_num, max_num)
         if dtype == "int32":
-            scalar = np.random.randint(min, max)
+            scalar = np.random.randint(min_num, max_num)
         return scalar
 
     def cpu_op_exec(self, input1, input2, input3, scalar1, scalar2):
@@ -81,7 +81,7 @@ class TestAddmm(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addmm(self, device):
         shape_format = [
             [[np.float32, 0, [3, 3]], [np.float32, 0, [3, 5]], [np.float32, 0, [5, 3]], "float32"],
@@ -107,7 +107,7 @@ class TestAddmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output2)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_addmm_transpose(self, device):
         shape_format = [
             [[np.float32, 0, [4, 5]], [np.float32, 0, [4, 7]], [np.float32, 0, [5, 7]], "float32"],

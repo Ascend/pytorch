@@ -189,8 +189,7 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
     return;
   }
 
-  if (!FormatHelper::IsBaseFormatType(
-          self)) { // TODO(ascend): 必须要非NCHW的才行？
+  if (!FormatHelper::IsBaseFormatType(self)) { // TODO(ascend): 必须要非NCHW的才行？
     if (can_use_memcpy(self, src)) {
       RECORD_HOST_FUNCTION(
           "d2dCopyAsync with format", std::vector<c10::IValue>({src}));
@@ -237,7 +236,7 @@ void copy_between_host_and_device(
   Storage tmpSt = dst.is_npu() ? src.storage() : dst.storage();
   bool is_pinned = tmp.is_pinned();
   AT_NPU_CHECK(
-    c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
+      c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");

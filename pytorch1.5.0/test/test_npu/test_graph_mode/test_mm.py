@@ -17,7 +17,7 @@ import numpy as np
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 from common_utils import TestCase, run_tests
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestMatMul(TestCase):
     def trans_tensor(self, mat1, mat2):
@@ -56,7 +56,7 @@ class TestMatMul(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_shape_format_fp16(self, device):
         format_list = [0, 3, 29]
         shape_list = [[1024, 1000], [1000, 1024],
@@ -72,7 +72,7 @@ class TestMatMul(TestCase):
         ]
         self.mm_auto_list_exec(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_matmul_shape_format_fp32(self, device):
         format_list = [0, 3, 29]
         shape_list = [[256, 1280], [1000, 1280],

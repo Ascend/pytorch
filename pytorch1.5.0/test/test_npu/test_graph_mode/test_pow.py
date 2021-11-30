@@ -17,7 +17,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestPow(TestCase):
@@ -135,74 +135,74 @@ class TestPow(TestCase):
             self.assertRtolEqual(cpu_output_tensor_scalar, npu_output_tensor_scalar_out)
 
     # scalar_tensor-------------------------------------------------------
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_scalar_tensor_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     # tensor_scalar-----------------------------------------------------------
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scala_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_tensor_scalar_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
@@ -210,62 +210,62 @@ class TestPow(TestCase):
 
     # tensor_tensor-----------------------------------------------------------
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[[np.float16, i, [5]], [np.float16, i, []]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp32_1d(self, device):
         format_list = [-1, 0, 3,]
         shape_format = [[[np.float32, i, [5]], [np.float32, i, []]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [448, 1]], [np.float16, i, []]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float32, i, [448, 1]], [np.float32, i, []]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [16, 640, 640]], [np.float16, i, []]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float32, i, [16, 640, 640]], [np.float32, i, []]] for i in format_list]
         self.pow_result(shape_format)
     '''
     #broadcast
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp16_2d_broadcast(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [448, 20]], [np.float16, i, [448,1]]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp32_2d_broadcast(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float32, i, [448, 20]], [np.float32, i, [448,1]]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp16_3d_broadcast(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [16, 640, 640]], [np.float16, i, [16, 640, 1]]] for i in format_list]
         self.pow_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_pow_shape_format_fp32_3d_broadcast(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float32, i, [16, 640, 640]], [np.float32, i, [16, 1, 1]]] for i in format_list]

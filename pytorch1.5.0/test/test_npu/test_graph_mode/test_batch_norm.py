@@ -19,7 +19,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 #affine = False,目前测试报错。所以本UT未做affine=False测试
 class TestBatchNorm(TestCase):
     def cpu_op_exec(self, input1, num_features, affine):
@@ -41,7 +41,7 @@ class TestBatchNorm(TestCase):
         output = output.to("cpu").detach().numpy()
         return output
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_batchnorm_shape_format(self, device):
         shape_format = [
                 [[np.float32, -1, (10, 32, 35, 45)], True],

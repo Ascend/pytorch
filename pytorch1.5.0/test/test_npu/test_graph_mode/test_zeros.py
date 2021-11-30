@@ -18,7 +18,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestZeros(TestCase):
@@ -55,7 +55,7 @@ class TestZeros(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_names(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
@@ -75,84 +75,84 @@ class TestZeros(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp16_1d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float16, i, [18]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp16_2d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float16, i, [5, 256]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp16_3d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float16, i, [32, 3, 3]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp16_4d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float16, i, [64, 112, 7, 7]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp32_1d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float32, i, [18]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp32_2d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float32, i, [5, 256]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp32_3d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float32, i, [32, 3, 3]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_fp32_4d(self, device):
         format_list = [0, 3, 29]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.float32, i, [64, 112, 7, 7]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_int32_1d(self, device):
         format_list = [-1, 0]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.int32, i, [18]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_int32_2d(self, device):
         format_list = [-1, 0]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.int32, i, [5, 256]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_int32_3d(self, device):
         format_list = [-1, 0]
         dtype_list = [torch.float16, torch.float32, torch.int32]
         shape_format = [[[np.int32, i, [32, 3, 3]], j] for i in format_list for j in dtype_list]
         self.zeros_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_zeros_shape_format_int32_4d(self, device):
         format_list = [-1, 0]
         dtype_list = [torch.float16, torch.float32, torch.int32]

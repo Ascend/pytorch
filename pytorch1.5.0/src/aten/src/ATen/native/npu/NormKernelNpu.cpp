@@ -90,11 +90,11 @@ Tensor& norm_out_npu(
     bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
   OpPreparation::CheckOut(
-    {self},
-    out,
-    ACL_FORMAT_ND,
-    self.scalar_type(),
-    outputSize);
+      {self},
+      out,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
+      outputSize);
   norm_out_npu_nocheck(out, self, p, dim, keepdim, self.scalar_type());
 
   return out;
@@ -109,11 +109,11 @@ Tensor& norm_out_npu(
     ScalarType dtype) {
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
   OpPreparation::CheckOut(
-    {self},
-    out,
-    ACL_FORMAT_ND,
-    self.scalar_type(),
-    outputSize);
+      {self},
+      out,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
+      outputSize);
   norm_out_npu_nocheck(out, self, p, dim, keepdim, dtype);
 
   return out;

@@ -20,7 +20,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestSum(TestCase):
     def cpu_op_exec(self, input1):
@@ -45,7 +45,7 @@ class TestSum(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sum_shape_format(self, device):
         shape_format = [
                 [[np.float32, 0, [256]], [0]],

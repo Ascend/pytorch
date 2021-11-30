@@ -17,7 +17,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestOnesLike(TestCase):
 
@@ -32,7 +32,7 @@ class TestOnesLike(TestCase):
         output = output.numpy()
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_ones_like_shape_format(self, device):
         shape_format = [
             [np.float32, -1, (3, )],
@@ -58,7 +58,7 @@ class TestOnesLike(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_ones_like_float16_shape_format(self, device):
         shape_format = [
             [np.float16, -1, (3, )],

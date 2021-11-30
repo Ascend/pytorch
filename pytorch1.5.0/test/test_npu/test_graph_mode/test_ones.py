@@ -21,7 +21,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestOnes(TestCase):
     def cpu_op_exec(self, shape, dtype):
@@ -55,7 +55,7 @@ class TestOnes(TestCase):
         output = output.to("cpu")
         return output
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_ones_format(self, device):
         shape_format = [
                 [(2, 3, 4, 1, 5), torch.float32],
@@ -70,7 +70,7 @@ class TestOnes(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_ones_out_format(self, device):
         shape_format = [
                 [(2, 3, 4, 1, 5), torch.float32],
@@ -88,7 +88,7 @@ class TestOnes(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_ones_name_format(self, device):
         shape_format = [
                 [(2, 3, 4, 1, 5), ('A','B','C','D','E'),torch.float32],

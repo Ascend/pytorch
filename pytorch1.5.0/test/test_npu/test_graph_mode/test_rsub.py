@@ -17,7 +17,7 @@ import copy
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 
 class TestRsub(TestCase):
@@ -62,123 +62,123 @@ class TestRsub(TestCase):
             cpu_output = cpu_output.astype(npu_output_scalar.dtype)
             self.assertRtolEqual(cpu_output, npu_output_scalar)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[[np.float16, i, [32]], [np.float16, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[[np.float16, i, [32]], [np.float16, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [5, 3]], [np.float16, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [5, 3]], [np.float16, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [256, 480, 14]], [np.float16, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [256, 480, 14]], [np.float16, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp16_4d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [32, 3, 3, 3]], [np.float16, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_fp32_4d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [32, 3, 3, 3]], [np.float16, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
     # int-------------------------------------------------------------------------------
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_int32_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [32]], [np.int32, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_int32_2d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [5, 3]], [np.int32, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_int32_3d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [256, 480, 14]], [np.int32, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_shape_format_int32_4d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [32, 3, 3, 3]], [np.int32, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
     # scalar----------------------------------------------------------------------------
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp16_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.float16, i, [32]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp32_1d(self, device):
         format_list = [-1, 0]
         shape_format = [[[np.float16, i, [32]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp16_2d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp32_2d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp16_3d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp32_3d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp16_4d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128, 28]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_sub_scalar_shape_format_fp32_4d(self, device):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128, 28]]] for i in format_list]

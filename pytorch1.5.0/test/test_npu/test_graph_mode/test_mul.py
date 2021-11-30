@@ -17,7 +17,7 @@ import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 
 class TestMuls(TestCase):
     def cpu_op_exec(self, input1, input2):
@@ -42,7 +42,7 @@ class TestMuls(TestCase):
         input3 = input3.numpy()
         return input3
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_shape_format_fp16(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7), (2, 0, 2)]
@@ -59,7 +59,7 @@ class TestMuls(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_shape_format_fp32(self, device):
         format_list = [0, 3, 4, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -73,7 +73,7 @@ class TestMuls(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_shape_format_out_fp32(self, device):
         format_list = [0]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -89,7 +89,7 @@ class TestMuls(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, npu_input2, npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_mix_dtype(self, device):
         npu_input1, npu_input2 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
@@ -97,14 +97,14 @@ class TestMuls(TestCase):
         npu_output = self.npu_op_exec(npu_input2, npu_input4)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_scalar_dtype(self, device):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(cpu_input1, 0.5)
         npu_output = self.npu_op_exec(npu_input1, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_mul_shape_format_fp32(self, device):
         format_list = [-1]
         shape_list = [1, (6, 10), (2, 32, 32), (16, 2048, 7, 7), (2, 0, 2)]
@@ -121,7 +121,7 @@ class TestMuls(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_mul_shape_format_fp16(self, device):
         format_list = [-1]
         shape_list = [1, (6, 10), (2, 32, 32), (16, 2048, 7, 7), (2, 0, 2)]
@@ -138,7 +138,7 @@ class TestMuls(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_mul_out_shape_format_fp32(self, device):
         format_list = [-1]
         shape_list = [(4, 10), (2, 3, 3), (256, 2048, 7, 7)]
@@ -153,7 +153,7 @@ class TestMuls(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, npu_input2, npu_input3)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_muls_scalar(self, device):
         cpu_input1, npu_input1 = create_common_tensor([np.float32, -1, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(cpu_input1, 0.5)

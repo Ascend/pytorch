@@ -60,11 +60,11 @@ Tensor& smooth_l1_loss_out_npu(
     int64_t reduction) {
   auto outputSize = smooth_l1_loss_npu_output_size(self, target, reduction);
   OpPreparation::CheckOut(
-    {self, target}, 
-    result, 
-    CalcuOpUtil::get_tensor_npu_format(self), 
-    self.scalar_type(), 
-    outputSize);
+      {self, target}, 
+      result, 
+      CalcuOpUtil::get_tensor_npu_format(self), 
+      self.scalar_type(), 
+      outputSize);
   smooth_l1_loss_out_npu_nocheck(result, self, target, reduction); 
   return result;  
 }

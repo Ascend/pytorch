@@ -69,11 +69,11 @@ Tensor& stack_out_npu_nocheck(Tensor& result, TensorList tensors, int64_t dim) {
 Tensor& stack_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
   auto outputSize = stack_npu_output_size(tensors, dim);
   OpPreparation::CheckOut(
-    {tensors[0]}, 
-    result, 
-    ACL_FORMAT_ND, 
-    tensors[0].scalar_type(), 
-    outputSize); 
+      {tensors[0]}, 
+      result, 
+      ACL_FORMAT_ND, 
+      tensors[0].scalar_type(), 
+      outputSize); 
   stack_out_npu_nocheck(result, tensors, dim); 
   return result;
 }

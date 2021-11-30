@@ -18,7 +18,7 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 import copy
-from graph_utils import RunFuncInGraphMode
+from graph_utils import graph_mode
 #pylint: disable=unused-argument
 
 class TestGeluBackward(TestCase):
@@ -45,7 +45,7 @@ class TestGeluBackward(TestCase):
         res = input1.grad.to("cpu")        
         return res.detach()
         
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_backward_float32_1(self, device):
         input1 = self.generate_single_data(0, 100, (4, 3, 1, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -54,7 +54,7 @@ class TestGeluBackward(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         
     '''
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_backward_float32_2(self, device):
         input1= self.generate_single_data(0, 100, (4,3,10), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -62,7 +62,7 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_backward_float32_3(self, device):
         input1= self.generate_single_data(0, 100, (400,30,10), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -70,7 +70,7 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_backward_float32_4(self, device):
         input1= self.generate_single_data(-30, 0, (4,4), np.float32)
         cpu_input1 = copy.deepcopy(input1)
@@ -78,7 +78,7 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)       
 
-    @RunFuncInGraphMode
+    @graph_mode
     def test_gelu_backward_float16(self, device):
         input1 = self.generate_single_data(0, 100, (5, 10, 100) , np.float16)
         input1 =  input1.to(torch.float32)

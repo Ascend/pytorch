@@ -58,6 +58,20 @@ tuple<Tensor&, Tensor&> std_mean_out_npu_nocheck(
   return std::tie(resultStd, resultMean);
 }
 
+Tensor std_out_npu(
+    const Tensor& self, 
+    bool unbiased, 
+    bool keepdim) {
+  auto result = OpPreparation::ApplyTensorWithSizes(
+      {1}, self.options().dtype(at::kFloat)).fill_(0);
+  result = unbiased ? (result / 0) : result;
+  result = ((self.dim() == 0) || (keepdim == false)) ? result.squeeze(0) : result;
+  TORCH_WARN_ONCE(
+      "because ReduceStdWithMean can not support [] or [1]",
+      "so return one of [NaN]/NaN/[0.]/0. same as cpu, but dtype is only float not same as input");
+  return result;
+}
+
 Tensor& std_out_npu(
     Tensor& result, 
     const Tensor& self, 
@@ -73,6 +87,13 @@ Tensor& std_out_npu(
     IntArrayRef dim, 
     bool unbiased, 
     bool keepdim) {
+  // when self dim is [] or [], return one of [nan]/nan/[0.]/0. as same as cpu
+  if ((self.dim() == 0) || ((self.dim() == 1) && self.sizes()[0] == 1)) {
+    auto tmp = std_out_npu(self, unbiased, keepdim);
+    OpPreparation::CheckOut({tmp}, result, tmp);
+    return result.copy_(tmp);
+  }
+
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
   Tensor meanResult = OpPreparation::ApplyTensor(self, outputSize);
 
@@ -122,6 +143,11 @@ Tensor std_dim_npu(
     IntArrayRef dim, 
     bool unbiased, 
     bool keepdim) {
+  // when self dim is [] or [], return one of [nan]/nan/[0.]/0. as same as cpu
+  if ((self.dim() == 0) || ((self.dim() == 1) && self.sizes()[0] == 1)) {
+    return std_out_npu(self, unbiased, keepdim);
+  }
+  
   // calculate the output size
   auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
 

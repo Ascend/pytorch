@@ -134,11 +134,11 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize) {
   }
 
   aclError error = c10::npu::queue::LaunchAsyncCopyTask(
-    dst.data_ptr(),
-    size * dst.element_size(),
-    src.data_ptr(),
-    size * dst.element_size(),
-    ACL_MEMCPY_DEVICE_TO_DEVICE);
+      dst.data_ptr(),
+      size * dst.element_size(),
+      src.data_ptr(),
+      size * dst.element_size(),
+      ACL_MEMCPY_DEVICE_TO_DEVICE);
   if (error != ACL_ERROR_NONE) {
     AT_ERROR("async copy device to device error.");
     return;
