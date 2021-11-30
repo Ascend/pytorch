@@ -400,6 +400,9 @@ struct THNCachingAllocator {
     *devPtr = block->ptr;
     stats.increaseAllocated(block->size);
 
+    c10::reportMemoryUsageToProfiler(
+        block, block->size, c10::Device(c10::DeviceType::NPU, device));
+
     update_stat_array(stats_.allocation, 1, stat_types);
     update_stat_array(stats_.allocated_bytes, block->size, stat_types);
     update_stat_array(stats_.active, 1, stat_types);
@@ -420,6 +423,9 @@ struct THNCachingAllocator {
     Block* block = it->second;
     allocated_blocks.erase(it);
     block->allocated = false;
+
+    c10::reportMemoryUsageToProfiler(
+        block, -block->size, c10::Device(c10::DeviceType::NPU, block->device));
 
     DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
@@ -1166,7 +1172,7 @@ std::shared_ptr<void> getIpcDevPtr(std::string handle) {
   // It doesn't overwrite when key already exists(ptr expired).
   // But in the deleter for sp we erased the entry,
   // this should be safe to do now.
-  ipcMemHandle_to_devptr.insert(iter, {handle, wp});*/
+  ipcMemHandle_to_devptr.insert(iter, {handle, wp}); */
   std::shared_ptr<void> sp;
   return sp;
 }

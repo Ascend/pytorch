@@ -32,7 +32,7 @@ class TestStack(TestCase):
 
     def cpu_op_exec_out(self, input1, input2, dim, input3):    
         torch.stack((input1, input2), dim, out=input3)
-        output = output.numpy()
+        output = input3.numpy()
         return output
 
     def npu_op_exec_out(self, input1, input2, dim, input3):    

@@ -21,7 +21,7 @@ from util_test import create_common_tensor
 
 
 class TestTanhBackward(TestCase):
-    
+
     def cpu_op_exec(self, input1):
         input1.requires_grad = True
         input1_tanh = torch.tanh(input1)
@@ -82,9 +82,9 @@ class TestTanhBackward(TestCase):
             [[np.float16, -1, (4, 44, 44)], 3450, 34020],
             [[np.float16, -1, (65500, 3, 3)], -214748, -214746],
             [[np.float16, -1, (64, 4, 4)], -9.313225746154785e-10,9.313225746154785e-10],
-            [[np.float16, -1, (128, 3, 5)], 
-                -0.000000000000000000000000000000000000011754943508, 
-                0.000000000000000000000000000000000000011754943508],       
+            [[np.float16, -1, (128, 3, 5)],
+                -0.000000000000000000000000000000000000011754943508,
+                0.000000000000000000000000000000000000011754943508],
             [[np.float16, -1, (65500, 1, 1)], 95, 100],
         ]
 
@@ -94,8 +94,6 @@ class TestTanhBackward(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-
 instantiate_device_type_tests(TestTanhBackward, globals(), except_for='cpu')
-
 if __name__ == "__main__":
     run_tests()

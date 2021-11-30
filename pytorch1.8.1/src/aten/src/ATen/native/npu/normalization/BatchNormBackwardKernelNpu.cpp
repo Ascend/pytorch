@@ -244,7 +244,7 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
 
   if (grad_input_mask[0]) {
     if (self.dim() == 5) {
-      //NCHW -> NDCHW ->NCDHW
+      // NCHW -> NDCHW ->NCDHW
       std::swap(self_shape[1], self_shape[2]);
       grad_input = grad_input.view(self_shape);
       grad_input = NpuUtils::format_contiguous(grad_input);

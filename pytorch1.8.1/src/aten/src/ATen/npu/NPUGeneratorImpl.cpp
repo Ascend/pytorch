@@ -1,6 +1,5 @@
 #include <ATen/Utils.h>
 #include <ATen/npu/NPUGeneratorImpl.h>
-//#include <ATen/npu/NpuGraphsUtils.cuh>
 #include <c10/core/StreamGuard.h>
 #include <c10/npu/NPUFunctions.h>
 #include <ATen/Utils.h>
@@ -99,7 +98,7 @@ Generator createNPUGenerator(DeviceIndex device_index) {
 NPUGeneratorImpl::NPUGeneratorImpl(DeviceIndex device_index)
   : c10::GeneratorImpl{Device(DeviceType::NPU, device_index),
               DispatchKeySet(c10::DispatchKey::NPU)} {
-  //at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
+  // at::npu::assertNotCapturing("Cannot construct a new NPUGeneratorImpl");
 }
 
 /**
@@ -109,7 +108,6 @@ NPUGeneratorImpl::NPUGeneratorImpl(DeviceIndex device_index)
  * See Note [Acquire lock when using random generators]
  */
 void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
-  //at::npu::assertNotCapturing("Cannot call NPUGeneratorImpl::set_current_seed");
   seed_ = seed;
   philox_offset_per_thread_ = 0;
 }
@@ -126,7 +124,6 @@ void NPUGeneratorImpl::set_current_seed(uint64_t seed) {
 uint64_t NPUGeneratorImpl::current_seed() const {
   // Debatable if current_seed() should be allowed in captured regions.
   // Conservatively disallow it for now.
-  //at::npu::assertNotCapturing("Cannot call NpuGeneratorImpl::current_seed");
   return seed_;
 }
 
@@ -138,7 +135,6 @@ uint64_t NPUGeneratorImpl::current_seed() const {
  * in getNonDeterministicRandom is unified for both CPU and NPU
  */
 uint64_t NPUGeneratorImpl::seed() {
-  //at::npu::assertNotCapturing("Cannot call NpuGeneratorImpl::seed");
   auto random = c10::detail::getNonDeterministicRandom(true);
   this->set_current_seed(random);
   return random;
@@ -211,7 +207,6 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
  * See Note [Acquire lock when using random generators]
  */
 void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
-  //at::npu::assertNotCapturing("Cannot call NpuGeneratorImpl::set_philox_offset_per_thread");
   // see Note [Why enforce RNG offset % 4 == 0?]
   TORCH_CHECK(offset % 4 == 0, "offset must be a multiple of 4");
   philox_offset_per_thread_ = offset;
@@ -221,7 +216,6 @@ void NPUGeneratorImpl::set_philox_offset_per_thread(uint64_t offset) {
  * Gets the current philox_offset_per_thread_ of NpuGeneratorImpl.
  */
 uint64_t NPUGeneratorImpl::philox_offset_per_thread() const {
-  //at::npu::assertNotCapturing("Cannot call NpuGeneratorImpl::philox_offset_per_thread");
   return philox_offset_per_thread_;
 }
 
@@ -291,7 +285,7 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
     uint64_t offset = this->philox_offset_per_thread_;
     this->philox_offset_per_thread_ += increment;
     return PhiloxNpuState(this->seed_, offset);
-  }*/
+  } */
 
   return PhiloxNpuState(this->seed_, 0);
 }
@@ -301,8 +295,6 @@ PhiloxNpuState NPUGeneratorImpl::philox_npu_state(uint64_t increment) {
  * Allows incremental refactor of call sites to use philox_npu_state.
  */
 std::pair<uint64_t, uint64_t> NPUGeneratorImpl::philox_engine_inputs(uint64_t increment) {
-  //at::npu::assertNotCapturing("Refactor this op to use NPUGeneratorImpl::philox_npu_state. "
-                               //"Cannot call NPUGeneratorImpl::philox_engine_inputs");
   // rounds increment up to the nearest multiple of 4
   increment = ((increment + 3) / 4) * 4;
   // see Note [Why enforce RNG offset % 4 == 0?]
@@ -335,7 +327,6 @@ std::shared_ptr<NPUGeneratorImpl> NPUGeneratorImpl::clone() const {
  * See Note [Acquire lock when using random generators]
  */
 NPUGeneratorImpl* NPUGeneratorImpl::clone_impl() const {
-  //at::npu::assertNotCapturing("Cannot call NPUGeneratorImpl::clone_impl");
   auto gen = new NPUGeneratorImpl(this->device().index());
   gen->set_current_seed(this->seed_);
   gen->set_philox_offset_per_thread(this->philox_offset_per_thread_);

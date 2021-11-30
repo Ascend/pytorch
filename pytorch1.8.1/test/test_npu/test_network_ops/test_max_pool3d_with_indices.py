@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -13,14 +13,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
+
 import torch
 import numpy as np
 import torch.nn.functional as F
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-
 
 class TestMaxPool3dWithIndices(TestCase):
     def cpu_op_exec(self, inputCpu, kernel_size, stride, padding, dilation, ceil_mode):
@@ -55,8 +54,6 @@ class TestMaxPool3dWithIndices(TestCase):
 
             self.assertRtolEqual(cpu_output.numpy(), npu_output.numpy())
 
-
 instantiate_device_type_tests(TestMaxPool3dWithIndices, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()
-

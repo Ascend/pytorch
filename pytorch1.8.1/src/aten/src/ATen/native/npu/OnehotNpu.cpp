@@ -15,53 +15,11 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
-SmallVector<NPUAttrDesc, N> one_hot_attr(int64_t axis, int64_t depth) {
-  NPUAttrDesc npuAttrValue = NPUAttrDesc("axis", axis);
-  NPUAttrDesc npuAttrValue1 = NPUAttrDesc("depth", depth);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrValue, npuAttrValue1};
-
-  return attrs;
-}
-
-SmallVector<NPUTensorDesc, N> one_hot_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> one_hot_npu_input(
-    const Tensor& self,
-    Scalar on_value,
-    Scalar off_value) {
-  SmallVector<NPUTensorDesc, N> inputs;
-
-  // auto inputTensor = CalcuOpUtil::create_npu_input_tensor_desc({self});
-  // auto inputScalar =
-  //    CalcuOpUtil::create_npu_input_tensor_desc({on_value, off_value},
-  //    ScalarType::Float);
-  Tensor on_tmp = at::empty_with_format(
-                      {1},
-                      self.options().dtype(ScalarType::Float),
-                      CalcuOpUtil::get_tensor_npu_format(self))
-                      .fill_(on_value);
-  Tensor off_tmp = at::empty_with_format(
-                       {1},
-                       self.options().dtype(ScalarType::Float),
-                       CalcuOpUtil::get_tensor_npu_format(self))
-                       .fill_(off_value);
-  auto inputTensor =
-      CalcuOpUtil::create_npu_input_tensor_desc({self, on_tmp, off_tmp});
-  inputs.insert(inputs.end(), inputTensor.begin(), inputTensor.end());
-  // inputs.insert(inputs.end(), inputScalar.begin(), inputScalar.end());
-
-  return inputs;
-}
 
 Tensor& one_hot_out_npu(
     Tensor& result,
@@ -70,14 +28,25 @@ Tensor& one_hot_out_npu(
     int64_t depth,
     Scalar on_value,
     Scalar off_value) {
-  auto inputs = one_hot_npu_input(self, on_value, off_value);
-  auto outputs = one_hot_npu_output({result});
-
-  auto attrs = one_hot_attr(axis, depth);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("OneHotD", inputs, outputs, attrs);
-
+  Tensor on_tmp = OpPreparation::ApplyTensor(
+      {1},
+      self.options().dtype(ScalarType::Float),
+      self)
+      .fill_(on_value);
+  Tensor off_tmp = OpPreparation::ApplyTensor(
+      {1},
+      self.options().dtype(ScalarType::Float),
+      self)
+      .fill_(off_value);
+  OpCommand cmd;
+  cmd.Name("OneHotD")
+      .Input(self)
+      .Input(on_tmp)
+      .Input(off_tmp)
+      .Output(result)
+      .Attr("axis", axis)
+      .Attr("depth", depth)
+      .Run();
   return result;
 }
 
@@ -87,18 +56,21 @@ Tensor one_hot_npu(
     int64_t depth,
     Scalar on_value,
     Scalar off_value) {
-  // calculate the output size
   auto outputSize = array_to_small_vector(self.sizes());
   outputSize.emplace_back(depth);
 
-  Tensor result = at::empty_with_format(
+  Tensor result = OpPreparation::ApplyTensor(
       outputSize,
       self.options().dtype(ScalarType::Float),
-      CalcuOpUtil::get_tensor_npu_format(self));
-
+      self);
   one_hot_out_npu(result, self, axis, depth, on_value, off_value);
 
   return result;
 }
+
+TORCH_LIBRARY_IMPL(aten, NPU, m){
+  m.impl("npu_one_hot", TORCH_FN(one_hot_npu));
+}
+
 } // namespace native
 } // namespace at

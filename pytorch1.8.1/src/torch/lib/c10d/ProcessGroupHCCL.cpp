@@ -638,9 +638,9 @@ c10::intrusive_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather(
 }
 
 c10::intrusive_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather_base(
-    at::Tensor& /*unused */,
-    at::Tensor& /*unused */,
-    const AllgatherOptions& /*unused */) {
+    at::Tensor& /* unused */,
+    at::Tensor& /* unused */,
+    const AllgatherOptions& /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support allgather_base");
 }
 
@@ -694,6 +694,7 @@ c10::intrusive_ptr<ProcessGroup::Work> ProcessGroupHCCL::barrier(
   std::vector<at::Device> devices;
   if (usedDeviceIdxs_.empty()) {
     auto numNPUs = c10::npu::device_count();
+    TORCH_CHECK(numNPUs != 0, "numNPUs cannot be 0");
     int16_t deviceIdx = static_cast<int16_t>(rank_ % numNPUs);
     devices.push_back(at::Device(at::DeviceType::NPU, deviceIdx));
   } else {

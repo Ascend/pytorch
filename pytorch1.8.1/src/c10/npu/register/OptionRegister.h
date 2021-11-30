@@ -35,7 +35,7 @@ class OptionInterface {
   /**
     dctr
     */
-    OptionInterface(OptionCallBack callback=nullptr);
+  explicit OptionInterface(OptionCallBack callback=nullptr);
   /**
     This API is used to store value.
     */
@@ -133,7 +133,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal)  \
   bool func() {                                                     \
     auto val = c10::npu::GetOption(#key);                           \
-    if (val.value_or(defaultVal) == trueVal) {                      \
+    if (val.value_or(defaultVal) == (trueVal)) {                    \
       return true;                                                  \
     }                                                               \
     return false;                                                   \

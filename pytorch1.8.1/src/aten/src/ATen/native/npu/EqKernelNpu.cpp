@@ -24,7 +24,7 @@ using namespace at::native::npu;
 Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& other) {
   Tensor selfCast = self;
   Tensor otherCast = other;
-  if(self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int){
+  if (self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int) {
     selfCast = self.to(ScalarType::Float);
     otherCast = other.to(ScalarType::Float);
   }
@@ -42,7 +42,7 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
 
 Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
   Tensor selfCast = self;
-  if(self.dtype() == ScalarType::Int){
+  if (self.dtype() == ScalarType::Int) {
     selfCast = self.to(ScalarType::Float);
   }
   OpCommand cmd;
@@ -58,29 +58,29 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
 Tensor& eq_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other},
-    result,
-    ACL_FORMAT_ND,
-    result.scalar_type(),
-    IntArrayRef(outputSize));
+      {self, other},
+      result,
+      ACL_FORMAT_ND,
+      result.scalar_type(),
+      IntArrayRef(outputSize));
   eq_out_npu_nocheck(result, self, other);
   return result;
 }
 
 Tensor& eq_scalar_out_npu(const Tensor& self, Scalar other, Tensor& result) {
   OpPreparation::CheckOut(
-    {self},
-    result,
-    ACL_FORMAT_ND,
-    result.scalar_type(),
-    self.sizes());
+      {self},
+      result,
+      ACL_FORMAT_ND,
+      result.scalar_type(),
+      self.sizes());
   eq_out_npu_nocheck(result, self, other);
   return result;
 }
 
 Tensor eq_npu(const Tensor& self, const Tensor& other) {
-  Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);;
-  Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);;
+  Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
+  Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
 
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);

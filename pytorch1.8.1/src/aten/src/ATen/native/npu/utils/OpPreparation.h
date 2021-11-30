@@ -50,7 +50,7 @@ public:
       Tensor& out, const Tensor& a);
   static UnifiedResult reduce_op_check(
       Tensor& out1, Tensor& out2, const Tensor& a);
-  // 
+
   static void CheckOut(
       const std::initializer_list<Tensor>& inputs,
       Tensor& output, Tensor dst);
@@ -62,7 +62,7 @@ public:
       const std::initializer_list<Tensor>& input,
       Tensor& output, int64_t format,
       ScalarType dtype, IntArrayRef shape);
-  // 
+
   static Tensor CastBackToOriFormat(const Tensor& tensor);
   static Tensor& CastBackToOriFormat(Tensor& tensor);
   // used to apply output tensor

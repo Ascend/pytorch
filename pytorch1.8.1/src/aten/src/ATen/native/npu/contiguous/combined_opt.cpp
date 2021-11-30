@@ -184,7 +184,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
       for (auto i = 0; i < view_sizes.size(); i++) {
         map_shape_stride[view_strides[i]] = view_sizes[i];
       }
-      //除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
+      // 除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
       for (auto i = 0; i < view_sizes.size(); i++) {
         if (i == 0) {
           map_shape_stride[view_strides[0]] = view_sizes[0];
@@ -334,10 +334,8 @@ class CombinedContiguousOpt : public ContiguousOpt {
     // viewInfo = combined tensor(src)'s viewInfo
     // baseInfo = inferred info(infer_size, infer_stride, infer_offset)
     // If the first inferred tensor can be optimized, store its info.
-    if (can_infer_view_tensor(
-            src, temp_src, infer_size, infer_stride, infer_offset) &&
-        emplace_info(
-            temp_src, view_infos, view_offsets, infer_offset, max_len)) {
+    if (can_infer_view_tensor(src, temp_src, infer_size, infer_stride, infer_offset) &&
+        emplace_info(temp_src, view_infos, view_offsets, infer_offset, max_len)) {
       // Construct "the second inferred tensor"
       // viewInfo = inferred info(infer_size, infer_stride, infer_offset)
       // baseInfo = combined tensor(src)'s baseInfo

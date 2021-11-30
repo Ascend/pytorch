@@ -23,7 +23,6 @@
 #include <sys/prctl.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
 
-//#define OPEN_QUEUE_DEBUG
 #ifdef OPEN_QUEUE_DEBUG
 #define QUEUE_DEBUG(fmt, ...)                                      \
   do {                                                             \
@@ -33,7 +32,6 @@
 #define QUEUE_DEBUG(fmt, ...)
 #endif
 
-//#define OPEN_QUEUE_COUT
 #ifdef OPEN_QUEUE_COUT
 #define QUEUE_COUT(fmt, ...)                                       \
   do {                                                             \

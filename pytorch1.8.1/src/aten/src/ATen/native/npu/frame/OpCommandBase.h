@@ -27,12 +27,12 @@ namespace at {
 namespace native {
 namespace npu {
 
-//get common dtype and shape from op adapter layer
+// get common dtype and shape from op adapter layer
 struct UnifiedResult {
   c10::optional<ScalarType> common_type = c10::nullopt;
   c10::optional<IntArrayRef> common_shape = c10::nullopt;
-  //judge result tensor's dtype is defined or not.
-  //if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
+  // judge result tensor's dtype is defined or not.
+  // if result's dtype is defined, result_type_defined is true and result's dtype remains unchanged.
   bool result_type_defined = false;
 };
 
@@ -103,9 +103,6 @@ class OpCommandBase {
     return AddHostTensorInput(cpuTensor);
   }
 
-  // OpCommand& InputWithScalar(
-  //     const Tensor& input,
-  //     ScalarType forceScaleType = ScalarType::Undefined);
   Derived& Input(const Scalar& input, const ScalarType type, MemoryType memoryType=MemoryType::MEMORY_DEVICE) {
     if (memoryType == MemoryType::MEMORY_DEVICE) {
       return AddScalarInput(input, type);
@@ -211,10 +208,10 @@ class OpCommandBase {
     int deviceIndex = 0;
     AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
     auto tensor = cpuPinMemTensor.to(
-      c10::Device(DeviceType::NPU, deviceIndex),
-      cpuPinMemTensor.scalar_type(),
-      true,
-      true);
+        c10::Device(DeviceType::NPU, deviceIndex),
+        cpuPinMemTensor.scalar_type(),
+        true,
+        true);
     storage.emplace_back(tensor);
     return storage.back();
   }

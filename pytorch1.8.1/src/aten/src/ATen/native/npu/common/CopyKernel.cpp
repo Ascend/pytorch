@@ -176,8 +176,7 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
     return;
   }
 
-  if (!FormatHelper::IsBaseFormatType(
-          self)) { // TODO(ascend): 必须要非NCHW的才行？
+  if (!FormatHelper::IsBaseFormatType(self)) { // TODO(ascend): 必须要非NCHW的才行？
     if (can_use_memcpy(self, src)) {
       RECORD_FUNCTION(
           "d2dCopyAsync with format", std::vector<c10::IValue>({src}));
@@ -196,6 +195,11 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
 }
 
 void copy_d2d(Tensor& self, const Tensor& src, bool non_blocking) {
+  if (self.device() != src.device()) {
+    AT_ERROR("Cross-device copy is not supported.");
+    return;
+  }
+
   if (self.dtype() != src.dtype()) {
     self.npu_dtype_cast_(src); // npu_dtype_cast_ will call copy function.
     return;

@@ -1,3 +1,16 @@
+# Copyright (c) 2020, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 ############## nnae situation ################
 
 # cann env path
@@ -53,6 +66,9 @@ export OPTION_EXEC_EXTERN_PLUGIN_PATH=$OPTION_EXEC_EXTERN_PLUGIN_PATH:${PLUGIN_P
 export ASCEND_OPP_PATH=${OP_PATH}
 export PATH=$PATH:${FWK_HOME}/ccec_compiler/bin/
 export PATH=$PATH:${TOOLKIT_PATH}/tools/ide_daemon/bin/
+
+# HCCL
+export HCCL_WHITELIST_DISABLE=1
 
 # 搜索当前执行python库路径及三方库路径, 导入到LD_LIBRARY_PATH
 path_lib=$(python3.7 -c """

@@ -24,14 +24,6 @@ ge::TensorDesc GeHelper::Convert(const aclTensorDesc* desc) {
   auto format = Convert(aclGetTensorDescFormat(desc));
   auto dataType = Convert(aclGetTensorDescType(desc));
   ge::TensorDesc tensorDesc(shape, format, dataType);
-  /*
-  tensorDesc.SetUnknownDimNumShape();
-  tensorDesc.SetShapeRange();
-  tensorDesc.SetName();
-  tensorDesc.SetSize();
-  tensorDesc.SetRealDimCnt();
-  tensorDesc.SetPlacement();
-  */
   return tensorDesc;
 }
 

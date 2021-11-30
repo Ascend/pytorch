@@ -147,8 +147,6 @@ class TestStd(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             outputshape = self.output_shape(item[2],item[3],item[4],item[5])
-            print(outputshape)
-            print(item[2])
             cpu_output,npu_output = self.create_output_tensor(0,1,outputshape,item[1],item[0])
             if item[0] == np.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)

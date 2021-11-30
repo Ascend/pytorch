@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "OpParamMaker.h"
+#include <Python.h>
 #include <c10/npu/OptionsManager.h>
 #include "c10/npu/NPUQueue.h"
 #include "c10/npu/NPUCachingAllocator.h"
@@ -148,8 +149,14 @@ void OpCommandImpl::Run() {
   InitAttr();
   NPU_LOGD("Op %s Run.", opName.c_str());
   RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
-
-  ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+  if (PyGILState_Check()) {
+    // we need to release GIL for NPU to compile op.
+    Py_BEGIN_ALLOW_THREADS
+    ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+    Py_END_ALLOW_THREADS
+  } else {
+    ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+  }
 }
 
 aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {

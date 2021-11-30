@@ -68,8 +68,7 @@ tuple<Tensor&, Tensor&> batch_norm_training_reduce_nocheck(
   return tuple<Tensor&, Tensor&>(sum, square_sum);
 }
 
-tuple<Tensor&, Tensor&, Tensor&>
-batch_norm_training_update_nocheck(
+tuple<Tensor&, Tensor&, Tensor&> batch_norm_training_update_nocheck(
     Tensor& result,
     Tensor& save_mean,
     Tensor& save_invstd,
@@ -163,7 +162,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
 
   return tuple<Tensor&, Tensor&, Tensor&>(result, save_mean, save_invstd);
 }
-}//namespace
+} // namespace
 
 tuple<Tensor, Tensor, Tensor> batch_norm_npu(
     const Tensor& self,
@@ -232,7 +231,7 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
       eps);
 
   if (self.dim() == 5) {
-    //NCHW -> NDCHW -> NCDHW
+    // NCHW -> NDCHW -> NCDHW
     std::swap(self_shape[1], self_shape[2]);
     result = result.view(self_shape);
     result = NpuUtils::format_contiguous(result);

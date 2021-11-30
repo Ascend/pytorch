@@ -27,7 +27,7 @@ class TestSlowConvTranspose2d(TestCase):
         cpu_output = cpu_output.numpy()
 
         return cpu_output
- 
+
     def cpu_op_exec_fp16(self, input_1, weight, kernel_size):
         input_1 = input_1.to(torch.float32)
         weight = weight.to(torch.float32)
@@ -48,7 +48,7 @@ class TestSlowConvTranspose2d(TestCase):
         cpu_output = cpu_out.numpy()
 
         return cpu_output
- 
+
     def cpu_op_exec_out_fp16(self, input_1, weight, kernel_size, cpu_out):
         input_1 = input_1.to(torch.float32)
         weight = weight.to(torch.float32)
@@ -64,17 +64,12 @@ class TestSlowConvTranspose2d(TestCase):
         npu_output = npu_out.to("cpu")
         npu_output = npu_output.numpy()
         return npu_output
-    
-    def test_slow_conv_transpose2d(self, device):
+
+    def test_slow_conv_transpose2d_fp16(self, device):
         # input_1, weight, kernel_size
-        shape_format = [ 
+        shape_format = [
             [[np.float16, -1, [1, 1, 32, 32]], [np.float16, -1, [1, 1, 3, 3]], 3],
             [[np.float16, -1, [5, 1, 5, 5]], [np.float16, -1, [1, 1, 3, 3]], 3],
-            [[np.float32, -1, [1, 1, 32, 32]], [np.float32, -1, [1, 1, 3, 3]], 3],
-            [[np.float32, 0, [1, 4, 5, 5]], [np.float32, 0, [4, 4, 3, 3]], 3],
-            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]], 1],
-            [[np.float32, 4, [256, 3, 224, 224]], [np.float32, 4, [32, 3, 3, 3]], 3],
-            [[np.float32, 29, [16, 3, 640, 640]], [np.float32, 29, [64, 3, 7, 7]], 7]
         ]
         for item in shape_format:
             input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)
@@ -85,20 +80,34 @@ class TestSlowConvTranspose2d(TestCase):
                 cpu_output = self.cpu_op_exec(input_1_cpu, weight_cpu, item[2])
 
             npu_output = self.npu_op_exec(input_1_npu, weight_npu, item[2])
-            # fp32精度不足，放宽对其精度要求
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_slow_conv_transpose2d_fp32(self, device):
+        # input_1, weight, kernel_size
+        shape_format = [
+            [[np.float32, -1, [1, 1, 32, 32]], [np.float32, -1, [1, 1, 3, 3]], 3],
+            [[np.float32, 0, [1, 4, 5, 5]], [np.float32, 0, [4, 4, 3, 3]], 3],
+            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]], 1]
+        ]
+        for item in shape_format:
+            input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)
+            weight_cpu, weight_npu = create_common_tensor(item[1], 0, 1)
+            if input_1_cpu.dtype == torch.float16:
+                cpu_output = self.cpu_op_exec_fp16(input_1_cpu, weight_cpu, item[2])
+            else:
+                cpu_output = self.cpu_op_exec(input_1_cpu, weight_cpu, item[2])
+
+            npu_output = self.npu_op_exec(input_1_npu, weight_npu, item[2])
+            # fp32 isn't enough precision, relaxation of precision requirement temporary
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
-    
-    def test_slow_conv_transpose2d_out(self, device):
+
+    def test_slow_conv_transpose2d_out_fp16(self, device):
         # input_1, weight, kernel_size, out
-        shape_format = [  
-            [[np.float16, -1, [5, 1, 5, 5]], [np.float16, -1, [1, 1, 3, 3]], 
+        shape_format = [
+            [[np.float16, -1, [5, 1, 5, 5]], [np.float16, -1, [1, 1, 3, 3]],
             3, [np.float16, -1, [5, 1, 7, 7]]],
-            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]], 
-            1, [np.float32, 3, [256, 256, 7, 7]]],
-            [[np.float32, 4, [256, 3, 224, 224]], [np.float32, 4, [32, 3, 3, 3]], 
-            3, [np.float32, 4, [256, 3, 224, 224]]],
-            [[np.float32, 29, [16, 3, 640, 640]], [np.float32, 29, [64, 3, 7, 7]], 
-            7, [np.float32, 29, [16, 3, 640, 640]]]
+            [[np.float16, 3, [256, 256, 7, 7]], [np.float16, 0, [256, 256, 1, 1]],
+            1, [np.float16, 3, [256, 256, 7, 7]]]
         ]
         for item in shape_format:
             input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)
@@ -109,7 +118,26 @@ class TestSlowConvTranspose2d(TestCase):
             else:
                 cpu_output = self.cpu_op_exec_out(input_1_cpu, weight_cpu, item[2], out_cpu)
             npu_output = self.npu_op_exec_out(input_1_npu, weight_npu, item[2], out_npu)
-            # fp32精度不足，放宽对其精度要求
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_slow_conv_transpose2d_out_fp32(self, device):
+        # input_1, weight, kernel_size, out
+        shape_format = [
+            [[np.float32, -1, [5, 1, 5, 5]], [np.float32, -1, [1, 1, 3, 3]],
+            3, [np.float32, -1, [5, 1, 7, 7]]],
+            [[np.float32, 3, [256, 256, 7, 7]], [np.float32, 0, [256, 256, 1, 1]],
+            1, [np.float32, 3, [256, 256, 7, 7]]]
+        ]
+        for item in shape_format:
+            input_1_cpu, input_1_npu = create_common_tensor(item[0], 0, 1)
+            weight_cpu, weight_npu = create_common_tensor(item[1], 0, 1)
+            out_cpu, out_npu = create_common_tensor(item[3], 0, 1)
+            if input_1_cpu.dtype == torch.float16:
+                cpu_output = self.cpu_op_exec_out_fp16(input_1_cpu, weight_cpu, item[2], out_cpu)
+            else:
+                cpu_output = self.cpu_op_exec_out(input_1_cpu, weight_cpu, item[2], out_cpu)
+            npu_output = self.npu_op_exec_out(input_1_npu, weight_npu, item[2], out_npu)
+            # fp32 isn't enough precision, relaxation of precision requirement temporary
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
 
 instantiate_device_type_tests(TestSlowConvTranspose2d, globals(), except_for='cpu')

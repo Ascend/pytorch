@@ -43,7 +43,7 @@ OptionRegister* OptionRegister::GetInstance() {
 }
 
 void OptionRegister::Register(const std::string& name,
-                            ::std::unique_ptr<OptionInterface>& ptr) {
+    ::std::unique_ptr<OptionInterface>& ptr) {
   std::lock_guard<std::mutex> lock(mu_);
   registry.emplace(name, std::move(ptr));
 }

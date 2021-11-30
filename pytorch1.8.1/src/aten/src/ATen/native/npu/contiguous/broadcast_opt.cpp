@@ -61,7 +61,7 @@ private:
     Tensor temp_src = at::empty({0}, src.options());
     temp_src.set_(src);
     temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(
-          src_size, src.strides());
+        src_size, src.strides());
 
     c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     if (temp_src.is_contiguous()) {

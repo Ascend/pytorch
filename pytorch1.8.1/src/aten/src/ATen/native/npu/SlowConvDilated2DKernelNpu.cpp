@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -23,11 +22,11 @@ Tensor slow_conv_dilated2d_npu(
     const Tensor& self,
     const Tensor& weight,
     IntArrayRef kernel_size,
-    const Tensor& bias,
+    const c10::optional<Tensor>& bias_opt,
     IntArrayRef stride,
     IntArrayRef padding,
     IntArrayRef dilation) {
-  
+
   if (stride[0] == 0) {
     AT_ERROR("slow_conv_dilated2d_npu_output_size: stride[0] can not be zero");
   }
@@ -36,10 +35,8 @@ Tensor slow_conv_dilated2d_npu(
   }
   auto outputSize = slow_conv_dilated2d_npu_output_size(
       self, weight, stride, padding, dilation);
-  // construct the output tensor of the NPU
-  Tensor result =
-      at::empty_with_format(outputSize, self.options(), ACL_FORMAT_NC1HWC0);
-  
+  Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_NC1HWC0);
+  const Tensor& bias = c10::value_or_else(bias_opt, [] {return Tensor();});
   int64_t groups = 1;
   string dataFormat = "NCHW";
   SmallVector<int64_t,N> stridesSize = {1,1,stride[0],stride[1]};
@@ -47,14 +44,13 @@ Tensor slow_conv_dilated2d_npu(
       padding[0], padding[0], padding[1], padding[1]};
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
 
-  // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("Conv2D")
       .Input(self)
       .Input(weight);
   if (bias.defined()){
      cmd.Input(bias);
-  } 
+  }
   cmd.Output(result)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
@@ -62,8 +58,13 @@ Tensor slow_conv_dilated2d_npu(
       .Attr("groups",groups)
       .Attr("data_format",dataFormat)
       .Run();
-      
+
   return result;
 }
+
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("slow_conv_dilated2d", TORCH_FN(slow_conv_dilated2d_npu));
+}
+
 } // namespace native
 } // namespace at

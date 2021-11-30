@@ -40,11 +40,11 @@ Tensor zeros_like_npu(
   auto device = device_or_default(device_opt);
   if (!device.is_npu()) {
     auto result = at::empty_like(self,
-      dtype_opt,
-      layout_opt,
-      device_opt,
-      pin_memory_opt,
-      optional_memory_format);
+        dtype_opt,
+        layout_opt,
+        device_opt,
+        pin_memory_opt,
+        optional_memory_format);
     return result.fill_(0);
   }
 

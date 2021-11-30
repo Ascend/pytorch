@@ -17,6 +17,7 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <c10/util/Optional.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 
 namespace at {
@@ -70,13 +71,20 @@ static inline Tensor to_impl_npu(
 
 Tensor to_npu(
     const Tensor& self,
-    const TensorOptions& options_,
+    c10::optional<ScalarType> dtype,
+    c10::optional<Layout> layout,
+    c10::optional<Device> device,
+    c10::optional<bool> pin_memory,
     bool non_blocking,
     bool copy,
     c10::optional<c10::MemoryFormat> optional_memory_format) {
   TORCH_CHECK(
       !optional_memory_format.has_value(),
       "NPU not support specify memory_format.");
+  TensorOptions options_;
+  options_ = options_.dtype(dtype)
+                  .layout(layout)
+                  .device(device);
   TORCH_CHECK(
       !(options_.has_memory_format() && optional_memory_format.has_value()),
       "Cannot set memory_format both in TensorOptions and explicit argument; please delete "
@@ -134,7 +142,8 @@ Tensor to_dtype_npu(
     TORCH_WARN_ONCE("Unsupport Double dtype now, replace with float.");
   }
   dtype = (ScalarType::Double == dtype) ? ScalarType::Float : dtype;
-  return at::npu_dtype_cast(self, dtype);
+  return to_impl_npu(self, 
+      self.options().dtype(dtype).memory_format(optional_memory_format), non_blocking, copy);
 }
 
 Tensor to_other_npu(
@@ -148,5 +157,11 @@ Tensor to_other_npu(
       self, options.memory_format(optional_memory_format), non_blocking, copy);
 }
 
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("to.dtype_layout", TORCH_FN(to_npu));
+  m.impl("to.other", TORCH_FN(to_other_npu));
+  m.impl("to.dtype", TORCH_FN(to_dtype_npu));
+  m.impl("to.device", TORCH_FN(to_device_npu));
+}
 } // namespace native
 } // namespace at
