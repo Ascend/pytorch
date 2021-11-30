@@ -26,7 +26,7 @@ class TestDiv(TestCase):
         cpu_output = torch.div(cpu_args[0], cpu_args[1]).to(dtype).numpy()
         npu_output = torch.div(npu_args[0], npu_args[1]).to("cpu").numpy()
         return cpu_output, npu_output
-    
+
     def get_outputs_chk(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
         cpu_out = torch.randn(6).to(dtype)
@@ -55,7 +55,7 @@ class TestDiv(TestCase):
             cpu_output = np.floor_divide(cpu_input1.numpy(), cpu_input2.numpy())
 
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     @unittest.skipIf(UT_FAST_MODE, "Run UT in fast mode")
     def test_div_shape_format_fp16(self, device):
         format_list = [0, 3, 29]
@@ -89,19 +89,26 @@ class TestDiv(TestCase):
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input4], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_div_mix_dtype_2(self, device):
         npu_input1, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         npu_input3 = torch.tensor(3).int()
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input3], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
+    def test_div_mix_dtype_3(self, device):
+        cpu_input1, npu_input1 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
+        cpu_input2 = torch.tensor(3).int()
+        npu_input2 = cpu_input2.npu()
+        cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.float)
+        self.assertRtolEqual(cpu_output, npu_output)
+
     def test_div_scalar_dtype(self, device):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / 0.5
         npu_output = npu_input1 / 0.5
         self.assertRtolEqual(cpu_output, npu_output.cpu())
-        
+
     @unittest.skipIf(UT_FAST_MODE, "Run UT in fast mode")
     def test_div_shape_format_fp32(self, device):
         format_list = [0, 3, 29]

@@ -46,7 +46,7 @@ Tensor& div_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
 Tensor& div_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& other) {
 
   // executing the NPU operator
-  if (other.dim() == 0) {
+  if (other.dim() == 0 && !other.is_npu()) {
     div_out_npu(result, self, other.item());
   } else {
     auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
@@ -56,7 +56,7 @@ Tensor& div_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& ot
         .Input(self)
         .Input(other)
         .Output(result)
-        .Run();    
+        .Run();
   }
 
   return result;
@@ -102,8 +102,8 @@ Tensor div_npu(const Tensor& self, Scalar other) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-      outputSize, 
-      self.options(), 
+      outputSize,
+      self.options(),
       CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
