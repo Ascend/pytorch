@@ -8554,9 +8554,15 @@
   npu_dispatch_only:
     NPU: min_backward_npu
 
-- func: npu_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+- func: npu_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: apply_adam_npu
+
+- func: npu_apply_adam(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_apply_adam.out(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  npu_dispatch_only:
+    NPU: apply_adam_out_npu
 
 - func: npu_layer_norm_eval(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05) -> Tensor
   npu_dispatch_only:
@@ -8656,9 +8662,15 @@
   npu_dispatch_only:
     NPU: linear_backward_npu
 
-- func: npu_bert_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+- func: npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: bert_apply_adam_npu
+
+- func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  npu_dispatch_only:
+    NPU: bert_apply_adam_out_npu
 
 - func: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   npu_dispatch_only:

@@ -55,13 +55,7 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu_nocheck(
   return std::tie(var_out, m_out, v_out);
 }
 
-tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu(
-    Tensor& var_out,
-    Tensor& m_out,
-    Tensor& v_out,
-    const Tensor& var,
-    const Tensor& m,
-    const Tensor& v,
+std::tuple<Tensor, Tensor, Tensor> npu_bert_apply_adam(
     Scalar lr,
     Scalar beta1,
     Scalar beta2,
@@ -70,20 +64,25 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu(
     Scalar max_grad_norm,
     Scalar global_grad_norm,
     Scalar weight_decay) {
-  OpPipeWithDefinedOut check;
-  check.CheckMemory({var, m, v, grad}, {var_out, m_out, v_out});
+  AT_ERROR("npu_bert_apply_adam is not implemented for Tensor");
+}
 
-  auto func = [&var, &m, &v, &lr, &beta1, &beta2, &epsilon, &grad, &max_grad_norm, &global_grad_norm, &weight_decay] (
-      Tensor& var_out,
-      Tensor& m_out,
-      Tensor& v_out) {
-        bert_apply_adam_out_npu_nocheck(var_out, m_out, v_out, var, m, v, 
-            lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
-      };
-  
-  OpPipeWithMultiOut<Tensor&, Tensor&, Tensor&> pipe(var_out, m_out, v_out);
-  return pipe.Call(func)
-              .ReturnRef<Tensor&, Tensor&, Tensor&>();
+tuple<Tensor&, Tensor&, Tensor&> bert_apply_adam_out_npu(
+    Tensor& var,
+    Tensor& m,
+    Tensor& v,
+    Scalar lr,
+    Scalar beta1,
+    Scalar beta2,
+    Scalar epsilon,
+    const Tensor& grad,
+    Scalar max_grad_norm,
+    Scalar global_grad_norm,
+    Scalar weight_decay) {
+  bert_apply_adam_npu(
+      var, m, v,
+      lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
+  return std::tie(var, m, v);
 }
 
 tuple<Tensor, Tensor, Tensor> bert_apply_adam_npu(
@@ -98,11 +97,10 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_npu(
     Scalar max_grad_norm,
     Scalar global_grad_norm,
     Scalar weight_decay) {
-  bert_apply_adam_out_npu(
+  bert_apply_adam_out_npu_nocheck(
       var, m, v, var, m, v,
       lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
   return std::tie(var, m, v);
 }
-
 } // namespace native
 } // namespace at
