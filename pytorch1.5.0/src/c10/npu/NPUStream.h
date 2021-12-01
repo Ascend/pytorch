@@ -23,9 +23,7 @@
 #include <c10/core/Stream.h>
 #include <c10/npu/NPUException.h>
 #include <c10/npu/NPUMacros.h>
-#include <c10/npu/npu_log.h>
 #include <c10/util/Exception.h>
-#include "c10/npu/npu_log.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10 {

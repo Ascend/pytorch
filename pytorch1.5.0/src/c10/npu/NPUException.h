@@ -19,6 +19,7 @@
 #include <iostream>
 #include <c10/macros/Macros.h>
 #include <c10/util/Exception.h>
+#include <c10/npu/npu_log.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <c10/npu/interface/AclInterface.h>
 

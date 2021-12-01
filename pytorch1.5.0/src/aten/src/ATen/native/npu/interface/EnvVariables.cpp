@@ -113,9 +113,7 @@ REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string&val) {
 })
 
 REGISTER_OPTION_HOOK(profiling, [](const std::string&val) {
-  if (val.compare("start") == 0) {
-    at::native::npu::NpuProfiling::Instance().Start();
-  } else if (val.compare("stop") == 0) {
+  if (val.compare("stop") == 0) {
     at::native::npu::NpuProfiling::Instance().Stop();
   } else if (val.compare("finalize") == 0) {
     at::native::npu::NpuProfiling::Instance().Finalize();

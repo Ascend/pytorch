@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #include "NpuProfiling.h"
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/NPUException.h>
 
 namespace at {
 namespace native {
@@ -36,7 +34,7 @@ void NpuProfiling::Init(const std::string &path) {
   status = PROFILING_INIT;
 }
 
-void NpuProfiling::Start() {
+void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP, 
             "start current profile status is: ", status, " error!")
   int deviceIndex = 0;
@@ -53,9 +51,9 @@ void NpuProfiling::Start() {
   profCfg = c10::npu::acl::AclProfilingCreateConfig(
     deviceIdList,
     deviceNum,
-    ACL_AICORE_ARITHMETIC_UTILIZATION,
+    (aclprofAicoreMetrics)aicore_metrics,
     nullptr,
-    ACL_PROF_ACL_API | ACL_PROF_TASK_TIME | ACL_PROF_AICORE_METRICS | ACL_PROF_AICPU);
+    npu_event);
   if (profCfg == nullptr) {
     NPU_LOGE("npu profiling profiling_create_config fail, error  profCfg is null.");
     C10_NPU_SHOW_ERR_MSG();

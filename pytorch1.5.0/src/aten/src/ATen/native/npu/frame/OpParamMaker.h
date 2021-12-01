@@ -248,20 +248,49 @@ class OpCommandImpl {
     int inputNum = execParam.inDesc.size();
     int outputNum = execParam.outDesc.size();
     int constNum = execParam.constLists.size();
-    const int64_t** constListArr = new const int64_t*[constNum];
-    const aclTensorDesc** aclTensorInputDescArr =
-        new const aclTensorDesc*[inputNum];
-    const aclTensorDesc** aclTensorOutputDescArr =
-        new const aclTensorDesc*[outputNum];
-    const aclDataBuffer** aclDataInputBuffArr =
-        new const aclDataBuffer*[inputNum];
-    aclDataBuffer** aclDataOutputBuffArr = new aclDataBuffer*[outputNum];
 
-    int64_t* constIdxArr = new int64_t[constNum];
-    int64_t* inputDimsArr = new int64_t[inputNum];
-    int64_t* outputDimsArr = new int64_t[outputNum];
-    aclFormat* inputFormatsArr = new aclFormat[inputNum];
-    aclFormat* outputFormatsArr = new aclFormat[outputNum];
+    size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+    size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+    size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+    size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
+
+    size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+    size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+    size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+    size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
+
+    size_t constListArrLen = constNum * sizeof(uintptr_t);
+    size_t constIdxArrLen  = constNum * sizeof(int64_t);
+
+    size_t totalMemLen =
+      inputTensorDescArrLen + inputDataBuffArrLen +
+      inputDimsArrLen + inputFormatsArrLen +
+      outputTensorDescArrLen + outputDataBuffArrLen +
+      outputDimsArrLen + outputFormatsArrLen +
+      constListArrLen + constIdxArrLen;
+    char* basePtr = static_cast<char* >(malloc(totalMemLen));
+    AT_ASSERT(basePtr != nullptr);
+    const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += inputTensorDescArrLen;
+    const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+    basePtr += inputDataBuffArrLen;
+    int64_t* inputDimsArr = reinterpret_cast<int64_t*>(basePtr);
+    basePtr += inputDimsArrLen;
+    aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+    basePtr += inputFormatsArrLen;
+
+    const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += outputTensorDescArrLen;
+    aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+    basePtr += outputDataBuffArrLen;
+    int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+    basePtr += outputDimsArrLen;
+    aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
+    basePtr += outputFormatsArrLen;
+
+    const int64_t** constListArr = reinterpret_cast<const int64_t** >(basePtr);
+    basePtr += constListArrLen;
+    int64_t* constIdxArr = reinterpret_cast<int64_t* >(basePtr);
 
     std::copy(
         execParam.inDesc.begin(),

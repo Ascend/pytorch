@@ -24,7 +24,7 @@ void ExecuteParas::Release() {
   // if useDynamicCompile, this attr will be freed in dynamic compile. 
   if (!isCompiling) {
     aclopDestroyAttr(attr);
-  }  
+  }
   DestroyConstParams(constParams);
   NPUStatus ret = DestroyAclParams(paras);
   if (ret != SUCCESS) {
@@ -82,23 +82,11 @@ NPUStatus DestroyAclParams(ACL_PARAMS& params) {
       for (int i = 0; i < params.input_num; ++i) {
         aclDestroyTensorDesc(params.input_desc[i]);
       }
-      delete[] params.input_desc;
-      params.input_desc = nullptr;
-    }
-    if (params.inputDims != nullptr) {
-      delete[] params.inputDims;
-      params.inputDims = nullptr;
-    }
-    if (params.inputFormats != nullptr) {
-      delete[] params.inputFormats;
-      params.inputFormats = nullptr;
     }
     if (params.input_data_buf != nullptr) {
       for (int i = 0; i < params.input_num; ++i) {
         C10_NPU_CHECK(aclDestroyDataBuffer(params.input_data_buf[i]));
       }
-      delete[] params.input_data_buf;
-      params.input_data_buf = nullptr;
     }
     params.input_num = 0;
   }
@@ -107,27 +95,23 @@ NPUStatus DestroyAclParams(ACL_PARAMS& params) {
       for (int i = 0; i < params.output_num; ++i) {
         aclDestroyTensorDesc(params.output_desc[i]);
       }
-      delete[] params.output_desc;
-      params.output_desc = nullptr;
     }
-    if (params.outputDims != nullptr) {
-      delete[] params.outputDims;
-      params.outputDims = nullptr;
-    }
-    if (params.outputFormats != nullptr) {
-      delete[] params.outputFormats;
-      params.outputFormats = nullptr;
-    }
-
     if (params.output_data_buf != nullptr) {
       for (int i = 0; i < params.output_num; ++i) {
         C10_NPU_CHECK(aclDestroyDataBuffer(params.output_data_buf[i]));
       }
-      delete[] params.output_data_buf;
-      params.output_data_buf = nullptr;
     }
     params.output_num = 0;
   }
+  free(params.input_desc);
+  params.input_desc = nullptr;
+  params.inputDims = nullptr;
+  params.inputFormats = nullptr;
+  params.input_data_buf = nullptr;
+  params.output_desc = nullptr;
+  params.outputDims = nullptr;
+  params.outputFormats = nullptr;
+  params.output_data_buf = nullptr;
   return SUCCESS;
 }
 
@@ -192,21 +176,16 @@ NPUStatus DestroyDynamicAclParams(ACL_DYNAMIC_PARAMS& params) {
   return SUCCESS;
 }
 
-void DestroyConstParams(CONST_PARAMS& params) { 
+void DestroyConstParams(CONST_PARAMS& params) {
   if (params.constList != nullptr) {
     for (int i = 0; i < params.constNum; ++i) {
       if (params.constList[i] != nullptr) {
         delete[] params.constList[i];
-      }    
+      }
     }
-    delete[] params.constList;
-    params.constList = nullptr;
   }
-
-  if (params.constIdx != nullptr) {
-    delete[] params.constIdx;
-    params.constIdx = nullptr;
-  }
+  params.constList = nullptr;
+  params.constIdx = nullptr;
 }
 
 } // namespace npu

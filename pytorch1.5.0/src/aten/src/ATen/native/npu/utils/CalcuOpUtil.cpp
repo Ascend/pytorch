@@ -319,20 +319,40 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
   int inputNum = input.size();
   int outputNum = output.size();
 
-  const aclTensorDesc** aclTensorInputDescArr =
-      inputNum == 0 ? nullptr : new const aclTensorDesc*[inputNum];
-  const aclTensorDesc** aclTensorOutputDescArr =
-      outputNum == 0 ? nullptr : new const aclTensorDesc*[outputNum];
+  size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+  size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+  size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+  size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
 
-  const aclDataBuffer** aclDataInputBuffArr =
-      inputNum == 0 ? nullptr : new const aclDataBuffer*[inputNum];
-  aclDataBuffer** aclDataOutputBuffArr =
-      outputNum == 0 ? nullptr : new aclDataBuffer*[outputNum];
+  size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+  size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+  size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+  size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
 
-  int64_t* inputDimsArr = new int64_t[inputNum];
-  int64_t* outputDimsArr = new int64_t[outputNum];
-  aclFormat* inputFormatsArr = new aclFormat[inputNum];
-  aclFormat* outputFormatsArr = new aclFormat[outputNum];
+  size_t totalMemLen =
+    inputTensorDescArrLen + inputDataBuffArrLen +
+    inputDimsArrLen + inputFormatsArrLen +
+    outputTensorDescArrLen + outputDataBuffArrLen +
+    outputDimsArrLen + outputFormatsArrLen;
+  char* basePtr = static_cast<char* >(malloc(totalMemLen));
+  AT_ASSERT(basePtr != nullptr);
+
+  const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+  basePtr += inputTensorDescArrLen;
+  const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+  basePtr += inputDataBuffArrLen;
+  int64_t* inputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+  basePtr += inputDimsArrLen;
+  aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+  basePtr += inputFormatsArrLen;
+
+  const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+  basePtr += outputTensorDescArrLen;
+  aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+  basePtr += outputDataBuffArrLen;
+  int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+  basePtr += outputDimsArrLen;
+  aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
 
   for (int i = 0; i < inputNum; i++) {
     ScalarType scalarDataType =

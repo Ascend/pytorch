@@ -249,12 +249,15 @@ ExecuteParas DynamicShapeUtil::CreateCompileParams(
         params.dynamicParam.compile_output_desc;
     compileParams.dynamicCompileAttr = params.dynamicCompileAttr;
   } else {
-    const aclTensorDesc** compileInputsDescs = params.paras.input_num == 0
-        ? nullptr
-        : new const aclTensorDesc*[params.paras.input_num];
-    const aclTensorDesc** compileOutputsDescs = params.paras.output_num == 0
-        ? nullptr
-        : new const aclTensorDesc*[params.paras.output_num];
+    size_t inputTensorDescArrLen = params.paras.input_num * sizeof(uintptr_t);
+    size_t outputTensorDescArrLen = params.paras.output_num * sizeof(uintptr_t);
+    size_t totalMemLen = inputTensorDescArrLen + outputTensorDescArrLen;
+    char* basePtr = static_cast<char* >(malloc(totalMemLen));
+    AT_ASSERT(basePtr != nullptr);
+
+    const aclTensorDesc** compileInputsDescs = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += inputTensorDescArrLen;
+    const aclTensorDesc** compileOutputsDescs = reinterpret_cast<const aclTensorDesc** >(basePtr);
 
     NPU_LOGD(" Op %s CreateAclParamsDesc Run.", params.opType.c_str());
     CreateAclParamsDesc(

@@ -18,6 +18,7 @@
 #define __NPU_PROFILING__
 
 #include <c10/npu/interface/AclInterface.h>
+#include <c10/npu/NPUException.h>
 #include <string>
 
 typedef enum {
@@ -31,12 +32,12 @@ namespace at {
 namespace native {
 namespace npu {
 
-class NpuProfiling
+class TORCH_NPU_API NpuProfiling
 {
   public:
     static NpuProfiling& Instance();
     void Init(const std::string &profilerResultPath);
-    void Start();
+    void Start(uint64_t npu_event, uint64_t aicore_metrics);
     void Stop();
     void Finalize();
   private:
