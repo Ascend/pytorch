@@ -60,6 +60,6 @@ private:
 }
 }
 
-#endif //__NPU_STORAGE_GUARD__
+#endif // __NPU_STORAGE_GUARD__
 
 

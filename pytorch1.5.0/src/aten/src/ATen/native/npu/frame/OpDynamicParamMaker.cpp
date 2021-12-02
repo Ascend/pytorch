@@ -169,29 +169,29 @@ void OpDynamicCommandImpl::ReleaseDynamicSource(bool no_blocking) {
   }
 
   execDynamicParam.inDynamicCompileDesc.erase(
-    execDynamicParam.inDynamicCompileDesc.begin() + execDynamicParam.inDynamicOffset.back(), 
-    execDynamicParam.inDynamicCompileDesc.end());
+      execDynamicParam.inDynamicCompileDesc.begin() + execDynamicParam.inDynamicOffset.back(), 
+      execDynamicParam.inDynamicCompileDesc.end());
   execDynamicParam.inDynamicDesc.erase(
-    execDynamicParam.inDynamicDesc.begin() + execDynamicParam.inDynamicOffset.back(), 
-    execDynamicParam.inDynamicDesc.end());
+      execDynamicParam.inDynamicDesc.begin() + execDynamicParam.inDynamicOffset.back(), 
+      execDynamicParam.inDynamicDesc.end());
   execDynamicParam.inDynamicBuffer.erase(
-    execDynamicParam.inDynamicBuffer.begin() + execDynamicParam.inDynamicOffset.back(), 
-    execDynamicParam.inDynamicBuffer.end());
+      execDynamicParam.inDynamicBuffer.begin() + execDynamicParam.inDynamicOffset.back(), 
+      execDynamicParam.inDynamicBuffer.end());
   execDynamicParam.inDynamicDims.erase(
-    execDynamicParam.inDynamicDims.begin() + execDynamicParam.inDynamicOffset.back(), 
-    execDynamicParam.inDynamicDims.end());
+      execDynamicParam.inDynamicDims.begin() + execDynamicParam.inDynamicOffset.back(), 
+      execDynamicParam.inDynamicDims.end());
   execDynamicParam.outDynamicCompileDesc.erase(
-    execDynamicParam.outDynamicCompileDesc.begin() + execDynamicParam.outDynamicOffset.back(), 
-    execDynamicParam.outDynamicCompileDesc.end());
+      execDynamicParam.outDynamicCompileDesc.begin() + execDynamicParam.outDynamicOffset.back(), 
+      execDynamicParam.outDynamicCompileDesc.end());
   execDynamicParam.outDynamicDesc.erase(
-    execDynamicParam.outDynamicDesc.begin() + execDynamicParam.outDynamicOffset.back(), 
-    execDynamicParam.outDynamicDesc.end());
+      execDynamicParam.outDynamicDesc.begin() + execDynamicParam.outDynamicOffset.back(), 
+      execDynamicParam.outDynamicDesc.end());
   execDynamicParam.outDynamicBuffer.erase(
-    execDynamicParam.outDynamicBuffer.begin() + execDynamicParam.outDynamicOffset.back(),
-    execDynamicParam.outDynamicBuffer.end());
+      execDynamicParam.outDynamicBuffer.begin() + execDynamicParam.outDynamicOffset.back(),
+      execDynamicParam.outDynamicBuffer.end());
   execDynamicParam.outDynamicDims.erase(
-    execDynamicParam.outDynamicDims.begin() + execDynamicParam.outDynamicOffset.back(), 
-    execDynamicParam.outDynamicDims.end());
+      execDynamicParam.outDynamicDims.begin() + execDynamicParam.outDynamicOffset.back(), 
+      execDynamicParam.outDynamicDims.end());
 
   opDynamicNames.pop_back();
   dynamicKeys.pop_back();
@@ -204,9 +204,9 @@ void OpDynamicCommandImpl::ReleaseDynamicSource(bool no_blocking) {
 
 void OpDynamicCommandImpl::UpdateDynamicParam() {
   execDynamicParam.inDynamicOffset.push_back(
-    execDynamicParam.inDynamicOffset.back() + execDynamicParam.inDynamicDims.size());
+      execDynamicParam.inDynamicOffset.back() + execDynamicParam.inDynamicDims.size());
   execDynamicParam.outDynamicOffset.push_back(
-    execDynamicParam.outDynamicOffset.back() + execDynamicParam.outDynamicDims.size());
+      execDynamicParam.outDynamicOffset.back() + execDynamicParam.outDynamicDims.size());
   execDynamicParam.opCountDynamicOffset.push_back(execDynamicParam.opCountDynamicOffset.back() + dynamicKeys.size());
   dynamicKeys.push_back("");
   execDynamicParam.dynamicCompileAttrs.push_back(nullptr);

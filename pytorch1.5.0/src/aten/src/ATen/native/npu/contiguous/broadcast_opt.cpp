@@ -105,17 +105,17 @@ private:
     Tensor temp_src = at::empty({0}, src.options());
     temp_src.set_(src);
     temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(
-          src_size, src.strides());
+        src_size, src.strides());
 
     c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     if (temp_src.is_contiguous()) {
       auto temp_dst = broadcast_npu(temp_src, self.sizes());
       c10::npu::queue::LaunchAsyncCopyTask(
-        self.data_ptr(),
-        self.nbytes(),
-        temp_dst.data_ptr(),
-        self.nbytes(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE);
+          self.data_ptr(),
+          self.nbytes(),
+          temp_dst.data_ptr(),
+          self.nbytes(),
+          ACL_MEMCPY_DEVICE_TO_DEVICE);
       return true;
     }
     return false;

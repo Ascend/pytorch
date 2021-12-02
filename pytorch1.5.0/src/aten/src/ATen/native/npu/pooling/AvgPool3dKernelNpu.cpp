@@ -95,7 +95,7 @@ Tensor avg_pool3d_npu(
 
   // #20866, #22032: Guarantee this for the official C++ API?
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 3,
-    "avg_pool3d: kernel_size must be a single int, or a tuple of three ints");
+      "avg_pool3d: kernel_size must be a single int, or a tuple of three ints");
   const int kT = safe_downcast<int, int64_t>(kernel_size[0]);
   const int kH = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[1]);
   const int kW = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[2]);
@@ -103,7 +103,7 @@ Tensor avg_pool3d_npu(
   IntArrayRef kernel_sizess = IntArrayRef(kernel_sizes);
 
   TORCH_CHECK(stride.empty() || stride.size() == 1 || stride.size() == 3,
-    "avg_pool3d: stride must be omitted, a single int, or a tuple of three ints");
+      "avg_pool3d: stride must be omitted, a single int, or a tuple of three ints");
   const int dT = stride.empty() ? kT : safe_downcast<int, int64_t>(stride[0]);
   const int dH = stride.empty() ? kH :
                  stride.size() == 1 ? dT : safe_downcast<int, int64_t>(stride[1]);
@@ -114,7 +114,7 @@ Tensor avg_pool3d_npu(
   IntArrayRef stridess = IntArrayRef(strides);
 
   TORCH_CHECK(padding.size() == 1 || padding.size() == 3,
-    "avg_pool3d: padding must be a single int, or a tuple of three ints");
+      "avg_pool3d: padding must be a single int, or a tuple of three ints");
   const int padT = safe_downcast<int, int64_t>(padding[0]);
   const int padH = padding.size() == 1 ? padT : safe_downcast<int, int64_t>(padding[1]);
   const int padW = padding.size() == 1 ? padT : safe_downcast<int, int64_t>(padding[2]);
@@ -122,10 +122,10 @@ Tensor avg_pool3d_npu(
   IntArrayRef paddingss = IntArrayRef(paddings);
 
   TORCH_CHECK((self.ndimension() == 4 || self.ndimension() == 5),
-    "non-empty 4D or 5D (batch mode) tensor expected for input");
+      "non-empty 4D or 5D (batch mode) tensor expected for input");
 
   TORCH_CHECK(!divisor_override.has_value() || divisor_override.value() != 0,
-    "divisor must be not zero");
+      "divisor must be not zero");
 
   const int64_t nslices = self.size(-4);
   const int64_t itime = self.size(-3);
@@ -137,15 +137,15 @@ Tensor avg_pool3d_npu(
   const int64_t owidth = pooling_output_shape<int64_t>(iwidth, kW, padW, dW, 1, ceil_mode);
 
   pool3d_shape_check(
-    self,
-    nslices,
-    kT, kH, kW,
-    dT, dH, dW,
-    padT, padH, padW,
-    1, 1, 1,
-    itime, iheight, iwidth,
-    otime, oheight, owidth,
-    /*check_input_size=*/ true);
+      self,
+      nslices,
+      kT, kH, kW,
+      dT, dH, dW,
+      padT, padH, padW,
+      1, 1, 1,
+      itime, iheight, iwidth,
+      otime, oheight, owidth,
+      true);
 
   Tensor input = self;
   if (self.ndimension() == 4) {

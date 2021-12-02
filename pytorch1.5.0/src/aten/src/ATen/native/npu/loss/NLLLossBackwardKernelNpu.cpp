@@ -58,7 +58,7 @@ Tensor& nll_loss_backward_out_npu(
   } 
   else {
     AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
-          " for argument 'target'  in call to nll_loss_backward");
+        " for argument 'target'  in call to nll_loss_backward");
   }
   
   OpCommand cmd;

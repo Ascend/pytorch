@@ -46,4 +46,4 @@ class OptionsManager {
 } // namespace npu
 } // namespace c10
 
-#endif //
+#endif

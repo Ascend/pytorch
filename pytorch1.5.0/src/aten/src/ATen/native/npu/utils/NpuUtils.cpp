@@ -193,11 +193,11 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     Tensor src_new = at::empty_with_format(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
     int64_t numel = src_new.numel();
     aclError error = c10::npu::queue::LaunchAsyncCopyTask(
-      src_new.data_ptr(),
-      numel * src_new.element_size(),
-      (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
-      numel * src.element_size(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE);
+        src_new.data_ptr(),
+        numel * src_new.element_size(),
+        (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
+        numel * src.element_size(),
+        ACL_MEMCPY_DEVICE_TO_DEVICE);
     src_new.set_(src_new.storage(), src.storage_offset(), src.sizes(), src.strides());
 
     src_new.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NCHW;

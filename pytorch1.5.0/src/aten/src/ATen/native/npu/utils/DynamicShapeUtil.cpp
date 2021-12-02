@@ -350,15 +350,15 @@ aclError DynamicShapeUtil::ExecuteDynamic(
   int index = 0;
   do {
     ret = aclopExecuteV2(
-      std::get<0>(params).c_str(),
-      std::get<1>(params),
-      const_cast<aclTensorDesc**>(std::get<2>(params)),
-      const_cast<aclDataBuffer**>(std::get<3>(params)),
-      std::get<4>(params),
-      const_cast<aclTensorDesc**>(std::get<5>(params)),
-      std::get<6>(params),
-      const_cast<aclopAttr*>(std::get<7>(params)),
-      stream);
+        std::get<0>(params).c_str(),
+        std::get<1>(params),
+        const_cast<aclTensorDesc**>(std::get<2>(params)),
+        const_cast<aclDataBuffer**>(std::get<3>(params)),
+        std::get<4>(params),
+        const_cast<aclTensorDesc**>(std::get<5>(params)),
+        std::get<6>(params),
+        const_cast<aclopAttr*>(std::get<7>(params)),
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
 
@@ -376,18 +376,18 @@ void DynamicShapeUtil::staticCompileAndExecute(
   int index = 0;
   do {
     ret = aclopCompileAndExecute(
-      opName.c_str(),
-      cur_paras.paras.input_num,
-      cur_paras.paras.input_desc,
-      cur_paras.paras.input_data_buf,
-      cur_paras.paras.output_num,
-      cur_paras.paras.output_desc,
-      cur_paras.paras.output_data_buf,
-      cur_paras.attr,
-      ACL_ENGINE_SYS,
-      ACL_COMPILE_SYS,
-      NULL,
-      stream);
+        opName.c_str(),
+        cur_paras.paras.input_num,
+        cur_paras.paras.input_desc,
+        cur_paras.paras.input_data_buf,
+        cur_paras.paras.output_num,
+        cur_paras.paras.output_desc,
+        cur_paras.paras.output_data_buf,
+        cur_paras.attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        NULL,
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (ret != 0) {

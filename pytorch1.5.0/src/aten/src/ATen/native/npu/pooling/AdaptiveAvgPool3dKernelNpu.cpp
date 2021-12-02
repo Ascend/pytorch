@@ -30,8 +30,8 @@ Tensor& adaptive_avg_pool3d_out_npu(
   if (output_size[0] == 1 && output_size[1] == 1 && output_size[2] == 1) {
     at::mean_out(result, self, {self.dim() - 3, self.dim() - 2, self.dim() - 1}, true);
   } else {
-   TORCH_CHECK(false,
-              "adaptive_avg_pool3d only support D=1 && H=1 && W=1 current!");
+    TORCH_CHECK(false,
+        "adaptive_avg_pool3d only support D=1 && H=1 && W=1 current!");
   }
   return result;
 }

@@ -680,6 +680,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::barrier(
   std::vector<at::Device> devices;
   if (usedDeviceIdxs_.empty()) {
     auto numNPUs = c10::npu::device_count();
+    TORCH_CHECK(numNPUs != 0, "numNPUs cannot be 0");
     int16_t deviceIdx = static_cast<int16_t>(rank_ % numNPUs);
     devices.push_back(at::Device(at::DeviceType::NPU, deviceIdx));
   } else {
@@ -724,13 +725,13 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::BarrierInside(
         auto ret = c10::npu::hccl::hccl_barrier(comm, stream.stream());
         if (ret == HcclResult::HCCL_E_NOT_SUPPORT) {
           return HcclAllReduce(
-            input.data_ptr(),
-            output.data_ptr(),
-            input.storage().unsafeGetStorageImpl()->numel(),
-            getHcclDataType(input.scalar_type()),
-            hcclOp[ReduceOp::SUM],
-            comm,
-            stream.stream());
+              input.data_ptr(),
+              output.data_ptr(),
+              input.storage().unsafeGetStorageImpl()->numel(),
+              getHcclDataType(input.scalar_type()),
+              hcclOp[ReduceOp::SUM],
+              comm,
+              stream.stream());
         }
         else {
           return ret;

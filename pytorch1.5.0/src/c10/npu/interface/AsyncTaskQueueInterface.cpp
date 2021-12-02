@@ -88,12 +88,12 @@ void AsyncCopyTask::LaunchCopyTask()
   } else {
     c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
     AT_NPU_CHECK(aclrtMemcpyAsync(
-      copyParam_.dst,
-      copyParam_.dstLen,
-      copyParam_.src,
-      copyParam_.srcLen,
-      copyParam_.kind,
-      stream));
+        copyParam_.dst,
+        copyParam_.dstLen,
+        copyParam_.src,
+        copyParam_.srcLen,
+        copyParam_.kind,
+        stream));
   }
 }
 
@@ -108,12 +108,12 @@ void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem)
   } else {
     c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
     AT_NPU_CHECK(aclrtMemcpyAsync(
-      copyParam_.dst,
-      copyParam_.dstLen,
-      copyParam_.src,
-      copyParam_.srcLen,
-      copyParam_.kind,
-      stream));
+        copyParam_.dst,
+        copyParam_.dstLen,
+        copyParam_.src,
+        copyParam_.srcLen,
+        copyParam_.kind,
+        stream));
   }
 }
 
@@ -147,8 +147,8 @@ void EventTask::LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Stora
     c10::npu::setCurrentNPUStream(currentStream);
   } else {
     AT_NPU_CHECK(aclrtRecordEvent(
-      eventParam_.event,
-      npuStream));
+        eventParam_.event,
+        npuStream));
   }
 }
 

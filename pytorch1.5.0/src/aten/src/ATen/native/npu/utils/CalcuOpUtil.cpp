@@ -664,18 +664,18 @@ void CalcuOpUtil::execute_npu_operate(
     int index = 0;
     do {
       ret = aclopCompileAndExecute(
-        opName.c_str(),
-        params.input_num,
-        params.input_desc,
-        params.input_data_buf,
-        params.output_num,
-        params.output_desc,
-        params.output_data_buf,
-        attr,
-        ACL_ENGINE_SYS,
-        ACL_COMPILE_SYS,
-        NULL,
-        stream);
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
       ++index;
     } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     ACL_REQUIRE_OK_OP(ret, opName.c_str());
@@ -685,18 +685,18 @@ void CalcuOpUtil::execute_npu_operate(
     int index = 0;
     do {
       ret = aclopCompileAndExecute(
-        opName.c_str(),
-        params.input_num,
-        params.input_desc,
-        params.input_data_buf,
-        params.output_num,
-        params.output_desc,
-        params.output_data_buf,
-        attr,
-        ACL_ENGINE_SYS,
-        ACL_COMPILE_SYS,
-        NULL,
-        stream);
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
       ++index;
     } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     ACL_REQUIRE_OK_OP(ret, opName.c_str());

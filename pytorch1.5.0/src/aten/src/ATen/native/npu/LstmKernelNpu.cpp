@@ -326,7 +326,10 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_direc_packseq(
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
   int64_t t_size = batchSizes.numel();
-  
+  if (t_size == 0) {
+    AT_ERROR("lstm_onelayer_direc_packseq: t_size is zero!");
+  }
+
   // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 
@@ -368,7 +371,10 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_bidirec_packseq(
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
   int64_t t_size = batchSizes.numel();
-  
+  if (t_size == 0) {
+    AT_ERROR("lstm_onelayer_bidirec_packseq: t_size is zero!");
+  }
+
   // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 
@@ -414,7 +420,10 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
   int64_t t_size = batchSizes.numel();
-  
+  if (t_size == 0) {
+    AT_ERROR("lstm_double_layer_direc_packseq: t_size is zero!");
+  }
+
   // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 

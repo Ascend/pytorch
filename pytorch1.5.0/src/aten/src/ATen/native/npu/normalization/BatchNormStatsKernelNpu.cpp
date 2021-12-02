@@ -20,8 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-std::tuple<Tensor&, Tensor&>
-batch_norm_stats_out_npu_nocheck(
+std::tuple<Tensor&, Tensor&> batch_norm_stats_out_npu_nocheck(
     Tensor& mean,
     Tensor& invstd,
     const Tensor& self,
@@ -70,10 +69,10 @@ std::tuple<Tensor, Tensor> batch_norm_stats_npu(
     const Tensor& self,
     double eps) {
   TORCH_CHECK(
-    self.ndimension() >= 2,
-    "Expected 2D+ Tensor, but got tensor with ",
-    self.ndimension(),
-    " Dimension");
+      self.ndimension() >= 2,
+      "Expected 2D+ Tensor, but got tensor with ",
+      self.ndimension(),
+      " Dimension");
   Tensor mean = OpPreparation::ApplyTensor(self, {self.size(1)});
   Tensor invstd = OpPreparation::ApplyTensor(self, {self.size(1)});
   batch_norm_stats_out_npu_nocheck(mean, invstd, self, eps);

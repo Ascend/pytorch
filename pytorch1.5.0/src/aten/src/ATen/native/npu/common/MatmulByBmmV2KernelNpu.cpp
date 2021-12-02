@@ -51,7 +51,7 @@ Tensor matmul_by_bmmV2(
     return at::npu_bmmV2(tensor1, tensor2, {});
   }
   AT_ERROR("both arguments to matmul need to be at least 1D, but they are ",
-          dim_tensor1, "D and ", dim_tensor2, "D");
+      dim_tensor1, "D and ", dim_tensor2, "D");
 }
 
 }

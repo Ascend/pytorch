@@ -36,7 +36,7 @@ void NpuProfiling::Init(const std::string &path) {
 
 void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP, 
-            "start current profile status is: ", status, " error!")
+      "start current profile status is: ", status, " error!")
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
   if(ret){
@@ -49,11 +49,11 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   const uint32_t deviceNum = 1;
   uint32_t deviceIdList[deviceNum] = {deviceIndex};
   profCfg = c10::npu::acl::AclProfilingCreateConfig(
-    deviceIdList,
-    deviceNum,
-    (aclprofAicoreMetrics)aicore_metrics,
-    nullptr,
-    npu_event);
+      deviceIdList,
+      deviceNum,
+      (aclprofAicoreMetrics)aicore_metrics,
+      nullptr,
+      npu_event);
   if (profCfg == nullptr) {
     NPU_LOGE("npu profiling profiling_create_config fail, error  profCfg is null.");
     C10_NPU_SHOW_ERR_MSG();

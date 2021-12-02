@@ -117,7 +117,7 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
                                     pred_bboxes,
                                     means=None,
                                     stds=None,
-                                    max_shape=[9999, 9999],
+                                    max_shape=None,
                                     wh_ratio_clip=16 / 1000,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
@@ -148,6 +148,9 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
     
     if stds is None:
         stds = [1., 1., 1., 1.]
+
+    if max_shape is None:
+        max_shape = [9999, 9999]
 
     assert bboxes.size(0) == pred_bboxes.size(0)
     assert bboxes.size(-1) == pred_bboxes.size(-1) == 4

@@ -86,11 +86,11 @@ void OpAttrMaker::Set(
   }
 
   aclopSetAttrListListInt(
-        attr,
-        name.c_str(),
-        attrValue.size(),
-        eachListIntNum.data(),
-        attrValue.data());
+      attr,
+      name.c_str(),
+      attrValue.size(),
+      eachListIntNum.data(),
+      attrValue.data());
 }
 
 
@@ -194,18 +194,18 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
       }
     }
     ret = aclopCompileAndExecute(
-      name.c_str(),
-      inputSize,
-      params.inDesc.data(),
-      params.inBuffer.data(),
-      outputSize,
-      params.outDesc.data(),
-      params.outBuffer.data(),
-      params.attr,
-      ACL_ENGINE_SYS,
-      ACL_COMPILE_SYS,
-      NULL,
-      stream);
+        name.c_str(),
+        inputSize,
+        params.inDesc.data(),
+        params.inBuffer.data(),
+        outputSize,
+        params.outDesc.data(),
+        params.outBuffer.data(),
+        params.attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        NULL,
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (reset_flag) {

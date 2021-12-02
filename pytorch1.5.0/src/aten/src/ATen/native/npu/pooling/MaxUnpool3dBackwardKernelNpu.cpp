@@ -56,9 +56,9 @@ Tensor& max_unpool3d_backward_out_npu(
     IntArrayRef stride, 
     IntArrayRef padding) {
   OpPreparation::CheckOut(
-    {grad_output, self, indices},
-    grad_input,
-    self);
+      {grad_output, self, indices},
+      grad_input,
+      self);
 
   max_unpool3d_backward_out_npu_nocheck(grad_input, grad_output, indices);
 

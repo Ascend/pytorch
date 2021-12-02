@@ -56,7 +56,7 @@ static PyObject * THNPStream_pynew(
     cdata ?
     at::npu::NPUStream::unpack(cdata) :
     at::npu::getNPUStreamFromPool(
-      /* isHighPriority */ /*priority < 0 ? true : false*/);
+      /* isHighPriority */ /* priority < 0 ? true : false */);
 
   THNPStream* self = (THNPStream *)ptr.get();
   self->cdata = stream.pack();

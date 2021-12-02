@@ -52,11 +52,11 @@ static void storage_resize_npu(
     }
     if (copy_size > 0) {
       aclError error = c10::npu::queue::LaunchAsyncCopyTask(
-        storage.data(),
-        storage.itemsize() * copy_size,
-        old_data.get(),
-        storage.itemsize() * copy_size,
-        ACL_MEMCPY_DEVICE_TO_DEVICE);
+          storage.data(),
+          storage.itemsize() * copy_size,
+          old_data.get(),
+          storage.itemsize() * copy_size,
+          ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
         return;

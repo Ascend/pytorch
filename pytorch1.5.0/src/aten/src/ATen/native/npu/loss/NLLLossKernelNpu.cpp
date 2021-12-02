@@ -57,7 +57,7 @@ tuple<Tensor&, Tensor&> nll_loss_forward_npu_nocheck(
   }
   else {
     AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
-          " for argument 'target'  in call to nll_loss_forward");
+        " for argument 'target'  in call to nll_loss_forward");
   }
 
   OpCommand cmd;

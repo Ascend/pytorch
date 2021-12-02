@@ -335,10 +335,8 @@ class CombinedContiguousOpt : public ContiguousOpt {
     // viewInfo = combined tensor(src)'s viewInfo
     // baseInfo = inferred info(infer_size, infer_stride, infer_offset)
     // If the first inferred tensor can be optimized, store its info.
-    if (can_infer_view_tensor(
-            src, temp_src, infer_size, infer_stride, infer_offset) &&
-        emplace_info(
-            temp_src, view_infos, view_offsets, infer_offset, max_len)) {
+    if (can_infer_view_tensor(src, temp_src, infer_size, infer_stride, infer_offset) &&
+        emplace_info(temp_src, view_infos, view_offsets, infer_offset, max_len)) {
       // Construct "the second inferred tensor"
       // viewInfo = inferred info(infer_size, infer_stride, infer_offset)
       // baseInfo = combined tensor(src)'s baseInfo

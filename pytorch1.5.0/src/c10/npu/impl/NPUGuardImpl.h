@@ -92,22 +92,6 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
 
   // Event-related functions
   void createEvent(aclrtEvent* acl_event, const EventFlag flag) const {
-    /*
-    // Maps PyTorch's Event::Flag to NPU flag
-    auto cuda_flag = cudaEventDefault;
-    switch (flag) {
-      case EventFlag::PYTORCH_DEFAULT:
-      case EventFlag::NPU_EVENT_DISABLE_TIMING:
-        cuda_flag = cudaEventDisableTiming;
-        break;
-      case EventFlag::BACKEND_DEFAULT:
-      case EventFlag::NPU_EVENT_DEFAULT:
-        cuda_flag = cudaEventDefault;
-        break;
-      default:
-        TORCH_CHECK(false, "NPU event received unknown flag");
-    }*/
-
     C10_NPU_CHECK(aclrtCreateEvent(acl_event));
   }
 

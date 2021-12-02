@@ -87,7 +87,7 @@ Tensor empty_npu(
       nelements,
       allocator->allocate(nelements * dtype.itemsize()),
       allocator,
-      /*resizeable=*/true);
+      true);
 
   auto tensor =
       detail::make_tensor<TensorImpl>(storage_impl, DispatchKey::NPUTensorId);
@@ -252,7 +252,7 @@ Tensor empty_with_format_npu(
       nelements,
       allocator->allocate(nbytes),
       allocator,
-      /*resizeable=*/true);
+      true);
 
   // NB Store weak intrusive ptr of storage impl in graph mode
   // see note above
@@ -318,7 +318,7 @@ Tensor& empty_out_npu(
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor blackman_window_npu(int64_t window_length, const TensorOptions& options) {
-  return blackman_window_npu(window_length, /*periodic=*/true, options);
+  return blackman_window_npu(window_length, true, options);
 }
 
 Tensor blackman_window_npu(int64_t window_length, bool periodic, const TensorOptions& options) {
@@ -340,7 +340,7 @@ Tensor blackman_window_npu(int64_t window_length, bool periodic, const TensorOpt
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor bartlett_window_npu(int64_t window_length, const TensorOptions& options) {
-  return bartlett_window_npu(window_length, /*periodic=*/true, options);
+  return bartlett_window_npu(window_length, true, options);
 }
 
 Tensor bartlett_window_npu(
@@ -380,14 +380,14 @@ Tensor hann_window_npu(
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hamming_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor hamming_window_npu(int64_t window_length, const TensorOptions& options) {
-  return hamming_window_npu(window_length, /*periodic=*/true, options);
+  return hamming_window_npu(window_length, true, options);
 }
 
 Tensor hamming_window_npu(
     int64_t window_length,
     bool periodic,
     const TensorOptions& options) {
-  return hamming_window_npu(window_length, periodic, /*alpha=*/0.54, options);
+  return hamming_window_npu(window_length, periodic, 0.54, options);
 }
 
 Tensor hamming_window_npu(
@@ -395,7 +395,7 @@ Tensor hamming_window_npu(
     bool periodic,
     double alpha,
     const TensorOptions& options) {
-  return hamming_window_npu(window_length, periodic, alpha, /*beta=*/0.46, options);
+  return hamming_window_npu(window_length, periodic, alpha, 0.46, options);
 }
 
 Tensor hamming_window_npu(

@@ -47,7 +47,7 @@ struct TORCH_NPU_API NPUEvent {
       if (is_created_) {
         c10::npu::NPUEventManager::GetInstance().LazyDestroy(event_);
       }
-    } catch (...) { /* No throw */ }
+    } catch (...) {} /* No throw */
   }
 
   NPUEvent(const NPUEvent&) = delete;

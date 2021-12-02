@@ -35,11 +35,11 @@ public:
 void ROIAlignBackwardStrategy::CreateInputDescInfo(ACL_PARAMS& params,
     DynamicCompileShape& compileShape) {
   CreateDefaultDescInfo(params.input_desc,
-    params.input_num,
-    params.inputDims,
-    params.inputFormats,
-    compileShape.inputShape,
-    compileShape.inputStorageShape);
+      params.input_num,
+      params.inputDims,
+      params.inputFormats,
+      compileShape.inputShape,
+      compileShape.inputStorageShape);
 }
 
 void ROIAlignBackwardStrategy::CreateOutputDescInfo(ACL_PARAMS& params,
