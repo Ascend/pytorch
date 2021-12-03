@@ -37,7 +37,7 @@ Tensor dropout_backward_npu(
   cmd.Name("DropOutDoMask")
       .Input(grad_output)
       .Input(mask)
-      .Input(retain, grad_output.scalar_type(), MemoryType::MEMORY_HOST)
+      .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 

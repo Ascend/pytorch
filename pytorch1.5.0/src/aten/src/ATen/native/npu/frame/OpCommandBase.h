@@ -188,16 +188,20 @@ class OpCommandBase {
   Derived& Input(
       const Scalar& input,
       const ScalarType type,
-      MemoryType memoryType = MemoryType::MEMORY_DEVICE) {
+      CompileType compileType = CompileType::MEMORY_DEVICE_COMPILE) {
+    if ((compileType == MEMORY_DEVICE_COMPILE) &&
+      (c10::npu::OptionsManager::CheckScalarToHostMemEnable())) {
+      compileType = MEMORY_HOST_COMPILE_INDEPENDENT;
+    }
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
         auto true_type = commonType.has_value() ? commonType.value() : type;
-        graphCmd.AddInput(input, true_type, memoryType);
+        graphCmd.AddInput(input, true_type, compileType);
         )
-    if (memoryType == MemoryType::MEMORY_DEVICE) {
+    if (compileType == CompileType::MEMORY_DEVICE_COMPILE) {
       return AddScalarInput(input, type);
     } else {
       auto scalarTensor = CreateScalarTensor(input, type);
-      return AddHostTensorInput(scalarTensor);
+      return AddHostTensorInput(scalarTensor, compileType);
     }
   }
 
@@ -276,9 +280,10 @@ class OpCommandBase {
         std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
     return static_cast<Derived&>(*this);
   }
-  Derived& AddHostTensorInput(const Tensor& tensor) {
+  Derived& AddHostTensorInput(const Tensor& tensor,
+    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT) {
     std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> res;
-    res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type());
+    res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
     aclCmd->AddInput(
         std::get<0>(res),
         std::get<1>(res),

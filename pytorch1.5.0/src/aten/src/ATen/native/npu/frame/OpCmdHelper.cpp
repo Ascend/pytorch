@@ -102,14 +102,15 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
 
 std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertHostTensorToAclInput(
     const Tensor& tensor,
-    ScalarType type) {
+    ScalarType type,
+    CompileType compileType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
   const auto& dims = tensor.sizes();
   AclTensorDescMaker desc;
   aclFormat format = ACL_FORMAT_ND;
   auto aclDesc = desc.Create(aclDataType, dims, format)
-                      .SetPlacement(aclMemType::ACL_MEMTYPE_HOST)
+                      .SetPlacement(static_cast<aclMemType>(compileType))
                       .Get();
   int64_t numel = prod_intlist(dims);
   AclTensorBufferMaker buffer(tensor, numel);

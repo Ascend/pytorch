@@ -66,21 +66,12 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
   }
 
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
-    cmd.Name("MaskedFill")
-      .Input(self)
-      .Input(maskBool)
-      .Input(value, self.scalar_type(), MemoryType::MEMORY_HOST)
-      .Output(result)
-      .Run();
-  } else {
-    cmd.Name("MaskedFill")
-      .Input(self)
-      .Input(maskBool)
-      .Input(value, self.scalar_type())      
-      .Output(result)
-      .Run();
-  }
+  cmd.Name("MaskedFill")
+    .Input(self)
+    .Input(maskBool)
+    .Input(value, self.scalar_type())
+    .Output(result)
+    .Run();
   
   if (dimOfSelf == 0) {
     result.squeeze_(0);

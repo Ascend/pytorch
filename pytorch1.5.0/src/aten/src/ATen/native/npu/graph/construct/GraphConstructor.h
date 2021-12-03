@@ -109,7 +109,7 @@ public:
   void AddInput(
       const Scalar& input,
       const ScalarType type,
-      MemoryType mem_type);
+      CompileType compile_type);
 
   void AddInput(const IntArrayRef& dim_list, const ScalarType to_type);
 

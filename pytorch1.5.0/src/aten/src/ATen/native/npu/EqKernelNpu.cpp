@@ -46,19 +46,11 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
     selfCast = self.to(ScalarType::Float);
   }
   OpCommand cmd;
-  if (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) {
-    cmd.Name("Equal")
-    .Input(selfCast)
-    .Input(other, selfCast.scalar_type(), MemoryType::MEMORY_HOST)
-    .Output(result)
-    .Run();
-  } else {
-    cmd.Name("Equal")
+  cmd.Name("Equal")
     .Input(selfCast)
     .Input(other, selfCast.scalar_type())
     .Output(result)
     .Run();
-  }
 
   return result;
 }

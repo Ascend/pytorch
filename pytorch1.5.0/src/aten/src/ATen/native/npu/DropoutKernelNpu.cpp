@@ -32,7 +32,7 @@ Tensor dropout_do_mask(
   cmd.Name("DropOutDoMask")
       .Input(self)
       .Input(mask)
-      .Input(prob, self.scalar_type(), MemoryType::MEMORY_HOST)
+      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 
@@ -55,7 +55,7 @@ Tensor dropout_gen_mask(const Tensor& self, Scalar prob) {
   int64_t seed2 = 0;
   cmd.Name("DropOutGenMask")
       .Input(selfShape)
-      .Input(prob, self.scalar_type(), MemoryType::MEMORY_HOST)
+      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(mask)
       .Attr("seed", seed)
       .Attr("seed2", seed2)

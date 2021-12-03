@@ -70,7 +70,7 @@ void GraphCommandImpl::AddInput(
 void GraphCommandImpl::AddInput(
     const Scalar& input,
     const ScalarType type,
-    MemoryType mem_type) {
+    CompileType compile_type) {
   ir_node_->AddExtInfo(
       NodeExtInfoType::INPUT_TYPE_SCALAR,
       std::make_tuple(input_index_++, input, type));

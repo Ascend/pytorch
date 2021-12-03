@@ -28,9 +28,9 @@ Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
     cmd.Name("Cumsum")
       .Input(self);
     if (dim == 0 || dim > INT32_MAX) {
-      cmd.Input(dimScalar, at::kLong, MemoryType::MEMORY_HOST);
+      cmd.Input(dimScalar, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
     } else {
-      cmd.Input(dimScalar, at::kInt, MemoryType::MEMORY_HOST);
+      cmd.Input(dimScalar, at::kInt, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
     }
     cmd.Output(result)
       .Run();
