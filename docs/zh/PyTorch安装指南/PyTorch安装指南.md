@@ -36,7 +36,7 @@
 -   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
 -   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
--   需安装python版本为3.7.5或3.8。
+-   需安装python版本为3.7.5、3.8、3.9。
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
     -   Ubuntu系统
 
@@ -143,10 +143,12 @@
         bash build.sh --python=3.7
         或
         bash build.sh --python=3.8
+        或
+        bash build.sh --python=3.9
         ```
-
+        
         请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
-
+    
 5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch。
 
     进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
