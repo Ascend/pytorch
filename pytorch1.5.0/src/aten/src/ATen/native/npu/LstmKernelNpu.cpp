@@ -60,7 +60,7 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_npu(
     .Input(weight, "w")
     .Input(bias, "b");
      
-  //if input is PackSequence, seqMask is not None,  Otherwise, it is None.   
+  // if input is PackSequence, seqMask is not None,  Otherwise, it is None.   
   if (!flagSeq){
     cmd.Input();
   } else{
@@ -89,15 +89,14 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_npu(
     .Attr("is_training", train)
     .Run();
 
-  //std::cout<<"yOutput: "<<yOutput<<std::endl;
   return std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor>(
     yOutput, hOutput, cOutput, iOutput, jOutput, fOutput, oOutput, tanhc);
 }
 
 tuple<Tensor, Tensor> get_wb_single_layer_direc(
-  const Tensor& input,
-  TensorList params,
-  bool hasBiases) {
+    const Tensor& input,
+    TensorList params,
+    bool hasBiases) {
   // get weight
   Tensor ihWeight = params[0];
   Tensor hhWeight = params[1];
@@ -113,9 +112,9 @@ tuple<Tensor, Tensor> get_wb_single_layer_direc(
 }
 
 tuple<Tensor, Tensor> get_wb_double_layer_or_bidirec(
-  const Tensor& input,
-  TensorList params,
-  bool hasBiases) {
+    const Tensor& input,
+    TensorList params,
+    bool hasBiases) {
   Tensor weight;
   Tensor bias; 
   if (hasBiases) {
@@ -159,7 +158,7 @@ tuple<Tensor, Tensor, Tensor> lstm_single_layer_direc_npu(
   
   Tensor seqMask = at::empty({0}, input.options());
   auto results = at::npu_lstm(input, weight, bias, seqMask, h, c, hasBiases, numLayers, dropout, 
-    train, bidirectional, batchFirst, false, direction);
+      train, bidirectional, batchFirst, false, direction);
 
   // get the last dimension of the T-axis	
   Tensor thOutput = at::unsqueeze(std::get<1>(results)[numStep-1], 0);
@@ -178,36 +177,43 @@ tuple<Tensor, Tensor, Tensor> lstm_single_layer_bidirec_npu(
     bool train,
     bool bidirectional,
     bool batchFirst) {
-    int64_t numStep = input.size(0);
-    //get h and c of forward direction
-    Tensor h = hx[0].slice(0, 0, 1);
-    Tensor c = hx[1].slice(0, 0, 1);
-    
-    //caculate forward direction, direction of attr is UNIDIRECTIONAL(npu_lstm need add the attr of direction)
-    auto resultsForward = lstm_single_layer_direc_npu(input, {h, c}, params, hasBiases, 
-        numLayers, dropout, train, bidirectional, batchFirst, false); 
+  int64_t numStep = input.size(0);
+  // get h and c of forward direction
+  Tensor h = hx[0].slice(0, 0, 1);
+  Tensor c = hx[1].slice(0, 0, 1);
+  
+  // caculate forward direction, direction of attr is UNIDIRECTIONAL(npu_lstm need add the attr of direction)
+  auto resultsForward = lstm_single_layer_direc_npu(input, {h, c}, params, hasBiases, 
+      numLayers, dropout, train, bidirectional, batchFirst, false); 
 
-    //get w/ b/ h/ c of backward direction
-    Tensor weightBack;
-    Tensor biasBack;
-    Tensor hBack = hx[0].slice(0, 1, 2);
-    Tensor cBack = hx[1].slice(0, 1, 2);
-    std::tie(weightBack, biasBack) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
+  // get w/ b/ h/ c of backward direction
+  Tensor weightBack;
+  Tensor biasBack;
+  Tensor hBack = hx[0].slice(0, 1, 2);
+  Tensor cBack = hx[1].slice(0, 1, 2);
+  std::tie(weightBack, biasBack) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
 
-    Tensor seqMask = at::empty({0}, input.options());
-    //caculate forward direction, direction of attr is REDIRECTIONAL
-    auto resultsBackward = at::npu_lstm(input, weightBack, biasBack, seqMask, hBack, cBack, 
-        hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, true);
-    
-    // get the first dimension of the T-axis when caculate reverse direction	
-    Tensor thOutput = at::unsqueeze(std::get<1>(resultsBackward)[0], 0);
-    Tensor tcOutput = at::unsqueeze(std::get<2>(resultsBackward)[0], 0);
+  Tensor seqMask = at::empty({0}, input.options());
+  auto revInputs = at::flip(input, {0});
 
-    Tensor y = at::cat({std::get<0>(resultsForward), std::get<0>(resultsBackward)}, 2); 
-    Tensor hOut = at::cat({std::get<1>(resultsForward), thOutput}, 0);
-    Tensor cOut = at::cat({std::get<2>(resultsForward), tcOutput}, 0);
+  // caculate backward direction, direction of attr is REDIRECTIONAL, 
+  // but the inverse operator does not support the specified direction, 
+  // it is necessary to flip the input and output at the adaptation layer.
+  auto resultsBackward = at::npu_lstm(revInputs, weightBack, biasBack, seqMask, hBack, cBack, 
+      hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, false);
+  
+  // get the first dimension of the T-axis when caculate reverse direction
+  Tensor revY = at::flip(std::get<0>(resultsBackward),{0});
+  Tensor th = at::flip(std::get<1>(resultsBackward),{0});
+  Tensor tc = at::flip(std::get<2>(resultsBackward),{0});
+  Tensor thOutput = at::unsqueeze(th[0], 0);
+  Tensor tcOutput = at::unsqueeze(tc[0], 0);    
 
-    return std::tie(y, hOut, cOut);
+  Tensor y = at::cat({std::get<0>(resultsForward), revY}, 2); 
+  Tensor hOut = at::cat({std::get<1>(resultsForward), thOutput}, 0);
+  Tensor cOut = at::cat({std::get<2>(resultsForward), tcOutput}, 0);
+
+  return std::tie(y, hOut, cOut);
 }
 
 tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_npu(
@@ -220,35 +226,35 @@ tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_npu(
     bool train,
     bool bidirectional,
     bool batchFirst) {
-    int64_t numStep = input.size(0);
-    //get h and c of first layer
-    Tensor h = hx[0].slice(0, 0, 1);
-    Tensor c = hx[1].slice(0, 0, 1);
-    
-    //caculate first layer
-    auto results = lstm_single_layer_direc_npu(input, {h, c}, params, hasBiases, 
-        numLayers, dropout, train, bidirectional, batchFirst, false); 
+  int64_t numStep = input.size(0);
+  // get h and c of first layer
+  Tensor h = hx[0].slice(0, 0, 1);
+  Tensor c = hx[1].slice(0, 0, 1);
+  
+  // caculate first layer
+  auto results = lstm_single_layer_direc_npu(input, {h, c}, params, hasBiases, 
+      numLayers, dropout, train, bidirectional, batchFirst, false); 
 
-    //get w/ b/ h/ c of twice layer
-    Tensor weight2Layer;
-    Tensor bias2Layer;
-    Tensor h2layer = hx[0].slice(0, 1, 2);
-    Tensor c2layer = hx[1].slice(0, 1, 2);
-    std::tie(weight2Layer, bias2Layer) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
-    
-    //output of first layer as input of second layer
-    Tensor input2Layer = std::get<0>(results);
-    
-    Tensor seqMask = at::empty({0}, input.options());
-    //caculate output of second layer
-    auto results2Layer = at::npu_lstm(input2Layer, weight2Layer, bias2Layer, seqMask, h2layer, c2layer, 
-        hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, false);
-    Tensor thOutput2Layer = at::unsqueeze(std::get<1>(results2Layer)[numStep-1], 0);
-    Tensor tcOutput2Layer = at::unsqueeze(std::get<2>(results2Layer)[numStep-1], 0);
-    Tensor th = at::cat({std::get<1>(results), thOutput2Layer}, 0);
-    Tensor tc = at::cat({std::get<2>(results), tcOutput2Layer}, 0); 
+  // get w/ b/ h/ c of twice layer
+  Tensor weight2Layer;
+  Tensor bias2Layer;
+  Tensor h2layer = hx[0].slice(0, 1, 2);
+  Tensor c2layer = hx[1].slice(0, 1, 2);
+  std::tie(weight2Layer, bias2Layer) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
+  
+  // output of first layer as input of second layer
+  Tensor input2Layer = std::get<0>(results);
+  
+  Tensor seqMask = at::empty({0}, input.options());
+  // caculate output of second layer
+  auto results2Layer = at::npu_lstm(input2Layer, weight2Layer, bias2Layer, seqMask, h2layer, c2layer, 
+      hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, false);
+  Tensor thOutput2Layer = at::unsqueeze(std::get<1>(results2Layer)[numStep-1], 0);
+  Tensor tcOutput2Layer = at::unsqueeze(std::get<2>(results2Layer)[numStep-1], 0);
+  Tensor th = at::cat({std::get<1>(results), thOutput2Layer}, 0);
+  Tensor tc = at::cat({std::get<2>(results), tcOutput2Layer}, 0); 
 
-    return std::tie(std::get<0>(results2Layer), th, tc); 
+  return std::tie(std::get<0>(results2Layer), th, tc); 
 }
 
 tuple<Tensor, Tensor, Tensor> lstm_npu(
@@ -261,33 +267,36 @@ tuple<Tensor, Tensor, Tensor> lstm_npu(
     bool train,
     bool bidirectional,
     bool batchFirst) {
-    //The operator of DynamicRnn only supports the T axis as the first axis.
-    auto input = batchFirst ? _input.transpose(0, 1) : _input;
-    
-    Tensor y;
-    Tensor h;
-    Tensor c;
-    //single layer
-    if(numLayers == 1){
-      if(!bidirectional){
-        std::tie(y, h, c) = lstm_single_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
-          dropout, train, bidirectional, batchFirst, false);
-      } else {
-        std::tie(y, h, c) = lstm_single_layer_bidirec_npu(input, hx, params, hasBiases, numLayers, 
-          dropout, train, bidirectional, batchFirst);
-      }
-    }
+  // The operator of DynamicRnn only supports the T axis as the first axis.
+  auto input = batchFirst ? _input.transpose(0, 1) : _input;
 
-    //double layer
-    if((numLayers == 2) && (!bidirectional)) {
-      std::tie(y, h, c) = lstm_double_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
+  Tensor y;
+  Tensor h;
+  Tensor c;
+  // single layer
+  if(numLayers == 1){
+    if(!bidirectional){
+      std::tie(y, h, c) = lstm_single_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
+          dropout, train, bidirectional, batchFirst, false);
+    } else {
+      std::tie(y, h, c) = lstm_single_layer_bidirec_npu(input, hx, params, hasBiases, numLayers, 
+          dropout, train, bidirectional, batchFirst);
+    }
+  }
+
+  // double layer
+  if((numLayers == 2) && (!bidirectional)) {
+    std::tie(y, h, c) = lstm_double_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
         dropout, train, bidirectional, batchFirst);
-    } 
-    return std::tie(y, h, c);
+  }
+
+  // the Bacth axis of output should be first axis when batchFirst is True!
+  auto output = batchFirst ? y.transpose(0, 1) : y;  
+  return std::tie(output, h, c);
 }
 
 Tensor get_mask(const Tensor& input, const Tensor& batchSizes, const Tensor& h, int64_t maxLen){
-  //caculate lengths, but input expected to be sorted
+  // caculate lengths, but input expected to be sorted
   std::vector<int64_t> lens;
   for (int64_t i = 0; i < input.size(1); ++i){
     auto batchSizesTemp = at::sub(batchSizes , i);
@@ -301,31 +310,31 @@ Tensor get_mask(const Tensor& input, const Tensor& batchSizes, const Tensor& h, 
     from_blob(lens.data(), {lens.size()}, at::kLong));    
   
   SmallVector<Tensor, N> maskList;
-  //Slice by T axis
+  // Slice by T axis
   for (int64_t i = 0; i < maxLen; ++i) {    
-    //cacl mask
+    // cacl mask
     Tensor maskTemp1 = at::gt(length, i);
     Tensor maskTemp2 = maskTemp1.reshape({1, input.size(1), 1});
      
-    //mask need to be expanded to (1,batch_size,hidden_size)
+    // mask need to be expanded to (1,batch_size,hidden_size)
     Tensor maskExpand = maskTemp2.expand({1, input.size(1), h.size(2)});
     maskList.emplace_back(maskExpand);
   }
   
-  //mask mast be half
+  // mask mast be half
   Tensor mask = at::cat(maskList, 0).to(ScalarType::Half);
 
   return mask;
 }
 
 std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_direc_packseq(
-  const Tensor& data, const Tensor& batchSizes, TensorList hx,
-  TensorList params, bool hasBiases,
-  int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
-  //length of T axis
+    const Tensor& data, const Tensor& batchSizes, TensorList hx,
+    TensorList params, bool hasBiases,
+    int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
+  // length of T axis
   int64_t t_size = batchSizes.numel();
   
-  //T * B **
+  // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 
   // batch_first is false
@@ -352,7 +361,7 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_direc_packseq(
 
   Tensor mask = get_mask(input, batchSizes, h, maxLen);
   auto results = at::npu_lstm(input, weight, bias, mask, h, c, hasBiases, numLayers, 
-    dropoutP, train, bidirectional, false, true, false);  
+      dropoutP, train, bidirectional, false, true, false);  
     
   Tensor thOutput = at::unsqueeze(std::get<1>(results)[numStep-1], 0);
   Tensor tcOutput = at::unsqueeze(std::get<2>(results)[numStep-1], 0);
@@ -361,26 +370,26 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_direc_packseq(
 }
 
 std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_bidirec_packseq(
-  const Tensor& data, const Tensor& batchSizes, TensorList hx,
-  TensorList params, bool hasBiases,
-  int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
-  //length of T axis
+    const Tensor& data, const Tensor& batchSizes, TensorList hx,
+    TensorList params, bool hasBiases,
+    int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
+  // length of T axis
   int64_t t_size = batchSizes.numel();
   
-  //T * B **
+  // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;
 
-  //get h and c of forward direction
+  // get h and c of forward direction
   Tensor h = hx[0].slice(0, 0, 1);
   Tensor c = hx[1].slice(0, 0, 1);
 
   auto resultsForward = lstm_onelayer_direc_packseq(data, batchSizes, {h, c}, params, hasBiases,
-    numLayers, dropoutP, train, bidirectional);
+      numLayers, dropoutP, train, bidirectional);
 
-  //get w/ b/ h/ c of backward direction
+  // get w/ b/ h/ c of backward direction
   Tensor hBack = hx[0].slice(0, 1, 2);
   Tensor cBack = hx[1].slice(0, 1, 2);
   
@@ -391,7 +400,7 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_bidirec_packseq(
   int64_t maxLen = input.size(0);
 
   Tensor mask = get_mask(input, batchSizes, h, maxLen);
-  //caculate forward direction, direction of attr is REDIRECTIONAL
+  // caculate forward direction, direction of attr is REDIRECTIONAL
   auto resultsBackward = at::npu_lstm(input, weightBack, biasBack, mask, hBack, cBack, 
       hasBiases, numLayers, dropoutP, train, bidirectional, batchFirst, true, true); 
 
@@ -407,28 +416,28 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_bidirec_packseq(
 }
 
 std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
-  const Tensor& data, const Tensor& batchSizes, TensorList hx,
-  TensorList params, bool hasBiases,
-  int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
-  //length of T axis
+    const Tensor& data, const Tensor& batchSizes, TensorList hx,
+    TensorList params, bool hasBiases,
+    int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
+  // length of T axis
   int64_t t_size = batchSizes.numel();
   
-  //T * B **
+  // T * B **
   Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;
 
-  //get h and c of forward direction
+  // get h and c of forward direction
   Tensor h = hx[0].slice(0, 0, 1);
   Tensor c = hx[1].slice(0, 0, 1);
 
   int64_t numStep = input.size(0);
 
   auto results = lstm_onelayer_direc_packseq(data, batchSizes, {h, c}, params, hasBiases,
-    numLayers, dropoutP, train, bidirectional);
+      numLayers, dropoutP, train, bidirectional);
 
-  //get w/ b/ h/ c of twice layer
+  // get w/ b/ h/ c of twice layer
   Tensor weight2Layer;
   Tensor bias2Layer;
   Tensor h2layer = hx[0].slice(0, 1, 2);
@@ -439,12 +448,12 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
 
   Tensor mask = get_mask(input, batchSizes, h, maxLen);
 
-  //output of first layer as input of second layer
+  // output of first layer as input of second layer
   Tensor input2Layer = std::get<0>(results);
 
-  //caculate output of second layer
+  // caculate output of second layer
   auto results2Layer = at::npu_lstm(input2Layer, weight2Layer, bias2Layer, mask, h2layer, c2layer, 
-    hasBiases, numLayers, dropoutP, train, bidirectional, batchFirst, true, false);
+      hasBiases, numLayers, dropoutP, train, bidirectional, batchFirst, true, false);
   Tensor thOutput2Layer = at::unsqueeze(std::get<1>(results2Layer)[numStep-1], 0);
   Tensor tcOutput2Layer = at::unsqueeze(std::get<2>(results2Layer)[numStep-1], 0);
   Tensor th = at::cat({std::get<1>(results), thOutput2Layer}, 0);
@@ -454,9 +463,9 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
 }
 
 std::tuple<Tensor, Tensor, Tensor> lstm_npu(
-  const Tensor& data, const Tensor& batchSizes, TensorList hx,
-  TensorList params, bool hasBiases,
-  int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
+    const Tensor& data, const Tensor& batchSizes, TensorList hx,
+    TensorList params, bool hasBiases,
+    int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   Tensor y;
   Tensor h;
   Tensor c;
@@ -464,21 +473,21 @@ std::tuple<Tensor, Tensor, Tensor> lstm_npu(
   // batch_first is false
   bool batchFirst = false;
 
-  //single layer
+  // single layer
   if(numLayers == 1){
     if(!bidirectional){
       std::tie(y, h, c) = lstm_onelayer_direc_packseq(data, batchSizes, hx, params, hasBiases, 
-        numLayers, dropoutP, train, bidirectional);
+          numLayers, dropoutP, train, bidirectional);
     } else {
       std::tie(y, h, c) = lstm_onelayer_bidirec_packseq(data, batchSizes, hx, params, hasBiases, 
-        numLayers, dropoutP, train, bidirectional);
+          numLayers, dropoutP, train, bidirectional);
     }
   }
 
-  //double layer
+  // double layer
   if((numLayers == 2) && (!bidirectional)) {
     std::tie(y, h, c) = lstm_double_layer_direc_packseq(data, batchSizes, hx, params, hasBiases, 
-      numLayers, dropoutP, train, bidirectional);
+        numLayers, dropoutP, train, bidirectional);
   } 
   return std::tie(y, h, c);
 }
