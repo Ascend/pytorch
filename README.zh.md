@@ -33,6 +33,16 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # 使用方式 --生成全量代码并编译
 
+## 获取适配昇腾AI处理器的PyTorch源代码patch
+
+获取适配昇腾AI处理器的PyTorch源代码（即当前仓库代码），并切换到所需的分支。
+
+   ```
+   git clone https://gitee.com/ascend/pytorch.git
+   # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
+   # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+   ```
+
 ## 获取原生PyTorch源代码和third_party代码
 
 当前支持pytorch 1.5.0和1.8.1的版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
@@ -53,7 +63,7 @@ git submodule update --init --recursive
 
 完成且没有报错之后就生成了PyTorch及其依赖的三方代码
 
-## 生成适配昇腾AI处理器的PyTorch代码。
+## 生成适配昇腾AI处理器的PyTorch全量代码。
 
 进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
 
