@@ -317,10 +317,12 @@ void DynamicShapeUtil::StartThreadCompile(
   // free attr and DesctroyParams
   if (params.opDynamicType != "") {
     aclopDestroyAttr(params.dynamicCompileAttr);
+    params.dynamicCompileAttr = nullptr;
     DestroyDynamicAclParams(params.dynamicParam);
   } else {
     if (!isDynamicOnly) {
       aclopDestroyAttr(params.attr);
+      params.attr = nullptr;
     }
     DestroyAclParams(params.paras);
   }
