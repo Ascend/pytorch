@@ -327,6 +327,19 @@ void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint3
 }
 
 void ReleaseFunc(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
+  auto queueParam = static_cast<QueueParas* >(ptr);
+  auto type = queueParam->paramType;
+  if (type == COMPILE_AND_EXECUTE) {
+    auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
+    if (!cur_paras->opDynamicType.empty()) {
+      cur_paras->DynamicRelease();
+      cur_paras->opDynamicType = "";
+    }
+    cur_paras->Release();
+  }
+}
+
+void ReleaseFunc_(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
   releaseQueue.PushToReleaseQueue(ptr);
 }
 

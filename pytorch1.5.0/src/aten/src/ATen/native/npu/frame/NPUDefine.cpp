@@ -24,6 +24,7 @@ void ExecuteParas::Release() {
   // if useDynamicCompile, this attr will be freed in dynamic compile. 
   if (!isCompiling) {
     aclopDestroyAttr(attr);
+    attr = nullptr;
   }  
   DestroyConstParams(constParams);
   NPUStatus ret = DestroyAclParams(paras);
@@ -38,6 +39,7 @@ void ExecuteParas::DynamicRelease() {
   if (!isCompiling) {
     if (dynamicCompileAttr != nullptr) {
       aclopDestroyAttr(dynamicCompileAttr);
+      dynamicCompileAttr = nullptr;
     }
 
     NPUStatus ret = DestroyDynamicAclParams(dynamicParam);
@@ -73,6 +75,7 @@ void ExecuteParas::CopyEx(ExecuteParas& other)
     this->dynamicCompileAttr = other.dynamicCompileAttr;
     this->dynamicRunAttr = other.dynamicRunAttr;
     this->dynamicParam = other.dynamicParam;
+    this->isCompiling = other.isCompiling;
   }
 }
 

@@ -40,7 +40,9 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "SigmoidCrossEntropyWithLogitsV2",
     "SigmoidCrossEntropyWithLogitsGradV2",
     "ROIAlign",
-    "ROIAlignGrad"};
+    "ROIAlignGrad",
+    "ConcatD",
+    "Concat"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {
@@ -314,10 +316,12 @@ void DynamicShapeUtil::StartThreadCompile(
   // free attr and DesctroyParams
   if (params.opDynamicType != "") {
     aclopDestroyAttr(params.dynamicCompileAttr);
+    params.dynamicCompileAttr = nullptr;
     DestroyDynamicAclParams(params.dynamicParam);
   } else {
     if (!isDynamicOnly) {
       aclopDestroyAttr(params.attr);
+      params.attr = nullptr;
     }
     DestroyAclParams(params.paras);
   }

@@ -161,10 +161,12 @@ void OpDynamicCommandImpl::ReleaseDynamicSource(bool no_blocking) {
 
     if (execDynamicParam.dynamicCompileAttrs.back() != nullptr) {
       aclopDestroyAttr(execDynamicParam.dynamicCompileAttrs.back());
+      execDynamicParam.dynamicCompileAttrs.back() = nullptr;
     }
 
     if (execDynamicParam.dynamicRunAttrs.back() != nullptr) {
       aclopDestroyAttr(execDynamicParam.dynamicRunAttrs.back());
+      execDynamicParam.dynamicRunAttrs.back() = nullptr;
     }
   }
 

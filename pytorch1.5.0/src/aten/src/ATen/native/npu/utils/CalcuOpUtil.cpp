@@ -685,6 +685,7 @@ void CalcuOpUtil::execute_npu_operate(
     AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   }
   aclopDestroyAttr(attr);
+  attr = nullptr;
   NPUStatus ret = DestroyAclParams(params);
 
   if (ret != SUCCESS) {
