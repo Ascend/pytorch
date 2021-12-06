@@ -18,6 +18,7 @@
 
 -   在[Gitee](https://gitee.com/ascend/pytorch)上Fork存储库。
 -   阅读[README.md](#https://gitee.com/ascend/pytorch/blob/master/README.zh.md)以获取项目信息和构建说明。
+-   行为准则 [coc](https://gitee.com/ascend/community/blob/master/code-of-conduct_zh_cn.md)。
 
 <h2 id="开发指导.md">开发指导</h2>
 
@@ -224,4 +225,3 @@
 -   确保你的提交历史被排序。
 -   始终将您的分支与主分支保持一致。
 -   对于错误修复 PR，请确保链接所有相关问题。
-
