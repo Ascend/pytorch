@@ -1042,7 +1042,7 @@ From the `torch.nn.utils` module
 | 62   | torch.cuda.get_device_properties      | torch.npu.get_device_properties      | 否                       |
 | 63   | torch.cuda.amp.GradScaler             | torch.npu.amp.GradScaler             | 否                       |
 
-## NPU自定义算子清单
+## NPU自定义算子
 
 | 序号 | PyTorch 算子（由昇腾开发）                     | 昇腾适配算子                                   |
 | ---- | ---------------------------------------------- | ---------------------------------------------- |
@@ -1137,3 +1137,59 @@ From the `torch.nn.utils` module
 | 89   | npu_bert_apply_adam                            | bert_apply_adam_npu                            |
 | 90   | npu_giou                                       | giou_npu                                       |
 | 91   | npu_giou_backward                              | giou_backward_npu                              |
+
+算子接口算子接口说明：
+
+> ```
+> npu_apply_adam(beta1_power, beta2_power, lr, beta1, beta2, epsilon, grad, use_locking, use_nesterov, out = (var, m, v))
+> ```
+
+count adam result.
+
+- Parameters：
+  - **beta1_power** (Number) - 
+  - **beta2_power** (Number) - 
+  - **lr** (Number) -  learning rate.
+  - **beta1** (Number) - exponential decay rate for the 1st moment estimates.
+  - **beta2** (Number) - exponential decay rate for the 2nd moment estimates.
+  - **epsilon** (Number) - term added to the denominator to improve numerical stability.
+  - **grad** (Tensor) - the gradient.
+  - **use_locking** (bool) - If `True` use locks for update operations.
+  - **use_nesterov** (bool) -If `True`, uses the nesterov update.
+  - **var** (Tensor) -
+  - **m** (Tensor) -
+  - **v** (Tensor) -
+
+- constraints：
+
+  None
+
+- Examples：
+
+  None
+
+> npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, out = (var, m, v))
+
+count adam result in bert.
+
+- Parameters：
+  - **lr** (Number) - learning rate.
+  - **beta1** (Number) - exponential decay rate for the 1st moment estimates.
+  - **beta2** (Number) - exponential decay rate for the 2nd moment estimates.
+  - **epsilon** (Number) - term added to the denominator to improve numerical stability.
+  - **grad** (Tensor) - the gradient.
+  - **max_grad_norm** (Number) -
+  - **global_grad_norm** (Number) -
+  - **weight_decay** (Number) - weight decay
+  - **var** (Tensor) -
+  - **m** (Tensor) -
+  - **v** (Tensor) -
+
+- constraints：
+
+  None
+
+- Examples：
+
+  None
+
