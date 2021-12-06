@@ -328,7 +328,7 @@ tuple<Tensor, Tensor> apply_layer_stack(
 }
 
 tuple<Tensor, Tensor> gru_npu_(
-    const Tensor& input,
+    const Tensor& input_,
     const Tensor& hx,
     TensorList params,
     bool has_biases,
@@ -337,6 +337,9 @@ tuple<Tensor, Tensor> gru_npu_(
     bool train,
     bool bidirectional,
     bool batch_first) {
+  // The operator of DynamicGRU only supports the T axis as the first axis.
+  auto input = batch_first ? input_.transpose(0, 1) : input_;
+
   auto layer_hx = hx.unbind(0);
   int64_t total_layers = layer_hx.size();
   std::vector<Tensor> hiddens;
@@ -371,6 +374,7 @@ tuple<Tensor, Tensor> gru_npu_(
           bidirectional,
           batch_first);
   }
+  std::get<0>(result) = batch_first ? std::get<0>(result).transpose(0, 1) : std::get<0>(result);
   return result;
 }
 

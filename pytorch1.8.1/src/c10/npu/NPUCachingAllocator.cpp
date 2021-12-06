@@ -77,7 +77,7 @@ constexpr size_t kMinLargeAlloc =
     10485760; // allocations between 1 and 10 MiB may use kLargeBuffer
 constexpr size_t kRoundLarge = 2097152; // round up large allocs to 2 MiB
 
-typedef std::bitset<static_cast<size_t>(StatType::NUM_TYPES)> StatTypes;
+using StatTypes = std::bitset<static_cast<size_t>(StatType::NUM_TYPES)>;
 
 void update_stat(Stat& stat, int64_t amount) {
   stat.current += amount;

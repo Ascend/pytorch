@@ -26,21 +26,21 @@ from util_test import create_common_tensor
 class TestGru(TestCase):
     def test_gru(self, device):
         shape_format = [
-                        [[np.float16, (16, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, 1, False, True],
-                        [[np.float32, (10, 33, 128)], [np.float32, (1, 33, 64)], 128, 64, 1, False, False],
-                        [[np.float16, (2, 32, 64)], [np.float16, (2, 32, 32)], 64, 32, 2, False, True],
-                        [[np.float32, (10, 33, 128)], [np.float32, (2, 33, 64)], 128, 64, 2, False, False],
-                        [[np.float16, (10, 33, 128)], [np.float16, (3, 33, 64)], 128, 64, 3, False, True],
-                        [[np.float32, (10, 33, 128)], [np.float32, (2, 33, 64)], 128, 64, 1, True, False],
-                        [[np.float32, (5, 32, 64)], [np.float32, (4, 32, 32)], 64, 32, 2, True, True],
-                        [[np.float32, (15, 24, 128)], [np.float32, (4, 24, 64)], 128, 64, 2, True, True],
-                        [[np.float16, (15, 24, 128)], [np.float16, (4, 24, 64)], 128, 64, 2, True, False],
-                        [[np.float32, (5, 32, 64)], [np.float32, (6, 32, 32)], 64, 32, 3, True, True],
-                        [[np.float16, (5, 32, 64)], [np.float16, (8, 32, 32)], 64, 32, 4, True, False],
+                        [[np.float16, (16, 32, 64)], [np.float16, (1, 32, 32)], 64, 32, 1, False, True, False],
+                        [[np.float32, (10, 33, 128)], [np.float32, (1, 10, 64)], 128, 64, 1, False, False, True],
+                        [[np.float16, (2, 32, 64)], [np.float16, (2, 32, 32)], 64, 32, 2, False, True, False],
+                        [[np.float32, (10, 33, 128)], [np.float32, (2, 33, 64)], 128, 64, 2, False, False, False],
+                        [[np.float16, (10, 33, 128)], [np.float16, (3, 10, 64)], 128, 64, 3, False, True, True],
+                        [[np.float32, (10, 33, 128)], [np.float32, (2, 10, 64)], 128, 64, 1, True, False, True],
+                        [[np.float32, (5, 32, 64)], [np.float32, (4, 32, 32)], 64, 32, 2, True, True, False],
+                        [[np.float32, (15, 24, 128)], [np.float32, (4, 24, 64)], 128, 64, 2, True, True, False],
+                        [[np.float16, (15, 24, 128)], [np.float16, (4, 15, 64)], 128, 64, 2, True, False, True],
+                        [[np.float32, (5, 32, 64)], [np.float32, (6, 32, 32)], 64, 32, 3, True, True, False],
+                        [[np.float16, (5, 32, 64)], [np.float16, (8, 5, 32)], 64, 32, 4, True, False, True],
         ]
 
         for item in shape_format:
-            cpu_gru = torch.nn.GRU(input_size=item[2], hidden_size=item[3], num_layers=item[4], bidirectional=item[5], bias=item[-1])
+            cpu_gru = torch.nn.GRU(input_size=item[2], hidden_size=item[3], num_layers=item[4], bidirectional=item[5], bias=item[-2], batch_first=item[-1])
             npu_gru = copy.deepcopy(cpu_gru).npu()
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(item[0][0])
