@@ -194,15 +194,22 @@ tuple<Tensor, Tensor, Tensor> lstm_single_layer_bidirec_npu(
   std::tie(weightBack, biasBack) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
 
   Tensor seqMask = at::empty({0}, input.options());
-  // caculate forward direction, direction of attr is REDIRECTIONAL
-  auto resultsBackward = at::npu_lstm(input, weightBack, biasBack, seqMask, hBack, cBack, 
-      hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, true);
-  
-  // get the first dimension of the T-axis when caculate reverse direction	
-  Tensor thOutput = at::unsqueeze(std::get<1>(resultsBackward)[0], 0);
-  Tensor tcOutput = at::unsqueeze(std::get<2>(resultsBackward)[0], 0);
+  auto revInputs = at::flip(input, {0});
 
-  Tensor y = at::cat({std::get<0>(resultsForward), std::get<0>(resultsBackward)}, 2); 
+  // caculate backward direction, direction of attr is REDIRECTIONAL, 
+  // but the inverse operator does not support the specified direction, 
+  // it is necessary to flip the input and output at the adaptation layer.
+  auto resultsBackward = at::npu_lstm(revInputs, weightBack, biasBack, seqMask, hBack, cBack, 
+      hasBiases, numLayers, dropout, train, bidirectional, batchFirst, false, false);
+  
+  // get the first dimension of the T-axis when caculate reverse direction
+  Tensor revY = at::flip(std::get<0>(resultsBackward),{0});
+  Tensor th = at::flip(std::get<1>(resultsBackward),{0});
+  Tensor tc = at::flip(std::get<2>(resultsBackward),{0});
+  Tensor thOutput = at::unsqueeze(th[0], 0);
+  Tensor tcOutput = at::unsqueeze(tc[0], 0);    
+
+  Tensor y = at::cat({std::get<0>(resultsForward), revY}, 2); 
   Tensor hOut = at::cat({std::get<1>(resultsForward), thOutput}, 0);
   Tensor cOut = at::cat({std::get<2>(resultsForward), tcOutput}, 0);
 
