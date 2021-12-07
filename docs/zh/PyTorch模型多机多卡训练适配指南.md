@@ -26,7 +26,7 @@
 
 ## 概述
 
-使用resnet50模型实现两台计算机8卡训练。两台计算机分别命名为AI Server0、AI Server1，每台计算机上的8个Ascend 910处理器命名为device 0~7。
+使用自定义模型实现两台计算机8卡训练。两台计算机分别命名为AI Server0、AI Server1，每台计算机上的8个Ascend 910处理器命名为device 0~7。
 
 ## 环境准备
 
@@ -88,14 +88,141 @@
 
 ## 准备单机多卡模型
 
-1. 获取resnet50模型。
+1. 获取自定义模型。
 
-   ```shell
-   git clone https://gitee.com/ascend/modelzoo.git
-   cd modelzoo
-   git reset --hard ca699fcc4022fbea5a0bcf892223abbfaed07a85
-   cd built-in/PyTorch/Official/cv/image_classification/ResNet50_for_PyTorch
-   ```
+   - 从开源社区下载样例。
+
+     ```
+     git clone https://gitee.com/ascend/modelzoo.git
+     cd modelzoo
+     git reset --hard ca699fcc4022fbea5a0bcf892223abbfaed07a85
+     cd built-in/PyTorch/Official/cv/image_classification/ResNet50_for_PyTorch
+     ```
+
+   - 手动搭建简单样例。
+
+     ```python
+     import argparse
+     import os
+     import torch
+     import torchvision
+     import torch.nn as nn
+     import torch.nn.functional as F
+     # 新增：
+     import torch.distributed as dist
+     from torch.nn.parallel import DistributedDataParallel as DDP
+     
+     
+     ### 1. 基础模块 ###
+     # 假设我们的模型是这个，与DDP无关
+     class ToyModel(nn.Module):
+         def __init__(self):
+             super(ToyModel, self).__init__()
+             self.conv1 = nn.Conv2d(3, 6, 5)
+             self.pool = nn.MaxPool2d(2, 2)
+             self.conv2 = nn.Conv2d(6, 16, 5)
+             self.fc1 = nn.Linear(16 * 5 * 5, 120)
+             self.fc2 = nn.Linear(120, 84)
+             self.fc3 = nn.Linear(84, 10)
+     
+         def forward(self, x):
+             x = self.pool(F.relu(self.conv1(x)))
+             x = self.pool(F.relu(self.conv2(x)))
+             x = x.view(-1, 16 * 5 * 5)
+             x = F.relu(self.fc1(x))
+             x = F.relu(self.fc2(x))
+             x = self.fc3(x)
+             return x
+     
+     
+     # 假设我们的数据是这个
+     def get_dataset():
+         transform = torchvision.transforms.Compose([
+             torchvision.transforms.ToTensor(),
+             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+         ])
+         my_trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                                    download=True, transform=transform)
+         # DDP：使用DistributedSampler，DDP帮我们把细节都封装起来了。
+         #      用，就完事儿！sampler的原理，第二篇中有介绍。
+         train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)
+         # DDP：需要注意的是，这里的batch_size指的是每个进程下的batch_size。
+         #      也就是说，总batch_size是这里的batch_size再乘以并行数(world_size)。
+         trainloader = torch.utils.data.DataLoader(my_trainset,
+                                                   batch_size=16, num_workers=2, sampler=train_sampler)
+         return trainloader
+     
+     
+     ### 2. 初始化我们的模型、数据、各种配置  ####
+     # DDP：从外部得到local_rank参数
+     parser = argparse.ArgumentParser()
+     parser.add_argument("--local_rank", default=-1, type=int)
+     parser.add_argument("--addr", default='127.0.0.1', type=str, help='master addr')
+     
+     FLAGS = parser.parse_args()
+     local_rank = FLAGS.local_rank
+     addr = FLAGS.addr
+     
+     os.environ['MASTER_ADDR'] = addr
+     os.environ['MASTER_PORT'] = '29501'
+     
+     # DDP：DDP backend初始化
+     loc = 'npu:{}'.format(local_rank)
+     torch.npu.set_device(loc)
+     dist.init_process_group(backend='hccl') # hccl是NPU设备上的后端
+     
+     
+     # 准备数据，要在DDP初始化之后进行
+     trainloader = get_dataset()
+     
+     # 构造模型
+     model = ToyModel().to(loc)
+     # DDP: Load模型要在构造DDP模型之前，且只需要在master上加载就行了。
+     ckpt_path = None
+     if dist.get_rank() == 0 and ckpt_path is not None:
+         model.load_state_dict(torch.load(ckpt_path))
+     # DDP: 构造DDP model
+     model = DDP(model, device_ids=[local_rank], output_device=local_rank)
+     
+     # DDP: 要在构造DDP model之后，才能用model初始化optimizer。
+     optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+     
+     # 假设我们的loss是这个
+     loss_func = nn.CrossEntropyLoss().to(loc)
+     
+     ### 3. 网络训练  ###
+     model.train()
+     iterator = range(100)
+     for epoch in iterator:
+         # DDP：设置sampler的epoch，
+         # DistributedSampler需要这个来指定shuffle方式，
+         # 通过维持各个进程之间的相同随机数种子使不同进程能获得同样的shuffle效果。
+         trainloader.sampler.set_epoch(epoch)
+         # 后面这部分，则与原来完全一致了。
+         for data, label in trainloader:
+             data, label = data.to(local_rank), label.to(local_rank)
+             optimizer.zero_grad()
+             prediction = model(data)
+             loss = loss_func(prediction, label)
+             loss.backward()
+             print("loss = %0.3f \n" % loss)
+             optimizer.step()
+         # DDP:
+         # 1. save模型的时候，和DP模式一样，有一个需要注意的点：保存的是model.module而不是model。
+         #    因为model其实是DDP model，参数是被`model=DDP(model)`包起来的。
+         # 2. 只需要在进程0上保存一次就行了，避免多次保存重复的东西。
+         if dist.get_rank() == 0:
+             torch.save(model.module.state_dict(), "%d.ckpt" % epoch)
+     
+     
+             ################
+             ## Bash运行
+             # DDP: 使用torch.distributed.launch启动DDP模式
+             #  python -m torch.distributed.launch --nproc_per_node 8 main.py
+     
+     ```
+
+     
 
 2. 在单机多卡上运行训练，确保模型正确。
 
