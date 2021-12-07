@@ -168,7 +168,7 @@ void copy_d2d_dtype_baseformat(
       // opt is necessary for contiguous tensor, such as reshape/slice/select. 
       std::vector<std::string> contiguous_opt_cases = {"reshape", "slice", "select"};
       if (TransContiguous::ContiguousOptimizeWithBaseFormat(
-            self, src, contiguous_opt_cases)) {
+          self, src, contiguous_opt_cases)) {
         return;
       }
     }

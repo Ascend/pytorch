@@ -64,10 +64,10 @@ Tensor& mse_loss_out_npu(
     outputSize = input_same_output_size(self);
   }  
   OpPreparation::CheckOut(
-    {self, target}, 
-    result,
-    self, 
-    outputSize);
+      {self, target}, 
+      result,
+      self, 
+      outputSize);
   mse_loss_out_npu_nocheck(result, self, target, reduction);
   return result;
 }

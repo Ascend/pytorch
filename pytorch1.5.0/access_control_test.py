@@ -30,7 +30,8 @@ class AccurateTest(metaclass=ABCMeta):
         """
         raise Exception("abstract method.")
     
-    def find_ut_by_regex(self, regex, mindepth=2):
+    @staticmethod
+    def find_ut_by_regex(regex, mindepth=2):
         ut_files = []
         cmd = "find {} -mindepth {} -name {}".format('test/test_npu', mindepth, regex)
         status, output = subprocess.getstatusoutput(cmd)
@@ -125,7 +126,7 @@ class TestMgr():
 
     def print_ut_files(self):
         print("ut files:")
-        for ut_file in ut_files:
+        for ut_file in self.ut_files:
             print(ut_file)
 
 

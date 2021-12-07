@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch._C
 import os
+import torch._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_dump", "init_dump", "finalize_dump", "global_step_inc", "set_start_fuzz_compile_step", 

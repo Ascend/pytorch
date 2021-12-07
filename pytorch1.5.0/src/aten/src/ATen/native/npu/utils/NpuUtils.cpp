@@ -211,16 +211,6 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     return ret_tmp;
 }
 
-Tensor tensors_convert_contiguous(const Tensor& src) {
-  std::vector<string> optimizations{"slice"};
-  auto formatTempTensor = 
-      TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations);
-  if (formatTempTensor.has_value()) {
-    return formatTempTensor.value();
-  }
-  return src.contiguous();
-}
-
 Tensor metadata_convert_match(const Tensor& src) {
   auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
   bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
@@ -251,7 +241,7 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
     RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
-    return tensors_convert_contiguous(src);
+    return src.contiguous();
   }
   // case2:meta data not match, sizes or strides of presentation
   // layer is different from that of storage layer
@@ -276,7 +266,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
     RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
-    return tensors_convert_contiguous(src);
+    return src.contiguous();
   }
   // case2:meta data not match, sizes or strides of presentation
   // layer is different from that of storage layer

@@ -219,7 +219,7 @@ void DynamicShapeUtil::CreateAclParamsDesc(
       range[k + 1] = -1;
     }
 
-    typedef int64_t(*TYPE)[2];
+    using TYPE = int64_t (*)[2];
     aclSetTensorShapeRange(desc, desc_dims_size, (TYPE)range.data());
 
     if (storageShape.size() != 0) {

@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import torch
 import torch.nn as nn
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair, _single
-import math
 
 
 class ModulatedDeformConv2dFunction(Function):

@@ -26,7 +26,7 @@
 namespace c10 {
 namespace npu {
 
-typedef void(*OptionCallBack) (const std::string&);
+using OptionCallBack = void (*)(const std::string&);
 /**
   This class is used to storage env value, and provide Set and Get to
   */

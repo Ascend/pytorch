@@ -16,16 +16,17 @@
 
 import os
 import sys
-import torch
 import traceback
 import contextlib
 
 import threading
 from multiprocessing.util import register_after_fork as _register_after_fork
+
+import torch
 from torch._six import raise_from
+import torch._C
 from ._utils import _get_device_index
 
-import torch._C
 
 _initialized = False
 _tls = threading.local()

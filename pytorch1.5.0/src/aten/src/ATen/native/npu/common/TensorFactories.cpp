@@ -33,6 +33,7 @@
 #include <ATen/native/npu/utils/OpAdapter.h>
 #include <c10/npu/NPUGraphContextManager.h>
 #include <c10/npu/NPURunMode.h>
+#include <ATen/native/npu/contiguous/ContiguousOpt.h>
 
 #include <algorithm>
 #include <cctype>
@@ -531,17 +532,15 @@ AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
-  auto desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-  auto formatSelf = OpPreparation::ApplyTensorWithFormat(
-      src.sizes(), src.options(), desc.npu_format_);
-  if (try_to_optimize_copy_with_any_format(formatSelf, src)) {
-    return formatSelf;
-  } else if (can_use_memcpy(formatSelf, src)) {
-    RECORD_HOST_FUNCTION("d2dCopyAsync with format", std::vector<c10::IValue>({src}));
-    copy_d2d_by_memcpy(formatSelf, src);
-    return formatSelf;
+  RECORD_HOST_FUNCTION("clone_npu", vector<c10::IValue>({src}));
+  std::vector<string> opt_patterns{"reshape", "slice"};
+  if (TransContiguous::CanOptimize(src, opt_patterns)) {
+    auto formatTempTensor =
+        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_patterns);
+    return formatTempTensor.value();
   } else {
-    auto baseSelf = OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
+    auto baseSelf =
+        OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
     copy_d2d_dtype(baseSelf, src, false);
     return baseSelf;
   }

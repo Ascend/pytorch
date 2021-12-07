@@ -110,6 +110,30 @@ class TestUpsamleNearest3D(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_upsample_nearest3d_6hd(self, device):
+        format_list = [2, 30, 32]
+        dtype_list = [np.float16, np.float32]
+        shape_list = [(5, 3, 2, 6, 4), (2, 3, 6, 2, 4)]
+        scalar_list = [[10, 10, 10]]
+        shape_format = [
+            [[d, f, s], sc] for d in dtype_list for f in format_list for s in shape_list for sc in scalar_list
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            cpu_out, npu_out = create_common_tensor([item[0][0], -1, [1]], 0, 50)
+            if cpu_input.dtype == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
+            size = item[1]            
+            cpu_output = self.cpu_op_exec(cpu_input, size)
+            npu_output = self.npu_op_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_output = self.cpu_op_scale_exec(cpu_input, size)
+            npu_output = self.npu_op_scale_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestUpsamleNearest3D, globals(), except_for="cpu")
 if __name__ == "__main__":

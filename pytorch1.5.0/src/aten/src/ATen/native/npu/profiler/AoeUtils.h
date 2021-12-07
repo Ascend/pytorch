@@ -50,4 +50,4 @@ AoeDumpGraphManager& aoe_manager();
 }
 }
 
-#endif //__NPU_AOEUTILS__
+#endif // __NPU_AOEUTILS__

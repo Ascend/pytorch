@@ -42,7 +42,7 @@ class DropoutV2(nn.Module):
         >>> m = DropoutV2(p=0.5)
         >>> input = torch.randn(20, 16)
         >>> output = m(input)
-        """
+    """
 
     def __init__(self, p=0.5, inplace=False,
                  max_seed=2 ** 10 - 1):

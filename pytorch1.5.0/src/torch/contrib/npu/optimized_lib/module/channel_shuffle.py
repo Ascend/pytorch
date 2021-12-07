@@ -20,30 +20,30 @@ import torch.nn as nn
 class ChannelShuffle(nn.Module):
     r"""Applies an NPU compatible channel shuffle operation.
 
-        The origin implement is https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py#L21
+    The origin implement is https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py#L21
 
-        In order to avoid contiguous operation which is not efficient on npu, we replaced the original operation
-        with a rewrite of the same semantics. Two discontinuous operations are replaced, transpose and chunk.
+    In order to avoid contiguous operation which is not efficient on npu, we replaced the original operation
+    with a rewrite of the same semantics. Two discontinuous operations are replaced, transpose and chunk.
 
-        .. note::
-            Only group=2 is implemented, modify other group scenarios yourself.
+    .. note::
+        Only group=2 is implemented, modify other group scenarios yourself.
 
-        Args:
-            in_channels (int): The total number of channels in the input tensors
-            groups (int): The number of shuffle groups. Default: 2
-            split_shuffle (bool): Whether to execute the chunk after shuffle. Default: True
+    Args:
+        in_channels (int): The total number of channels in the input tensors
+        groups (int): The number of shuffle groups. Default: 2
+        split_shuffle (bool): Whether to execute the chunk after shuffle. Default: True
 
-        Shape:
-            - Input: :math:`(N, C_{in}, L_{in})`, `(N, C_{in}, L_{in})`
-            - Output: :math:`(N, C_{out}, L_{out})`
+    Shape:
+        - Input: :math:`(N, C_{in}, L_{in})`, `(N, C_{in}, L_{in})`
+        - Output: :math:`(N, C_{out}, L_{out})`
 
-        Examples::
-            >>> x1 = torch.randn(2,32,7,7)
-            >>> x2 = torch.randn(2,32,7,7)
-            >>> m = ChannelShuffle(64, split_shuffle=True)
-            >>> output = m(x1, x2)
+    Examples::
+        >>> x1 = torch.randn(2,32,7,7)
+        >>> x2 = torch.randn(2,32,7,7)
+        >>> m = ChannelShuffle(64, split_shuffle=True)
+        >>> output = m(x1, x2)
 
-        """
+    """
 
     def __init__(self, in_channels, groups=2, split_shuffle=True):
         super(ChannelShuffle, self).__init__()
