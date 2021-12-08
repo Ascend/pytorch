@@ -225,38 +225,43 @@
 
 
 
-1. 将maion.py模型脚本上传至AI Server0和AI Server1任意路径下。
-2. 比如AI Server0服务器的host ip为：192.168.xx.22， AI Server1服务器的host ip为：192.168.xx.23。AI Server0为master节点，我们现在拉起2*8的集群。
+1. 将main.py模型脚本上传至AI Server0和AI Server1任意路径下。
 
+2. 使用AI Server0为master节点，我们现在拉起2*8的集群。比如AI Server0服务器的host ip为：192.168.xx.22， AI Server1服务器的host ip为：192.168.xx.23。
 
+   在AI server0服务器上启动命令：
 
-**在AI** **server0服务器上启动命令：**
+   ```shell
+   # 设置环境变量
+   source env_npu.sh
+   # 关闭HCCL通道白名单
+   export HCCL_WHITELIST_DISABLE=1
+   # HCCL初始化通信网卡IP，设置为当前服务器的host网卡
+   export HCCL_IF_IP=192.168.xx.22
+   # 
+   python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=0 --nproc_per_node 8 --master_addr 192.168.xx.22 --master_port 29501 main.py --addr 192.168.xx.22
+   ```
 
-source env_npu.sh
+   在AI server1服务器上启动命令：
 
-export HCCL_WHITELIST_DISABLE=1
+   ```shell
+   # 设置环境变量
+   source env_npu.sh
+   # 关闭HCCL通道白名单
+   export HCCL_WHITELIST_DISABLE=1
+   # HCCL初始化通信网卡IP，设置为当前服务器的host网卡
+   export HCCL_IF_IP=192.168.xx.23
+   
+   python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=1 --nproc_per_node 8 --master_addr 192.168.xx.22--master_port 29501 main.py --addr 192.168.xx.22
+   ```
 
-export HCCL_IF_IP=192.168.xx.22
+   以上2个命令的差别是HCCL_IF_IP/node_rank/addr的值不同， 用户可将命令写入shell脚本， 对不同的参数以shell脚本外传值方式启动。
 
-python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=0 --nproc_per_node 8 --master_addr 192.168.xx.22 --master_port 29501 main.py --addr 192.168.xx.22
+3. host日志查看
 
-**在AI** **server****1****服务器上启动命令：**
+   cd ~/ascend/log下， 查看host日志
 
-source env_npu.sh
-
-export HCCL_WHITELIST_DISABLE=1
-
-export HCCL_IF_IP=192.168.xx.23
-
-python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=1 --nproc_per_node 8 --master_addr 192.168.xx.22--master_port 29501 main.py --addr 192.168.xx.22
-
-以上2个命令的差别是HCCL_IF_IP/node_rank/addr的值不同， 用户可将命令写入shell脚本， 对不同的参数以shell脚本外传值方式启动。
-
-**host日志查看**
-
-cd ~/ascend/log下， 查看host日志
-
-![img](file:///C:\Users\ZoeJ\AppData\Local\Temp\ksohtml\wps499D.tmp.jpg) 
+   ![img](file:///C:\Users\ZoeJ\AppData\Local\Temp\ksohtml\wps499D.tmp.jpg) 
 
 
 
