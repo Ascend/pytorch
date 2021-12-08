@@ -186,8 +186,7 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
           params.attr,
           ACL_ENGINE_SYS,
           at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
-          at::native::npu::aoe::aoe_manager().CreateGraphDumpOption());
-      at::native::npu::aoe::aoe_manager().DestropyGraphDumpOption();
+          nullptr);
       if (ret != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
@@ -228,18 +227,17 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
     {
       if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
         ret = at::native::npu::AclGenGraphAndDumpForOp(        
-          (cur_paras->opType).c_str(),
-          cur_paras->paras.input_num,
-          cur_paras->paras.input_desc,
-          cur_paras->paras.input_data_buf,
-          cur_paras->paras.output_num,
-          cur_paras->paras.output_desc,
-          cur_paras->paras.output_data_buf,
-          cur_paras->attr,
-          ACL_ENGINE_SYS,
-          at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
-          at::native::npu::aoe::aoe_manager().CreateGraphDumpOption());
-        at::native::npu::aoe::aoe_manager().DestropyGraphDumpOption();
+            (cur_paras->opType).c_str(),
+            cur_paras->paras.input_num,
+            cur_paras->paras.input_desc,
+            cur_paras->paras.input_data_buf,
+            cur_paras->paras.output_num,
+            cur_paras->paras.output_desc,
+            cur_paras->paras.output_data_buf,
+            cur_paras->attr,
+            ACL_ENGINE_SYS,
+            at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+            nullptr);
         if (ret != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
           TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
