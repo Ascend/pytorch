@@ -46,20 +46,19 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag) {
 aclError AclGenGraphAndDumpForOp(const char *opType,
     int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
     int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
-    const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
-    const char *graphDumpPath, aclGraphDumpOption* graphdumpOpt) {
+    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt) {
       typedef aclError(*AclGenGraphAndDumpForOpFunc)(const char *,int,
           const aclTensorDesc *const [], const aclDataBuffer *const [],
           int, const aclTensorDesc *const [], aclDataBuffer *const [],
-          const aclopAttr *, aclopEngineType, aclopCompileType,
-          const char *, aclGraphDumpOption*);
+          const aclopAttr *, aclopEngineType, const char *, aclGraphDumpOption*);
       static AclGenGraphAndDumpForOpFunc func = nullptr;
     if (func == nullptr) {
       func = (AclGenGraphAndDumpForOpFunc)GET_FUNC(aclGenGraphAndDumpForOp);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclGenGraphAndDumpForOp");
     auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
-        outputDesc, outputs, attr, engineType, compileFlag, graphDumpPath, graphdumpOpt);
+        outputDesc, outputs, attr, engineType, graphDumpPath, graphdumpOpt);
     return ret;
 }
 

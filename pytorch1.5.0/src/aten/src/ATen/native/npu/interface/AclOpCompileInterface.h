@@ -55,8 +55,8 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
 aclError AclGenGraphAndDumpForOp(const char *opType,
     int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
     int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
-    const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
-    const char *graphDumpPath, aclGraphDumpOption* graphdumpOpt);
+    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt);
 
 /**
  * @brief create the dump option for AclGenGraphAndDumpForOp API, used for AOE

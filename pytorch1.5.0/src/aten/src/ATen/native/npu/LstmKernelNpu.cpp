@@ -257,6 +257,48 @@ tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_npu(
   return std::tie(std::get<0>(results2Layer), th, tc); 
 }
 
+tuple<Tensor, Tensor, Tensor> lstm_double_layer_bidirec_npu(
+    const Tensor& input,
+    TensorList hx,
+    TensorList params,
+    bool hasBiases,
+    int64_t numLayers,
+    double dropout,
+    bool train,
+    bool bidirectional,
+    bool batchFirst) {
+  int64_t numStep = input.size(0);
+    
+  // get h and c of first layer 
+  Tensor hL0 = hx[0].slice(0, 0, 2);
+  Tensor cL0 = hx[1].slice(0, 0, 2); 
+  
+  // get h and c of second layer
+  Tensor hL1 = hx[0].slice(0, 2, 4);
+  Tensor cL1 = hx[1].slice(0, 2, 4);  
+
+  // first Single-layer bidirectional LSTM
+  auto resultsLayer1 = lstm_single_layer_bidirec_npu(input, {hL0, cL0}, params, hasBiases, 
+      numLayers, dropout, train, bidirectional, batchFirst);     
+  
+  // second Single-layer bidirectional LSTM, output of Single-layer bidirectional LSTM as input of second layer  
+  Tensor inputLayer2 = std::get<0>(resultsLayer1);
+  Tensor y;
+  Tensor h;
+  Tensor c;    
+  if(hasBiases){
+    std::tie(y, h, c) = lstm_single_layer_bidirec_npu(inputLayer2, {hL1, cL1}, params.slice(8, 8), 
+        hasBiases, numLayers, dropout, train, bidirectional, batchFirst);
+  } else {
+    std::tie(y, h, c) = lstm_single_layer_bidirec_npu(inputLayer2, {hL1, cL1}, params.slice(4, 4), 
+        hasBiases, numLayers, dropout, train, bidirectional, batchFirst);
+  }                   
+
+  Tensor th = at::cat({std::get<1>(resultsLayer1), h}, 0);
+  Tensor tc = at::cat({std::get<2>(resultsLayer1), c}, 0);  
+  return std::tie(y, th, tc);                         
+}
+
 tuple<Tensor, Tensor, Tensor> lstm_npu(
     const Tensor& _input,
     TensorList hx,
@@ -269,10 +311,10 @@ tuple<Tensor, Tensor, Tensor> lstm_npu(
     bool batchFirst) {
   // The operator of DynamicRnn only supports the T axis as the first axis.
   auto input = batchFirst ? _input.transpose(0, 1) : _input;
-
   Tensor y;
   Tensor h;
   Tensor c;
+  
   // single layer
   if(numLayers == 1){
     if(!bidirectional){
@@ -285,13 +327,18 @@ tuple<Tensor, Tensor, Tensor> lstm_npu(
   }
 
   // double layer
-  if((numLayers == 2) && (!bidirectional)) {
-    std::tie(y, h, c) = lstm_double_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
-        dropout, train, bidirectional, batchFirst);
+  if(numLayers == 2){
+    if(!bidirectional) {
+      std::tie(y, h, c) = lstm_double_layer_direc_npu(input, hx, params, hasBiases, numLayers, 
+          dropout, train, bidirectional, batchFirst);
+    } else {
+      std::tie(y, h, c) = lstm_double_layer_bidirec_npu(input, hx, params, hasBiases, numLayers, 
+          dropout, train, bidirectional, batchFirst);
+    }
   }
-
+    
   // the Bacth axis of output should be first axis when batchFirst is True!
-  auto output = batchFirst ? y.transpose(0, 1) : y;  
+  auto output = batchFirst ? y.transpose(0, 1) : y;
   return std::tie(output, h, c);
 }
 
@@ -454,7 +501,6 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
   std::tie(weight2Layer, bias2Layer) = get_wb_double_layer_or_bidirec(input, params, hasBiases);
 
   int64_t maxLen = input.size(0);
-
   Tensor mask = get_mask(input, batchSizes, h, maxLen);
 
   // output of first layer as input of second layer
@@ -471,6 +517,52 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
   return std::tie(std::get<0>(results2Layer), th, tc);  
 }
 
+std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_bidirec_packseq(
+    const Tensor& data, const Tensor& batchSizes, TensorList hx,
+    TensorList params, bool hasBiases,
+    int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
+  // length of T axis
+  int64_t t_size = batchSizes.numel();
+  TORCH_CHECK(t_size > 0, "batchSizes can not be empty.");
+  
+  // T * B **
+  Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
+
+  // batch_first is false
+  bool batchFirst = false;
+  
+  // get h and c of first layer 
+  Tensor hL0 = hx[0].slice(0, 0, 2);
+  Tensor cL0 = hx[1].slice(0, 0, 2); 
+  
+  // get h and c of second layer
+  Tensor hL1 = hx[0].slice(0, 2, 4);
+  Tensor cL1 = hx[1].slice(0, 2, 4);  
+
+  // first Single-layer bidirectional LSTM
+  auto resultsLayer1 = lstm_onelayer_bidirec_packseq(data, batchSizes, {hL0, cL0}, params, hasBiases, 
+      numLayers, dropoutP, train, bidirectional);     
+
+  // second Single-layer bidirectional LSTM, output of Single-layer bidirectional LSTM as input of second layer  
+  Tensor inputLayer2 = std::get<0>(resultsLayer1);
+  Tensor dataLayer2 = inputLayer2.contiguous().view({-1, inputLayer2.size(2)});
+  Tensor y;
+  Tensor h;
+  Tensor c;
+  if(hasBiases){
+    std::tie(y, h, c) = lstm_onelayer_bidirec_packseq(dataLayer2, batchSizes, {hL1, cL1}, params.slice(8, 8), 
+        hasBiases, numLayers, dropoutP, train, bidirectional);
+  } else {
+    std::tie(y, h, c) = lstm_onelayer_bidirec_packseq(dataLayer2, batchSizes, {hL1, cL1}, params.slice(4, 4), 
+        hasBiases, numLayers, dropoutP, train, bidirectional);
+  }
+  
+  Tensor th = at::cat({std::get<1>(resultsLayer1), h}, 0);
+  Tensor tc = at::cat({std::get<2>(resultsLayer1), c}, 0);  
+  return std::tie(y, th, tc);         
+ 
+}
+
 std::tuple<Tensor, Tensor, Tensor> lstm_npu(
     const Tensor& data, const Tensor& batchSizes, TensorList hx,
     TensorList params, bool hasBiases,
@@ -478,9 +570,6 @@ std::tuple<Tensor, Tensor, Tensor> lstm_npu(
   Tensor y;
   Tensor h;
   Tensor c;
-
-  // batch_first is false
-  bool batchFirst = false;
 
   // single layer
   if(numLayers == 1){
@@ -494,9 +583,14 @@ std::tuple<Tensor, Tensor, Tensor> lstm_npu(
   }
 
   // double layer
-  if((numLayers == 2) && (!bidirectional)) {
-    std::tie(y, h, c) = lstm_double_layer_direc_packseq(data, batchSizes, hx, params, hasBiases, 
-        numLayers, dropoutP, train, bidirectional);
+  if(numLayers == 2) {
+    if(!bidirectional){
+      std::tie(y, h, c) = lstm_double_layer_direc_packseq(data, batchSizes, hx, params, hasBiases, 
+          numLayers, dropoutP, train, bidirectional);
+    } else {
+      std::tie(y, h, c) = lstm_double_layer_bidirec_packseq(data, batchSizes, hx, params, hasBiases, 
+          numLayers, dropoutP, train, bidirectional);
+    }
   } 
   return std::tie(y, h, c);
 }

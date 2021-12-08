@@ -126,7 +126,6 @@ typedef struct aclGraphDumpOption aclGraphDumpOption;
  * @param attr [IN]             pointer to instance of aclopAttr.
  *                              may pass nullptr if the op has no attribute
  * @param engineType [IN]       engine type
- * @param compileFlag [IN]      compile flag
  * @param graphDumpPath [IN]    path to save dump graph of op
  * @param aclGraphDumpOption [IN]  dump graph option
  * @retval ACL_ERROR_NONE The function is successfully executed.
@@ -135,8 +134,8 @@ typedef struct aclGraphDumpOption aclGraphDumpOption;
 ACL_FUNC_VISIBILITY aclError aclGenGraphAndDumpForOp(const char *opType,
     int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
     int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
-    const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
-    const char *graphDumpPath, aclGraphDumpOption* graphdumpOpt);
+    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt);
 
 ACL_FUNC_VISIBILITY aclGraphDumpOption* aclCreateGraphDumpOpt(); 
 

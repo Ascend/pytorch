@@ -92,7 +92,6 @@ aclError aclGenGraphAndDumpForOp(
     aclDataBuffer *const outputs[],
     const aclopAttr *attr,
     aclopEngineType engineType,
-    aclopCompileType compileFlag,
     const char *graphDumpPath,
     aclGraphDumpOption* graphdumpOpt) {
   return 0;
