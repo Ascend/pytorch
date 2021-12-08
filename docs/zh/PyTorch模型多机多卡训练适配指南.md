@@ -203,8 +203,6 @@ PyTorch模型多机多卡训练流程一般包括准备环境、准备模型、�
            torch.save(model.module.state_dict(), "%d.ckpt" % epoch)
    ```
 
-   
-
 2. 在单机多卡上运行训练，确保模型正确。
 
    1. 用户自行安装模型脚本需要的Python第三方库。
@@ -403,6 +401,9 @@ pytorch分布式训练基本概念
 准备模型阶段主要有两种方式。
 
 - 从[开源社区](https://gitee.com/ascend/modelzoo/tree/master/built-in/PyTorch)下载PyTorch训练模型
+
+  从开源社区获取的模型已经支持单机多卡训练，请用户参照“修改模型”小节需要修改的项目，根据具体模型完成相应修改。
+
 - 手动搭建PyTorch训练模型
 
 1. 准备PyTorch训练模型、数据加载器
@@ -430,6 +431,8 @@ pytorch分布式训练基本概念
       
        trainloader = torch.utils.data.DataLoader(my_trainset,batch_size=16,)
        return trainloader
+   
+   trainloader=get_dataset()
    ```
 
 2. 实例化模型
@@ -438,13 +441,9 @@ pytorch分布式训练基本概念
    # 实例化模型
    model = ToyModel().to(loc)
    
-   # 加载模型权重，在构造DDP模型之前，且只需要在master上加载就行了。
-   ckpt_path = None
-   if dist.get_rank() == 0 and ckpt_path is not None:
+   # 加载模型权重
+   if ckpt_path is not None:
        model.load_state_dict(torch.load(ckpt_path))
-       
-   # 构造DDP model
-   model = DDP(model, device_ids=[local_rank], output_device=local_rank)
    ```
 
 3. 准备损失函数和优化器。
@@ -464,7 +463,6 @@ pytorch分布式训练基本概念
    model.train()
    iterator = range(100)
    for epoch in iterator:
-       trainloader.sampler.set_epoch(epoch)
        for data, label in trainloader:
            data, label = data.to(local_rank), label.to(local_rank)
            optimizer.zero_grad()
@@ -474,74 +472,65 @@ pytorch分布式训练基本概念
            print("loss = %0.3f \n" % loss)
            optimizer.step()
            
-       # 1. save模型的时候，和DP模式一样，有一个需要注意的点：保存的是model.module而不是model。
-       #    因为model其实是DDP model，参数是被`model=DDP(model)`包起来的。
-       # 2. 只需要在进程0上保存一次就行了，避免多次保存重复的东西。
-       if dist.get_rank() == 0:
-           torch.save(model.module.state_dict(), "%d.ckpt" % epoch)
+           torch.save(model.state_dict(), "%d.ckpt" % epoch)
    ```
 
    
 
 ### 修改模型
 
-1. 设置系统的Master地址和端口
+模型修改主要涉及以下6项，包括master ip地址和端口的设置，distributed初始化，模型DDP初始化，数据DDP初始化，优化器初始化，DDP模型训练方法修改。请用户结合初始模型代码，灵活修改。
+
+1. 设置master ip地址和端口，在NPU进行分布式训练使用HCCL进行通信，在PyTorch中使用的是自动拓扑探测的HCCL通信机制，即不需要使用RANK_TABLE_FLIE，但是其依赖于host侧的网卡进行通信，因此需要在代码中设置环境变量来设置通信网卡。
 
    ```python
-   os.environ['MASTER_ADDR'] = addr
-   os.environ['MASTER_PORT'] = '29501
+   os.environ['MASTER_ADDR'] = xxx.xxx.xxx.xxx
+   os.environ['MASTER_PORT'] = 'xxx'
    ```
-
-   在NPU进行分布式训练使用HCCL进行通信，在PyTorch中使用的是自动拓扑探测的HCCL通信机制，即不需要使用RANK_TABLE_FLIE，但是其依赖于host侧的网卡进行通信，因此需要在代码中设置环境变量来设置通信网卡。其代码形式如下:：
-
-   os.environ['MASTER_ADDR'] = '192.168.xx.xx'
-
-   os.environ['MASTER_PORT'] = '29561'
-
-   上述值在多机情况下需要设置为：
 
    MASTER_ADDR：设置为集群中master的IP（任意挑选一台作为master即可）
 
    MASTER_PORT：设置为master的一个空闲端口
 
-   上述两个参数在模型代码中一般会设置为传参的形式，但也有可能某些代码中写为"127.0.0.1"，需要进行修改。上述变量需在调用torch.distributed.init_process_group()之前声明。
+   master ip地址和端口在模型代码中一般会设置为传参的形式，也有可能某些开源代码中设置为"127.0.0.1"，需要进行修改。
+
+   上述变量需在调用torch.distributed.init_process_group()之前声明。
 
 2. distributed初始化
 
-   修改torch.distributed.init_process_group()
+   PyTorch中使用`dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)`来初始化线程组其中参数含义如下。
 
-   PyTorch中使用torch.distributed.init_process_group()来初始化线程组。
+   `backend`：进行分布式训练的使用的通信协议，在NPU上只能使用"hccl"
 
-   其代码形式如下：
+   `world_size`：进行训练时使用的device的总数
 
-     import torch.distributed as dist
+   `rank`： 当前初始化的device的rank_id，也就是全局的逻辑ID
 
-   dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
-
-   上述值的意义为：
-
-   backend：进行分布式训练的使用的通信协议，**在NPU上只能使用"hccl"**
-
-   world_size：进行训练时使用的device的总数
-
-   rank: 当前初始化的device的rank_id，也就是全局的逻辑ID
+   有两种方法启动多卡训练，分别初始化的方法如下。
 
    - 使用torch.distributed.launch启动多卡训练。
 
      ```python 
-     dist.init_process_group(backend='hccl') # hccl是NPU设备上的后端
+     import torch.distributed as dist
      
+     dist.init_process_group(backend='hccl') # hccl是NPU设备上的后端
      ```
 
    - 使用mp.spawn启动多卡训练。
 
       ```python
+      import torch.distributed as dist
+      
       def main_worker(pid_idx, device_nums_per_node, args):
-      
-        args.distributed_rank = args.rank * device_nums_per_node + pid_idx
-      
-        dist.init_process_group(backend=args.dist_backend, world_size=args.distributed_world_size, rank=args.distributed_rank)
+          args.distributed_rank = args.rank * device_nums_per_node + pid_idx
+          dist.init_process_group(backend=args.dist_backend, world_size=args.distributed_world_size, rank=args.distributed_rank)
       ```
+
+     其中：
+
+     `pid_idx`：device序号。
+
+     `device_nums_per_node`：每个AI Server的device数量。
 
 3. 模型DDP初始化
 
@@ -549,8 +538,7 @@ pytorch分布式训练基本概念
    # 实例化模型
    model = ToyModel().to(loc)
    
-   # 加载模型权重，在构造DDP模型之前，且只需要在master上加载就行了。
-   ckpt_path = None
+   # 加载模型权重，在构造DDP模型之前，且只需要在master上加载。
    if dist.get_rank() == 0 and ckpt_path is not None:
        model.load_state_dict(torch.load(ckpt_path))
        
@@ -565,18 +553,17 @@ pytorch分布式训练基本概念
        transform = torchvision.transforms.Compose([
            torchvision.transforms.ToTensor(),
            torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-       ])
+       ])    
        my_trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                                   download=True, transform=transform)
-       trainloader = torch.utils.data.DataLoader(my_trainset,batch_size=16,)
+      
+       train_sampler = torch.utils.data.distributed.DistributedSampler(my_trainset)
+       trainloader = torch.utils.data.DataLoader(my_trainset,
+                                                 batch_size=16, num_workers=2, sampler=train_sampler)
    	return trainloader
    
    trainloader = get_dataset()
    ```
-
-   
-
-   
 
 5. 损失方法、优化器。 
 
@@ -618,15 +605,13 @@ pytorch分布式训练基本概念
 
 - 手动启动
 
-  添加环境变量
+  1. 添加环境变量，多机训练需要增加`HCCL_WHITELIST_DISABLE`和`HCCL_IF_IP`环境变量。
 
-  相较于8p的启动脚本，多机的脚本需要增加环境变量：
+  -   HCCL_WHITELIST_DISABLE：HCCL通道白名单，一般性设置为1表示关闭白名单。
 
-    HCCL_WHITELIST_DISABLE，HCCL通道白名单，一般性设置为1表示关闭白名单。
+  - HCCL_IF_IP：HCCL初始化通信网卡IP，设置为当前服务器的host网卡IP。
 
-  HCCL_IF_IP, HCCL初始化通信网卡IP，设置为当前服务器的host网卡。AI Server0 脚本中该参数的值为AI Server0的host ip, AI Server1脚本中该参数的值为AI Server1的host ip。
-
-  修改点这部分其中最重要的参数是需要设置addr，也就是上述提到的"MASTER_ADDR"需要将集群中每一台机器上启动脚本的该参数设置为master节点的ip。
+  
 
   本部分的说明中使用的是torch.distributed.launch来启动多卡训练
 
@@ -636,25 +621,15 @@ pytorch分布式训练基本概念
 
   比如AI Server0服务器的host ip为：192.168.xx.22， AI Server1服务器的host ip为：192.168.xx.23。AI Server0为master节点，我们现在拉起2*8的集群。在拉起之前请先将脚本防止服务器相应位置， 确保python相关库已安装。
 
-  **在AI** **server0服务器上启动命令：**
+  **在AI** **serveri服务器上启动命令：**
 
   source env_npu.sh
 
   export HCCL_WHITELIST_DISABLE=1
 
-  export HCCL_IF_IP=192.168.xx.22
+  export HCCL_IF_IP=192.168.xx.xx
 
   python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=0 --nproc_per_node 8 --master_addr 192.168.xx.22 --master_port 29501 main.py --addr 192.168.xx.22
-
-  **在AI** **server****1****服务器上启动命令：**
-
-  source env_npu.sh
-
-  export HCCL_WHITELIST_DISABLE=1
-
-  export HCCL_IF_IP=192.168.xx.23
-
-  python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=1 --nproc_per_node 8 --master_addr 192.168.xx.22--master_port 29501 main.py --addr 192.168.xx.22
 
   以上2个命令的差别是HCCL_IF_IP/node_rank/addr的值不同， 用户可将命令写入shell脚本， 对不同的参数以shell脚本外传值方式启动。
 
