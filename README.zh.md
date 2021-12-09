@@ -170,7 +170,7 @@ python3 pytorch1.8.1/test/test_npu/test_div.py
 
 # 路标
 
-以下将展示AscendPyTorch近期的计划，我们会根据用户的反馈诉求，持续调整计划的优先级。
+以下将展示Ascend PyTorch近期的计划，我们会根据用户的反馈诉求，持续调整计划的优先级。
 
 总体而言，我们会努力在以下几个方面不断改进。
 

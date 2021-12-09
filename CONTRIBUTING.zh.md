@@ -166,7 +166,7 @@
 
 3.  本地开发代码。
 
-    为了避免多个分支之间的不一致，建议签出到一个新的分支：
+    为了避免多个分支之间的不一致，建议创建新的分支进行开发：
 
     ```
     git checkout -b {new_branch_name} origin/master
@@ -186,7 +186,7 @@
     git push origin {new_branch_name}
     ```
 
-5.  向 PyTorh存储库拉取请求。
+5.  向 PyTorch存储库拉取请求。
 
     在最后一步中，您需要在新分支和“PyTorch master“分支之间拉取比较请求。完成拉取请求后，“Jenkins CI“将自动设置为构建测试。您的pull request应该尽快合并到上游 master 分支，以降低合并的风险。
 
