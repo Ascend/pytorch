@@ -287,7 +287,7 @@ PyTorch模型多机多卡训练流程一般包括准备环境、准备模型、�
 
 3. host日志查看
 
-   host日志保存在`~/ascend/log`路径下，用户可以到该路径下查看每个host的device日志
+   host日志保存在`~/ascend/log`路径下，用户可以到该路径下查看每个host的device日志。
 
 通过该简单的示例您已经完成了多机多卡模型的训练。 
 
@@ -578,11 +578,12 @@ pytorch分布式训练基本概念
 6. DDP模型训练
 
    ```python
-   ### 3. 网络训练  ###
    model.train()
    iterator = range(100)
    for epoch in iterator:
+       # 设置epoch
        trainloader.sampler.set_epoch(epoch)
+       
        for data, label in trainloader:
            data, label = data.to(local_rank), label.to(local_rank)
            optimizer.zero_grad()
@@ -603,45 +604,230 @@ pytorch分布式训练基本概念
 
 启动训练提供两种方式，手动启动和shell脚本启动
 
-- 手动启动
+- 手动启动（使用torch.distributed.launch方式启动）
 
-  1. 添加环境变量，多机训练需要增加`HCCL_WHITELIST_DISABLE`和`HCCL_IF_IP`环境变量。
+  1. 配置NPU 环境变量，请参考附录提供的env_npu.sh脚本
 
-  -   HCCL_WHITELIST_DISABLE：HCCL通道白名单，一般性设置为1表示关闭白名单。
+  2. 添加环境变量，多机训练需要增加`HCCL_WHITELIST_DISABLE`和`HCCL_IF_IP`环境变量。
 
-  - HCCL_IF_IP：HCCL初始化通信网卡IP，设置为当前服务器的host网卡IP。
+     - HCCL_WHITELIST_DISABLE：HCCL通道白名单，一般性设置为1表示关闭白名单。
+     - HCCL_IF_IP：HCCL初始化通信网卡IP，设置为当前服务器的host网卡IP。
 
-  
+  3. 将修改的模型脚本上传至每个AI Server 
 
-  本部分的说明中使用的是torch.distributed.launch来启动多卡训练
+  4. 在每个AI Server上安装必要Python库
 
-  （1）将模型脚本上传至AI Server0和AIServer1； 
+  5. 任选一个AI Server作为masker节点，并查询每个AI Server的IP。
 
-  （2）对照requirements.txt，检查AI Server0和AIServer1是否缺少相关三方库， 该模型用到了DLLogger模块， 需源码安装；
+  6. 在每个AI server服务器上启动命令
 
-  比如AI Server0服务器的host ip为：192.168.xx.22， AI Server1服务器的host ip为：192.168.xx.23。AI Server0为master节点，我们现在拉起2*8的集群。在拉起之前请先将脚本防止服务器相应位置， 确保python相关库已安装。
+     ```
+     python3 -m torch.distributed.launch --nnodes=${nnodes}  --node_rank=i --nproc_per_node 8 --master_addr 192.168.xx.22 --master_port 29501 main.py --addr 192.168.xx.22
+     ```
 
-  **在AI** **serveri服务器上启动命令：**
+     其中：
 
-  source env_npu.sh
+     --nnodes：用来分布式训练脚本的AI server数。
 
-  export HCCL_WHITELIST_DISABLE=1
+      --node_rank：AI  server的序号，每个AI  server有对应的序号。
 
-  export HCCL_IF_IP=192.168.xx.xx
+     --nproc_per_node：每个AI server的device数量。
 
-  python3.7 -m torch.distributed.launch --nnodes=2 --node_rank=0 --nproc_per_node 8 --master_addr 192.168.xx.22 --master_port 29501 main.py --addr 192.168.xx.22
+     --master_addr：作为maskter节点的AI server IP地址。
 
-  以上2个命令的差别是HCCL_IF_IP/node_rank/addr的值不同， 用户可将命令写入shell脚本， 对不同的参数以shell脚本外传值方式启动。
+     --master_port： 作为maskter节点的AI server 端口号。
 
-- 使用sh脚本启动
+     main.py：请修改为启动脚本名称。
 
-  用户可将命令写入shell脚本， 对不同的参数以shell脚本外传值方式启动。
+     --addr ：传入启动脚本的参数，master IP地址。
 
-训练成功后可以查看日志信息
+- 使用OpenMPI启动
 
-**host日志查看** 
+  1. 安装 OpenMPI开源库
 
+     多机多卡环境下分布式训练部署依赖于OpenMPI开源库，参与模型训练的每台服务器都需要安装OpenMPI开源库。目前OpenMPI开源库的版本要求为4.0.1、4.0.2或4.0.3。
+     执行`mpirun --version`命令检查是否已安装OpenMPI。如果返回`mpirun (Open MPI) 4.0.2  Report bugs to http://www.open-mpi.org/community/help/`  ，说明已经安装。如果已安装，且版本为4.0.1、4.0.2或4.0.3其中一个，则无需再安装。
 
+     否则请按照如下步骤安装OpenMPI：
+
+     1. 访问如下链接下载OpenMPI软件包。例如openmpi-4.0.2.tar.bz2。
+        https://www.open-mpi.org/software/ompi/v4.0/
+
+     2. 以root用户登录安装环境。
+
+     3. 将下载的OpenMPI软件包上传到安装环境的某一目录下。
+
+     4. 进入软件包所在目录，执行如下命令解压软件包。
+
+        ```shell
+        tar -jxvf openmpi-4.0.2.tar.bz2
+        ```
+
+     5. 进入解压后的目录，执行如下命令配置、编译和安装。
+
+        ```shell
+        ./configure --prefix=/usr/local/mpirun4.0.2
+        make
+        make install
+        ```
+
+        其中“--prefix”参数用于指定OpenMPI安装路径，用户根据实际情况进行修改。
+
+     6. 执行vi ~/.bashrc命令，打开.bashrc文件，在文件的最后添加如下环境变量。
+
+        ```shell
+        export OPENMPI=/usr/local/mpirun4.0.2
+        export LD_LIBRARY_PATH=$OPENMPI/lib
+        export PATH=$OPENMPI/bin:$PATH
+        ```
+
+        其中“/usr/local/mpirun4.0.2”为OpenMPI安装路径，用户需要根据实际进行修改。
+        执行:wq!命令保存文件并退出。
+
+     7. 执行如下命令使环境变量生效。
+
+        ```
+        source ~/.bashrc
+        ```
+
+     8. 安装完成之后，执行如下命令查看安装版本，如果返回正确的版本信息，则说明安装成功。
+
+        ```
+        mpirun --version
+        ```
+
+  2. 配置AI Server SSH免密登录
+
+     如果使用OpenMPI在多机多卡环境下分布式训练部署，需要在每两台服务器之间配置SSH免密登录，确保服务器之间可以互通。具体操作步骤如下：
+
+     1. 以root用户登录每台服务器。
+
+     2. 配置集群中主机间的可信度。
+
+        打开并编辑**/etc/ssh/ssh_config**文件，在文件最后增加如下字段：
+
+        ```
+        StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
+        ```
+
+     3. 在每台服务器上分别打开**/etc/hosts**文件，在该文件中添加本服务器对应的IP地址和主机名，且需要添加到该文件的首行。如果文件中已添加，则跳过此步骤。添加内容示例如下：
+
+        ```
+        10.90.140.199 ubuntu
+        ```
+
+        其中10.90.140.199为该服务器的IP地址，ubuntu为主机名。
+
+     4. 在第一台服务器执行如下命令生成公钥（例如第一台服务器IP为10.90.140.199）。
+
+        ```
+        cd ~/.ssh/                       # 若没有该目录，请先执行一次ssh localhost
+        ssh-keygen -t rsa                # 生成秘钥，会出现提示，连续点击3次"Enter"即可
+        mv id_rsa.pub authorized_keys    # 将生成的秘钥id_rsa.pub重命名为公钥authorized_keys
+        ```
+
+     5. 在其他每台服务器上都生成秘钥，并复制到第一台服务器的authorized_keys文件中。
+
+        1.  在其他每台服务器上执行如下命令生成秘钥。
+
+                cd ~/.ssh/
+                ssh-keygen -t rsa 
+            
+        2. 将其他每台服务器上生成的秘钥文件id_rsa.pub下载到本地，并复制该文件中的秘钥。
+
+        3. 在第一台服务器内执行如下命令打开公钥文件authorized_keys，将[5.b](#li361025101116 "link to:#li361025101116
+           ctrl +click to jump")复制的其他每台服务器的秘钥粘贴到第一台服务器的公钥后面。
+
+           ```
+           vi ~/.ssh/authorized_keys
+           ```
+
+           执行**:wq!**保存该文件。
+
+     6. 在其他每台服务器上执行如下命令将第一台服务器制作好的公钥复制到其他每台服务器内。
+
+            cd ~/.ssh/
+            scp root@10.90.140.199:~/.ssh/authorized_keys ./
+
+     7. 在每台服务器执行如下命令测试免密登录。
+
+        ```
+        ssh 用户名@IP地址
+        ```
+
+        例如：在第一台服务器10.90.140.199免密登录服务器10.90.140.231，执行**ssh root@10.90.140.231**命令。
+
+        若显示类似如下信息，说明已免密登录服务器10.90.140.231。
+
+        ```
+        Linux ubuntu 4.19.28 #1 SMP Tue Jun 23 19:05:23 EDT 2020 x86_64
+        
+        The programs included with the ubuntu GNU/Linux system are free software;
+        the exact distribution terms for each program are described in the
+        individual files in /usr/share/doc/*/copyright.
+        
+        ubuntu GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+        permitted by applicable law.
+        Last login: Tue Sep 15 14:37:21 2020 from 10.254.88.75
+        ```
+
+        执行**exit**命令可以退出登录，若显示类似如下信息，说明已退出登录。
+
+        ```
+        logout
+        Connection to 10.90.140.231 closed.
+        ```
+
+  3. 使用OpenMPI拉起模型训练。
+
+     1. 分别为每一个AI server编写启动脚本，如train.sh，并将启动脚本分别移到相应AI server的同一路径下。
+
+        ```
+        # 配置NPU环境变量，env_npu.sh脚本参见附录
+        source env_npu.sh
+        #关闭HCCL通道白名单
+        export HCCL_WHITELIST_DISABLE=1
+        # HCCL初始化通信网卡IP，设置为当前服务器的host IP
+        export HCCL_IF_IP=xxx.xxx.xx.xxx
+        python3 -m torch.distributed.launch --nnodes=${nnodes}  --node_rank=i --nproc_per_node 8 --master_addr xxx.xxx.xx.xxx --master_port 29501 main.py --addr xxx.xxx.xx.xxx
+        ```
+
+        脚本参数请参见手动启动。
+
+     2. 编写启动脚本
+
+        ```
+        # 配置mpirun环境变量
+        export PATH=$PATH:/usr/local/mpirun4.0.2/bin
+        # 执行mpirun工具
+        mpirun -H xxx.xxx.xxx.xxx:1,xxx.xxx.xxx.xxx:1 \
+               --bind-to none -map-by slot \
+               --mca btl_tcp_if_exclude lo,docker0,endvnic\
+               --allow-run-as-root \
+               --prefix /usr/local/mpirun4.0.2/ \
+               ./train.sh
+        ```
+
+        其中
+
+        -H：每个AI server的IP:启动进程数。
+
+        --bind-to：绑定进程的策略。
+
+        --mca：特定上下文的MCA参数，arg0为参数名，arg1为参数值。
+
+        --allow-run-as-root：允许使用root用户运行。
+
+        --prefix：mpirun4.0.2路径。
+
+        ./train.sh：各个AI server的启动脚本路径。
+
+  4. 
+
+训练成功后可以查看日志信息。
+
+host日志保存在`~/ascend/log`路径下，用户可以到该路径下查看每个host的device日志。
 
 # 附录
 
