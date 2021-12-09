@@ -94,9 +94,6 @@ Tensor format_cast_npu(
     FormatCastHelper::format_cast_as_base_format(src, static_cast<aclFormat>(acl_format));
     return src;
   }
-  // transdata only support float and half
-  TORCH_CHECK(src.scalar_type() == ScalarType::Float || src.scalar_type() == ScalarType::Half,
-      "can not cast format when src is not float32 or float16");
 
   Tensor dst = at::empty_with_format(
       src_desc.base_sizes_, src.options(), acl_format);
@@ -123,9 +120,6 @@ Tensor& format_cast_npu_(
     FormatCastHelper::format_cast_as_base_format(src, static_cast<aclFormat>(acl_format));
     return src;
   }
-  // transdata only support float and half
-  TORCH_CHECK(src.scalar_type() == ScalarType::Float || src.scalar_type() == ScalarType::Half,
-      "can not cast format when src is not float32 or float16");
 
   Tensor dst = at::empty_with_format(
       src_desc.base_sizes_, src.options(), acl_format);

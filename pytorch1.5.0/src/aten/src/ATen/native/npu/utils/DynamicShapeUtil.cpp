@@ -40,7 +40,9 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "SigmoidCrossEntropyWithLogitsV2",
     "SigmoidCrossEntropyWithLogitsGradV2",
     "ROIAlign",
-    "ROIAlignGrad"};
+    "ROIAlignGrad",
+    "ConcatD",
+    "Concat"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {
