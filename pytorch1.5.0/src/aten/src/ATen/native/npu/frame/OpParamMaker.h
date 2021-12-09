@@ -18,8 +18,8 @@
 
 #include <third_party/acl/inc/acl/acl_base.h>
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 #include "ATen/native/npu/frame/NPUDefine.h"
-#include "ATen/native/npu/interface/Graph.h"
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "c10/npu/NPUStream.h"
 
@@ -142,17 +142,8 @@ class AclTensorDescMaker {
 //
 class AclTensorBufferMaker {
  public:
-  // base of Ctr
-  // params: tensor, offset, remained size
-  AclTensorBufferMaker(const Tensor* tensor, int64_t offset, int64_t n) {
-    uint8_t* header = reinterpret_cast<uint8_t*>(tensor->data_ptr()) -
-        tensor->itemsize() * offset;
-    size_t bufferSize = tensor->itemsize() * n;
-    ptr = aclCreateDataBuffer(header, bufferSize);
-  }
-
   // offset = 0
-  AclTensorBufferMaker(const Tensor* tensor, int64_t n = 1) {
+  explicit AclTensorBufferMaker(const Tensor* tensor, int64_t n = 1) {
     if (tensor == nullptr || n == 0) {
       ptr = aclCreateDataBuffer(nullptr, 0);
     } else {
@@ -162,7 +153,7 @@ class AclTensorBufferMaker {
   }
 
   // offset = 0
-  AclTensorBufferMaker(const Tensor& tensor, int64_t n = 1) {
+  explicit AclTensorBufferMaker(const Tensor& tensor, int64_t n = 1) {
     ptr =
         aclCreateDataBuffer((void*)(tensor.data_ptr()), tensor.itemsize() * n);
   }
@@ -192,7 +183,6 @@ class OpCommandImpl {
 
   void SetName(const string& name) {
     opName = name;
-    execParam.graph.Name(name);
   }
 
   void AddInput(
@@ -201,7 +191,6 @@ class OpCommandImpl {
       int64_t dim,
       aclFormat format) {
     inputCounter += 1;
-    execParam.graph.Input(desc);
     execParam.inDesc.emplace_back(std::move(desc));
     execParam.inBuffer.emplace_back(std::move(buffer));
     execParam.inDims.emplace_back(dim);
@@ -215,8 +204,7 @@ class OpCommandImpl {
       aclFormat format,
       const Tensor& hostTensor) {
     AddInput(desc, buffer, dim, format);
-    execParam.hostMem.emplace_back(hostTensor);
-    execParam.graph.SetConst(hostTensor.data_ptr(), hostTensor.nbytes());
+    execParam.hostMem.emplace_back(hostTensor.storage());
   }
 
   void AddConst(SmallVector<int64_t, N> dimList) {
@@ -235,7 +223,6 @@ class OpCommandImpl {
       aclDataBuffer* buffer,
       int64_t dim,
       aclFormat format) {
-    execParam.graph.Output(desc);
     execParam.outDesc.emplace_back(std::move(desc));
     execParam.outBuffer.emplace_back(std::move(buffer));
     execParam.outDims.emplace_back(dim);
@@ -247,7 +234,6 @@ class OpCommandImpl {
     InitAttr();
     AttrInfoMaker::Add(value, attrInfo);
     OpAttrMaker::Set(execParam.attr, attrName, value);
-    execParam.graph.AddAttr(attrName, value);
     execParam.hasAttr = true;
   }
 
@@ -262,20 +248,49 @@ class OpCommandImpl {
     int inputNum = execParam.inDesc.size();
     int outputNum = execParam.outDesc.size();
     int constNum = execParam.constLists.size();
-    const int64_t** constListArr = new const int64_t*[constNum];
-    const aclTensorDesc** aclTensorInputDescArr =
-        new const aclTensorDesc*[inputNum];
-    const aclTensorDesc** aclTensorOutputDescArr =
-        new const aclTensorDesc*[outputNum];
-    const aclDataBuffer** aclDataInputBuffArr =
-        new const aclDataBuffer*[inputNum];
-    aclDataBuffer** aclDataOutputBuffArr = new aclDataBuffer*[outputNum];
 
-    int64_t* constIdxArr = new int64_t[constNum];
-    int64_t* inputDimsArr = new int64_t[inputNum];
-    int64_t* outputDimsArr = new int64_t[outputNum];
-    aclFormat* inputFormatsArr = new aclFormat[inputNum];
-    aclFormat* outputFormatsArr = new aclFormat[outputNum];
+    size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+    size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+    size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+    size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
+
+    size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+    size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+    size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+    size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
+
+    size_t constListArrLen = constNum * sizeof(uintptr_t);
+    size_t constIdxArrLen  = constNum * sizeof(int64_t);
+
+    size_t totalMemLen =
+      inputTensorDescArrLen + inputDataBuffArrLen +
+      inputDimsArrLen + inputFormatsArrLen +
+      outputTensorDescArrLen + outputDataBuffArrLen +
+      outputDimsArrLen + outputFormatsArrLen +
+      constListArrLen + constIdxArrLen;
+    char* basePtr = static_cast<char* >(malloc(totalMemLen));
+    AT_ASSERT(basePtr != nullptr);
+    const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += inputTensorDescArrLen;
+    const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+    basePtr += inputDataBuffArrLen;
+    int64_t* inputDimsArr = reinterpret_cast<int64_t*>(basePtr);
+    basePtr += inputDimsArrLen;
+    aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+    basePtr += inputFormatsArrLen;
+
+    const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += outputTensorDescArrLen;
+    aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+    basePtr += outputDataBuffArrLen;
+    int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+    basePtr += outputDimsArrLen;
+    aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
+    basePtr += outputFormatsArrLen;
+
+    const int64_t** constListArr = reinterpret_cast<const int64_t** >(basePtr);
+    basePtr += constListArrLen;
+    int64_t* constIdxArr = reinterpret_cast<int64_t* >(basePtr);
 
     std::copy(
         execParam.inDesc.begin(),
@@ -406,17 +421,14 @@ class OpCommandImpl {
     SmallVector<aclFormat, N> outFormats;
     SmallVector<const int64_t*, N> constLists;
     SmallVector<int64_t, N> constIdxs;
-    SmallVector<Tensor, N> hostMem;
-
+    SmallVector<Storage, N> hostMem;
     aclopAttr* attr = nullptr;
     bool hasAttr = false;
-    Graph graph;
   };
 
   void InitAttr() {
     if (execParam.attr == nullptr) {
       execParam.attr = aclopCreateAttr();
-      execParam.graph.Make();
     }
   }
 
@@ -443,10 +455,6 @@ private:
   int32_t offset = -1;
   SmallVector<OpCommandImpl, N> objs;
 }; // class OpCommandImpls
-
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-  Tensor& holdTensor, bool isPinMem);
 } // namespace npu
 } // namespace native
 } // namespace at

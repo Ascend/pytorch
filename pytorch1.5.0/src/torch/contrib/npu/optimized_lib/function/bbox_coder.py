@@ -61,8 +61,8 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
 
 def npu_bbox_coder_encode_xyxy2xywh(bboxes,
                                     gt_bboxes,
-                                    means=[0., 0., 0., 0.],
-                                    stds=[1., 1., 1., 1.],
+                                    means=None,
+                                    stds=None,
                                     is_normalized=False,
                                     normalized_scale=10000.,
                                     ):
@@ -90,6 +90,12 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
         torch.Tensor: Box transformation deltas
     """
 
+    if means is None:
+        means = [0., 0., 0., 0.]
+
+    if stds is None:
+        stds = [1., 1., 1., 1.]
+
     assert bboxes.size(0) == gt_bboxes.size(0)
     assert bboxes.size(-1) == gt_bboxes.size(-1) == 4
 
@@ -109,9 +115,9 @@ def npu_bbox_coder_encode_xyxy2xywh(bboxes,
 
 def npu_bbox_coder_decode_xywh2xyxy(bboxes,
                                     pred_bboxes,
-                                    means=[0., 0., 0., 0.],
-                                    stds=[1., 1., 1., 1.],
-                                    max_shape=[9999, 9999],
+                                    means=None,
+                                    stds=None,
+                                    max_shape=None,
                                     wh_ratio_clip=16 / 1000,
                                     ):
     """ Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
@@ -136,6 +142,15 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
     Returns:
         Tensor: Boxes with shape (N, 4), where 4 represent tl_x, tl_y, br_x, br_y.
     """
+
+    if means is None:
+        means = [0., 0., 0., 0.]
+    
+    if stds is None:
+        stds = [1., 1., 1., 1.]
+
+    if max_shape is None:
+        max_shape = [9999, 9999]
 
     assert bboxes.size(0) == pred_bboxes.size(0)
     assert bboxes.size(-1) == pred_bboxes.size(-1) == 4

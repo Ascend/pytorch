@@ -28,12 +28,12 @@ Tensor& addcmul_out_npu_nocheck(
     const Scalar value) {
   OpCommand cmd;
   cmd.Name("Addcmul")
-      .Input(self)
-      .Input(tensor1)
-      .Input(tensor2)
-      .Input(value, self.scalar_type())
-      .Output(result)
-      .Run();
+    .Input(self)
+    .Input(tensor1)
+    .Input(tensor2)
+    .Input(value, self.scalar_type())
+    .Output(result)
+    .Run();
 
   return result;
 }

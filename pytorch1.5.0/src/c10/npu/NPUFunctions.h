@@ -44,7 +44,7 @@ inline DeviceIndex device_count() noexcept {
     // (This shouldn't really matter, since we won't be running very much CUDA
     // code in this regime.)
     // npuError_t last_err = npuGetLastError();
-    //(void)last_err;
+    // (void)last_err;
     NPU_LOGE("get device count of NPU failed");
     return 0;
   }

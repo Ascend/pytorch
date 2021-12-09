@@ -847,16 +847,16 @@ class TestCase(expecttest.TestCase):
             self.fail("shpae error")
         if (x.dtype != y.dtype):
             self.fail("dtype error")
-        dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64, np.float64]
         if x.dtype not in dtype_list:
-            self.fail("required dtype in [np.bool, np.uint16, np.int16, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
+            self.fail("required dtype in " + str(dtype_list))
         if x.dtype == np.bool:
             result = np.equal(x, y)
             if result.all() == False:
                 self.fail("result error")
         elif (x.dtype == np.float16):
             compare_res(prec16, minimum16)
-        elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64]):
+        elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64, np.float64]):
             compare_res(prec, minimum)
         else:
             self.fail("required numpy object")
@@ -1297,7 +1297,8 @@ CONNECT_TIMEOUT = "connect() timed out."
 
 def retry_on_connect_failures(func=None, connect_errors=(ADDRESS_IN_USE)):
     """Reruns a test if the test returns a RuntimeError and the exception
-    matches exactly with one of the strings in connect_errors."""
+    matches exactly with one of the strings in connect_errors.
+    """
     # This if block is executed when using this function as a decorator with arguments.
     if func is None:
         return partial(retry_on_connect_failures, connect_errors=connect_errors)

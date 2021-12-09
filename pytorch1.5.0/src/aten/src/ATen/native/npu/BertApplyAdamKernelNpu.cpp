@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -34,7 +34,10 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu_nocheck(
     const Tensor& grad,
     Scalar max_grad_norm,
     Scalar global_grad_norm,
-    Scalar weight_decay) {
+    Scalar weight_decay,
+    optional<Scalar> step_size,
+    int64_t adam_mode) {
+  std::string adamMode = adam_mode == 0 ? "adam" : "mbart_adam";
   OpCommand cmd;
   cmd.Name("ApplyAdamV2")
       .Input(var)
@@ -47,21 +50,19 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu_nocheck(
       .Input(grad)
       .Input(max_grad_norm, var.scalar_type())
       .Input(global_grad_norm, var.scalar_type())
-      .Input(weight_decay, var.scalar_type())
-      .Output(var_out)
+      .Input(weight_decay, var.scalar_type());
+  if (step_size.has_value()) {
+    cmd.Input(step_size.value(), var.scalar_type());
+  }
+  cmd.Output(var_out)
       .Output(m_out)
       .Output(v_out)
+      .Attr("adam_mode", adamMode)
       .Run();
   return std::tie(var_out, m_out, v_out);
 }
 
-tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu(
-    Tensor& var_out,
-    Tensor& m_out,
-    Tensor& v_out,
-    const Tensor& var,
-    const Tensor& m,
-    const Tensor& v,
+std::tuple<Tensor, Tensor, Tensor> npu_bert_apply_adam(
     Scalar lr,
     Scalar beta1,
     Scalar beta2,
@@ -69,21 +70,30 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_out_npu(
     const Tensor& grad,
     Scalar max_grad_norm,
     Scalar global_grad_norm,
-    Scalar weight_decay) {
-  OpPipeWithDefinedOut check;
-  check.CheckMemory({var, m, v, grad}, {var_out, m_out, v_out});
+    Scalar weight_decay,
+    optional<Scalar> step_size,
+    int64_t adam_mode) {
+  AT_ERROR("npu_bert_apply_adam is not implemented for Tensor");
+}
 
-  auto func = [&var, &m, &v, &lr, &beta1, &beta2, &epsilon, &grad, &max_grad_norm, &global_grad_norm, &weight_decay] (
-      Tensor& var_out,
-      Tensor& m_out,
-      Tensor& v_out) {
-        bert_apply_adam_out_npu_nocheck(var_out, m_out, v_out, var, m, v, 
-            lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
-      };
-  
-  OpPipeWithMultiOut<Tensor&, Tensor&, Tensor&> pipe(var_out, m_out, v_out);
-  return pipe.Call(func)
-              .ReturnRef<Tensor&, Tensor&, Tensor&>();
+tuple<Tensor&, Tensor&, Tensor&> bert_apply_adam_out_npu(
+    Tensor& var,
+    Tensor& m,
+    Tensor& v,
+    Scalar lr,
+    Scalar beta1,
+    Scalar beta2,
+    Scalar epsilon,
+    const Tensor& grad,
+    Scalar max_grad_norm,
+    Scalar global_grad_norm,
+    Scalar weight_decay,
+    optional<Scalar> step_size,
+    int64_t adam_mode) {
+  bert_apply_adam_npu(
+      var, m, v,
+      lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size, adam_mode);
+  return std::tie(var, m, v);
 }
 
 tuple<Tensor, Tensor, Tensor> bert_apply_adam_npu(
@@ -97,12 +107,13 @@ tuple<Tensor, Tensor, Tensor> bert_apply_adam_npu(
     const Tensor& grad,
     Scalar max_grad_norm,
     Scalar global_grad_norm,
-    Scalar weight_decay) {
-  bert_apply_adam_out_npu(
+    Scalar weight_decay,
+    optional<Scalar> step_size,
+    int64_t adam_mode) {
+  bert_apply_adam_out_npu_nocheck(
       var, m, v, var, m, v,
-      lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay);
+      lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size, adam_mode);
   return std::tie(var, m, v);
 }
-
 } // namespace native
 } // namespace at

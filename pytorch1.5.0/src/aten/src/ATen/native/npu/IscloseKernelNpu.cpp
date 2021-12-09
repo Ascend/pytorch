@@ -53,10 +53,10 @@ Tensor isclose_npu(
 
   TORCH_CHECK(self.scalar_type() == other.scalar_type(), self.scalar_type(), " did not match ", other.scalar_type());
     
-  //calculate the output size
+  // calculate the output size
   auto outputSize = input_same_output_size(self);
         
-  //construct the output tensor of the NPU
+  // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensor(outputSize, self.options().dtype(kBool), self);
   // constructs the attr of the NPUAttrDesc
   result = isclose_nocheck(result, self, other, rtol, atol, equal_nan);

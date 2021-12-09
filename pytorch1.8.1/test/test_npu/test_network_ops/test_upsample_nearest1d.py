@@ -21,28 +21,26 @@ from util_test import create_common_tensor
 
 
 class TestUpsampleNearest1DBackward(TestCase):
-    def cpu_op_exec(self, input, size):
-        output = F.interpolate(input, size, mode="nearest")
+    def cpu_op_exec(self, input1, size):
+        output = F.interpolate(input1, size, mode="nearest")
         return output.detach().numpy()
 
-    def cpu_op_scale_exec(self, input, scale):
-        output = F.interpolate(input, scale_factor = scale, mode="nearest")
+    def cpu_op_scale_exec(self, input1, scale):
+        output = F.interpolate(input1, scale_factor = scale, mode="nearest")
         return output.detach().numpy()
 
-    def npu_op_exec(self, input, size):
-        output = F.interpolate(input, size, mode="nearest")
+    def npu_op_exec(self, input1, size):
+        output = F.interpolate(input1, size, mode="nearest")
         output = output.cpu()
         return output.detach().numpy()
 
-    def npu_op_scale_exec(self, input, scale):
-        output = F.interpolate(input, scale_factor = scale, mode="nearest")
+    def npu_op_scale_exec(self, input1, scale):
+        output = F.interpolate(input1, scale_factor = scale, mode="nearest")
         output = output.cpu()
         return output.detach().numpy()
 
     def test_upsample_nearest1d_backward_shape_format(self, device):
         test_cases = [
-            [[np.float16, 0, (1, 1, 2)], [4, ]],
-            [[np.float16, 0, (2, 1, 4)], [8, ]],
             [[np.float32, 3, (2, 2, 3)], [1, ]],
             [[np.float32, 0, (2, 1, 1)], [4, ]],
             [[np.float32, 0, (4, 1, 2)], [4, ]],
@@ -64,8 +62,6 @@ class TestUpsampleNearest1DBackward(TestCase):
 
     def test_upsample_nearest1d_backward_shape_format_scale(self, device):
         test_cases = [
-            [[np.float16, 0, (1, 1, 2)], 2],
-            [[np.float16, 0, (2, 1, 4)], 2.2],
             [[np.float32, 3, (2, 2, 3)], 0.4],
             [[np.float32, 0, (2, 1, 1)], 4],
             [[np.float32, 0, (4, 1, 2)], 2],

@@ -81,7 +81,7 @@ Tensor& all_out_npu(
 
 Tensor all_npu(const Tensor& self, int64_t dim, bool keepdim) {
   TORCH_CHECK(self.scalar_type() == ScalarType::Bool || self.scalar_type() == ScalarType::Byte,
-          "all only supports torch.uint8 and torch.bool dtypes");
+      "all only supports torch.uint8 and torch.bool dtypes");
   if (self.numel() == 0) {
     Tensor res = at::empty_with_format({}, self.options().dtype(kInt), CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(ScalarType::Bool);
     return res;
@@ -103,12 +103,12 @@ Tensor all_npu(const Tensor& self, int64_t dim, bool keepdim) {
 
 Tensor all_npu(const Tensor& self) {
   TORCH_CHECK(self.scalar_type() == ScalarType::Bool || self.scalar_type() == ScalarType::Byte,
-          "all only supports torch.uint8 and torch.bool dtypes");
+      "all only supports torch.uint8 and torch.bool dtypes");
   if (self.numel() == 0) {
     Tensor res = at::empty_with_format(
-      {}, 
-      self.options().dtype(kInt), 
-      CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(ScalarType::Bool);
+        {}, 
+        self.options().dtype(kInt), 
+        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(ScalarType::Bool);
     return res;
   }
 

@@ -26,7 +26,7 @@ Tensor kl_div_backward_npu(
     const Tensor& target,
     int64_t reduction) {
   TORCH_CHECK(reduction != Reduction::None,
-    "Reduction of None has not been supported at present.");
+      "Reduction of None has not been supported at present.");
   
   auto outputSize = input_same_output_size(self);
 

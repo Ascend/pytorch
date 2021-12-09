@@ -33,7 +33,7 @@ public:
 };
 
 void NMSStrategy::CreateInputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   FormatShape shape = {-1, 5};
   FormatShape storageShape = {-1, 5};
   compileShape.inputShape.emplace_back(shape);
@@ -41,7 +41,7 @@ void NMSStrategy::CreateInputDescInfo(ACL_PARAMS& params,
 }
 
 void NMSStrategy::CreateOutputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) { 
+    DynamicCompileShape& compileShape) { 
   for (int64_t i = 0; i < params.output_num; ++i) {
     if (i == 0) {
       FormatShape shape = {-1, 5};

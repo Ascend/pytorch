@@ -77,9 +77,9 @@ Tensor& max_unpool3d_out_npu(
 
   Tensor data = zeros_npu(out_shape, self.options());
   OpPreparation::CheckOut(
-    {self, indices, data},
-    result,
-    data);
+      {self, indices, data},
+      result,
+      data);
 
   max_unpool3d_out_npu_nocheck(result, self, indices, data, output_size);
 

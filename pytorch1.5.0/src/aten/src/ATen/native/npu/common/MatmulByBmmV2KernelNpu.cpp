@@ -19,7 +19,7 @@
 namespace at {
 namespace native {
 using namespace at::native::npu;
-    Tensor matmul_by_bmmV2(
+Tensor matmul_by_bmmV2(
     const Tensor& tensor1,
     const Tensor& tensor2) {
   auto dim_tensor1 = tensor1.dim();
@@ -51,7 +51,7 @@ using namespace at::native::npu;
     return at::npu_bmmV2(tensor1, tensor2, {});
   }
   AT_ERROR("both arguments to matmul need to be at least 1D, but they are ",
-          dim_tensor1, "D and ", dim_tensor2, "D");
+      dim_tensor1, "D and ", dim_tensor2, "D");
 }
 
 }

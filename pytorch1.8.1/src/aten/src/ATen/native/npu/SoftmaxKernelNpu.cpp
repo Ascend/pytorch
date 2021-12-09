@@ -21,7 +21,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor softmax_npu(
+Tensor softmax_int_npu(
     const Tensor& self,
     int64_t dim,
     optional<ScalarType> dtype) {
@@ -35,27 +35,21 @@ Tensor softmax_npu(
   return result;
 }
 
-Tensor softmax_npu(
+Tensor softmax_dimname_npu(
     const Tensor& self,
     Dimname dim,
     optional<ScalarType> dtype) {
-  return softmax_npu(self, dimname_to_position(self, dim), dtype);
+  return softmax_int_npu(self, dimname_to_position(self, dim), dtype);
 }
 
 Tensor _softmax_npu(const Tensor& self, int64_t dim, bool half_to_float) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU
   Tensor result;
   if (half_to_float) {
-    result = at::empty_with_format(
-        outputSize,
-        self.options().dtype(ScalarType::Float),
-        CalcuOpUtil::get_tensor_npu_format(self));
+    result = OpPreparation::ApplyTensor(self, self.options().dtype(ScalarType::Float));
   } else {
-    result = at::empty_with_format(
-        outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+    result = OpPreparation::ApplyTensor(self);
   }
 
   // calculate the output result of the NPU
@@ -82,5 +76,10 @@ Tensor _softmax_npu(const Tensor& self, int64_t dim, bool half_to_float) {
   return result;
 }
 
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("softmax.int", TORCH_FN(softmax_int_npu));
+  m.impl("softmax.Dimname", TORCH_FN(softmax_dimname_npu));
+  m.impl("_softmax", TORCH_FN(_softmax_npu));
+}
 } // namespace native
 } // namespace at

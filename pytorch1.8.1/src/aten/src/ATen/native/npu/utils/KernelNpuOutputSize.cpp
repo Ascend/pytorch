@@ -200,8 +200,7 @@ SmallVector<int64_t, SIZE> cdist_npu_output_size(
   return output_shape;
 }
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
-conv2d_backward_npu_output_size(
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> conv2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad,
     const Tensor& weight,
@@ -215,16 +214,15 @@ conv2d_backward_npu_output_size(
 }
 
 SmallVector<int64_t, SIZE> cosine_similarity_npu_output_size(
-	const Tensor& x1,
-	int64_t dim,
-	bool keepdim
-	){
-	IntArrayRef dims(dim);
-    return reduce_ops_npu_output_size(x1, dims, keepdim);
+    const Tensor& x1,
+    int64_t dim,
+    bool keepdim
+    ) {
+  IntArrayRef dims(dim);
+  return reduce_ops_npu_output_size(x1, dims, keepdim);
 }
 
-tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>>
-conv_transpose2d_backward_npu_output_size(
+tuple<IntArrayRef, IntArrayRef, SmallVector<int64_t, SIZE>> conv_transpose2d_backward_npu_output_size(
     const Tensor& input,
     const Tensor& grad_output,
     const Tensor& weight,
@@ -299,8 +297,7 @@ SmallVector<int64_t, SIZE> det_npu_output_size(const Tensor& self) {
   return dimVec;
 }
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-ctc_loss_npu_output_size(
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
     const Tensor& logProbs,
     const Tensor& targets,
     IntArrayRef targetLengths) {
@@ -401,7 +398,7 @@ SmallVector<int64_t, SIZE> index_npu_output_size(
     } else if (new_indices[i].sizes().equals(inferShape)) {
       mid_indices[i] = new_indices[i];
     } else {
-      mid_indices[i] = new_indices[i].expand(inferShape, /*implicit=*/true);
+      mid_indices[i] = new_indices[i].expand(inferShape, true);
     }
   }
 
@@ -529,10 +526,10 @@ SmallVector<int64_t, SIZE> mm_npu_output_size(
 }
 
 SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
-  const Tensor& input,
-  const Tensor& weight,
-  IntArrayRef padding,
-  IntArrayRef stride) {
+    const Tensor& input,
+    const Tensor& weight,
+    IntArrayRef padding,
+    IntArrayRef stride) {
   int64_t N = input.size(0);
   int64_t H = input.size(2);
   int64_t W = input.size(3);
@@ -566,11 +563,8 @@ SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
   return outputSize;
 }
 
-tuple<
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>,
-    SmallVector<int64_t, SIZE>>
-nms_with_mask_npu_output_size(const Tensor& input) {
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nms_with_mask_npu_output_size(
+    const Tensor& input) {
   SmallVector<int64_t, SIZE> boxesSize = {input.size(0), 5};
   SmallVector<int64_t, SIZE> idxSize = {
       input.size(0),
@@ -735,8 +729,8 @@ SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const Tensor& self,
   return outputSize;
 }
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-nms_v4_npu_output_size(Scalar max_output_size) {
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> nms_v4_npu_output_size(
+    Scalar max_output_size) {
   SmallVector<int64_t, SIZE> selected_indices = {max_output_size.toInt()};
   SmallVector<int64_t, SIZE> valid_outputs    = {};
   return std::tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
@@ -759,9 +753,9 @@ SmallVector<int64_t, SIZE> repeat_npu_output_size(
 }
 
 SmallVector<int64_t, SIZE> soft_margin_loss_npu_output_size(
-  const Tensor &self,
-  const Tensor &target,
-  int64_t reduction) {
+    const Tensor &self,
+    const Tensor &target,
+    int64_t reduction) {
   SmallVector<int64_t, SIZE> outputSize;
   if (reduction == Reduction::None) {
     outputSize = input_same_output_size(self);
@@ -831,8 +825,8 @@ IntArrayRef smooth_l1_loss_npu_output_size(
   return outputSize;
 }
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-softmax_cross_entropy_with_logits_impl_npu_output_size(const Tensor& self) {
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> softmax_cross_entropy_with_logits_impl_npu_output_size(
+    const Tensor& self) {
   SmallVector<int64_t, SIZE> resultSize = array_to_small_vector(self.size(0));
   SmallVector<int64_t, SIZE> backpropSize = array_to_small_vector(self.sizes());
 

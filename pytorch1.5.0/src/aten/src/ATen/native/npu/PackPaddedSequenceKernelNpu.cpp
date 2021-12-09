@@ -27,11 +27,11 @@ std::tuple<Tensor, Tensor> _pack_padded_sequence_npu(const Tensor& _input, const
   int64_t * lengths = lengths_t.data_ptr<int64_t>();
   TORCH_CHECK(input.numel() > 0, "Cannot pack empty tensors.");
   TORCH_CHECK(lengths_t.size(0) == batchSize,
-           "Expected `len(lengths)` to be equal to batch_size, but got ", lengths_t.size(0),
-           " (batch_size=", batchSize, ")");
+      "Expected `len(lengths)` to be equal to batch_size, but got ", lengths_t.size(0),
+      " (batch_size=", batchSize, ")");
   TORCH_CHECK(lengths[batchSize - 1] > 0,
-           "Length of all samples has to be greater than 0, but found an element "
-           "in 'lengths' that is <= 0");
+      "Length of all samples has to be greater than 0, but found an element "
+      "in 'lengths' that is <= 0");
   for(auto i = 0; i < batchSize - 1; i++) {
     if (lengths[batchSize - 1 - i] > lengths[batchSize - 2 - i]) {
       // NB: enforce_sorted is implemented at a Python level, but the sortedness
@@ -61,7 +61,7 @@ std::tuple<Tensor, Tensor> _pack_padded_sequence_npu(const Tensor& _input, const
     TORCH_CHECK(l >= prevL);
   }
   
-  //input must have 2 dim for  rnn
+  // input must have 2 dim for  rnn
   int64_t lastDim = _input.size(2);
   Tensor inputDim2 = _input.contiguous().view({-1, lastDim});
   

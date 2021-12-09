@@ -71,7 +71,7 @@ Tensor quantize_per_tensor_npu(
     int64_t zero_point, 
     ScalarType dtype) {
   // constructs the input and output NPUTensorDesc
-  float scaleFloat = (float)scale;
+  float scaleFloat = static_cast<float>(scale);
   auto outputSize = input_same_output_size(self);
   auto outputDtype = kInt;
   if (dtype == ScalarType::QInt8) {

@@ -50,7 +50,7 @@ Tensor _cdist_backward_npu(
     p_float = std::numeric_limits<float>::infinity();
   }
   else {
-    p_float = (float) p;
+    p_float = static_cast<float>(p);
   }
 
   // Broadcast  
@@ -76,7 +76,7 @@ Tensor _cdist_backward_npu(
   Tensor grad_broadcast = grad.view(grad_expand_size).expand(tensor_broadcast_size).contiguous();
   Tensor cdist_broadcast = cdist.view(cdist_expand_size).expand(tensor_broadcast_size).contiguous();
 
-  //Executing the NPU operator.
+  // Executing the NPU operator.
   auto outputSize = input_same_output_size(x1);
   Tensor result = OpPreparation::ApplyTensor(tensor1_broadcast, outputSize);
   OpCommand cmd;

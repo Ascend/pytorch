@@ -35,6 +35,7 @@ class OptionsManager {
   static bool CheckSwitchMMOutputEnable();
   static bool CheckDynamicLogEnable();
   static bool CheckDynamicOptimizer(const char* op);
+  static bool CheckScalarToHostMemEnable();
   static bool CheckUseNpuLogEnable();
   static bool CheckDynamicOnly();
   static std::string CheckDisableDynamicPath();
@@ -45,4 +46,4 @@ class OptionsManager {
 } // namespace npu
 } // namespace c10
 
-#endif //
+#endif

@@ -50,7 +50,7 @@ Tensor& max_pool2d_with_indices_backward_out_npu(
   cmd.Name("MaxPoolGradWithArgmaxV1")
       .Input(self)
       .Input(grad_output)
-      .Input(indices, "", "uint16")
+      .Input(indices, "", nullopt, "uint16")
       .Output(grad_input)
       .Attr("ksize", kernelSize)
       .Attr("strides", stridesSize)
@@ -71,7 +71,7 @@ Tensor max_pool2d_with_indices_backward_npu(
     bool ceil_mode,
     const Tensor& indices) {
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 2,
-    "max_pool2d: kernel_size must either be a single int, or a tuple of two ints")
+      "max_pool2d: kernel_size must either be a single int, or a tuple of two ints")
   const int kH = safe_downcast<int, int64_t>(kernel_size[0]);
   const int kW = kernel_size.size() == 1 ? kH : safe_downcast<int, int64_t>(kernel_size[1]);
   SmallVector<int64_t, SIZE> kernel_sizes = {kH, kW};
@@ -80,7 +80,7 @@ Tensor max_pool2d_with_indices_backward_npu(
   // NB: stride default is not expressible as an integer constant, so we accept
   // empty stride for this case
   TORCH_CHECK(stride.size() == 0 || stride.size() == 1 || stride.size() == 2,
-    "max_pool2d: stride must either be omitted, a single int, or a tuple of two ints")
+      "max_pool2d: stride must either be omitted, a single int, or a tuple of two ints")
   const int dH = stride.empty() ? kH : safe_downcast<int, int64_t>(stride[0]);
   const int dW = stride.empty() ? kW :
                  stride.size() == 1 ? dH : safe_downcast<int, int64_t>(stride[1]);
@@ -88,21 +88,21 @@ Tensor max_pool2d_with_indices_backward_npu(
   IntArrayRef stridess = IntArrayRef(strides);
 
   TORCH_CHECK(padding.size() == 1 || padding.size() == 2,
-    "max_pool2d: padding must be either be a single int, or a tuple of two ints");
+      "max_pool2d: padding must be either be a single int, or a tuple of two ints");
   const int padH = safe_downcast<int, int64_t>(padding[0]);
   const int padW = padding.size() == 1 ? padH : safe_downcast<int, int64_t>(padding[1]);
   SmallVector<int64_t, SIZE> paddings = {padH, padW};
   IntArrayRef padss = IntArrayRef(paddings);
 
   TORCH_CHECK(dilation.size() == 1 || dilation.size() == 2,
-    "max_pool2d: dilation must be either a single int, or a tuple of two ints");
+      "max_pool2d: dilation must be either a single int, or a tuple of two ints");
   const int dilationH = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationW = dilation.size() == 1 ? dilationH : safe_downcast<int, int64_t>(dilation[1]);
   SmallVector<int64_t, SIZE> dilations = {dilationH, dilationW};
   IntArrayRef dilationss = IntArrayRef(dilations);
 
   TORCH_CHECK((self.ndimension() == 3 || self.ndimension() == 4),
-    "non-empty 3D or 4D (batch mode) tensor expected for input");
+      "non-empty 3D or 4D (batch mode) tensor expected for input");
 
   /* get contiguous gradOutput */
   const Tensor grad_output = grad_output_.contiguous();

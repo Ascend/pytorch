@@ -41,26 +41,13 @@ struct TORCH_NPU_API NPUEvent {
   // NPUEvent(unsigned int flags) : flags_{flags} {}
   
   // npu do not support IpcEventHandle until now
-  /*
-  CUDAEvent(
-      DeviceIndex device_index, const cudaIpcEventHandle_t* handle) {
-    #ifndef __HIP_PLATFORM_HCC__
-      device_index_ = device_index;
-      CUDAGuard guard(device_index_);
-
-      AT_CUDA_CHECK(cudaIpcOpenEventHandle(&event_, *handle));
-      is_created_ = true;
-    #else
-      AT_ERROR("cuIpcOpenEventHandle with HIP is not supported");
-    #endif
-  }*/
 
   ~NPUEvent() {
     try {
       if (is_created_) {
         c10::npu::NPUEventManager::GetInstance().LazyDestroy(event_);
       }
-    } catch (...) { /* No throw */ }
+    } catch (...) {} /* No throw */
   }
 
   NPUEvent(const NPUEvent&) = delete;
@@ -75,11 +62,7 @@ struct TORCH_NPU_API NPUEvent {
   operator aclrtEvent() const { return event(); }
 
   // aclrtEvent do not support Less than operator until now
-  /*
-  friend bool operator<(const NPUEvent& left, const NPUEvent& right) {
-    return left.event_ < right.event_;
-  }
-  */
+
   optional<at::Device> device() const {
     if (is_created_) {
       return at::Device(at::kNPU, device_index_);
@@ -147,20 +130,6 @@ struct TORCH_NPU_API NPUEvent {
   }
 
   // npu do not support IpcEventHandle until now
-  /*
-  void ipc_handle(cudaIpcEventHandle_t * handle) {
-    #ifndef __HIP_PLATFORM_HCC__
-      if (!is_created_) {
-        // this CUDAEvent object was initially constructed from flags but event_
-        // is not created yet.
-        createEvent(getCurrentCUDAStream().device_index());
-      }
-      CUDAGuard guard(device_index_);
-      AT_CUDA_CHECK(cudaIpcGetEventHandle(handle, event_));
-    #else
-      AT_ERROR("cuIpcGetEventHandle with HIP is not supported");
-    #endif
-  }*/
 
 private:
   bool is_created_ = false;

@@ -103,8 +103,10 @@ aclTensorDesc* OpDynamicCmdHelper::CovertToAclOutputDynamicCompileDesc(const Ten
   return aclDesc;
 }
 
-std::tuple<SmallVector<int64_t, N>, SmallVector<int64_t, N>, SmallVector<int64_t, N>>
-OpDynamicCmdHelper::CreateDynamicCompilelDims(NPUStorageDesc npuDesc, shapeStrage strage, bool isDimZeroToOne) {
+std::tuple<SmallVector<int64_t, N>, SmallVector<int64_t, N>, SmallVector<int64_t, N>> OpDynamicCmdHelper::CreateDynamicCompilelDims(
+    NPUStorageDesc npuDesc,
+    shapeStrage strage,
+    bool isDimZeroToOne) {
   size_t dimsSize = ((npuDesc.base_sizes_.size() == 0) && (isDimZeroToOne == true)) ? 1 : npuDesc.base_sizes_.size();
   size_t storageSize = ((npuDesc.base_sizes_.size() == 0) && (isDimZeroToOne == true)) ? 1 : npuDesc.storage_sizes_.size();
 
@@ -180,9 +182,9 @@ string OpDynamicCmdHelper::CreateShapeKey(
   return shapeKey;
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat, aclTensorDesc*>
-OpDynamicCmdHelper::CovertNPUTensorWithZeroDimToDynamicAclInput(const Tensor& tensor, string descName) {
-  
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat, aclTensorDesc*> OpDynamicCmdHelper::CovertNPUTensorWithZeroDimToDynamicAclInput(
+    const Tensor& tensor,
+    string descName) {
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(tensor.scalar_type());
       
@@ -216,8 +218,9 @@ OpDynamicCmdHelper::CovertNPUTensorWithZeroDimToDynamicAclInput(const Tensor& te
   return std::tie(aclDesc, aclBuff, storageDim, storageFormate, aclCompileDesc);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat, aclTensorDesc*>
-OpDynamicCmdHelper::CovertTensorWithZeroDimToDynamicAclInput(const Tensor& tensor, ScalarType type) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat, aclTensorDesc*> OpDynamicCmdHelper::CovertTensorWithZeroDimToDynamicAclInput(
+    const Tensor& tensor,
+    ScalarType type) {
   // 针对在host侧的tensor，需要做大量处理
   ScalarType scalarDataType = type;
   if (!tensor.unsafeGetTensorImpl()->is_wrapped_number()) {
@@ -280,36 +283,36 @@ const aclTensorDesc** OpDynamicCmdHelper::ConvertTensorWithZeroDimToOneDim(const
   return descs;
 }
 
-std::tuple<string, int, const aclTensorDesc**, int, const aclTensorDesc**, const aclopAttr*>
-OpDynamicCmdHelper::CreateDynamicCompileParams(ExecuteParas& params) {
+std::tuple<string, int, const aclTensorDesc**, int, const aclTensorDesc**, const aclopAttr*> OpDynamicCmdHelper::CreateDynamicCompileParams(
+    ExecuteParas& params) {
   if (params.opDynamicType != "") {
     return std::tie(params.opDynamicType,
-      params.dynamicParam.input_num,
-      params.dynamicParam.compile_input_desc,
-      params.dynamicParam.output_num,
-      params.dynamicParam.compile_output_desc,
-      params.dynamicCompileAttr);
+        params.dynamicParam.input_num,
+        params.dynamicParam.compile_input_desc,
+        params.dynamicParam.output_num,
+        params.dynamicParam.compile_output_desc,
+        params.dynamicCompileAttr);
   } else { 
     return std::tie(params.opType,
-      params.paras.input_num,
-      params.paras.input_desc,
-      params.paras.output_num,
-      params.paras.output_desc,
-      params.attr);
+        params.paras.input_num,
+        params.paras.input_desc,
+        params.paras.output_num,
+        params.paras.output_desc,
+        params.attr);
   }
 }
 
-std::tuple<string, int, const aclTensorDesc**, const aclDataBuffer**, int, const aclTensorDesc**, aclDataBuffer**, const aclopAttr*>
-OpDynamicCmdHelper::CreateDynamicRunParams(ExecuteParas& params) {
+std::tuple<string, int, const aclTensorDesc**, const aclDataBuffer**, int, const aclTensorDesc**, aclDataBuffer**, const aclopAttr*> OpDynamicCmdHelper::CreateDynamicRunParams(
+    ExecuteParas& params) {
   if (params.opDynamicType != "") {
     return std::tie(params.opDynamicType,
-      params.dynamicParam.input_num,
-      params.dynamicParam.input_desc,
-      params.dynamicParam.input_data_buf,
-      params.dynamicParam.output_num,
-      params.dynamicParam.output_desc,
-      params.dynamicParam.output_data_buf,
-      params.dynamicRunAttr);
+        params.dynamicParam.input_num,
+        params.dynamicParam.input_desc,
+        params.dynamicParam.input_data_buf,
+        params.dynamicParam.output_num,
+        params.dynamicParam.output_desc,
+        params.dynamicParam.output_data_buf,
+        params.dynamicRunAttr);
   } else {
     params.paras.input_desc 
       = ConvertTensorWithZeroDimToOneDim(params.paras.input_desc, params.paras.input_num);
@@ -317,13 +320,13 @@ OpDynamicCmdHelper::CreateDynamicRunParams(ExecuteParas& params) {
       = ConvertTensorWithZeroDimToOneDim(params.paras.output_desc, params.paras.output_num);
 
     return std::tie(params.opType,
-      params.paras.input_num,
-      params.paras.input_desc,
-      params.paras.input_data_buf,
-      params.paras.output_num,
-      params.paras.output_desc,
-      params.paras.output_data_buf,
-      params.attr);
+        params.paras.input_num,
+        params.paras.input_desc,
+        params.paras.input_data_buf,
+        params.paras.output_num,
+        params.paras.output_desc,
+        params.paras.output_data_buf,
+        params.attr);
   }
 }
 

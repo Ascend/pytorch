@@ -20,7 +20,7 @@ import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
 
-DEFAULT_UT_FILE = 'test/test_npu/test_add.py'
+DEFAULT_UT_FILE = 'test/test_npu/pytorch_resnet.py'
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -30,9 +30,10 @@ class AccurateTest(metaclass=ABCMeta):
         """
         raise Exception("abstract method.")
     
-    def find_ut_by_regex(self, regex):
+    @staticmethod
+    def find_ut_by_regex(regex, mindepth=2):
         ut_files = []
-        cmd = "find {} -name {}".format('test/test_npu', regex)
+        cmd = "find {} -mindepth {} -name {}".format('test/test_npu', mindepth, regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status:
             pass # 对于找不到的暂时不作处理
@@ -125,7 +126,7 @@ class TestMgr():
 
     def print_ut_files(self):
         print("ut files:")
-        for ut_file in ut_files:
+        for ut_file in self.ut_files:
             print(ut_file)
 
 

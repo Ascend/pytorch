@@ -31,8 +31,8 @@ Tensor narrow_copy_npu(
   int64_t max = dim_len - 1;
   if (dim < min || dim > max) {
     AT_INDEX_ERROR(
-      "Dimension out of range (expected to be in range of [",
-      min, ", ", max, "], but got ", dim, ")");
+        "Dimension out of range (expected to be in range of [",
+        min, ", ", max, "], but got ", dim, ")");
   }
   if (dim < 0) {
     dim += dim_len;
@@ -43,7 +43,7 @@ Tensor narrow_copy_npu(
     start = maybe_wrap_dim(start, cur_size);
   }
   TORCH_CHECK(length >= 0 && start <= cur_size - length,
-           "start (", start, ") + length (", length, ") exceeds dimension size (", cur_size, ").");
+      "start (", start, ") + length (", length, ") exceeds dimension size (", cur_size, ").");
 
   SmallVector<int64_t, SIZE> outputSize;
   outputSize = input_same_output_size(self);

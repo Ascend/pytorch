@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .function import npu_iou, npu_ptiou, npu_multiclass_nms, npu_batched_multiclass_nms, \
+from .function import npu_iou, npu_ptiou, npu_giou, npu_multiclass_nms, npu_batched_multiclass_nms, \
     npu_single_level_responsible_flags, npu_fast_condition_index_put, npu_bbox_coder_encode_yolo, \
     npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy
 from .module import ChannelShuffle, Prefetcher, DropoutV2, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
-    ModulatedDeformConv, Mish, BiLSTM
+    ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish
 
 __all__ = [
     # from function
     "npu_iou",
     "npu_ptiou",
+    "npu_giou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",
@@ -40,4 +41,7 @@ __all__ = [
     "ModulatedDeformConv",
     "Mish",
     "BiLSTM",
+    "PSROIPool",
+    "SiLU",
+    "Swish",
 ]

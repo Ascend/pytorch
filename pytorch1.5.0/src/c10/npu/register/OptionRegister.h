@@ -26,7 +26,7 @@
 namespace c10 {
 namespace npu {
 
-typedef void(*OptionCallBack) (const std::string&);
+using OptionCallBack = void (*)(const std::string&);
 /**
   This class is used to storage env value, and provide Set and Get to
   */
@@ -35,7 +35,7 @@ class OptionInterface {
   /**
     dctr
     */
-    OptionInterface(OptionCallBack callback=nullptr);
+  explicit OptionInterface(OptionCallBack callback=nullptr);
 
     ~OptionInterface() = default;
   /**
@@ -136,7 +136,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal)  \
   bool func() {                                                     \
     auto val = c10::npu::GetOption(#key);                           \
-    if (val.value_or(defaultVal) == trueVal) {                      \
+    if (val.value_or(defaultVal) == (trueVal)) {                    \
       return true;                                                  \
     }                                                               \
     return false;                                                   \
@@ -145,7 +145,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 #define REGISTER_OPTION_BOOL_FUNCTION_UNIQ(func, key, defaultVal, trueVal)  \
   bool func() {                                                             \
     static auto val = c10::npu::GetOption(#key);                            \
-    if (val.value_or(defaultVal) == trueVal) {                              \
+    if (val.value_or(defaultVal) == (trueVal)) {                            \
       return true;                                                          \
     }                                                                       \
     return false;                                                           \

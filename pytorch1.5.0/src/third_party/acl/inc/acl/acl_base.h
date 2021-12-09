@@ -143,7 +143,8 @@ typedef enum {
 
 typedef enum {
     ACL_MEMTYPE_DEVICE = 0,
-    ACL_MEMTYPE_HOST = 1,   
+    ACL_MEMTYPE_HOST = 1,
+    ACL_MEMTYPE_HOST_COMPILE_INDEPENDENT = 2,
 } aclMemType;
 
 typedef enum {

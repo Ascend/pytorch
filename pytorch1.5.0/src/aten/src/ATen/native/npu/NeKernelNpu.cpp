@@ -67,11 +67,11 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self, other}, 
-    result, 
-    ACL_FORMAT_ND,
-    result.scalar_type(), 
-    IntArrayRef(outputSize));
+      {self, other}, 
+      result, 
+      ACL_FORMAT_ND,
+      result.scalar_type(), 
+      IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
   return result;
 }
@@ -80,11 +80,11 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, Scalar other) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   auto outputSize = formatCastOfSelf.sizes();
   OpPreparation::CheckOut(
-    {self}, 
-    result, 
-    ACL_FORMAT_ND,
-    result.scalar_type(), 
-    outputSize);
+      {self}, 
+      result, 
+      ACL_FORMAT_ND,
+      result.scalar_type(), 
+      outputSize);
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;
 }
@@ -113,9 +113,9 @@ Tensor ne_npu(const Tensor& self, Scalar other) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-    outputSize,
-    formatCastOfSelf.options().dtype(kBool),
-    ACL_FORMAT_ND);
+      outputSize,
+      formatCastOfSelf.options().dtype(kBool),
+      ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
@@ -128,9 +128,9 @@ Tensor& ne_npu_(Tensor& self, const Tensor& other) {
   OpPreparation::CheckMemory({self, other}, {self});
 
   Tensor result = at::empty_with_format(
-    self.sizes(),
-    self.options().dtype(ScalarType::Byte),
-    ACL_FORMAT_ND);
+      self.sizes(),
+      self.options().dtype(ScalarType::Byte),
+      ACL_FORMAT_ND);
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
@@ -149,9 +149,9 @@ Tensor& ne_npu_(Tensor& self, Scalar other) {
   OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckMemory({self}, {self});
   Tensor result = at::empty_with_format(
-    self.sizes(),
-    self.options().dtype(ScalarType::Byte),
-    ACL_FORMAT_ND);
+      self.sizes(),
+      self.options().dtype(ScalarType::Byte),
+      ACL_FORMAT_ND);
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);

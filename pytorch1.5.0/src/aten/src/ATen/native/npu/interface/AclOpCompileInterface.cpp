@@ -28,6 +28,9 @@ namespace npu {
 
 REGISTER_LIBRARY(libacl_op_compiler)
 LOAD_FUNCTION(aclopSetCompileFlag)
+LOAD_FUNCTION(aclGenGraphAndDumpForOp)
+LOAD_FUNCTION(aclCreateGraphDumpOpt)
+LOAD_FUNCTION(aclDestroyGraphDumpOpt)
 
 aclError AclopSetCompileFlag(aclOpCompileFlag flag) {
     typedef aclError(*aclopSetCompileFlagFunc)(aclOpCompileFlag);
@@ -38,6 +41,45 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag) {
   TORCH_CHECK(func, "Failed to find function ", "aclopSetCompileFlag");
   auto ret = func(flag);
   return ret;
+}
+
+aclError AclGenGraphAndDumpForOp(const char *opType,
+    int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
+    int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
+    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt) {
+      typedef aclError(*AclGenGraphAndDumpForOpFunc)(const char *,int,
+          const aclTensorDesc *const [], const aclDataBuffer *const [],
+          int, const aclTensorDesc *const [], aclDataBuffer *const [],
+          const aclopAttr *, aclopEngineType, const char *, aclGraphDumpOption*);
+      static AclGenGraphAndDumpForOpFunc func = nullptr;
+    if (func == nullptr) {
+      func = (AclGenGraphAndDumpForOpFunc)GET_FUNC(aclGenGraphAndDumpForOp);
+    }
+    TORCH_CHECK(func, "Failed to find function ", "aclGenGraphAndDumpForOp");
+    auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
+        outputDesc, outputs, attr, engineType, graphDumpPath, graphdumpOpt);
+    return ret;
+}
+
+aclGraphDumpOption* AclCreateGraphDumpOpt() {
+  typedef aclGraphDumpOption*(*AclCreateGraphDumpOptFunc)();
+  static AclCreateGraphDumpOptFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclCreateGraphDumpOptFunc)GET_FUNC(aclCreateGraphDumpOpt);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclCreateGraphDumpOpt");
+  return func();
+}
+
+aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt) {
+  typedef aclError(*AclDestroyGraphDumpOptFunc)(aclGraphDumpOption*);
+  static AclDestroyGraphDumpOptFunc func = nullptr;
+  if (func == nullptr) {
+    func = (AclDestroyGraphDumpOptFunc)GET_FUNC(aclDestroyGraphDumpOpt);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclDestroyGraphDumpOpt");
+  return func(aclGraphDumpOpt);
 }
 
 } // namespace npu

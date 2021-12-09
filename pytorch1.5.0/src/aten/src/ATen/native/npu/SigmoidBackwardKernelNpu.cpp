@@ -22,9 +22,9 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& sigmoid_backward_out_npu_nocheck(
-  Tensor& result,
-  const Tensor& grad_output,
-  const Tensor& output) {
+    Tensor& result,
+    const Tensor& grad_output,
+    const Tensor& output) {
   // output'format must be same with grad_output
   if (CalcuOpUtil::get_tensor_npu_format(output) != CalcuOpUtil::get_tensor_npu_format(grad_output)) {
     output.npu_format_cast_(CalcuOpUtil::get_tensor_npu_format(grad_output));
@@ -43,9 +43,9 @@ Tensor& sigmoid_backward_out_npu_nocheck(
 }
 
 Tensor& sigmoid_backward_out_npu(
-  Tensor& result,
-  const Tensor& grad_output,
-  const Tensor& output) {
+    Tensor& result,
+    const Tensor& grad_output,
+    const Tensor& output) {
   OpPreparation::CheckOut({grad_output, output}, result, grad_output);  
   sigmoid_backward_out_npu_nocheck(result, grad_output, output);
   return result;
@@ -54,9 +54,9 @@ Tensor& sigmoid_backward_out_npu(
 Tensor sigmoid_backward_npu(const Tensor& grad_output, const Tensor& output) {
   // construct the output tensor of the NPU
   Tensor grad_input = at::empty_with_format(
-    grad_output.sizes(),
-    grad_output.options(),
-    CalcuOpUtil::get_tensor_npu_format(grad_output));
+      grad_output.sizes(),
+      grad_output.options(),
+      CalcuOpUtil::get_tensor_npu_format(grad_output));
 
   // calculate the output result of the NPU
   sigmoid_backward_out_npu_nocheck(grad_input, grad_output, output);

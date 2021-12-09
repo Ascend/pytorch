@@ -166,7 +166,7 @@ void OpPreparation::CheckOut(
       output.npu_format_cast_(format);
     } else {
       TORCH_CHECK(FormatHelper::IsBaseFormatType(output) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(format)),
-        "can not cast format to un-base format when output has bool dtype");
+          "can not cast format to un-base format when output has bool dtype");
       output.npu_format_cast_(format);
     }
   }

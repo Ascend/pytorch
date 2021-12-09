@@ -98,22 +98,13 @@ Tensor slow_conv_transpose2d_backward_bias_out_npu(
     IntArrayRef dilation,
     const Tensor& columns,
     const Tensor& ones) {
-  string dataFormat = "NCHW";
-  // executing the NPU operator
-  OpCommand cmd;
-  cmd.Name("BiasAddGrad")
-      .Input(self)
-      .Output(grad_bias)
-      .Attr("data_format", dataFormat)
-      .Run();
+  Tensor gradView = grad_output.contiguous().view({grad_output.size(0), grad_output.size(1), -1});
+  at::sum_out(grad_bias, gradView, SmallVector<int64_t, N>{0, 2});
 
   return grad_bias;
 }
 
-tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_out_npu(
-    Tensor& grad_input,
-    Tensor& grad_weight,
-    Tensor& grad_bias,
+tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_npu_nocheck(
     const Tensor& grad_output,
     const Tensor& self,
     const Tensor& weight,
@@ -123,7 +114,10 @@ tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_out_npu(
     IntArrayRef output_padding,
     IntArrayRef dilation,
     const Tensor& columns,
-    const Tensor& ones) {
+    const Tensor& ones,
+    Tensor& grad_input,
+    Tensor& grad_weight,
+    Tensor& grad_bias) {
   slow_conv_transpose2d_backward_grad_output_out_npu(
       grad_input,
       grad_output,
@@ -149,7 +143,6 @@ tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_out_npu(
       dilation,
       columns,
       ones);
-
   slow_conv_transpose2d_backward_bias_out_npu(
       grad_bias,
       grad_output,
@@ -162,9 +155,59 @@ tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_out_npu(
       dilation,
       columns,
       ones);
-
-
   return tuple<Tensor&, Tensor&, Tensor&>(grad_input, grad_weight, grad_bias);
+}
+
+tuple<Tensor&, Tensor&, Tensor&> slow_conv_transpose2d_backward_out_npu(
+    const Tensor& grad_output,
+    const Tensor& self,
+    const Tensor& weight,
+    IntArrayRef kernel_size,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef output_padding,
+    IntArrayRef dilation,
+    const Tensor& columns,
+    const Tensor& ones,
+    Tensor& grad_input,
+    Tensor& grad_weight,
+    Tensor& grad_bias) {
+  auto outputSizes = slow_conv_transpose2d_backward_npu_output_size(
+      grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation, columns, ones);
+
+  OpPreparation::CheckOut(
+      {grad_output, self, weight},
+      grad_input,
+      ACL_FORMAT_NC1HWC0,
+      self.scalar_type(),
+      std::get<0>(outputSizes));
+  OpPreparation::CheckOut(
+      {grad_output, self, weight},
+      grad_weight,
+      ACL_FORMAT_FRACTAL_Z,
+      at::kFloat,
+      std::get<1>(outputSizes));
+  OpPreparation::CheckOut(
+      {grad_output, self, weight},
+      grad_bias,
+      ACL_FORMAT_NCHW,
+      grad_output.scalar_type(),
+      {grad_output.size(1)});
+
+  return slow_conv_transpose2d_backward_npu_nocheck(
+      grad_output,
+      self,
+      weight,
+      kernel_size,
+      stride,
+      padding,
+      output_padding,
+      dilation,
+      columns,
+      ones,
+      grad_input,
+      grad_weight,
+      grad_bias);
 }
 
 tuple<Tensor,Tensor,Tensor> slow_conv_transpose2d_backward_npu(
@@ -179,35 +222,25 @@ tuple<Tensor,Tensor,Tensor> slow_conv_transpose2d_backward_npu(
     const Tensor& columns,
     const Tensor& ones,
     std::array<bool, 3> output_mask) {
-  // calculate the output size
   auto outputSizes = slow_conv_transpose2d_backward_npu_output_size(
       grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation, columns, ones);
-
   Tensor grad_input;
   Tensor grad_weight;
   Tensor grad_bias;
 
-  // construct the output tensor of the NPU
   if (output_mask[0]) {
-    grad_input = at::empty_with_format(
-        std::get<0>(outputSizes), self.options(), ACL_FORMAT_NC1HWC0);
+    grad_input = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSizes), ACL_FORMAT_NC1HWC0);
   }
 
   if (output_mask[1]) {
-    grad_weight = at::empty_with_format(
-        std::get<1>(outputSizes), weight.options().dtype(kFloat), ACL_FORMAT_FRACTAL_Z);
+    grad_weight = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), weight.options().dtype(kFloat), ACL_FORMAT_FRACTAL_Z);
   }
 
   if (output_mask[2]) {
-    grad_bias = at::empty_with_format(
-        std::get<2>(outputSizes), grad_output.options().dtype(kFloat),  ACL_FORMAT_NCHW);
+    grad_bias = OpPreparation::ApplyTensorWithFormat(grad_output, {grad_output.size(1)}, ACL_FORMAT_NCHW);
   }
 
-  // calculate the output result of the NPU
-  return slow_conv_transpose2d_backward_out_npu(
-      grad_input,
-      grad_weight,
-      grad_bias,
+  return slow_conv_transpose2d_backward_npu_nocheck(
       grad_output,
       self,
       weight,
@@ -217,7 +250,16 @@ tuple<Tensor,Tensor,Tensor> slow_conv_transpose2d_backward_npu(
       output_padding,
       dilation,
       columns,
-      ones);
+      ones,
+      grad_input,
+      grad_weight,
+      grad_bias);
 }
+
+TORCH_LIBRARY_IMPL(aten, NPU, m){
+  m.impl("slow_conv_transpose2d_backward.grad_output", TORCH_FN(slow_conv_transpose2d_backward_out_npu));
+  m.impl("slow_conv_transpose2d_backward.output_mask", TORCH_FN(slow_conv_transpose2d_backward_npu));
+}
+
 } // namespace native
 } // namespace at

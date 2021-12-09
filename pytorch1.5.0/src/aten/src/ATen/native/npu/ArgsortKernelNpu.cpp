@@ -68,7 +68,7 @@ Tensor& argsort_out_npu_nocheck(
 
   at::npu_transpose_out(indices, transposeIndices, perm);
   
-  //indices dtype transform to Int64
+  // indices dtype transform to Int64
   indices = indices.to(at::kLong);
   
   return indices;

@@ -29,8 +29,8 @@ SmallVector<NPUTensorDesc, N> nms_v4_npu_input(
   SmallVector<NPUTensorDesc, N> inputs;
 
   Tensor max_output_size_tensor = at::empty_with_format(
-          {}, self.options().dtype(at::kInt), CalcuOpUtil::get_tensor_npu_format(self))
-          .fill_(max_output_size);
+      {}, self.options().dtype(at::kInt), CalcuOpUtil::get_tensor_npu_format(self))
+      .fill_(max_output_size);
   return CalcuOpUtil::create_npu_input_tensor_desc({self, scores, max_output_size_tensor, iou_threshold, scores_threshold});
 }
 
@@ -92,14 +92,14 @@ tuple<Tensor, Tensor> nms_v4_npu(
       CalcuOpUtil::get_tensor_npu_format(self));
 
   nms_v4_out_npu(
-    selected_indices,
-    valid_outputs,
-    self,
-    scores,
-    max_output_size,
-    iou_threshold,
-    scores_threshold,
-    pad_to_max_output_size);
+      selected_indices,
+      valid_outputs,
+      self,
+      scores,
+      max_output_size,
+      iou_threshold,
+      scores_threshold,
+      pad_to_max_output_size);
 
   return std::tuple<Tensor, Tensor>(selected_indices, valid_outputs);
 }

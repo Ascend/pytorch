@@ -29,7 +29,6 @@
 #include <third_party/acl/inc/acl/acl_rt.h>
 #include <cassert>
 
-//#include <cuda_runtime_api.h>
 
 namespace c10 {
 namespace npu {
@@ -93,23 +92,6 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
 
   // Event-related functions
   void createEvent(aclrtEvent* acl_event, const EventFlag flag) const {
-    /*
-    // Maps PyTorch's Event::Flag to NPU flag
-    auto cuda_flag = cudaEventDefault;
-    switch (flag) {
-      case EventFlag::PYTORCH_DEFAULT:
-      case EventFlag::NPU_EVENT_DISABLE_TIMING:
-        cuda_flag = cudaEventDisableTiming;
-        break;
-      case EventFlag::BACKEND_DEFAULT:
-      case EventFlag::NPU_EVENT_DEFAULT:
-        cuda_flag = cudaEventDefault;
-        break;
-      default:
-        TORCH_CHECK(false, "NPU event received unknown flag");
-    }*/
-
-    // C10_NPU_CHECK(cudaEventCreateWithFlags(cuda_event, cuda_flag));
     C10_NPU_CHECK(aclrtCreateEvent(acl_event));
   }
 
@@ -119,10 +101,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
       return;
     auto acl_event = static_cast<aclrtEvent>(event);
     int orig_device;
-    // C10_NPU_CHECK_WARN(cudaGetDevice(&orig_device));
-    // C10_NPU_CHECK_WARN(cudaSetDevice(device_index));
     C10_NPU_CHECK_WARN(aclrtDestroyEvent(acl_event));
-    // C10_NPU_CHECK_WARN(cudaSetDevice(orig_device));
   }
 
   void record(

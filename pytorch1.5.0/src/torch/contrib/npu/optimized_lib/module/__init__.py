@@ -18,8 +18,9 @@ from .dropout import DropoutV2
 from .crossentropy import LabelSmoothingCrossEntropy
 from .roi_align import ROIAlign
 from .deform_conv import ModulatedDeformConv, DCNv2
-from .activations import Mish
+from .activations import Mish, SiLU, Swish
 from .bidirectional_lstm import BiLSTM
+from .ps_roi_pooling import PSROIPool
 
 __all__ = [
     "ChannelShuffle",
@@ -31,4 +32,7 @@ __all__ = [
     "ModulatedDeformConv",
     "Mish",
     "BiLSTM",
+    "PSROIPool",
+    "SiLU",
+    "Swish",
 ]

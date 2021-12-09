@@ -15,13 +15,13 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
 #include <ATen/native/npu/utils/OpTemplate.h>
 #include <ATen/npu/Exceptions.h>
-#include <ATen/native/npu/frame/OpParamMaker.h>
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <THNPU/THNPUCachingHostAllocator.h>
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/OptionsManager.h>
@@ -133,10 +133,14 @@ void copy_d2d_last_method(
     bool non_blocking) {
   // general copy method but Low performance
   if (c10::npu::OptionsManager::CheckPTcopy_Enable()) {
-    RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
     copy_kernel_npu(self, src, non_blocking);
   } else {
-    RECORD_FUNCTION(
+    IF_GRAPH_MODE_THEN_RUN(
+      AT_ERROR("In graph mode, not support d2dCopyWithStreamSynchronize, "
+               "export PTCOPY_ENABLE=1 to enable PTcopy.");
+    );
+    RECORD_HOST_FUNCTION(
         "d2dCopyWithStreamSynchronize", std::vector<c10::IValue>({src}));
     copy_d2d_via_host(self, src, same_type);
   }
@@ -159,9 +163,18 @@ void copy_d2d_dtype_baseformat(
       return;
     }
   } else {
+    if (c10::npu::NpuRunMode::IsGraphMode()) {
+      // In graph mode, in order to identify and call the corresponding npu operators,
+      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
+      std::vector<std::string> contiguous_opt_cases = {"reshape", "slice", "select"};
+      if (TransContiguous::ContiguousOptimizeWithBaseFormat(
+          self, src, contiguous_opt_cases)) {
+        return;
+      }
+    }
     int64_t numel = self.numel();
     if (numel == src.numel()) {
-      RECORD_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
       NPU_LOGD("copy contiguous tensor inside device");
       return copy_d2d_by_memcpy(self, src, numel);
     }
@@ -176,10 +189,9 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
     return;
   }
 
-  if (!FormatHelper::IsBaseFormatType(
-          self)) { // TODO(ascend): 必须要非NCHW的才行？
+  if (!FormatHelper::IsBaseFormatType(self)) { // TODO(ascend): 必须要非NCHW的才行？
     if (can_use_memcpy(self, src)) {
-      RECORD_FUNCTION(
+      RECORD_HOST_FUNCTION(
           "d2dCopyAsync with format", std::vector<c10::IValue>({src}));
       return copy_d2d_by_memcpy(self, src);
     }
@@ -196,6 +208,11 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
 }
 
 void copy_d2d(Tensor& self, const Tensor& src, bool non_blocking) {
+  if (self.device() != src.device()) {
+    AT_ERROR("Cross-device copy is not supported.");
+    return;
+  }
+
   if (self.dtype() != src.dtype()) {
     self.npu_dtype_cast_(src); // npu_dtype_cast_ will call copy function.
     return;
@@ -216,9 +233,10 @@ void copy_between_host_and_device(
   int64_t nbytes = dst.numel() * dst.element_size();
   c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
   Tensor tmp = dst.is_npu() ? src : dst;
+  Storage tmpSt = dst.is_npu() ? src.storage() : dst.storage();
   bool is_pinned = tmp.is_pinned();
   AT_NPU_CHECK(
-    LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmp, is_pinned));
+      c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
@@ -398,6 +416,7 @@ Tensor& copy_npu_(Tensor& self, const Tensor& src, bool non_blocking) {
     }
   } else {
     if (src.is_npu()) {
+      GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
       copy_d2h(self, src, non_blocking);
     }
   }

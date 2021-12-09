@@ -532,7 +532,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         aclrtSetExceptionInfoCallback(exceptionCallback);
-        RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
+        RECORD_HOST_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
@@ -555,7 +555,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::broadcast(
           at::Tensor& output,
           HcclComm comm,
           c10::npu::NPUStream& stream) {
-        RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
+        RECORD_HOST_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
         return HcclBroadcast(
             input.data_ptr(),
@@ -596,7 +596,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather(
           at::Tensor& output,
           HcclComm comm,
           c10::npu::NPUStream& stream) {
-        RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
+        RECORD_HOST_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
         c10::npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
         return HcclAllGather(
@@ -624,9 +624,9 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather(
 }
 
 std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather_base(
-    at::Tensor& /*unused */,
-    at::Tensor& /*unused */,
-    const AllgatherOptions& /*unused */) {
+    at::Tensor& /* unused */,
+    at::Tensor& /* unused */,
+    const AllgatherOptions& /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support allgather_base");
 }
 
@@ -647,7 +647,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           at::Tensor& output,
           HcclComm comm,
           c10::npu::NPUStream& stream) {
-        RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
+        RECORD_HOST_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
         c10::npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
         return HcclReduceScatter(
@@ -680,6 +680,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::barrier(
   std::vector<at::Device> devices;
   if (usedDeviceIdxs_.empty()) {
     auto numNPUs = c10::npu::device_count();
+    TORCH_CHECK(numNPUs != 0, "numNPUs cannot be 0");
     int16_t deviceIdx = static_cast<int16_t>(rank_ % numNPUs);
     devices.push_back(at::Device(at::DeviceType::NPU, deviceIdx));
   } else {
@@ -724,13 +725,13 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::BarrierInside(
         auto ret = c10::npu::hccl::hccl_barrier(comm, stream.stream());
         if (ret == HcclResult::HCCL_E_NOT_SUPPORT) {
           return HcclAllReduce(
-            input.data_ptr(),
-            output.data_ptr(),
-            input.storage().unsafeGetStorageImpl()->numel(),
-            getHcclDataType(input.scalar_type()),
-            hcclOp[ReduceOp::SUM],
-            comm,
-            stream.stream());
+              input.data_ptr(),
+              output.data_ptr(),
+              input.storage().unsafeGetStorageImpl()->numel(),
+              getHcclDataType(input.scalar_type()),
+              hcclOp[ReduceOp::SUM],
+              comm,
+              stream.stream());
         }
         else {
           return ret;

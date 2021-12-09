@@ -31,7 +31,7 @@ Tensor fast_gelu_npu_nocheck(Tensor& result, const Tensor& self) {
     return result;
 }
 
-} //namespace
+} // namespace
 
 Tensor fast_gelu_npu(const Tensor& self) {
   // calculate the output size

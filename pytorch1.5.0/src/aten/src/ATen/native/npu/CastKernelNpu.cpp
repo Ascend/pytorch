@@ -32,7 +32,7 @@ Tensor& cast_nocheck(Tensor& result, const Tensor& self) {
       .Run();
   return result;
 }
-}//namespace
+} // namespace
 
 Tensor dtype_cast_npu(const Tensor& self, ScalarType dtype) {
   if (self.dtype() == dtype) {

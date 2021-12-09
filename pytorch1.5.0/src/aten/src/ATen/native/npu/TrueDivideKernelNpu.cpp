@@ -64,7 +64,7 @@ SmallVector<NPUTensorDesc, N> true_divide_npu_input(const Tensor& self, Scalar o
 }
 
 SmallVector<NPUTensorDesc, N> true_divide_npu_output(
-const SmallVector<Tensor, N>& outputTensor) {
+    const SmallVector<Tensor, N>& outputTensor) {
   return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
 }
 
@@ -134,9 +134,9 @@ Tensor true_divide_npu(const Tensor& self, const Tensor& other) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-  outputSize,
-  outputTensor.options(),
-  CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      outputSize,
+      outputTensor.options(),
+      CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
   // calculate the output result of the NPU
   true_divide_out_npu(result,selftemp, othertemp);
@@ -153,7 +153,7 @@ Tensor true_divide_npu(const Tensor& self, Scalar other) {
   auto outputSize = input_same_output_size(selftemp);
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-  outputSize, selftemp.options(), CalcuOpUtil::get_tensor_npu_format(selftemp));
+      outputSize, selftemp.options(), CalcuOpUtil::get_tensor_npu_format(selftemp));
 
   // calculate the output result of the NPU
   true_divide_out_npu(result,selftemp, other);

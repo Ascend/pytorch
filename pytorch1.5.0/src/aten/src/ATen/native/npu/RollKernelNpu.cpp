@@ -41,9 +41,9 @@ Tensor& roll_transpose(Tensor& result, const Tensor& self, int64_t axis, int64_t
   Tensor transposeSelf = at::npu_transpose(self, perm);
   auto outputSize = transpose_npu_output_size(result, perm);
   Tensor transposeResult = at::empty_with_format(
-    outputSize,
-    self.options(),
-    CalcuOpUtil::get_tensor_npu_format(self));
+      outputSize,
+      self.options(),
+      CalcuOpUtil::get_tensor_npu_format(self));
   SmallVector<int64_t, SIZE> dim = {firstDim};
   SmallVector<int64_t, SIZE> shift_bak = {shifts[id]};
   IntArrayRef dim_now = IntArrayRef(dim);

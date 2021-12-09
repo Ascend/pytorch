@@ -296,6 +296,38 @@ class TestStd(TestCase):
             npu_output1 = self.npu_op_dim_exec(npu_input1, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.006)
     
+    def test_std_special_shape(self, device):
+        shape_format = [[np.float16, 0, [], 0, True, True],						
+                        [np.float16, 0, [], 0, True, False],								
+                        [np.float16, 0, [], 0, False, True],											
+                        [np.float16, 0, [], 0, False, False],			
+                        [np.float16, 0, [1], 0, True, True],							
+                        [np.float16, 0, [1], 0, True, False],								
+                        [np.float16, 0, [1], 0, False, True],						
+                        [np.float16, 0, [1], 0, False, False],			
+                        [np.float32, 0, [], 0, True, True],							
+                        [np.float32, 0, [], 0, True, False],							
+                        [np.float32, 0, [], 0, False, True],							
+                        [np.float32, 0, [], 0, False, False],									
+                        [np.float32, 0, [1], 0, True, True],									
+                        [np.float32, 0, [1], 0, True, False],										
+                        [np.float32, 0, [1], 0, False, True],									
+                        [np.float32, 0, [1], 0, False, False],												
+        ]
+
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0:3], 0, 100)
+            if cpu_input.dtype == torch.half:             
+                cpu_input = cpu_input.to(torch.float32)
+            cpu_output = self.cpu_op_dim_exec(cpu_input, item[3], item[4], item[5])
+            npu_output = self.npu_op_dim_exec(npu_input, item[3], item[4], item[5])
+            print(item, cpu_output, npu_output)
+
+            cpu_out, npu_out = create_common_tensor([np.float32] + item[1:3], 0, 100)
+            cpu_output = self.cpu_op_dim_out_exec(cpu_input, item[3], cpu_out, item[4], item[5])
+            npu_output = self.npu_op_dim_out_exec(npu_input, item[3], npu_out, item[4], item[5])
+            print(item, cpu_out.numpy(), npu_out.cpu().numpy())
+    
 instantiate_device_type_tests(TestStd, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

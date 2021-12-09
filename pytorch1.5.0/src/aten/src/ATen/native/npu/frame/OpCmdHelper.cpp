@@ -23,8 +23,7 @@ namespace at {
 namespace native {
 namespace npu {
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertTensorToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertTensorToAclInput(
     const Tensor& tensor,
     const c10::optional<Tensor>& cpu_tensor,
     const string& descName,
@@ -49,8 +48,9 @@ OpCmdHelper::CovertTensorToAclInput(
   return std::tie(aclDesc, aclBuff, storageDim, npuDesc.npu_format_);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertTensorWithZeroDimToAclInput(const Tensor& tensor, ScalarType type) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertTensorWithZeroDimToAclInput(
+    const Tensor& tensor,
+    ScalarType type) {
   // 针对在host侧的tensor，需要做大量处理
   ScalarType scalarDataType = type;
   if (!tensor.unsafeGetTensorImpl()->is_wrapped_number()) {
@@ -71,8 +71,9 @@ OpCmdHelper::CovertTensorWithZeroDimToAclInput(const Tensor& tensor, ScalarType 
   return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, const string& descName) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(
+    const Tensor& tensor,
+    const string& descName) {
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(tensor.scalar_type());
   AclTensorDescMaker desc;
@@ -85,8 +86,9 @@ OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, const st
   return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertScalarToAclInput(const Tensor& aclInput, ScalarType type) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertScalarToAclInput(
+    const Tensor& aclInput,
+    ScalarType type) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
   AclTensorDescMaker desc;
@@ -98,15 +100,17 @@ OpCmdHelper::CovertScalarToAclInput(const Tensor& aclInput, ScalarType type) {
   return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertHostTensorToAclInput(
+    const Tensor& tensor,
+    ScalarType type,
+    CompileType compileType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
   const auto& dims = tensor.sizes();
   AclTensorDescMaker desc;
   aclFormat format = ACL_FORMAT_ND;
   auto aclDesc = desc.Create(aclDataType, dims, format)
-                      .SetPlacement(aclMemType::ACL_MEMTYPE_HOST)
+                      .SetPlacement(static_cast<aclMemType>(compileType))
                       .Get();
   int64_t numel = prod_intlist(dims);
   AclTensorBufferMaker buffer(tensor, numel);
@@ -116,8 +120,9 @@ OpCmdHelper::CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type) {
   return std::tie(aclDesc, aclBuff, dim, format);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataType) {
+std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertToAclOutput(
+    const Tensor* tensorPtr,
+    const string& forceDataType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
       tensorPtr->scalar_type(), forceDataType);
   const auto& npuDesc = tensorPtr->storage().get_npu_desc();
@@ -133,25 +138,6 @@ OpCmdHelper::CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataT
   auto aclBuff = aclBuffer.Get();
   int64_t storageDim = storageDims.size();
   return std::tie(aclDesc, aclBuff, storageDim, npuDesc.npu_format_);
-}
-
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-OpCmdHelper::CovertTransDataTensorToAcl(
-    const Tensor& tensor) {
-  Tensor* tensorPtr = (Tensor*)&tensor;
-  aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(tensorPtr->scalar_type());
-
-  auto format = FormatHelper::GetFormat(tensor);
-  auto dims = InferFormat::GuessStorageSizeWhenConvertFormat(tensor);
-  AclTensorDescMaker desc;
-  auto aclDesc = desc.Create(aclDataType, dims, format).Get();
-
-  int nelements = prod_intlist(dims);
-  AclTensorBufferMaker buffer(
-      tensorPtr, tensorPtr->storage_offset(), nelements);
-  auto aclBuffer = buffer.Get();
-  int64_t storageDim = dims.size();
-  return std::tie(aclDesc, aclBuffer, storageDim, format);
 }
 
 } // npu

@@ -37,6 +37,9 @@ Return:
   False--Tensor is not transposed, proceed to format_contiguous.
 *****************************************/
 bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   if (tensor.dim() != 2) {
     return false;
   }
@@ -62,6 +65,9 @@ bool is_transpose_last_two_dims_flex(const Tensor& tensor) {
 bool is_transpose_last_two_dims_strict(
     const Tensor& tensor,
     bool is_transpose_flex) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   auto base_sizes = tensor.storage().get_npu_desc().base_sizes_;
   if (is_transpose_flex && base_sizes.size() == tensor.dim() &&
       tensor.size(-1) == base_sizes[tensor.dim() - 2] &&
@@ -159,8 +165,10 @@ Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   if ((self.scalar_type() == ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
     // check is 16-algined with high-performance
     auto isAligin = [&]() {
-      return (!(self.size(0) & 0x0000000F)) && (!(self.size(1) & 0x0000000F)) &&
-             (!(mat2.size(0) & 0x0000000F)) && (!(mat2.size(1) & 0x0000000F));
+      return (!(static_cast<uint64_t>(self.size(0)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(self.size(1)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(mat2.size(0)) & 0x0000000F)) &&
+             (!(static_cast<uint64_t>(mat2.size(1)) & 0x0000000F));
     };
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
     if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) &&

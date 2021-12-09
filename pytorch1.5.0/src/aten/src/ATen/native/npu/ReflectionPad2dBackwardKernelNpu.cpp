@@ -21,12 +21,12 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& reflection_pad2d_backward_out_npu_nocheck(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
   TORCH_CHECK(input.scalar_type() != ScalarType::Float,
-    "PadV3Grad don't supports torch.float!");      
+      "PadV3Grad don't supports torch.float!");      
   SmallVector<int64_t, N> vectorInt;
   SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
   paddingsVector.resize(2 * input.dim(), 0);
@@ -48,26 +48,25 @@ Tensor& reflection_pad2d_backward_out_npu_nocheck(
 }
 
 Tensor& reflection_pad2d_backward_out_npu(
-  Tensor& gradInput,
-  const Tensor& gradOutput,
-  const Tensor& input,
-  IntArrayRef padding) {
-    OpPreparation::CheckOut(
+    Tensor& gradInput,
+    const Tensor& gradOutput,
+    const Tensor& input,
+    IntArrayRef padding) {
+  OpPreparation::CheckOut(
       {input, gradOutput},
       gradInput,
       input); 
 
-    OpPipeWithDefinedOut pipe;
-    return pipe.CheckMemory({input, gradOutput}, {gradInput})
+  OpPipeWithDefinedOut pipe;
+  return pipe.CheckMemory({input, gradOutput}, {gradInput})
     .Func([&gradOutput, &input, &padding](Tensor& gradInput)
     {reflection_pad2d_backward_out_npu_nocheck(
-      gradInput, 
-      gradOutput, 
-      input, 
-      padding);})
+        gradInput, 
+        gradOutput, 
+        input, 
+        padding);})
     .Call(gradInput); 
 }
-
 
 Tensor reflection_pad2d_backward_npu(
     const Tensor& gradOutput,
@@ -75,10 +74,10 @@ Tensor reflection_pad2d_backward_npu(
     IntArrayRef padding) {
   Tensor gradInput = OpPreparation::ApplyTensor(input);
   reflection_pad2d_backward_out_npu_nocheck(
-    gradInput, 
-    gradOutput, 
-    input, 
-    padding);
+      gradInput, 
+      gradOutput, 
+      input, 
+      padding);
   return gradInput;
 }
 

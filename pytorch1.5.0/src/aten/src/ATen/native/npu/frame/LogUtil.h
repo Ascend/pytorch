@@ -22,7 +22,6 @@
 
 #include "c10/npu/OptionsManager.h"
 
-using namespace std;
 
 namespace at {
 namespace native {
@@ -38,6 +37,10 @@ class DynamicLogUtil {
     if (isLogEnable) {
       time_t now = time(0);
       char* time = ctime(&now);
+      if (time == nullptr) {
+        printf("time is nullptr");
+        return;
+      }
       char time_[25] = "";
       memcpy(time_, time, strlen(time) - 1);
 

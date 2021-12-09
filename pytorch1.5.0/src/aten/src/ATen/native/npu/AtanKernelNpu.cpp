@@ -32,7 +32,7 @@ Tensor& atan_out_npu(Tensor& result, const Tensor& self) {
  
 Tensor atan_npu(const Tensor& self) { 
   Tensor result = OpPreparation::ApplyTensor(self);
-  //calculate the output result of the NPU 
+  // calculate the output result of the NPU 
   atan_out_npu(result, self);  
   return result; 
 } 

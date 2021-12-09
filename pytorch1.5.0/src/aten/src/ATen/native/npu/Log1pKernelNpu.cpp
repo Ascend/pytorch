@@ -30,7 +30,7 @@ Tensor& log1p_out_npu(Tensor& result, const Tensor& self){
 
 Tensor log1p_npu(const Tensor& self) {
   Tensor result = OpPreparation::ApplyTensor(self);
-  //calculate the output result of the NPU
+  // calculate the output result of the NPU
   log1p_out_npu(result, self);
 
   return result;

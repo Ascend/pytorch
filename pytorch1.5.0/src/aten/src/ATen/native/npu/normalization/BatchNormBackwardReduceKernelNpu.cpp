@@ -36,10 +36,17 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
     bool bias_g) {
   Tensor sum_dy_;
   Tensor sum_dy_xmu_;
-  Tensor grad_weight_;
   Tensor grad_bias_;
+  auto origin_dtype = self.scalar_type();
+
+  Tensor grad_out_ = grad_out.npu_dtype_cast(at::kFloat);
+  Tensor self_ = self.npu_dtype_cast(at::kFloat);
+  Tensor mean_ = mean.npu_dtype_cast(at::kFloat);
+  Tensor invstd_ = invstd.npu_dtype_cast(at::kFloat);
+  Tensor weight_ = weight.npu_dtype_cast(at::kFloat);
+
   SmallVector<int64_t, N> axes;
-  int dimN = self.ndimension();
+  int dimN = self_.ndimension();
   for(int i = 0; i < dimN; i++){
     if (i == 1) {
       continue;
@@ -47,46 +54,37 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
     axes.emplace_back(i);
   }
   // sum_dy_xmu
-  Tensor mul_dy_dx = grad_out * self;
+  Tensor mul_dy_dx = grad_out_ * self_;
   sum_dy_xmu_ = at::sum(mul_dy_dx, axes, false);
-  // sum_dy
-  auto meanLen = mean.size(0);
-  auto sumDyDxLen = sum_dy_xmu_.size(0);
-  int64_t pad_dy = meanLen - sumDyDxLen;
+  grad_bias_ = at::sum(grad_out_, axes, false);
+  sum_dy_ = grad_bias_;
 
-  SmallVector<int64_t, N> nedps = {0, pad_dy};
-  IntArrayRef need_pad(nedps);
-  Tensor sum_dy_dx_pad = at::npu_pad(sum_dy_xmu_, need_pad);
-  // grad_bais:
-  grad_bias_ = at::sum(grad_out, axes, false);
-  sum_dy_ = at::npu_pad(grad_bias_, need_pad);
   // grad_weight
   Tensor sum_dy_xmu_out = OpPreparation::ApplyTensor(sum_dy_);
-  Tensor grad_weight_res = OpPreparation::ApplyTensor(invstd);
+  Tensor grad_weight_res = OpPreparation::ApplyTensor(invstd_);
   OpCommand cmd;
   cmd.Name("SyncBatchNormBackwardReduce")
       .Input(sum_dy_)
-      .Input(sum_dy_dx_pad)
-      .Input(mean)
-      .Input(invstd)
+      .Input(sum_dy_xmu_)
+      .Input(mean_)
+      .Input(invstd_)
       .Output(sum_dy_xmu_out)
       .Output(grad_weight_res)
       .Run();
-  if (weight_g){
-    int64_t grad_biasLen = grad_bias_.size(0);
-    grad_weight.resize_({grad_biasLen});
-    grad_weight_ = grad_weight_res.slice(0, 0, grad_biasLen);
-  }
   if (input_g){
     sum_dy_xmu.copy_(sum_dy_xmu_out);
     sum_dy.copy_(sum_dy_);
   }
   if (weight_g) {
-    grad_weight.copy_(grad_weight_);
+    grad_weight.copy_(grad_weight_res);
   }
   if (bias_g) {
     grad_bias.copy_(grad_bias_);
   }
+  sum_dy = sum_dy.npu_dtype_cast(origin_dtype);
+  sum_dy_xmu = sum_dy_xmu.npu_dtype_cast(origin_dtype);
+  grad_weight = grad_weight.npu_dtype_cast(origin_dtype);
+  grad_bias = grad_bias.npu_dtype_cast(origin_dtype);
 
   return std::tie(sum_dy, sum_dy_xmu, grad_weight, grad_bias);
 }

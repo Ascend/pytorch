@@ -69,10 +69,10 @@ Tensor& sum_out_npu_nocheck(
     } else {
       dstType = dtype.value();
     }
-  } else if (isIntegralType(self.scalar_type(), /*includeBool=*/ true)) {
+  } else if (isIntegralType(self.scalar_type(), true)) {
     return sum_out_npu_int_dtype(result, self, dim, keepdim);
   } else if (result.defined()) {
-    if (isIntegralType(result.scalar_type(), /*includeBool=*/ true)) {
+    if (isIntegralType(result.scalar_type(), true)) {
       return sum_out_npu_int_dtype(result, self, dim, keepdim);
     } else {
       dstType = result.scalar_type();
@@ -123,7 +123,7 @@ Tensor& sum_dimlist_out_npu(
     optional<ScalarType> dtype,
     Tensor& result) {
   return sum_out_npu(self, 
-    dimnames_to_positions(self, dim), keepdim, dtype, result);
+      dimnames_to_positions(self, dim), keepdim, dtype, result);
 }
 
 Tensor sum_dim_npu(
@@ -138,7 +138,7 @@ Tensor sum_dim_npu(
     } else {
       dstType = dtype.value();
     }
-  } else if (isIntegralType(self.scalar_type(), /*includeBool=*/ true)) {
+  } else if (isIntegralType(self.scalar_type(), true)) {
     dstType = ScalarType::Float;
   } else {
     dstType = self.scalar_type();

@@ -85,7 +85,7 @@ Tensor logical_or_npu(const Tensor& self, const Tensor& other) {
 
   Tensor result = at::empty_with_format(
       outputSize,
-      self.options(), //.dtype(kBool)
+      self.options(), // .dtype(kBool)
       CalcuOpUtil::get_tensor_npu_format(self));
 
   logical_or_out_npu_nocheck(result, self, other);

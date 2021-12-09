@@ -1,13 +1,13 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
-// 
+//
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 // https://opensource.org/licenses/BSD-3-Clause
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,22 +22,21 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<int64_t, SIZE>
-conv3d_npu_output_size(const Tensor &input, const Tensor &weight,
-                       const Tensor &bias, IntArrayRef stride,
-                       IntArrayRef padding, IntArrayRef dilation,
-                       int64_t groups) {
+SmallVector<int64_t, SIZE> conv3d_npu_output_size(const Tensor &input, const Tensor &weight,
+                                                  const Tensor &bias, IntArrayRef stride,
+                                                  IntArrayRef padding, IntArrayRef dilation,
+                                                  int64_t groups) {
   int64_t N = input.size(0);
   int64_t D = input.size(2);
   int64_t H = input.size(3);
   int64_t W = input.size(4);
   int64_t Co = weight.size(0);
   auto kernel_size = weight.sizes().slice(2);
-  int64_t Do = 
+  int64_t Do =
       (D + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / stride[0] + 1;
-  int64_t Ho = 
+  int64_t Ho =
       (H + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1;
-  int64_t Wo = 
+  int64_t Wo =
       (W + 2 * padding[2] - dilation[2] * (kernel_size[2] - 1) - 1) / stride[2] + 1;
 
   SmallVector<int64_t, SIZE> outputSize = {N, Co, Do, Ho, Wo};
@@ -98,8 +97,7 @@ Tensor conv3d_npu(const Tensor &input, const Tensor &weight, const Tensor &bias,
   return result;
 }
 
-tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>
-slow_conv3d_npu_output_size(
+tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> slow_conv3d_npu_output_size(
     const Tensor &input,
     const Tensor &weight,
     const Tensor &bias,
@@ -112,11 +110,11 @@ slow_conv3d_npu_output_size(
   int64_t W = input.size(4);
   int64_t Co = weight.size(0);
   auto kernel_size = weight.sizes().slice(2);
-  int64_t Do = 
+  int64_t Do =
       (D + 2 * padding[0] - (kernel_size[0])) / stride[0] + 1;
-  int64_t Ho = 
+  int64_t Ho =
       (H + 2 * padding[1] - (kernel_size[1])) / stride[1] + 1;
-  int64_t Wo = 
+  int64_t Wo =
       (W + 2 * padding[2] - (kernel_size[2])) / stride[2] + 1;
 
   SmallVector<int64_t, SIZE> outputSize = {N, Co, Do, Ho, Wo};
@@ -168,9 +166,10 @@ std::tuple<Tensor, Tensor, Tensor> slow_conv3d_forward_npu(
     IntArrayRef padding) {
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
-  auto output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  auto finput = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
-  auto fgrad_input = at::empty({0}, self.options());
+  // Assign NDC1HWC0 format to output for cutting down transdata.
+  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
+  auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
+  auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 
   slow_conv3d_forward_out_npu(
       output,

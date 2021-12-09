@@ -39,9 +39,9 @@ Tensor& upsample_bicubic2d_out_npu(
   }
 
   TORCH_CHECK(
-    output_size.size() == 2,
-    "It is expected output_size equals to 2, but got size ",
-    output_size.size());
+      output_size.size() == 2,
+      "It is expected output_size equals to 2, but got size ",
+      output_size.size());
 
   float temp_h = 0.0;
   float temp_w = 0.0;

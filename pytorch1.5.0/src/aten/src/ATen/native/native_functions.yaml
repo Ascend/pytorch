@@ -669,6 +669,8 @@
   dispatch:
     CPU: _bincount_cpu
     CUDA: _bincount_cuda
+  npu_dispatch:
+    NPU: bincount_npu
 
 - func: bitwise_not(Tensor self) -> Tensor
   use_c10_dispatcher: full
@@ -1773,11 +1775,15 @@
   dispatch:
     CPU: grid_sampler_2d_cpu
     CUDA: grid_sampler_2d_cuda
+  npu_dispatch:
+    NPU: grid_sampler_2d_npu
 
 - func: grid_sampler_2d_backward(Tensor grad_output, Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> (Tensor, Tensor)
   dispatch:
     CPU: grid_sampler_2d_backward_cpu
     CUDA: grid_sampler_2d_backward_cuda
+  npu_dispatch:
+    NPU: grid_sampler_2d_backward_npu
 
 - func: grid_sampler_3d(Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> Tensor
   use_c10_dispatcher: full
@@ -2683,6 +2689,8 @@
 - func: batch_norm_backward_elemt(Tensor grad_out, Tensor input, Tensor mean, Tensor invstd, Tensor? weight, Tensor mean_dy, Tensor mean_dy_xmu) -> Tensor
   dispatch:
     CUDA: batch_norm_backward_elemt_cuda
+  npu_dispatch:
+    NPU: batch_norm_backward_elemt_npu
 
 - func: batch_norm_update_stats(Tensor input, Tensor? running_mean, Tensor? running_var, float momentum) -> (Tensor, Tensor)
   dispatch:
@@ -5178,7 +5186,7 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
-  npu_dispatch:    
+  npu_dispatch:
     NPU: __lshift___npu
 
 - func: __lshift__.Tensor(Tensor self, Tensor other) -> Tensor
@@ -5187,7 +5195,7 @@
   dispatch:
     CPU: __lshift__
     CUDA: __lshift__
-  npu_dispatch:    
+  npu_dispatch:
     NPU: __lshift___npu
 
 - func: __ilshift__.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
@@ -6578,7 +6586,7 @@
     CUDA: legacy::cuda::_th_index_copy_
   npu_dispatch:
     NPU: index_copy_npu_
-    
+
 - func: _cumsum(Tensor self, int dim) -> Tensor
   use_c10_dispatcher: full
   dispatch:
@@ -8525,6 +8533,14 @@
   npu_dispatch_only:
     NPU: max_v1_npu
 
+- func: npu_min.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  npu_dispatch_only:
+    NPU: min_v1_npu
+
+- func: npu_min.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  npu_dispatch_only:
+    NPU: min_v1_npu
+
 - func: npu_scatter(Tensor self, Tensor indices, Tensor updates, int dim) -> Tensor
   variants: function, method
   npu_dispatch_only:
@@ -8534,9 +8550,19 @@
   npu_dispatch_only:
     NPU: max_backward_npu
 
-- func: npu_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+- func: npu_min_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
+  npu_dispatch_only:
+    NPU: min_backward_npu
+
+- func: npu_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: apply_adam_npu
+
+- func: npu_apply_adam(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_apply_adam.out(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  npu_dispatch_only:
+    NPU: apply_adam_out_npu
 
 - func: npu_layer_norm_eval(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05) -> Tensor
   npu_dispatch_only:
@@ -8636,9 +8662,15 @@
   npu_dispatch_only:
     NPU: linear_backward_npu
 
-- func: npu_bert_apply_adam(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+- func: npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   npu_dispatch_only:
     NPU: bert_apply_adam_npu
+
+- func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  npu_dispatch_only:
+    NPU: bert_apply_adam_out_npu
 
 - func: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   npu_dispatch_only:
@@ -8647,3 +8679,23 @@
 - func: npu_giou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> (Tensor, Tensor)
   npu_dispatch_only:
     NPU: giou_backward_npu
+
+- func: npu_silu(Tensor self) -> Tensor
+  npu_dispatch_only:
+    NPU: silu_npu
+
+- func: npu_silu_backward(Tensor grad_output, Tensor x0, Tensor x1) -> Tensor
+  npu_dispatch_only:
+    NPU: silu_backward_npu
+
+- func: npu_reshape(Tensor self, int[] shape, bool can_refresh=False) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: reshape_npu
+
+- func: npu_reshape.out(Tensor self, int[] shape, bool can_refresh=False, *, Tensor(a!) out) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: reshape_out_npu
+- func: npu_rotated_overlaps(Tensor self, Tensor query_boxes, bool trans=False) -> Tensor
+  npu_dispatch_only:
+    NPU: rotated_overlaps_npu

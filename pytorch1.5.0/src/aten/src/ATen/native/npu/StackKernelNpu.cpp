@@ -16,10 +16,21 @@
 
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "third_party/acl/inc/op_proto/split_combination_ops.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
+
+namespace {
+at::native::npu::DynamicInputRegFunc stack_func =
+    [](DyNumAndIndex num_and_index, std::string op_name) -> ge::OperatorPtr {
+      auto ge_op = std::make_shared<ge::op::Pack>(op_name.c_str());
+      ge_op->create_dynamic_input_byindex_x(
+          num_and_index.front().first, num_and_index.front().second);
+      return ge_op;
+    };
+}
 
 SmallVector<int64_t, SIZE> stack_npu_output_size(
     TensorList tensors,
@@ -39,12 +50,13 @@ SmallVector<int64_t, SIZE> stack_npu_output_size(
 Tensor& stack_out_npu_nocheck(Tensor& result, TensorList tensors, int64_t dim) {
   // constructs the input and output NPUTensorDesc
   auto inputTensors = CalcuOpUtil::ConvertTensorListToSmallVector(tensors);
-
+  auto dynamic_num = inputTensors.size();
   OpCommand cmd;
-  cmd.Name("Pack");
-  for (int i = 0; i < inputTensors.size(); i++) {
+  cmd.Name("Pack")
+     .DynamicInputReg(stack_func, {{dynamic_num, 0}});
+  for (int i = 0; i < dynamic_num; i++) {
     string inputName = "x" + to_string(i);
-    cmd.Input(inputTensors[i],inputName);
+    cmd.Input(inputTensors[i], inputName);
   }
   cmd.Output(result)
     .Attr("N", (int64_t)tensors.size())
@@ -57,11 +69,11 @@ Tensor& stack_out_npu_nocheck(Tensor& result, TensorList tensors, int64_t dim) {
 Tensor& stack_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
   auto outputSize = stack_npu_output_size(tensors, dim);
   OpPreparation::CheckOut(
-    {tensors[0]}, 
-    result, 
-    ACL_FORMAT_ND, 
-    tensors[0].scalar_type(), 
-    outputSize); 
+      {tensors[0]}, 
+      result, 
+      ACL_FORMAT_ND, 
+      tensors[0].scalar_type(), 
+      outputSize); 
   stack_out_npu_nocheck(result, tensors, dim); 
   return result;
 }

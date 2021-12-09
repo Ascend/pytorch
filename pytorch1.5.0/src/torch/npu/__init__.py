@@ -16,16 +16,17 @@
 
 import os
 import sys
-import torch
 import traceback
 import contextlib
 
 import threading
 from multiprocessing.util import register_after_fork as _register_after_fork
+
+import torch
 from torch._six import raise_from
+import torch._C
 from ._utils import _get_device_index
 
-import torch._C
 
 _initialized = False
 _tls = threading.local()
@@ -64,7 +65,7 @@ def init():
     """
     _lazy_init()
 
-    
+
 def _lazy_init():
     global _initialized, _original_pid, _queued_calls
     if _initialized or hasattr(_tls, 'is_initializing'):
@@ -116,8 +117,8 @@ def _after_fork(arg):
     if _initialized and _original_pid != os.getpid():
         _initialized = False
         _in_bad_fork = True
-        # _NpuBase.__new__ = _lazy_new
         torch._C._npu_set_run_yet_variable_to_false()
+
 
 _register_after_fork(_after_fork, _after_fork)
 
@@ -141,20 +142,21 @@ def device_count():
 
 def set_device(device):
     if isinstance(device, torch.device):
-      torch._C._npu_setDevice(device.index)
-    elif torch.device(device) :
-      torch._C._npu_setDevice(torch.device(device).index)
-    else :
-      raise AssertionError("input can not convert to torch.device")
+        torch._C._npu_setDevice(device.index)
+    elif torch.device(device):
+        torch._C._npu_setDevice(torch.device(device).index)
+    else:
+        raise AssertionError("input can not convert to torch.device")
 
 
 def current_device():
     _lazy_init()
     return torch._C._npu_getDevice()
 
+
 def increase_step():
     return torch._C._npu_increaseStep()
-    
+
 
 def is_available():
     if (not hasattr(torch._C, '_npu_setDevice')):
@@ -265,13 +267,36 @@ def default_stream(device=None):
     return torch.npu.Stream(_cdata=torch._C._npu_getDefaultStream(
         _get_device_index(device, optional=True)))
 
+
+def enable_graph_mode():
+    torch._C._npu_enable_graph_mode()
+
+
+def disable_graph_mode():
+    _lazy_init()
+    torch._C._npu_disable_graph_mode()
+
+
+def is_graph_mode() -> bool:
+    return torch._C._npu_is_graph_mode()
+
+
+def launch_graph():
+    _lazy_init()
+    if not is_graph_mode():
+        raise RuntimeError("Npu run mode must be graph mode when launch graph")
+    torch._C._npu_launch_graph()
+
+
 from .random import *
+
 
 def _dummy_type(name):
     def init_err(self):
         class_name = self.__class__.__name__
         raise RuntimeError(
             "Tried to instantiate dummy base class {}".format(class_name))
+
     return type(name, (object,), {"__init__": init_err})
 
 
@@ -284,4 +309,4 @@ from .memory import *
 
 from .streams import Stream, Event
 from .npu_frontend_enhance import *
-from .global_mm_bmm_nd import *
+from .global_mm_bmm_nd import set_mm_bmm_format_nd, get_mm_bmm_format_nd

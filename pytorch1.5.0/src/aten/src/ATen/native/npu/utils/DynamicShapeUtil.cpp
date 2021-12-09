@@ -35,7 +35,12 @@ std::unordered_set<string> DynamicShapeUtil::disableDynamicOp = {
     "Conv2DTransposeD",
     "Conv2DBackpropInputD",
     "Conv2DBackpropFilterD",
-    "StridedSlice"};
+    "StridedSlice",
+    "BroadcastTo",
+    "SigmoidCrossEntropyWithLogitsV2",
+    "SigmoidCrossEntropyWithLogitsGradV2",
+    "ROIAlign",
+    "ROIAlignGrad"};
 
 long long int DynamicShapeUtil::steps_ = 0;
 void DynamicShapeUtil::IncreaseSteps() {
@@ -206,7 +211,7 @@ void DynamicShapeUtil::CreateAclParamsDesc(
     }
 
     desc = aclCreateTensorDesc(dtype, dims, shape[i].data(), format);
-    int64_t desc_dims_size = (int64_t)dims;
+    int64_t desc_dims_size = static_cast<int64_t>(dims);
     std::vector<int64_t> range(2 * desc_dims_size);
 
     for (int64_t k = 0; k < desc_dims_size * 2; k += 2) {
@@ -214,7 +219,7 @@ void DynamicShapeUtil::CreateAclParamsDesc(
       range[k + 1] = -1;
     }
 
-    typedef int64_t(*TYPE)[2];
+    using TYPE = int64_t (*)[2];
     aclSetTensorShapeRange(desc, desc_dims_size, (TYPE)range.data());
 
     if (storageShape.size() != 0) {
@@ -244,12 +249,15 @@ ExecuteParas DynamicShapeUtil::CreateCompileParams(
         params.dynamicParam.compile_output_desc;
     compileParams.dynamicCompileAttr = params.dynamicCompileAttr;
   } else {
-    const aclTensorDesc** compileInputsDescs = params.paras.input_num == 0
-        ? nullptr
-        : new const aclTensorDesc*[params.paras.input_num];
-    const aclTensorDesc** compileOutputsDescs = params.paras.output_num == 0
-        ? nullptr
-        : new const aclTensorDesc*[params.paras.output_num];
+    size_t inputTensorDescArrLen = params.paras.input_num * sizeof(uintptr_t);
+    size_t outputTensorDescArrLen = params.paras.output_num * sizeof(uintptr_t);
+    size_t totalMemLen = inputTensorDescArrLen + outputTensorDescArrLen;
+    char* basePtr = static_cast<char* >(malloc(totalMemLen));
+    AT_ASSERT(basePtr != nullptr);
+
+    const aclTensorDesc** compileInputsDescs = reinterpret_cast<const aclTensorDesc** >(basePtr);
+    basePtr += inputTensorDescArrLen;
+    const aclTensorDesc** compileOutputsDescs = reinterpret_cast<const aclTensorDesc** >(basePtr);
 
     NPU_LOGD(" Op %s CreateAclParamsDesc Run.", params.opType.c_str());
     CreateAclParamsDesc(
@@ -309,10 +317,12 @@ void DynamicShapeUtil::StartThreadCompile(
   // free attr and DesctroyParams
   if (params.opDynamicType != "") {
     aclopDestroyAttr(params.dynamicCompileAttr);
+    params.dynamicCompileAttr = nullptr;
     DestroyDynamicAclParams(params.dynamicParam);
   } else {
     if (!isDynamicOnly) {
       aclopDestroyAttr(params.attr);
+      params.attr = nullptr;
     }
     DestroyAclParams(params.paras);
   }
@@ -342,15 +352,15 @@ aclError DynamicShapeUtil::ExecuteDynamic(
   int index = 0;
   do {
     ret = aclopExecuteV2(
-      std::get<0>(params).c_str(),
-      std::get<1>(params),
-      const_cast<aclTensorDesc**>(std::get<2>(params)),
-      const_cast<aclDataBuffer**>(std::get<3>(params)),
-      std::get<4>(params),
-      const_cast<aclTensorDesc**>(std::get<5>(params)),
-      std::get<6>(params),
-      const_cast<aclopAttr*>(std::get<7>(params)),
-      stream);
+        std::get<0>(params).c_str(),
+        std::get<1>(params),
+        const_cast<aclTensorDesc**>(std::get<2>(params)),
+        const_cast<aclDataBuffer**>(std::get<3>(params)),
+        std::get<4>(params),
+        const_cast<aclTensorDesc**>(std::get<5>(params)),
+        std::get<6>(params),
+        const_cast<aclopAttr*>(std::get<7>(params)),
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
 
@@ -368,18 +378,18 @@ void DynamicShapeUtil::staticCompileAndExecute(
   int index = 0;
   do {
     ret = aclopCompileAndExecute(
-      opName.c_str(),
-      cur_paras.paras.input_num,
-      cur_paras.paras.input_desc,
-      cur_paras.paras.input_data_buf,
-      cur_paras.paras.output_num,
-      cur_paras.paras.output_desc,
-      cur_paras.paras.output_data_buf,
-      cur_paras.attr,
-      ACL_ENGINE_SYS,
-      ACL_COMPILE_SYS,
-      NULL,
-      stream);
+        opName.c_str(),
+        cur_paras.paras.input_num,
+        cur_paras.paras.input_desc,
+        cur_paras.paras.input_data_buf,
+        cur_paras.paras.output_num,
+        cur_paras.paras.output_desc,
+        cur_paras.paras.output_data_buf,
+        cur_paras.attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        NULL,
+        stream);
     ++index;
   } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
   if (ret != 0) {

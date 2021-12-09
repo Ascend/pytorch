@@ -63,6 +63,7 @@ class NpuUtils {
 
   static bool check_5d_5d_match(const Tensor& tensor);
   static bool IsOomError(aclError ret, int index);
+  static void check_1d(const Tensor& t, const char* arg, const char* fn);
 };
 } // namespace npu
 } // namespace native

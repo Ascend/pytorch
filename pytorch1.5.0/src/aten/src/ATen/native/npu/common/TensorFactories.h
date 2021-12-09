@@ -38,9 +38,9 @@ inline void check_args(
   TORCH_CHECK(col >= 0, "col must be non-negative, got", col);
   if (options.has_layout()) {
     TORCH_CHECK(
-      options.layout() == at::kStrided,
-      "only support layout=torch.strided, got",
-      options.layout());
+        options.layout() == at::kStrided,
+        "only support layout=torch.strided, got",
+        options.layout());
   }
 }
 

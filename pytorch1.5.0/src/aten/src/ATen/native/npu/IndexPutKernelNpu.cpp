@@ -83,7 +83,7 @@ Tensor& index_put_npu_(
     const Tensor& value,
     const bool accumulate) {
   return at::_index_put_impl_(
-      self, indices, value, accumulate, /*unsafe=*/false);
+      self, indices, value, accumulate, false);
 }
 
 Tensor& _index_put_impl_npu_(

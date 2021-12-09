@@ -1977,9 +1977,6 @@
 - name: nonzero(Tensor self) -> Tensor
   output_differentiability: [False]
 
-- name: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
-  self: npu_softmax_cross_entropy_with_logits_backward(grad, self, labels)
-
 - name: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
   self: npu_bmm_v2_mat1_backward(grad, self, mat2, self.sizes())
   mat2: npu_bmm_v2_mat2_backward(grad, self, mat2, mat2.sizes())

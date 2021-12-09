@@ -34,17 +34,17 @@ public:
 };
 
 void ROIAlignStrategy::CreateInputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   CreateDefaultDescInfo(params.input_desc,
-    params.input_num,
-    params.inputDims,
-    params.inputFormats,
-    compileShape.inputShape,
-    compileShape.inputStorageShape);
+      params.input_num,
+      params.inputDims,
+      params.inputFormats,
+      compileShape.inputShape,
+      compileShape.inputStorageShape);
 }
 
 void ROIAlignStrategy::CreateOutputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
   for (int64_t i = 0; i < params.output_num; ++i) {
     aclTensorDesc* desc = const_cast<aclTensorDesc*>(params.output_desc[i]);
 

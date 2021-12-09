@@ -88,7 +88,7 @@ Tensor max_pool3d_with_indices_backward_npu(
     bool ceil_mode,
     const Tensor& indices) {
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 3,
-    "max_pool3d: kernel_size must either be a single int, or a tuple of three ints")
+      "max_pool3d: kernel_size must either be a single int, or a tuple of three ints")
   const int kT = safe_downcast<int, int64_t>(kernel_size[0]);
   const int kH = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[1]);
   const int kW = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[2]);
@@ -96,7 +96,7 @@ Tensor max_pool3d_with_indices_backward_npu(
   IntArrayRef kernel_sizess = IntArrayRef(kernel_sizes);
 
   TORCH_CHECK(stride.size() == 0 || stride.size() == 1 || stride.size() == 3,
-    "max_pool3d: stride must either be omitted, a single int, or a tuple of three ints")
+      "max_pool3d: stride must either be omitted, a single int, or a tuple of three ints")
   const int dT = stride.empty() ? kT : safe_downcast<int, int64_t>(stride[0]);
   const int dH = stride.empty() ? kH :
                  stride.size() == 1 ? dT : safe_downcast<int, int64_t>(stride[1]);
@@ -106,7 +106,7 @@ Tensor max_pool3d_with_indices_backward_npu(
   IntArrayRef stridess = IntArrayRef(strides);
 
   TORCH_CHECK(padding.size() == 1 || padding.size() == 3,
-    "max_pool3d: padding must be either be a single int, or a tuple of three ints");
+      "max_pool3d: padding must be either be a single int, or a tuple of three ints");
   const int pT = safe_downcast<int, int64_t>(padding[0]);
   const int pH = padding.size() == 1 ? pT : safe_downcast<int, int64_t>(padding[1]);
   const int pW = padding.size() == 1 ? pT : safe_downcast<int, int64_t>(padding[2]);
@@ -114,7 +114,7 @@ Tensor max_pool3d_with_indices_backward_npu(
   IntArrayRef paddingss = IntArrayRef(paddings);
 
   TORCH_CHECK(dilation.size() == 1 || dilation.size() == 3,
-    "max_pool3d: dilation must be either a single int, or a tuple of three ints");
+      "max_pool3d: dilation must be either a single int, or a tuple of three ints");
   const int dilationT = safe_downcast<int, int64_t>(dilation[0]);
   const int dilationH = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[1]);
   const int dilationW = dilation.size() == 1 ? dilationT : safe_downcast<int, int64_t>(dilation[2]);
@@ -122,9 +122,9 @@ Tensor max_pool3d_with_indices_backward_npu(
   IntArrayRef dilationss = IntArrayRef(dilations);
 
   TORCH_CHECK((self.ndimension() == 5 || self.ndimension() == 4),
-        "maxpool3d expected input to be non-empty 5D(batch mode) or 4D tensor",
-        "but input has dim: ",
-        self.ndimension());
+      "maxpool3d expected input to be non-empty 5D(batch mode) or 4D tensor",
+      "but input has dim: ",
+      self.ndimension());
   const int64_t nslices = self.size(-4);
   const int64_t itime = self.size(-3);
   const int64_t iheight = self.size(-2);
@@ -134,16 +134,16 @@ Tensor max_pool3d_with_indices_backward_npu(
   const int64_t owidth = grad_output.size(-1);
   // params check
   max_pool3d_backward_shape_check(
-    self,
-    grad_output,
-    indices,
-    nslices,
-    kT, kH, kW,
-    dT, dH, dW,
-    pT, pH, pW,
-    dilationT, dilationH, dilationW,
-    itime, iheight, iwidth,
-    otime, oheight, owidth);
+      self,
+      grad_output,
+      indices,
+      nslices,
+      kT, kH, kW,
+      dT, dH, dW,
+      pT, pH, pW,
+      dilationT, dilationH, dilationW,
+      itime, iheight, iwidth,
+      otime, oheight, owidth);
   Tensor selfCp = self;
   Tensor grad_outputCp = grad_output.clone();
   Tensor indicesCp = indices;

@@ -64,10 +64,10 @@ Tensor& mse_loss_out_npu(
     outputSize = input_same_output_size(self);
   }  
   OpPreparation::CheckOut(
-    {self, target}, 
-    result,
-    self, 
-    outputSize);
+      {self, target}, 
+      result,
+      self, 
+      outputSize);
   mse_loss_out_npu_nocheck(result, self, target, reduction);
   return result;
 }
@@ -83,7 +83,11 @@ Tensor mse_loss_npu(
   }
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self,outputSize);
+  Tensor result = 
+      reduction == Reduction::None ? 
+      OpPreparation::ApplyTensor(self, outputSize) : 
+      OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_ND);
+      
   // calculate the output result of the NPU
   mse_loss_out_npu_nocheck(result, self, target, reduction);
 

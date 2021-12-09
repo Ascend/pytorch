@@ -57,8 +57,8 @@ their dimensionality must match. Source dimensionality (",
     TORCH_CHECK(false, ss.str());
   }
   TORCH_CHECK_INDEX(source.dim() == 0 || numIndices == source.size(newDim),
-          "index_copy_(): Number of indices (", numIndices, 
-          ") should be equal to source.size(newDim) (", source.size(newDim), ")");
+      "index_copy_(): Number of indices (", numIndices, 
+      ") should be equal to source.size(newDim) (", source.size(newDim), ")");
 }
 
 Tensor& index_copy_npu_impl(

@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -16,13 +16,10 @@
 
 import torch
 import numpy as np
-import sys
-import copy
 import torch.nn as nn
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
-
 
 class TestScatter(TestCase):
     def cpu_op_exec(self, shape, dim, index, src):
@@ -59,12 +56,10 @@ class TestScatter(TestCase):
 
     def test_scatter_shape_format(self, device):
         shape_format = [
-                [0, [3,5], [np.float32, 0, [2,5]]],
-                [0, [3,5], [np.float32, 3, [2,5]]],
-                [1, [3,5], [np.int32, 0, [2,5]]],
-                [-1, [3,5], [np.int32, 0, [2,5]]],
-                [1, [3,5], [np.float16, 0, [2,5]]],
-                [-1, [3,5], [np.float16, 0, [2,5]]],
+                [0, [3, 5], [np.float32, 0, [2, 5]]],
+                [0, [3, 5], [np.float32, 3, [2, 5]]],
+                [1, [3, 5], [np.float16, 0, [2, 5]]],
+                [-1, [3, 5], [np.float16, 0, [2, 5]]],
         ]
 
         index = torch.tensor([[0, 1, 2, 0, 0], [2, 0, 0, 1, 2]])

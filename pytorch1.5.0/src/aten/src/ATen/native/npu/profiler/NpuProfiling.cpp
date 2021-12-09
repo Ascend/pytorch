@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #include "NpuProfiling.h"
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/NPUException.h>
 
 namespace at {
 namespace native {
@@ -28,7 +26,7 @@ NpuProfiling& NpuProfiling::Instance() {
 void NpuProfiling::Init(const std::string &path) {
   TORCH_CHECK(status == PROFILING_FINALIZE, "init current profile status is: ", status, " error!")
   auto ret = c10::npu::acl::AclProfilingInit(path.c_str(), path.length());
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfInit fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
     return;
@@ -36,9 +34,9 @@ void NpuProfiling::Init(const std::string &path) {
   status = PROFILING_INIT;
 }
 
-void NpuProfiling::Start() {
+void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP, 
-            "start current profile status is: ", status, " error!")
+      "start current profile status is: ", status, " error!")
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
   if(ret){
@@ -51,11 +49,11 @@ void NpuProfiling::Start() {
   const uint32_t deviceNum = 1;
   uint32_t deviceIdList[deviceNum] = {deviceIndex};
   profCfg = c10::npu::acl::AclProfilingCreateConfig(
-    deviceIdList,
-    deviceNum,
-    ACL_AICORE_ARITHMETIC_UTILIZATION,
-    nullptr,
-    ACL_PROF_ACL_API | ACL_PROF_TASK_TIME | ACL_PROF_AICORE_METRICS | ACL_PROF_AICPU);
+      deviceIdList,
+      deviceNum,
+      (aclprofAicoreMetrics)aicore_metrics,
+      nullptr,
+      npu_event);
   if (profCfg == nullptr) {
     NPU_LOGE("npu profiling profiling_create_config fail, error  profCfg is null.");
     C10_NPU_SHOW_ERR_MSG();
@@ -64,7 +62,7 @@ void NpuProfiling::Start() {
     return;
   }
   ret = c10::npu::acl::AclProfilingStart(profCfg);
-  if(ret){
+  if(ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)){
     NPU_LOGE("npu profiling AclProfStart fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
@@ -74,7 +72,7 @@ void NpuProfiling::Start() {
 void NpuProfiling::Stop() {
   TORCH_CHECK(status == PROFILING_START, "stop current profile status is: ", status, " error!")
   auto ret = c10::npu::acl::AclProfilingStop(profCfg);
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
@@ -86,20 +84,20 @@ void NpuProfiling::Finalize() {
     if (status != PROFILING_STOP) {
       NPU_LOGW("finalize current profile status ( %u ) is not stopped, and call stop now.", status);
       auto ret = c10::npu::acl::AclProfilingStop(profCfg);
-      if (ret) {
+      if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
         NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
     }
     auto ret = c10::npu::acl::AclProfilingDestroyConfig(profCfg);
-    if (ret) {
+    if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
       NPU_LOGE("npu AclProfDestoryConfig fail, error code: %d", ret);
       C10_NPU_SHOW_ERR_MSG();
     }
     profCfg = nullptr;
   }
   auto ret = c10::npu::acl::AclProfilingFinalize();
-  if (ret) {
+  if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfFinalize fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }

@@ -56,7 +56,7 @@ Tensor& affine_grid_generator_backward_nocheck(
 
   return result;
 }
-}//namespace
+} // namespace
 
 Tensor affine_grid_generator_backward_npu(
     const Tensor& grad, 

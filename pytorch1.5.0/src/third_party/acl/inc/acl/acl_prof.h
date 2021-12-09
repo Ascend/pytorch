@@ -17,10 +17,13 @@
 extern "C" {
 #endif
 
-#define ACL_PROF_ACL_API                0x0001
-#define ACL_PROF_TASK_TIME              0x0002
-#define ACL_PROF_AICORE_METRICS         0x0004
-#define ACL_PROF_AICPU                  0x0008
+#define ACL_PROF_ACL_API            0x0001
+#define ACL_PROF_TASK_TIME          0x0002
+#define ACL_PROF_AICORE_METRICS     0x0004
+#define ACL_PROF_AICPU              0x0008
+#define ACL_PROF_L2CACHE            0x0010
+#define ACL_PROF_HCCL_TRACE         0x0020
+#define ACL_PROF_TRAINING_TRACE     0x0040
 
 /**
  * @deprecated please use aclprofGetOpTypeLen and aclprofGetOpTNameLen instead

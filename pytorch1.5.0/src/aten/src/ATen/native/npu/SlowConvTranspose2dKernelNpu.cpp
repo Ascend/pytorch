@@ -102,9 +102,9 @@ static inline void slow_conv_transpose2d_shape_check_npu(
       dilation[1]);
 
   TORCH_CHECK(
-        weight.numel() != 0 && (weight.dim() == 2 || weight.dim() == 4),
-        "non-empty 2D or 4D weight tensor expected, but got: ",
-        weight.sizes());
+      weight.numel() != 0 && (weight.dim() == 2 || weight.dim() == 4),
+      "non-empty 2D or 4D weight tensor expected, but got: ",
+      weight.sizes());
   if (bias.defined()) {
       check_dim_size(bias, 1, 0, weight.size(1));
   }
@@ -146,7 +146,7 @@ Tensor& slow_conv_transpose2d_out_npu(
     IntArrayRef output_padding, 
     IntArrayRef dilation) {
   slow_conv_transpose2d_shape_check_npu(
-    self, weight, kernel_size, bias, stride, padding, output_padding, dilation);
+      self, weight, kernel_size, bias, stride, padding, output_padding, dilation);
 
   auto outputSize = slow_conv_transpose2d_npu_output_size(
       self, weight, kernel_size, bias, stride, padding, output_padding, dilation);

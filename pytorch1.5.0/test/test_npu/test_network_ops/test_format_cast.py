@@ -172,6 +172,17 @@ class TestFormatCast(TestCase):
         npu_tensor = npu_tensor.npu_format_cast_(2)
         self.check_result(2, npu_tensor)
 
+    # UT for view + transdata scene 
+    def test_format_cast_val(self, device):
+        shape_format = [np.float32, -1, (10, 4)]
+        npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
+        npu_tensor = npu_tensor.npu_format_cast(3)
+        a = npu_tensor[1].npu_format_cast(0).contiguous()
+        b = npu_tensor.npu_format_cast(0)[1].contiguous()
+        a = a.to("cpu")
+        b = b.to("cpu")
+        self.assertRtolEqual(a, b)
+
 instantiate_device_type_tests(TestFormatCast, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

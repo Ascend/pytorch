@@ -26,7 +26,7 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
 
   auto self_temp = self.to(at::kFloat);
 
-  //When run in NPU,the input tensor's dim must be smaller than 8.
+  // When run in NPU,the input tensor's dim must be smaller than 8.
   TORCH_CHECK(
       self_temp.dim() < 8, "NPU error,can not support the input tensor's dim bigger than 7.");
 

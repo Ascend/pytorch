@@ -17,6 +17,7 @@
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/utils/KernelNpuOutputSize.h>
 #include <ATen/quantized/QTensorImpl.h>
+#include <c10/npu/NPURunMode.h>
 #include <map>
 
 namespace at {
@@ -43,7 +44,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
     SmallVector<int64_t, 4> viewOffsets;
 
     if (can_use_combined(src, viewInfos, viewOffsets, maxLen)) {
-      RECORD_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
       // Record src infos for recovering after trans-contiguous
       auto src_npu_desc = src.storage().get_npu_desc();
 
@@ -84,7 +85,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
         (tensor.storage_offset() != npu_desc.base_offset_)) {
       return false;
     }
-    RECORD_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
+    RECORD_HOST_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
     StorageDescHelper::SetDesc(
         tensor,
         array_to_small_vector(tensor.sizes()),
@@ -184,7 +185,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
       for (auto i = 0; i < view_sizes.size(); i++) {
         map_shape_stride[view_strides[i]] = view_sizes[i];
       }
-      //除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
+      // 除去第0维，其他维shape为1时，不记录对应的stride值，该stride的值会和其他维的stride有重复
       for (auto i = 0; i < view_sizes.size(); i++) {
         if (i == 0) {
           map_shape_stride[view_strides[0]] = view_sizes[0];
@@ -334,10 +335,8 @@ class CombinedContiguousOpt : public ContiguousOpt {
     // viewInfo = combined tensor(src)'s viewInfo
     // baseInfo = inferred info(infer_size, infer_stride, infer_offset)
     // If the first inferred tensor can be optimized, store its info.
-    if (can_infer_view_tensor(
-            src, temp_src, infer_size, infer_stride, infer_offset) &&
-        emplace_info(
-            temp_src, view_infos, view_offsets, infer_offset, max_len)) {
+    if (can_infer_view_tensor(src, temp_src, infer_size, infer_stride, infer_offset) &&
+        emplace_info(temp_src, view_infos, view_offsets, infer_offset, max_len)) {
       // Construct "the second inferred tensor"
       // viewInfo = inferred info(infer_size, infer_stride, infer_offset)
       // baseInfo = combined tensor(src)'s baseInfo
@@ -426,8 +425,10 @@ class CombinedContiguousOpt : public ContiguousOpt {
     // Construct the first tensor and judge whether it can be optimized.
     if (reconstruct_tensor(src, view_infos, view_offsets)) {
       std::vector<string> optimizations_first{"reshape", "slice", "select"};
-      if (reshape_without_copy_match(src)) {
+      if ((!c10::npu::NpuRunMode::IsGraphMode()) && reshape_without_copy_match(src)) {
         // case 1 : The first tensor is reshape-type, refresh its info is enough
+        // In single op, refresh is inplace operation, but in graph mode, reshape is not.
+        // In graph mode, there is not matching operator for this case.
         return combined_to_contiguous(src, self, view_infos, view_offsets);
       } else if (can_be_optimize_from_default_cases(src)) {
         // case 2: The first tensor is discontiguous-type,

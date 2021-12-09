@@ -74,11 +74,11 @@ Tensor& mul_out_npu(const Tensor& self, const Tensor& other, Tensor& result) {
   Tensor outputTensor = mul_dest_output(self, other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-    {self},
-    result,
-    CalcuOpUtil::get_tensor_npu_format(outputTensor),
-    self.scalar_type(),
-    outputSize);
+      {self},
+      result,
+      CalcuOpUtil::get_tensor_npu_format(outputTensor),
+      self.scalar_type(),
+      outputSize);
   mul_out_npu_nocheck(result, self, other);
 
   return result;

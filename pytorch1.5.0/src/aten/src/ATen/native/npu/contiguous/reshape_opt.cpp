@@ -23,8 +23,8 @@ class ReshapeContiguousOpt : public ContiguousOpt {
  public:
   bool Optimizer(const Tensor& src, Tensor& self) override {
     if (check_reshape_match(src, self)) {
-      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
-      copy_d2d_by_memcpy(self, src, prod_intlist(self.storage().get_npu_desc().storage_sizes_));      
+      RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      at::npu_reshape_out(self, src, self.sizes());
       return true;
     }
     return false;

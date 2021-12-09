@@ -22,6 +22,7 @@
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <limits.h>
 #include "ATen/native/npu/profiler/NpuProfiling.h"
+#include "ATen/native/npu/profiler/AoeUtils.h"
 
 namespace at {
 namespace native {
@@ -31,12 +32,19 @@ namespace env {
 void ValidPathCheck(const std::string& file_path) {
   char abs_path[PATH_MAX] = {'\0'};
   if (realpath(file_path.c_str(), abs_path) == nullptr) {
-    TORCH_CHECK(0, "configPath path Fails, path %s", (char*)file_path.c_str());
+    TORCH_CHECK(0, "configPath path Fails, path ", (char*)file_path.c_str());
   }
 }
+REGISTER_OPTION_HOOK(autotune, [](const std::string& val) {
+  if (val == "enable") {
+    at::native::npu::aoe::aoe_manager().EnableAoe();
+  }
+})
 
-REGISTER_OPTION(autotune)
-REGISTER_OPTION_BOOL_FUNCTION(AutoTuneEnabled, autotune, "disable", "enable")
+REGISTER_OPTION_HOOK(autotunegraphdumppath, [](const std::string& val) {
+    ValidPathCheck(val);
+    at::native::npu::aoe::aoe_manager().SetDumpGraphPath(val);
+  })
 
 REGISTER_OPTION_INIT_BY_ENV(bmmv2_enable)
 REGISTER_OPTION_BOOL_FUNCTION(CheckBmmV2Enable, bmmv2_enable, "0", "1")
@@ -105,9 +113,7 @@ REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string&val) {
 })
 
 REGISTER_OPTION_HOOK(profiling, [](const std::string&val) {
-  if (val.compare("start") == 0) {
-    at::native::npu::NpuProfiling::Instance().Start();
-  } else if (val.compare("stop") == 0) {
+  if (val.compare("stop") == 0) {
     at::native::npu::NpuProfiling::Instance().Stop();
   } else if (val.compare("finalize") == 0) {
     at::native::npu::NpuProfiling::Instance().Finalize();

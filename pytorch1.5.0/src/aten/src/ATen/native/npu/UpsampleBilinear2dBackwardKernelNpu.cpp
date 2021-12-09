@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -21,16 +21,21 @@
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
-bool upsample_bilinear2d_backward_check_is_aicore(
-    const Tensor& grad_output) {
-  int64_t H = grad_output.size(2);
-  int64_t W = grad_output.size(3);
-
-  if (H > 10000 || W > 10000) {
-    return false;
-  }
-  return true;
+Tensor& upsample_bilinear2d_backward_out_npu_nocheck(
+    Tensor& grad_input,
+    const Tensor& grad_output,
+    const Tensor& original_image,
+    bool align_corners) {
+  bool half_pixel_centers = !align_corners;
+  OpCommand cmd;
+  cmd.Name("ResizeBilinearV2Grad")
+    .Input(grad_output)
+    .Input(original_image)
+    .Output(grad_input)
+    .Attr("align_corners", align_corners)
+    .Attr("half_pixel_centers", half_pixel_centers)
+    .Run();
+  return grad_input;
 }
 
 Tensor& upsample_bilinear2d_backward_out_npu(
@@ -41,44 +46,22 @@ Tensor& upsample_bilinear2d_backward_out_npu(
     bool align_corners,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  // check shape to judge use aicpu op or aicore op
-  bool isAicore = upsample_bilinear2d_backward_check_is_aicore(grad_output);
+  Tensor original_image = OpPreparation::ApplyTensor(grad_output, input_size);
 
-  // executing the NPU operator
-  OpCommand cmd;
-  if (isAicore) {
-    Tensor original_image = at::empty_with_format(
-        input_size,
-        grad_output.options(),
-        CalcuOpUtil::get_tensor_npu_format(grad_output));
+  OpPreparation::CheckOut(
+      {grad_output},
+      grad_input,
+      grad_output);
+  if (!NpuUtils::check_match(&grad_input)) {
+    Tensor contiguous_result = NpuUtils::format_contiguous(grad_input);
 
-    bool half_pixel_centers = !align_corners;
-
-    cmd.Name("ResizeBilinearV2Grad")
-      .Input(grad_output)
-      .Input(original_image)
-      .Output(grad_input) 
-      .Attr("align_corners", align_corners)
-      .Attr("half_pixel_centers", half_pixel_centers)
-      .Run();
+    upsample_bilinear2d_backward_out_npu_nocheck(
+        contiguous_result, grad_output, original_image, align_corners);
+    NpuUtils::format_fresh_view(grad_input, contiguous_result);
   } else {
-    cmd.Name("PTUpsampleBilinear2dGrad")
-      .Input(grad_output)
-      .Output(grad_input)
-      .Attr("output_size", output_size)
-      .Attr("input_size", input_size)
-      .Attr("align_corners", align_corners);
-
-    // optional attr
-    if (scales_h.has_value()) {
-      cmd.Attr("scales_h", static_cast<float>(scales_h.value()));
-    }
-    if (scales_w.has_value()) {
-      cmd.Attr("scales_w", static_cast<float>(scales_w.value()));
-    }
-    cmd.Run();
+    upsample_bilinear2d_backward_out_npu_nocheck(
+        grad_input, grad_output, original_image, align_corners);
   }
-
   return grad_input;
 }
 
@@ -90,36 +73,19 @@ Tensor upsample_bilinear2d_backward_npu(
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
   Tensor grad_output = grad_output_ex;
-  // check shape to judge use aicpu op or aicore op
-  bool isAicore = upsample_bilinear2d_backward_check_is_aicore(grad_output);
 
-  if (!isAicore) {
-    if (grad_output.scalar_type() != ScalarType::Float) {
-      grad_output = grad_output.npu_dtype_cast(ScalarType::Float);
-    }
+  if (grad_output.scalar_type() != ScalarType::Float) {
+    grad_output = grad_output.npu_dtype_cast(ScalarType::Float);
   }
-  // calculate the output size
-  auto outputSize = upsample_bilinear2d_backward_npu_output_size(
-      grad_output, output_size, input_size, align_corners, scales_h, scales_w);
 
-  // construct the output tensor of the NPU
-  aclFormat format = isAicore ? ACL_FORMAT_NC1HWC0 : (aclFormat)CalcuOpUtil::get_tensor_npu_format(grad_output);
-  Tensor grad_input = at::empty_with_format(outputSize, grad_output.options(), format);
+  Tensor grad_input = OpPreparation::ApplyTensor(grad_output, input_size);
+  Tensor original_image = OpPreparation::ApplyTensor(grad_output, input_size);
 
-  // calculate the output result of the NPU
-  upsample_bilinear2d_backward_out_npu(
-      grad_input,
-      grad_output,
-      output_size,
-      input_size,
-      align_corners,
-      scales_h,
-      scales_w);
-
+  upsample_bilinear2d_backward_out_npu_nocheck(
+      grad_input, grad_output, original_image, align_corners);
   if (grad_input.dtype() != grad_output_ex.dtype()) {
     grad_input = grad_input.to(grad_output_ex.dtype());
   }
-
   return grad_input;
 }
 

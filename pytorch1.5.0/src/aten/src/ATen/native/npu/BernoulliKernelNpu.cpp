@@ -15,29 +15,42 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "c10/npu/SecondaryStreamGuard.h"
+#include "c10/npu/NPUCachingAllocator.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& bernoulli_out_npu(Tensor& result, const Tensor& self, double p) {
-  OpCommand cmd;
-  cmd.Name("Bernoulli")
-      .Input(self)
-      .Input(p, ScalarType::Float)
-      .Output(result)
-      .Run();
+Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, double p) {
+  auto original_stream = c10::npu::getCurrentNPUStream();
+  {
+      c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+      OpCommand cmd;
+      cmd.Name("Bernoulli")
+        .Input(self)
+        .Input(p, ScalarType::Float)
+        .Output(result)
+        .Run();
+  }
+  c10::npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
 
   return result;
 }
 
-Tensor& bernoulli_out_npu(Tensor& result, const Tensor& self, const Tensor& p) {
-  OpCommand cmd;
-  cmd.Name("Bernoulli")
-      .Input(self)
-      .Input(p)
-      .Output(result)
-      .Run();
+Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& p) {
+  auto original_stream = c10::npu::getCurrentNPUStream();
+  {
+      c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+      OpCommand cmd;
+      cmd.Name("Bernoulli")
+        .Input(self)
+        .Input(p)
+        .Output(result)
+        .Run();
+  }
+  c10::npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
+  c10::npu::NPUCachingAllocator::recordStream(p.storage().data_ptr(), original_stream);
 
   return result;
 }
@@ -52,10 +65,10 @@ Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    Tensor result = bernoulli_out_npu(contiguousSelf, contiguousSelf, p);
+    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_out_npu(selfFp32, selfFp32, p);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, p);
     self.copy_(selfFp32);
   }
 
@@ -69,7 +82,7 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
   OpPreparation::CheckMemory({self}, {self});
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
-  Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);;
+  Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
   if (self.scalar_type() == ScalarType::Half) {
     selfFp32 = self.to(ScalarType::Float);
     pFp32 = p.to(ScalarType::Float);
@@ -77,10 +90,10 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    Tensor result = bernoulli_out_npu(contiguousSelf, contiguousSelf, pFp32);
+    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_out_npu(selfFp32, selfFp32, pFp32);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32);
     self.copy_(selfFp32);
   }
 

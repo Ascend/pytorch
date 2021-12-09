@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include <ATen/native/npu/contiguous/ReshapeOpt.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -21,11 +22,17 @@ namespace npu {
 
 bool can_use_memecpy_for_NZ_format(const Tensor& tensor) {
   auto base_size = tensor.storage().get_npu_desc().base_sizes_;
+  // No padding&&offset!=0 at same time. e.g. x(3, 15, 16)[1:] with format=29
+  if (((tensor.size(-1) % 16 != 0) || (tensor.size(-2) % 16 != 0)) &&
+      tensor.storage_offset() != 0) {
+    return false;
+  }
+
   // Make sure that sizes of last 2 dims don't change
   if (tensor.size(-1) != base_size[base_size.size() - 1] ||
       tensor.size(-2) != base_size[base_size.size() - 2]) {
     return false;
-  } 
+  }
   return true;
 }
 
@@ -60,6 +67,17 @@ bool check_reshape_match(const Tensor& src, Tensor& self) {
     if (!self.sizes().equals(src.sizes())) {
       return false;
     }
+
+    IF_GRAPH_MODE_THEN_RUN(
+      // In single op mode, this opt will be used for reshape/slice/select scenes.
+      // In graph mode, reshape opt is only used for reshape scenes,
+      // npu-reshape is used to calculae and get contiguous tensor.
+      const auto& base_sizes = src.storage().get_npu_desc().base_sizes_;
+      if (prod_intlist(base_sizes) != src.numel()) {
+        return false;
+      }
+    );
+
     return true;
   }
   return false;

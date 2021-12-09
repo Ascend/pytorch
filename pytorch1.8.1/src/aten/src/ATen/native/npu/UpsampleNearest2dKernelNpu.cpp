@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -60,17 +60,31 @@ Tensor upsample_nearest2d_npu(
     IntArrayRef output_size,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  // calculate the output size
   SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_npu_output_size(self, output_size);
 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
-  // calculate the output result of the NPU
   upsample_nearest2d_out_npu(self, output_size, scales_h, scales_w, result);
 
   return result;
+}
+
+Tensor upsample_nearest2d_vec_npu(
+    const Tensor& input,
+    c10::optional<IntArrayRef> output_size,
+    c10::optional<ArrayRef<double>> scale_factors) {
+  auto osize = CalcuOpUtil::compute_output_size(input.sizes(), output_size, scale_factors);
+  auto scale_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto scale_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+  Tensor result = OpPreparation::ApplyTensor(input, osize);
+  upsample_nearest2d_out_npu(input, osize, scale_h, scale_w, result);
+  return result;
+}
+
+TORCH_LIBRARY_IMPL(aten, NPU, m){
+  m.impl("upsample_nearest2d.vec", TORCH_FN(upsample_nearest2d_vec_npu));
+  m.impl("upsample_nearest2d", TORCH_FN(upsample_nearest2d_npu));
+  m.impl("upsample_nearest2d.out", TORCH_FN(upsample_nearest2d_out_npu));
 }
 
 } // namespace native

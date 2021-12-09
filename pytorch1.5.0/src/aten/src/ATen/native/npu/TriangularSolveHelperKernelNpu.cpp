@@ -27,7 +27,7 @@ std::tuple<Tensor, Tensor> _triangular_solve_helper_npu(
     bool transpose,
     bool unitriangular) {
   TORCH_CHECK(self.dtype() == at::kFloat && A.dtype() == at::kFloat,
-        "_triangular_solve_helper_npu only supported Float, but get ", self.dtype(), ' ', A.dtype());
+      "_triangular_solve_helper_npu only supported Float, but get ", self.dtype(), ' ', A.dtype());
   auto self_working_copy = OpPreparation::ApplyTensor(self);
   auto A_working_copy = A.clone();
 

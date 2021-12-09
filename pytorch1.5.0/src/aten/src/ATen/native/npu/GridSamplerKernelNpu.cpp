@@ -20,7 +20,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor grid_sampler_npu(const Tensor& self, const Tensor& grid,
-int64_t interpolation_mode, int64_t padding_mode, bool align_corners) {
+    int64_t interpolation_mode, int64_t padding_mode, bool align_corners) {
   Tensor formatCastOfSelf = self.npu_format_cast(ACL_FORMAT_ND);
   Tensor formatCastOfGrid = grid.npu_format_cast(ACL_FORMAT_ND);
   if (formatCastOfSelf.scalar_type() == ScalarType::Half) {

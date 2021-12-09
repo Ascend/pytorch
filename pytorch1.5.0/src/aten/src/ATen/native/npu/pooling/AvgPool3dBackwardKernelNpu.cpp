@@ -22,15 +22,15 @@ namespace native {
 using namespace at::native::npu;
 
 void avg_pool3d_backward_out_npu_nocheck(
-  Tensor& grad_output,
-  const Tensor& grad_input,
-  const Tensor& self,
-  IntArrayRef kernel_sizess,
-  IntArrayRef stridess,
-  IntArrayRef paddingss,
-  bool ceil_mode,
-  bool count_include_pad,
-  c10::optional<int64_t> divisor_override) {
+    Tensor& grad_output,
+    const Tensor& grad_input,
+    const Tensor& self,
+    IntArrayRef kernel_sizess,
+    IntArrayRef stridess,
+    IntArrayRef paddingss,
+    bool ceil_mode,
+    bool count_include_pad,
+    c10::optional<int64_t> divisor_override) {
   Tensor input = self;
   Tensor grads = grad_input.contiguous();
   if (self.ndimension() == 4) {
@@ -80,15 +80,15 @@ Tensor& avg_pool3d_backward_out_npu(
     bool count_include_pad,
     c10::optional<int64_t> divisor_override) {
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 3,
-    "avg_pool3d_backward: kernel_size must be a single int, or a tuple of three ints");
+      "avg_pool3d_backward: kernel_size must be a single int, or a tuple of three ints");
   TORCH_CHECK(stride.empty() || stride.size() == 1 || stride.size() == 3,
-    "avg_pool3d_backward: stride must be omitted, a single int, or a tuple of three ints");
+      "avg_pool3d_backward: stride must be omitted, a single int, or a tuple of three ints");
   TORCH_CHECK(padding.size() == 1 || padding.size() == 3,
-    "avg_pool3d_backward: padding must be a single int, or a tuple of three ints");
+      "avg_pool3d_backward: padding must be a single int, or a tuple of three ints");
   TORCH_CHECK((self.ndimension() == 4 || self.ndimension() == 5),
-    "non-empty 4D or 5D (batch mode) tensor expected for input");
+      "non-empty 4D or 5D (batch mode) tensor expected for input");
   TORCH_CHECK(!divisor_override.has_value() || divisor_override.value() != 0, 
-    "avg_pool3d_backward divisor must be not zero");
+      "avg_pool3d_backward divisor must be not zero");
 
   const int kT = safe_downcast<int, int64_t>(kernel_size[0]);
   const int kH = kernel_size.size() == 1 ? kT : safe_downcast<int, int64_t>(kernel_size[1]);
@@ -124,25 +124,25 @@ Tensor& avg_pool3d_backward_out_npu(
   const int64_t owidth_for_shape_check = pooling_output_shape<int64_t>(iwidth, kW, padW, dW, 1, ceil_mode);
 
   avg_pool3d_backward_shape_check(
-    self,
-    grad_input,
-    nslices,
-    kT, kH, kW,
-    dT, dH, dW,
-    padT, padH, padW,
-    itime, iheight, iwidth,
-    otime_for_shape_check, oheight_for_shape_check, owidth_for_shape_check);
+      self,
+      grad_input,
+      nslices,
+      kT, kH, kW,
+      dT, dH, dW,
+      padT, padH, padW,
+      itime, iheight, iwidth,
+      otime_for_shape_check, oheight_for_shape_check, owidth_for_shape_check);
 
   avg_pool3d_backward_out_npu_nocheck(
-    grad_output,
-    grad_input,
-    self,
-    kernel_sizess,
-    stridess,
-    paddingss,
-    ceil_mode,
-    count_include_pad,
-    divisor_override);
+      grad_output,
+      grad_input,
+      self,
+      kernel_sizess,
+      stridess,
+      paddingss,
+      ceil_mode,
+      count_include_pad,
+      divisor_override);
     
   return grad_output;
 }

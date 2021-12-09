@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "NPUStream.h"
-#include "NPUQueue.h"
 #include <c10/npu/NPUFunctions.h>
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/NPUQueue.h>
@@ -409,13 +408,14 @@ void npuSynchronizeDevice() {
 
 void enCurrentNPUStream(
     void* cur_paras,
+    SmallVector<Storage, N>& needClearVec,
     DeviceIndex device_index) {
   initNPUStreamsOnce();
   if (device_index == -1) {
     device_index = current_device();
   }
   check_npu(device_index);
-  current_streams[device_index]->repo->Enqueue(cur_paras);
+  current_streams[device_index]->repo->Enqueue(cur_paras, needClearVec);
   if (current_streams[device_index]->repo->GetStatus() == RepoStatus::INIT) {
     current_streams[device_index]->repo->MakeSureQueueEmpty();
     current_streams[device_index]->repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);

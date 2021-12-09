@@ -23,36 +23,19 @@ namespace at {
 namespace native {
 namespace npu {
 
-// TransDataOpCommand Part
-TransDataOpCommand& TransDataOpCommand::InputAndOutput(const Tensor& input, const Tensor& output) {
-  if (input.defined() == false) {
-    AT_NPU_CHECK(ACL_ERROR_INVALID_PARAM);
-  }
-  return AddInputAndOutput(input, output);
-}
-
-TransDataOpCommand& TransDataOpCommand::AddInputAndOutput(const Tensor& input, const Tensor& output) {
-
-  std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> in;
-  std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> out;
-
-   if (!c10::npu::OptionsManager::CheckDynamicEnable() && env::CheckFuzzyEnable()) {
-    in = OpCmdHelper::CovertTensorToAclInput(input, c10::nullopt, "", "");
-    out = OpCmdHelper::CovertTensorToAclInput(output, c10::nullopt, "", "");
-  } else {
-    in = OpCmdHelper::CovertTransDataTensorToAcl(input);
-    out = OpCmdHelper::CovertTransDataTensorToAcl((output));
-  }
-
-  aclCmd->AddInput(
-      std::get<0>(in), std::get<1>(in), std::get<2>(in), std::get<3>(in));
-  aclCmd->AddOutput(
-      std::get<0>(out), std::get<1>(out), std::get<2>(out), std::get<3>(out));
-  return *this;
-}
-
 // OpCommand Part
 OpCommand& OpCommand::InputPair(const Tensor& npu_input, const Tensor& cpu_input) {
+  IF_GRAPH_MODE_THEN_RUN(
+      Tensor tmp_cpu_input = cpu_input;
+      if (tmp_cpu_input.scalar_type() != at::kLong) {
+          tmp_cpu_input = tmp_cpu_input.to(at::kLong);
+      }
+      auto cpu_shape =
+          IntArrayRef(reinterpret_cast<int64_t*>(tmp_cpu_input.data_ptr()),
+                      tmp_cpu_input.numel());
+      graphCmd.AddInput(cpu_shape, cpu_input.scalar_type());
+      return *this;
+  )
   return AddTensorInput(Contiguous(npu_input), ScalarType::Undefined, "", "", cpu_input);
 }
 
@@ -68,6 +51,10 @@ OpCommand& OpCommand::InputWithFunc(const FUNC_TYPE& func) {
   if (std::get<0>(res)) {
     return *this;
   }
+  IF_GRAPH_MODE_THEN_RUN(
+      graphCmd.AddInput(std::get<1>(res), "", "");
+      return *this;
+  )
   return AddTensorInput(std::get<1>(res), ScalarType::Undefined, "", "");
 }
 

@@ -28,7 +28,7 @@ class SelectContiguousOpt : public ContiguousOpt {
     SmallVector<int64_t, SHAPE_SIZE> length;
 
     if (can_use_select(src, start, length)) {
-      RECORD_FUNCTION("select_npuSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("select_npuStridedSlice", std::vector<c10::IValue>({src}));
       select_to_contiguous(src, self, start, length);
       return true;
     }
@@ -46,10 +46,6 @@ class SelectContiguousOpt : public ContiguousOpt {
       const Tensor& src,
       SmallVector<int64_t, SHAPE_SIZE>& start,
       SmallVector<int64_t, SHAPE_SIZE>& length) {
-    // uncontiguous
-    if (src.is_contiguous()) {
-      return false;
-    }
     // base info and src info
     auto base_size = src.storage().get_npu_desc().base_sizes_;
     auto base_stride = src.storage().get_npu_desc().base_strides_;

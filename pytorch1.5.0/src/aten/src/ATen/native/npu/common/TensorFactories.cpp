@@ -30,7 +30,10 @@
 #include <ATen/native/npu/frame/InferFormat.h>
 #include <ATen/native/npu/common/InnerNpuNativeFunction.h>
 #include <torch/csrc/autograd/record_function.h>
-#include "ATen/native/npu/utils/OpAdapter.h"
+#include <ATen/native/npu/utils/OpAdapter.h>
+#include <c10/npu/NPUGraphContextManager.h>
+#include <c10/npu/NPURunMode.h>
+#include <ATen/native/npu/contiguous/ContiguousOpt.h>
 
 #include <algorithm>
 #include <cctype>
@@ -85,7 +88,7 @@ Tensor empty_npu(
       nelements,
       allocator->allocate(nelements * dtype.itemsize()),
       allocator,
-      /*resizeable=*/true);
+      true);
 
   auto tensor =
       detail::make_tensor<TensorImpl>(storage_impl, DispatchKey::NPUTensorId);
@@ -93,6 +96,14 @@ Tensor empty_npu(
   if (size.size() != 1 || size[0] != 0) {
     tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
   }
+
+  // NB
+  // Store weak intrusive ptr of storage impl in both graph mode and single op mode
+  // because we need to get all live tensor in context in mode change scene
+  // we want to manage all storage without affect their life cycle
+  // so in graph mode, we can get all live tensor storage
+  c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      storage_impl);
 
   auto memory_format =
       optional_memory_format.value_or(MemoryFormat::Contiguous);
@@ -232,13 +243,23 @@ Tensor empty_with_format_npu(
   aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
   int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
   auto dtype = options.dtype();
+
+  // In graph mode, empty with format is used to make inner tensor,
+  // ASCEND-GE will take charge of the memory of them
+  auto nbytes =
+      c10::npu::NpuRunMode::IsGraphMode() ? 0 : nelements * dtype.itemsize();
   const auto& storage_impl = c10::make_intrusive<StorageImpl>(
       dtype,
       nelements,
-      allocator->allocate(nelements * dtype.itemsize()),
+      allocator->allocate(nbytes),
       allocator,
-      /*resizeable=*/true);
+      true);
 
+  // NB Store weak intrusive ptr of storage impl in graph mode
+  // see note above
+
+  c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      storage_impl);
   auto tensor =
       detail::make_tensor<TensorImpl>(storage_impl, DispatchKey::NPUTensorId);
   // Default TensorImpl has size [0]
@@ -298,7 +319,7 @@ Tensor& empty_out_npu(
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor blackman_window_npu(int64_t window_length, const TensorOptions& options) {
-  return blackman_window_npu(window_length, /*periodic=*/true, options);
+  return blackman_window_npu(window_length, true, options);
 }
 
 Tensor blackman_window_npu(int64_t window_length, bool periodic, const TensorOptions& options) {
@@ -320,7 +341,7 @@ Tensor blackman_window_npu(int64_t window_length, bool periodic, const TensorOpt
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor bartlett_window_npu(int64_t window_length, const TensorOptions& options) {
-  return bartlett_window_npu(window_length, /*periodic=*/true, options);
+  return bartlett_window_npu(window_length, true, options);
 }
 
 Tensor bartlett_window_npu(
@@ -338,7 +359,7 @@ Tensor bartlett_window_npu(
     window_length += 1;
   }
   auto window = at::arange(window_length, options).mul_(2. / static_cast<double>(window_length - 1));
-  const int64_t first_half_size = ((unsigned int64_t)(window_length - 1) >> 1) + 1;
+  const int64_t first_half_size = (static_cast<unsigned int64_t>(window_length - 1) >> 1) + 1;
   window.narrow(0, first_half_size, window_length - first_half_size).mul_(-1).add_(2);
   return periodic ? window.narrow(0, 0, window_length - 1) : window;
 }
@@ -360,14 +381,14 @@ Tensor hann_window_npu(
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hamming_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor hamming_window_npu(int64_t window_length, const TensorOptions& options) {
-  return hamming_window_npu(window_length, /*periodic=*/true, options);
+  return hamming_window_npu(window_length, true, options);
 }
 
 Tensor hamming_window_npu(
     int64_t window_length,
     bool periodic,
     const TensorOptions& options) {
-  return hamming_window_npu(window_length, periodic, /*alpha=*/0.54, options);
+  return hamming_window_npu(window_length, periodic, 0.54, options);
 }
 
 Tensor hamming_window_npu(
@@ -375,7 +396,7 @@ Tensor hamming_window_npu(
     bool periodic,
     double alpha,
     const TensorOptions& options) {
-  return hamming_window_npu(window_length, periodic, alpha, /*beta=*/0.46, options);
+  return hamming_window_npu(window_length, periodic, alpha, 0.46, options);
 }
 
 Tensor hamming_window_npu(
@@ -511,17 +532,15 @@ AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
-  auto desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-  auto formatSelf = OpPreparation::ApplyTensorWithFormat(
-      src.sizes(), src.options(), desc.npu_format_);
-  if (try_to_optimize_copy_with_any_format(formatSelf, src)) {
-    return formatSelf;
-  } else if (can_use_memcpy(formatSelf, src)) {
-    RECORD_FUNCTION("d2dCopyAsync with format", std::vector<c10::IValue>({src}));
-    copy_d2d_by_memcpy(formatSelf, src);
-    return formatSelf;
+  RECORD_HOST_FUNCTION("clone_npu", vector<c10::IValue>({src}));
+  std::vector<string> opt_patterns{"reshape", "slice"};
+  if (TransContiguous::CanOptimize(src, opt_patterns)) {
+    auto formatTempTensor =
+        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_patterns);
+    return formatTempTensor.value();
   } else {
-    auto baseSelf = OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
+    auto baseSelf =
+        OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
     copy_d2d_dtype(baseSelf, src, false);
     return baseSelf;
   }

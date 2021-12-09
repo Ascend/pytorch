@@ -29,7 +29,7 @@ public:
     int64_t fold_step;
 
     if (can_use_unfold(src, fold_dimension, fold_size, fold_step)) {
-      RECORD_FUNCTION("unfold_npuTransposeD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("unfold_npuTransposeD", std::vector<c10::IValue>({src}));
       unfold_to_contiguous(src, self, fold_dimension, fold_size, fold_step);
       return true;
     }
@@ -94,7 +94,7 @@ private:
     }
 
     // step5 the last limitation
-    if (view_sizes[fold_dimension] == (base_sizes[fold_dimension] - fold_size) / fold_step + 1) {
+    if ((fold_step != 0) && (view_sizes[fold_dimension] == (base_sizes[fold_dimension] - fold_size) / fold_step + 1)) {
       return true;
     }
     return false;
@@ -114,7 +114,7 @@ private:
     // recover contiguous base tensor
     Tensor temp_src = at::empty(base_sizes, src.options());
     temp_src.set_(src.storage(), temp_src.storage_offset(), 
-    temp_src.sizes(), temp_src.strides());
+        temp_src.sizes(), temp_src.strides());
 
     // for dim size is not divisible ==> narrow
     if (base_sizes[fold_dimension] % fold_size != 0) {

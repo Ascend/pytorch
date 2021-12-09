@@ -105,6 +105,43 @@ ACL_FUNC_VISIBILITY aclError aclopCompileAndExecute(const char *opType,
  */
 ACL_FUNC_VISIBILITY aclError aclSetCompileopt(aclCompileOpt opt, const char *value);
 
+typedef enum {
+    ACL_GRAPH_STAGE_ORIGIN = 0, // default
+    ACL_GRAPH_STAGE_FUZZ = 1,
+} aclGraphStage;
+
+typedef struct aclGraphDumpOption aclGraphDumpOption;
+
+/**
+ * @ingroup AscendCL
+ * @brief dump op graph for AOE
+ *
+ * @param opType [IN]           op type
+ * @param numInputs [IN]        number of inputs
+ * @param inputDesc [IN]        pointer to array of input tensor descriptions
+ * @param inputs [IN]           pointer to array of input buffers
+ * @param numOutputs [IN]       number of outputs
+ * @param outputDesc [IN]       pointer to array of output tensor descriptions
+ * @param outputs [IN]          pointer to array of outputs buffers
+ * @param attr [IN]             pointer to instance of aclopAttr.
+ *                              may pass nullptr if the op has no attribute
+ * @param engineType [IN]       engine type
+ * @param graphDumpPath [IN]    path to save dump graph of op
+ * @param aclGraphDumpOption [IN]  dump graph option
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclGenGraphAndDumpForOp(const char *opType,
+    int numInputs, const aclTensorDesc *const inputDesc[], const aclDataBuffer *const inputs[],
+    int numOutputs, const aclTensorDesc *const outputDesc[], aclDataBuffer *const outputs[],
+    const aclopAttr *attr, aclopEngineType engineType, const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt);
+
+ACL_FUNC_VISIBILITY aclGraphDumpOption* aclCreateGraphDumpOpt(); 
+
+ACL_FUNC_VISIBILITY aclError aclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt); 
+
+
 #ifdef __cplusplus
 }
 #endif

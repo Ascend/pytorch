@@ -71,6 +71,18 @@ class TestMseLess(TestCase):
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input3, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_mse_loss_nz(self, device):
+        cpu_x = torch.rand(1, 2)
+        npu_x = cpu_x.npu().npu_format_cast(29)
+        cpu_target = torch.ones_like(cpu_x)
+        npu_target = cpu_target.npu()
+        
+        cpu_out = torch.nn.functional.mse_loss(cpu_x, cpu_target)
+        npu_out = torch.nn.functional.mse_loss(npu_x, npu_target)
+
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
+
 
 instantiate_device_type_tests(TestMseLess, globals(), except_for='cpu')    
 if __name__ == '__main__':

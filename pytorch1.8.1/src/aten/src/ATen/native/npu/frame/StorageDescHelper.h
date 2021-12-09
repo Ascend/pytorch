@@ -50,7 +50,7 @@ public:
   static void CopyDesc(Tensor& dst, const Tensor& src);
   static void CopyDesc(Tensor& dst, const Storage& src);
   static void CopyDesc(const Tensor& dst, const NPUStorageDesc& src_desc);
-  // 
+
   static void UpdateDesc(NPUStorageDesc& npuDesc, IntArrayRef& new_size);
 
   static FormatShape ComputeStrideFromShape(const FormatShape& shape);

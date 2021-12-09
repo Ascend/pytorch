@@ -30,10 +30,10 @@ int64_t cross_real_dim(optional<int64_t> dim) {
 }
 
 Tensor& cross_out_npu(
-  Tensor& result, 
-  const Tensor& self,
-  const Tensor& other,
-  optional<int64_t> dim) {
+    Tensor& result, 
+    const Tensor& self,
+    const Tensor& other,
+    optional<int64_t> dim) {
   int64_t realDim = cross_real_dim(dim);
   OpCommand cmd;
   cmd.Name("Cross")
@@ -46,15 +46,15 @@ Tensor& cross_out_npu(
 }
 
 Tensor cross_npu(
-  const Tensor& self, 
-  const Tensor& other,
-  optional<int64_t> dim) {
+    const Tensor& self, 
+    const Tensor& other,
+    optional<int64_t> dim) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   Tensor outputTensor = cross_dest_output(self, other);
   Tensor result = at::empty_with_format(
-    outputSize, 
-    self.options(),
-    CalcuOpUtil::get_tensor_npu_format(outputTensor));
+      outputSize, 
+      self.options(),
+      CalcuOpUtil::get_tensor_npu_format(outputTensor));
   cross_out_npu(result, self, other, dim);
   return result;
 }

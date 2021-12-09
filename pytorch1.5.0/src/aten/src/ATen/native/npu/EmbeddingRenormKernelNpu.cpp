@@ -72,7 +72,7 @@ Tensor& embedding_renorm_out_npu(
     double max_norm,
     double norm_type){
 
-  //get the  outSize of  GatherV2 , the middle tensor
+  // get the  outSize of  GatherV2 , the middle tensor
   SmallVector<int64_t, SIZE> midSize = {indices.size(0), self.size(1)};
   Tensor mid_input = OpPreparation::ApplyTensor(self, midSize);
   Tensor mid_output = OpPreparation::ApplyTensor(self, midSize);
@@ -80,10 +80,10 @@ Tensor& embedding_renorm_out_npu(
   // execute the NPU operate  GatherV2D, generate  new tensor by indices
   embedding_renorm_gather2d_out_npu(mid_input,self,indices);
 
-  //execute the NPU operate  Renorm
+  // execute the NPU operate  Renorm
   embedding_renorm_execute_out_npu(mid_output, mid_input, max_norm, norm_type);
 
-  //execute the NPU operate  ZerosLike or RangeD, generate new tensor by indices.numel()
+  // execute the NPU operate  ZerosLike or RangeD, generate new tensor by indices.numel()
   Tensor mid_output_copy = mid_output.clone();
   auto num_indices = indices.numel();
   Tensor input_indices;
@@ -95,7 +95,7 @@ Tensor& embedding_renorm_out_npu(
     input_indices = at::range(0, num_indices-1, self.options()).to(at::kLong);
   }
 
-  //execute the NPU operate  MUL, generate change result
+  // execute the NPU operate  MUL, generate change result
   auto num_mid_output = mid_output.numel();
   resize_npu_(mid_output_copy, num_mid_output);
   Tensor scalar_out = OpPreparation::ApplyTensor(self, {num_indices, 1});
@@ -114,13 +114,13 @@ Tensor& embedding_renorm_npu_(
     double max_norm,
     double norm_type) {
 
-  //check dim and type
+  // check dim and type
   auto self_arg = TensorArg(self, "self", 1);
   auto indices_arg = TensorArg(indices, "indices", 2);
   checkDim("embedding_renorm_", self_arg, 2);
   checkScalarType("embedding_renorm_", indices_arg, kLong);
 
-  //resize indices to 1D
+  // resize indices to 1D
   Tensor indices_copy = indices.clone();
   auto num_indices = indices.numel();
   resize_npu_(indices_copy, num_indices);

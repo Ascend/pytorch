@@ -67,7 +67,7 @@ tuple<Tensor&, Tensor&> sort_out_npu(
         CalcuOpUtil::get_tensor_npu_format(indices));
 
     sort_out_npu_no_transpose(
-      transposeValues, transposeIndices, transposeSelf, lastDim, descending);
+        transposeValues, transposeIndices, transposeSelf, lastDim, descending);
     
     at::npu_transpose_out(values, transposeValues, perm);
     at::npu_transpose_out(indices, transposeIndices, perm);
@@ -76,7 +76,7 @@ tuple<Tensor&, Tensor&> sort_out_npu(
         values, indices, self, lastDim, descending);
   }
   
-  //indices dtype transform Int64
+  // indices dtype transform Int64
   indices = indices.to(at::kLong);
   
   return std::tie(values, indices);

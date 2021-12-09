@@ -123,7 +123,7 @@ std::tuple<ScalarType, IntArrayRef> NPUTensorIterator::reduce_op(
   TORCH_CHECK(out1.sizes() == out2.sizes(), "reduce_op(): expected both outputs to have same sizes, but output1 has ", out1.sizes(),
       " and output2 has ", out2.sizes());
   TORCH_CHECK(out1.strides() == out2.strides(), "reduce_op(): expected both outputs to have same strides, but output1 has ", out1.strides(),
-           " and output2 has ", out2.strides());
+      " and output2 has ", out2.strides());
   auto iter = NPUTensorIterator();
   iter.add_output(out1);
   iter.add_output(out2);
@@ -143,7 +143,7 @@ static std::tuple<ScalarType, bool> compute_common_type_(at::ArrayRef<NPUOperand
   for (const auto& op: operands) {
     if (!op.tensor.defined()) 
       continue;
-    //don't handle scalars
+    // don't handle scalars
     if (op.tensor.dim() > 0) {
       ScalarType current = op.current_dtype;
       if (current == ScalarType::Undefined) {

@@ -91,7 +91,7 @@ Tensor & multilabel_margin_loss_out_npu(
   }
   output = at::empty_with_format(outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
   Tensor is_target = at::empty_with_format(
-        target.sizes(), target.options(), CalcuOpUtil::get_tensor_npu_format(target));  
+      target.sizes(), target.options(), CalcuOpUtil::get_tensor_npu_format(target));  
   return std::get<0>(at::multilabel_margin_loss_forward_out(output, is_target, self, target, reduction));
 }
 

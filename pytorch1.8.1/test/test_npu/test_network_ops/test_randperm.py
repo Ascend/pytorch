@@ -16,7 +16,7 @@
 
 import torch
 import numpy as np
-from torch.testing._internal.common_utils import TestCase, run_tests
+from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
@@ -37,7 +37,8 @@ class TestRandperm(TestCase):
             for dtype in (torch.long, torch.float):
                 cpu_output = self.cpu_op_exec(n, dtype)
                 npu_output = self.npu_op_exec(n, dtype)
-                self.assertEqual(cpu_output, npu_output)
+                cpu_output = cpu_output.astype(npu_output.dtype)
+                self.assertRtolEqual(cpu_output, npu_output)
 
 
 instantiate_device_type_tests(TestRandperm, globals(), except_for='cpu')

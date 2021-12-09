@@ -60,7 +60,7 @@ class TestUpsamleNearest3DBackward(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]
@@ -77,7 +77,41 @@ class TestUpsamleNearest3DBackward(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
+
+            size = item[1]
+            cpu_output = self.cpu_op_scale_exec(cpu_input, size)
+            npu_output = self.npu_op_scale_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_upsample_nearest3d_backward_shape_format_fp16(self, device):
+        shape_format = [
+            [[np.float16, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
+            [[np.float16, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
+        ]
+
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            if cpu_input.dtype == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
+
+            size = item[1]
+            cpu_output = self.cpu_op_exec(cpu_input, size)
+            npu_output = self.npu_op_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_upsample_nearest3d_backward_shape_format_scale_fp16(self, device):
+        shape_format = [
+            [[np.float16, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
+            [[np.float16, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
+        ]
+
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]

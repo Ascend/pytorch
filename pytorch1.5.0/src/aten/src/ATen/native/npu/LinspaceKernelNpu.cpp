@@ -42,7 +42,7 @@ Tensor& linspace_out_npu(Tensor& result, Scalar start, Scalar end, int64_t steps
   Tensor r = result.is_contiguous() ? result : result.contiguous();
   r = r.to(at::kFloat);
   if(steps == 0){
-    //skip
+    // skip
   } else if (steps == 1) {
     r.fill_(start);
   } else {

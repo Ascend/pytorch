@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include "CalcuOpUtil.h"
 #include <Python.h>
 #include <third_party/acl/inc/acl/acl_base.h>
@@ -22,11 +23,12 @@
 #include "ATen/native/npu/frame/InferFormat.h"
 #include "ATen/native/npu/mirror/NPUMemoryOverlap.h"
 #include "ATen/native/npu/utils/DynamicShapeUtil.h"
-#include "ATen/native/npu/frame/OpParamMaker.h"
 #include "NpuUtils.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
+#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 
 namespace at {
 namespace native {
@@ -47,6 +49,7 @@ static std::map<at::ScalarType, aclDataType> AT_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
     {at::ScalarType::Float, ACL_FLOAT},
     {at::ScalarType::Bool, ACL_BOOL},
     {at::ScalarType::Long, ACL_INT64},
+    {at::ScalarType::Double, ACL_DOUBLE},
 };
 
 static std::map<const at::ScalarType, const string> AT_SCALAR_TYPE_NAME_MAP = {
@@ -153,12 +156,17 @@ Tensor CalcuOpUtil::copy_tensor_host_to_device(const Tensor& cpu_tensor) {
 }
 
 NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
-    void* dst,
+    const std::pair<Tensor, int64_t>& dst,
     size_t dst_size,
-    const void* src,
+    const std::pair<Tensor, int64_t>& src,
     size_t src_size,
     aclrtMemcpyKind kind) {
-  AT_NPU_CHECK(LaunchAsyncCopyTask(dst, dst_size, const_cast<void* >(src), src_size, kind));
+  GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
+  void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
+        dst.second * dst.first.itemsize();
+  void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
+        src.second * src.first.itemsize();
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, dst_size, const_cast<void* >(src_ptr), src_size, kind));
 
   return SUCCESS;
 }
@@ -207,8 +215,9 @@ int64_t CalcuOpUtil::make_wrap_dim(int64_t dim, int64_t dim_post_expr) {
 
   int64_t min = -dim_post_expr;
   int64_t max = dim_post_expr - 1;
-  if (dim < 0)
+  if (dim < 0) {
     dim += dim_post_expr;
+  }
   return dim;
 }
 
@@ -310,20 +319,40 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
   int inputNum = input.size();
   int outputNum = output.size();
 
-  const aclTensorDesc** aclTensorInputDescArr =
-      inputNum == 0 ? nullptr : new const aclTensorDesc*[inputNum];
-  const aclTensorDesc** aclTensorOutputDescArr =
-      outputNum == 0 ? nullptr : new const aclTensorDesc*[outputNum];
+  size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+  size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+  size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+  size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
 
-  const aclDataBuffer** aclDataInputBuffArr =
-      inputNum == 0 ? nullptr : new const aclDataBuffer*[inputNum];
-  aclDataBuffer** aclDataOutputBuffArr =
-      outputNum == 0 ? nullptr : new aclDataBuffer*[outputNum];
+  size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+  size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+  size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+  size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
 
-  int64_t* inputDimsArr = new int64_t[inputNum];
-  int64_t* outputDimsArr = new int64_t[outputNum];
-  aclFormat* inputFormatsArr = new aclFormat[inputNum];
-  aclFormat* outputFormatsArr = new aclFormat[outputNum];
+  size_t totalMemLen =
+    inputTensorDescArrLen + inputDataBuffArrLen +
+    inputDimsArrLen + inputFormatsArrLen +
+    outputTensorDescArrLen + outputDataBuffArrLen +
+    outputDimsArrLen + outputFormatsArrLen;
+  char* basePtr = static_cast<char* >(malloc(totalMemLen));
+  AT_ASSERT(basePtr != nullptr);
+
+  const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+  basePtr += inputTensorDescArrLen;
+  const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+  basePtr += inputDataBuffArrLen;
+  int64_t* inputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+  basePtr += inputDimsArrLen;
+  aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+  basePtr += inputFormatsArrLen;
+
+  const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+  basePtr += outputTensorDescArrLen;
+  aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+  basePtr += outputDataBuffArrLen;
+  int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+  basePtr += outputDimsArrLen;
+  aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
 
   for (int i = 0; i < inputNum; i++) {
     ScalarType scalarDataType =
@@ -345,8 +374,8 @@ NPUStatus CalcuOpUtil::CreateAclTensorDescInfo(
     } else if (
         input[i].tensorDescType == NPUTensorDesc::TensorDescType::TENSOR) {
       Tensor* aclInput = &input[i].tensor;
-      const auto& dims = aclInput->storage().get_npu_desc().base_sizes_;
-      const auto& storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
+      auto dims = aclInput->storage().get_npu_desc().base_sizes_;
+      auto storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
       int64_t numel = 1;
       for (int j = 0; j < storageDims.size(); j++) {
         numel *= storageDims[j];
@@ -603,8 +632,10 @@ void CalcuOpUtil::execute_npu_operate(
       if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
         cur_paras.isFuzzy = true;
       }
-      QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
-      c10::npu::enCurrentNPUStream(&params);
+      c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+      SmallVector<Storage, N> needClearVec;
+      c10::npu::enCurrentNPUStream(&params, needClearVec);
+      needClearVec.clear();
     } else {
       auto stream = c10::npu::getCurrentNPUStream();
       DynamicRun(cur_paras, stream);
@@ -619,7 +650,7 @@ void CalcuOpUtil::execute_npu_operate(
   aclopAttr* attr = std::get<0>(CalcuOpUtil::CreateNpuAttrDesc(attrs));
 
   auto stream = c10::npu::getCurrentNPUStream();
-  RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
+  RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
   bool reset_flag = false;
   if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {
@@ -633,18 +664,18 @@ void CalcuOpUtil::execute_npu_operate(
     int index = 0;
     do {
       ret = aclopCompileAndExecute(
-        opName.c_str(),
-        params.input_num,
-        params.input_desc,
-        params.input_data_buf,
-        params.output_num,
-        params.output_desc,
-        params.output_data_buf,
-        attr,
-        ACL_ENGINE_SYS,
-        ACL_COMPILE_SYS,
-        NULL,
-        stream);
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
       ++index;
     } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     ACL_REQUIRE_OK_OP(ret, opName.c_str());
@@ -654,18 +685,18 @@ void CalcuOpUtil::execute_npu_operate(
     int index = 0;
     do {
       ret = aclopCompileAndExecute(
-        opName.c_str(),
-        params.input_num,
-        params.input_desc,
-        params.input_data_buf,
-        params.output_num,
-        params.output_desc,
-        params.output_data_buf,
-        attr,
-        ACL_ENGINE_SYS,
-        ACL_COMPILE_SYS,
-        NULL,
-        stream);
+          opName.c_str(),
+          params.input_num,
+          params.input_desc,
+          params.input_data_buf,
+          params.output_num,
+          params.output_desc,
+          params.output_data_buf,
+          attr,
+          ACL_ENGINE_SYS,
+          ACL_COMPILE_SYS,
+          NULL,
+          stream);
       ++index;
     } while(NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
     ACL_REQUIRE_OK_OP(ret, opName.c_str());
@@ -674,6 +705,7 @@ void CalcuOpUtil::execute_npu_operate(
     AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   }
   aclopDestroyAttr(attr);
+  attr = nullptr;
   NPUStatus ret = DestroyAclParams(params);
 
   if (ret != SUCCESS) {

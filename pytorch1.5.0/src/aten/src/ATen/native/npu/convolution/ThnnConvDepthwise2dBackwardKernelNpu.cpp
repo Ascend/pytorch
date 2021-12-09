@@ -110,15 +110,15 @@ tuple<Tensor&, Tensor&> thnn_conv_depthwise2d_backward_out_npu(
     IntArrayRef dilation) {
   Tensor weight_ex = weight.permute({1, 0, 2, 3});
   if (grad_input.defined()) {
-      thnn_conv_depthwise2d_backward_input_out_npu(
-      grad_input,
-      grad_output,
-      self,
-      weight_ex,
-      kernel_size,
-      stride,
-      padding,
-      dilation);
+    thnn_conv_depthwise2d_backward_input_out_npu(
+        grad_input,
+        grad_output,
+        self,
+        weight_ex,
+        kernel_size,
+        stride,
+        padding,
+        dilation);
   }
   if (grad_weight.defined()) {
     thnn_conv_depthwise2d_backward_weight_out_npu(

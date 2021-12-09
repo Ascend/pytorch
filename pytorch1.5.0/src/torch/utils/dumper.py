@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
 from os import path, makedirs
 import datetime
 from enum import Enum, unique
+import torch
 
 @unique
 class DumpMode(Enum):
@@ -91,6 +91,7 @@ class dumper(object):
         if not self.enabled:
             return
         self.entered = False
+
     def __enter__(self):
         if not self.enabled:
             return

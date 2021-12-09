@@ -18,14 +18,12 @@
 
 #include <cstdint>
 #include <mutex>
-
+#include "NPUQueue.h"
 #include <c10/core/DeviceGuard.h>
 #include <c10/core/Stream.h>
 #include <c10/npu/NPUException.h>
 #include <c10/npu/NPUMacros.h>
-#include <c10/npu/npu_log.h>
 #include <c10/util/Exception.h>
-#include "c10/npu/npu_log.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10 {
@@ -88,7 +86,7 @@ class C10_NPU_API NPUStream {
       }
 
       return false;
-  }*/
+  } */
 
   void synchronize() const {
     DeviceGuard guard{stream_.device()};
@@ -129,6 +127,7 @@ CAFFE2_API void npuSynchronizeDevice();
 
 CAFFE2_API void enCurrentNPUStream(
     void* cur_paras,
+    SmallVector<Storage, N>& needClearVec,
     DeviceIndex device_index = -1);
 
 CAFFE2_API void setCurrentNPUStream(NPUStream stream);

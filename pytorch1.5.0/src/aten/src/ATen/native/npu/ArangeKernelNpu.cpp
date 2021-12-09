@@ -40,9 +40,9 @@ Tensor& arange_out_npu_nocheck(
     Scalar step) {
   OpCommand cmd;
   cmd.Name("Range")
-     .Input(start, result.scalar_type())  //start
-     .Input(end, result.scalar_type())  //limit
-     .Input(step, result.scalar_type())  //delta
+     .Input(start, result.scalar_type())  // start
+     .Input(end, result.scalar_type())  // limit
+     .Input(step, result.scalar_type())  // delta
      .Output(result)
      .Run();
 
@@ -50,11 +50,11 @@ Tensor& arange_out_npu_nocheck(
 }
 
 Tensor arange_npu(Scalar end, const TensorOptions& options) {
-  return arange_npu(/*start=*/0, end, options);
+  return arange_npu(0, end, options);  // start = 0
 }
 
 Tensor arange_npu(Scalar start, Scalar end, const TensorOptions& options) {
-  return arange_npu(start, end, /*step=*/1, options);
+  return arange_npu(start, end, 1, options);
 }
 
 Tensor arange_npu(
@@ -66,7 +66,7 @@ Tensor arange_npu(
   float end_value = CalcuOpUtil::get_scalar_float_value(end);
   float step_value = CalcuOpUtil::get_scalar_float_value(step);
 
-  //Check step start end
+  // Check step start end
   TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
       "upper bound and larger bound inconsistent with step sign");
@@ -74,10 +74,9 @@ Tensor arange_npu(
   bool set_to_integral_dtype =
       !options.has_dtype() && allIntegral({start, end, step});
 
-  //check start == end
+  // check start == end
   Tensor result_check = set_to_integral_dtype
-      ? at::empty_with_format(
-            {0}, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
+      ? at::empty_with_format({0}, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
       : at::empty_with_format({0}, options, ACL_FORMAT_ND);
   if (start_value == end_value) {
     return result_check;
@@ -90,8 +89,7 @@ Tensor arange_npu(
   SmallVector<int64_t, SIZE> outputSize = {size_value};
 
   Tensor result = set_to_integral_dtype
-      ? at::empty_with_format(
-            outputSize, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
+      ? at::empty_with_format(outputSize, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
       : at::empty_with_format(outputSize, options, ACL_FORMAT_ND);
 
   if(options.dtype() == at::kHalf) {
@@ -108,11 +106,11 @@ Tensor arange_npu(
 }
 
 Tensor& arange_out_npu(Tensor& result, Scalar end) {
-  return arange_out_npu(result, /*start=*/0, end);
+  return arange_out_npu(result, 0, end);
 }
 
 Tensor& arange_out_npu(Tensor& result, Scalar start, Scalar end) {
-  return arange_out_npu(result, start, end, /*step=*/1);
+  return arange_out_npu(result, start, end, 1);
 }
 
 Tensor& arange_out_npu(
@@ -124,7 +122,7 @@ Tensor& arange_out_npu(
   float end_value = CalcuOpUtil::get_scalar_float_value(end);
   float step_value = CalcuOpUtil::get_scalar_float_value(step);
 
-  //Check step start end
+  // Check step start end
   TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
       "upper bound and larger bound inconsistent with step sign");

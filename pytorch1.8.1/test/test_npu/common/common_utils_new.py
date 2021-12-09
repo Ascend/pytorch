@@ -1297,7 +1297,8 @@ CONNECT_TIMEOUT = "connect() timed out."
 
 def retry_on_connect_failures(func=None, connect_errors=(ADDRESS_IN_USE)):
     """Reruns a test if the test returns a RuntimeError and the exception
-    matches exactly with one of the strings in connect_errors."""
+    matches exactly with one of the strings in connect_errors.
+    """
     # This if block is executed when using this function as a decorator with arguments.
     if func is None:
         return partial(retry_on_connect_failures, connect_errors=connect_errors)

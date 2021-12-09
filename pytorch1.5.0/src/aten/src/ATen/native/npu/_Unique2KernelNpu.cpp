@@ -47,7 +47,7 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
     bool sorted,
     bool return_inverse,
     bool return_counts) {
-  if(self.numel() == 0){
+  if (self.numel() == 0) {
     Tensor result= OpPreparation::ApplyTensor(self, {0});
     Tensor yInverse = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
     Tensor yCounts = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
@@ -56,7 +56,7 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
   
   auto yInverseSize = input_same_output_size(self);
   auto outputSizes = tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>, IntArrayRef>(
-    {self.numel()}, {1}, yInverseSize);
+      {self.numel()}, {1}, yInverseSize);
 
   Tensor selfCopy = self;
   if (self.scalar_type() == ScalarType::Half) {

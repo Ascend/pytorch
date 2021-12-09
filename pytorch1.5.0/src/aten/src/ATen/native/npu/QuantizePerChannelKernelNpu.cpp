@@ -93,13 +93,12 @@ Tensor& quantize_per_channel_out_npu (
   Tensor scales_broadcast = at::npu_broadcast(scales_reshape, self.sizes());
   Tensor zp_broadcast = at::npu_broadcast(zp_reshape, self.sizes());
   quantize_per_channel_out_npu_after_broadcast(
-    result,
-    self,
-    scales_broadcast,
-    zp_broadcast,
-    axis,
-    dtype
-  );
+      result,
+      self,
+      scales_broadcast,
+      zp_broadcast,
+      axis,
+      dtype);
   return result;
 }
 

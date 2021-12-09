@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .iou import npu_iou, npu_ptiou
+from .iou import npu_iou, npu_ptiou, npu_giou
 from .nms import npu_multiclass_nms, npu_batched_multiclass_nms
 from .anchor_generator import npu_single_level_responsible_flags
 from .bbox_coder import npu_bbox_coder_encode_yolo, npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy
@@ -21,6 +21,7 @@ from .index_op import npu_fast_condition_index_put
 __all__ = [
     "npu_iou",
     "npu_ptiou",
+    "npu_giou",
     "npu_multiclass_nms",
     "npu_batched_multiclass_nms",
     "npu_single_level_responsible_flags",

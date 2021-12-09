@@ -21,8 +21,10 @@
 #include <mutex>
 #include <atomic>
 
-#include <c10/core/Device.h>
+#include "c10/core/Storage.h"
+#include "c10/core/Device.h"
 #include "c10/npu/npu_log.h"
+#include "c10/util/SmallVector.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10 {
@@ -45,13 +47,44 @@ enum RepoStatus {
   CAN_EXIT = 3,
 };
 
+// smallvector max size
+const int N = 32;
+
+class ReleaseQueue {
+ public:
+  ReleaseQueue() = default;
+  ~ReleaseQueue();
+  void PushToReleaseQueue(void* cur_paras);
+  void PopFromReleaseQueue();
+  void InitReleaseQueue();
+  RepoStatus GetStatus() const;
+
+ private:
+  bool IsEmptyQueue() const;
+  bool IsFullQueue() const;
+  bool WriteToReleaseQueue(void* cur_paras);
+  bool ReadFromReleaseQueue();
+  void SetStatus(RepoStatus desired);
+  void ChangeStatus(RepoStatus expected, RepoStatus desired);
+
+ private:
+  void* datas = nullptr;
+  std::thread releaser;
+
+ private:
+  sring_idx read_idx;
+  sring_idx write_idx;
+  std::atomic<RepoStatus> repo_status;
+  bool initialized = false;
+};
+
 class NPUQueueBase {
  public:
   virtual ~NPUQueueBase() {}
   virtual RepoStatus GetStatus() const = 0;
   virtual void SetStatus(RepoStatus desired) = 0;
   virtual void ChangeStatus(RepoStatus expected, RepoStatus desired) = 0;
-  virtual void Enqueue(void* cur_paras) = 0;
+  virtual void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) = 0;
   virtual void Dequeue() = 0;
   virtual NPUStatus MakeSureQueueEmpty() = 0;
   virtual void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) = 0;
@@ -67,11 +100,11 @@ public:
 class Repository : public NPUQueueBase {
  public:
   Repository() = default;
-  ~Repository();
+  ~Repository() override;
   RepoStatus GetStatus() const override;
   void SetStatus(RepoStatus desired) override;
   void ChangeStatus(RepoStatus expected, RepoStatus desired) override;
-  void Enqueue(void* cur_paras) override;
+  void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) override;
   void Dequeue() override;
   NPUStatus MakeSureQueueEmpty() override;
   void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) override;
@@ -84,7 +117,7 @@ class Repository : public NPUQueueBase {
   void EnableInterrupt(RepoRole role);
   void DisableInterrupt(RepoRole role);
   bool NeedNotify(RepoRole role) const;
-  bool WriteQueue(void* cur_paras);
+  bool WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearVec);
   bool ReadQueue();
 
  private:
@@ -107,25 +140,30 @@ class Repository : public NPUQueueBase {
   // case.
   std::mutex mu_enqueue;
   aclrtStream calcu_stream_;
+  ReleaseQueue releaseQueue;
 };
 
-using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*)>;
-using ACL_RELEASE_FUNC  = std::function<void(void*)>;
+using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream, uint32_t)>;
+using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
+using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;
+using ACL_COPY_RELEASE_PARM_FUNC = std::function<void(void*, void*)>;
+using ACL_RELEASE_PARAM_FUNC = std::function<void(void*)>;
 
 namespace register_queue_cb {
 class NPUCallBackRegisterBuilder {
 public:
-  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF, const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF);
+  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF,
+    const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF,
+    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF);
   ~NPUCallBackRegisterBuilder(){}
 };
 } // namespace register_queue_cb
 
-#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF)          \
-    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder    \
-        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF);
+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF)  \
+    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder                     \
+        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 
 } // namespace npu
 } // namespace c10

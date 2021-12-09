@@ -20,7 +20,7 @@
 namespace at {
 namespace native {
 using namespace at::native::npu;
-std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu(
+std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu_nocheck(
     Tensor& var_out,
     Tensor& m_out,
     Tensor& v_out,
@@ -57,6 +57,49 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_out_npu(
   return std::tie(var_out, m_out, v_out);
 }
 
+std::tuple<Tensor, Tensor, Tensor> npu_apply_adam(
+    Scalar beta1_power,
+    Scalar beta2_power,
+    Scalar lr,
+    Scalar beta1,
+    Scalar beta2,
+    Scalar epsilon,
+    const Tensor& grad,
+    c10::optional<bool> use_locking,
+    c10::optional<bool> use_nesterov) {
+  AT_ERROR("npu_apply_adam is not implemented for Tensor");
+}
+
+std::tuple<Tensor&, Tensor&, Tensor&> apply_adam_out_npu(
+    Tensor& var,
+    Tensor& m,
+    Tensor& v,
+    Scalar beta1_power,
+    Scalar beta2_power,
+    Scalar lr,
+    Scalar beta1,
+    Scalar beta2,
+    Scalar epsilon,
+    const Tensor& grad,
+    c10::optional<bool> use_locking,
+    c10::optional<bool> use_nesterov) {
+  apply_adam_npu(
+      var,
+      m,
+      v,
+      beta1_power,
+      beta2_power,
+      lr,
+      beta1,
+      beta2,
+      epsilon,
+      grad,
+      use_locking,
+      use_nesterov);
+
+  return std::tie(var, m, v);
+}
+
 std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
     Tensor& var,
     Tensor& m,
@@ -77,7 +120,7 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
     Tensor contiguous_var = var_match ? var : NpuUtils::format_contiguous(var);
     Tensor contiguous_m = m_match ? m : NpuUtils::format_contiguous(m);
     Tensor contiguous_v = v_match ? v : NpuUtils::format_contiguous(v);
-    apply_adam_out_npu(
+    apply_adam_out_npu_nocheck(
         contiguous_var,
         contiguous_m,
         contiguous_v,
@@ -100,7 +143,7 @@ std::tuple<Tensor, Tensor, Tensor> apply_adam_npu(
       NpuUtils::format_fresh_view(v, contiguous_v);
     }
   } else {
-    apply_adam_out_npu(
+    apply_adam_out_npu_nocheck(
         var,
         m,
         v,

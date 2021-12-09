@@ -54,24 +54,24 @@ SmallVector<int64_t, SIZE> image_to_col_npu_output_size(
 }
 
 Tensor& im2col_out_npu_nocheck(Tensor& result, const Tensor &self, IntArrayRef kernel_size,
-                      IntArrayRef dilation, IntArrayRef padding, IntArrayRef stride) {
+    IntArrayRef dilation, IntArrayRef padding, IntArrayRef stride) {
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 2,
-    "im2col: kernel_size must either be a single int, or a tuple of two ints");
+      "im2col: kernel_size must either be a single int, or a tuple of two ints");
   if (kernel_size.size() == 1) {
     SmallVector<int64_t, SIZE> kernel_sizes = {kernel_size[0], kernel_size[0]};
     kernel_size = IntArrayRef(kernel_sizes);
   }
 
   TORCH_CHECK(stride.empty() || stride.size() == 1 || stride.size() == 2,
-    "im2col: stride must either be omitted, a single int, or a tuple of two ints");
+      "im2col: stride must either be omitted, a single int, or a tuple of two ints");
   stride = stride.empty() ? IntArrayRef({1}) : stride;
 
   TORCH_CHECK(dilation.empty() || dilation.size() == 1 || dilation.size() == 2,
-    "im2col: dilation must either be omitted, a single int, or a tuple of two ints");
+      "im2col: dilation must either be omitted, a single int, or a tuple of two ints");
   dilation = dilation.empty() ? IntArrayRef({1}) : dilation;
   
   TORCH_CHECK(padding.empty() || padding.size() == 1 || padding.size() == 2,
-    "im2col: padding must either be omitted, a single int, or a tuple of two ints");
+      "im2col: padding must either be omitted, a single int, or a tuple of two ints");
   auto padding_ = padding.empty() ? IntArrayRef({0}) : padding;
   SmallVector<int64_t, SIZE> pads;
   if (padding_.size() == 1) {
@@ -122,12 +122,12 @@ Tensor& im2col_out_npu_nocheck(Tensor& result, const Tensor &self, IntArrayRef k
 }
 
 Tensor& im2col_out_npu(Tensor& result, const Tensor &self, IntArrayRef kernel_size,
-                      IntArrayRef dilation, IntArrayRef padding, IntArrayRef stride) {
+    IntArrayRef dilation, IntArrayRef padding, IntArrayRef stride) {
   OpPreparation::CheckOut(
-    {self},
-    result,
-    self,
-    image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding));
+      {self},
+      result,
+      self,
+      image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding));
 
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {result})
@@ -136,7 +136,7 @@ Tensor& im2col_out_npu(Tensor& result, const Tensor &self, IntArrayRef kernel_si
 }
 
 Tensor im2col_npu(const Tensor &self, IntArrayRef kernel_size, IntArrayRef dilation,
-                  IntArrayRef padding, IntArrayRef stride) {
+    IntArrayRef padding, IntArrayRef stride) {
   auto outputSize =
       image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding);
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);

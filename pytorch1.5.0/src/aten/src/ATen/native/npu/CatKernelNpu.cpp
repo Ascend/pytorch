@@ -17,10 +17,21 @@
 #include "c10/npu/OptionsManager.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
-
+#include "third_party/acl/inc/op_proto/split_combination_ops.h"
 namespace at {
 namespace native {
 using namespace at::native::npu;
+namespace {
+template <typename ge_op_type>
+at::native::npu::DynamicInputRegFunc concat_func =
+    [](DyNumAndIndex num_and_index,
+       std::string op_name) -> ge::OperatorPtr {
+  auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
+  ge_op->create_dynamic_input_byindex_x(
+      num_and_index.front().first, num_and_index.front().second);
+  return ge_op;
+};
+}
 
 SmallVector<Tensor, N> cat_dest_tensor_list(TensorList tensors) {
   SmallVector<Tensor, N> dstTensorList;
@@ -102,52 +113,66 @@ Tensor& _cat_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
   // executing the NPU operator
   int64_t input_number = 0;
   if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-     OpCommand cmd;
-     cmd.Name("ConcatD");
-     input_number = 0;
-     for (int i = 0; i < inputTensors.size(); i++) {
-       if (inputTensors[i].numel() == 0) {
-         continue;
-       }
-       string inputName = "x" + to_string(input_number++);
-       cmd.Input(inputTensors[i], inputName);
-     }
-     cmd.Output(result)
-       .Attr("N", input_number)
-       .Attr("concat_dim", dim)
-       .Run();
-  } else {
-     OpDynamicCommand cmd;
-     cmd.Name("ConcatD");
-     input_number = 0;
-     for (int i = 0; i < inputTensors.size(); i++) {
-       if (inputTensors[i].numel() == 0) {
-         continue;
-       }
-       string inputName = "x" + to_string(input_number++);
-       cmd.Input(inputTensors[i], inputName);
-     }
-     cmd.Output(result)
-       .Attr("N", input_number)
-       .Attr("concat_dim", dim);
-    
-     // DYNAMIC
-     SmallVector<int64_t, N> dimVec = {dim};
+    OpCommand cmd;
+    cmd.Name("ConcatD");
 
-     cmd.DynamicName("Concat")
-       .DynamicInput(dimVec, at::kLong, at::kInt, "", true, FIXED_CONST_VALUE);
-     input_number = 0;
-     for (int i = 0; i < inputTensors.size(); i++) {
-        if (inputTensors[i].numel() == 0) {
-          continue;
+    // In graph mode, if all of input tensors are null numel,
+    // these null tensors should be passed to ConcatD as inputs.
+    // Otherwise, an error will be reported when infershape.
+    bool tensors_empty_in_graph_mode = false;
+    if (c10::npu::NpuRunMode::IsGraphMode()) {
+      tensors_empty_in_graph_mode = true;
+      for (int i = 0; i < inputTensors.size(); i++) {
+        if (inputTensors[i].numel() != 0) {
+          tensors_empty_in_graph_mode = false;
+          break;
         }
+      }
+    }
+    input_number = 0;
+    for (int i = 0; i < inputTensors.size(); i++) {
+      if (inputTensors[i].numel() != 0 || tensors_empty_in_graph_mode) {
         string inputName = "x" + to_string(input_number++);
-        cmd.DynamicInput(inputTensors[i], inputName);
-     }
+        cmd.Input(inputTensors[i], inputName);
+      }
+    }
+    cmd.DynamicInputReg(concat_func<ge::op::ConcatD>, {{input_number, 0}})
+      .Output(result)
+      .Attr("N", input_number)
+      .Attr("concat_dim", dim)
+      .Run();
+  } else {
+    OpDynamicCommand cmd;
+    cmd.Name("ConcatD");
+    input_number = 0;
+    for (int i = 0; i < inputTensors.size(); i++) {
+      if (inputTensors[i].numel() == 0) {
+        continue;
+      }
+      string inputName = "x" + to_string(input_number++);
+      cmd.Input(inputTensors[i], inputName);
+    }
+    cmd.Output(result)
+      .Attr("N", input_number)
+      .Attr("concat_dim", dim);
+    
+    // DYNAMIC
+    SmallVector<int64_t, N> dimVec = {dim};
+
+    cmd.DynamicName("Concat")
+      .DynamicInput(dimVec, at::kLong, at::kInt, "", true, FIXED_CONST_VALUE);
+    input_number = 0;
+    for (int i = 0; i < inputTensors.size(); i++) {
+      if (inputTensors[i].numel() == 0) {
+        continue;
+      }
+      string inputName = "x" + to_string(input_number++);
+      cmd.DynamicInput(inputTensors[i], inputName);
+    }
   
-     cmd.DynamicOutput(result)
-        .DynamicAttr("N", input_number)
-        .DynamicOpRun();
+    cmd.DynamicOutput(result)
+      .DynamicAttr("N", input_number)
+      .DynamicOpRun();
   }
 
   return result;
@@ -163,11 +188,11 @@ Tensor& cat_out_npu(Tensor& result, TensorList tensors, int64_t dim) {
   dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
   auto outputSize = cat_npu_output_size(inputTensors, dim);
   OpPreparation::CheckOut(
-    {tensors[0]}, 
-    result, 
-    ACL_FORMAT_ND, 
-    tensors[0].scalar_type(), 
-    outputSize); 
+      {tensors[0]}, 
+      result, 
+      ACL_FORMAT_ND, 
+      tensors[0].scalar_type(), 
+      outputSize); 
   return at::_cat_out(result, tensors, dim);
 }
 

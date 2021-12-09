@@ -29,9 +29,9 @@ std::tuple<Tensor, Tensor> _pad_packed_sequence_npu(const Tensor& data, const Te
   int64_t maxSeqLength = maxRealSeqLength;
   if (totalLength > 0) {
     TORCH_CHECK(totalLength >= maxSeqLength,
-             "Expected total_length to be at least the length of the longest "
-             "sequence in input, but got total_length=", totalLength, " and "
-             "max sequence length being ", maxSeqLength);
+        "Expected total_length to be at least the length of the longest "
+        "sequence in input, but got total_length=", totalLength, " and "
+        "max sequence length being ", maxSeqLength);
     maxSeqLength = totalLength;
   }
 

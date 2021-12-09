@@ -34,11 +34,7 @@ void NpuUtils::format_fresh_view(
     const Tensor& y) {
   // x:NPU before inplace_op, y: NPU computed
   // now we fresh x according to y
-  if (check_match(&x) == true) {
-    return;
-  }
   RECORD_FUNCTION("format_fresh_view", vector<c10::IValue>({x, y}));
-
   x.copy_(y);
 }
 
@@ -323,6 +319,10 @@ bool NpuUtils::IsOomError(aclError ret, int index)
     AT_ERROR("NPU out of memory. device id: ", deviceId);
   }
   return false;
+}
+
+void NpuUtils::check_1d(const Tensor& t, const char* arg, const char* fn) {
+  TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ", t.dim(), "-D");
 }
 } // namespace npu
 } // namespace native

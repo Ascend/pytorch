@@ -640,6 +640,7 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("thnn_conv_depthwise2d.out", TORCH_FN(thnn_conv_depthwise2d_out_npu));
   m.impl("thnn_conv_depthwise2d", TORCH_FN(thnn_conv_depthwise2d_npu));
   m.impl("conv_transpose3d.input", TORCH_FN(conv_transpose3d_npu_));
+  m.impl("thnn_conv2d_backward.output_mask", TORCH_FN(thnn_conv2d_backward_npu));
 }
 } // namespace native
 } // namespace at

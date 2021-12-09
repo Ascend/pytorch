@@ -22,7 +22,7 @@ namespace native {
 using namespace at::native::npu;
 
 bool equal_npu(const Tensor& self, const Tensor& other) {
-  //check the shape of self and other
+  // check the shape of self and other
   if(self.sizes() != other.sizes()) {
     return false;
   }

@@ -35,8 +35,7 @@ Tensor& resize_npu_(
     self.npu_format_cast_(FormatHelper::GetBaseFormat(self));
   }
   auto* self_ = self.unsafeGetTensorImpl();
-  resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
-  // self_->maybe_zero_dim(size.size() == 0);
+  resize_impl_npu_(self_, size, c10::nullopt);
   return self;
 }
 
@@ -57,6 +56,7 @@ Tensor& resize_as_npu_(
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("resize_", TORCH_FN(resize_npu_));
+  m.impl("resize_as_", TORCH_FN(resize_as_npu_));
 }
 
 } // namespace native

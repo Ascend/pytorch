@@ -21,13 +21,7 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestBatchNormBackwardReduce(TestCase):
-    def cuda_op_exec(self, *args):
-        cuda_sum_dy, cuda_sum_dy_xmu, cuda_grad_weight, cuda_grad_bias = \
-                                        torch.batch_norm_backward_reduce(*args)
-        return (cuda_sum_dy.cpu().numpy(), cuda_sum_dy_xmu.cpu().numpy(),
-                cuda_grad_weight.cpu().numpy(), cuda_grad_bias.cpu().numpy())
-
-    def cuda_expect_result(self):
+    def expect_result(self):
         cpu_output0 = np.array([449.18185, 464.78906, 471.87485], dtype=np.float32)
         cpu_output1 = np.array([831.08484, 2112.0908, 259.91568], dtype=np.float32)
         cpu_output2 = np.array([6091.88, 3367.45, 1824.8948], dtype=np.float32)
@@ -47,20 +41,14 @@ class TestBatchNormBackwardReduce(TestCase):
                                  True, True, True],
         ]
         for item in shape_format:
-            cpu_grad_output, npu_grad_output = create_common_tensor(item[0], 1, 10)
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
-            cpu_mean, npu_mean = create_common_tensor(item[1], 1, 10)
-            cpu_invstd, npu_invstd = create_common_tensor(item[1], 1, 10)
-            cpu_weight, npu_weight = create_common_tensor(item[1], 1, 10)
+            _, npu_grad_output = create_common_tensor(item[0], 1, 10)
+            _, npu_input1 = create_common_tensor(item[0], 1, 10)
+            _, npu_mean = create_common_tensor(item[1], 1, 10)
+            _, npu_invstd = create_common_tensor(item[1], 1, 10)
+            _, npu_weight = create_common_tensor(item[1], 1, 10)
 
-            if torch.cuda.is_available():
-                cpu_output = self.cuda_op_exec(cpu_grad_output.cuda(),
-                                cpu_input1.cuda(), cpu_mean.cuda(),
-                                cpu_invstd.cuda(), cpu_weight.cuda(),
-                                *item[-3:])
-            else:
-                cpu_output = self.cuda_expect_result()
-            npu_output = self.cuda_op_exec(npu_grad_output,
+            cpu_output = self.expect_result()
+            npu_output = self.npu_op_exec(npu_grad_output,
                                 npu_input1, npu_mean,
                                 npu_invstd, npu_weight,
                                 *item[-3:])

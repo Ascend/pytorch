@@ -33,25 +33,25 @@ public:
 };
 
 void DefaultStrategy::CreateInputDescInfo(ACL_PARAMS& params, 
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
 
   CreateDefaultDescInfo(params.input_desc,
-    params.input_num,
-    params.inputDims,
-    params.inputFormats,
-    compileShape.inputShape,
-    compileShape.inputStorageShape);
+      params.input_num,
+      params.inputDims,
+      params.inputFormats,
+      compileShape.inputShape,
+      compileShape.inputStorageShape);
 }
 
 void DefaultStrategy::CreateOutputDescInfo(ACL_PARAMS& params,
-  DynamicCompileShape& compileShape) {
+    DynamicCompileShape& compileShape) {
 
   CreateDefaultDescInfo(params.output_desc,
-    params.output_num,
-    params.outputDims,
-    params.outputFormats,
-    compileShape.outputShape,
-    compileShape.outputStorageShape);
+      params.output_num,
+      params.outputDims,
+      params.outputFormats,
+      compileShape.outputShape,
+      compileShape.outputStorageShape);
 }
 
 REGISTER_DYNAMIC_SHAPE_OPT(Default, DefaultStrategy)

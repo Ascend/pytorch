@@ -79,13 +79,13 @@ Tensor& im2col_backward_out_npu(
     .Func([&grad_output, &input_size, &kernel_size, &dilation, &padding, &stride]
     (Tensor& grad_input)
     {im2col_backward_out_npu_nocheck(
-      grad_input,
-      grad_output,
-      input_size,
-      kernel_size,
-      dilation,
-      padding,
-      stride);})
+        grad_input,
+        grad_output,
+        input_size,
+        kernel_size,
+        dilation,
+        padding,
+        stride);})
     .Call(grad_input);
 }
 

@@ -34,7 +34,7 @@ public:
 private:
   // help function of format_cast_between_group
   static void base_format_cast_nocheck(const Tensor& dst, const Tensor& src);
-}; //class FormatCastHelper
+}; // class FormatCastHelper
 
 
 } // namespace npu

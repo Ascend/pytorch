@@ -23,15 +23,12 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
  public:
   bool Optimizer(const Tensor& src, Tensor& self) override {
     if (check_reshape_match(src, self)) {
-      if (can_use_memory_repoint(src) &&
+      if ((!c10::npu::NpuRunMode::IsGraphMode()) && can_use_memory_repoint(src) &&
           reshape_match_by_memory_repoint(src, self)) {
         return true;
       }
-      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
-      copy_d2d_by_memcpy(
-          self,
-          src,
-          prod_intlist(self.storage().get_npu_desc().storage_sizes_));
+      RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      at::npu_reshape_out(self, src, self.sizes());
       return true;
     }
     return false;
@@ -53,7 +50,7 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
   bool reshape_match_by_memory_repoint(const Tensor& src, Tensor& self) {
     // Memory-repointing optimization hasn't been fully demonstrated, Only FP16
     // and FP32 are supported.
-    RECORD_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
       case at::ScalarType::Half:
         ResetDataPtr(

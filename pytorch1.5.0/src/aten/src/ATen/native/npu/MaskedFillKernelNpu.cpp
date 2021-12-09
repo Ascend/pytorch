@@ -24,7 +24,7 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
   Tensor maskBool = mask;
   int64_t dimOfSelf = self.dim();
 
-  /*Avoid the problem that the TBE operator does not support 0-dimensional tensor input*/
+  /* Avoid the problem that the TBE operator does not support 0-dimensional tensor input */
   if (dimOfSelf == 0) {
     self.unsqueeze_(0);
   }
@@ -56,7 +56,7 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
   Tensor maskBool = mask;
   int64_t dimOfSelf = self.dim();
 
-  /*Avoid the problem that the TBE operator does not support 0-dimensional tensor input*/
+  /* Avoid the problem that the TBE operator does not support 0-dimensional tensor input */
   if (dimOfSelf == 0) {
     self.unsqueeze_(0);
   }
@@ -67,11 +67,11 @@ Tensor& masked_fill_out_npu(Tensor& result, const Tensor& self, const Tensor& ma
 
   OpCommand cmd;
   cmd.Name("MaskedFill")
-      .Input(self)
-      .Input(maskBool)
-      .Input(value, self.scalar_type())      
-      .Output(result)
-      .Run();
+    .Input(self)
+    .Input(maskBool)
+    .Input(value, self.scalar_type())
+    .Output(result)
+    .Run();
   
   if (dimOfSelf == 0) {
     result.squeeze_(0);

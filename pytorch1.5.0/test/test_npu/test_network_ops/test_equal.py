@@ -1,4 +1,6 @@
-# Copyright (c) 2020, Huawei Technologies.All rights reserved.
+# Copyright (c) 2021 Huawei Technologies Co., Ltd
+# Copyright (c) 2019, Facebook CORPORATION. 
+# All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,54 +22,88 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
-class TestEqual(TestCase):
+
+class TestTensorEqual(TestCase):
 
     def cpu_op_exec(self, input1, input2):
-        output =torch.equal(input1, input2)
-        output = np.array([output], dtype = bool)
+        output = torch.equal(input1, input2)
+        output = torch.tensor(output)
+        output = output.numpy()
         return output
 
     def npu_op_exec(self, input1, input2):
         output = torch.equal(input1, input2)
-        output = np.array([output], dtype = bool)
+        output = torch.tensor(output).to("cpu")
+        output = output.numpy()
         return output
 
-    def test_equal_common_shape_format(self, device):
+    def test_tensor_equal_common_shape_format(self, device):
         shape_format = [
-                [[np.float32, -1, (5, 3)], [np.float32, -1, (5, 3)]],
-                [[np.int32, -1, (4, 3)], [np.int32, -1, (4, 3)]],
-                [[np.int8, -1, (8, 8)], [np.int8, -1, (8, 8)]],
-                [[np.uint8, -1, (8, 8)], [np.uint8, -1, (8, 8)]],
-                [[np.float32, -1, (5, 3, 12)], [np.float32, -1, (5, 3, 12)]],
-                [[np.float32, -1, (4, 3, 100)], [np.float32, -1, (4, 3, 100)]],
-                [[np.float32, -1, (8, 8, 12, 12, 10)], [np.float32, -1, (8, 8, 12, 12, 10)]],
+                [[np.float32, 0,  (4, 3)],    [np.float32, 0,  (4, 3)]],
+                [[np.float32, 29, (4, 3, 1)], [np.float32, 29, (4, 1, 5)]],
+                [[np.float32, 2,  (4, 3, 2)], [np.float32, 2,  (4, 3, 2)]],
+                [[np.float32, 3,  (7, 3, 2)], [np.float32, 3,  (7, 3, 2)]],    
+                [[np.float32, 4,  (8, 4)],    [np.float32, 4,  (8, 4)]],      
+                [[np.int32,   0,  (2, 3)],    [np.int32,   0,  (2, 3)]],
+                [[np.int32,   2,  (4, 3, 1)], [np.int32,   2,  (4, 1, 5)]],
+                [[np.int32,   2,  (4, 3, 2)], [np.int32,   2,  (4, 3, 2)]],
+                [[np.int32,  -1,  (7, 3, 2)], [np.int32,  -1,  (7, 3, 2)]],
+                [[np.int8,    0,  (7, 3)],    [np.int8,    0,  (7, 3)]],
+                [[np.int8,    2,  (4, 3, 2)], [np.int8,    2,  (4, 3, 2)]],
+                [[np.uint8,   0,  (3, 2)],    [np.uint8,   0,  (3, 2)]],
+                [[np.uint8,   2,  (4, 3, 2)], [np.uint8,   2,  (4, 3, 2)]]
         ]
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertRtolEqual(cpu_output, npu_output)
-    
-    def test_equal_common_shape_fp16_format(self, device):
-        def cpu_op_fp16_exec(input1, input2):
-            input1 = input1.to(torch.float32)
-            input2 = input2.to(torch.float32)
-            output = torch.equal(input1, input2)
-            output = np.array([output], dtype = bool)
-            return output
-        shape_format = [
-                [[np.float16, -1, (5, 3, 12)], [np.float16, -1, (5, 3, 12)]],
-                [[np.float16, -1, (4, 3, 100)], [np.float16, -1, (4, 3, 100)]],
-                [[np.float16, -1, (8, 8, 12, 12, 10)], [np.float16, -1, (8, 8, 12, 12, 10)]]
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
-            cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
-            cpu_output = cpu_op_fp16_exec(cpu_input1, cpu_input2)
-            npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertRtolEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)  
 
-instantiate_device_type_tests(TestEqual, globals(), except_for='cpu')
+        cpu_input1, npu_input1 = create_common_tensor(shape_format[11][0], 1, 100)
+        cpu_input2 = cpu_input1
+        npu_input2 = npu_input1
+        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+        npu_output = self.npu_op_exec(npu_input1, npu_input2)
+        self.assertRtolEqual(cpu_output, npu_output)  
+
+    def test_tensor_equal_float16_shape_format(self, device):
+        def cpu_op_exec_fp16(input1, input2):
+            output = np.array_equal(input1, input2)
+            output = torch.tensor(output)
+            output = output.numpy()
+            output = output.astype(np.float16)
+            return output
+
+        def npu_op_exec_fp16(input1, input2):
+            output = torch.equal(input1, input2)
+            output = torch.tensor(output).to("cpu")
+            output = output.numpy()
+            output = output.astype(np.float16)
+            return output
+
+        shape_format = [
+                [[np.float16, 0,  (4, 3)],    [np.float16, 0,  (4, 3)]],
+                [[np.float16, 29, (4, 3, 1)], [np.float16, 29, (4, 1, 5)]],
+                [[np.float16, 2,  (4, 3, 2)], [np.float16, 2,  (4, 3, 2)]],
+                [[np.float16, 3,  (7, 3, 2)], [np.float16, 3,  (7, 3, 2)]],
+                [[np.float16, 4,  (8, 4)],    [np.float16, 4,  (8, 4)]],   
+        ] 
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 100)
+            cpu_output = cpu_op_exec_fp16(cpu_input1, cpu_input2)
+            npu_output = npu_op_exec_fp16(npu_input1, npu_input2)
+            self.assertRtolEqual(cpu_output, npu_output)  
+
+        cpu_input1, npu_input1 = create_common_tensor(shape_format[2][0], 2, 100)
+        cpu_input2 = cpu_input1
+        npu_input2 = npu_input1
+        cpu_output = cpu_op_exec_fp16(cpu_input1, cpu_input2)
+        npu_output = npu_op_exec_fp16(npu_input1, npu_input2)
+        self.assertRtolEqual(cpu_output, npu_output)  
+
+            
+instantiate_device_type_tests(TestTensorEqual, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

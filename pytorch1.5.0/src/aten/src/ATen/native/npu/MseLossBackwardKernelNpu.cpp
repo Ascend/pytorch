@@ -21,11 +21,11 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& mse_loss_backward_out_npu(
-  Tensor& grad_input,
-  const Tensor& grad_output,
-  const Tensor& self,
-  const Tensor& target,
-  int64_t reduction) {
+    Tensor& grad_input,
+    const Tensor& grad_output,
+    const Tensor& self,
+    const Tensor& target,
+    int64_t reduction) {
   if (self.numel()==0 || target.numel()==0) {
     grad_input = at::zeros_like(self, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     return grad_input;
@@ -50,10 +50,10 @@ Tensor& mse_loss_backward_out_npu(
 }
 
 Tensor mse_loss_backward_npu(
-  const Tensor& grad_output,
-  const Tensor& self,
-  const Tensor& target,
-  int64_t reduction) {
+    const Tensor& grad_output,
+    const Tensor& self,
+    const Tensor& target,
+    int64_t reduction) {
   auto grad_out = grad_output.contiguous();
   if (grad_out.dim() == 0) {
     grad_out.view(1);
@@ -62,11 +62,11 @@ Tensor mse_loss_backward_npu(
   Tensor grad_input = OpPreparation::ApplyTensor(self);
   
   mse_loss_backward_out_npu(
-    grad_input,
-    grad_out,
-    self,
-    target,
-    reduction);
+      grad_input,
+      grad_out,
+      self,
+      target,
+      reduction);
 
   return grad_input;
 }

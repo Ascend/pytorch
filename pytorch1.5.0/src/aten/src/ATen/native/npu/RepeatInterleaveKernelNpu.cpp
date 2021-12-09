@@ -54,7 +54,7 @@ Tensor& repeat_interleave_out_npu(Tensor& result, Tensor& self, int64_t repeats,
 Tensor repeat_interleave_npu(const Tensor &self, int64_t repeats, c10::optional<int64_t> dim) {
   int64_t realDim = dim.value_or(0);
   
-  //dim value must be greater than or equal to 0.
+  // dim value must be greater than or equal to 0.
   int64_t self_dim = self.dim();
   if((realDim < -self_dim) || (realDim > self_dim - 1)){
     AT_ERROR("dim value should be in the range of [-x, x-1], x is the dimension number of input tensor.");

@@ -21,7 +21,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& upsample_nearest3d_backward_out_npu(
+Tensor& upsample_nearest3d_backward_out_npu_nocheck(
     Tensor& grad_input,
     const Tensor& grad_output,
     IntArrayRef output_size,
@@ -51,15 +51,52 @@ Tensor& upsample_nearest3d_backward_out_npu(
 
   grad_input.resize_(
       {nbatch, channels, input_depth, input_height, input_width});
+  
+  Tensor gradOutputCopy = grad_output;
+  Tensor gradInputCopy = grad_input;
+  if (grad_output.scalar_type() == ScalarType::Half) {
+    gradOutputCopy = gradOutputCopy.npu_dtype_cast(ScalarType::Float);
+    gradInputCopy = gradInputCopy.npu_dtype_cast(ScalarType::Float);
+  }
 
   OpCommand cmd;
   cmd.Name("UpsampleNearest3dGrad")
-    .Input(grad_output)
-    .Output(grad_input)
+    .Input(gradOutputCopy)
+    .Output(gradInputCopy)
     .Attr("input_size", input_size)
     .Attr("output_size", output_size)
     .Run();
 
+  if (grad_output.scalar_type() == ScalarType::Half) {
+    gradInputCopy = gradInputCopy.npu_dtype_cast(ScalarType::Half);
+  }
+  grad_input.copy_(gradInputCopy);
+  return grad_input;
+}
+
+Tensor& upsample_nearest3d_backward_out_npu(
+    Tensor& grad_input,
+    const Tensor& grad_output,
+    IntArrayRef output_size,
+    IntArrayRef input_size,
+    c10::optional<double> scales_d,
+    c10::optional<double> scales_h,
+    c10::optional<double> scales_w) {
+  OpPreparation::CheckOut(
+      {grad_output},
+      grad_input,
+      grad_output,
+      input_size);
+  
+  if (!NpuUtils::check_match(&grad_input)) {
+    Tensor contiguousGradInput = NpuUtils::format_contiguous(grad_input);
+    upsample_nearest3d_backward_out_npu_nocheck(
+        contiguousGradInput, grad_output, output_size, input_size, scales_d, scales_h, scales_w);
+    NpuUtils::format_fresh_view(grad_input, contiguousGradInput);
+  } else {
+    upsample_nearest3d_backward_out_npu_nocheck(
+        grad_input, grad_output, output_size, input_size, scales_d, scales_h, scales_w);
+  }
   return grad_input;
 }
 
@@ -73,7 +110,7 @@ Tensor upsample_nearest3d_backward_npu(
 
   Tensor grad_input = OpPreparation::ApplyTensor(grad_output, input_size);
 
-  upsample_nearest3d_backward_out_npu(grad_input, grad_output, output_size, input_size, scales_d, scales_h, scales_w);
+  upsample_nearest3d_backward_out_npu_nocheck(grad_input, grad_output, output_size, input_size, scales_d, scales_h, scales_w);
 
   return grad_input;
 }

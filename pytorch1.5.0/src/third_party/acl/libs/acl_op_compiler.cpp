@@ -82,3 +82,26 @@ aclError aclSetCompileopt(
   return 0;
 }
 
+aclError aclGenGraphAndDumpForOp(
+    const char *opType,
+    int numInputs,
+    const aclTensorDesc *const inputDesc[],
+    const aclDataBuffer *const inputs[],
+    int numOutputs,
+    const aclTensorDesc *const outputDesc[],
+    aclDataBuffer *const outputs[],
+    const aclopAttr *attr,
+    aclopEngineType engineType,
+    const char *graphDumpPath,
+    aclGraphDumpOption* graphdumpOpt) {
+  return 0;
+}
+
+aclGraphDumpOption* aclCreateGraphDumpOpt() {
+  return NULL;
+}
+
+aclError aclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt) {
+  return 0;
+}
+

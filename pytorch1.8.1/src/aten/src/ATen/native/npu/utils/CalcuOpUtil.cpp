@@ -207,8 +207,9 @@ int64_t CalcuOpUtil::make_wrap_dim(int64_t dim, int64_t dim_post_expr) {
 
   int64_t min = -dim_post_expr;
   int64_t max = dim_post_expr - 1;
-  if (dim < 0)
+  if (dim < 0) {
     dim += dim_post_expr;
+  }
   return dim;
 }
 
@@ -688,6 +689,36 @@ int64_t CalcuOpUtil::completePad(
   }
   return needpads;
 }
+
+SmallVector<int64_t, 3> CalcuOpUtil::compute_output_size(
+    c10::IntArrayRef input_size,  // Full input tensor size.
+    c10::optional<c10::IntArrayRef> output_size,
+    c10::optional<c10::ArrayRef<double>> scale_factors) {
+  int spatial_dimensions = input_size.size() - 2;
+  if (output_size) {
+    TORCH_CHECK(!scale_factors, "Must specify exactly one of output_size and scale_factors");
+    TORCH_CHECK(output_size->size() == spatial_dimensions);
+    return {output_size->data(), output_size->data() + output_size->size()};
+  }
+  if (scale_factors) {
+    TORCH_CHECK(!output_size, "Must specify exactly one of output_size and scale_factors");
+    TORCH_CHECK(scale_factors->size() == spatial_dimensions);
+    c10::SmallVector<int64_t, 3> ret;
+    for (int i = 0; i < spatial_dimensions; ++i) {
+      ret.push_back(static_cast<double>(input_size[i+2]) * scale_factors.value()[i]);
+    }
+    return ret;
+  }
+  TORCH_CHECK(false, "Must specify exactly one of output_size and scale_factors");
+}
+
+c10::optional<double> CalcuOpUtil::get_scale_value(c10::optional<c10::ArrayRef<double>> scales, int idx) {
+  if (!scales) {
+    return nullopt;
+  }
+  return scales->at(idx);
+}
+
 } // namespace npu
 } // namespace native
 } // namespace at

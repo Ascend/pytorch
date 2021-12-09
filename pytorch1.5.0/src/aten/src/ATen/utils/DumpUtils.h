@@ -58,7 +58,7 @@ enum class SaveType:int32_t {
 
 template <typename T>
 struct ArgDes {
-public:
+ public:
   explicit ArgDes(string name, const T& value): name_(move(name)), value_(value) {}
 
   const string& Name() const {
@@ -76,7 +76,8 @@ public:
   void SetName(const string& newName) {
     name_ = newName;
   }
-private:
+
+ private:
   string name_;
   T value_;
 };
@@ -215,6 +216,7 @@ class DumpUtil {
       if (dumpInit) {
         dumpInit = false;
         delete file;
+        file = nullptr;
       }
     }
     return;

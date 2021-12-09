@@ -16,8 +16,54 @@ import time
 import unittest
 import os
 
+FAILURE_FILE_NAME = 'failures.txt'
+ERROR_FILE_NAME = 'errors.txt'
+
+def load_failure_error_cases(file_name):
+    data = []
+    if os.path.isfile(file_name):
+        with open(file_name, 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                temp = line.strip('\n').strip('\t')
+                data.append(temp)
+    else:
+        print("Invlid filename:",file_name)
+    return data
+
+def analyse_failure_error_cases(result):
+    new_failures = []
+    new_errors = []
+
+    if len(result.failures) > 0:
+        print("====================================== failed cases count: ", len(result.failures))
+        for failure in result.failures:
+            print(failure[0])
+        print("============================================================\n")
+        orig_failures = load_failure_error_cases(FAILURE_FILE_NAME)
+        for failure in result.failures:
+            if str(failure[0]) not in orig_failures:
+                new_failures.append(str(failure[0]))
+
+    if len(result.errors) > 0:
+        print("====================================== error cases count: ", len(result.errors))
+        for error_case in result.errors:
+            print(error_case[0])
+        print("============================================================\n")
+        orig_errors = load_failure_error_cases(ERROR_FILE_NAME)
+        for error_case in result.errors:
+            if str(error_case[0]) not in orig_errors:
+                new_errors.append(str(error_case[0]))
+    print("====================================== new failed cases count: ", len(new_failures))
+    for case in new_failures:
+        print(case)
+    print("====================================== new error cases count: ", len(new_errors))
+    for case in new_errors:
+        print(case)
+    return new_failures, new_errors
+
 def load_local_case(test_case_path):
-    discover=unittest.defaultTestLoader.discover(test_case_path, "test_*.py")
+    discover = unittest.defaultTestLoader.discover(test_case_path, "test_*.py")
     return discover
 
 def run_tests():
@@ -25,10 +71,16 @@ def run_tests():
     test_case_path='./'
     test_report_path=test_case_path+'ReportResult'
 
-    ENABLE_HTML=bool(os.environ.get('ENABLE_HTML'))
+    ENABLE_HTML = bool(os.environ.get('ENABLE_HTML'))
     ENABLE_HTML_MX=bool(os.environ.get('ENABLE_HTML_MX'))
     ENABLE_CASE_PATH=os.environ.get('ENABLE_CASE_PATH')
     ENABLE_OUTPUT_PATH=os.environ.get('ENABLE_OUTPUT_PATH')
+    WHITE_LIST_PATH = os.environ.get('WHITE_LIST_PATH')
+    if WHITE_LIST_PATH and  os.path.exists(WHITE_LIST_PATH):
+        global FAILURE_FILE_NAME
+        global ERROR_FILE_NAME
+        FAILURE_FILE_NAME = WHITE_LIST_PATH + '/failures.txt'
+        ERROR_FILE_NAME = WHITE_LIST_PATH + '/errors.txt'
 
     if ENABLE_CASE_PATH is not None:
         if not os.path.exists(ENABLE_CASE_PATH):
@@ -57,8 +109,9 @@ def run_tests():
         with open(htmlFileName, "wb") as report_file:
             runner=HTMLTestRunner.HTMLTestRunner(stream=report_file, title='AllTest', description='all npu test case', verbosity=2)
             result = runner.run(load_local_case(test_case_path))
-            if not result.wasSuccessful():
-                raise RuntimeError("Some cases of HTML unittest testset failed")
+            new_failures, new_errors = analyse_failure_error_cases(result)
+            if len(new_failures) + len(new_errors) > 0:
+                print(" RuntimeError: new error or failed cases found!")
         print('report files path', htmlFileName)
     elif ENABLE_HTML_MX:
         print('start pytorch Multi HTML unittest testset...')

@@ -35,16 +35,30 @@ tuple<Tensor&, Tensor&> batch_norm_backward_training_update_nocheck(
     bool train,
     double eps) {
   OpCommand cmd;
-  cmd.Name("BNTrainingUpdateGrad")
-      .Input(grad_out)
-      .Input(self)
-      .Input(save_mean)
-      .Input(save_invstd)
-      .Output(grad_weight)
-      .Output(grad_bias)
-      .Attr("epsilon", static_cast<float>(eps))
-      .Run();
-  
+  if (self.dim() == 5) {
+    // Used for 3D BatchNorm in Training
+    cmd.Name("BN3DTrainingUpdateGrad")
+        .Input(grad_out, "grads", ACL_FORMAT_NCDHW)
+        .Input(self, "x", ACL_FORMAT_NCDHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+        .Output(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+        .Output(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+        .Attr("epsilon", static_cast<float>(eps))
+        .Run();
+  } else {
+    // Used for 2D BatchNorm in Training
+    cmd.Name("BNTrainingUpdateGrad")
+        .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+        .Input(self, "x", ACL_FORMAT_NCHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+        .Output(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+        .Output(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+        .Attr("epsilon", static_cast<float>(eps))
+        .Run();
+  }
+
   return tuple<Tensor&, Tensor&>(grad_weight, grad_bias);
 }
 
@@ -62,17 +76,33 @@ Tensor& batch_norm_backward_training_reduce_nocheck(
     bool train,
     double eps) {
   OpCommand cmd;
-  cmd.Name("BNTrainingReduceGrad")
-      .Input(grad_out)
-      .Input(self)
-      .Input(grad_weight)
-      .Input(grad_bias)
-      .Input(weight)
-      .Input(save_mean)
-      .Input(save_invstd)
-      .Output(grad_input)
-      .Attr("epsilon", static_cast<float>(eps))
-      .Run();
+  if (self.dim() == 5) {
+    // Used for 3D BatchNorm in Training
+    cmd.Name("BN3DTrainingReduceGrad")
+        .Input(grad_out, "grads", ACL_FORMAT_NCDHW)
+        .Input(self, "x", ACL_FORMAT_NCDHW)
+        .Input(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+        .Input(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+        .Input(weight, "scale", ACL_FORMAT_NCHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+        .Output(grad_input, "y", ACL_FORMAT_NCHW)
+        .Attr("epsilon", static_cast<float>(eps))
+        .Run();
+  } else {
+    // Used for 2D BatchNorm in Training
+    cmd.Name("BNTrainingReduceGrad")
+        .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+        .Input(self, "x", ACL_FORMAT_NCHW)
+        .Input(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
+        .Input(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+        .Input(weight, "scale", ACL_FORMAT_NCHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+        .Output(grad_input, "y", ACL_FORMAT_NCHW)
+        .Attr("epsilon", static_cast<float>(eps))
+        .Run();
+  }
 
   return grad_input;
 }
@@ -181,36 +211,43 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
     bool train,
     double eps,
     std::array<bool, 3> grad_input_mask) {
-  Tensor self_4d;
-  Tensor grad_out_4d;
+  Tensor self_reshape;
+  Tensor grad_out_reshape;
   SmallVector<int64_t, N> self_shape = array_to_small_vector(self.sizes());
 
   if (grad_out.dim() <= 4) {
     SmallVector<int64_t, N> nchw_shape(self_shape);
     nchw_shape.resize(4, 1);
-    self_4d = self.reshape(nchw_shape);
-    grad_out_4d = grad_out.reshape(nchw_shape);
-  } else if (grad_out.dim() == 5) {
+    self_reshape = self.reshape(nchw_shape);
+    grad_out_reshape = grad_out.reshape(nchw_shape);
+  } else if (train && grad_out.dim() == 5) {
+    // Use 3D BN ops for training, merging axes is not required.
+    self_reshape = self;
+    grad_out_reshape = grad_out;
+  } else {
+    // Infering uses 2dInfer Op, case no matched 3DInfer Op
     // ncdhw -> ndchw
-    self_4d = self.permute({0, 2, 1, 3, 4});
-    grad_out_4d = grad_out.permute({0, 2, 1, 3, 4});
+    self_reshape = self.permute({0, 2, 1, 3, 4});
+    grad_out_reshape = grad_out.permute({0, 2, 1, 3, 4});
     // nchw=(n*d, c, h, w)
     SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
     // ndchw -> nchw
-    self_4d = self_4d.reshape(nchw_shape);
-    grad_out_4d = grad_out_4d.reshape(nchw_shape);
+    self_reshape = self_reshape.reshape(nchw_shape);
+    grad_out_reshape = grad_out_reshape.reshape(nchw_shape);
+    
   }
 
   // init optional input
-  int64_t dim_c = self_4d.size(1);
+  int64_t dim_c = self_reshape.size(1);
   TensorOptions options = self.options().dtype(ScalarType::Float);
 
-  Tensor weight_tensor = weight.defined() ? weight : ones_npu({dim_c}, options);
-  Tensor running_mean_tensor = running_mean.defined() ? running_mean : zeros_npu({dim_c}, options);
-  Tensor running_var_tensor = running_var.defined() ? running_var : ones_npu({dim_c}, options);
+  // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format 1D Input tensor.
+  Tensor weight_tensor = weight.defined() ? weight.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
+  Tensor running_mean_tensor = running_mean.defined() ? running_mean.npu_format_cast_(ACL_FORMAT_NC1HWC0) : zeros_npu({dim_c}, options);
+  Tensor running_var_tensor = running_var.defined() ? running_var.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
 
   // construct the output tensor of the NPU
-  Tensor grad_input = OpPreparation::ApplyTensor(self_4d.sizes(), self_4d.options(), self_4d);
+  Tensor grad_input = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
   Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
   Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
 
@@ -219,8 +256,8 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
       grad_input,
       grad_weight,
       grad_bias,
-      grad_out_4d,
-      self_4d,
+      grad_out_reshape,
+      self_reshape,
       weight_tensor,
       running_mean_tensor,
       running_var_tensor,
@@ -236,8 +273,8 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
   Tensor undefine_grad_bias;
 
   if (grad_input_mask[0]) {
-    if (self.dim() == 5) {
-      //NCHW -> NDCHW ->NCDHW
+    if (!train && self.dim() == 5) {
+      // NCHW -> NDCHW ->NCDHW
       swap(self_shape[1], self_shape[2]);
       grad_input = grad_input.view(self_shape);
       grad_input = NpuUtils::format_contiguous(grad_input);

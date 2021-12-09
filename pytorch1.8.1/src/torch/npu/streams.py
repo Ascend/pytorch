@@ -87,7 +87,8 @@ class Stream(torch._C._NPUStreamBase):
         r"""Checks if all the work submitted has been completed.
 
         Returns:
-            A boolean indicating if all kernels in this stream are completed."""
+            A boolean indicating if all kernels in this stream are completed.
+        """
         return super(Stream, self).query()
 
     def synchronize(self):
@@ -145,7 +146,8 @@ class Event(torch._C._NPUEventBase):
         r"""Records the event in a given stream.
 
         Uses ``torch.cuda.current_stream()`` if no stream is specified. The
-        stream's device must match the event's device."""
+        stream's device must match the event's device.
+        """
         if stream is None:
             stream = torch.npu.current_stream()
         super(Event, self).record(stream)
@@ -154,7 +156,8 @@ class Event(torch._C._NPUEventBase):
         r"""Makes all future work submitted to the given stream wait for this
         event.
 
-        Use ``torch.cuda.current_stream()`` if no stream is specified."""
+        Use ``torch.cuda.current_stream()`` if no stream is specified.
+        """
         if stream is None:
             stream = torch.npu.current_stream()
         super(Event, self).wait(stream)

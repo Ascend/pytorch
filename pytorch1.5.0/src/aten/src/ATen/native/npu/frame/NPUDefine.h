@@ -53,10 +53,10 @@ struct ACL_PARAMS {
 
 struct ACL_DYNAMIC_PARAMS {
   ACL_DYNAMIC_PARAMS() {
-    int input_num = 0;
+    input_num = 0;
     input_desc = nullptr;
     input_data_buf = nullptr;
-    int output_num = 0;
+    output_num = 0;
     output_desc = nullptr;
     output_data_buf = nullptr;
     inputDims = nullptr;
@@ -105,7 +105,7 @@ struct ExecuteParas {
   const aclopAttr* dynamicCompileAttr = nullptr;
   const aclopAttr* dynamicRunAttr = nullptr;
   int64_t constIdx = -1;
-  SmallVector<Tensor, N> hostMemory;
+  SmallVector<Storage, N> hostMemory;
   ExecuteParas(
       std::string opName,
       std::string opDynamicName,
@@ -122,34 +122,7 @@ struct ExecuteParas {
   void Release();
   void DynamicRelease();
   void Copy(ExecuteParas& other);
-};
-
-struct CopyParas {
-    void *dst = nullptr;
-    size_t dstLen = 0;
-    void *src = nullptr;
-    size_t srcLen = 0;
-    aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
-    SmallVector<Tensor, 1> pinMem;
-    void Copy(CopyParas& other);
-};
-
-struct EventParas {
-  aclrtEvent event = nullptr;
-};
-
-enum QueueParamType {
-    COMPILE_AND_EXECUTE,
-    ASYNC_MEMCPY,
-    ASYNC_MEMCPY_EX,
-    RECORD_EVENT
-};
-
-struct QueueParas {
-  QueueParas(QueueParamType type, size_t len, void *val) : paramType(type), paramLen(len), paramVal(val) {}
-  QueueParamType paramType = COMPILE_AND_EXECUTE;
-  size_t paramLen = 0;
-  void* paramVal = nullptr;
+  void CopyEx(ExecuteParas& other);
 };
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params);

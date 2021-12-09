@@ -27,7 +27,7 @@ public:
     SmallVector<int64_t, SHAPE_SIZE> step;
 
     if (can_use_indexing(src, start, end, step)) {
-      RECORD_FUNCTION("npuStridedSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("npuStridedSliceD", std::vector<c10::IValue>({src}));
       indexing_to_contiguous(src, self, start, end, step);
       return true;
     }
@@ -39,10 +39,6 @@ private:
                         SmallVector<int64_t, SHAPE_SIZE>& start,
                         SmallVector<int64_t, SHAPE_SIZE>& end,
                         SmallVector<int64_t, SHAPE_SIZE>& step) {
-    // uncontiguous
-    if (src.is_contiguous()) {
-      return false;
-    }
     auto src_desc = src.storage().get_npu_desc();
     if (src.numel() >= prod_intlist(src_desc.base_sizes_)) {
       return false;
@@ -124,7 +120,7 @@ private:
     // recover contiguous base tensor
     Tensor temp_src = at::empty(base_size, src.options());
     temp_src.set_(src.storage(), temp_src.storage_offset(), 
-      temp_src.sizes(), temp_src.strides());
+        temp_src.sizes(), temp_src.strides());
 
     // call StridedSliceD op
     at::npu_indexing_out(self, temp_src, start, end, step);

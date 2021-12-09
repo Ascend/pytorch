@@ -29,7 +29,7 @@ public:
     SmallVector<int64_t, SHAPE_SIZE> offsets;
     SmallVector<int64_t, SHAPE_SIZE> size;
     if (can_use_slice(src, offsets, size)) {
-      RECORD_FUNCTION("narrow_npuSliceD", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION("narrow_npuSlice", std::vector<c10::IValue>({src}));
       slice_to_contiguous(src, self, offsets, size);
       return true;
     }
@@ -48,11 +48,6 @@ private:
 bool can_use_slice(const Tensor &src,
                   SmallVector<int64_t, SHAPE_SIZE> &offsets,
                   SmallVector<int64_t, SHAPE_SIZE> &size) {
-  // After narrow, tensor must be discontiguous
-  if (src.is_contiguous()) {
-    return false;
-  }
-
   auto base_sizes = src.storage().get_npu_desc().base_sizes_;
   auto base_strides = src.storage().get_npu_desc().base_strides_;
   auto view_sizes = array_to_small_vector(src.sizes());

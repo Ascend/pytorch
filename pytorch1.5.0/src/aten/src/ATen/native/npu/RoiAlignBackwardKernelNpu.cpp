@@ -61,7 +61,7 @@ Tensor roi_align_backward_npu(
   Tensor result =
       OpPreparation::ApplyTensorWithFormat(self, xdiff_shape, ACL_FORMAT_NC1HWC0);
 
-  //Check the self empty
+  // Check the self empty
   for (int i = 0; i < self.dim(); i++) {
       if (self.size(i) == 0) {
           result.fill_(0);

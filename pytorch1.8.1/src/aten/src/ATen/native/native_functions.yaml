@@ -3501,21 +3501,15 @@
 # softmax allows positional dtype, unlike most operators, because kwonly is BC-breaking when loading jit models.
 - func: softmax.int(Tensor self, int dim, ScalarType? dtype=None) -> Tensor
   variants: function, method
-  npu_dispatch:
-    NPU: softmax_npu
 
 - func: softmax.Dimname(Tensor self, Dimname dim, *, ScalarType? dtype=None) -> Tensor
   variants: function, method
-  npu_dispatch:
-    NPU: softmax_npu
 
 - func: _softmax(Tensor self, int dim, bool half_to_float) -> Tensor
   dispatch:
     CPU: softmax_cpu
     CUDA: softmax_cuda
     MkldnnCPU: mkldnn_softmax
-  npu_dispatch:
-    NPU: _softmax_npu
 
 - func: _softmax_backward_data(Tensor grad_output, Tensor output, int dim, Tensor self) -> Tensor
   dispatch:
@@ -8519,8 +8513,6 @@
   dispatch:
     CPU: slow_conv_transpose2d_out_cpu
     CUDA: slow_conv_transpose2d_out_cuda
-  npu_dispatch:
-    NPU: slow_conv_transpose2d_out_npu
 
 - func: slow_conv_transpose2d(Tensor self, Tensor weight, int[2] kernel_size, Tensor? bias=None, int[2] stride=1, int[2] padding=0, int[2] output_padding=0, int[2] dilation=1) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8528,8 +8520,6 @@
   dispatch:
     CPU: slow_conv_transpose2d_cpu
     CUDA: slow_conv_transpose2d_cuda
-  npu_dispatch:
-    NPU: slow_conv_transpose2d_npu
 
 - func: slow_conv_transpose2d_backward.grad_output(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, Tensor columns, Tensor ones, *, Tensor(a!) grad_input, Tensor(b!) grad_weight, Tensor(c!) grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8537,16 +8527,12 @@
   dispatch:
     CPU: slow_conv_transpose2d_backward_out_cpu
     CUDA: slow_conv_transpose2d_backward_out_cuda
-  npu_dispatch:
-    NPU: slow_conv_transpose2d_backward_out_npu
 
 - func: slow_conv_transpose2d_backward.output_mask(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, Tensor columns, Tensor ones, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
   python_module: nn
   dispatch:
     CPU: slow_conv_transpose2d_backward_cpu
     CUDA: slow_conv_transpose2d_backward_cuda
-  npu_dispatch:
-    NPU: slow_conv_transpose2d_backward_npu
 
 - func: slow_conv_transpose3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] output_padding=0, int[3] dilation=1, *, Tensor(a!) out) -> Tensor(a!)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8644,30 +8630,22 @@
 - func: slow_conv3d.out(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, *, Tensor(a!) out) -> Tensor(a!)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
-  npu_dispatch:
-    NPU: slow_conv3d_out_npu
 
 - func: slow_conv3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
-  npu_dispatch:
-    NPU: slow_conv3d_npu
 
 - func: slow_conv3d_forward.output(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding, *, Tensor(a!) output, Tensor(b!) finput, Tensor(c!) fgrad_input) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
   dispatch:
     CPU: slow_conv3d_forward_out_cpu
-  npu_dispatch:
-    NPU: slow_conv3d_forward_out_npu
 
 - func: slow_conv3d_forward(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias, int[3] stride, int[3] padding) -> (Tensor output, Tensor finput, Tensor fgrad_input)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   python_module: nn
   dispatch:
     CPU: slow_conv3d_forward_cpu
-  npu_dispatch:
-    NPU: slow_conv3d_forward_npu
 
 - func: slow_conv3d_backward.grad_input(Tensor grad_output, Tensor self, Tensor weight, int[3] kernel_size, int[3] stride, int[3] padding, Tensor finput, Tensor fgrad_input, *, Tensor(a!) grad_input, Tensor(b!) grad_weight, Tensor(c!) grad_bias) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -8686,16 +8664,12 @@
   dispatch:
     CPU: slow_conv_dilated2d_cpu
     CUDA: slow_conv_dilated2d_cuda
-  npu_dispatch:
-    NPU: slow_conv_dilated2d_npu
 
 - func: slow_conv_dilated2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
   python_module: nn
   dispatch:
     CPU: slow_conv_dilated2d_backward_cpu
     CUDA: slow_conv_dilated2d_backward_cuda
-  npu_dispatch:
-    NPU: slow_conv_dilated2d_backward_npu
 
 - func: slow_conv_dilated3d(Tensor self, Tensor weight, int[3] kernel_size, Tensor? bias=None, int[3] stride=1, int[3] padding=0, int[3] dilation=1) -> Tensor
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
@@ -9369,20 +9343,57 @@
 
 - func: npu_one_hot(Tensor self, int num_classes=-1, int depth=1, Scalar on_value=1, Scalar off_value=0) -> Tensor
   variants: function, method
-  npu_dispatch_only:
-    NPU: one_hot_npu
 
 - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
   variants: function, method
-  npu_dispatch_only:
-    NPU: softmax_cross_entropy_with_logits_npu
 
 - func: npu_softmax_cross_entropy_with_logits_backward(Tensor grad, Tensor self, Tensor labels) -> Tensor
   variants: function, method
-  npu_dispatch_only:
-    NPU: softmax_cross_entropy_with_logits_backward_npu
 
 - func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
   variants: function, method
   npu_dispatch_only:
     NPU: bmm_v2_npu
+
+- func: npu_alloc_float_status(Tensor self) -> Tensor
+  variants: function, method
+
+- func: npu_get_float_status(Tensor self) -> Tensor
+  variants: function, method
+
+- func: npu_clear_float_status(Tensor self) -> Tensor
+  variants: function, method
+
+- func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
+
+- func: npu_ps_roi_pooling_backward(Tensor output_grad, Tensor rois, float spatial_scale, int group_size, int output_dim, int[] input_size) -> Tensor
+
+- func: npu_roi_align(Tensor self, Tensor rois, float spatial_scale, int pooled_height, int pooled_width, int sample_num, int roi_end_mode) -> Tensor
+
+- func: npu_roi_alignbk(Tensor self, Tensor rois, int[] xdiff_shape, int pooled_width, int pooled_height, float spatial_scale, int sample_num, int? roi_end_mode=None) -> Tensor
+
+- func: npu_nms_v4(Tensor self, Tensor scores, Scalar max_output_size, Tensor iou_threshold, Tensor scores_threshold, bool pad_to_max_output_size=False) -> (Tensor, Tensor)
+
+- func: npu_iou(Tensor bboxes, Tensor gtboxes, int mode=0) -> Tensor
+
+- func: npu_ptiou(Tensor bboxes, Tensor gtboxes, int mode=0) -> Tensor
+
+- func: npu_nms_with_mask(Tensor input, Scalar iou_threshold) -> (Tensor, Tensor, Tensor)
+
+- func: npu_pad(Tensor input, int[] paddings) -> Tensor
+
+- func: npu_bounding_box_encode(Tensor anchor_box, Tensor ground_truth_box, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3) -> Tensor
+
+- func: npu_bounding_box_decode(Tensor rois, Tensor deltas, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3, int[1] max_shape, float wh_ratio_clip) -> Tensor
+
+- func: npu_random_choice_with_mask(Tensor x, int count=256, int seed=0, int seed2=0) -> (Tensor, Tensor)
+
+- func: npu_batch_nms(Tensor self, Tensor scores, float score_threshold, float iou_threshold, int max_size_per_class, int max_total_size, bool change_coordinate_frame=False, bool transpose_box=False) -> (Tensor, Tensor, Tensor, Tensor)
+
+- func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+
+- func: npu_apply_adam(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov) -> (Tensor var, Tensor m, Tensor v)
+
+- func: npu_apply_adam.out(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))

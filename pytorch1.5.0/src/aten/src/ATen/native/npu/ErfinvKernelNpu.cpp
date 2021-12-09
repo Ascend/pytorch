@@ -49,12 +49,12 @@ SmallVector<NPUAttrDesc, N> erfinv_npu_attr(const Tensor& self)
 
 Tensor& erfinv_out_npu(Tensor& result, const Tensor& self)
 {
-  //constructs the input and output NPUTensorDesc
+  // constructs the input and output NPUTensorDesc
   auto inputs = erfinv_npu_input({self});
   auto outputs = erfinv_npu_output({result});
-  //constructs the attr of the NPUAttrDesc
+  // constructs the attr of the NPUAttrDesc
   auto attrs = erfinv_npu_attr(self);
-  //executing the NPU operator
+  // executing the NPU operator
   CalcuOpUtil::execute_npu_operate("Erfinv", inputs, outputs, attrs);
   return result;
 }

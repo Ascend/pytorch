@@ -17,14 +17,15 @@
 #include <mutex>
 #include "NpuUtils.h"
 #include "c10/npu/register/OptionRegister.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 
 #include "CalcuOpUtil.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/StorageDescHelper.h"
 #include "KernelNpuOutputSize.h"
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
-#include "ATen/native/npu/frame/OpParamMaker.h"
 #include <set>
 
 namespace at {
@@ -39,7 +40,7 @@ void NpuUtils::format_fresh_view(
   if (check_match(&x) == true) {
     return;
   }
-  RECORD_FUNCTION("format_fresh_view", vector<c10::IValue>({x, y}));
+  RECORD_HOST_FUNCTION("format_fresh_view", vector<c10::IValue>({x, y}));
 
   x.copy_(y);
 }
@@ -131,7 +132,7 @@ bool NpuUtils::check_5d_5d_match(const Tensor& tensor){
 Tensor convert_continue_using_gatherv2_improve(Tensor& src){
   // ref: IndexSelectKernelNpu.cpp
   // std::cout<<"step in convert_continue_using_gatherv2."<<std::endl;
-  RECORD_FUNCTION("continue_by_gatherv2_improve", vector<c10::IValue>({src}));
+  RECORD_HOST_FUNCTION("continue_by_gatherv2_improve", vector<c10::IValue>({src}));
   // 1. get gatherv2 start index and end index
   int64_t start = src.storage_offset()/(src.size(2)*src.size(3))/16;
   int64_t end = start+src.size(1)/16;
@@ -191,12 +192,12 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
     Tensor src_new = at::empty_with_format(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
     int64_t numel = src_new.numel();
-    aclError error = LaunchAsyncCopyTask(
-      src_new.data_ptr(),
-      numel * src_new.element_size(),
-      (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
-      numel * src.element_size(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE);
+    aclError error = c10::npu::queue::LaunchAsyncCopyTask(
+        src_new.data_ptr(),
+        numel * src_new.element_size(),
+        (uint8_t*)src.data_ptr() - src.storage_offset() * src.element_size(),
+        numel * src.element_size(),
+        ACL_MEMCPY_DEVICE_TO_DEVICE);
     src_new.set_(src_new.storage(), src.storage_offset(), src.sizes(), src.strides());
 
     src_new.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NCHW;
@@ -210,16 +211,6 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     return ret_tmp;
 }
 
-Tensor tensors_convert_contiguous(const Tensor& src) {
-  std::vector<string> optimizations{"slice"};
-  auto formatTempTensor = 
-      TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations);
-  if (formatTempTensor.has_value()) {
-    return formatTempTensor.value();
-  }
-  return src.contiguous();
-}
-
 Tensor metadata_convert_match(const Tensor& src) {
   auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
   bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
@@ -228,11 +219,7 @@ Tensor metadata_convert_match(const Tensor& src) {
   // a temporary tensor, which always monopolizes its own storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
     Tensor tempTensor = at::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
-    auto& temp_desc =
-      tempTensor.storage().unsafeGetStorageImpl()->npu_desc_;
-    temp_desc.base_sizes_ = tempTensor.sizes();
-    temp_desc.base_strides_ = tempTensor.strides();
-    temp_desc.storage_sizes_ = tempTensor.sizes();
+    at::npu_reshape_out(tempTensor, tempTensor, tempTensor.sizes(), true);
     NpuUtils::RefreshFormat(tempTensor);
     return tempTensor;
   } else {
@@ -253,14 +240,14 @@ Tensor metadata_with_offset_padding_convert_match(const Tensor& src) {
 Tensor NpuUtils::format_contiguous(const Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
-    RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
-    return tensors_convert_contiguous(src);
+    RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    return src.contiguous();
   }
   // case2:meta data not match, sizes or strides of presentation
   // layer is different from that of storage layer
   if (!StorageDescHelper::MetaDataAreMatch(&src)) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
-    RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
     return metadata_convert_match(src);
   }
 
@@ -268,7 +255,7 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
   // is different from that of storage layer
   if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
-    RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
     return metadata_with_offset_padding_convert_match(src);
   }
 
@@ -278,14 +265,14 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
 Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
-    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
-    return tensors_convert_contiguous(src);
+    RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    return src.contiguous();
   }
   // case2:meta data not match, sizes or strides of presentation
   // layer is different from that of storage layer
   if (!StorageDescHelper::MetaDataAreMatch(&src)) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
-    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
     // copy optimize for reshape cases with 3 choices
     // [1] memory-repoint: base format or NZ[1. key dims keep matched; 2. no padding]
     // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
@@ -303,7 +290,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   // is different from that of storage layer
   if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
-    RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
     return metadata_with_offset_padding_convert_match(src);
   }
 

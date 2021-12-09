@@ -34,7 +34,7 @@ tuple<Tensor &, Tensor &, Tensor &> layer_norm_backward_npu_nocheck(
     int64_t M,
     int64_t N) 
 {
-  //constructs the input and output NPUTensorDesc
+  // constructs the input and output NPUTensorDesc
   SmallVector<int64_t, SIZE> tmpSize = array_to_small_vector(X.sizes());
   for (int i = X.dim() - gamma.dim(); i < X.dim(); i++) {
     tmpSize[i] = 1;

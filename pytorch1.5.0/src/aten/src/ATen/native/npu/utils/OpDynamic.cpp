@@ -69,12 +69,12 @@ OpDynamicCommand& OpDynamicCommand::DynamicOutput(Tensor& output, string realTyp
 }
 
 OpDynamicCommand& OpDynamicCommand::DynamicInput(
-  SmallVector<int64_t, N>& dimList,
-  ScalarType originType,
-  ScalarType toType,
-  string descName,
-  bool isConst,
-  shapeStrage strage) {
+    SmallVector<int64_t, N>& dimList,
+    ScalarType originType,
+    ScalarType toType,
+    string descName,
+    bool isConst,
+    shapeStrage strage) {
   
   Tensor cpuTensor = from_blob((void*)dimList.data(), {dimList.size()}, originType).to(toType);
   Tensor npuTensor = CopyHostToDevice(cpuTensor);
@@ -88,10 +88,10 @@ OpDynamicCommand& OpDynamicCommand::DynamicInput(
 }
 
 OpDynamicCommand& OpDynamicCommand::DynamicInput(const Tensor& npu_input,
-  string descName,
-  string realData,
-  c10::optional<Tensor> cpu_tensor,
-  shapeStrage strage) {
+    string descName,
+    string realData,
+    c10::optional<Tensor> cpu_tensor,
+    shapeStrage strage) {
   std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> runRes;
   aclTensorDesc* compileRes = nullptr;
   Tensor npuTensor = Contiguous(npu_input);
@@ -143,10 +143,12 @@ void OpDynamicCommand::DynamicOpRun(){
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     aclDynamicCmd->ExportDynamicParams(execParams);
-    QueueParas params(COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
-    c10::npu::enCurrentNPUStream(&params);
+    c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+    SmallVector<Storage, N> needClearVec;
+    c10::npu::enCurrentNPUStream(&params, needClearVec);
     aclCmd->releaseSource(false);
     aclDynamicCmd->ReleaseDynamicSource(false);
+    needClearVec.clear();
   } else if (c10::npu::OptionsManager::CheckDynamicEnable()) {
     ExecuteParas runParams;
     auto stream = c10::npu::getCurrentNPUStream();

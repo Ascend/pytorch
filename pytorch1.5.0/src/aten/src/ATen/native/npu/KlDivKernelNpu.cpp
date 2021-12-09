@@ -24,7 +24,7 @@ Tensor kl_div_npu(
     const Tensor& target, 
     int64_t reduction) {
   TORCH_CHECK(reduction != Reduction::None,
-    "Reduction of None has not been supported at present.");
+      "Reduction of None has not been supported at present.");
 
   Tensor result = at::empty_with_format(
       {}, self.options(), CalcuOpUtil::get_tensor_npu_format(self));

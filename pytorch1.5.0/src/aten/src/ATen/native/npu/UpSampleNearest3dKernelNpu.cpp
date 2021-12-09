@@ -20,8 +20,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& upsample_nearest3d_out_npu(
-    Tensor& result,
+SmallVector<int64_t, SIZE> upsample_nearest3d_outputsize_npu(
     const Tensor& input,
     IntArrayRef output_size,
     c10::optional<double> scales_d,
@@ -42,15 +41,57 @@ Tensor& upsample_nearest3d_out_npu(
   int64_t input_height = input.size(3);
   int64_t input_width = input.size(4);
 
-  result.resize_({nbatch, channels, output_depth, output_height, output_width});
+  SmallVector<int64_t, SIZE> outputSize = 
+    {nbatch, channels, output_depth, output_height, output_width};
+  
+  return outputSize;
+}
+
+Tensor& upsample_nearest3d_out_npu_nocheck(
+    Tensor& result,
+    const Tensor& input,
+    IntArrayRef output_size,
+    c10::optional<double> scales_d,
+    c10::optional<double> scales_h,
+    c10::optional<double> scales_w) {
+  Tensor inputCopy = (input.scalar_type() == ScalarType::Half) ?
+    input.npu_dtype_cast(ScalarType::Float) : input;
 
   OpCommand cmd;
   cmd.Name("UpsampleNearest3d")
-    .Input(input)
+    .Input(inputCopy)
     .Output(result)
     .Attr("output_size", output_size)
     .Run();
+
+  return result;
+}
+
+Tensor& upsample_nearest3d_out_npu(
+    Tensor& result,
+    const Tensor& input,
+    IntArrayRef output_size,
+    c10::optional<double> scales_d,
+    c10::optional<double> scales_h,
+    c10::optional<double> scales_w) {
+  auto outputsize = upsample_nearest3d_outputsize_npu(
+      input, output_size, scales_d, scales_h, scales_w);
+
+  Tensor tmp = (input.scalar_type() == ScalarType::Half) ?
+    OpPreparation::ApplyTensorWithSizes(outputsize, input.options().dtype(at::kFloat)) :
+    OpPreparation::ApplyTensor(input, outputsize);
+
+  upsample_nearest3d_out_npu_nocheck(
+      tmp, input, output_size, scales_d, scales_h, scales_w);
+
+  if (input.scalar_type() == ScalarType::Half) {
+      tmp = tmp.npu_dtype_cast(input.scalar_type());
+  }
+
+  OpPreparation::CheckOut(
+      {tmp}, result, tmp);
   
+  result.copy_(tmp);
   return result;
 }
 
@@ -60,11 +101,20 @@ Tensor upsample_nearest3d_npu(
     c10::optional<double> scales_d,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
+  auto outputsize = upsample_nearest3d_outputsize_npu(
+      input, output_size, scales_d, scales_h, scales_w);
 
-  Tensor result = OpPreparation::ApplyTensor(input, {1});
+  
+  Tensor result = (input.scalar_type() == ScalarType::Half) ?
+    OpPreparation::ApplyTensorWithSizes(outputsize, input.options().dtype(at::kFloat)) :
+    OpPreparation::ApplyTensor(input, outputsize); 
 
-  upsample_nearest3d_out_npu(result, input, output_size, scales_d, scales_h, scales_w);
-
+  upsample_nearest3d_out_npu_nocheck(
+      result, input, output_size, scales_d, scales_h, scales_w);
+  
+  if (input.scalar_type() == ScalarType::Half) {
+      result = result.npu_dtype_cast(input.scalar_type());
+  }
   return result;
 }
 

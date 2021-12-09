@@ -43,14 +43,6 @@ public:
   OpCommand& InputPair(const Tensor& npu_input, const Tensor& cpu_input);
 }; // class OpCommand
 
-// only for transData now
-class TransDataOpCommand : public OpCommandBase<TransDataOpCommand> {
-public:
-  TransDataOpCommand& InputAndOutput(const Tensor& input, const Tensor& output);
-private:
-  TransDataOpCommand& AddInputAndOutput(const Tensor& input, const Tensor& output);
-}; // class TransDataOpCommand
-
 } // namespace npu
 } // namespace native
 } // namespace at

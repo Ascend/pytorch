@@ -29,12 +29,13 @@ Tensor& addcdiv_out_npu(
   
   OpCommand cmd;
   cmd.Name("Addcdiv")
-      .Input(self)
-      .Input(tensor1)
-      .Input(tensor2)
-      .Input(value, self.scalar_type())
-      .Output(result)
-      .Run();
+    .Input(self)
+    .Input(tensor1)
+    .Input(tensor2)
+    .Input(value, self.scalar_type())
+    .Output(result)
+    .Run();
+
   return result;
 }
 
