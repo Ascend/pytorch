@@ -90,6 +90,32 @@ function check_python_version() {
 
 function main()
 {
+    if ! parse_script_args "$@"; then
+        echo "Failed to parse script args. Please check your inputs."
+        exit 1
+    fi
+    check_python_version
+
+    # Find matched dependent Python libraries to current Python version in HCCL compiling
+    hccl_file1=${CUR_DIR}/cmake/public/npu.cmake
+    hccl_file2=${CUR_DIR}/third_party/acl/libs/build_stub.sh
+    if [[ ${PY_VERSION} = '3.7' ]]; then
+        dst_py_ver='3.7m'
+    else
+        dst_py_ver=${PY_VERSION}
+    fi
+    for src_py_ver in ${SUPPORTED_PY_VERSION[*]}; do
+        if [[ ${src_py_ver} = '3.7' ]]; then
+            src_py_ver='3.7m'
+        fi
+        if [[ $(grep -c "${src_py_ver}" ${hccl_file1}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
+            sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${hccl_file1}
+        fi
+        if [[ $(grep -c "${src_py_ver}" ${hccl_file2}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
+            sed -i "s/libpython${src_py_ver}/libpython${dst_py_ver}/g" ${hccl_file2}
+        fi
+    done
+
     cd ${CUR_DIR}/third_party/acl/libs
     # stub
     dos2unix build_stub.sh
@@ -103,12 +129,6 @@ function main()
     export PYTORCH_BUILD_VERSION='1.5.0+ascend'
     export PYTORCH_BUILD_NUMBER=4
 
-    if ! parse_script_args "$@"; then
-        echo "Failed to parse script args. Please check your inputs."
-        exit 1
-    fi
-
-    check_python_version
     #for build GPU torch:DEBUG=0 USE_DISTRIBUTED=0 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 python3.7 setup.py build bdist_wheel
     DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python"${PY_VERSION}" setup.py build bdist_wheel
     if [ $? != 0 ]; then

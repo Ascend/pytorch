@@ -14,6 +14,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
@@ -46,6 +47,20 @@ class TestAdaptiveMaxPool2d(TestCase):
                 npu_output = self.npu_op_exec(npu_input, output_size)
 
                 self.assertRtolEqual(cpu_output, npu_output, 0.0004)
+
+    def test_adaptiveMaxPool2d_case_in_photo2cartoon(self, device):
+        cpu_x = torch.rand(1, 256, 31, 31)
+        npu_x = cpu_x.npu()
+        cpu_out = F.adaptive_max_pool2d(cpu_x, 1)
+        npu_out = F.adaptive_max_pool2d(npu_x, 1)
+        self.assertRtolEqual(cpu_out, npu_out.cpu(), 0.0003)
+    
+    def test_adaptiveMaxPool2d_case_in_photo2cartoon_fp16(self, device):
+        cpu_x = torch.rand(1, 256, 31, 31).half()
+        npu_x = cpu_x.npu()
+        cpu_out = F.adaptive_max_pool2d(cpu_x.float(), 1).half()
+        npu_out = F.adaptive_max_pool2d(npu_x, 1)
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
 
 
 instantiate_device_type_tests(TestAdaptiveMaxPool2d, globals(), except_for="cpu")

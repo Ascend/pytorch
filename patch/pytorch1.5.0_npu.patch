@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/CMakeLists.txt pytorch-develop-150/aten/CMakeLists.txt
 --- pytorch-v1.5.0/aten/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/CMakeLists.txt	2021-12-09 12:00:36.116166334 +0800
++++ pytorch-develop-150/aten/CMakeLists.txt	2021-12-09 23:00:51.081524991 +0800
 @@ -22,8 +22,10 @@
  set(ATen_CPU_INCLUDE)
  set(ATen_THIRD_PARTY_INCLUDE)
@@ -51,7 +51,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_CPU_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/CMakeLists.txt pytorch-develop-150/aten/src/ATen/CMakeLists.txt
 --- pytorch-v1.5.0/aten/src/ATen/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/CMakeLists.txt	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/CMakeLists.txt	2021-12-09 23:00:51.081524991 +0800
 @@ -67,6 +67,9 @@
  FILE(GLOB native_quantized_h "native/quantized/*.h" "native/quantized/cpu/*.h")
  FILE(GLOB native_cpu_h "native/cpu/*.h")
@@ -129,7 +129,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  set(ATen_QUANTIZED_SRCS ${ATen_QUANTIZED_SRCS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/core/dispatch/DispatchTable.h pytorch-develop-150/aten/src/ATen/core/dispatch/DispatchTable.h
 --- pytorch-v1.5.0/aten/src/ATen/core/dispatch/DispatchTable.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/core/dispatch/DispatchTable.h	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/core/dispatch/DispatchTable.h	2021-12-09 23:00:51.085525093 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -170,7 +170,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/function_wrapper.py pytorch-develop-150/aten/src/ATen/function_wrapper.py
 --- pytorch-v1.5.0/aten/src/ATen/function_wrapper.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/function_wrapper.py	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/function_wrapper.py	2021-12-09 23:00:51.085525093 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -354,7 +354,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          for option in declaration['options']:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/gen.py pytorch-develop-150/aten/src/ATen/gen.py
 --- pytorch-v1.5.0/aten/src/ATen/gen.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/gen.py	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/gen.py	2021-12-09 23:00:51.085525093 +0800
 @@ -1,3 +1,18 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -512,7 +512,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      generate_outputs()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/BatchLinearAlgebra.cpp pytorch-develop-150/aten/src/ATen/native/BatchLinearAlgebra.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-12-09 12:00:36.124166310 +0800
++++ pytorch-develop-150/aten/src/ATen/native/BatchLinearAlgebra.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -680,7 +680,7 @@
  std::tuple<Tensor&, Tensor&> triangular_solve_out(Tensor& result, Tensor& clone_A, const Tensor& self, const Tensor& A,
                                                    bool upper, bool transpose, bool unitriangular) {
@@ -524,7 +524,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return std::tuple<Tensor&, Tensor&>(result, clone_A);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/cpu/Activation.cpp pytorch-develop-150/aten/src/ATen/native/cpu/Activation.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/cpu/Activation.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/cpu/Activation.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/cpu/Activation.cpp	2021-12-09 23:00:51.093525295 +0800
 @@ -339,20 +339,20 @@
  
  void hardsigmoid_backward_kernel(TensorIterator& iter) {
@@ -552,7 +552,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    });
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/Memory.cpp pytorch-develop-150/aten/src/ATen/native/Memory.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/Memory.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/Memory.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/Memory.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -614,7 +614,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        detail::computeStorageSize(self.sizes(), self.strides()),
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/native_functions.yaml pytorch-develop-150/aten/src/ATen/native/native_functions.yaml
 --- pytorch-v1.5.0/aten/src/ATen/native/native_functions.yaml	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/native_functions.yaml	2021-12-09 12:00:36.132166286 +0800
++++ pytorch-develop-150/aten/src/ATen/native/native_functions.yaml	2021-12-09 23:00:51.097525396 +0800
 @@ -1,6 +1,5 @@
  # See README.md in this directory for more guidance
  
@@ -7139,7 +7139,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +    NPU: rotated_overlaps_npu
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S pytorch-develop-150/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S
 --- pytorch-v1.5.0/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-12-09 12:00:36.148166239 +0800
++++ pytorch-develop-150/aten/src/ATen/native/quantized/cpu/qnnpack/src/q8gemm/8x8-dq-aarch64-neon.S	2021-12-09 23:00:51.109525700 +0800
 @@ -659,14 +659,14 @@
  
      SUB x1, x1, 4
@@ -7165,7 +7165,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      CMP x1, 2
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorCompare.cpp pytorch-develop-150/aten/src/ATen/native/TensorCompare.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorCompare.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/TensorCompare.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/TensorCompare.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -64,7 +64,7 @@
  
  Tensor isinf(const Tensor &self) {
@@ -7177,7 +7177,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return AT_DISPATCH_FLOATING_TYPES_AND_HALF(self.scalar_type(), "isinf", [&]() {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorFactories.cpp pytorch-develop-150/aten/src/ATen/native/TensorFactories.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorFactories.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/TensorFactories.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/TensorFactories.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7222,7 +7222,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/TensorProperties.cpp pytorch-develop-150/aten/src/ATen/native/TensorProperties.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/TensorProperties.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/TensorProperties.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/TensorProperties.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -87,6 +87,7 @@
    if (self.is_contiguous(memory_format)) {
      return self;
@@ -7233,7 +7233,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        "preserve memory format is unsupported by the contiguous operator");
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native/UpSampleBicubic2d.cpp pytorch-develop-150/aten/src/ATen/native/UpSampleBicubic2d.cpp
 --- pytorch-v1.5.0/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-12-09 12:00:36.128166299 +0800
++++ pytorch-develop-150/aten/src/ATen/native/UpSampleBicubic2d.cpp	2021-12-09 23:00:51.089525193 +0800
 @@ -26,7 +26,7 @@
          const scalar_t* in = &idata[output_y * input_width + output_x];
          scalar_t* out = &odata[output_y * output_width + output_x];
@@ -7245,7 +7245,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
            out += output_width * output_height;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/native_parse.py pytorch-develop-150/aten/src/ATen/native_parse.py
 --- pytorch-v1.5.0/aten/src/ATen/native_parse.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/native_parse.py	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/native_parse.py	2021-12-09 23:00:51.085525093 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -7283,7 +7283,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  msg = '''Exception raised in processing function:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/preprocess_declarations.py pytorch-develop-150/aten/src/ATen/preprocess_declarations.py
 --- pytorch-v1.5.0/aten/src/ATen/preprocess_declarations.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/preprocess_declarations.py	2021-12-09 12:00:36.120166322 +0800
++++ pytorch-develop-150/aten/src/ATen/preprocess_declarations.py	2021-12-09 23:00:51.085525093 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -7315,7 +7315,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/templates/TensorBody.h pytorch-develop-150/aten/src/ATen/templates/TensorBody.h
 --- pytorch-v1.5.0/aten/src/ATen/templates/TensorBody.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/templates/TensorBody.h	2021-12-09 12:00:36.156166215 +0800
++++ pytorch-develop-150/aten/src/ATen/templates/TensorBody.h	2021-12-09 23:00:51.117525903 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7348,7 +7348,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/ATen/templates/TensorMethods.h pytorch-develop-150/aten/src/ATen/templates/TensorMethods.h
 --- pytorch-v1.5.0/aten/src/ATen/templates/TensorMethods.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/ATen/templates/TensorMethods.h	2021-12-09 12:00:36.156166215 +0800
++++ pytorch-develop-150/aten/src/ATen/templates/TensorMethods.h	2021-12-09 23:00:51.117525903 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7382,7 +7382,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/CMakeLists.txt pytorch-develop-150/aten/src/TH/CMakeLists.txt
 --- pytorch-v1.5.0/aten/src/TH/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/TH/CMakeLists.txt	2021-12-09 12:00:36.156166215 +0800
++++ pytorch-develop-150/aten/src/TH/CMakeLists.txt	2021-12-09 23:00:51.117525903 +0800
 @@ -48,6 +48,11 @@
    ${CMAKE_CURRENT_SOURCE_DIR}
  PARENT_SCOPE)
@@ -7397,7 +7397,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/generic/THStorage.cpp pytorch-develop-150/aten/src/TH/generic/THStorage.cpp
 --- pytorch-v1.5.0/aten/src/TH/generic/THStorage.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/TH/generic/THStorage.cpp	2021-12-09 12:00:36.156166215 +0800
++++ pytorch-develop-150/aten/src/TH/generic/THStorage.cpp	2021-12-09 23:00:51.117525903 +0800
 @@ -1,9 +1,32 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7506,7 +7506,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/aten/src/TH/generic/THStorage.h pytorch-develop-150/aten/src/TH/generic/THStorage.h
 --- pytorch-v1.5.0/aten/src/TH/generic/THStorage.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/aten/src/TH/generic/THStorage.h	2021-12-09 12:00:36.156166215 +0800
++++ pytorch-develop-150/aten/src/TH/generic/THStorage.h	2021-12-09 23:00:51.117525903 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7545,7 +7545,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/CMakeLists.txt pytorch-develop-150/c10/CMakeLists.txt
 --- pytorch-v1.5.0/c10/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/CMakeLists.txt	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/CMakeLists.txt	2021-12-09 23:00:51.125526105 +0800
 @@ -63,6 +63,14 @@
    message(STATUS "don't use NUMA")
  endif()
@@ -7574,7 +7574,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # not checked in
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Backend.h pytorch-develop-150/c10/core/Backend.h
 --- pytorch-v1.5.0/c10/core/Backend.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/Backend.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/Backend.h	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7671,7 +7671,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      case Backend::CUDA:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Device.cpp pytorch-develop-150/c10/core/Device.cpp
 --- pytorch-v1.5.0/c10/core/Device.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/Device.cpp	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/Device.cpp	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7711,7 +7711,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        types.begin(),
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Device.h pytorch-develop-150/c10/core/Device.h
 --- pytorch-v1.5.0/c10/core/Device.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/Device.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/Device.h	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7746,7 +7746,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return type_ == DeviceType::CPU;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DeviceType.cpp pytorch-develop-150/c10/core/DeviceType.cpp
 --- pytorch-v1.5.0/c10/core/DeviceType.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/DeviceType.cpp	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/DeviceType.cpp	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7786,7 +7786,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        return false;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DeviceType.h pytorch-develop-150/c10/core/DeviceType.h
 --- pytorch-v1.5.0/c10/core/DeviceType.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/DeviceType.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/DeviceType.h	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7829,7 +7829,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  constexpr DeviceType kXLA = DeviceType::XLA;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DispatchKey.cpp pytorch-develop-150/c10/core/DispatchKey.cpp
 --- pytorch-v1.5.0/c10/core/DispatchKey.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/DispatchKey.cpp	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/DispatchKey.cpp	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7861,7 +7861,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      case DispatchKey::SparseCPUTensorId:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/DispatchKey.h pytorch-develop-150/c10/core/DispatchKey.h
 --- pytorch-v1.5.0/c10/core/DispatchKey.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/DispatchKey.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/DispatchKey.h	2021-12-09 23:00:51.125526105 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7893,7 +7893,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/Storage.h pytorch-develop-150/c10/core/Storage.h
 --- pytorch-v1.5.0/c10/core/Storage.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/Storage.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/Storage.h	2021-12-09 23:00:51.129526206 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -7927,7 +7927,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  };
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/StorageImpl.cpp pytorch-develop-150/c10/core/StorageImpl.cpp
 --- pytorch-v1.5.0/c10/core/StorageImpl.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/StorageImpl.cpp	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/StorageImpl.cpp	2021-12-09 23:00:51.129526206 +0800
 @@ -1 +1,18 @@
  #include <c10/core/StorageImpl.h>
 +
@@ -7949,7 +7949,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/StorageImpl.h pytorch-develop-150/c10/core/StorageImpl.h
 --- pytorch-v1.5.0/c10/core/StorageImpl.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/StorageImpl.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/StorageImpl.h	2021-12-09 23:00:51.129526206 +0800
 @@ -1,11 +1,55 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION.
@@ -8076,7 +8076,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/TensorImpl.h pytorch-develop-150/c10/core/TensorImpl.h
 --- pytorch-v1.5.0/c10/core/TensorImpl.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/TensorImpl.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/TensorImpl.h	2021-12-09 23:00:51.129526206 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -8144,7 +8144,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/core/TensorOptions.h pytorch-develop-150/c10/core/TensorOptions.h
 --- pytorch-v1.5.0/c10/core/TensorOptions.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/core/TensorOptions.h	2021-12-09 12:00:36.164166191 +0800
++++ pytorch-develop-150/c10/core/TensorOptions.h	2021-12-09 23:00:51.129526206 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -8185,7 +8185,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    } else if (tid == DispatchKey::HIPTensorId) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/cuda/CMakeLists.txt pytorch-develop-150/c10/cuda/CMakeLists.txt
 --- pytorch-v1.5.0/c10/cuda/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/cuda/CMakeLists.txt	2021-12-09 12:00:36.168166179 +0800
++++ pytorch-develop-150/c10/cuda/CMakeLists.txt	2021-12-09 23:00:51.129526206 +0800
 @@ -24,6 +24,7 @@
      CUDACachingAllocator.cpp
      impl/CUDAGuardImpl.cpp
@@ -8204,7 +8204,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  torch_cuda_based_add_library(c10_cuda ${C10_CUDA_SRCS} ${C10_CUDA_HEADERS})
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/c10/macros/Export.h pytorch-develop-150/c10/macros/Export.h
 --- pytorch-v1.5.0/c10/macros/Export.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/c10/macros/Export.h	2021-12-09 12:00:36.168166179 +0800
++++ pytorch-develop-150/c10/macros/Export.h	2021-12-09 23:00:51.129526206 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -8331,7 +8331,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/caffe2/CMakeLists.txt pytorch-develop-150/caffe2/CMakeLists.txt
 --- pytorch-v1.5.0/caffe2/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/caffe2/CMakeLists.txt	2021-12-09 12:00:36.172166167 +0800
++++ pytorch-develop-150/caffe2/CMakeLists.txt	2021-12-09 23:00:51.133526308 +0800
 @@ -32,6 +32,7 @@
    # Add source, includes, and libs to lists
    list(APPEND Caffe2_CPU_SRCS ${ATen_CPU_SRCS})
@@ -8486,7 +8486,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    # Call again since Caffe2_HIP_INCLUDE is extended with ATen include dirs.
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/.clang-format pytorch-develop-150/.clang-format
 --- pytorch-v1.5.0/.clang-format	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/.clang-format	2021-12-09 12:00:35.908166955 +0800
++++ pytorch-develop-150/.clang-format	2021-12-09 23:00:51.073524789 +0800
 @@ -84,5 +84,4 @@
  SpacesInSquareBrackets: false
  Standard:        Cpp11
@@ -8497,7 +8497,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/BuildVariables.cmake pytorch-develop-150/cmake/BuildVariables.cmake
 --- pytorch-v1.5.0/cmake/BuildVariables.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/cmake/BuildVariables.cmake	2021-12-09 12:00:36.228166001 +0800
++++ pytorch-develop-150/cmake/BuildVariables.cmake	2021-12-09 23:00:51.185527625 +0800
 @@ -11,6 +11,7 @@
  # CMakeLists.txt files under each folder respectively.
  set(Caffe2_CPU_SRCS)
@@ -8524,7 +8524,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  # symbols. However, if the lib is whole linked in caffe2 lib, we don't want
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Codegen.cmake pytorch-develop-150/cmake/Codegen.cmake
 --- pytorch-v1.5.0/cmake/Codegen.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/cmake/Codegen.cmake	2021-12-09 12:00:36.228166001 +0800
++++ pytorch-develop-150/cmake/Codegen.cmake	2021-12-09 23:00:51.185527625 +0800
 @@ -191,13 +191,14 @@
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt generated_cpp)
    file(READ ${CMAKE_BINARY_DIR}/aten/src/ATen/generated_cpp.txt-cuda cuda_generated_cpp)
@@ -8555,7 +8555,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Dependencies.cmake pytorch-develop-150/cmake/Dependencies.cmake
 --- pytorch-v1.5.0/cmake/Dependencies.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/cmake/Dependencies.cmake	2021-12-09 12:00:36.228166001 +0800
++++ pytorch-develop-150/cmake/Dependencies.cmake	2021-12-09 23:00:51.185527625 +0800
 @@ -1509,6 +1509,13 @@
    ENDIF(NOT C_HAS_THREAD)
  endif()
@@ -8572,7 +8572,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/Summary.cmake pytorch-develop-150/cmake/Summary.cmake
 --- pytorch-v1.5.0/cmake/Summary.cmake	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/cmake/Summary.cmake	2021-12-09 12:00:36.228166001 +0800
++++ pytorch-develop-150/cmake/Summary.cmake	2021-12-09 23:00:51.189527726 +0800
 @@ -134,6 +134,7 @@
    if(NOT "${SELECTED_OP_LIST}" STREQUAL "")
      message(STATUS "  SELECTED_OP_LIST    : ${SELECTED_OP_LIST}")
@@ -8583,7 +8583,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endfunction()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/cmake/TorchConfig.cmake.in pytorch-develop-150/cmake/TorchConfig.cmake.in
 --- pytorch-v1.5.0/cmake/TorchConfig.cmake.in	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/cmake/TorchConfig.cmake.in	2021-12-09 12:00:36.228166001 +0800
++++ pytorch-develop-150/cmake/TorchConfig.cmake.in	2021-12-09 23:00:51.189527726 +0800
 @@ -112,6 +112,11 @@
    list(APPEND TORCH_LIBRARIES ${TORCH_CUDA_LIBRARIES})
  endif()
@@ -8598,7 +8598,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=@GLIBCXX_USE_CXX11_ABI@")
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/CMakeLists.txt pytorch-develop-150/CMakeLists.txt
 --- pytorch-v1.5.0/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/CMakeLists.txt	2021-12-09 12:00:35.908166955 +0800
++++ pytorch-develop-150/CMakeLists.txt	2021-12-09 23:00:51.073524789 +0800
 @@ -205,6 +205,10 @@
  option(USE_TBB "Use TBB" OFF)
  option(ONNX_ML "Enable traditional ONNX ML API." ON)
@@ -8663,9 +8663,241 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  if (APPLE)
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-private-field")
      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
+diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/CONTRIBUTING.zh.md pytorch-develop-150/CONTRIBUTING.zh.md
+--- pytorch-v1.5.0/CONTRIBUTING.zh.md	1970-01-01 08:00:00.000000000 +0800
++++ pytorch-develop-150/CONTRIBUTING.zh.md	2021-12-09 23:00:51.073524789 +0800
+@@ -0,0 +1,228 @@
++# PyTorch贡献指南
++-   [贡献者许可协议](#贡献者许可协议.md)
++-   [入门](#入门.md)
++-   [开发指导](#开发指导.md)
++    -   [测试用例](#测试用例.md)
++    -   [代码风格](#代码风格.md)
++    -   [门禁异常处理](#门禁异常处理.md)
++    -   [Fork-Pull开发模式](#Fork-Pull开发模式.md)
++    -   [报告问题](#报告问题.md)
++    -   [提出PR](#提出PR.md)
++<h2 id="贡献者许可协议.md">贡献者许可协议</h2>
++
++在您第一次向 PyTorch 社区提交代码之前，需要签署 CLA。
++
++对于个人贡献者，详细信息请参考[ICLA 在线文档](https://www.mindspore.cn/icla)。
++
++<h2 id="入门.md">入门</h2>
++
++-   在[Gitee](https://gitee.com/ascend/pytorch)上Fork存储库。
++-   阅读[README.md](#https://gitee.com/ascend/pytorch/blob/master/README.zh.md)以获取项目信息和构建说明。
++-   行为准则 [coc](https://gitee.com/ascend/community/blob/master/code-of-conduct_zh_cn.md)。
++
++<h2 id="开发指导.md">开发指导</h2>
++
++-   **[测试用例](#测试用例.md)**  
++
++-   **[代码风格](#代码风格.md)**  
++
++-   **[门禁异常处理](#门禁异常处理.md)**  
++
++-   **[Fork-Pull开发模式](#Fork-Pull开发模式.md)**  
++
++-   **[报告问题](#报告问题.md)**  
++
++-   **[提出PR](#提出PR.md)**  
++
++
++<h2 id="测试用例.md">测试用例</h2>
++
++通过具体示例，完成PyTorch的功能测试。
++
++1.  编写测试脚本。
++
++    以add运算为例，在“pytorch/test/test\_npu/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
++
++    以下示例仅为一个简单的用例实现，供用户参考。具体测试用例的实现，需要根据运算定义进行完整的覆盖才能保证功能的基本正确。
++
++    ```
++    # 引入依赖库
++    import sys
++    sys.path.append('..')
++    import torch
++    import numpy as np
++    from common_utils import TestCase, run_tests
++    from common_device_type import dtypes, instantiate_device_type_tests
++    from util_test import create_common_tensor
++    
++    # 定义add测试用例类
++    class TestAdd(TestCase):
++    
++        # 定义CPU的add执行函数
++        def cpu_op_exec(self, input1, input2):
++            output = torch.add(input1, input2, alpha = 1)
++            output = output.numpy()
++            return output
++    
++        # 定义NPU的add执行函数
++        def npu_op_exec_new(self, input1, input2):
++            output = torch.add(input1, input2, alpha = 1)
++            output = output.to("cpu")
++            output = output.numpy()
++            return output
++    
++        # 定义add对应场景通用函数，该函数中负责场景对应输入数据和对比CPU和NPU返回结果
++        def add_result(self, shape_format):
++            for item in shape_format:
++                cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
++                cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
++                if cpu_input1.dtype == torch.float16:
++                    cpu_input1 = cpu_input1.to(torch.float32)
++                    cpu_input2 = cpu_input2.to(torch.float32)                
++                cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
++                npu_output = self.npu_op_exec_new(npu_input1, npu_input2)
++                cpu_output = cpu_output.astype(npu_output.dtype)            
++                self.assertRtolEqual(cpu_output, npu_output)
++    
++        # 定义具体add场景的测试用例，用例函数需要以test_开头
++        def test_add_shape_format_fp32_2d(self, device):
++            format_list = [0, 3, 29]
++            shape_format = [
++                [np.float32, i, [5, 256]]  for i in format_list 
++            ]        
++            self.add_result(shape_format)
++    
++    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
++    if __name__ == "__main__":
++        run_tests()
++    ```
++
++2.  设置环境变量。
++
++    进入“pytorch/src“路径，并执行env.sh脚本。
++
++    ```
++    bash env.sh
++    ```
++
++3.  执行测试用例脚本。
++
++    进入“test\_add.py“所在的目录，执行：
++
++    ```
++    python3.7 test_add.py
++    ```
++
++
++<h2 id="代码风格.md">代码风格</h2>
++
++请遵循这些风格，以使 PyTorch 易于开发、审查和维护。
++
++-   编码指南
++
++    请在PyTorch社区使用规统一的编码分格，_Python__中_建议的编码风格是[PEP 8编码样式](https://pep8.org/)，_C++_编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。可以使用[CppLint](https://github.com/cpplint/cpplint)，[CppCheck](http://cppcheck.sourceforge.net/)，[CMakeLint](https://github.com/cmake-lint/cmake-lint)，[CodeSpell](https://github.com/codespell-project/codespell)，  [Lizard](http://www.lizard.ws/)，[ShellCheck](https://github.com/koalaman/shellcheck)和[pylint](https://pylint.org/)检查代码的格式，建议在您的IDE中安装这些插件。
++
++-   单元测试指南
++
++    请在PyTorch社区使用统一的单元测试风格，  _Python_中建议的单元测试风格是[pytest](http://www.pytest.org/en/latest/)，_C++_单元测试所建议的风格是  [Googletest Primer](#https://github.com/google/googletest/blob/master/docs/primer.md)  。测试用例的设计意图应该通过它的注释名称来反映。
++
++-   重构指南
++
++    我们鼓励开发人员重构我们的代码以消除[代码异味](https://en.wikipedia.org/wiki/Code_smell)。所有的代码都应该符合编码风格和测试风格的需求，重构代码也不例外。当您收到警告时，您必须重构要合并的代码。
++
++
++<h2 id="门禁异常处理.md">门禁异常处理</h2>
++
++门禁异常主要包含如下几种，请根据相关提示解决异常问题。
++
++-   编译异常
++
++    请检查代码编译失败的原因，解决问题后重新编译即可。
++
++-   静态检查异常（代码Bug、代码漏洞、代码异味）
++
++    请依照提示查找代码中的异常并解决。
++
++-   UT测试未通过
++
++    请根据提示，查找测试用例不通过项并检查原因，解决后再测试。
++
++
++<h2 id="Fork-Pull开发模式.md">Fork-Pull开发模式</h2>
++
++1.  Fork PyTorch存储库。
++
++    在向PyTorch项目提交代码之前，请确保该项目已经Fork到您自己的存储库。这意味着PyTorch存储库和您自己的存储库之间将存在并行开发，因此请注意避免存储库之间的不一致。
++
++2.  克隆远程仓库。
++
++    如果要将代码下载到本地环境，git是很好的方法：
++
++    ```
++    # For Gitee
++    git clone https://gitee.com/{insert_your_forked_repo}/pytorch.git
++    git remote add upstream https://gitee.com/ascend/pytorch.git
++    ```
++
++3.  本地开发代码。
++
++    为了避免多个分支之间的不一致，建议签出到一个新的分支：
++
++    ```
++    git checkout -b {new_branch_name} origin/master
++    ```
++
++    以master分支为例，PyTorch可能会根据需要创建版本分支和下游开发分支，请先修复上游的bug。然后就可以随意更改代码了。
++
++4.  将代码推送到远程仓库。
++
++    更新代码后，您需要以正式的方式推送更新：
++
++    ```
++    git add .
++    git status # Check the update status
++    git commit -m "Your commit title"
++    git commit -s --amend #Add the concrete description of your commit
++    git push origin {new_branch_name}
++    ```
++
++5.  向 PyTorch存储库拉取请求。
++
++    在最后一步中，您需要在新分支和“PyTorch master“分支之间拉取比较请求。完成拉取请求后，“Jenkins CI“将自动设置为构建测试。您的pull request应该尽快合并到上游 master 分支，以降低合并的风险。
++
++
++<h2 id="报告问题.md">报告问题</h2>
++
++为项目做出贡献的一个好方法是在遇到问题时发送详细报告。我们总是很感激写得很好、彻底的错误报告，并会由此感谢您！
++
++报告问题时，请参考以下格式：
++
++-   您使用的是什么版本的环境 （pytorch、os、python 等）？
++-   这是错误报告还是功能请求？
++-   什么样的问题，添加标签以在问题仪表板上突出显示。
++-   发生了什么？
++-   您预计会发生什么？
++-   如何重现它？（尽可能最小和精确。）
++-   给审稿人的特别说明？
++
++问题咨询：
++
++-   如果您发现一个未解决的问题，而这正是您要解决的问题，请对该问题发表一些评论，告诉其他人您将负责它。
++-   如果问题已打开一段时间，建议贡献者在解决该问题之前进行预检查。
++-   如果您解决了自己报告的问题，则还需要在关闭该问题之前让其他人知道。
++
++<h2 id="提出PR.md">提出PR</h2>
++
++-   在[Gitee](https://gitee.com/ascend/pytorch/issues)上提出您的想法作为_问题_。
++-   如果是需要大量设计细节的新功能，还应提交设计方案。
++-   在问题讨论和设计提案审查中达成共识后，完成分叉回购的开发并提交 PR（Pull Request）。
++-   在从批准者那里收到2+ LGTM（Looks Good To Me）之前，不允许任何PR 。请注意，审批人不允许在自己的 PR 上添加LGTM。
++-   在 PR 被充分讨论后，它将根据讨论的结果被合并、放弃或拒绝。
++
++公关咨询：
++
++-   应避免任何不相关的更改。
++-   确保你的提交历史被排序。
++-   始终将您的分支与主分支保持一致。
++-   对于错误修复 PR，请确保链接所有相关问题。
++
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/.dockerignore pytorch-develop-150/.dockerignore
 --- pytorch-v1.5.0/.dockerignore	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/.dockerignore	2021-12-09 12:00:35.908166955 +0800
++++ pytorch-develop-150/.dockerignore	2021-12-09 23:00:51.073524789 +0800
 @@ -1,257 +1 @@
 -# READ THIS BEFORE YOU REFACTOR ME
 -#
@@ -8941,7 +9173,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/requirements.txt pytorch-develop-150/requirements.txt
 --- pytorch-v1.5.0/requirements.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/requirements.txt	2021-12-09 12:00:35.912166943 +0800
++++ pytorch-develop-150/requirements.txt	2021-12-09 23:00:51.077524889 +0800
 @@ -4,4 +4,13 @@
  requests
  setuptools
@@ -8961,7 +9193,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/setup.py pytorch-develop-150/setup.py
 --- pytorch-v1.5.0/setup.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/setup.py	2021-12-09 12:00:35.912166943 +0800
++++ pytorch-develop-150/setup.py	2021-12-09 23:00:51.077524889 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9063,7 +9295,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  'python/serialized_test/data/operator_test/*.zip',
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/derivatives.yaml pytorch-develop-150/tools/autograd/derivatives.yaml
 --- pytorch-v1.5.0/tools/autograd/derivatives.yaml	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/derivatives.yaml	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/derivatives.yaml	2021-12-09 23:00:51.765542310 +0800
 @@ -107,6 +107,10 @@
  #
  # NB: The parameter names here MUST be consistent with the parameter names
@@ -9188,7 +9420,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/dump_utils.py pytorch-develop-150/tools/autograd/dump_utils.py
 --- pytorch-v1.5.0/tools/autograd/dump_utils.py	1970-01-01 08:00:00.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/dump_utils.py	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/dump_utils.py	2021-12-09 23:00:51.765542310 +0800
 @@ -0,0 +1,312 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# All rights reserved.
@@ -9504,7 +9736,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +    return prepare_to_check_overflow, overflow_dump_inputs
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_autograd_functions.py pytorch-develop-150/tools/autograd/gen_autograd_functions.py
 --- pytorch-v1.5.0/tools/autograd/gen_autograd_functions.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/gen_autograd_functions.py	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/gen_autograd_functions.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9710,7 +9942,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_python_functions.py pytorch-develop-150/tools/autograd/gen_python_functions.py
 --- pytorch-v1.5.0/tools/autograd/gen_python_functions.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/gen_python_functions.py	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/gen_python_functions.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,20 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9752,7 +9984,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              'value': argname,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/gen_variable_type.py pytorch-develop-150/tools/autograd/gen_variable_type.py
 --- pytorch-v1.5.0/tools/autograd/gen_variable_type.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/gen_variable_type.py	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/gen_variable_type.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2021 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -9931,7 +10163,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/Functions.cpp pytorch-develop-150/tools/autograd/templates/Functions.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/Functions.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/templates/Functions.cpp	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/templates/Functions.cpp	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2021 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10012,7 +10244,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto sparse = sparse_.coalesce();
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/python_torch_functions.cpp pytorch-develop-150/tools/autograd/templates/python_torch_functions.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/python_torch_functions.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/templates/python_torch_functions.cpp	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/templates/python_torch_functions.cpp	2021-12-09 23:00:51.765542310 +0800
 @@ -22,7 +22,7 @@
  #include "torch/csrc/autograd/generated/variable_factories.h"
  #include "torch/csrc/utils/structseq.h"
@@ -10096,7 +10328,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/python_variable_methods.cpp pytorch-develop-150/tools/autograd/templates/python_variable_methods.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/python_variable_methods.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/templates/python_variable_methods.cpp	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/templates/python_variable_methods.cpp	2021-12-09 23:00:51.765542310 +0800
 @@ -15,7 +15,13 @@
  #include "torch/csrc/cuda/Stream.h"
  #include "torch/csrc/cuda/Event.h"
@@ -10191,7 +10423,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"has_names", (PyCFunction)THPVariable_has_names, METH_NOARGS, NULL},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/VariableType.cpp pytorch-develop-150/tools/autograd/templates/VariableType.cpp
 --- pytorch-v1.5.0/tools/autograd/templates/VariableType.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/templates/VariableType.cpp	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/templates/VariableType.cpp	2021-12-09 23:00:51.765542310 +0800
 @@ -1,7 +1,29 @@
 +// Copyright (c) 2021 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10224,7 +10456,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/autograd/templates/VariableType.h pytorch-develop-150/tools/autograd/templates/VariableType.h
 --- pytorch-v1.5.0/tools/autograd/templates/VariableType.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/autograd/templates/VariableType.h	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/autograd/templates/VariableType.h	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,20 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -10256,7 +10488,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    const at::Tensor & unpack(const Tensor & t, const char * name, int pos);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/tools/build_variables.bzl pytorch-develop-150/tools/build_variables.bzl
 --- pytorch-v1.5.0/tools/build_variables.bzl	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/tools/build_variables.bzl	2021-12-09 12:00:36.864164106 +0800
++++ pytorch-develop-150/tools/build_variables.bzl	2021-12-09 23:00:51.765542310 +0800
 @@ -46,6 +46,7 @@
      "torch/csrc/autograd/functions/utils.cpp",
      "torch/csrc/autograd/input_buffer.cpp",
@@ -10342,7 +10574,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def grad(outputs: _TensorOrTensors, inputs: _TensorOrTensors, grad_outputs: Optional[_TensorOrTensors]=..., retain_graph: Optional[bool]=..., create_graph: bool=..., only_inputs: bool=..., allow_unused: bool=...) -> Tuple[Tensor, ...]: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/autograd/profiler.py pytorch-develop-150/torch/autograd/profiler.py
 --- pytorch-v1.5.0/torch/autograd/profiler.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/autograd/profiler.py	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/autograd/profiler.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,8 +1,25 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -10819,7 +11051,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return ''.join(result)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/CMakeLists.txt pytorch-develop-150/torch/CMakeLists.txt
 --- pytorch-v1.5.0/torch/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/CMakeLists.txt	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/CMakeLists.txt	2021-12-09 23:00:51.765542310 +0800
 @@ -97,6 +97,7 @@
      ${TORCH_SRC_DIR}/csrc/tensor/python_tensor.cpp
      ${TORCH_SRC_DIR}/csrc/utils.cpp
@@ -10851,7 +11083,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  endif()
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/engine.cpp pytorch-develop-150/torch/csrc/autograd/engine.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/engine.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/engine.cpp	2021-12-09 12:00:36.872164082 +0800
++++ pytorch-develop-150/torch/csrc/autograd/engine.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11003,7 +11235,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        auto event = c10::Event{c10::DeviceType::CUDA};
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/functions/tensor.cpp pytorch-develop-150/torch/csrc/autograd/functions/tensor.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/functions/tensor.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/functions/tensor.cpp	2021-12-09 12:00:36.872164082 +0800
++++ pytorch-develop-150/torch/csrc/autograd/functions/tensor.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11035,7 +11267,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
            /*non_blocking=*/false,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/init.cpp pytorch-develop-150/torch/csrc/autograd/init.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/init.cpp	2021-12-09 12:00:36.872164082 +0800
++++ pytorch-develop-150/torch/csrc/autograd/init.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11078,7 +11310,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    m.def("_enable_profiler", enableProfiler);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/input_buffer.cpp pytorch-develop-150/torch/csrc/autograd/input_buffer.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/input_buffer.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/input_buffer.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/input_buffer.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11130,7 +11362,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto& old_var = buffer[pos];
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/profiler.cpp pytorch-develop-150/torch/csrc/autograd/profiler.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/profiler.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/profiler.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/profiler.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11370,7 +11602,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  CUDAStubs::~CUDAStubs() = default;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/profiler.h pytorch-develop-150/torch/csrc/autograd/profiler.h
 --- pytorch-v1.5.0/torch/csrc/autograd/profiler.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/profiler.h	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/profiler.h	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11506,7 +11738,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/python_variable.cpp pytorch-develop-150/torch/csrc/autograd/python_variable.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/python_variable.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/python_variable.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/python_variable.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11560,7 +11792,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"is_complex", (getter)THPVariable_is_complex, nullptr, nullptr, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/python_variable_indexing.cpp pytorch-develop-150/torch/csrc/autograd/python_variable_indexing.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/python_variable_indexing.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/python_variable_indexing.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/python_variable_indexing.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11591,7 +11823,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    at::Device self_device = self_.device();
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/record_function.cpp pytorch-develop-150/torch/csrc/autograd/record_function.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/record_function.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/record_function.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/record_function.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -154,6 +154,12 @@
    }
  }
@@ -11625,7 +11857,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/record_function.h pytorch-develop-150/torch/csrc/autograd/record_function.h
 --- pytorch-v1.5.0/torch/csrc/autograd/record_function.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/record_function.h	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/record_function.h	2021-12-09 23:00:51.773542513 +0800
 @@ -44,6 +44,9 @@
    // Default constructor is used with before function called afterwards
    RecordFunction() {}
@@ -11689,7 +11921,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        if (torch::autograd::profiler::needsInputs()) { \
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/utils/wrap_outputs.h pytorch-develop-150/torch/csrc/autograd/utils/wrap_outputs.h
 --- pytorch-v1.5.0/torch/csrc/autograd/utils/wrap_outputs.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/utils/wrap_outputs.h	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/autograd/utils/wrap_outputs.h	2021-12-09 23:00:51.773542513 +0800
 @@ -168,6 +168,45 @@
    return r.release();
  }
@@ -11738,7 +11970,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    if (!r) throw python_error();
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/autograd/VariableTypeManual.cpp pytorch-develop-150/torch/csrc/autograd/VariableTypeManual.cpp
 --- pytorch-v1.5.0/torch/csrc/autograd/VariableTypeManual.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/autograd/VariableTypeManual.cpp	2021-12-09 12:00:36.872164082 +0800
++++ pytorch-develop-150/torch/csrc/autograd/VariableTypeManual.cpp	2021-12-09 23:00:51.773542513 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11772,7 +12004,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    if (!t.defined()) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/comm.cpp pytorch-develop-150/torch/csrc/distributed/c10d/comm.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/comm.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/distributed/c10d/comm.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/distributed/c10d/comm.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11878,7 +12110,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    while (!in_flight.empty()) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/init.cpp pytorch-develop-150/torch/csrc/distributed/c10d/init.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/distributed/c10d/init.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/distributed/c10d/init.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -11935,7 +12167,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        .def("is_success", &::c10d::ProcessGroup::Work::isSuccess)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/distributed/c10d/reducer.cpp pytorch-develop-150/torch/csrc/distributed/c10d/reducer.cpp
 --- pytorch-v1.5.0/torch/csrc/distributed/c10d/reducer.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/distributed/c10d/reducer.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/distributed/c10d/reducer.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12070,7 +12302,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  }
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/DynamicTypes.cpp pytorch-develop-150/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.5.0/torch/csrc/DynamicTypes.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/DynamicTypes.cpp	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/csrc/DynamicTypes.cpp	2021-12-09 23:00:51.769542412 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12119,7 +12351,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      return it->second;
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/Generator.cpp pytorch-develop-150/torch/csrc/Generator.cpp
 --- pytorch-v1.5.0/torch/csrc/Generator.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/Generator.cpp	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/csrc/Generator.cpp	2021-12-09 23:00:51.769542412 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12187,7 +12419,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  #endif 
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/serialization.cpp pytorch-develop-150/torch/csrc/generic/serialization.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/serialization.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/generic/serialization.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/generic/serialization.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12287,7 +12519,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/Storage.cpp pytorch-develop-150/torch/csrc/generic/Storage.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/Storage.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/generic/Storage.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/generic/Storage.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,7 +1,25 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12366,7 +12598,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
        for (Py_ssize_t i = 0; i < length; i++) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/generic/StorageMethods.cpp pytorch-develop-150/torch/csrc/generic/StorageMethods.cpp
 --- pytorch-v1.5.0/torch/csrc/generic/StorageMethods.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/generic/StorageMethods.cpp	2021-12-09 12:00:36.876164069 +0800
++++ pytorch-develop-150/torch/csrc/generic/StorageMethods.cpp	2021-12-09 23:00:51.777542614 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12414,7 +12646,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    {"_write_file", (PyCFunction)THPStorage_(writeFile), METH_VARARGS, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/Module.cpp pytorch-develop-150/torch/csrc/Module.cpp
 --- pytorch-v1.5.0/torch/csrc/Module.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/Module.cpp	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/csrc/Module.cpp	2021-12-09 23:00:51.769542412 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12575,7 +12807,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    auto set_module_attr = [&](const char* name, PyObject* v, bool incref = true) {
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/tensor/python_tensor.cpp pytorch-develop-150/torch/csrc/tensor/python_tensor.cpp
 --- pytorch-v1.5.0/torch/csrc/tensor/python_tensor.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/tensor/python_tensor.cpp	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/tensor/python_tensor.cpp	2021-12-09 23:00:51.785542817 +0800
 @@ -1,18 +1,35 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -12952,7 +13184,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +} // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/init.cpp pytorch-develop-150/torch/csrc/utils/init.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/init.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/init.cpp	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/init.cpp	2021-12-09 23:00:51.785542817 +0800
 @@ -1,7 +1,13 @@
  #include <ATen/core/ivalue.h>
  #include <torch/csrc/utils/init.h>
@@ -13117,7 +13349,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  } // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/init.h pytorch-develop-150/torch/csrc/utils/init.h
 --- pytorch-v1.5.0/torch/csrc/utils/init.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/init.h	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/init.h	2021-12-09 23:00:51.785542817 +0800
 @@ -8,4 +8,7 @@
  void initThroughputBenchmarkBindings(PyObject* module);
  
@@ -13128,7 +13360,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  } // namespace torch
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/python_arg_parser.h pytorch-develop-150/torch/csrc/utils/python_arg_parser.h
 --- pytorch-v1.5.0/torch/csrc/utils/python_arg_parser.h	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/python_arg_parser.h	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/python_arg_parser.h	2021-12-09 23:00:51.785542817 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -13163,7 +13395,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    return at::Device(device_str);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_layouts.cpp pytorch-develop-150/torch/csrc/utils/tensor_layouts.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_layouts.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/tensor_layouts.cpp	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/tensor_layouts.cpp	2021-12-09 23:00:51.785542817 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -13194,7 +13426,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    registerLayoutObject((THPLayout*)strided_layout, at::Backend::QuantizedCPU);
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_new.cpp pytorch-develop-150/torch/csrc/utils/tensor_new.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_new.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/tensor_new.cpp	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/tensor_new.cpp	2021-12-09 23:00:51.785542817 +0800
 @@ -1,3 +1,19 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -13330,7 +13562,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  " or ", c10::DispatchKey::XLATensorId,
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/csrc/utils/tensor_types.cpp pytorch-develop-150/torch/csrc/utils/tensor_types.cpp
 --- pytorch-v1.5.0/torch/csrc/utils/tensor_types.cpp	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/csrc/utils/tensor_types.cpp	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/csrc/utils/tensor_types.cpp	2021-12-09 23:00:51.785542817 +0800
 @@ -1,58 +1,91 @@
 +// Copyright (c) 2020 Huawei Technologies Co., Ltd
 +// Copyright (c) 2019, Facebook CORPORATION. 
@@ -13543,7 +13775,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def get_rng_state(): ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/distributed/distributed_c10d.py pytorch-develop-150/torch/distributed/distributed_c10d.py
 --- pytorch-v1.5.0/torch/distributed/distributed_c10d.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/distributed/distributed_c10d.py	2021-12-09 12:00:36.888164034 +0800
++++ pytorch-develop-150/torch/distributed/distributed_c10d.py	2021-12-09 23:00:51.789542918 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13624,7 +13856,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/__init__.py pytorch-develop-150/torch/__init__.py
 --- pytorch-v1.5.0/torch/__init__.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/__init__.py	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/__init__.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13667,7 +13899,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/lib/c10d/CMakeLists.txt pytorch-develop-150/torch/lib/c10d/CMakeLists.txt
 --- pytorch-v1.5.0/torch/lib/c10d/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/lib/c10d/CMakeLists.txt	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/lib/c10d/CMakeLists.txt	2021-12-09 23:00:51.789542918 +0800
 @@ -28,6 +28,10 @@
    option(USE_C10D_NCCL "USE C10D NCCL" ON)
  endif()
@@ -13720,7 +13952,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
    copy_header(ProcessGroupMPI.hpp)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/lib/libshm/CMakeLists.txt pytorch-develop-150/torch/lib/libshm/CMakeLists.txt
 --- pytorch-v1.5.0/torch/lib/libshm/CMakeLists.txt	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/lib/libshm/CMakeLists.txt	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/lib/libshm/CMakeLists.txt	2021-12-09 23:00:51.789542918 +0800
 @@ -37,8 +37,11 @@
  SET_TARGET_PROPERTIES(shm PROPERTIES
    PREFIX "lib"
@@ -13777,7 +14009,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -_maybe_indices_t = _scalar_or_tuple_2_t[Tensor]
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/functional.py pytorch-develop-150/torch/nn/functional.py
 --- pytorch-v1.5.0/torch/nn/functional.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/nn/functional.py	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/nn/functional.py	2021-12-09 23:00:51.789542918 +0800
 @@ -1611,7 +1611,7 @@
      else:
          output = input.matmul(weight.t())
@@ -13800,7 +14032,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -from . import parallel as parallel
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/batchnorm.py pytorch-develop-150/torch/nn/modules/batchnorm.py
 --- pytorch-v1.5.0/torch/nn/modules/batchnorm.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/nn/modules/batchnorm.py	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/nn/modules/batchnorm.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13832,7 +14064,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
              self.register_parameter('running_var', None)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/module.py pytorch-develop-150/torch/nn/modules/module.py
 --- pytorch-v1.5.0/torch/nn/modules/module.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/nn/modules/module.py	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/nn/modules/module.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -13992,7 +14224,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
                  return t.to(device, dtype if t.is_floating_point() else None, non_blocking, memory_format=convert_to_format)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/modules/normalization.py pytorch-develop-150/torch/nn/modules/normalization.py
 --- pytorch-v1.5.0/torch/nn/modules/normalization.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/nn/modules/normalization.py	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/nn/modules/normalization.py	2021-12-09 23:00:51.793543020 +0800
 @@ -128,13 +128,14 @@
      """
      __constants__ = ['normalized_shape', 'eps', 'elementwise_affine']
@@ -14061,7 +14293,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -                  module_kwargs: Optional[Any] = ...) -> Tensor: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/nn/parallel/distributed.py pytorch-develop-150/torch/nn/parallel/distributed.py
 --- pytorch-v1.5.0/torch/nn/parallel/distributed.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/nn/parallel/distributed.py	2021-12-09 12:00:36.892164022 +0800
++++ pytorch-develop-150/torch/nn/parallel/distributed.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14416,7 +14648,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -def remove_weight_norm(module: T_module, name: str = ...) -> T_module: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/onnx/symbolic_opset9.py pytorch-develop-150/torch/onnx/symbolic_opset9.py
 --- pytorch-v1.5.0/torch/onnx/symbolic_opset9.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/onnx/symbolic_opset9.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/onnx/symbolic_opset9.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1621,14 +1621,23 @@
          slices = [sym_help._slice_helper(g, w, axes=[0], starts=[x * n], ends=[y * n]) for x, y in intervals]
          return g.op('Concat', *slices, axis_i=0)
@@ -14494,7 +14726,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, params: _params_t, lr: float=..., lr_decay: float=..., weight_decay: float=..., initial_accumulator_value: float=...,  eps: float=...) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/optim/adamax.py pytorch-develop-150/torch/optim/adamax.py
 --- pytorch-v1.5.0/torch/optim/adamax.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/optim/adamax.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/optim/adamax.py	2021-12-09 23:00:51.793543020 +0800
 @@ -80,8 +80,8 @@
                      exp_inf.mul_(beta2).unsqueeze(0),
                      grad.abs().add_(eps).unsqueeze_(0)
@@ -14671,7 +14903,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, params: _params_t, lr: float=..., betas: Tuple[float, float]=..., eps: float=...) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/serialization.py pytorch-develop-150/torch/serialization.py
 --- pytorch-v1.5.0/torch/serialization.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/serialization.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/serialization.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14755,7 +14987,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  def location_tag(storage):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/storage.py pytorch-develop-150/torch/storage.py
 --- pytorch-v1.5.0/torch/storage.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/storage.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/storage.py	2021-12-09 23:00:51.793543020 +0800
 @@ -7,6 +7,7 @@
  
  class _StorageBase(object):
@@ -14775,7 +15007,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
          else:
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/tensor.py pytorch-develop-150/torch/tensor.py
 --- pytorch-v1.5.0/torch/tensor.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/tensor.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/tensor.py	2021-12-09 23:00:51.793543020 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14837,7 +15069,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      def __reversed__(self):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/_tensor_str.py pytorch-develop-150/torch/_tensor_str.py
 --- pytorch-v1.5.0/torch/_tensor_str.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/_tensor_str.py	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/_tensor_str.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -14891,7 +15123,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
      has_default_dtype = self.dtype in (torch.get_default_dtype(), torch.int64, torch.bool)
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/data/dataloader.py pytorch-develop-150/torch/utils/data/dataloader.py
 --- pytorch-v1.5.0/torch/utils/data/dataloader.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/utils/data/dataloader.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/utils/data/dataloader.py	2021-12-09 23:00:51.797543121 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -15100,7 +15332,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -    def __init__(self, sampler: Sampler[int], batch_size: int, drop_last: bool) -> None: ...
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/data/_utils/pin_memory.py pytorch-develop-150/torch/utils/data/_utils/pin_memory.py
 --- pytorch-v1.5.0/torch/utils/data/_utils/pin_memory.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/utils/data/_utils/pin_memory.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/utils/data/_utils/pin_memory.py	2021-12-09 23:00:51.797543121 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 
@@ -15161,7 +15393,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 -
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/utils/__init__.py pytorch-develop-150/torch/utils/__init__.py
 --- pytorch-v1.5.0/torch/utils/__init__.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/utils/__init__.py	2021-12-09 12:00:36.896164010 +0800
++++ pytorch-develop-150/torch/utils/__init__.py	2021-12-09 23:00:51.797543121 +0800
 @@ -1,6 +1,9 @@
  from __future__ import absolute_import, division, print_function, unicode_literals
  
@@ -15174,7 +15406,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
  def set_module(obj, mod):
 diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=OWNERS' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.5.0/torch/_utils.py pytorch-develop-150/torch/_utils.py
 --- pytorch-v1.5.0/torch/_utils.py	2021-04-10 18:39:32.000000000 +0800
-+++ pytorch-develop-150/torch/_utils.py	2021-12-09 12:00:36.868164093 +0800
++++ pytorch-develop-150/torch/_utils.py	2021-12-09 23:00:51.765542310 +0800
 @@ -1,3 +1,19 @@
 +# Copyright (c) 2020 Huawei Technologies Co., Ltd
 +# Copyright (c) 2019, Facebook CORPORATION. 

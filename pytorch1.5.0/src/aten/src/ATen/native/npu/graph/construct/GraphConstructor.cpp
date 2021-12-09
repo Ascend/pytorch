@@ -71,10 +71,15 @@ void GraphCommandImpl::AddInput(
     const Scalar& input,
     const ScalarType type,
     CompileType compile_type) {
-  ir_node_->AddExtInfo(
-      NodeExtInfoType::INPUT_TYPE_SCALAR,
-      std::make_tuple(input_index_++, input, type));
-  ir_node_->UpdateNodeHash(CalcuOpUtil::get_scalar_float_value(input), type);
+  if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
+    auto input_tensor = CalcuOpUtil::CopyScalarToDevice(input, type);
+    AddInput(input_tensor, "", "");
+  } else {
+    ir_node_->AddExtInfo(
+        NodeExtInfoType::INPUT_TYPE_SCALAR,
+        std::make_tuple(input_index_++, input, type));
+    ir_node_->UpdateNodeHash(CalcuOpUtil::get_scalar_float_value(input), type);
+  }
 }
 
 void GraphCommandImpl::AddInput(

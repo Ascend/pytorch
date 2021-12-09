@@ -49,13 +49,13 @@ Tensor& adaptive_max_pool2d_backward_out_npu(
       kernel_size[1] = kernel_sizeW;
       padding[0] = padding[1] = 0;
 
-      SmallVector<int64_t, N> kernelSize = {1, kernel_size[0], kernel_size[1], 1};
-      SmallVector<int64_t, N> stridesSize = {1, stride[0], stride[1], 1};
-      SmallVector<int64_t, N> paddings = {1, padding[0], padding[1], 1};
+      SmallVector<int64_t, N> kernelSize = {1, 1, kernel_size[0], kernel_size[1]};
+      SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
+      SmallVector<int64_t, N> paddings = {1, 1, padding[0], padding[1]};
       SmallVector<int64_t, N> dilations = {1, 1, 1, 1};
       bool ceil_mode = false;
       OpCommand cmd;
-      cmd.Name("MaxPoolGradWithArgmaxV1")
+      cmd.Name("MaxPoolGradWithArgmaxV2")
           .Input(self)
           .Input(grad_output)
           .Input(indices, "", nullopt, "uint16")

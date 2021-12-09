@@ -844,7 +844,7 @@ class TestCase(expecttest.TestCase):
             y = y.numpy()
         size = x.size
         if (x.shape != y.shape):
-            self.fail("shpae error")
+            self.fail("shape error")
         if (x.dtype != y.dtype):
             self.fail("dtype error")
         dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64, np.float64]

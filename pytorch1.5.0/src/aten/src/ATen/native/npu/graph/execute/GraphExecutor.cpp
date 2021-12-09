@@ -127,6 +127,8 @@ void GraphExecutor::Init() {
           {"ACL_DEBUG_DIR", ge::DEBUG_DIR},
           {"ACL_OP_COMPILER_CACHE_MODE", ge::OP_COMPILER_CACHE_MODE},
           {"ACL_OP_COMPILER_CACHE_DIR", ge::OP_COMPILER_CACHE_DIR},
+          {"ACL_OP_SELECT_IMPL_MODE", ge::OP_SELECT_IMPL_MODE},
+          {"ACL_OPTYPELIST_FOR_IMPLMODE", ge::OPTYPELIST_FOR_IMPLMODE}
       };
 
   for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
@@ -140,6 +142,7 @@ void GraphExecutor::Init() {
     AT_ERROR("GE init failed!");
   }
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
+  config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
   session_ = std::make_unique<ge::Session>(config);
   C10_NPU_CHECK(aclrtSetDevice(init_device_id_));
   if (session_ == nullptr) {

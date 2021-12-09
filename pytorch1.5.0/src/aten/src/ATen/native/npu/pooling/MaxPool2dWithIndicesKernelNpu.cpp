@@ -40,13 +40,13 @@ tuple<Tensor&, Tensor&> max_pool2d_with_indices_out_npu(
     strideW = stride[1];
   }
 
-  SmallVector<int64_t, N> kernelSize = {1, kernel_size[0], kernel_size[1], 1};
-  SmallVector<int64_t, N> stridesSize = {1, strideH, strideW, 1};
-  SmallVector<int64_t, N> paddings = {1, padding[0], padding[1], 1};
-  SmallVector<int64_t, N> dilations = {1, dilation[0], dilation[1], 1};
+  SmallVector<int64_t, N> kernelSize = {1, 1, kernel_size[0], kernel_size[1]};
+  SmallVector<int64_t, N> stridesSize = {1, 1, strideH, strideW};
+  SmallVector<int64_t, N> paddings = {1, 1, padding[0], padding[1]};
+  SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
 
   OpCommand cmd;
-  cmd.Name("MaxPoolWithArgmaxV1")
+  cmd.Name("MaxPoolWithArgmaxV2")
       .Input(self)
       .Output(output)
       .Output(indices, "", nullopt, "uint16")
