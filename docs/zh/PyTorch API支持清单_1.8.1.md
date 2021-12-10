@@ -448,10 +448,6 @@
 | 6    | [are_deterministic_algorithms_enabled](https://pytorch.org/docs/1.8.1/generated/torch.are_deterministic_algorithms_enabled.html#torch.are_deterministic_algorithms_enabled) | 否       |
 | 7    | [_assert](https://pytorch.org/docs/1.8.1/generated/torch._assert.html#torch._assert) | 否       |
 
-## Other
-
-## torch.Tensor
-
 # Layers (torch.nn)
 
 | 序号 | API名称                                                      | 支持情况 |
@@ -774,9 +770,9 @@ From the `torch.nn.utils` module
 
 
 
-## Functions(torch.nn.functional)
+# Functions(torch.nn.functional)
 
-### [Convolution functions](https://pytorch.org/docs/1.8.1/nn.functional.html#convolution-functions)
+## [Convolution functions](https://pytorch.org/docs/1.8.1/nn.functional.html#convolution-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -789,7 +785,7 @@ From the `torch.nn.utils` module
 | 7    | [unfold](https://pytorch.org/docs/1.8.1/nn.functional.html#unfold) | 否       |
 | 8    | [fold](https://pytorch.org/docs/1.8.1/nn.functional.html#fold) | 否       |
 
-### [Pooling functions](https://pytorch.org/docs/1.8.1/nn.functional.html#pooling-functions)
+## [Pooling functions](https://pytorch.org/docs/1.8.1/nn.functional.html#pooling-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -811,7 +807,7 @@ From the `torch.nn.utils` module
 | 16   | [adaptive_avg_pool2d](https://pytorch.org/docs/1.8.1/nn.functional.html#adaptive-avg-pool2d) | 否       |
 | 17   | [adaptive_avg_pool3d](https://pytorch.org/docs/1.8.1/nn.functional.html#adaptive-avg-pool3d) | 否       |
 
-### [Non-linear activation functions](https://pytorch.org/docs/1.8.1/nn.functional.html#non-linear-activation-functions)
+## [Non-linear activation functions](https://pytorch.org/docs/1.8.1/nn.functional.html#non-linear-activation-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -843,7 +839,7 @@ From the `torch.nn.utils` module
 | 26   | [hardsigmoid](https://pytorch.org/docs/1.8.1/nn.functional.html#hardsigmoid) | 否       |
 | 27   | [silu](https://pytorch.org/docs/1.8.1/nn.functional.html#silu) | 否       |
 
-### [Normalization functions](https://pytorch.org/docs/1.8.1/nn.functional.html#normalization-functions)
+## [Normalization functions](https://pytorch.org/docs/1.8.1/nn.functional.html#normalization-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -853,14 +849,14 @@ From the `torch.nn.utils` module
 | 4    | [local_response_norm](https://pytorch.org/docs/1.8.1/nn.functional.html#local-response-norm) | 否       |
 | 5    | [normalize](https://pytorch.org/docs/1.8.1/nn.functional.html#normalize) | 否       |
 
-### [Linear functions](https://pytorch.org/docs/1.8.1/nn.functional.html#linear-functions)[Linear functions](https://pytorch.org/docs/1.8.1/nn.functional.html#linear-functions)
+## [Linear functions](https://pytorch.org/docs/1.8.1/nn.functional.html#linear-functions)[Linear functions](https://pytorch.org/docs/1.8.1/nn.functional.html#linear-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
 | 1    | [linear](https://pytorch.org/docs/1.8.1/nn.functional.html#linear) | 否       |
 | 2    | [bilinear](https://pytorch.org/docs/1.8.1/nn.functional.html#bilinear) | 否       |
 
-### [Dropout functions](https://pytorch.org/docs/1.8.1/nn.functional.html#dropout-functions)
+## [Dropout functions](https://pytorch.org/docs/1.8.1/nn.functional.html#dropout-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -870,7 +866,7 @@ From the `torch.nn.utils` module
 | 4    | [dropout2d](https://pytorch.org/docs/1.8.1/nn.functional.html#dropout2d) | 否       |
 | 5    | [dropout3d](https://pytorch.org/docs/1.8.1/nn.functional.html#dropout3d) | 否       |
 
-### [Sparse functions](https://pytorch.org/docs/1.8.1/nn.functional.html#sparse-functions)
+## [Sparse functions](https://pytorch.org/docs/1.8.1/nn.functional.html#sparse-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -878,7 +874,7 @@ From the `torch.nn.utils` module
 | 2    | [embedding_bag](https://pytorch.org/docs/1.8.1/nn.functional.html#embedding-bag) | 否       |
 | 3    | [one_hot](https://pytorch.org/docs/1.8.1/nn.functional.html#one-hot) | 否       |
 
-### [Distance functions](https://pytorch.org/docs/1.8.1/nn.functional.html#distance-functions)
+## [Distance functions](https://pytorch.org/docs/1.8.1/nn.functional.html#distance-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -886,7 +882,7 @@ From the `torch.nn.utils` module
 | 2    | [cosine_similarity](https://pytorch.org/docs/1.8.1/nn.functional.html#cosine-similarity) | 否       |
 | 3    | [pdist](https://pytorch.org/docs/1.8.1/nn.functional.html#pdist) | 否       |
 
-### [Loss functions](https://pytorch.org/docs/1.8.1/nn.functional.html#loss-functions)
+## [Loss functions](https://pytorch.org/docs/1.8.1/nn.functional.html#loss-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -910,7 +906,7 @@ From the `torch.nn.utils` module
 | 18   | [triplet_margin_loss](https://pytorch.org/docs/1.8.1/nn.functional.html#triplet-margin-loss) | 否       |
 | 19   | [triplet_margin_with_distance_loss](https://pytorch.org/docs/1.8.1/nn.functional.html#triplet-margin-with-distance-loss) | 否       |
 
-### [Vision functions](https://pytorch.org/docs/1.8.1/nn.functional.html#vision-functions)
+## [Vision functions](https://pytorch.org/docs/1.8.1/nn.functional.html#vision-functions)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
@@ -924,17 +920,13 @@ From the `torch.nn.utils` module
 | 8    | [grid_sample](https://pytorch.org/docs/1.8.1/nn.functional.html#grid-sample) | 否       |
 | 9    | [affine_grid](https://pytorch.org/docs/1.8.1/nn.functional.html#affine-grid) | 否       |
 
-### [DataParallel functions (multi-GPU, distributed)](https://pytorch.org/docs/1.8.1/nn.functional.html#dataparallel-functions-multi-gpu-distributed)
+## [DataParallel functions (multi-GPU, distributed)](https://pytorch.org/docs/1.8.1/nn.functional.html#dataparallel-functions-multi-gpu-distributed)
 
 | 序号 | API名称                                                      | 支持情况 |
 | ---- | ------------------------------------------------------------ | -------- |
 | 1    | [data_parallel](https://pytorch.org/docs/1.8.1/nn.functional.html#data-parallel) | 否       |
 
-
-
-
-
-## [torch.distributed](https://pytorch.org/docs/1.8.1/distributed.html)
+# [torch.distributed](https://pytorch.org/docs/1.8.1/distributed.html)
 
 | 序号 | API名称                                   | 支持情况 |
 | ---- | ----------------------------------------- | -------- |
@@ -989,7 +981,7 @@ From the `torch.nn.utils` module
 | 49   | torch.distributed.launch                  | 否       |
 | 50   | torch.multiprocessing.spawn               | 否       |
 
-## torch.npu
+# torch.npu
 
 | 序号 | API名称                               | npu对应API名称                       | 是否支持 |
 | ---- | ------------------------------------- | ------------------------------------ | -------- |
@@ -1057,103 +1049,103 @@ From the `torch.nn.utils` module
 | 62   | torch.cuda.get_device_properties      | torch.npu.get_device_properties      | 否       |
 | 63   | torch.cuda.amp.GradScaler             | torch.npu.amp.GradScaler             | 否       |
 
-## NPU自定义算子
+# NPU自定义算子
 
-| 序号 | PyTorch 算子（由昇腾开发）                     | 昇腾适配算子                                   |
-| ---- | ---------------------------------------------- | ---------------------------------------------- |
-| 1    | npu_convolution_transpose                      | npu_convolution_transpose                      |
-| 2    | npu_conv_transpose2d                           | conv_transpose2d_npu                           |
-| 3    | npu_convolution_transpose_backward             | npu_convolution_transpose_backward             |
-| 4    | npu_conv_transpose2d_backward                  | conv_transpose2d_backward_npu                  |
-| 5    | npu_conv_transpose3d_backward                  | conv_transpose3d_backward_npu                  |
-| 6    | npu_convolution                                | npu_convolution                                |
-| 7    | npu_convolution_backward                       | npu_convolution_backward                       |
-| 8    | npu_convolution_double_backward                | npu_convolution_double_backward                |
-| 9    | npu_conv2d                                     | conv2d_npu                                     |
-| 10   | npu_conv2d.out                                 | conv2d_out_npu                                 |
-| 11   | npu_conv2d_backward                            | conv2d_backward_npu                            |
-| 12   | npu_conv3d                                     | conv3d_npu                                     |
-| 13   | npu_conv3d.out                                 | conv3d_out_npu                                 |
-| 14   | npu_conv3d_backward                            | conv3d_backward_npu                            |
-| 15   | one_                                           | one_npu_                                       |
-| 16   | npu_sort_v2.out                                | sort_without_indices_out_npu                   |
-| 17   | npu_sort_v2                                    | sort_without_indices_npu                       |
-| 18   | npu_format_cast                                | format_cast_npu                                |
-| 19   | npu_format_cast_.acl_format                    | format_cast_npu_                               |
-| 20   | npu_format_cast_.src                           | format_cast_npu_                               |
-| 21   | npu_transpose_to_contiguous                    | transpose_to_contiguous_npu                    |
-| 22   | npu_transpose                                  | transpose_npu                                  |
-| 23   | npu_transpose.out                              | transpose_out_npu                              |
-| 24   | npu_broadcast                                  | broadcast_npu                                  |
-| 25   | npu_broadcast.out                              | broadcast_out_npu                              |
-| 26   | npu_dtype_cast                                 | dtype_cast_npu                                 |
-| 27   | npu_dtype_cast_.Tensor                         | dtype_cast_npu_                                |
-| 28   | npu_roi_alignbk                                | roi_align_backward_npu                         |
-| 29   | empty_with_format                              | empty_with_format_npu                          |
-| 30   | empty_with_format.names                        | empty_with_format_npu                          |
-| 31   | copy_memory_                                   | copy_memory_npu_                               |
-| 32   | npu_one_hot                                    | one_hot_npu                                    |
-| 33   | npu_stride_add                                 | stride_add_npu                                 |
-| 34   | npu_softmax_cross_entropy_with_logits          | softmax_cross_entropy_with_logits_npu          |
-| 35   | npu_softmax_cross_entropy_with_logits_backward | softmax_cross_entropy_with_logits_backward_npu |
-| 36   | npu_ps_roi_pooling                             | ps_roi_pooling_npu                             |
-| 37   | npu_ps_roi_pooling_backward                    | ps_roi_pooling_backward_npu                    |
-| 38   | npu_roi_align                                  | roi_align_npu                                  |
-| 39   | npu_nms_v4                                     | nms_v4_npu                                     |
-| 40   | npu_lstm                                       | lstm_npu                                       |
-| 41   | npu_lstm_backward                              | lstm_backward_npu                              |
-| 42   | npu_iou                                        | iou_npu                                        |
-| 43   | npu_ptiou                                      | ptiou_npu                                      |
-| 44   | npu_nms_with_mask                              | nms_with_mask_npu                              |
-| 45   | npu_pad                                        | pad_npu                                        |
-| 46   | npu_bounding_box_encode                        | bounding_box_encode_npu                        |
-| 47   | npu_bounding_box_decode                        | bounding_box_decode_npu                        |
-| 48   | npu_gru                                        | gru_npu                                        |
-| 49   | npu_gru_backward                               | gru_backward_npu                               |
-| 50   | npu_set_.source_Storage_storage_offset_format  | set_npu_                                       |
-| 51   | npu_random_choice_with_mask                    | random_choice_with_mask_npu                    |
-| 52   | npu_batch_nms                                  | batch_nms_npu                                  |
-| 53   | npu_slice                                      | slice_npu                                      |
-| 54   | npu_slice.out                                  | slice_out_npu                                  |
-| 55   | npu_dropoutV2                                  | dropout_v2_npu                                 |
-| 56   | npu_dropoutV2_backward                         | dropout_v2_backward_npu                        |
-| 57   | _npu_dropout                                   | _dropout_npu                                   |
-| 58   | _npu_dropout_inplace                           | _dropout_npu_inplace                           |
-| 59   | npu_dropout_backward                           | dropout_backward_npu                           |
-| 60   | npu_indexing                                   | indexing_npu                                   |
-| 61   | npu_indexing.out                               | indexing_out_npu                               |
-| 62   | npu_ifmr                                       | ifmr_npu                                       |
-| 63   | npu_max.dim                                    | max_v1_npu                                     |
-| 64   | npu_max.names_dim                              | max_v1_npu                                     |
-| 65   | npu_scatter                                    | scatter_npu                                    |
-| 66   | npu_max_backward                               | max_backward_npu                               |
-| 67   | npu_apply_adam                                 | apply_adam_npu                                 |
-| 68   | npu_layer_norm_eval                            | layer_norm_eval_npu                            |
-| 69   | npu_alloc_float_status                         | alloc_float_status_npu                         |
-| 70   | npu_get_float_status                           | get_float_status_npu                           |
-| 71   | npu_clear_float_status                         | clear_float_status_npu                         |
-| 72   | npu_confusion_transpose                        | confusion_transpose_npu                        |
-| 73   | npu_confusion_transpose_backward               | confusion_transpose_backward_npu               |
-| 74   | npu_bmmV2                                      | bmm_v2_npu                                     |
-| 75   | fast_gelu                                      | fast_gelu_npu                                  |
-| 76   | fast_gelu_backward                             | fast_gelu_backward_npu                         |
-| 77   | npu_sub_sample                                 | sub_sample_npu                                 |
-| 78   | npu_deformable_conv2d                          | deformable_conv2d_npu                          |
-| 79   | npu_deformable_conv2dbk                        | deformable_conv2d_backward_npu                 |
-| 80   | npu_mish                                       | mish_npu                                       |
-| 81   | npu_anchor_response_flags                      | anchor_response_flags_npu                      |
-| 82   | npu_yolo_boxes_encode                          | yolo_boxes_encode_npu                          |
-| 83   | npu_grid_assign_positive                       | grid_assign_positive_npu                       |
-| 84   | npu_mish_backward                              | mish_backward_npu                              |
-| 85   | npu_normalize_batch                            | normalize_batch_npu                            |
-| 86   | npu_masked_fill_range                          | masked_fill_range_npu                          |
-| 87   | npu_linear                                     | linear_npu                                     |
-| 88   | npu_linear_backward                            | linear_backward_npu                            |
-| 89   | npu_bert_apply_adam                            | bert_apply_adam_npu                            |
-| 90   | npu_giou                                       | giou_npu                                       |
-| 91   | npu_giou_backward                              | giou_backward_npu                              |
+| 序号 | 算子名称                                       |
+| ---- | ---------------------------------------------- |
+| 1    | npu_convolution_transpose                      |
+| 2    | npu_conv_transpose2d                           |
+| 3    | npu_convolution_transpose_backward             |
+| 4    | npu_conv_transpose2d_backward                  |
+| 5    | npu_conv_transpose3d_backward                  |
+| 6    | npu_convolution                                |
+| 7    | npu_convolution_backward                       |
+| 8    | npu_convolution_double_backward                |
+| 9    | npu_conv2d                                     |
+| 10   | npu_conv2d.out                                 |
+| 11   | npu_conv2d_backward                            |
+| 12   | npu_conv3d                                     |
+| 13   | npu_conv3d.out                                 |
+| 14   | npu_conv3d_backward                            |
+| 15   | one_                                           |
+| 16   | npu_sort_v2.out                                |
+| 17   | npu_sort_v2                                    |
+| 18   | npu_format_cast                                |
+| 19   | npu_format_cast_.acl_format                    |
+| 20   | npu_format_cast_.src                           |
+| 21   | npu_transpose_to_contiguous                    |
+| 22   | npu_transpose                                  |
+| 23   | npu_transpose.out                              |
+| 24   | npu_broadcast                                  |
+| 25   | npu_broadcast.out                              |
+| 26   | npu_dtype_cast                                 |
+| 27   | npu_dtype_cast_.Tensor                         |
+| 28   | npu_roi_alignbk                                |
+| 29   | empty_with_format                              |
+| 30   | empty_with_format.names                        |
+| 31   | copy_memory_                                   |
+| 32   | npu_one_hot                                    |
+| 33   | npu_stride_add                                 |
+| 34   | npu_softmax_cross_entropy_with_logits          |
+| 35   | npu_softmax_cross_entropy_with_logits_backward |
+| 36   | npu_ps_roi_pooling                             |
+| 37   | npu_ps_roi_pooling_backward                    |
+| 38   | npu_roi_align                                  |
+| 39   | npu_nms_v4                                     |
+| 40   | npu_lstm                                       |
+| 41   | npu_lstm_backward                              |
+| 42   | npu_iou                                        |
+| 43   | npu_ptiou                                      |
+| 44   | npu_nms_with_mask                              |
+| 45   | npu_pad                                        |
+| 46   | npu_bounding_box_encode                        |
+| 47   | npu_bounding_box_decode                        |
+| 48   | npu_gru                                        |
+| 49   | npu_gru_backward                               |
+| 50   | npu_set_.source_Storage_storage_offset_format  |
+| 51   | npu_random_choice_with_mask                    |
+| 52   | npu_batch_nms                                  |
+| 53   | npu_slice                                      |
+| 54   | npu_slice.out                                  |
+| 55   | npu_dropoutV2                                  |
+| 56   | npu_dropoutV2_backward                         |
+| 57   | _npu_dropout                                   |
+| 58   | _npu_dropout_inplace                           |
+| 59   | npu_dropout_backward                           |
+| 60   | npu_indexing                                   |
+| 61   | npu_indexing.out                               |
+| 62   | npu_ifmr                                       |
+| 63   | npu_max.dim                                    |
+| 64   | npu_max.names_dim                              |
+| 65   | npu_scatter                                    |
+| 66   | npu_max_backward                               |
+| 67   | npu_apply_adam                                 |
+| 68   | npu_layer_norm_eval                            |
+| 69   | npu_alloc_float_status                         |
+| 70   | npu_get_float_status                           |
+| 71   | npu_clear_float_status                         |
+| 72   | npu_confusion_transpose                        |
+| 73   | npu_confusion_transpose_backward               |
+| 74   | npu_bmmV2                                      |
+| 75   | fast_gelu                                      |
+| 76   | fast_gelu_backward                             |
+| 77   | npu_sub_sample                                 |
+| 78   | npu_deformable_conv2d                          |
+| 79   | npu_deformable_conv2dbk                        |
+| 80   | npu_mish                                       |
+| 81   | npu_anchor_response_flags                      |
+| 82   | npu_yolo_boxes_encode                          |
+| 83   | npu_grid_assign_positive                       |
+| 84   | npu_mish_backward                              |
+| 85   | npu_normalize_batch                            |
+| 86   | npu_masked_fill_range                          |
+| 87   | npu_linear                                     |
+| 88   | npu_linear_backward                            |
+| 89   | npu_bert_apply_adam                            |
+| 90   | npu_giou                                       |
+| 91   | npu_giou_backward                              |
 
-算子接口算子接口说明：
+详细算子接口说明：
 
 > ```
 > npu_apply_adam(beta1_power, beta2_power, lr, beta1, beta2, epsilon, grad, use_locking, use_nesterov, out = (var, m, v))
