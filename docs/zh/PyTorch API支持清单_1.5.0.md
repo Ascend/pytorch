@@ -1191,7 +1191,7 @@
 
 torch.npu.set_device()接口只支持在程序开始的位置通过set_device进行指定，不支持多次指定和with torch.npu.device(id)方式的device切换
 
-## NPU自定义算子清单
+## NPU自定义算子
 
 | 序号 | PyTorch 算子（由昇腾开发）                     | 昇腾适配算子                                   |
 | ---- | ---------------------------------------------- | ---------------------------------------------- |
@@ -1296,8 +1296,8 @@ torch.npu.set_device()接口只支持在程序开始的位置通过set_device进
 count adam result.
 
 - Parameters：
-  - **beta1_power** (Number) - 
-  - **beta2_power** (Number) - 
+  - **beta1_power** (Number) - power of beta1.
+  - **beta2_power** (Number) - power of beta2.
   - **lr** (Number) -  learning rate.
   - **beta1** (Number) - exponential decay rate for the 1st moment estimates.
   - **beta2** (Number) - exponential decay rate for the 2nd moment estimates.
@@ -1305,9 +1305,9 @@ count adam result.
   - **grad** (Tensor) - the gradient.
   - **use_locking** (bool) - If `True` use locks for update operations.
   - **use_nesterov** (bool) -If `True`, uses the nesterov update.
-  - **var** (Tensor) -
-  - **m** (Tensor) -
-  - **v** (Tensor) -
+  - **var** (Tensor) - variables to be optimized.
+  - **m** (Tensor) - mean value of variables.
+  - **v** (Tensor) - variance of variables.
 
 - constraints：
 
@@ -1327,12 +1327,12 @@ count adam result in bert.
   - **beta2** (Number) - exponential decay rate for the 2nd moment estimates.
   - **epsilon** (Number) - term added to the denominator to improve numerical stability.
   - **grad** (Tensor) - the gradient.
-  - **max_grad_norm** (Number) -
-  - **global_grad_norm** (Number) -
+  - **max_grad_norm** (Number) - maximum norm for the gradients.
+  - **global_grad_norm** (Number) - L2_norm for the gradients.
   - **weight_decay** (Number) - weight decay
-  - **var** (Tensor) -
-  - **m** (Tensor) -
-  - **v** (Tensor) -
+  - **var** (Tensor) - variables to be optimized.
+  - **m** (Tensor) -mean value of variables.
+  - **v** (Tensor) - variance of variables.
 
 - constraints：
 
@@ -1340,7 +1340,35 @@ count adam result in bert.
 
 - Examples：
 
-  None
+  ```python
+  >>> var_in = torch.rand(321538).uniform_(-32.,21.).npu()
+  >>> var_in
+  tensor([  0.6119,   5.8193,   3.0683,  ..., -28.5832,  12.9402, -24.0488],
+         device='npu:0')
+  >>> m_in = torch.zeros(321538).npu()
+  >>> v_in = torchzeros(321538).npu()
+  >>> grad = torch.rand(321538).uniform_(-0.05,0.03).npu()
+  >>> grad
+  tensor([-0.0315, -0.0113, -0.0132,  ...,  0.0106, -0.0226, -0.0252],
+         device='npu:0')
+  >>> max_grad_norm = -1.
+  >>> beta1 = 0.9
+  >>> beta2 = 0.99
+  >>> weight_decay = 0.
+  >>> lr = 0.1
+  >>> epsilon = 1e-06
+  >>> global_grad_norm = 0.
+  >>> var_out, m_out, v_out = torch.npu_bert_apply_adam(var_in, m_in, v_in, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay)
+  >>> var_out
+  tensor([  0.7118,   5.9192,   3.1682,  ..., -28.6831,  13.0402, -23.9489],
+         device='npu:0')
+  >>> m_out
+  tensor([-0.0032, -0.0011, -0.0013,  ...,  0.0011, -0.0023, -0.0025],
+         device='npu:0')
+  >>> v_out
+  tensor([9.9431e-06, 1.2659e-06, 1.7328e-06,  ..., 1.1206e-06, 5.0933e-06,
+          6.3495e-06], device='npu:0')
+  ```
 
 
 
