@@ -18,6 +18,7 @@
 
 -   在[Gitee](https://gitee.com/ascend/pytorch)上Fork存储库。
 -   阅读[README.md](#https://gitee.com/ascend/pytorch/blob/master/README.zh.md)以获取项目信息和构建说明。
+-   行为准则 [coc](https://gitee.com/ascend/community/blob/master/code-of-conduct_zh_cn.md)。
 
 <h2 id="开发指导.md">开发指导</h2>
 
@@ -98,7 +99,7 @@
 
 2.  设置环境变量。
 
-    进入“pytorh/src“路径，并执行env.sh脚本。
+    进入"pytorch/src"路径，并执行env.sh脚本。
 
     ```
     bash env.sh
@@ -119,11 +120,11 @@
 
 -   编码指南
 
-    请在PyTorch社区使用规统一的编码分格，_Python__中_建议的编码风格是[PEP 8编码样式](https://pep8.org/)，_C++_编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。可以使用[CppLint](https://github.com/cpplint/cpplint)，[CppCheck](http://cppcheck.sourceforge.net/)，[CMakeLint](https://github.com/cmake-lint/cmake-lint)，[CodeSpell](https://github.com/codespell-project/codespell)，  [Lizard](http://www.lizard.ws/)，[ShellCheck](https://github.com/koalaman/shellcheck)和[pylint](https://pylint.org/)检查代码的格式，建议在您的IDE中安装这些插件。
+    请在PyTorch社区使用规统一的编码分格，python建议的编码风格是[PEP 8编码样式](https://pep8.org/)，C++编码所建议的风格是  [Google C++编码指南](http://google.github.io/styleguide/cppguide.html)  。可以使用[CppLint](https://github.com/cpplint/cpplint)，[CppCheck](http://cppcheck.sourceforge.net/)，[CMakeLint](https://github.com/cmake-lint/cmake-lint)，[CodeSpell](https://github.com/codespell-project/codespell)，  [Lizard](http://www.lizard.ws/)，[ShellCheck](https://github.com/koalaman/shellcheck)和[pylint](https://pylint.org/)检查代码的格式，建议在您的IDE中安装这些插件。
 
 -   单元测试指南
 
-    请在PyTorch社区使用统一的单元测试风格，  _Python_中建议的单元测试风格是[pytest](http://www.pytest.org/en/latest/)，_C++_单元测试所建议的风格是  [Googletest Primer](#https://github.com/google/googletest/blob/master/docs/primer.md)  。测试用例的设计意图应该通过它的注释名称来反映。
+    请在PyTorch社区使用统一的单元测试风格，  Python中建议的单元测试风格是[pytest](http://www.pytest.org/en/latest/)，C++单元测试所建议的风格是  [Googletest Primer](#https://github.com/google/googletest/blob/master/docs/primer.md)  。测试用例的设计意图应该通过它的注释名称来反映。
 
 -   重构指南
 
@@ -165,7 +166,7 @@
 
 3.  本地开发代码。
 
-    为了避免多个分支之间的不一致，建议签出到一个新的分支：
+    为了避免多个分支之间的不一致，建议创建新的分支进行开发：
 
     ```
     git checkout -b {new_branch_name} origin/master
@@ -185,7 +186,7 @@
     git push origin {new_branch_name}
     ```
 
-5.  向 PyTorh存储库拉取请求。
+5.  向 PyTorch存储库拉取请求。
 
     在最后一步中，您需要在新分支和“PyTorch master“分支之间拉取比较请求。完成拉取请求后，“Jenkins CI“将自动设置为构建测试。您的pull request应该尽快合并到上游 master 分支，以降低合并的风险。
 
@@ -224,4 +225,3 @@
 -   确保你的提交历史被排序。
 -   始终将您的分支与主分支保持一致。
 -   对于错误修复 PR，请确保链接所有相关问题。
-
