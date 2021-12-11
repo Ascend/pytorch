@@ -47,13 +47,17 @@ Tensor upsample_nearest1d_backward_npu(
     c10::optional<double> scales) {
   Tensor grads = grad_output;
   if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
+    grads = grad_output.npu_dtype_cast(at::kFloat);
   }
 
   Tensor grad_input = OpPreparation::ApplyTensor(input_size, grads.options(), grad_output);
 
   upsample_nearest1d_backward_out_npu(
       grad_input, grads, output_size, input_size, scales);
+      
+  if (grad_output.scalar_type() != at::ScalarType::Float) {
+    grad_input = grad_input.npu_dtype_cast(grad_output.scalar_type());
+  }
   return grad_input;
 }
 

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "NpuProfiling.h"
+#include <c10/npu/NPUStream.h>
 
 namespace at {
 namespace native {
@@ -24,7 +25,8 @@ NpuProfiling& NpuProfiling::Instance() {
 }
 
 void NpuProfiling::Init(const std::string &path) {
-  TORCH_CHECK(status == PROFILING_FINALIZE, "init current profile status is: ", status, " error!")
+  TORCH_CHECK(status == PROFILING_FINALIZE, "init current profile status is: ", status, " error!");
+  c10::npu::npuSynchronizeDevice();
   auto ret = c10::npu::acl::AclProfilingInit(path.c_str(), path.length());
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfInit fail, error code: %d", ret);
@@ -36,7 +38,7 @@ void NpuProfiling::Init(const std::string &path) {
 
 void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
   TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP, 
-      "start current profile status is: ", status, " error!")
+      "start current profile status is: ", status, " error!");
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
   if(ret){
@@ -70,7 +72,8 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
 }
 
 void NpuProfiling::Stop() {
-  TORCH_CHECK(status == PROFILING_START, "stop current profile status is: ", status, " error!")
+  TORCH_CHECK(status == PROFILING_START, "stop current profile status is: ", status, " error!");
+  c10::npu::npuSynchronizeDevice();
   auto ret = c10::npu::acl::AclProfilingStop(profCfg);
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfStop fail, error code: %d", ret);

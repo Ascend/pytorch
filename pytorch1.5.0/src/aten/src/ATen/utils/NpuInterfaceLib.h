@@ -18,8 +18,8 @@
 #ifdef USE_NPU
 
 #include <ATen/native/npu/utils/DynamicShapeUtil.h>
-#include <ATen/native/npu/profiler/e2e_profiler.h>
-#include <ATen/native/npu/profiler/NpuProfiling.h>
+#include <ATen/native/npu/nputools/E2eProfiler.h>
+#include <ATen/native/npu/nputools/NpuProfiling.h>
 #endif
 
 #endif // __NPU_INTERFACELIB__

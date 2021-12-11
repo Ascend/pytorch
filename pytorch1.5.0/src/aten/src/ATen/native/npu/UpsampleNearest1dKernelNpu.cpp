@@ -45,15 +45,14 @@ Tensor& upsample_nearest1d_out_npu(
     c10::optional<double> scales) {
 
   OpCommand cmd;
-  cmd.Name("UpsampleNearest1d")
-  
+  cmd.Name("UpsampleNearest1d")  
       .Input(self)
       .Output(result)
       .Attr("output_size", output_size);
-      if (scales.has_value()) {
-        cmd.Attr("scales", static_cast<float>(scales.value()));
-      }
-      cmd.Run();
+  if (scales.has_value()) {
+    cmd.Attr("scales", static_cast<float>(scales.value()));
+  }
+  cmd.Run();
 
   return result;
 }
@@ -62,14 +61,22 @@ Tensor upsample_nearest1d_npu(
     const Tensor& self,
     IntArrayRef output_size,
     c10::optional<double> scales) {
+  Tensor selfCast = self;
+  if(self.scalar_type() == at::kHalf){
+    selfCast = self.npu_dtype_cast(at::kFloat);
+  }
   // calculate the output size
   SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size, scales);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  Tensor result = OpPreparation::ApplyTensor(selfCast, outputSize);
 
   // calculate the output result of the NPU
-  upsample_nearest1d_out_npu(result, self, output_size, scales);
+  upsample_nearest1d_out_npu(result, selfCast, output_size, scales);
+  
+  if(self.scalar_type() == at::kHalf){
+    result = result.npu_dtype_cast(at::kFloat);
+  }
 
   return result;
 }

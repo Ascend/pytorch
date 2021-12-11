@@ -14,40 +14,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __NPU_AOEUTILS__
-#define __NPU_AOEUTILS__
+#ifndef __NATIVE_NPU_TOOLS_AOEUTILS__
+#define __NATIVE_NPU_TOOLS_AOEUTILS__
 
 #include <third_party/acl/inc/acl/acl_op_compiler.h>
 #include <c10/npu/NPUException.h>
+
 namespace at {
 namespace native {
 namespace npu {
 namespace aoe {
 
 class AoeDumpGraphManager  {
+public:
+  void SetDumpGraphPath(const std::string& dump_path);
+  std::string GetDumpGraphPath() const;
 
-  public:
-    void SetDumpGraphPath(const std::string& dump_path);
-    std::string GetDumpGraphPath() const;
+  aclGraphDumpOption* CreateGraphDumpOption();
+  void DestropyGraphDumpOption();
 
-    aclGraphDumpOption* CreateGraphDumpOption();
-    void DestropyGraphDumpOption();
+  void EnableAoe();
+  bool IsAoeEnabled() const;
 
-    void EnableAoe();
-    bool IsAoeEnabled() const;
-
-    bool aoe_enable=false;
-    // to save graph for autotune, default path is ./
-    std::string autotune_graphdumppath="./";
-    aclGraphDumpOption* AclGraphDumpOption=NULL;
+  bool aoe_enable=false;
+  // to save graph for autotune, default path is ./
+  std::string autotune_graphdumppath="./";
+  aclGraphDumpOption* AclGraphDumpOption=NULL;
    
 };
 
 AoeDumpGraphManager& aoe_manager();
 
-}
-}
-}
-}
+} // namespace aoe
+} // namespace npu
+} // namespace native
+} // namespace at
 
-#endif // __NPU_AOEUTILS__
+#endif // __NATIVE_NPU_TOOLS_AOEUTILS__

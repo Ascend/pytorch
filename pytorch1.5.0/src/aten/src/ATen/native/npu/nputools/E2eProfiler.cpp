@@ -14,9 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/native/npu/profiler/e2e_profiler.h>
+#include "E2eProfiler.h"
 #include <ATen/native/npu/interface/MsProfilerInterface.h>
 #include <c10/npu/interface/AclInterface.h>
+#include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl_prof.h>
 #include <mutex>
 
@@ -53,7 +54,6 @@ public:
 std::mutex next_thread_id_mutex_;
 uint16_t next_thread_id_ = 0;
 thread_local uint16_t current_thread_id_ = 0;
-void * local_stamp = nullptr;
 aclprofConfig* local_profCfg = nullptr;
 
 CallbackManager& manager() {
@@ -107,6 +107,7 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
     (void)c10::npu::acl::AclProfilingFinalize();
     return;
   }
+  c10::npu::npuSynchronizeDevice();
   ret  = c10::npu::acl::AclProfilingInit(dump_path.c_str(), dump_path.length());
   if (ret != ACL_ERROR_NONE) {
     NPU_LOGE("In npu e2e profiling, AclProfilingInit failed.");
@@ -121,39 +122,27 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
     (void)c10::npu::acl::AclProfilingFinalize();
     return;
   }
-  ret = at::native::npu::profiler::AclprofMsproftxSwitch(true);
-  if (ret != ACL_ERROR_NONE) {
-    NPU_LOGE("In npu e2e profiling, profMsproftxSwitch open failed.");
-    C10_NPU_SHOW_ERR_MSG();
-    (void)c10::npu::acl::AclProfilingFinalize();
-    return;
-  }
-  local_stamp = at::native::npu::profiler::AclprofCreateStamp();
-  if (local_stamp == nullptr) {
-    NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
-    return;
-  }
 }
 
 void init_e2e_profiler(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics) {
   initMsPorf(dump_path, npu_event, aicore_metrics);
   pushCallback(
-      [](const E2ERecordFunction& fn) {
-        fn.push();
+      [](E2ERecordFunction& fn) {
+        fn.rangeStart();
       },
-      [](const E2ERecordFunction& fn) {
-        fn.pop();
+      [](E2ERecordFunction& fn) {
+        fn.rangeStop();
       });
 }
 
 void finalize_e2e_profiler() {
+  c10::npu::npuSynchronizeDevice();
   auto ret = c10::npu::acl::AclProfilingStop(local_profCfg);
   if (ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);
     C10_NPU_SHOW_ERR_MSG();
   }
-  at::native::npu::profiler::AclprofDestroyStamp(local_stamp);
   c10::npu::acl::AclProfilingFinalize();
 }
 
@@ -167,32 +156,58 @@ uint16_t E2ERecordFunction::getCurrentThreadId() {
   return current_thread_id_;
 }
 
-inline void E2ERecordFunction::push() const {
-    auto ret = at::native::npu::profiler::AclprofSetStampTraceMessage(
-        local_stamp, name_.c_str(), name_.length());
-    if (ret != ACL_ERROR_NONE) {
-      NPU_LOGE("In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
-      C10_NPU_SHOW_ERR_MSG();
-      (void)c10::npu::acl::AclProfilingFinalize();
-      return;
-    }
-    ret = at::native::npu::profiler::AclprofPush(local_stamp);
-    if (ret != ACL_ERROR_NONE) {
-      NPU_LOGE("In npu e2e profiling, AclprofPush set failed.");
-      C10_NPU_SHOW_ERR_MSG();
-      (void)c10::npu::acl::AclProfilingFinalize();
-      return;
-    }
+inline void E2ERecordFunction::checkProfilerRet(aclError ret, const std::string message) {
+  checkProfilerRet(ret, message.c_str());
 }
 
-inline void E2ERecordFunction::pop() const {
-    auto ret =at::native::npu::profiler::AclprofPop();
-    if (ret != ACL_ERROR_NONE) {
-      NPU_LOGE("In npu e2e profiling, AclprofPop set failed.");
-      C10_NPU_SHOW_ERR_MSG();
-      (void)c10::npu::acl::AclProfilingFinalize();
-      return;
-    }
+inline void E2ERecordFunction::checkProfilerRet(aclError ret, const char* message) {
+  if (ret != ACL_ERROR_NONE) {
+    NPU_LOGE(message);
+    C10_NPU_SHOW_ERR_MSG();
+    (void)c10::npu::acl::AclProfilingFinalize();
+    return;
+  }
+}
+
+inline void E2ERecordFunction::push() {
+  local_stamp = at::native::npu::profiler::AclprofCreateStamp();
+  if (local_stamp == nullptr) {
+    NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
+    return;
+  }
+  auto ret = at::native::npu::profiler::AclprofSetStampTraceMessage(
+      local_stamp, name_.c_str(), name_.length());
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
+
+  ret = at::native::npu::profiler::AclprofPush(local_stamp);
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofPush failed.");
+}
+
+inline void E2ERecordFunction::pop() {
+  auto ret =at::native::npu::profiler::AclprofPop();
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofPop failed.");
+  at::native::npu::profiler::AclprofDestroyStamp(local_stamp);
+}
+
+inline void E2ERecordFunction::rangeStart() {
+  local_stamp = at::native::npu::profiler::AclprofCreateStamp();
+  if (local_stamp == nullptr) {
+    NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
+    return;
+  }
+  auto ret = at::native::npu::profiler::AclprofSetStampTraceMessage(
+      local_stamp, name_.c_str(), name_.length());
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
+
+  ret = at::native::npu::profiler::AclprofRangeStart(local_stamp, &rangeId);
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofRangeStart failed.");
+}
+
+inline void E2ERecordFunction::rangeStop() {
+  auto ret = at::native::npu::profiler::AclprofRangeStop(rangeId);
+  checkProfilerRet(ret, "In npu e2e profiling, AclprofRangeStop failed.");
+
+  at::native::npu::profiler::AclprofDestroyStamp(local_stamp);
 }
 
 void E2ERecordFunction::before(const char* name) {

@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __NATIVE_NPU_PROFILE_E2EPROFILER__
-#define __NATIVE_NPU_PROFILE_E2EPROFILER__
+#ifndef __NATIVE_NPU_TOOLS_E2EPROFILER__
+#define __NATIVE_NPU_TOOLS_E2EPROFILER__
 
 #include <third_party/acl/inc/acl/acl.h>
 #include <c10/npu/NPUException.h>
@@ -23,6 +23,7 @@
 #include <sstream>
 #include <thread>
 #include <functional>
+
 namespace at { 
 namespace native {
 namespace npu {
@@ -37,8 +38,12 @@ class TORCH_NPU_API E2ERecordFunction {
   E2ERecordFunction(const E2ERecordFunction&) = delete;
   E2ERecordFunction& operator=(const E2ERecordFunction&) = delete;
 
-  void push() const;
-  void pop() const;
+  // push and pop need to be paired, rangeStart and rangeStop need to be paired,
+  void push();
+  void pop();
+
+  void rangeStart();
+  void rangeStop();
   // before function initializes RecordFunction members and calls
   // start callbacks
   void before(const char* name);
@@ -72,21 +77,26 @@ class TORCH_NPU_API E2ERecordFunction {
  private:
   void processCallbacks();
 
+  void checkProfilerRet(aclError ret, const std::string message);
+  void checkProfilerRet(aclError ret, const char* message);
+
   std::string name_ = "";
   bool initialized_ = false;
 
   // The logical thread_id that this RecordFunction was created with.
   uint16_t threadId_ = 0;
+  void * local_stamp = nullptr;
+  uint32_t rangeId = -1;
 };
 
 TORCH_NPU_API bool hasCallbacks();
 
 TORCH_NPU_API void popCallback();
 
-using E2ERecordFunctionCallback = std::function<void(const E2ERecordFunction&)>;
+using E2ERecordFunctionCallback = std::function<void(E2ERecordFunction&)>;
 void pushCallback(
     E2ERecordFunctionCallback start,
-    E2ERecordFunctionCallback end = [](const E2ERecordFunction&){}
+    E2ERecordFunctionCallback end = [](E2ERecordFunction&){}
     );
 
 // optional argument - function's seq_no
@@ -105,4 +115,4 @@ TORCH_NPU_API void finalize_e2e_profiler();
 } // namespace native
 } // namespace at
 
-#endif // __NATIVE_NPU_PROFILE_E2EPROFILER__
+#endif // __NATIVE_NPU_TOOLS_E2EPROFILER__

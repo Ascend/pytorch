@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/native/npu/profiler/AoeUtils.h>
+#include "AoeUtils.h"
 #include <ATen/native/npu/interface/AclOpCompileInterface.h>
 
 namespace at {
@@ -53,7 +53,7 @@ AoeDumpGraphManager& aoe_manager() {
     return instance;
 }
 
-}
-}
-}
-}
+} // namespace aoe
+} // namespace npu
+} // namespace native
+} // namespace at

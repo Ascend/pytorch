@@ -21,8 +21,8 @@
 #include <third_party/acl/inc/acl/acl_mdl.h>
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <limits.h>
-#include "ATen/native/npu/profiler/NpuProfiling.h"
-#include "ATen/native/npu/profiler/AoeUtils.h"
+#include "ATen/native/npu/nputools/NpuProfiling.h"
+#include "ATen/native/npu/nputools/AoeUtils.h"
 
 namespace at {
 namespace native {

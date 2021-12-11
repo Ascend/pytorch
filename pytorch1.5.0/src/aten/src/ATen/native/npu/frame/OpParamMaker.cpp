@@ -25,7 +25,8 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
-#include "ATen/native/npu/profiler/AoeUtils.h"
+#include "ATen/native/npu/nputools/AoeUtils.h"
+#include "ATen/native/npu/nputools/E2eProfiler.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
 
 using namespace c10::npu::queue;
@@ -152,6 +153,7 @@ void OpCommandImpl::Run() {
   InitAttr();
   NPU_LOGD("Op %s Run.", opName.c_str());
   RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION(opName);
   if (PyGILState_Check()) {
     // we need to release GIL for NPU to compile op.
     Py_BEGIN_ALLOW_THREADS
@@ -244,6 +246,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
         }
       }
       RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
+      E2E_RECORD_FUNCTION(cur_paras->opType);
       ret = aclopCompileAndExecute(
           (cur_paras->opType).c_str(),
           cur_paras->paras.input_num,

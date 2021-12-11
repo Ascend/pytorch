@@ -19,7 +19,8 @@ import torch._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_dump", "init_dump", "finalize_dump", "global_step_inc", "set_start_fuzz_compile_step", 
-           "iteration_start", "iteration_end", "profile", "profileConfig"]
+           "prof_init", "prof_start", "prof_stop", "prof_finalize", "iteration_start", "iteration_end", "profile",
+           "profileConfig"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -101,6 +102,7 @@ class npuEvent(object):
         self.ACL_PROF_L2CACHE            = 0x0010
         self.ACL_PROF_HCCL_TRACE         = 0x0020
         self.ACL_PROF_TRAINING_TRACE     = 0x0040
+        self.ACL_PROF_MSPROFTX           = 0x0080
 
     def update(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True,
                 ACL_PROF_AICORE_METRICS=True, ACL_PROF_AICPU=True,
@@ -154,7 +156,8 @@ class profile(object):
 
     def __enter__(self):
         if self.use_e2e_profiler:
-            torch._C._enable_e2e_profiler(self.result_path, self.npu_event, self.aicore_metrics)
+            torch._C._enable_e2e_profiler(self.result_path, self.npu_event | npuEvent().ACL_PROF_MSPROFTX,
+                                          self.aicore_metrics)
         else:
             prof_init(self.result_path)
             prof_start(self.npu_event, self.aicore_metrics)
