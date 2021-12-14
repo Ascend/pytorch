@@ -39,11 +39,11 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
   Tensor grad_bias_;
   auto origin_dtype = self.scalar_type();
 
-  Tensor grad_out_ = grad_out.npu_dtype_cast(at::kFloat);
-  Tensor self_ = self.npu_dtype_cast(at::kFloat);
-  Tensor mean_ = mean.npu_dtype_cast(at::kFloat);
-  Tensor invstd_ = invstd.npu_dtype_cast(at::kFloat);
-  Tensor weight_ = weight.npu_dtype_cast(at::kFloat);
+  Tensor grad_out_ = grad_out.scalar_type() == at::kFloat ? grad_out : grad_out.npu_dtype_cast(at::kFloat);
+  Tensor self_ = self.scalar_type() == at::kFloat ? self : self.npu_dtype_cast(at::kFloat);
+  Tensor mean_ = mean.scalar_type() == at::kFloat ? mean : mean.npu_dtype_cast(at::kFloat);
+  Tensor invstd_ = invstd.scalar_type() == at::kFloat ? invstd : invstd.npu_dtype_cast(at::kFloat);
+  Tensor weight_ = weight.scalar_type() == at::kFloat ? weight : weight.npu_dtype_cast(at::kFloat);
 
   SmallVector<int64_t, N> axes;
   int dimN = self_.ndimension();
@@ -74,17 +74,17 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
   if (input_g){
     sum_dy_xmu.copy_(sum_dy_xmu_out);
     sum_dy.copy_(sum_dy_);
+    sum_dy = sum_dy.scalar_type() == origin_dtype ? sum_dy : sum_dy.npu_dtype_cast(origin_dtype);
+    sum_dy_xmu = sum_dy_xmu.scalar_type() == origin_dtype ? sum_dy_xmu : sum_dy_xmu.npu_dtype_cast(origin_dtype);
   }
   if (weight_g) {
     grad_weight.copy_(grad_weight_res);
+    grad_weight = grad_weight.scalar_type() == origin_dtype ? grad_weight : grad_weight.npu_dtype_cast(origin_dtype);
   }
   if (bias_g) {
     grad_bias.copy_(grad_bias_);
+    grad_bias = grad_bias.scalar_type() == origin_dtype ? grad_bias : grad_bias.npu_dtype_cast(origin_dtype);
   }
-  sum_dy = sum_dy.npu_dtype_cast(origin_dtype);
-  sum_dy_xmu = sum_dy_xmu.npu_dtype_cast(origin_dtype);
-  grad_weight = grad_weight.npu_dtype_cast(origin_dtype);
-  grad_bias = grad_bias.npu_dtype_cast(origin_dtype);
 
   return std::tie(sum_dy, sum_dy_xmu, grad_weight, grad_bias);
 }

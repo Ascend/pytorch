@@ -179,10 +179,17 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
       eps);
 
   // BNTrainingUpdate can only support FP32 for mean and var
-  auto running_mean_fp32 = (running_mean.scalar_type() == at::kFloat) ?
-    running_mean : running_mean.npu_dtype_cast(at::kFloat);
-  auto running_var_fp32 = (running_var.scalar_type() == at::kFloat) ?
-    running_var : running_var.npu_dtype_cast(at::kFloat);
+  auto running_mean_fp32 = running_mean;
+  auto running_var_fp32 = running_var;
+  
+  if (train && (running_mean.scalar_type() != at::kFloat)) {
+    running_mean_fp32 = running_mean.npu_dtype_cast(at::kFloat);
+  }
+
+  if (train && (running_var.scalar_type() != at::kFloat)) {
+    running_var_fp32 = running_var.npu_dtype_cast(at::kFloat);
+  }
+
   batch_norm_training_update_nocheck(
       result,
       save_mean,

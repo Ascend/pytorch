@@ -5459,8 +5459,6 @@
   dispatch:
     CPU, CUDA: ne
     QuantizedCPU: ne_quantized_cpu
-  npu_dispatch:
-    NPU: ne_npu
 
 - func: ne_.Scalar(Tensor(a!) self, Scalar other) -> Tensor(a!)
   variants: method

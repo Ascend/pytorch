@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -86,7 +86,14 @@ class TestAddcdiv(TestCase):
 
     def test_addcdiv_float32(self, device):
         def cpu_op_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             output = torch.addcdiv(input1, input2, input3, value=scalar)
+            if ori_dtype == torch.float16:
+                output = output.to(ori_dtype)
             return output
 
         def npu_op_exec(input1, input2, input3, scalar):
@@ -96,18 +103,27 @@ class TestAddcdiv(TestCase):
             output = torch.addcdiv(input1, input2, input3, value=scalar)
             output = output.to("cpu")
             return output
-
-        npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), np.float32)
-        scalar = self.generate_scalar(1, 10)
-        cpu_output = cpu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
-        npu_output = npu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
-        self.assertEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), dtype)
+            scalar = self.generate_scalar(1, 10)
+            cpu_output = cpu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
+            npu_output = npu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
+            self.assertEqual(cpu_output, npu_output)
 
 
     def test_addcdiv_float32_out(self, device):
         def cpu_op_exec_out(input1, input2, input3, scalar, input4):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
+                input4 = input4.to(torch.float32)
             output = input4
             torch.addcdiv(input1, input2, input3, value=scalar, out=output)
+            if ori_dtype == torch.float16:
+                output = output.to(ori_dtype)
             output = output.numpy()
             return output
 
@@ -120,17 +136,25 @@ class TestAddcdiv(TestCase):
             output = output.to("cpu")
             output = output.numpy()
             return output
-
-        npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), np.float32)
-        scalar = self.generate_scalar(1, 10)
-        npu_input4 = self.generate_single_data(1, 100, (5, 3), np.float32)
-        cpu_output = cpu_op_exec_out(npu_input1, npu_input2, npu_input3, scalar, npu_input4)
-        npu_output = npu_op_exec_out(npu_input1, npu_input2, npu_input3, scalar, npu_input4)
-        self.assertEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), dtype)
+            scalar = self.generate_scalar(1, 10)
+            npu_input4 = self.generate_single_data(1, 100, (5, 3), dtype)
+            cpu_output = cpu_op_exec_out(npu_input1, npu_input2, npu_input3, scalar, npu_input4)
+            npu_output = npu_op_exec_out(npu_input1, npu_input2, npu_input3, scalar, npu_input4)
+            self.assertEqual(cpu_output, npu_output)
 
     def test_addcdiv_float32_broadcast(self, device):
         def cpu_op_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             output = torch.addcdiv(input1, input2, input3, value=scalar)
+            if ori_dtype == torch.float16:
+                output = output.to(ori_dtype)
             return output
 
         def npu_op_exec(input1, input2, input3, scalar):
@@ -140,19 +164,27 @@ class TestAddcdiv(TestCase):
             output = torch.addcdiv(input1, input2, input3, value=scalar)
             output = output.to("cpu")
             return output
-
-        npu_input1 = self.generate_single_data(1, 100, (5, 3, 1), np.float32)
-        npu_input2 = self.generate_single_data(1, 100, (5, 1, 5), np.float32)
-        npu_input3 = self.generate_single_data(1, 100, (1, 1, 5), np.float32)
-        scalar = self.generate_scalar(1, 10)
-        cpu_output = cpu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
-        npu_output = npu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
-        # self.assertEqual(cpu_output, npu_output)
-        self.assertRtolEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1 = self.generate_single_data(1, 100, (5, 3, 1), dtype)
+            npu_input2 = self.generate_single_data(1, 100, (5, 1, 5), dtype)
+            npu_input3 = self.generate_single_data(1, 100, (1, 1, 5), dtype)
+            scalar = self.generate_scalar(1, 10)
+            cpu_output = cpu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
+            npu_output = npu_op_exec(npu_input1, npu_input2, npu_input3, scalar)
+            # self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_addcdiv_inp_contiguous_float32(self, device):
         def cpu_op_inp_contiguous_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             input1.addcdiv_(input2, input3, value=scalar)
+            if ori_dtype == torch.float16:
+                input1 = input1.to(ori_dtype)
             output = input1.numpy()
             return output
 
@@ -164,20 +196,28 @@ class TestAddcdiv(TestCase):
             output = input1.to("cpu")
             output = output.numpy()
             return output
-
-        npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), np.float32)
-        cpu_input1 = copy.deepcopy(npu_input1)
-        cpu_input2 = copy.deepcopy(npu_input2)
-        cpu_input3 = copy.deepcopy(npu_input3)
-        scalar = self.generate_int_scalar(1, 10)
-        cpu_output = cpu_op_inp_contiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        npu_output = npu_op_inp_contiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
-        self.assertEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1, npu_input2, npu_input3 = self.generate_data(1, 100, (5, 3), dtype)
+            cpu_input1 = copy.deepcopy(npu_input1)
+            cpu_input2 = copy.deepcopy(npu_input2)
+            cpu_input3 = copy.deepcopy(npu_input3)
+            scalar = self.generate_int_scalar(1, 10)
+            cpu_output = cpu_op_inp_contiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
+            npu_output = npu_op_inp_contiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
+            self.assertEqual(cpu_output, npu_output)
 
     def test_addcdiv_inp_input1_noncontiguous_float32(self, device):
         def cpu_op_inp_input1_noncontiguous_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             input1_strided = input1.as_strided([2, 2], [1, 2], 2)
             input1_strided.addcdiv_(input2, input3, value=scalar)
+            if ori_dtype == torch.float16:
+                input1 = input1.to(ori_dtype)
             output = input1.numpy()
             return output
 
@@ -190,22 +230,30 @@ class TestAddcdiv(TestCase):
             output = input1.to("cpu")
             output = output.numpy()
             return output
-
-        npu_input1 = self.generate_single_data(1, 100, (4, 3), np.float32)
-        npu_input2 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        npu_input3 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        cpu_input1 = copy.deepcopy(npu_input1)
-        cpu_input2 = copy.deepcopy(npu_input2)
-        cpu_input3 = copy.deepcopy(npu_input3)
-        scalar = self.generate_int_scalar(1, 10)
-        cpu_output = cpu_op_inp_input1_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        npu_output = npu_op_inp_input1_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
-        self.assertEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1 = self.generate_single_data(1, 100, (4, 3), dtype)
+            npu_input2 = self.generate_single_data(1, 100, (2, 2), dtype)
+            npu_input3 = self.generate_single_data(1, 100, (2, 2), dtype)
+            cpu_input1 = copy.deepcopy(npu_input1)
+            cpu_input2 = copy.deepcopy(npu_input2)
+            cpu_input3 = copy.deepcopy(npu_input3)
+            scalar = self.generate_int_scalar(1, 10)
+            cpu_output = cpu_op_inp_input1_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
+            npu_output = npu_op_inp_input1_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
+            self.assertEqual(cpu_output, npu_output)
 
     def test_addcdiv_inp_input2_noncontiguous_float32(self, device):
         def cpu_op_inp_input2_noncontiguous_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             input2_strided = input2.as_strided([2, 2], [1, 2], 2)
             input1.addcdiv_(input2_strided, input3, value=scalar)
+            if ori_dtype == torch.float16:
+                input1 = input1.to(ori_dtype)
             output = input1.numpy()
             return output
 
@@ -219,21 +267,30 @@ class TestAddcdiv(TestCase):
             output = output.numpy()
             return output
 
-        npu_input1 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        npu_input2 = self.generate_single_data(1, 100, (4, 3), np.float32)
-        npu_input3 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        cpu_input1 = copy.deepcopy(npu_input1)
-        cpu_input2 = copy.deepcopy(npu_input2)
-        cpu_input3 = copy.deepcopy(npu_input3)
-        scalar = self.generate_int_scalar(1, 10)
-        cpu_output = cpu_op_inp_input2_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        npu_output = npu_op_inp_input2_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
-        self.assertEqual(cpu_output, npu_output)
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1 = self.generate_single_data(1, 100, (2, 2), dtype)
+            npu_input2 = self.generate_single_data(1, 100, (4, 3), dtype)
+            npu_input3 = self.generate_single_data(1, 100, (2, 2), dtype)
+            cpu_input1 = copy.deepcopy(npu_input1)
+            cpu_input2 = copy.deepcopy(npu_input2)
+            cpu_input3 = copy.deepcopy(npu_input3)
+            scalar = self.generate_int_scalar(1, 10)
+            cpu_output = cpu_op_inp_input2_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
+            npu_output = npu_op_inp_input2_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
+            self.assertEqual(cpu_output, npu_output)
 
-    def test_addcdiv_inp_input3_noncontiguous_float32(self, device):
+    def test_addcdiv_inp_input3_noncontiguous_fp32_fp16(self, device):
         def cpu_op_inp_input3_noncontiguous_exec(input1, input2, input3, scalar):
+            ori_dtype = input1.dtype
+            if ori_dtype == torch.float16:
+                input1 = input1.to(torch.float32)
+                input2 = input2.to(torch.float32)
+                input3 = input3.to(torch.float32)
             input3_strided = input3.as_strided([2, 2], [1, 2], 2)
             input1.addcdiv_(input2, input3_strided, value=scalar)
+            if ori_dtype == torch.float16:
+                input1 = input1.to(ori_dtype)
             output = input1.numpy()
             return output
 
@@ -247,23 +304,19 @@ class TestAddcdiv(TestCase):
             output = output.numpy()
             return output
 
-        npu_input1 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        npu_input2 = self.generate_single_data(1, 100, (2, 2), np.float32)
-        npu_input3 = self.generate_single_data(1, 100, (4, 3), np.float32)
-        cpu_input1 = copy.deepcopy(npu_input1)
-        cpu_input2 = copy.deepcopy(npu_input2)
-        cpu_input3 = copy.deepcopy(npu_input3)
-        scalar = self.generate_int_scalar(1, 10)
-        cpu_output = cpu_op_inp_input3_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        npu_output = npu_op_inp_input3_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
-        self.assertEqual(cpu_output, npu_output)
-
-
-
-
-
+        dtype_list = [np.float32, np.float16]
+        for dtype in dtype_list:
+            npu_input1 = self.generate_single_data(1, 100, (2, 2), dtype)
+            npu_input2 = self.generate_single_data(1, 100, (2, 2), dtype)
+            npu_input3 = self.generate_single_data(1, 100, (4, 3), dtype)
+            cpu_input1 = copy.deepcopy(npu_input1)
+            cpu_input2 = copy.deepcopy(npu_input2)
+            cpu_input3 = copy.deepcopy(npu_input3)
+            scalar = self.generate_int_scalar(1, 10)
+            cpu_output = cpu_op_inp_input3_noncontiguous_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
+            npu_output = npu_op_inp_input3_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
+            self.assertEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestAddcdiv, globals(), except_for="cpu")
-
 if __name__ == "__main__":
     run_tests()

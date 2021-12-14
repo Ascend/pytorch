@@ -176,7 +176,7 @@ def exec_ut(ut_files):
     return ret_status
 
 
-if __name__ == "__main__":
+def main():
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     modify_files = os.path.join(cur_dir, 'modify_files.txt')
     test_mgr = TestMgr()
@@ -189,3 +189,7 @@ if __name__ == "__main__":
 
     ret = exec_ut(ut_files)
     sys.exit(ret)
+
+
+if __name__ == "__main__":
+    main()
