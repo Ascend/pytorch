@@ -163,7 +163,7 @@ class IndexSelectHalfImplementation(torch.autograd.Function):
         return out1, out2, None, None, None, None
 
 
-if __name__ == '__main__':
+def main():
     device = 'cpu'
 
     if device.startswith('npu'):
@@ -188,3 +188,7 @@ if __name__ == '__main__':
 
     tescase(split_shuffle=True)
     tescase(split_shuffle=False)
+
+
+if __name__ == '__main__':
+    main()

@@ -176,7 +176,7 @@ def exec_ut(ut_files):
     return ret_status
 
 
-if __name__ == "__main__":
+def main():
     cur_dir = os.path.abspath(os.path.dirname(__file__))
     modify_files = os.path.join(cur_dir, 'modify_files.txt')
     test_mgr = TestMgr()
@@ -188,4 +188,12 @@ if __name__ == "__main__":
     test_mgr.print_ut_files()
 
     ret = exec_ut(ut_files)
+    if ret and DEFAULT_UT_FILE not in ut_files:
+        print("***** start resnet18:")
+        os.chdir(cur_dir)
+        exec_ut([DEFAULT_UT_FILE])
     sys.exit(ret)
+
+
+if __name__ == "__main__":
+    main()

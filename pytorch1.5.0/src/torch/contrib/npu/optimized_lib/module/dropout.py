@@ -74,7 +74,7 @@ class DropoutV2(nn.Module):
         return x
 
 
-if __name__ == '__main__':
+def main():
     torch.npu.set_device('npu:0')
     x = torch.randn(1, 2, 2, 2).npu()
 
@@ -95,3 +95,5 @@ if __name__ == '__main__':
     print(o)
 
 
+if __name__ == '__main__':
+    main()

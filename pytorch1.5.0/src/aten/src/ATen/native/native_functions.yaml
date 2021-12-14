@@ -8425,6 +8425,11 @@
   variants: function, method
   npu_dispatch_only:
     NPU: nms_v4_npu
+    
+- func: npu_nms_rotated(Tensor self, Tensor scores, float iou_threshold, float scores_threshold=0, int max_output_size=-1, int mode=0) -> (Tensor, Tensor)
+  variants: function, method
+  npu_dispatch_only:
+    NPU: nms_rotated_npu
 
 - func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
   variants: function

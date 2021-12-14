@@ -220,7 +220,7 @@ class ModulatedDeformConv(nn.Module):
 
 DCNv2 = ModulatedDeformConv
 
-if __name__ == "__main__":
+def main():
     x = torch.randn(2, 32, 7, 7)
     model = DCNv2(32, 32, 3, 2, 1)
 
@@ -232,3 +232,7 @@ if __name__ == "__main__":
     l = o.sum()
     l.backward()
     print(l)
+
+
+if __name__ == "__main__":
+    main()
