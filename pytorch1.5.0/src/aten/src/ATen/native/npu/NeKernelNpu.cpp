@@ -97,9 +97,9 @@ Tensor ne_npu(const Tensor& self, const Tensor& other) {
 
   // construct the output tensor of the NPU
   Tensor result = at::empty_with_format(
-    outputSize,
-    formatCastOfSelf.options().dtype(kBool),
-    ACL_FORMAT_ND);
+      outputSize,
+      formatCastOfSelf.options().dtype(kBool),
+      ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
