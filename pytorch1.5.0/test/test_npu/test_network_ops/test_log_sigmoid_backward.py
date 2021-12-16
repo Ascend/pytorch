@@ -58,7 +58,11 @@ class TestLogSigmoidBackward(TestCase):
             [[np.float32, 0, (6, 4)]],
             [[np.float32, 3, (2, 4, 5)]],
             [[np.float32, 4, (1, 2, 3, 3)]],
-            [[np.float32, 29, (10, 3, 5, 3)]]
+            [[np.float32, 29, (10, 3, 5, 3)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3, 8)]],
+            [[np.float32, 2, (2, 11, 51, 8, 20, 12, 6)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3, 2, 4, 7)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], -50, 50)
@@ -80,6 +84,10 @@ class TestLogSigmoidBackward(TestCase):
             [[np.float16, 3, (2, 4, 5)]],
             [[np.float16, 4, (1, 2, 3, 3)]],
             [[np.float16, 29, (10, 3, 5, 3)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3, 8)]],
+            [[np.float16, 2, (2, 11, 51, 8, 20, 12, 6)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3, 2, 4, 7)]]
         ]
 
         for item in shape_format:

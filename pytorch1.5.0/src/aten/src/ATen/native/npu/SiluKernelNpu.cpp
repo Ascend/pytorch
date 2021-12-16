@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -29,11 +29,27 @@ Tensor& silu_out_npu_nocheck(Tensor& result, const Tensor& self) {
   return result;
 }
 
+Tensor& silu_out_npu(const Tensor& self, Tensor& out){
+  OpPreparation::CheckOut(
+      {self},
+      out,
+      self);
+  OpPipeWithDefinedOut pipe;
+  return pipe.CheckMemory({self}, {out})
+    .Func([&self](Tensor& out){silu_out_npu_nocheck(out, self);})
+    .Call(out);
+}
+
 Tensor silu_npu(const Tensor& self) {
   OpPipeWithApplyOut pipe;
   return pipe.ApplyOutputSameAs(self)
     .Func([&self](Tensor& result) {silu_out_npu_nocheck(result, self);})
     .Call();
+}
+
+Tensor& silu_npu_(Tensor& self) {
+  silu_out_npu(self, self);
+  return self;
 }
 
 } // namespace native

@@ -8695,6 +8695,10 @@
   npu_dispatch_only:
     NPU: silu_npu
 
+- func: npu_silu_(Tensor(a!) self) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: silu_npu_
+
 - func: npu_silu_backward(Tensor grad_output, Tensor x0, Tensor x1) -> Tensor
   npu_dispatch_only:
     NPU: silu_backward_npu

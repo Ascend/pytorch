@@ -33,18 +33,38 @@ class TestLogsigmoid(TestCase):
         output = output.numpy()
         return output
 
+    def cpu_op_exec_out(self, input1, out):
+        output = torch.nn.functional.logsigmoid(input1, out=out)
+        output = output.numpy()
+        return output
+
+    def npu_op_exec_out(self, input1, out):
+        output = torch.nn.functional.logsigmoid(input1, out=out)
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
+
     def test_log_sigmoid_shape_format(self, device):
         shape_format = [
             [[np.float32, 0, (6, 4)]],
             [[np.float32, 3, (2, 4, 5)]],
             [[np.float32, 4, (1, 2, 3, 3)]],
             [[np.float32, 29, (11, 22, 33, 43)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3, 8)]],
+            [[np.float32, 2, (2, 11, 51, 8, 20, 12, 6)]],
+            [[np.float32, 2, (2, 11, 51, 8, 3, 2, 4, 7)]]
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], -50, 50)
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_out, npu_out = create_common_tensor(item[0], -50, 50)
+            cpu_output = self.cpu_op_exec_out(cpu_input, cpu_out)
+            cpu_output = self.npu_op_exec_out(npu_input, npu_out)
+            self.assertRtolEqual(cpu_output, cpu_output)
 
     def test_log_sigmoid_float16_shape_format(self, device):
         def cpu_op_exec_fp16(input1):
@@ -54,11 +74,23 @@ class TestLogsigmoid(TestCase):
             output = output.astype(np.float16)
             return output
 
+        def cpu_op_exec_fp16_out(input1, out):
+            input1 = input1.to(torch.float32)
+            out = out.to(torch.float32)
+            output = torch.nn.functional.logsigmoid(input1, out=out)
+            output = output.numpy()
+            output = output.astype(np.float16)
+            return output
+
         shape_format = [
             [[np.float16, 0, (6, 4)]],
             [[np.float16, 3, (2, 4, 5)]],
             [[np.float16, 4, (1, 2, 3, 3)]],
             [[np.float16, 29, (10, 22, 33, 33)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3, 8)]],
+            [[np.float16, 2, (2, 11, 51, 8, 20, 12, 6)]],
+            [[np.float16, 2, (2, 11, 51, 8, 3, 2, 4, 7)]]
         ]
 
         for item in shape_format:
@@ -66,6 +98,11 @@ class TestLogsigmoid(TestCase):
             cpu_output = cpu_op_exec_fp16(cpu_input1)
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_out, npu_out = create_common_tensor(item[0], -50, 50)
+            cpu_out = cpu_op_exec_fp16_out(cpu_input1, cpu_out)
+            npu_out = self.npu_op_exec_out(npu_input1, npu_out)
+            self.assertRtolEqual(cpu_out, npu_out)
 
 
 instantiate_device_type_tests(TestLogsigmoid, globals(), except_for="cpu")
