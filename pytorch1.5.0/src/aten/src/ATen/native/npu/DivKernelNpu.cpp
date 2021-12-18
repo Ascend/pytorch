@@ -24,7 +24,7 @@ using namespace at::native::npu;
 Tensor& div_out_npu(Tensor& result, const Tensor& self, const Scalar other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   OpCommand cmd;
-  cmd.Name("Div")
+  cmd.Name("RealDiv")
       .Expect(unified_result)
       .Input(self)
       .Input(other, self.scalar_type())
@@ -42,7 +42,7 @@ Tensor& div_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& ot
   } else {
     auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
     OpCommand cmd;
-    cmd.Name("Div")
+    cmd.Name("RealDiv")
         .Expect(unified_result)
         .Input(self)
         .Input(other)
@@ -58,10 +58,10 @@ Tensor& div_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
   Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   OpPreparation::CheckOut(
-      {self}, 
-      result, 
+      {self},
+      result,
       CalcuOpUtil::get_tensor_npu_format(outputTensor),
-      self.scalar_type(), 
+      self.scalar_type(),
       outputSize);
   div_out_npu_nocheck(result, self, other);
 
