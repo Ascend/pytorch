@@ -18,6 +18,7 @@
 #include <c10/npu/OptionsManager.h>
 #include "c10/npu/NPUQueue.h"
 #include "c10/npu/NPUCachingAllocator.h"
+#include "c10/npu/NPUEventManager.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "c10/npu/NPUQueue.h"
 #include <torch/csrc/autograd/record_function.h>
@@ -246,7 +247,6 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
         }
       }
       RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
-      E2E_RECORD_FUNCTION(cur_paras->opType);
       ret = aclopCompileAndExecute(
           (cur_paras->opType).c_str(),
           cur_paras->paras.input_num,
@@ -293,7 +293,32 @@ int RecordEventFunc(QueueParas* in, aclrtStream stream) {
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
   }
-  THNPUCachingHostAllocator_insertCompleteEvent(cur_paras->event);
+  // Temporary modification to avoid problem that
+  // event must be recorded before query
+  if (cur_paras->eventAllocatorType == HOST_ALLOCATOR_EVENT) {
+    THNPUCachingHostAllocator_insertCompleteEvent(cur_paras->event);
+  } else if (cur_paras->eventAllocatorType == NPU_ALLOCATOR_EVENT) {
+    c10::npu::NPUCachingAllocator::NpuAllocatorInsertRecordedEvent(cur_paras->event);
+  }
+
+  return ret;
+}
+
+int WaitEventFunc(QueueParas* in, aclrtStream stream) {
+  auto cur_paras = static_cast<EventParas* >(in->paramVal);
+  aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
+  if (ret != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
+  }
+  return ret;
+}
+
+int LazyDestroyEventFunc(QueueParas* in, aclrtStream stream) {
+  auto cur_paras = static_cast<EventParas* >(in->paramVal);
+  aclError ret = c10::npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
+  if (ret != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
+  }
   return ret;
 }
 
@@ -314,6 +339,7 @@ void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint3
   } else if (dstPtr->paramType == ASYNC_MEMCPY_EX) {
     needClearVec.swap((static_cast<CopyParas* >(dstPtr->paramVal))->pinMem);
   }
+  dstPtr->paramStream = srcPtr->paramStream;
   dstPtr->paramType = srcPtr->paramType;
   dstPtr->paramLen = srcPtr->paramLen;
   size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(CopyParas), sizeof(EventParas));
@@ -322,25 +348,14 @@ void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint3
     (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
   } else if ((srcPtr->paramType == ASYNC_MEMCPY) || (srcPtr->paramType == ASYNC_MEMCPY_EX)) {
     (static_cast<CopyParas* >(dstPtr->paramVal))->Copy(*(static_cast<CopyParas* >(srcPtr->paramVal)));
-  } else {
+  } else if (srcPtr->paramType == RECORD_EVENT ||
+             srcPtr->paramType == WAIT_EVENT ||
+             srcPtr->paramType == LAZY_DESTROY_EVENT) {
     (static_cast<EventParas* >(dstPtr->paramVal))->Copy(*(static_cast<EventParas* >(srcPtr->paramVal)));
   }
 }
 
 void ReleaseFunc(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
-  auto queueParam = static_cast<QueueParas* >(ptr);
-  auto type = queueParam->paramType;
-  if (type == COMPILE_AND_EXECUTE) {
-    auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
-    if (!cur_paras->opDynamicType.empty()) {
-      cur_paras->DynamicRelease();
-      cur_paras->opDynamicType = "";
-    }
-    cur_paras->Release();
-  }
-}
-
-void ReleaseFunc_(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
   releaseQueue.PushToReleaseQueue(ptr);
 }
 
@@ -363,12 +378,15 @@ AsyncFuncMap funcMap = {
   {ASYNC_MEMCPY, MemcopyAsyncFunc},
   {ASYNC_MEMCPY_EX, MemcopyAsyncFunc},
   {RECORD_EVENT, RecordEventFunc},
+  {WAIT_EVENT, WaitEventFunc},
+  {LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
 };
 
-int AsncExecFunc(void* data, aclrtStream stream, uint32_t queueLen) {
+int AsncExecFunc(void* data, uint32_t queueLen) {
   RECORD_HOST_FUNCTION("Dequeue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
   auto queueParam = static_cast<QueueParas* >(data);
   auto type = queueParam->paramType;
+  aclrtStream stream = queueParam->paramStream;
   auto ret = funcMap[type](queueParam, stream);
   return ret;
 }

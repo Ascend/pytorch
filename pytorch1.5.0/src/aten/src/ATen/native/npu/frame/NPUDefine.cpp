@@ -64,6 +64,7 @@ void ExecuteParas::Copy(ExecuteParas& other) {
   }
   this->hostMemory = other.hostMemory;
   this->isFuzzy = other.isFuzzy;
+  this->isCompiling = other.isCompiling;
 }
 
 void ExecuteParas::CopyEx(ExecuteParas& other)
@@ -71,11 +72,11 @@ void ExecuteParas::CopyEx(ExecuteParas& other)
   this->paras = other.paras;
   this->attr = other.attr;
   this->constParams = other.constParams;
+  this->isCompiling = other.isCompiling;
   if (other.opDynamicType != "") {
     this->dynamicCompileAttr = other.dynamicCompileAttr;
     this->dynamicRunAttr = other.dynamicRunAttr;
     this->dynamicParam = other.dynamicParam;
-    this->isCompiling = other.isCompiling;
   }
 }
 

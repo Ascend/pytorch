@@ -21,7 +21,7 @@
 #include <c10/npu/NPUMacros.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/util/Registry.h>
-
+#include <c10/npu/OptionsManager.h>
 #include <mutex>
 
 namespace c10 {
@@ -144,6 +144,8 @@ C10_NPU_API std::mutex* getFreeMutex();
 C10_NPU_API std::shared_ptr<void> getIpcDevPtr(std::string handle);
 
 C10_NPU_API void FreeDeviceCachedMemory(int device);
+
+C10_NPU_API void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
 } // namespace NPUCachingAllocator
 
 } // namespace npu

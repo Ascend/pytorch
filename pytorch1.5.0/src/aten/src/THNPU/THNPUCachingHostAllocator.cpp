@@ -306,7 +306,7 @@ struct HostAllocator {
       if (err != ACL_ERROR_NONE)
         break;
 
-      err = c10::npu::queue::LaunchRecordEventTask(event, *it, needClearVec);
+      err = c10::npu::queue::HostAllocatorLaunchRecordEventTask(event, *it, needClearVec);
       if (err != ACL_ERROR_NONE)
         break;
 

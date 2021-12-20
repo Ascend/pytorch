@@ -69,7 +69,9 @@ void pushCallback(
 }
 
 void popCallback() {
-  manager().popCallback();
+  if (hasCallbacks()) {
+    manager().popCallback();
+  }
 }
 
 bool hasCallbacks() {
@@ -126,6 +128,8 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
 
 void init_e2e_profiler(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics) {
+
+  popCallback();
   initMsPorf(dump_path, npu_event, aicore_metrics);
   pushCallback(
       [](E2ERecordFunction& fn) {
@@ -144,6 +148,7 @@ void finalize_e2e_profiler() {
     C10_NPU_SHOW_ERR_MSG();
   }
   c10::npu::acl::AclProfilingFinalize();
+  popCallback();
 }
 
 /* static */
