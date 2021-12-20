@@ -1,8 +1,11 @@
+
+
 # PyTorch网络模型移植&训练指南
 
 -   [概述](#概述md)
 -   [约束与限制](#约束与限制md)
 -   [迁移流程](#迁移流程md)
+-   [快速上手](#快速上手)
 -   [模型移植评估](#模型移植评估md)
 -   [环境准备](#环境准备md)
 -   [模型迁移](#模型迁移md)
@@ -73,7 +76,7 @@
 </thead>
 <tbody><tr id="row17349111602716"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1234921620273"><a name="p1234921620273"></a><a name="p1234921620273"></a>模型选取</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>详情请参见<a href="#模型移植评估md#li5941731123517">模型选取</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>选取需要迁移的模型。</p>
 </td>
 </tr>
 <tr id="row53492016112717"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p133501716132719"><a name="p133501716132719"></a><a name="p133501716132719"></a>模型移植评估</p>
@@ -133,6 +136,577 @@
 </tr>
 </tbody>
 </table>
+
+## 快速上手
+
+### 简介
+
+对ResNet50模型进行迁移，帮助用户快速了解迁移过程。
+
+### 模型选取
+
+本样例基于PyTorch官网提供的Imagenet数据集训练模型[main.py](https://github.com/pytorch/examples/tree/master/imagenet/main.py)脚本进行适配昇腾910 AI处理器的迁移。
+
+### 模型移植评估
+
+模型是否可以迁移成功主要取决于模型算子是否支持昇腾AI处理器。故需要对模型算子对昇腾AI处理器的支持性进行评估，一般有两种方式评估算子支持性
+
+- 模型迁移前，使用dump op方法获取算子信息，与《PyTorch适配算子清单》算子进行比较，确定是否支持。
+- 模型迁移后，在昇腾设备上进行运行训练脚本，若存在不支持昇腾AI设备的算子，会提示报错信息。
+
+若存在不支持算子，可以采用修该模型用等价支持的算子替换或者参考《PyTorch算子开发指南》进行算子开发。
+
+ResNet50模型用到的算子已经在昇腾AI处理器上支持。
+
+### 环境准备
+
+请参见《PyTorch安装指南》进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
+
+参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
+
+### 模型迁移
+
+在main.py训练脚本的基础上进行修改，实现模型的单卡训练和单机多卡训练迁移。
+
+#### 单卡训练迁移
+
+1. 在main.py脚本中导入torch.npu模块。
+
+   ```python
+   import torch.npu
+   ```
+
+2. 在main.py中定义训练设备。
+
+   ```python
+   CALCULATE_DEVICE = "npu:0"
+   ```
+
+3. 修改参数以及判断选项，使其只在昇腾910 AI处理器上进行训练。
+
+   代码位置：main.py文件中的main\_worker\(\)函数：
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       # 原代码为使用GPU进行训练，原代码如下：
+       # args.gpu = gpu
+       ############## npu modify begin #############
+       args.gpu = None
+       ############## npu modify end #############
+       
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+           
+       if args.distributed:
+           if args.dist_url == "env://" and args.rank == -1:
+               args.rank = int(os.environ["RANK"])
+           if args.multiprocessing_distributed:
+               # For multiprocessing distributed training, rank needs to be the
+               # global rank among all the processes
+               args.rank = args.rank * ngpus_per_node + gpu
+           dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                   world_size=args.world_size, rank=args.rank)
+       # create model
+       if args.pretrained:
+           print("=> using pre-trained model '{}'".format(args.arch))
+           model = models.__dict__[args.arch](pretrained=True)
+       else:
+           print("=> creating model '{}'".format(args.arch))
+           model = models.__dict__[args.arch]()
+       # 原代码中需要判断是否在GPU上进行训练，原代码如下：
+       # if not torch.cuda.is_available():
+           # print('using CPU, this will be slow')
+       # elif args.distributed:
+       ############## npu modify begin #############
+       # 迁移后为直接判断是否进行分布式训练，去掉判断是否在GPU上进行训练
+       if args.distributed:
+       ############## npu modify end #############
+           # For multiprocessing distributed, DistributedDataParallel constructor
+           # should always set the single device scope, otherwise,
+           # DistributedDataParallel will use all available devices.
+           if args.gpu is not None:
+              ......
+   ```
+
+4. 将模型以及损失函数迁移到昇腾910 AI处理器上进行计算。
+
+   代码位置：main.py文件中的main\_worker\(\)函数：
+
+   ```python 
+   elif args.gpu is not None:
+           torch.cuda.set_device(args.gpu)
+           model = model.cuda(args.gpu)
+       else:
+           # DataParallel will divide and allocate batch_size to all available GPUs
+           if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+               model.features = torch.nn.DataParallel(model.features)
+               model.cuda()
+           else:
+               # 原代码使用torch.nn.DataParallel()类来用多个GPU加速训练
+               # model = torch.nn.DataParallel(model).cuda()
+           ############## npu modify begin #############
+               # 将模型迁移到NPU上进行训练。
+              model = model.to(CALCULATE_DEVICE)
+          ############## npu modify end #############
+       # 原代码中损失函数是在GPU上进行计算
+       # # define loss function (criterion) and optimizer
+       # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+       ############## npu modify begin #############
+       # 将损失函数迁移到NPU上进行计算。
+       criterion = nn.CrossEntropyLoss().to(CALCULATE_DEVICE)   
+       ############## npu modify end #############
+   ```
+
+5. 将数据集目标结果target修改成int32类型解决算子报错问题；将数据集迁移到昇腾910 AI处理器上进行计算。
+
+   - 代码位置：main.py文件中的train\(\)函数：
+
+     ```python
+        for i, (images, target) in enumerate(train_loader):
+             # measure data loading time
+             data_time.update(time.time() - end)
+     
+             if args.gpu is not None:
+                 images = images.cuda(args.gpu, non_blocking=True)
+             # 原代码中训练数据集在GPU上进行加载计算，原代码如下：
+             # if torch.cuda.is_available():
+                 # target = target.cuda(args.gpu, non_blocking=True)
+             ############## npu modify begin #############
+             # 将数据集迁移到NPU上进行计算并修改target数据类型，以提升性能
+             if 'npu' in CALCULATE_DEVICE:     
+                 target = target.to(torch.int32)                      
+             images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
+             ############## npu modify end #############
+     ```
+
+   - 代码位置：main.py文件中的validate\(\)函数：
+
+     ```python
+         with torch.no_grad():
+             end = time.time()
+             for i, (images, target) in enumerate(val_loader):
+                 if args.gpu is not None:
+                     images = images.cuda(args.gpu, non_blocking=True)
+                 # 原代码中训练数据集在GPU上进行加载计算，原代码如下：
+                 # if torch.cuda.is_available():
+                     # target = target.cuda(args.gpu, non_blocking=True)
+                 ############## npu modify begin #############
+                 # 将数据集迁移到NPU上进行计算并修改target数据类型
+                 if 'npu' in CALCULATE_DEVICE:
+                     target = target.to(torch.int32)
+               images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
+                ############## npu modify end #############
+     ```
+
+6. 设置当前正在使用的device。
+
+   代码位置：main.py文件中的主函数入口：
+
+   ```python
+   if __name__ == '__main__':
+       ############## npu modify begin #############
+       if 'npu' in CALCULATE_DEVICE:
+          torch.npu.set_device(CALCULATE_DEVICE)
+       ############## npu modify begin #############
+       main()
+   ```
+
+#### 单机多卡训练修改
+
+1. main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练及进行混合精度训练。
+
+   ```python
+   import torch.npu
+   from apex import amp
+   ```
+
+2. 参数设置增加以下参数，包括指定参与训练的昇腾910 AI处理器以及进行混合精度训练需要的参数。
+
+   ```python
+   parser.add_argument('--device', default='npu', type=str, help='npu or gpu')                        
+   parser.add_argument('--addr', default='10.136.181.115', type=str, help='master addr')                        
+   parser.add_argument('--device-list', default='0,1,2,3,4,5,6,7', type=str, help='device id list')
+   parser.add_argument('--amp', default=False, action='store_true', help='use amp to train the model')                    
+   parser.add_argument('--loss-scale', default=1024., type=float,
+                       help='loss scale using in amp, default -1 means dynamic')
+   parser.add_argument('--opt-level', default='O2', type=str,
+                       help='loss scale using in amp, default -1 means dynamic')
+   ```
+
+3. 创建由device\_id到process\_id的映射函数，指定device进行训练。在main.py函数中增加以下接口。
+
+   ```python
+   def device_id_to_process_device_map(device_list):
+       devices = device_list.split(",")
+       devices = [int(x) for x in devices]
+       devices.sort()
+   
+       process_device_map = dict()
+       for process_id, device_id in enumerate(devices):
+           process_device_map[process_id] = device_id
+   
+       return process_device_map
+   ```
+
+4. 指定训练服务器的ip和端口。
+
+   代码位置：main.py文件中的主函数main\(\)（修改部分为字体加粗部分）。
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       ############## npu modify begin #############
+       os.environ['MASTER_ADDR'] = args.addr 
+       os.environ['MASTER_PORT'] = '29688'
+       ############## npu modify end #############
+   ```
+
+5. 创建由device\_id到process\_id的映射参数，获取单节点昇腾910 AI处理器数量。
+
+   代码位置：main.py文件中的主函数main\(\)。
+
+   ```python
+   args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+   ############## npu modify begin #############
+   args.process_device_map = device_id_to_process_device_map(args.device_list)
+   if args.device == 'npu':
+       ngpus_per_node = len(args.process_device_map)
+   else:
+       ngpus_per_node = torch.cuda.device_count()
+   ############## npu modify end #############
+   # 原代码如下：
+   # ngpus_per_node = torch.cuda.device_count()
+   ```
+
+6. 获取进程process\_id对应的昇腾910 AI处理器编号，指定在对应的昇腾910 AI处理器上进行训练。
+
+   代码位置：main.py文件中的main\_worker\(\)。
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):   
+       global best_acc1
+       ############## npu modify begin #############
+       args.gpu = args.process_device_map[gpu]
+       ############## npu modify end #############
+       # 原代码如下：
+       # args.gpu = gpu
+   ```
+
+7. 初始化进程组，屏蔽掉初始化方式。
+
+   代码位置：main.py文件中的main\_worker\(\)。
+
+   ```python
+         ############## npu modify begin #############  
+           if args.device == 'npu':
+               dist.init_process_group(backend=args.dist_backend, #init_method=args.dist_url,
+                                   world_size=args.world_size, rank=args.rank)
+           else:
+               dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,         
+                                   world_size=args.world_size, rank=args.rank)
+         ############## npu modify begin #############  
+         # 原代码如下：
+         # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+         #                          world_size=args.world_size, rank=args.rank)
+   ```
+
+8. 要进行分布式训练且需要引入混合精度模块，并且需要将模型迁移到昇腾AI处理器上，因此需要屏蔽掉原始代码中判断是否为分布式训练以及模型是否在GPU上进行训练的代码部分。
+
+   代码位置：main.py文件中的main\_worker\(\)。
+
+   ```python
+       # create model
+       if args.pretrained:
+           print("=> using pre-trained model '{}'".format(args.arch))
+           model = models.__dict__[args.arch](pretrained=True)
+       else:
+           print("=> creating model '{}'".format(args.arch))
+           model = models.__dict__[args.arch]()
+   ############## npu modify begin #############
+       # 代码中添加如下内容
+       # 指定训练设备为昇腾AI处理器
+       loc = 'npu:{}'.format(args.gpu)
+       torch.npu.set_device(loc)
+       # 计算用于训练的batch_size和workers
+       args.batch_size = int(args.batch_size / ngpus_per_node)
+       args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
+   ############## npu modify end #############
+       # 原始代码如下，需屏蔽掉，已注释
+       # if not torch.cuda.is_available():
+       #     print('using CPU, this will be slow')
+       # elif args.distributed:
+       #     # For multiprocessing distributed, DistributedDataParallel constructor
+       #     # should always set the single device scope, otherwise,
+       #     # DistributedDataParallel will use all available devices.
+       #     if args.gpu is not None:
+       #         torch.cuda.set_device(args.gpu)
+       #         model.cuda(args.gpu)
+       #         # When using a single GPU per process and per
+       #         # DistributedDataParallel, we need to divide the batch size
+       #         # ourselves based on the total number of GPUs we have
+       #         args.batch_size = int(args.batch_size / ngpus_per_node)
+       #         args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
+       #         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+       #     else:
+       #         model.cuda()
+       #         # DistributedDataParallel will divide and allocate batch_size to all
+       #         # available GPUs if device_ids are not set
+       #         model = torch.nn.parallel.DistributedDataParallel(model)
+       # elif args.gpu is not None:
+       #     torch.cuda.set_device(args.gpu)
+       #     model = model.cuda(args.gpu)
+       # else:
+       #     # DataParallel will divide and allocate batch_size to all available GPUs
+       #     if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+       #         model.features = torch.nn.DataParallel(model.features)
+       #         model.cuda()
+       #     else:
+       #         model = torch.nn.DataParallel(model).cuda()
+   ```
+
+9. 屏蔽掉损失函数、优化器和断点训练部分，将这部分在后面与混合精度训练结合起来。
+
+   代码位置：main.py文件中的main\_worker\(\)。
+
+   ```python
+       # 屏蔽掉原始代码，已注释
+       # # define loss function (criterion) and optimizer
+       # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+       #
+       # optimizer = torch.optim.SGD(model.parameters(), args.lr,
+       #                             momentum=args.momentum,
+       #                             weight_decay=args.weight_decay)
+       #
+       # # optionally resume from a checkpoint
+       # if args.resume:
+       #     if os.path.isfile(args.resume):
+       #         print("=> loading checkpoint '{}'".format(args.resume))
+       #         if args.gpu is None:
+       #             checkpoint = torch.load(args.resume)
+       #         else:
+       #             # Map model to be loaded to specified single gpu.
+       #             loc = 'cuda:{}'.format(args.gpu)
+       #             checkpoint = torch.load(args.resume, map_location=loc)
+       #         args.start_epoch = checkpoint['epoch']
+       #         best_acc1 = checkpoint['best_acc1']
+       #         if args.gpu is not None:
+       #             # best_acc1 may be from a checkpoint from a different GPU
+       #             best_acc1 = best_acc1.to(args.gpu)
+       #         model.load_state_dict(checkpoint['state_dict'])
+       #         optimizer.load_state_dict(checkpoint['optimizer'])
+       #         print("=> loaded checkpoint '{}' (epoch {})"
+       #               .format(args.resume, checkpoint['epoch']))
+       #     else:
+       #         print("=> no checkpoint found at '{}'".format(args.resume))
+       #
+       # cudnn.benchmark = True
+   ```
+
+10. 数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。使用昇腾AI处理器进行训练，需要将**pin\_memory**设置为**False**；由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将**drop\_last**设置为**True**；另外需要将验证部分数据集**shuffle**设置为**True**。
+
+    代码位置：main.py文件中的main\_worker\(\)。
+
+    ```python
+        ############## npu modify begin #############
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+            num_workers=args.workers, pin_memory=False, sampler=train_sampler, drop_last=True)
+    
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(valdir, transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers, pin_memory=False, drop_last=True)
+            ############## npu modify end #############
+    ```
+
+11. 进行损失函数及优化器构建，将模型、损失函数迁移到昇腾AI处理器上；将优化器、模型与混合精度模块进行结合以支持混合精度训练；将断点训练部分与混合精度模块结合以支持混合精度训练。
+
+    代码位置：main.py文件中的main\_worker\(\)中验证数据加载后。
+
+    ```python
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(valdir, transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers, pin_memory=False, drop_last=True)
+    
+        ############## npu modify begin #############
+        model = model.to(loc)
+        # define loss function (criterion) and optimizer
+        criterion = nn.CrossEntropyLoss().to(loc)
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                    momentum=args.momentum,
+                                    weight_decay=args.weight_decay)
+    
+        if args.amp:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, loss_scale=args.loss_scale)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    
+        # optionally resume from a checkpoint
+        if args.resume:
+            if os.path.isfile(args.resume):
+                print("=> loading checkpoint '{}'".format(args.resume))
+                checkpoint = torch.load(args.resume, map_location=loc)
+                args.start_epoch = checkpoint['epoch']
+                best_acc1 = checkpoint['best_acc1']
+                model.load_state_dict(checkpoint['state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                if args.amp:
+                  amp.load_state_dict(checkpoint['amp'])
+                print("=> loaded checkpoint '{}' (epoch {})"
+                      .format(args.resume, checkpoint['epoch']))
+            else:
+                print("=> no checkpoint found at '{}'".format(args.resume))
+    
+        cudnn.benchmark = True
+        ############## npu modify end #############
+    ```
+
+12. 断点checkpoint保存需要与混合精度训练结合，修改如下。
+
+    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
+
+    ```python
+            # remember best acc@1 and save checkpoint
+            is_best = acc1 > best_acc1
+            best_acc1 = max(acc1, best_acc1)
+    
+            if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                    and args.rank % ngpus_per_node == 0):
+            ############## npu modify begin #############
+                if args.amp:
+                    save_checkpoint({
+                        'epoch': epoch + 1,
+                        'arch': args.arch,
+                        'state_dict': model.state_dict(),
+                        'best_acc1': best_acc1,
+                        'optimizer' : optimizer.state_dict(),
+                        'amp': amp.state_dict(),
+                    }, is_best)
+                else:
+                    save_checkpoint({
+                        'epoch': epoch + 1,
+                        'arch': args.arch,
+                        'state_dict': model.state_dict(),
+                        'best_acc1': best_acc1,
+                        'optimizer' : optimizer.state_dict(),
+                    }, is_best)
+             ############## npu modify end #############
+    ```
+
+13. 训练时，需要将数据集迁移到昇腾AI处理器上，修改如下：
+
+    代码位置：main.py文件中的train\(\)（修改部分为字体加粗部分）。
+
+    ```python
+        for i, (images, target) in enumerate(train_loader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+            ############## npu modify begin #############
+            loc = 'npu:{}'.format(args.gpu)
+            target = target.to(torch.int32)
+            images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
+            ############## npu modify end #############
+            # 原模型代码如下：
+            # if args.gpu is not None:
+            #     images = images.cuda(args.gpu, non_blocking=True)
+            # if torch.cuda.is_available():
+            #     target = target.cuda(args.gpu, non_blocking=True)
+    ```
+
+14. 标记反向传播.backward\(\)发生的位置，这样混合精度模块就可以进行Loss Scaling并清除每次迭代的状态，代码如下：
+
+    代码位置：main.py文件中的train\(\)（修改部分为字体加粗部分）。
+
+    ```python
+            optimizer.zero_grad()
+            ############## npu modify begin #############
+            if args.amp:
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
+            ############## npu modify end #############
+            # 原代码如下注释部分：
+            # loss.backward()
+            optimizer.step()
+    ```
+
+15. 验证时，需要将验证数据集迁移到昇腾AI处理器上，修改如下：
+
+    代码位置：main.py文件中的validate\(\)。
+
+    ```python
+        with torch.no_grad():
+            end = time.time()
+            for i, (images, target) in enumerate(val_loader):
+            ############## npu modify begin #############
+                loc = 'npu:{}'.format(args.gpu)
+                target = target.to(torch.int32)
+                images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
+            ############## npu modify end #############
+            # 原模型代码如下注释部分：
+            # if args.gpu is not None:
+            #     images = images.cuda(args.gpu, non_blocking=True)
+            # if torch.cuda.is_available():
+            #     target = target.cuda(args.gpu, non_blocking=True)
+    ```
+
+### 模型训练
+
+**准备数据集**
+
+准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet。
+
+**执行命令**
+
+单卡训练:
+
+```shell
+python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
+                                               --lr 0.1 \               # 学习率
+                                               --epochs 90 \            # 训练迭代轮数
+                                               --arch resnet50 \        # 模型架构
+                                               --world-size 1 \
+                                               --rank 0 \         
+                                               --workers 40 \           # 加载数据进程数
+                                               --momentum 0.9 \         # 动量  
+                                               --weight-decay 1e-4      # 权重衰减
+```
+
+分布式训练：
+
+```shell
+python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
+                                               --seed 49  \                      # 随机种子
+                                               --workers 160 \                   # 加载数据进程数
+                                               --lr 0.8 \
+                                               --print-freq 1 \
+                                               --arch resnet50 \                 # 模型架构
+                                               --dist-url 'tcp://127.0.0.1:50000' \                   
+                                               --dist-backend 'hccl' \
+                                               --multiprocessing-distributed \   # 使用多卡训练
+                                               --world-size 1 \
+                                               --batch-size 2048 \               # 训练批次大小
+                                               --epochs 90 \                     # 训练迭代轮数
+                                               --rank 0 \
+                                               --device-list '0,1,2,3,4,5,6,7' \
+                                               --amp                             # 使用混合精度训练
+```
+
+>![](public_sys-resources/icon-note.gif) **说明：** 
+>dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
+
 
 <h2 id="模型移植评估md">模型移植评估</h2>
 
@@ -1575,15 +2149,121 @@ def main():
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-
-
 <h4 id="精度调优方法md">精度调优方法</h4>
 
 模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
 
+-   **[环境准备](#环境准备md)** 
+-   **[模型算子精度对比](模型算子精度对比)**
 -   **[单算子溢出检测](#单算子溢出检测md)**  
-
+-   **[IR与TBE算子映射](IR与TBE算子映射)**
+-   **[NPU与GPU算子映射](NPU与GPU算子映射)**
 -   **[整网调测](#整网调测md)**  
+
+##### 环境准备
+
+- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+
+  若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
+
+- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见《PyTorch安装指南》。
+
+  - 在NPU环境PyTorch安装
+
+    编译前修改build.sh脚本，在脚本中增加`USE_DUMP=1`字段。
+
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
+    ```
+
+  - （可选）在GPU环境PyTorch安装，若对模型算子精度对比，请执行此操作，否则请忽略。
+
+    编译前修改build.sh，在脚本中增加`USE_DUMP=1`、`USE_NCCL=0`字段，将 `USE_HCCL`、`USE_NPU`字段的值修改为0，将`USE_CUDA`字段的值修改为1。
+
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
+    ```
+
+##### 模型算子精度对比
+
+用户使用精度对比工具，在相同输入的情况下，获取模型在GPU和NPU进行训练时模型内算子输出的精度差异，从而帮助开发者实现算子精度问题定位。
+
+约束说明：
+
+- 建议使用小batchsize，一般设置为8及以下。
+
+  由于每个算子输入、输出数据会存储在硬盘中，会占用较大空间，故建议使用小batchsize节省硬盘空间。
+
+- 建议仅dump一个step的数据进行精度对比。
+
+- 目前支持精度为fp32、O1或O2训练过程的算子精度对比。
+
+对比模式： 
+
+- GPU的输入和输出为已知数据，将GPU的输入数据加载到NPU上执行得到输出数据，NPU与GPU输出数据对比。
+- NPU的输入和输出为已知数据，将NPU的输入数据加载到GPU上执行得到输出数据，NPU与GPU输出数据对比。
+
+操作步骤：
+
+1. 在GPU或NPU环境，使用dumper工具获取GPU或NPU的模型输入和算子输出数据。
+
+   修改训练代码，增加数据dump功能。在模型训练代码的正向、反向计算位置使用`with`语句增加`torch.utils.dumper()`方法dump数据。例如，在GPU环境下修改示例：
+
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, dump_path="./model_gpu.h5") as dump:
+           # 模型训练代码
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code 
+   ```
+
+   dump_path参数为dump数据保存文件路径及名称。建议仅dump一个step的数据用于精度对比，同时参数更新代码放在with语句外。
+
+2. 将在GPU(NPU)环境dump的数据model_gpu.h5拷贝到NPU(GPU)环境。
+
+3. 在NPU或NPU环境，使用dumper工具加载已经dump出的数据，并获取算子输出数据。
+
+   修改训练代码，增加数据load、dump功能。在模型训练代码的正向、反向计算位置使用`with`语句增加`torch.utils.dumper()`方法load、dump数据。例如，在NPU环境下修改示例：
+
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, load_file_path="./model_gpu.h5", dump_path="./model_npu.h5") as dump:
+           # 模型训练代码
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code
+   ```
+
+   load_file_path参数为从GPU或NPU获取的dump数据路径，dump_path参数为dump数据保存文件路径及名称。建议仅dump一个step的数据用于精度对比，同时参数更新代码放在with语句外。
+
+4. 使用msaccucmp.py对算子输出数据对比。
+
+   1. ascend-toolkit提供了msaccucmp.py工具脚本用具精度对比。
+
+      - 该脚本路径为："/user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py"，
+
+        路径仅供参考，请以ascend-toolkit实际安装路径为准。
+
+      - 也可以使用如下命令查找msaccucmp.py路径。
+
+        ```linux
+        find / -name msaccucmp.py
+        ```
+
+   2. 执行msaccucmp.py脚本，进行精度对比。
+
+      ```
+      python3 /user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py compare -m ./model_npu.h5 -g ./model_gpu.h5
+      ```
+
+      参数说明：
+
+      `-g`参数传入使用GPU获得的dump数据文件路径。
+
+      `-m`参数传入使用NPU获得的dump数据文件路径。
 
 
 <h5 id="单算子溢出检测md">单算子溢出检测</h5>
@@ -1592,17 +2272,7 @@ def main():
 
 约束说明：<a name="section52762019181510"></a>
 
--   需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
 -   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
--   须在PyTorch源代码“build.sh“文件中添加“USE\_DUMP=1”字段。 
-
-    ```
-    修改前: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3 setup.py build bdist_wheel 
-    修改后: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python3 setup.py build
-    ```
-
-    并参见《PyTorch安装指南》的“手动编译安装”章节重新编译并安装PyTorch。
-
 -   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能。
 
 采集溢出算子数据：<a name="section121407268191"></a>
@@ -1626,15 +2296,10 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
 
-**IR与TBE算子映射**
+##### IR与TBE算子映射
 
 前提条件：
 
-- 开启PyTorch框架dump功能。
-
-  在PyTorch源代码 “build.sh“ 文件中添加“USE\_DUMP=1”字段，编译安装PyTorch框架。
-
-- 需要安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
 - 设置环境变量`export ACL_DUMP_DATA=0`。
 - 在脚本中避免使用`torch.npu.init.dump()`和`torch.npu.set.dump()`接口。
 
@@ -1706,6 +2371,10 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 5. 获得映射文件。
 
    运行成功后，在acl.json配置文件中的`dump_path`路径下查看输出结果文件。
+
+##### NPU与GPU算子映射
+
+请参见《开发辅助工具指南》中 ”精度对比工具使用指南（训练）“中 “数据准备章节” 中的 “[准备以PyTorch为原始训练网络的精度比对数据文件](https://support.huawei.com/enterprise/zh/doc/EDOC1100219269/2324edc8#ZH-CN_TOPIC_0000001162580808)”。
 
 <h5 id="整网调测md">整网调测</h5>
 
@@ -1950,619 +2619,7 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="样例说明md">样例说明</h2>
-
--   **[ResNet50模型迁移示例](#ResNet50模型迁移示例md)**  
-
--   **[ShuffleNet模型调优示例](#ShuffleNet模型调优示例md)**  
-
-
-<h3 id="ResNet50模型迁移示例md">ResNet50模型迁移示例</h3>
-
--   **[样例获取](#样例获取md)**  
-
--   **[训练脚本迁移](#训练脚本迁移md)**  
-
--   **[脚本执行](#脚本执行md)**  
-
-
-<h4 id="样例获取md">样例获取</h4>
-
-样例获取<a name="section1155115015182"></a>
-
-1.  本样例基于PyTorch官网提供的Imagenet数据集训练模型进行适配昇腾910 AI处理器的迁移改造，样例获取路径为[https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet)。
-2.  本样例依赖torchvision，需要安装torchvision依赖，如果使用非root用户安装， 则需在命令末尾加上**--user**。
-
-    当服务器运行环境为X86架构时，安装命令如下：
-
-    ```
-    pip3.7 install torchvision==0.6.0 --no-deps
-    ```
-
-    当服务器运行环境为ARM架构时，安装命令如下：
-
-    ```
-    pip3.7 install torchvision==0.2.2.post3 --no-deps
-    ```
-
-3.  Resnet50模型参考PyTorch官网模型[https://pytorch.org/hub/pytorch\_vision\_resnet/](https://pytorch.org/hub/pytorch_vision_resnet/)，实际使用有如下两种方式。
-    1.  直接调用对应接口，例如：
-
-        ```
-        import torchvision.models as models 
-        model = models.resnet50()
-        ```
-
-        >![](public_sys-resources/icon-note.gif) **说明：** 
-        >Resnet50为PyTorch内置模型，了解更多内置模型请前往[Pytorch官网](https://pytorch.org/)。
-
-    2.  在脚本执行中直接指定参数arch为resnet50，内容如下，本样例迁移采用该种方式，请参见[脚本执行](#脚本执行md)。
-
-        ```
-        --arch resnet50
-        ```
-
-
-
-目录结构<a name="section766832317011"></a>
-
-主要文件目录结构如下所示：
-
-```
-├──main.py 
-```
-
-<h4 id="训练脚本迁移md">训练脚本迁移</h4>
-
--   **[单P训练修改](#单P训练修改md)**  
-
--   **[分布式训练修改](#分布式训练修改md)**  
-
-
-<h5 id="单P训练修改md">单P训练修改</h5>
-
-1.  main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练：
-
-    ```
-    import torch.npu
-    ```
-
-2.  在main.py文件中头文件后添加参数以指定使用昇腾910 AI处理器进行训练：
-
-    ```
-    CALCULATE_DEVICE = "npu:1"
-    ```
-
-3.  修改参数以及判断选项，使其只在昇腾910 AI处理器上进行训练。
-
-    代码位置：main.py文件中的main\_worker\(\)函数（修改部分为字体加粗部分）：
-
-    ```
-    def main_worker(gpu, ngpus_per_node, args):
-        global best_acc1
-        # 原代码为使用GPU进行训练，原代码如下：
-        # args.gpu = gpu
-        ############## npu modify begin #############
-        args.gpu = None
-        ############## npu modify end #############
-        if args.gpu is not None:
-            print("Use GPU: {} for training".format(args.gpu))
-    
-        if args.distributed:
-            if args.dist_url == "env://" and args.rank == -1:
-                args.rank = int(os.environ["RANK"])
-            if args.multiprocessing_distributed:
-                # For multiprocessing distributed training, rank needs to be the
-                # global rank among all the processes
-                args.rank = args.rank * ngpus_per_node + gpu
-            dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-        # create model
-        if args.pretrained:
-            print("=> using pre-trained model '{}'".format(args.arch))
-            model = models.__dict__[args.arch](pretrained=True)
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = models.__dict__[args.arch]()
-        # 原代码中需要判断是否在GPU上进行训练，原代码如下：
-        # if not torch.cuda.is_available():
-            # print('using CPU, this will be slow')
-        # elif args.distributed:
-        ############## npu modify begin #############
-        # 迁移后为直接判断是否进行分布式训练，去掉判断是否在GPU上进行训练
-        if args.distributed:
-        ############## npu modify end #############
-            # For multiprocessing distributed, DistributedDataParallel constructor
-            # should always set the single device scope, otherwise,
-            # DistributedDataParallel will use all available devices.
-            if args.gpu is not None:
-               ......
-    ```
-
-4.  将模型以及损失函数迁移到昇腾910 AI处理器上进行计算。
-
-    代码位置：main.py文件中的main\_worker\(\)函数（修改部分为字体加粗部分）：
-
-    ```
-        elif args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model = model.cuda(args.gpu)
-        else:
-            # DataParallel will divide and allocate batch_size to all available GPUs
-            if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-                model.features = torch.nn.DataParallel(model.features)
-                model.cuda()
-            else:
-                # 原代码使用torch.nn.DataParallel()类来用多个GPU加速训练
-                # model = torch.nn.DataParallel(model).cuda()
-            ############## npu modify begin #############
-                # 将模型迁移到NPU上进行训练。
-               model = model.to(CALCULATE_DEVICE)
-           ############## npu modify end #############
-        # 原代码中损失函数是在GPU上进行计算
-        # # define loss function (criterion) and optimizer
-        # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
-        ############## npu modify begin #############
-        # 将损失函数迁移到NPU上进行计算。
-        criterion = nn.CrossEntropyLoss().to(CALCULATE_DEVICE)   
-        ############## npu modify end #############
-    ```
-
-5.  将数据集目标结果target修改成int32类型解决算子报错问题；将数据集迁移到昇腾910 AI处理器上进行计算。
-    -   代码位置：main.py文件中的train\(\)函数（修改部分为字体加粗部分）：
-
-        ```
-            for i, (images, target) in enumerate(train_loader):
-                # measure data loading time
-                data_time.update(time.time() - end)
-        
-                if args.gpu is not None:
-                    images = images.cuda(args.gpu, non_blocking=True)
-                # 原代码中训练数据集在GPU上进行加载计算，原代码如下：
-                # if torch.cuda.is_available():
-                    # target = target.cuda(args.gpu, non_blocking=True)
-                ############## npu modify begin #############
-                # 将数据集迁移到NPU上进行计算并修改target数据类型，以提升性能
-                if 'npu' in CALCULATE_DEVICE:     
-                    target = target.to(torch.int32)                      
-                images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
-                ############## npu modify end #############
-        ```
-
-    -   代码位置：main.py文件中的validate\(\)函数（修改部分为字体加粗部分）：
-
-        ```
-            with torch.no_grad():
-                end = time.time()
-                for i, (images, target) in enumerate(val_loader):
-                    if args.gpu is not None:
-                        images = images.cuda(args.gpu, non_blocking=True)
-                    # 原代码中训练数据集在GPU上进行加载计算，原代码如下：
-                    # if torch.cuda.is_available():
-                        # target = target.cuda(args.gpu, non_blocking=True)
-                    ############## npu modify begin #############
-                    # 将数据集迁移到NPU上进行计算并修改target数据类型
-                    if 'npu' in CALCULATE_DEVICE:
-                        target = target.to(torch.int32)
-                  images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
-                   ############## npu modify end #############
-        ```
-
-6.  设置当前正在使用的device。
-
-    代码位置：main.py文件中的主函数入口（修改部分为字体加粗部分）：
-
-    ```
-    if __name__ == '__main__':
-        ############## npu modify begin #############
-        if 'npu' in CALCULATE_DEVICE:
-           torch.npu.set_device(CALCULATE_DEVICE)
-        ############## npu modify begin #############
-        main()
-    ```
-
-
-<h5 id="分布式训练修改md">分布式训练修改</h5>
-
-1.  main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练及进行混合精度训练。
-
-    ```
-    import torch.npu
-    from apex import amp
-    ```
-
-2.  参数设置增加以下参数，包括指定参与训练的昇腾910 AI处理器以及进行混合精度训练需要的参数。
-
-    ```
-    parser.add_argument('--device', default='npu', type=str, help='npu or gpu')                        
-    parser.add_argument('--addr', default='10.136.181.115', type=str, help='master addr')                        
-    parser.add_argument('--device-list', default='0,1,2,3,4,5,6,7', type=str, help='device id list')
-    parser.add_argument('--amp', default=False, action='store_true', help='use amp to train the model')                    
-    parser.add_argument('--loss-scale', default=1024., type=float,
-                        help='loss scale using in amp, default -1 means dynamic')
-    parser.add_argument('--opt-level', default='O2', type=str,
-                        help='loss scale using in amp, default -1 means dynamic')
-    ```
-
-3.  创建由device\_id到process\_id的映射函数，指定device进行训练。在main.py函数中增加以下接口。
-
-    ```
-    def device_id_to_process_device_map(device_list):
-        devices = device_list.split(",")
-        devices = [int(x) for x in devices]
-        devices.sort()
-    
-        process_device_map = dict()
-        for process_id, device_id in enumerate(devices):
-            process_device_map[process_id] = device_id
-    
-        return process_device_map
-    ```
-
-4.  指定训练服务器的ip和端口。
-
-    代码位置：main.py文件中的主函数main\(\)（修改部分为字体加粗部分）。
-
-    ```
-    def main():
-        args = parser.parse_args()
-        ############## npu modify begin #############
-        os.environ['MASTER_ADDR'] = args.addr 
-        os.environ['MASTER_PORT'] = '29688'
-        ############## npu modify end #############
-    ```
-
-5.  创建由device\_id到process\_id的映射参数，获取单节点昇腾910 AI处理器数量。
-
-    代码位置：main.py文件中的主函数main\(\)（修改部分为字体加粗部分）。
-
-    ```
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-    ############## npu modify begin #############
-    args.process_device_map = device_id_to_process_device_map(args.device_list)
-    if args.device == 'npu':
-        ngpus_per_node = len(args.process_device_map)
-    else:
-        ngpus_per_node = torch.cuda.device_count()
-    ############## npu modify end #############
-    # 原代码如下：
-    # ngpus_per_node = torch.cuda.device_count()
-    ```
-
-6.  获取进程process\_id对应的昇腾910 AI处理器编号，指定在对应的昇腾910 AI处理器上进行训练。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-    def main_worker(gpu, ngpus_per_node, args):   
-        global best_acc1
-        ############## npu modify begin #############
-        args.gpu = args.process_device_map[gpu]
-        ############## npu modify end #############
-        # 原代码如下：
-        # args.gpu = gpu
-    ```
-
-7.  初始化进程组，屏蔽掉初始化方式。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-          ############## npu modify begin #############  
-            if args.device == 'npu':
-                dist.init_process_group(backend=args.dist_backend, #init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-            else:
-                dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,                                
-                                    world_size=args.world_size, rank=args.rank)
-          ############## npu modify begin #############  
-          # 原代码如下：
-          # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-    ```
-
-8.  要进行分布式训练且需要引入混合精度模块，并且需要将模型迁移到昇腾AI处理器上，因此需要屏蔽掉原始代码中判断是否为分布式训练以及模型是否在GPU上进行训练的代码部分。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-        # create model
-        if args.pretrained:
-            print("=> using pre-trained model '{}'".format(args.arch))
-            model = models.__dict__[args.arch](pretrained=True)
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = models.__dict__[args.arch]()
-    ############## npu modify begin #############
-        # 代码中添加如下内容
-        # 指定训练设备为昇腾AI处理器
-        loc = 'npu:{}'.format(args.gpu)
-        torch.npu.set_device(loc)
-        # 计算用于训练的batch_size和workers
-        args.batch_size = int(args.batch_size / ngpus_per_node)
-        args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-    ############## npu modify end #############
-        # 原始代码如下，需屏蔽掉，已注释
-        # if not torch.cuda.is_available():
-        #     print('using CPU, this will be slow')
-        # elif args.distributed:
-        #     # For multiprocessing distributed, DistributedDataParallel constructor
-        #     # should always set the single device scope, otherwise,
-        #     # DistributedDataParallel will use all available devices.
-        #     if args.gpu is not None:
-        #         torch.cuda.set_device(args.gpu)
-        #         model.cuda(args.gpu)
-        #         # When using a single GPU per process and per
-        #         # DistributedDataParallel, we need to divide the batch size
-        #         # ourselves based on the total number of GPUs we have
-        #         args.batch_size = int(args.batch_size / ngpus_per_node)
-        #         args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-        #         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-        #     else:
-        #         model.cuda()
-        #         # DistributedDataParallel will divide and allocate batch_size to all
-        #         # available GPUs if device_ids are not set
-        #         model = torch.nn.parallel.DistributedDataParallel(model)
-        # elif args.gpu is not None:
-        #     torch.cuda.set_device(args.gpu)
-        #     model = model.cuda(args.gpu)
-        # else:
-        #     # DataParallel will divide and allocate batch_size to all available GPUs
-        #     if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-        #         model.features = torch.nn.DataParallel(model.features)
-        #         model.cuda()
-        #     else:
-        #         model = torch.nn.DataParallel(model).cuda()
-    ```
-
-9.  屏蔽掉损失函数、优化器和断点训练部分，将这部分在后面与混合精度训练结合起来。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-        # 屏蔽掉原始代码，已注释
-        # # define loss function (criterion) and optimizer
-        # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
-        #
-        # optimizer = torch.optim.SGD(model.parameters(), args.lr,
-        #                             momentum=args.momentum,
-        #                             weight_decay=args.weight_decay)
-        #
-        # # optionally resume from a checkpoint
-        # if args.resume:
-        #     if os.path.isfile(args.resume):
-        #         print("=> loading checkpoint '{}'".format(args.resume))
-        #         if args.gpu is None:
-        #             checkpoint = torch.load(args.resume)
-        #         else:
-        #             # Map model to be loaded to specified single gpu.
-        #             loc = 'cuda:{}'.format(args.gpu)
-        #             checkpoint = torch.load(args.resume, map_location=loc)
-        #         args.start_epoch = checkpoint['epoch']
-        #         best_acc1 = checkpoint['best_acc1']
-        #         if args.gpu is not None:
-        #             # best_acc1 may be from a checkpoint from a different GPU
-        #             best_acc1 = best_acc1.to(args.gpu)
-        #         model.load_state_dict(checkpoint['state_dict'])
-        #         optimizer.load_state_dict(checkpoint['optimizer'])
-        #         print("=> loaded checkpoint '{}' (epoch {})"
-        #               .format(args.resume, checkpoint['epoch']))
-        #     else:
-        #         print("=> no checkpoint found at '{}'".format(args.resume))
-        #
-        # cudnn.benchmark = True
-    ```
-
-10. 数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。使用昇腾AI处理器进行训练，需要将**pin\_memory**设置为**False**；由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将**drop\_last**设置为**True**；另外需要将验证部分数据集**shuffle**设置为**True**。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-        ############## npu modify begin #############
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-            num_workers=args.workers, pin_memory=False, sampler=train_sampler, drop_last=True)
-    
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers, pin_memory=False, drop_last=True)
-            ############## npu modify end #############
-    ```
-
-11. 进行损失函数及优化器构建，将模型、损失函数迁移到昇腾AI处理器上；将优化器、模型与混合精度模块进行结合以支持混合精度训练；将断点训练部分与混合精度模块结合以支持混合精度训练。
-
-    代码位置：main.py文件中的main\_worker\(\)中验证数据加载**后**（修改部分为字体加粗部分）。
-
-    ```
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers, pin_memory=False, drop_last=True)
-    
-        ############## npu modify begin #############
-        model = model.to(loc)
-        # define loss function (criterion) and optimizer
-        criterion = nn.CrossEntropyLoss().to(loc)
-        optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                    momentum=args.momentum,
-                                    weight_decay=args.weight_decay)
-    
-        if args.amp:
-            model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, loss_scale=args.loss_scale)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    
-        # optionally resume from a checkpoint
-        if args.resume:
-            if os.path.isfile(args.resume):
-                print("=> loading checkpoint '{}'".format(args.resume))
-                checkpoint = torch.load(args.resume, map_location=loc)
-                args.start_epoch = checkpoint['epoch']
-                best_acc1 = checkpoint['best_acc1']
-                model.load_state_dict(checkpoint['state_dict'])
-                optimizer.load_state_dict(checkpoint['optimizer'])
-                if args.amp:
-                  amp.load_state_dict(checkpoint['amp'])
-                print("=> loaded checkpoint '{}' (epoch {})"
-                      .format(args.resume, checkpoint['epoch']))
-            else:
-                print("=> no checkpoint found at '{}'".format(args.resume))
-    
-        cudnn.benchmark = True
-        ############## npu modify end #############
-    ```
-
-12. 断点checkpoint保存需要与混合精度训练结合，修改如下。
-
-    代码位置：main.py文件中的main\_worker\(\)（修改部分为字体加粗部分）。
-
-    ```
-            # remember best acc@1 and save checkpoint
-            is_best = acc1 > best_acc1
-            best_acc1 = max(acc1, best_acc1)
-    
-            if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                    and args.rank % ngpus_per_node == 0):
-            ############## npu modify begin #############
-                if args.amp:
-                    save_checkpoint({
-                        'epoch': epoch + 1,
-                        'arch': args.arch,
-                        'state_dict': model.state_dict(),
-                        'best_acc1': best_acc1,
-                        'optimizer' : optimizer.state_dict(),
-                        'amp': amp.state_dict(),
-                    }, is_best)
-                else:
-                    save_checkpoint({
-                        'epoch': epoch + 1,
-                        'arch': args.arch,
-                        'state_dict': model.state_dict(),
-                        'best_acc1': best_acc1,
-                        'optimizer' : optimizer.state_dict(),
-                    }, is_best)
-             ############## npu modify end #############
-    ```
-
-13. 训练时，需要将数据集迁移到昇腾AI处理器上，修改如下：
-
-    代码位置：main.py文件中的train\(\)（修改部分为字体加粗部分）。
-
-    ```
-        for i, (images, target) in enumerate(train_loader):
-            # measure data loading time
-            data_time.update(time.time() - end)
-            ############## npu modify begin #############
-            loc = 'npu:{}'.format(args.gpu)
-            target = target.to(torch.int32)
-            images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
-            ############## npu modify end #############
-            # 原模型代码如下：
-            # if args.gpu is not None:
-            #     images = images.cuda(args.gpu, non_blocking=True)
-            # if torch.cuda.is_available():
-            #     target = target.cuda(args.gpu, non_blocking=True)
-    ```
-
-14. 标记反向传播.backward\(\)发生的位置，这样混合精度模块就可以进行Loss Scaling并清除每次迭代的状态，代码如下：
-
-    代码位置：main.py文件中的train\(\)（修改部分为字体加粗部分）。
-
-    ```
-            optimizer.zero_grad()
-            ############## npu modify begin #############
-            if args.amp:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
-            # 原代码如下注释部分：
-            # loss.backward()
-            ############## npu modify end #############
-            optimizer.step()
-    ```
-
-15. 验证时，需要将验证数据集迁移到昇腾AI处理器上，修改如下：
-
-    代码位置：main.py文件中的validate\(\)（修改部分为字体加粗部分）。
-
-    ```
-        with torch.no_grad():
-            end = time.time()
-            for i, (images, target) in enumerate(val_loader):
-            ############## npu modify begin #############
-                loc = 'npu:{}'.format(args.gpu)
-                target = target.to(torch.int32)
-                images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
-            ############## npu modify end #############
-            # 原模型代码如下注释部分：
-            # if args.gpu is not None:
-            #     images = images.cuda(args.gpu, non_blocking=True)
-            # if torch.cuda.is_available():
-            #     target = target.cuda(args.gpu, non_blocking=True)
-    ```
-
-
-<h4 id="脚本执行md">脚本执行</h4>
-
-**准备数据集**<a name="section1570410549599"></a>
-
-准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet
-
-**配置环境变量**<a name="section13239217203"></a>
-
-请参考[配置环境变量](#zh-cn_topic_0000001144082004md)配置环境变量。
-
-**执行命令**<a name="section624019171308"></a>
-
-例如：
-
-单卡:
-
-```
-python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
-                                               --lr 0.1 \               # 学习率
-                                               --epochs 90 \            # 训练迭代轮数
-                                               --arch resnet50 \        # 模型架构
-                                               --world-size 1 \
-                                               --rank 0 \         
-                                               --workers 40 \           # 加载数据进程数
-                                               --momentum 0.9 \         # 动量  
-                                               --weight-decay 1e-4      # 权重衰减
-```
-
-分布式：
-
-```
-python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
-                                               --seed 49  \                      # 随机种子
-                                               --workers 160 \                   # 加载数据进程数
-                                               --lr 0.8 \
-                                               --print-freq 1 \
-                                               --arch resnet50 \                 # 模型架构
-                                               --dist-url 'tcp://127.0.0.1:50000' \                   
-                                               --dist-backend 'hccl' \
-                                               --multiprocessing-distributed \   # 使用多卡训练
-                                               --world-size 1 \
-                                               --batch-size 2048 \               # 训练批次大小
-                                               --epochs 90 \                     # 训练迭代轮数
-                                               --rank 0 \
-                                               --device-list '0,1,2,3,4,5,6,7' \
-                                               --amp                             # 使用混合精度训练
-```
-
->![](public_sys-resources/icon-note.gif) **说明：** 
->dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
+<h2 id="样例说明md">模型调优样例</h2>
 
 <h3 id="ShuffleNet模型调优示例md">ShuffleNet模型调优示例</h3>
 
