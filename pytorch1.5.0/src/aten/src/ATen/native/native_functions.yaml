@@ -8645,6 +8645,16 @@
   variants: function, method
   npu_dispatch_only:
     NPU: yolo_boxes_encode_npu
+    
+- func: npu_rotated_box_encode(Tensor self, Tensor gt_bboxes, Tensor weight) -> Tensor
+  variants: function
+  npu_dispatch_only:
+    NPU: rotated_box_encode_npu
+    
+- func: npu_rotated_box_decode(Tensor self, Tensor deltas, Tensor weight) -> Tensor
+  variants: function
+  npu_dispatch_only:
+    NPU: rotated_box_decode_npu
 
 - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor
   variants: function, method
@@ -8720,4 +8730,4 @@
   
 - func: npu_rotated_iou(Tensor self, Tensor query_boxes, bool trans=False, int mode=0, bool is_cross=True) -> Tensor
   npu_dispatch_only:
-    NPU: rotated_iou_npu 
+    NPU: rotated_iou_npu

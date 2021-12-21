@@ -35,7 +35,7 @@ Tensor& rotated_iou_npu_nocheck(
       .Input(query_boxes)
       .Output(iou)
       .Attr("trans", trans)
-      .Attr("mode_str", mode_str)
+      .Attr("mode", mode_str)
       .Attr("is_cross", is_cross)
       .Run();
   return iou;
@@ -53,21 +53,21 @@ Tensor rotated_iou_npu(
  
   Tensor boxesOk = boxes.permute({0, 2, 1});
   if (boxesOk.scalar_type() == at::kHalf){
-    Tensor boxesOk = boxesOk.npu_dtype_cast(at::kFloat).permute({0, 2, 1});
+    boxesOk = boxesOk.npu_dtype_cast(at::kFloat);
   }
-  Tensor queryBoxesOk = query_boxes.permute({0, 2, 1});
-  if (queryBoxesOk.scalar_type() == at::kHalf){
-    Tensor queryBoxes = queryBoxesOk.npu_dtype_cast(at::kFloat).permute({0, 2, 1});
+  Tensor query_boxesOk = query_boxes.permute({0, 2, 1});
+  if (query_boxesOk.scalar_type() == at::kHalf){
+    query_boxesOk = query_boxesOk.npu_dtype_cast(at::kFloat);
   }
 
   int64_t B = boxesOk.size(0);
   int64_t N = boxesOk.size(-1);
-  int64_t K = queryBoxesOk.size(-1);
-
+  int64_t K = query_boxesOk.size(-1);
+ 
   SmallVector<int64_t, SIZE> output_size({B, N, K});
   Tensor iou = OpPreparation::ApplyTensor(boxesOk, output_size);
-
-  rotated_iou_npu_nocheck(iou, boxesOk, queryBoxesOk, trans, mode, is_cross);
+ 
+  rotated_iou_npu_nocheck(iou, boxesOk, query_boxesOk, trans, mode, is_cross);
   iou = iou.npu_dtype_cast(origin_dtype);
   return iou;
 } 
