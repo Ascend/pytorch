@@ -112,6 +112,10 @@ class TestMgr():
             if os.path.exists(changed_file):
                 exist_ut_file.append(changed_file)
         self.ut_files = exist_ut_file
+ 
+        for ut in self.ut_files:
+            if ut.split('/')[-1] == 'run_tests.py':
+                self.ut_files.remove(ut)
 
         if len(self.ut_files) == 0:
             self.ut_files.append(DEFAULT_UT_FILE)

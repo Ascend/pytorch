@@ -22,7 +22,7 @@ torch.testing._internal.common_cuda.py can freely initialize CUDA context when i
 """
 import os
 import sys
-common_path = os.path.dirname("../common/")
+common_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/common/"
 if common_path not in sys.path:
     sys.path.append(common_path)
-from common_utils_new import *
+from common_utils_new import TestCase, run_tests

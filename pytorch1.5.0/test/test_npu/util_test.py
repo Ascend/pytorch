@@ -27,13 +27,13 @@ import numpy as np
 # 29 ：FORMAT_FRACTAL_NZ
 def create_common_tensor(item, minValue, maxValue):
         dtype = item[0]
-        format = item[1]
+        format_tensor = item[1]
         shape = item[2]
         input1 = np.random.uniform(minValue, maxValue, shape).astype(dtype)
         cpu_input = torch.from_numpy(input1)
         npu_input = torch.from_numpy(input1).to("npu")
-        if format != -1:
-            npu_input = npu_input.npu_format_cast(format)
+        if format_tensor != -1:
+            npu_input = npu_input.npu_format_cast(format_tensor)
         return cpu_input, npu_input
 
 
@@ -64,3 +64,15 @@ def compare_res_new(cpu_output, npu_output, testcase_name):
             return print('testcase_name={0}, npu datatype={1} shape={2} fails!'.format(
                 testcase_name, npu_output.dtype, npu_output.shape))
     print('testcase_name={0}, datatype={1} shape={2} pass!'.format(testcase_name,cpu_output.dtype, cpu_output.shape))
+
+
+def create_common_tensor_for_broadcast(item, minValue, maxValue):
+    dtype = item[0]
+    npu_format = item[1]
+    shape = item[2]
+    input1 = np.random.uniform(minValue, maxValue, shape[0]).astype(dtype)
+    cpu_input = torch.from_numpy(input1)
+    npu_input = torch.from_numpy(input1).to("npu")
+    if npu_format != -1:
+        npu_input = npu_input.npu_format_cast(npu_format)
+    return cpu_input, npu_input
