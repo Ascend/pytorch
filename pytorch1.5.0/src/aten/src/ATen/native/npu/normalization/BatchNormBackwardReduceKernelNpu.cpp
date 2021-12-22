@@ -33,11 +33,11 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
     const Tensor& weight,
     bool input_g,
     bool weight_g,
-    bool bias_g) {
+    bool bias_g,
+    bool isFullyFp16 = false) {
   Tensor sum_dy_;
   Tensor sum_dy_xmu_;
   Tensor grad_bias_;
-  auto origin_dtype = self.scalar_type();
 
   Tensor grad_out_ = grad_out.scalar_type() == at::kFloat ? grad_out : grad_out.npu_dtype_cast(at::kFloat);
   Tensor self_ = self.scalar_type() == at::kFloat ? self : self.npu_dtype_cast(at::kFloat);
@@ -74,16 +74,12 @@ std::tuple<Tensor&, Tensor&, Tensor&, Tensor&> batch_norm_backward_reduce_npu_im
   if (input_g){
     sum_dy_xmu.copy_(sum_dy_xmu_out);
     sum_dy.copy_(sum_dy_);
-    sum_dy = sum_dy.scalar_type() == origin_dtype ? sum_dy : sum_dy.npu_dtype_cast(origin_dtype);
-    sum_dy_xmu = sum_dy_xmu.scalar_type() == origin_dtype ? sum_dy_xmu : sum_dy_xmu.npu_dtype_cast(origin_dtype);
   }
   if (weight_g) {
     grad_weight.copy_(grad_weight_res);
-    grad_weight = grad_weight.scalar_type() == origin_dtype ? grad_weight : grad_weight.npu_dtype_cast(origin_dtype);
   }
   if (bias_g) {
     grad_bias.copy_(grad_bias_);
-    grad_bias = grad_bias.scalar_type() == origin_dtype ? grad_bias : grad_bias.npu_dtype_cast(origin_dtype);
   }
 
   return std::tie(sum_dy, sum_dy_xmu, grad_weight, grad_bias);
@@ -98,23 +94,36 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> batch_norm_backward_reduce_npu(
     bool input_g,
     bool weight_g,
     bool bias_g) {
+  TORCH_CHECK(
+      self.scalar_type() == grad_out.scalar_type(),
+      "Expected input's dtype equal grad_out's dtype ",
+      grad_out.scalar_type(),
+      "But found ",
+      self.scalar_type());
+  bool isFullyFp16 = false;
+  if (self.scalar_type() == mean.scalar_type() && self.scalar_type() == at::kHalf) {
+    isFullyFp16 = true;
+  }
   int64_t n_input = self.size(1);
   Tensor sum_dy_;
   Tensor sum_dy_xmu_;
   Tensor grad_weight_;
   Tensor grad_bias_;
 
-  Tensor weight_ = weight.defined() ? weight : ones_npu({n_input}, self.options().dtype(at::kFloat));
+  Tensor weight_ = weight.defined() ? weight : ones_npu({n_input}, self.options().dtype(
+      isFullyFp16 ? at::kHalf : at::kFloat));
 
   if (input_g) {
-      sum_dy_ = OpPreparation::ApplyTensor(mean);
-      sum_dy_xmu_ = OpPreparation::ApplyTensor(mean);
+      sum_dy_ = OpPreparation::ApplyTensor(mean, mean.options().dtype(isFullyFp16 ? at::kHalf : at::kFloat));
+      sum_dy_xmu_ = OpPreparation::ApplyTensor(mean, mean.options().dtype(isFullyFp16 ? at::kHalf : at::kFloat));
   }
   if (weight_g) {
-      grad_weight_ = OpPreparation::ApplyTensor(weight_, {n_input});
+      grad_weight_ = OpPreparation::ApplyTensor({n_input}, weight_.options().dtype(
+          isFullyFp16 ? at::kHalf : at::kFloat), weight_);
   }
   if (bias_g) {
-      grad_bias_ = OpPreparation::ApplyTensor(weight_, {n_input});
+      grad_bias_ = OpPreparation::ApplyTensor({n_input}, weight_.options().dtype(
+          isFullyFp16 ? at::kHalf : at::kFloat), weight_);
   }
   batch_norm_backward_reduce_npu_impl(
       sum_dy_,
@@ -128,7 +137,8 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> batch_norm_backward_reduce_npu(
       weight,
       input_g,
       weight_g,
-      bias_g);
+      bias_g,
+      isFullyFp16);
   return std::tie(sum_dy_, sum_dy_xmu_, grad_weight_, grad_bias_);
 }
 

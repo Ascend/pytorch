@@ -40,28 +40,40 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
 
     def test_batch_norm_gather_stats_with_counts(self, device):
         shape_format = [
-            [[np.float32, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
+            [[np.float16, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
                     [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [4, 5, 6, 4]],
             [[np.float16, -1, [16, 3, 12, 12]], [np.float16, -1, [4, 3]], [np.float16, -1, [4, 3]], \
                     [np.float16, -1, [3]], [np.float16, -1, [3]], 1e-2, 1e-4, [4, 5, 3, 2]],
         ]
         for item in shape_format:
             assert len(item[-1]) == item[1][-1][0]
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            # NB: mixup precision ut, benchmarking with fp32 standard
+            cpu_input1, npu_input1fp16 = create_common_tensor(item[0], 1, 10)
+            # fp32 standard and mixup precision demand only
+            if item[1][0] == np.float32:
+                npu_input1fp32 = npu_input1fp16.float()
             cpu_mean, npu_mean = create_common_tensor(item[1], 0, 1)
             cpu_invstd, npu_invstd = create_common_tensor(item[2], 0, 1)
             cpu_running_mean, npu_running_mean = create_common_tensor(item[3], 0, 1)
             cpu_running_invstd, npu_running_invstd = create_common_tensor(item[4], 0, 1)
-            npu_output = self.npu_op_exec(npu_input1, npu_mean, npu_invstd, npu_running_mean, npu_running_invstd, item[-3], item[-2], item[-1])
 
-            if item[0][0] == np.float16:
+            if item[1][0] == np.float16:
                 cuda_output = self.expect_cuda_out_fp16()
             else:
                 cuda_output = self.expect_cuda_out_fp32()
-            self.assertRtolEqual(npu_output[0], cuda_output[0])
-            self.assertRtolEqual(npu_output[1], cuda_output[1])
+
+            npu_outputfp16 = self.npu_op_exec(npu_input1fp16, npu_mean, npu_invstd, npu_running_mean, npu_running_invstd, item[-3], item[-2], item[-1])
+            self.assertRtolEqual(npu_outputfp16[0], cuda_output[0])
+            self.assertRtolEqual(npu_outputfp16[1], cuda_output[1])
             self.assertRtolEqual(npu_running_mean.cpu().numpy(), cuda_output[2])
             self.assertRtolEqual(npu_running_invstd.cpu().numpy(), cuda_output[3])
+
+            if item[1][0] == np.float32:
+                npu_outputfp32 = self.npu_op_exec(npu_input1fp32, npu_mean, npu_invstd, npu_running_mean, npu_running_invstd, item[-3], item[-2], item[-1])
+                self.assertRtolEqual(npu_outputfp32[0], cuda_output[0])
+                self.assertRtolEqual(npu_outputfp32[1], cuda_output[1])
+                # note: here not valid running_mean, because of compute again will cause result error!
+
 
 instantiate_device_type_tests(TestBatchNormGatherStatsWithCounts, globals(), except_for='cpu')
 if __name__ == "__main__":

@@ -63,6 +63,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
     status = PROFILING_FINALIZE;
     return;
   }
+  c10::npu::npuSynchronizeDevice();
   ret = c10::npu::acl::AclProfilingStart(profCfg);
   if(ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)){
     NPU_LOGE("npu profiling AclProfStart fail, error code: %d", ret);

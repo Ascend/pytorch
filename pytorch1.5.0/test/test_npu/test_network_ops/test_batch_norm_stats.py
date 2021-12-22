@@ -36,21 +36,28 @@ class TestBatchNormStats(TestCase):
         out_mean = npu_mean.cpu().numpy()
         out_invstd = npu_invstd.cpu().numpy()
         return out_mean, out_invstd
-        
+
     def test_batch_norm_stats(self, device):
         shape_format = [
-            [[np.float32, -1, [2, 3, 12, 12]], 1e-5],
+            [[np.float16, -1, [2, 3, 12, 12]], 1e-5],
         ]
         for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 10)
+            # NB: mixup precision ut, benchmarking with fp32 standard
+            cpu_input1, npu_inputfp16 = create_common_tensor(item[0], 1, 10)
+            # fp32 standard
+            npu_input1fp32 = npu_inputfp16.float()
             if torch.cuda.is_available():
                 cpu_output = self.cuda_op_exec(cpu_input1.cuda(), item[-1])
             else:
                 cpu_output = self.cuda_expect_result()
-            npu_output = self.npu_op_exec(npu_input1, item[-1])
-            self.assertRtolEqual(cpu_output[0], npu_output[0])
-            self.assertRtolEqual(cpu_output[1], npu_output[1], 1e-2)
+            npu_outputfp16 = self.npu_op_exec(npu_inputfp16, item[-1])
+            npu_outputfp32 = self.npu_op_exec(npu_inputfp16, item[-1])
 
+            self.assertRtolEqual(cpu_output[0], npu_outputfp16[0])
+            self.assertRtolEqual(cpu_output[1], npu_outputfp16[1], 1e-2)
+
+            self.assertRtolEqual(cpu_output[0], npu_outputfp32[0])
+            self.assertRtolEqual(cpu_output[1], npu_outputfp32[1], 1e-2)
 
 
 instantiate_device_type_tests(TestBatchNormStats, globals(), except_for='cpu')

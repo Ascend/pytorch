@@ -33,12 +33,15 @@ std::tuple<Tensor&, Tensor&> batch_norm_stats_out_npu_nocheck(
     }
     dim.emplace_back(i);
   }
-
+  Tensor selfCp = self;
+  if (self.scalar_type() != at::kFloat){
+    selfCp = self.npu_dtype_cast(at::kFloat);
+  }
   OpCommand cmd1;
-  cmd1.Name("ReduceMeanD")
-      .Input(self)
+  cmd1.Name("ReduceMean")
+      .Input(selfCp)
+      .Input(dim, at::kInt)
       .Output(mean)
-      .Attr("axes", dim)
       .Attr("keep_dims", (bool) false)
       .Run();
 
@@ -52,7 +55,7 @@ std::tuple<Tensor&, Tensor&> batch_norm_stats_out_npu_nocheck(
   meanCopy = meanCopy.expand(self.sizes());
   OpCommand cmd2;
   cmd2.Name("ReduceStdWithMean")
-      .Input(self)
+      .Input(selfCp)
       .Input(meanCopy)
       .Output(invstd)
       .Attr("dim", dim)
@@ -73,8 +76,8 @@ std::tuple<Tensor, Tensor> batch_norm_stats_npu(
       "Expected 2D+ Tensor, but got tensor with ",
       self.ndimension(),
       " Dimension");
-  Tensor mean = OpPreparation::ApplyTensor(self, {self.size(1)});
-  Tensor invstd = OpPreparation::ApplyTensor(self, {self.size(1)});
+  Tensor mean = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
+  Tensor invstd = OpPreparation::ApplyTensor({self.size(1)}, self.options().dtype(at::kFloat), self);
   batch_norm_stats_out_npu_nocheck(mean, invstd, self, eps);
 
   return std::tie(mean, invstd);

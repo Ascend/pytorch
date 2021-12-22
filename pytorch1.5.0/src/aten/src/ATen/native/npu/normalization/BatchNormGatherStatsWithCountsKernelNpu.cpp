@@ -107,8 +107,14 @@ std::tuple<Tensor, Tensor> batch_norm_gather_stats_with_counts_npu(
     double momentum,
     double eps,
     IntArrayRef counts) {
-  Tensor mean_all = OpPreparation::ApplyTensor(self, {1, self.size(1)});
-  Tensor invstd_all = OpPreparation::ApplyTensor(self, {1, self.size(1)});
+  bool isFullyFp16 = false;
+  if (self.scalar_type() == mean.scalar_type() && self.scalar_type() == at::kHalf) {
+    isFullyFp16 = true;
+  }
+  Tensor mean_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(
+      isFullyFp16 ? at::kHalf : at::kFloat), self);
+  Tensor invstd_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(
+      isFullyFp16 ? at::kHalf : at::kFloat), self);
   batch_norm_gather_stats_with_counts_npu_impl(mean_all, invstd_all, self,
       mean, invstd, running_mean, running_var,
       momentum, eps, counts);

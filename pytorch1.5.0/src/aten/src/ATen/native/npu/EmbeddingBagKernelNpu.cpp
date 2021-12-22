@@ -57,39 +57,22 @@ tuple<Tensor, Tensor, Tensor, Tensor> _embedding_bag_npu(
     bool sparse,
     const Tensor& per_sample_weights,
     bool include_last_offset) {
-  auto outputSize = _embedding_bag_npu_output_size(weight, indices, offsets);
-
-  Tensor output = OpPreparation::ApplyTensorWithFormat(outputSize, weight.options(), ACL_FORMAT_ND);
-
-  Tensor indicesCopy = indices;
-  if (!(indices.dtype() == at::kInt)) {
-    indicesCopy = indicesCopy.to(at::kInt);
+  Tensor weight_cpu = weight.to("cpu").requires_grad_();
+  Tensor indices_cpu = indices.to("cpu");
+  Tensor offsets_cpu = offsets.to("cpu");
+  Tensor per_sample_weights_cpu = per_sample_weights;
+  if (per_sample_weights_cpu.defined()) {
+    Tensor per_sample_weights_cpu = per_sample_weights_cpu.to("cpu");
   }
-
-  string modeStr = get_mode_str(mode);
-
-  OpCommand cmd;
-  cmd.Name("EmbeddingBag")
-      .Input(weight)
-      .Input(indicesCopy);
-  if (offsets.defined()) {
-    Tensor offsetsCopy = offsets;
-    if (!(offsets.dtype() == at::kInt)) {
-      offsetsCopy = offsetsCopy.to(at::kInt);
-    }
-    cmd.Input(offsetsCopy);
-  }
-  if (per_sample_weights.defined()) {
-    cmd.Input(per_sample_weights);
-  }
-  cmd.Output(output)
-      .Attr("mode", modeStr)
-      .Attr("scale_grad_by_freq", scale_grad_by_freq)
-      .Attr("sparse", sparse)
-      .Attr("include_last_offset", include_last_offset)
-      .Run();
   
-  return std::tie(output, output, output, output);
+  auto result = _embedding_bag_cpu(weight_cpu, indices_cpu, offsets_cpu, scale_grad_by_freq, mode, sparse, per_sample_weights_cpu, include_last_offset);
+  
+  Tensor output = std::get<0>(result).to(weight.device());
+  Tensor offset2bag = std::get<1>(result).to(weight.device());
+  Tensor bag_size = std::get<2>(result).to(weight.device());
+  Tensor max_indices = std::get<3>(result).to(weight.device());
+  
+  return std::tie(output, offset2bag, bag_size, max_indices);
 }
 
 } // namespace native

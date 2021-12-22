@@ -47,8 +47,8 @@ using namespace torch;
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   c10::npu::NpuSysCtrl::SysStatus status =
-  c10::npu::NpuSysCtrl::GetInstance().Initialize(); if (status !=
-  c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+  c10::npu::NpuSysCtrl::GetInstance().Initialize(); 
+  if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
     throw python_error();
   }
   auto m = THPObjectPtr(PyImport_ImportModule("torch.npu"));
@@ -439,6 +439,9 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
     throw TypeError("e2eProfiler set path or option error.");
   }
   const char *dump_path = PyUnicode_AsUTF8(value_1);
+  if (dump_path == nullptr) {
+    NPU_LOGE("e2eProfiler path can not be nullptr.");
+  }
   uint64_t npu_event = THPUtils_unpackLong(value_2);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
   pybind11::gil_scoped_release no_gil;

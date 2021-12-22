@@ -21,7 +21,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& rotated_overlaps_npu_nocheck(
-    Tensor overlaps,
+    Tensor& overlaps,
     const Tensor& self,
     const Tensor& query_boxes,
     bool trans) {
