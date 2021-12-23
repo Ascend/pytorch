@@ -21,6 +21,8 @@ Status Session::RunGraphWithStreamAsync(
     void* stream,
     const std::vector<Tensor>& inputs,
     std::vector<Tensor>& outputs) {
+
+    sessionId_ = -1;
   return ge::SUCCESS;
 }
 

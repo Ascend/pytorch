@@ -229,7 +229,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
     }
     {
       if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
-        ret = at::native::npu::AclGenGraphAndDumpForOp(        
+        ret = at::native::npu::AclGenGraphAndDumpForOp(
             (cur_paras->opType).c_str(),
             cur_paras->paras.input_num,
             cur_paras->paras.input_desc,
@@ -363,6 +363,7 @@ void* NewFunc(int caption, int& size) {
   size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(CopyParas), sizeof(EventParas));
   size = sizeof(QueueParas) + maxSize;
   void *ptr = malloc(size * caption);
+  TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
   memset(ptr, 0, size * caption);
   return ptr;
 }

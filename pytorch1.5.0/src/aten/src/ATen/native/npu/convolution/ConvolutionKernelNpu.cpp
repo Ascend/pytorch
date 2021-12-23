@@ -396,7 +396,7 @@ Tensor npu_convolution(
   if (dim == 5) {
     bool is_dilated = false;
     for (unsigned int d : dilation) {
-      is_dilated |= (d != 1);
+      is_dilated |= (d != 1U);
     }
     if (groups == 1 && !is_dilated) {
       output = at::slow_conv3d(

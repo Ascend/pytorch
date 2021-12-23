@@ -56,6 +56,8 @@ public:
   Value(NodePtr data, NodePtr node, ValueIndex index)
       : cur_node_(node), value_index_(index), data_node_(data) {}
 
+  ~Value() = default;
+
   NodePtr GetCurNode() const {
     return cur_node_;
   }
@@ -141,6 +143,8 @@ public:
     node_hash_ = hash_utils::multi_hash(node_hash_, op_type_);
   };
 
+  ~Node() {};
+
   std::string GetOpType() const {
     return op_type_;
   }
@@ -187,7 +191,7 @@ public:
     return inputs_;
   }
 
-  void AddExtInfo(NodeExtInfoType ext_info_type, any any_attr) {
+void AddExtInfo(NodeExtInfoType ext_info_type, any any_attr) {
     ext_info_.emplace_back(ext_info_type, std::move(any_attr));
   }
 

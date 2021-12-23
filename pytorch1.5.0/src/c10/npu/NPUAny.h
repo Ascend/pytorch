@@ -222,6 +222,7 @@ private:
         held(static_cast<ValueType&&>(value))
     { }
 
+    ~holder() = default;
 
     virtual const std::type_info& type() const noexcept
     {

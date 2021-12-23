@@ -52,6 +52,7 @@ public:
   GraphExecutor(GraphExecutor&&) = delete;
   GraphExecutor& operator=(const GraphExecutor&) = delete;
   GraphExecutor& operator=(GraphExecutor&&) = delete;
+  ~GraphExecutor() = default;
 
   void ConstructAndExecuteGraph();
 
