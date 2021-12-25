@@ -21,14 +21,11 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor celu_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar alpha) {
-  float alpha3 = 1.0;
   OpCommand cmd;
   cmd.Name("Celu")
         .Input(self)
         .Output(result)
-        .Attr("alpha1", alpha)
-        .Attr("alpha2", alpha)
-        .Attr("alpha3", alpha3)
+        .Attr("alpha", alpha)
         .Run();
   return result;
 }

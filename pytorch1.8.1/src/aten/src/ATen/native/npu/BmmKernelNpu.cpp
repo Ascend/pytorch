@@ -22,7 +22,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& bmm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
+Tensor& bmm_out_npu(const Tensor& self, const Tensor& mat2, Tensor& result) {
   Tensor contiguousResult = result.is_contiguous() ? result : result.contiguous();
 
   Tensor contiguousSelf = self;
@@ -78,9 +78,13 @@ Tensor bmm_npu(const Tensor& self, const Tensor& mat2) {
   }
 
   // calculate the output result of the NPU
-  bmm_out_npu(result, self, mat2);
+  bmm_out_npu(self, mat2, result);
 
   return result;
+}
+TORCH_LIBRARY_IMPL(aten, NPU, m) {
+  m.impl("bmm", TORCH_FN(bmm_npu));
+  m.impl("bmm.out", TORCH_FN(bmm_out_npu));
 }
 } // namespace native
 } // namespace at

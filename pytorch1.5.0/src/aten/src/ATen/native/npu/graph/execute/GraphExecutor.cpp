@@ -116,7 +116,7 @@ void GraphExecutor::Init() {
   std::map<ge::AscendString, ge::AscendString> config = {
       {ge::AscendString(ge::OPTION_EXEC_DEVICE_ID),
        ge::AscendString(device_id.data())},
-      {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "1"},
+      {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
       {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
       {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"}
   };

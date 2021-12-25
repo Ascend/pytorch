@@ -15,4 +15,9 @@
 # limitations under the License.
 
 
-from common.common_device_type_new import *
+import os
+import sys
+common_path = os.path.dirname(os.path.realpath(__file__)) + "/common/"
+if common_path not in sys.path:
+    sys.path.append(common_path)
+from common_device_type_new import dtypes, instantiate_device_type_tests, formats
