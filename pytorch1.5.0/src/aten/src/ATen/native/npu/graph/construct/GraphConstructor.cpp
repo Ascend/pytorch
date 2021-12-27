@@ -17,6 +17,7 @@
 #include "c10/npu/NPUCachingAllocator.h"
 #include "ATen/native/npu/graph/util/GraphUtils.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/graph/scalar/ScalarMemoryOps.h"
 
 namespace at {
 namespace native {
@@ -72,8 +73,18 @@ void GraphCommandImpl::AddInput(
     const ScalarType type,
     CompileType compile_type) {
   if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
-    auto input_tensor = CalcuOpUtil::CopyScalarToDevice(input, type);
-    AddInput(input_tensor, "", "");
+    uint32_t offset;
+    ReduceScalarValue(input, type, offset);
+    int deviceIndex = 0;
+    AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+    auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at::kNPU, deviceIndex).dtype(type));
+    GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
+    GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);
+    auto& cur_ir_value = GraphUtils::GetTensorIrValue(npu_scalar_tensor);
+    cur_ir_value.SetScalarMemOffset(offset);
+    ir_node_->AddInput(
+        input_index_++, cur_ir_value.GetCurNode(), cur_ir_value.GetValueIndex());
+    ir_node_->UpdateNodeHash(GraphUtils::GetTensorIrValueHash(npu_scalar_tensor));
   } else {
     ir_node_->AddExtInfo(
         NodeExtInfoType::INPUT_TYPE_SCALAR,
@@ -121,6 +132,45 @@ void GraphCommandImpl::AddDynamicInputRegFunc(
     DyNumAndIndex num_and_index) {
   ir_node_->AddExtInfo(
       NodeExtInfoType::DYNAMIC_INPUT_FUNC, std::make_pair(func, num_and_index));
+}
+
+void GraphCommandImpl::ReduceScalarValue(
+    const Scalar& input,
+    const ScalarType type,
+    uint32_t& host_ptr_offset) {
+  if (ScalarType::Float == type) {
+    float value = input.toFloat();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(float),
+        host_ptr_offset);
+  } else if (ScalarType::Int == type) {
+    int value = input.toInt();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(int),
+        host_ptr_offset);
+  } else if (ScalarType::Long == type) {
+    int64_t value = input.toLong();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(int64_t),
+        host_ptr_offset);
+  } else if (ScalarType::Double == type) {
+    double value = input.toDouble();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(double),
+        host_ptr_offset);
+  } else if (ScalarType::Half == type) {
+    Half value = input.toHalf();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(Half),
+        host_ptr_offset);
+  } else {
+    AT_ERROR("scalar not support '", at::toString(type), "' type currently.");
+  }
 }
 
 void GraphCommandImpl::AddZeroDimInput(

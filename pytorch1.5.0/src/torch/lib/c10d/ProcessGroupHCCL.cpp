@@ -100,6 +100,9 @@ void syncStreams(
     const std::vector<at::Device>& devices,
     std::vector<at::npu::NPUEvent>& hcclEvents,
     std::vector<c10::npu::NPUStream>& hcclStreams) {
+  if (c10::npu::NpuRunMode::CurRunMode() != c10::npu::ModeKind::SINGLE_OP_MODE) {
+    return;
+  }
   for (size_t i = 0; i < devices.size(); ++i) {
     c10::npu::NPUStream& hcclStream = hcclStreams[i];
     at::npu::NPUEvent& hcclEvent = hcclEvents[i];
@@ -214,7 +217,9 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
 
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait() {
-  synchronize();
+  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+    synchronize();
+  }
   // Always return true, because abort API is not implemented.
   return true;
 }
@@ -466,20 +471,22 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::collective(
   c10::npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams_[key]);
 
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    npuGuard.set_index(devices[i].index());
-    c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
+  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      npuGuard.set_index(devices[i].index());
+      c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
 
-    // Both `inputs' and `outputs' are created on a worker stream and used in
-    // different hcclStreams.  Hence, both must record the hcclStream to
-    // prevent being freed before the collective finishes.
-    //
-    // We only record `inputs' here, and leave recording `outputs' to `fn' for
-    // operations where `inputs' and `outputs' are not the same.
-    //
-    // See [Sync Streams].
-    c10::npu::NPUCachingAllocator::recordStream(
-        inputs[i].storage().data_ptr(), hcclStream);
+      // Both `inputs' and `outputs' are created on a worker stream and used in
+      // different hcclStreams.  Hence, both must record the hcclStream to
+      // prevent being freed before the collective finishes.
+      //
+      // We only record `inputs' here, and leave recording `outputs' to `fn' for
+      // operations where `inputs' and `outputs' are not the same.
+      //
+      // See [Sync Streams].
+      c10::npu::NPUCachingAllocator::recordStream(
+          inputs[i].storage().data_ptr(), hcclStream);
+    }
   }
   {
     for (size_t i = 0; i < inputs.size(); ++i) {
@@ -494,15 +501,15 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::collective(
     }
   }
   post(hcclStreams_[key]);
-
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
-    work->npuEvents_[i].record(hcclStream);
-    work->hcclComms_[i] = hcclComms[i];
-    work->blockingWait_ = blockingWait_;
-    work->opTimeout_ = opTimeout_;
+  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
+      work->npuEvents_[i].record(hcclStream);
+      work->hcclComms_[i] = hcclComms[i];
+      work->blockingWait_ = blockingWait_;
+      work->opTimeout_ = opTimeout_;
+    }
   }
-
   return work;
 }
 
@@ -543,6 +550,36 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             stream.stream());
       });
 }
+
+std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
+    std::vector<at::Tensor>& inputs,
+    std::vector<at::Tensor>& outputs,
+    int64_t fusion_id,
+    const AllreduceOptions& opts) {
+    check_npu_tensors(inputs);
+    check_npu_tensors(outputs);
+    return collective(
+        inputs,
+        outputs,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10::npu::NPUStream& stream) {
+          aclrtSetExceptionInfoCallback(exceptionCallback);
+          RECORD_HOST_FUNCTION("HcomAllReduce", std::vector<c10::IValue>({input}));
+          at::npu_hcom_allreduce(
+              input,
+              "sum",
+              "hccl_world_group",
+              2,
+              fusion_id,
+              1,
+              0,
+              output);
+          return HCCL_SUCCESS;
+        });
+}
+
 int g_broadcastID = 100000;
 std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::broadcast(
     std::vector<at::Tensor>& tensors,

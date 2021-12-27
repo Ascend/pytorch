@@ -21,7 +21,7 @@ import torch
 common_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/common/"
 if common_path not in sys.path:
     sys.path.append(common_path)
-from util_test_new import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from util_test_new import create_common_tensor, test_2args_broadcast, create_dtype_tensor
 
 def create_common_tensor_for_broadcast(item, minValue, maxValue):
     dtype = item[0]

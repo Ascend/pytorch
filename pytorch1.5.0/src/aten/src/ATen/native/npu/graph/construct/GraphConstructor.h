@@ -123,6 +123,11 @@ public:
       DynamicInputRegFunc func,
       DyNumAndIndex num_and_index);
 
+  void ReduceScalarValue(
+      const Scalar& input,
+      const ScalarType type,
+      uint32_t& host_ptr_offset);
+
   template <typename T>
   void AddAttr(const string& attr_name, T value) {
     OperatorAttrMaker::SetAttr(attr_name, value, ir_node_);

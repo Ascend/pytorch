@@ -84,6 +84,14 @@ public:
 
   hash_t GetValueHash() const;
 
+  void SetScalarMemOffset(uint32_t addr_offset) {
+    scalar_mem_offset_ = addr_offset;
+  }
+
+  c10::optional<uint32_t> GetScalarMemOffset() const {
+    return scalar_mem_offset_;
+  }
+
   void UpdateFromOther(const Value& other) {
     if (other.data_node_.has_value()) {
       data_node_ = other.data_node_;
@@ -92,6 +100,7 @@ public:
     value_index_ = other.value_index_;
     real_type_ = other.real_type_;
     value_hash_ = other.value_hash_;
+    scalar_mem_offset_ = other.scalar_mem_offset_;
   }
 
   void ResetValue() {
@@ -100,6 +109,7 @@ public:
     value_hash_ = c10::nullopt;
     data_node_ = c10::nullopt;
     real_type_ = c10::nullopt;
+    scalar_mem_offset_ = c10::nullopt;
   }
 
 private:
@@ -108,6 +118,7 @@ private:
   c10::optional<NodePtr> data_node_ = c10::nullopt;
   c10::optional<hash_t> value_hash_ = c10::nullopt;
   c10::optional<std::string> real_type_ = c10::nullopt;
+  c10::optional<uint32_t> scalar_mem_offset_ = c10::nullopt;
 };
 
 struct NodeInput {

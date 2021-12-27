@@ -184,6 +184,12 @@ class ProcessGroupHCCL : public ProcessGroup {
       std::vector<at::Tensor>& tensors,
       const AllreduceOptions& opts = AllreduceOptions()) override;
 
+  std::shared_ptr<ProcessGroup::Work> allreduce_out(
+      std::vector<at::Tensor>& inputs,
+      std::vector<at::Tensor>& outputs,
+      int64_t fusion_id,
+      const AllreduceOptions& opts = AllreduceOptions()) override;
+
   std::shared_ptr<ProcessGroup::Work> allreduce_coalesced(
       std::vector<at::Tensor>& tensors,
       const AllreduceCoalescedOptions& opts =

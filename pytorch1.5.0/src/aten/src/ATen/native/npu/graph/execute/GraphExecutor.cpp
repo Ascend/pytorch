@@ -23,7 +23,7 @@
 #include <c10/npu/NPUGraphContextManager.h>
 #include <c10/npu/register/OptionRegister.h>
 #include <torch/csrc/autograd/record_function.h>
-
+#include <ATen/native/npu/graph/scalar/ScalarMemoryOps.h>
 #include <third_party/acl/inc/op_proto/array_ops.h>
 
 #include <stack>
@@ -72,6 +72,8 @@ void GraphExecutor::ConstructAndExecuteGraph() {
     return;
   }
   TORCH_CHECK(session_ != nullptr, "Undefined session before run graph.");
+  // before construct graph and tensor, do H2D copy for scalar.
+  ScalarMemContext::GetContext().ExecuteH2D(c10::npu::getCurrentNPUStream());
   CombinedInfo inputs = GetInputCombinedInfo();
   CombinedInfo outputs = GetOutputCombinedInfo();
   if (outputs.nodes.empty()) {
@@ -100,6 +102,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   }
 
   RunGraph(cur_graph_id, inputs, outputs);
+  ScalarMemContext::GetContext().Reset();  
   ResetGraphOutputs();
   if (!cached_graph_id.has_value()) {
     // Data of new graph maybe inputs of old graphs,
@@ -137,6 +140,21 @@ void GraphExecutor::Init() {
       config.emplace(iter.second.c_str(), val.value().c_str());
     }
   }
+
+  static std::vector<std::string> HCOM_OPTIONS = {
+      "ge.exec.isUseHcom",
+      "ge.exec.rankTableFile",
+      "ge.exec.deployMode",
+      "ge.exec.rankId"
+  };
+
+  for (const auto& hcom_config : HCOM_OPTIONS) {
+    auto val = c10::npu::GetOption(hcom_config);
+    if (val.has_value()) {
+      config.emplace(hcom_config.c_str(), val.value().c_str());
+    }
+  }
+
   auto ret = ge::GEInitialize(config);
   if (ret != 0) {
     AT_ERROR("GE init failed!");
@@ -266,7 +284,11 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
   for (auto& output_storage : output_storages) {
     if (GraphUtils::IsTensorWithoutNode(output_storage) ||
         GraphUtils::IsDataTensor(output_storage)) {
-      if (output_storage->data() == nullptr) {
+      NpuGraphDesc graph_desc = output_storage->get_npu_graph_desc();
+      // the tensor of scalar_merge_copy will enter here because is has't node,
+      // only the length of the out queue is increased, nothing else.
+      if ((output_storage->data() == nullptr) &&
+          (!graph_desc.graph_value.GetScalarMemOffset().has_value())) {
         size_t nbytes = prod_intlist(output_storage->get_npu_desc().storage_sizes_) *
                         output_storage->itemsize();
         DataPtr data_ptr = c10::npu::NPUCachingAllocator::get()->allocate(nbytes);
@@ -299,6 +321,10 @@ ge::Tensor GraphExecutor::PrepareInputTensor(
   NpuGraphDesc& graph_desc = storage->get_mutable_npu_graph_desc();
   auto device_ptr = storage->data();
   size_t nbytes = storage->capacity();
+  auto addr_offset = graph_desc.graph_value.GetScalarMemOffset();
+  if (addr_offset.has_value()) {
+    device_ptr = ScalarMemContext::GetContext().GetDeviceMemBuffer() + addr_offset.value();
+  }
   return MakeGeTensor(desc, device_ptr, nbytes);
 }
 

@@ -8731,3 +8731,7 @@
 - func: npu_rotated_iou(Tensor self, Tensor query_boxes, bool trans=False, int mode=0, bool is_cross=True) -> Tensor
   npu_dispatch_only:
     NPU: rotated_iou_npu
+
+- func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, Tensor(a!) out) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: hcom_allreduce_npu
