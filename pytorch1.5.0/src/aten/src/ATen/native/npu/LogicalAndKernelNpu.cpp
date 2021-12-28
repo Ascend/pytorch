@@ -21,46 +21,44 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> logical_and_npu_input(
+Tensor& logical_and_out_npu_nocheck(
+    Tensor& result,
     const Tensor& self,
-    const Tensor& other) {
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
-  bool isOtherWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(other);
-  auto inputs = CalcuOpUtil::create_npu_input_tensor_desc({self, other});
+    const Scalar other) {
+    auto selfCopy = (self.dtype() == at::kBool) ?
+        self : self.npu_dtype_cast(at::kBool);
+    OpCommand cmd;
+    cmd.Name("LogicalAnd")
+        .Input(selfCopy)
+        .Input(other, selfCopy.scalar_type())
+        .Output(result)
+        .Run();
 
-  // 't + 2' to work with any type of tensor, not just LongTensor (which is what
-  // integersin Python represent).
-  if (isSelfWrapped && (!isOtherWrapped)) {
-    inputs[0].scalarType = other.scalar_type();
-  } else if (isOtherWrapped && (!isSelfWrapped)) {
-    inputs[1].scalarType = self.scalar_type();
-  }
-
-  return inputs;
-}
-
-SmallVector<NPUTensorDesc, N> logical_and_npu_output(const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> logical_and_npu_attr(const Tensor& self) {
-  SmallVector<NPUAttrDesc, N> attrs = {};
-  return attrs;
+  return result;
 }
 
 Tensor& logical_and_out_npu_nocheck(
     Tensor& result,
     const Tensor& self,
     const Tensor& other) {
+    if (self.dim() == 0) {
+      logical_and_out_npu_nocheck(result, other, self.item());
+    } else if (other.dim() == 0) {
+      logical_and_out_npu_nocheck(result, self, other.item());
+    } else {
+      auto selfCopy = (self.dtype() == at::kBool) ?
+        self : self.npu_dtype_cast(at::kBool);
 
-  // constructs the input and output NPUTensorDesc
-  auto inputs = logical_and_npu_input(self, other);
-  auto outputs = logical_and_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = logical_and_npu_attr(self);
+      auto otherCopy = (other.dtype() == at::kBool) ?
+        other : other.npu_dtype_cast(at::kBool);
 
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("LogicalAnd", inputs, outputs, attrs);
+      OpCommand cmd;
+      cmd.Name("LogicalAnd")
+        .Input(selfCopy)
+        .Input(otherCopy)
+        .Output(result)
+        .Run();
+    }    
 
   return result;
 }
@@ -73,8 +71,18 @@ Tensor& logical_and_out_npu(Tensor& result, const Tensor& self, const Tensor& ot
       CalcuOpUtil::get_tensor_npu_format(self),
       result.scalar_type(),
       outputSize);
+  
+  if (NpuUtils::check_match(&result) && (result.dtype() == at::kBool)) {
+    logical_and_out_npu_nocheck(result, self, other);
+  } else {
+    auto resultCopy = OpPreparation::ApplyTensorWithSizes(
+        outputSize, self.options().dtype(at::kBool));
 
-  logical_and_out_npu_nocheck(result, self, other);
+    logical_and_out_npu_nocheck(resultCopy, self, other);
+
+    resultCopy = resultCopy.npu_dtype_cast(self.scalar_type());
+    NpuUtils::format_fresh_view(result, resultCopy);
+  }
 
   return result;
 }
@@ -82,27 +90,37 @@ Tensor& logical_and_out_npu(Tensor& result, const Tensor& self, const Tensor& ot
 Tensor logical_and_npu(const Tensor& self, const Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  Tensor result = at::empty_with_format(
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options(), 
+      self.options().dtype(at::kBool), 
       CalcuOpUtil::get_tensor_npu_format(self));
 
   logical_and_out_npu_nocheck(result, self, other);
 
-  return result.toType(kBool);
+  return result;
 }
 
 Tensor& logical_and_npu_(Tensor& self, const Tensor& other) {
+  TORCH_CHECK(
+      self.dtype() == other.dtype(),
+      "Expected object of scalar type ", self.dtype(),
+      " but got scalar type ", other.dtype(), " for argument 'other'");
+
   SmallVector<Tensor, N> inputs = {self, other};
   SmallVector<Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-  if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = logical_and_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
+  if (NpuUtils::check_match(&self) && (self.dtype() == at::kBool)) {
     logical_and_out_npu_nocheck(self, self, other);
+  } else {
+    auto outputSize = broadcast_ops_npu_output_size(self, other);
+    auto result = OpPreparation::ApplyTensorWithSizes(
+        outputSize, self.options().dtype(at::kBool));
+
+    logical_and_out_npu_nocheck(result, self, other);
+
+    result = result.npu_dtype_cast(self.scalar_type());
+    NpuUtils::format_fresh_view(self, result);
   }
 
   return self;

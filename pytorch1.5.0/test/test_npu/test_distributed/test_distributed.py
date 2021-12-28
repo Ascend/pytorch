@@ -1,10 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import copy
-import errno
 import fcntl
-import multiprocessing
 import os
-import six
 import sys
 import time
 import tempfile
@@ -17,14 +14,12 @@ from collections import namedtuple
 from multiprocessing import Manager
 
 import torch
-import torch.cuda
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
-from torch.testing._internal.common_distributed import simple_sparse_reduce_tests, skip_if_rocm
 
 try:
     import torchvision
@@ -43,7 +38,7 @@ CUSTOMIZED_TIMEOUT = {"test_DistributedDataParallel": 500}
 
 TestSkip = namedtuple('TestSkip', 'exit_code, message')
 TEST_SKIPS = {
-    "multi-gpu": TestSkip(75, "Need at least 2 ASCEND devices"),
+    "multi-npu": TestSkip(75, "Need at least 2 ASCEND devices"),
     "hccl": TestSkip(76, "c10d not compiled with HCCL support"),
     "known_issues": TestSkip(77, "Test skipped due to known issues"),
 }
@@ -91,11 +86,9 @@ class BatchNormNet(nn.Module):
         x = self.fc2(x)
         return F.softmax(x, dim=1)
 
-
 DDP_NET = Net()
 BN_NET = BatchNormNet()
 ONLY_SBN_NET = nn.SyncBatchNorm(2, momentum=0.99)
-
 
 def get_timeout(test_id):
     test_name = test_id.split(".")[-1]
@@ -119,12 +112,6 @@ def _lock():
         finally:
             fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
             lf.close()
-
-
-def _build_tensor(size, value=None):
-    if value is None:
-        value = size
-    return torch.FloatTensor(size, size, size).fill_(value)
 
 class Barrier(object):
     barrier_id = 0
@@ -391,22 +378,22 @@ class _DistTestBase(object):
         return (group, group_id, rank)
 
     # HELPER FOR MULTINPU TESTS
-    def _init_multigpu_helper(self):
-        """Multigpu tests are designed to simulate the multi nodes with multi
-        GPUs on each node. Hccl backend requires one NPU device in each process.
+    def _init_multinpu_helper(self):
+        """Multinpu tests are designed to simulate the multi nodes with multi
+        NPUs on each node. Hccl backend requires one NPU device in each process.
         """
-        nGPUs = torch.npu.device_count()
+        nNPUs = torch.npu.device_count()
         world_size = dist.get_world_size()
-        visible_devices = range(min(nGPUs, world_size))
+        visible_devices = range(min(nNPUs, world_size))
 
-        nGPUs_per_process = 1
-        rank_to_GPU = {
+        nNPUs_per_process = 1
+        rank_to_NPU = {
             i: list(
-                visible_devices[i * nGPUs_per_process: (i + 1) * nGPUs_per_process]
+                visible_devices[i * nNPUs_per_process: (i + 1) * nNPUs_per_process]
             )
             for i in range(world_size)
         }
-        return rank_to_GPU
+        return rank_to_NPU
 
     def _model_step(self, model):
         for param in model.parameters():
@@ -430,25 +417,26 @@ class _DistTestBase(object):
         l = loss(output, target) * scale_factor
         l.backward()
 
-    def _assert_equal_param(self, param_gpu, param_DDP):
-        self.assertEqual(len(param_gpu), len(param_DDP))
-        for p_gpu, p_DDP in zip(param_gpu, param_DDP):
-            self.assertEqual(p_gpu, p_DDP)
+    def _assert_equal_param(self, param_npu, param_DDP):
+        self.assertEqual(len(param_npu), len(param_DDP))
+        for p_npu, p_DDP in zip(param_npu, param_DDP):
+            self.assertEqual(p_npu, p_DDP)
 
     def _test_DDP_5iter(
-            self, model_base, model_DDP, input, target, loss, local_bs, rank, batch_size, test_save, offset=None, world_size=0
+            self, model_base, model_DDP, input_data, target, loss, local_bs, rank, batch_size, test_save, \
+            offset=None, world_size=0
     ):
         for idx in range(5):
-            # single cpu/gpu training
-            self._test_DDP_helper(model_base, input, target, loss)
+            # single cpu/npu training
+            self._test_DDP_helper(model_base, input_data, target, loss)
 
             if offset is None:
                 offset = rank * local_bs
 
-            # DDP training, DDP scatters subsets of input_cpu to nodes/GPUs
+            # DDP training, DDP scatters subsets of input_cpu to nodes/NPUs
             self._test_DDP_helper(
                 model_DDP,
-                input[offset: offset + local_bs],
+                input_data[offset: offset + local_bs],
                 target[offset: offset + local_bs],
                 loss,
                 world_size * local_bs / batch_size if world_size != 0 else 1,
@@ -462,7 +450,7 @@ class _DistTestBase(object):
             )
 
             # Shuffle the input so that DDP input is different
-            input = input[torch.randperm(batch_size)]
+            input_data = input_data[torch.randperm(batch_size)]
 
             # save the model in the middle and reload
             if test_save and idx == 2 and INIT_METHOD.startswith("file://"):
@@ -478,23 +466,23 @@ class _DistTestBase(object):
             self.assertEqual(model_DDP.state_dict()[k],
                              saved_model.state_dict()[k])
 
-    def _test_DistributedDataParallel(self, gpu_subset, rank, output_device=None):
+    def _test_DistributedDataParallel(self, npu_subset, rank, output_device=None):
         # Run a simple end to end DDP model, use result of single node model
         # as baseline
 
         # cpu training setup
         model = DDP_NET
 
-        # single gpu training setup
-        model_gpu = copy.deepcopy(model)
-        model_gpu.npu(gpu_subset[0])
+        # single npu training setup
+        model_npu = copy.deepcopy(model)
+        model_npu.npu(npu_subset[0])
 
         # DDP training setup
         model_DDP = copy.deepcopy(model)
-        model_DDP.npu(gpu_subset[0])
+        model_DDP.npu(npu_subset[0])
 
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=gpu_subset
+            model_DDP, device_ids=npu_subset
         )
 
         # test serializable/unserializable
@@ -503,15 +491,15 @@ class _DistTestBase(object):
             model_DDP = torch.load(tmp.name)
 
         # dummy data initialization
-        local_bs = len(gpu_subset)
+        local_bs = len(npu_subset)
         global_bs, input_cpu, target, loss = self._prepare_dummy_data(local_bs)
 
         # check two model parameters over 5 iterations
         self._test_DDP_5iter(
-            model_gpu,
+            model_npu,
             model_DDP,
-            input_cpu.npu(gpu_subset[0]),
-            target.npu(gpu_subset[0]),
+            input_cpu.npu(npu_subset[0]),
+            target.npu(npu_subset[0]),
             loss,
             local_bs,
             rank,
@@ -526,26 +514,26 @@ class _DistTestBase(object):
 
     def test_DistributedDataParallel(self):
         group, group_id, rank = self._init_global_test()
-        rank_to_GPU = self._init_multigpu_helper()
-        gpus = list(rank_to_GPU[rank])
-        self._test_DistributedDataParallel(gpu_subset=gpus, rank=rank)
+        rank_to_NPU = self._init_multinpu_helper()
+        npus = list(rank_to_NPU[rank])
+        self._test_DistributedDataParallel(npu_subset=npus, rank=rank)
 
-    def _test_DistributedDataParallel_SyncBatchNorm(self, gpu_subset, rank, local_bs, global_bs, offset, output_device=None):
+    def _test_DistributedDataParallel_SyncBatchNorm(self, npu_subset, rank, local_bs, global_bs, offset, output_device=None):
         # Run a simple end to end DDP model, use result of single node model
         # as baseline
 
         # cpu training setup
         model = BN_NET
 
-        # single gpu training setup
-        model_gpu = copy.deepcopy(model)
-        model_gpu.npu(gpu_subset[0])
+        # single npu training setup
+        model_npu = copy.deepcopy(model)
+        model_npu.npu(npu_subset[0])
 
         # DDP training setup
         model_DDP = nn.SyncBatchNorm.convert_sync_batchnorm(copy.deepcopy(model))
-        model_DDP.npu(gpu_subset[0])
+        model_DDP.npu(npu_subset[0])
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=gpu_subset
+            model_DDP, device_ids=npu_subset
         )
 
         # test serializable/unserializable
@@ -560,10 +548,10 @@ class _DistTestBase(object):
 
         # check two model parameters over 5 iterations
         self._test_DDP_5iter(
-            model_gpu,
+            model_npu,
             model_DDP,
-            input_cpu.npu(gpu_subset[0]),
-            target.npu(gpu_subset[0]),
+            input_cpu.npu(npu_subset[0]),
+            target.npu(npu_subset[0]),
             loss,
             local_bs,
             rank,
@@ -576,10 +564,9 @@ class _DistTestBase(object):
 
     def test_DistributedDataParallel_SyncBatchNorm(self):
         group, group_id, rank = self._init_global_test()
-        rank_to_GPU = self._init_multigpu_helper()
         # DDP does not support replicating BN layers within a process, hence
         # testing with one module replica per process
-        gpus = [rank]
+        npus = [rank]
 
         num_processes = int(WORLD_SIZE)
         local_bs = 2
@@ -587,7 +574,7 @@ class _DistTestBase(object):
         global_bs = int(num_processes * 2)
 
         self._test_DistributedDataParallel_SyncBatchNorm(
-            gpu_subset=gpus,
+            npu_subset=npus,
             rank=rank,
             local_bs=local_bs,
             global_bs=global_bs,
@@ -595,51 +582,45 @@ class _DistTestBase(object):
 
     def test_DistributedDataParallel_SyncBatchNorm_2D_Input(self):
         group, group_id, rank = self._init_global_test()
-        rank_to_GPU = self._init_multigpu_helper()
         # DDP does not support replicating BN layers within a process, hence
         # testing with one module replica per process
-        gpus = [rank]
+        npus = [rank]
 
         model = nn.BatchNorm1d(2)
 
-        # single gpu training setup
-        model_gpu = copy.deepcopy(model)
-        model_gpu.npu(gpus[0])
+        # single npu training setup
+        model_npu = copy.deepcopy(model)
+        model_npu.npu(npus[0])
 
         # DDP training setup
         model_DDP = nn.SyncBatchNorm.convert_sync_batchnorm(copy.deepcopy(model))
-        model_DDP.npu(gpus[0])
+        model_DDP.npu(npus[0])
         model_DDP = nn.parallel.DistributedDataParallel(
-            model_DDP, device_ids=gpus
+            model_DDP, device_ids=npus
         )
 
-        local_bs = len(gpus) * 2
+        local_bs = len(npus) * 2
         global_bs = int(WORLD_SIZE) * local_bs
         input_cpu = torch.randn(global_bs, 2)
         target = torch.randn(global_bs, 2)
         loss = nn.MSELoss()
 
-        # disabling cudnn.
-        # SyncBatchNorm goes through native_batch_norm kernel, this avoids the
-        # numerical issue created by the divergent code path.
-        with torch.backends.cudnn.flags(False):
-            # check two model parameters over 5 iterations
-            self._test_DDP_5iter(
-                model_gpu,
-                model_DDP,
-                input_cpu.npu(gpus[0]),
-                target.npu(gpus[0]),
-                loss,
-                local_bs,
-                rank,
-                global_bs,
-                True
-            )
-            self._barrier()
+        # check two model parameters over 5 iterations
+        self._test_DDP_5iter(
+            model_npu,
+            model_DDP,
+            input_cpu.npu(npus[0]),
+            target.npu(npus[0]),
+            loss,
+            local_bs,
+            rank,
+            global_bs,
+            True
+        )
+        self._barrier()
 
     def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_Running_Value(self):
         group, group_id, rank = self._init_global_test()
-        rank_to_GPU = self._init_multigpu_helper()
         model = nn.parallel.DistributedDataParallel(ONLY_SBN_NET.npu(rank), device_ids=[rank])
 
         input_var = []
@@ -665,11 +646,8 @@ class _DistTestBase(object):
 
     def test_DistributedDataParallel_SyncBatchNorm_Diff_Input_Sizes_gradient(self):
         group, group_id, rank = self._init_global_test()
-        # only do single GPU per process
-        gpus = [rank]
-
-        # cpu training setup
-        model = BN_NET
+        # only do single NPU per process
+        npus = [rank]
 
         num_processes = int(WORLD_SIZE)
         local_bs = rank + 2
@@ -677,7 +655,7 @@ class _DistTestBase(object):
         global_bs = int((num_processes + 3) * num_processes / 2)
 
         self._test_DistributedDataParallel_SyncBatchNorm(
-            gpu_subset=gpus,
+            npu_subset=npus,
             rank=rank,
             local_bs=local_bs,
             global_bs=global_bs,
@@ -744,8 +722,8 @@ class TestDistBackend(MultiProcessTestCase, _DistTestBase):
 
         torch.npu.set_device(rank)
 
-        if torch.cuda.is_available() and torch.cuda.device_count() < int(self.world_size):
-            sys.exit(TEST_SKIPS['multi-gpu'].exit_code)
+        if torch.npu.is_available() and torch.npu.device_count() < int(self.world_size):
+            sys.exit(TEST_SKIPS['multi-npu'].exit_code)
         try:
             timeout = timedelta(seconds=60)
             dist.init_process_group(
