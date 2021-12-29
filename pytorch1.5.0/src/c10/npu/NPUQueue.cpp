@@ -517,7 +517,7 @@ void Repository::InitRepo(DeviceIndex device_id) {
   releaseQueue.InitReleaseQueue();
 }
 
-static constexpr size_t kReleaseQueueCapacity = 1000;
+static constexpr size_t kReleaseQueueCapacity = 8192;
 bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
 {
   if (IsFullQueue()) {
