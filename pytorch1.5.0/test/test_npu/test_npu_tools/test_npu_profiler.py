@@ -170,12 +170,12 @@ class TestE2EProfiler(TestCase):
             self._run_small_model()
 
     def test_with_ops(self):
-        for events in TestCannProfiler.enevtTypeResults:
+        for events in TestE2EProfiler.enevtTypeResults:
             for i in range(5):
                 self._test_e2e_ops(**events, aiCoreMetricsType=i)
 
     def test_with_small_model(self):
-        for events in TestCannProfiler.enevtTypeResults:
+        for events in TestE2EProfiler.enevtTypeResults:
             for i in range(5):
                 self._test_e2e_model(**events, aiCoreMetricsType=i)
 
