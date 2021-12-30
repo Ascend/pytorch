@@ -104,9 +104,6 @@ SmallVector<int64_t, SIZE> reduce_ops_npu_output_size(
       }
     }
   }
-  if (shape.empty()) {
-    shape.push_back(1);
-  }
   return shape;
 }
 
