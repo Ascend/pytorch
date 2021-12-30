@@ -52,7 +52,6 @@ Tensor& norm_out_npu_nocheck(
   auto outputSize = reduce_ops_npu_output_size(fp32Self, dim, keepdim);
   Tensor resultTemp = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
   Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
-
   auto pvalue = calculate_p(p);
   OpCommand cmd1;
   cmd1.Name("LpNormReduce")
