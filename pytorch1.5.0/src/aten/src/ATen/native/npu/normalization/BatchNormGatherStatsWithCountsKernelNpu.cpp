@@ -33,9 +33,11 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
     IntArrayRef counts) {
   auto options = self.options();
   auto dimC = self.size(1);
-
-  Tensor running_mean_ = running_mean.defined() ? running_mean.unsqueeze(0) : zeros_npu({1, dimC}, options);
-  Tensor running_var_ = running_var.defined() ? running_var.unsqueeze(0) : ones_npu({1, dimC}, options);
+  // NB: the running_mean calculator op not suppport 5HD currently, the adapter special the format to avoid error temporary!
+  Tensor running_mean_ = (running_mean.defined() ? running_mean.unsqueeze(0) :
+      zeros_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND);
+  Tensor running_var_ = (running_var.defined() ? running_var.unsqueeze(0) :
+      ones_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND);
   IntArrayRef axes({0});
   Tensor countsTensor;
   // create countsTensor
