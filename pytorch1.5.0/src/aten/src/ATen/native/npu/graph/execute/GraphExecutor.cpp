@@ -136,7 +136,7 @@ void GraphExecutor::Init() {
 
   for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
     auto val = c10::npu::GetOption(iter.first);
-    if (val.has_value()) {
+    if (val.has_value() && (val.value().length() > 0)) {
       config.emplace(iter.second.c_str(), val.value().c_str());
     }
   }
@@ -150,7 +150,7 @@ void GraphExecutor::Init() {
 
   for (const auto& hcom_config : HCOM_OPTIONS) {
     auto val = c10::npu::GetOption(hcom_config);
-    if (val.has_value()) {
+    if (val.has_value() && (val.value().length() > 0)) {
       config.emplace(hcom_config.c_str(), val.value().c_str());
     }
   }
