@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -14,9 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-common_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/common/"
-if common_path not in sys.path:
-    sys.path.append(common_path)
-from graph_utils_new import graph_mode
+import torch
+
+def graph_mode(func):
+    print("graph mode on")
+    def wrapper(*args, **kw):
+        print("runing: ", func.__name__)
+        torch.npu.enable_graph_mode()
+        func(*args, **kw)
+        print("graph mode off")
+        torch.npu.disable_graph_mode()
+    return wrapper
