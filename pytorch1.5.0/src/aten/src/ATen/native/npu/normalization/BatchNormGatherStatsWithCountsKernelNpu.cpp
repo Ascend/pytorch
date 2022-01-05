@@ -33,11 +33,16 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
     IntArrayRef counts) {
   auto options = self.options();
   auto dimC = self.size(1);
-  // NB: the running_mean calculator op not suppport 5HD currently, the adapter special the format to avoid error temporary!
+
+  Tensor meanCp = mean.npu_dtype_cast(at::kFloat);
+  Tensor invstdCp = invstd.npu_dtype_cast(at::kFloat);
+
+  auto running_mean_dtype = running_mean.scalar_type();
+
   Tensor running_mean_ = (running_mean.defined() ? running_mean.unsqueeze(0) :
-      zeros_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND);
+      zeros_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND).npu_dtype_cast(at::kFloat);
   Tensor running_var_ = (running_var.defined() ? running_var.unsqueeze(0) :
-      ones_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND);
+      ones_npu({1, dimC}, options)).npu_format_cast(ACL_FORMAT_ND).npu_dtype_cast(at::kFloat);
   IntArrayRef axes({0});
   Tensor countsTensor;
   // create countsTensor
@@ -45,12 +50,12 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
     SmallVector<int64_t, N> countList = array_to_small_vector(counts);
     auto cpuTensor = at::empty(countList.size(), TensorOptions(kCPU).dtype(at::kLong));
     std::memcpy(cpuTensor.data_ptr(), (void*)countList.data(), sizeof(int64_t) * cpuTensor.numel());
-    countsTensor = cpuTensor.to(at::kNPU).npu_dtype_cast(mean.scalar_type());
+    countsTensor = cpuTensor.to(at::kNPU).npu_dtype_cast(meanCp.scalar_type());
   }
   Tensor countsTensorT = transpose_npu(countsTensor.unsqueeze(-1), {0, 1});
   Tensor countsTensorBroadcast = npu_broadcast(countsTensorT, invstd.sizes());
 
-  Tensor countsAllSum = OpPreparation::ApplyTensorWithSizes({1, dimC}, mean.options());
+  Tensor countsAllSum = OpPreparation::ApplyTensorWithSizes({1, dimC}, meanCp.options());
   OpCommand cmd1;
   cmd1.Name("ReduceSum")
       .Input(countsTensorBroadcast)
@@ -62,7 +67,7 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
   Tensor countsAllSumBroadcast = countsAllSum.expand(countsTensorBroadcast.sizes());
   OpCommand cmd2;
   cmd2.Name("ReduceMeanWithCount")
-      .Input(mean)
+      .Input(meanCp)
       .Input(countsTensorBroadcast)
       .Input(countsAllSumBroadcast)
       .Output(mean_all)
@@ -73,8 +78,8 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
   Tensor meanBroadcast = mean_all.expand(mean.sizes());
   OpCommand cmd3;
   cmd3.Name("SyncBatchNormGatherStatsWithCounts")
-      .Input(mean)
-      .Input(invstd)
+      .Input(meanCp)
+      .Input(invstdCp)
       .Input(countsTensorBroadcast)
       .Input(meanBroadcast)
       .Input(countsAllSum)
@@ -93,6 +98,11 @@ std::tuple<Tensor&, Tensor&> batch_norm_gather_stats_with_counts_npu_impl(
         .Output(running_mean_)
         .Attr("momentum", static_cast<float>(momentum))
         .Run();
+    // running_mean almost apply is the same as running_var
+    if (running_mean_.scalar_type() != running_mean_dtype) {
+      running_mean_ = running_mean_.npu_dtype_cast(running_mean_dtype);
+      running_var_ = running_var_.npu_dtype_cast(running_mean_dtype);
+    }
     running_mean.copy_(running_mean_.squeeze(0));
     running_var.copy_(running_var_.squeeze(0));
   }
@@ -113,14 +123,16 @@ std::tuple<Tensor, Tensor> batch_norm_gather_stats_with_counts_npu(
   if (self.scalar_type() == mean.scalar_type() && self.scalar_type() == at::kHalf) {
     isFullyFp16 = true;
   }
-  Tensor mean_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(
-      isFullyFp16 ? at::kHalf : at::kFloat), self);
-  Tensor invstd_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(
-      isFullyFp16 ? at::kHalf : at::kFloat), self);
+  Tensor mean_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(at::kFloat), self);
+  Tensor invstd_all = OpPreparation::ApplyTensor({1, self.size(1)}, self.options().dtype(at::kFloat), self);
   batch_norm_gather_stats_with_counts_npu_impl(mean_all, invstd_all, self,
       mean, invstd, running_mean, running_var,
       momentum, eps, counts);
 
+  if (isFullyFp16) {
+    mean_all = mean_all.npu_dtype_cast(at::kHalf);
+    invstd_all = invstd_all.npu_dtype_cast(at::kHalf);
+  }
   return std::make_tuple(mean_all.squeeze(0), invstd_all.squeeze(0));
 }
 
