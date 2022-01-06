@@ -26,7 +26,9 @@ Tensor& rotated_iou_npu_nocheck(
     const Tensor& query_boxes,
     bool trans,
     int64_t mode,
-    bool is_cross) {
+    bool is_cross,
+    double v_threshold,
+    double e_threshold) {
   string mode_str = (mode == 0) ? "iou" : "iof";   
 
   OpCommand cmd;
@@ -37,6 +39,8 @@ Tensor& rotated_iou_npu_nocheck(
       .Attr("trans", trans)
       .Attr("mode", mode_str)
       .Attr("is_cross", is_cross)
+      .Attr("value", static_cast<float>(v_threshold))
+      .Attr("value", static_cast<float>(e_threshold))
       .Run();
   return iou;
 }
@@ -46,7 +50,9 @@ Tensor rotated_iou_npu(
     const Tensor& query_boxes,
     bool trans,
     int64_t mode,
-    bool is_cross) {
+    bool is_cross,
+    double v_threshold,
+    double e_threshold) {
   TORCH_CHECK(boxes.ndimension() == 3 && query_boxes.ndimension() == 3);
       
   auto origin_dtype = boxes.scalar_type();
@@ -67,7 +73,7 @@ Tensor rotated_iou_npu(
   SmallVector<int64_t, SIZE> output_size({B, N, K});
   Tensor iou = OpPreparation::ApplyTensor(boxesOk, output_size);
  
-  rotated_iou_npu_nocheck(iou, boxesOk, query_boxesOk, trans, mode, is_cross);
+  rotated_iou_npu_nocheck(iou, boxesOk, query_boxesOk, trans, mode, is_cross, v_threshold, e_threshold);
   iou = iou.npu_dtype_cast(origin_dtype);
   return iou;
 } 

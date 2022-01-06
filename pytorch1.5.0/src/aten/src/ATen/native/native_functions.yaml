@@ -8728,7 +8728,7 @@
   npu_dispatch_only:
     NPU: rotated_overlaps_npu
   
-- func: npu_rotated_iou(Tensor self, Tensor query_boxes, bool trans=False, int mode=0, bool is_cross=True) -> Tensor
+- func: npu_rotated_iou(Tensor self, Tensor query_boxes, bool trans=False, int mode=0, bool is_cross=True, float v_threshold=0.0, float e_threshold=0.0) -> Tensor
   npu_dispatch_only:
     NPU: rotated_iou_npu
 
