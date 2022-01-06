@@ -336,8 +336,12 @@ void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint3
   // in order to avoid deadlock, pin memory free operation is moved out of the enqueue operation
   if (dstPtr->paramType == COMPILE_AND_EXECUTE) {
     needClearVec.swap((static_cast<ExecuteParas* >(dstPtr->paramVal))->hostMemory);
+    // string or smallvector of struct is used, deconstructor need be called before memset
+    (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
   } else if (dstPtr->paramType == ASYNC_MEMCPY_EX) {
     needClearVec.swap((static_cast<CopyParas* >(dstPtr->paramVal))->pinMem);
+    // string or smallvector of struct is used, deconstructor need be called before memset
+    (static_cast<CopyParas* >(dstPtr->paramVal))->~CopyParas();
   }
   dstPtr->paramStream = srcPtr->paramStream;
   dstPtr->paramType = srcPtr->paramType;
