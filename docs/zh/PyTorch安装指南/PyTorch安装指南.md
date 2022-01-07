@@ -11,7 +11,7 @@
     -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)
 <h2 id="简介md">简介</h2>
 
-用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块。
+用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块。 
 
 **图 1**  环境准备流程图<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
 
@@ -33,10 +33,16 @@
 
 #### 前提条件<a name="zh-cn_topic_0000001105856382_zh-cn_topic_0275872734_section108914373254"></a>
 
--   需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
--   需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
--   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
--   需安装python版本为3.7.5、3.8、3.9。
+- 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
+
+- 需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
+
+- 需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
+
+- 需安装python版本为3.7.5、3.8、3.9。
+
+- 需注意torch1.5版本不支持python3.9编译安装（与官方保持一致），仅torch1.8.1版本支持python版本3.9进行编译安装。
+
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
     -   Ubuntu系统
 
@@ -146,7 +152,7 @@
         或
         bash build.sh --python=3.8
         或
-        bash build.sh --python=3.9
+        bash build.sh --python=3.9    #torch1.5不支持使用python3.9编译安装
         ```
         
         请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。

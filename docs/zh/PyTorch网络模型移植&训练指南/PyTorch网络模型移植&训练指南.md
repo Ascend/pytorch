@@ -13,9 +13,7 @@
 -   [性能调优和分析](#性能调优和分析md)
 -   [精度调测](#精度调测md)
 -   [模型保存与转换](#模型保存与转换md)
--   [样例说明](#样例说明md)
-    -   [ResNet50模型迁移示例](#ResNet50模型迁移示例md)
-    -   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例md)
+-   [ShuffleNet模型调优示例](#ShuffleNet模型调优示例md)
 -   [参考信息](#参考信息md)
 -   [FAQ](#FAQmd)
     -   [软件安装常见问题](#软件安装常见问题md)
@@ -2050,8 +2048,101 @@ def main():
     -   解决方案：减少编译或不需要编译该算子。
     -   优化算子编译配置请参见[编译选项设置](#编译选项设置md)。
 
+### 端到端性能工具（E2E prof）使用说明
 
-<h3 id="亲和库md">亲和库</h3>
+#### E2E prof工具介绍
+
+E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获取到的框架层面数据和算子性能数据统一集成，实现端到端的模型和算子性能分析工具。
+
+#### E2E prof使用教程
+
+添加with语句使能E2E prof功能
+
+```
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+
+     model_train()
+```
+
+- profiler_result_path表示prof结果保存路径，默认为当前路径。
+- use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
+
+（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
+
+#### E2E prof结果解析
+
+通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
+
+1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
+
+2. 切换至如上图./result路径后，执行脚本。
+
+   ```
+   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ```
+
+   - output：原始数据路径。
+
+3. 运行完成后，在原始数据路径下输出timeline目录。如下图：
+
+   ![](figures/2.png)
+
+4. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
+
+   1. 浏览器进入chrome://tracing/。
+
+   2. 点击load，上传文件查看。
+
+      <img src="figures/chrometracing.png" style="zoom:80%;" />
+
+   内容示例如下图：
+
+   <img src="figures/3.png" style="zoom:80%;" />
+
+   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
+
+#### E2E prof高级设置
+
+E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
+
+```
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
+```
+
+-   ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
+
+
+- ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
+
+
+- ·ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
+
+
+-  ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
+
+- · ACL_PROF_L2CACHE：表示采集L2 Cache数据，默认True
+
+-   ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
+
+-   ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为True
+
+其中，aiCoreMetricsType的取值和定义如下，默认为0：
+
+- ACL_AICORE_ARITHMETIC_UTILIZATION = 0：表示各种计算类指标占比统计，包括采集项mac_fp16_ratio、mac_int8_ratio、vec_fp32_ratio、vec_fp16_ratio、vec_int32_ratio、vec_misc_ratio
+
+- ACL_AICORE_PIPE_UTILIZATION = 1：表示计算单元和搬运单元耗时占比，包括采集项vec_ratio、mac_ratio、scalar_ratio、mte1_ratio、mte2_ratio、mte3_ratio、icache_miss_rate
+
+- ACL_AICORE_MEMORY_BANDWIDTH = 2：表示外部内存读写类指令占比，包括采集项ub_read_bw、ub_write_bw、l1_read_bw、l1_write_bw、l2_read_bw、l2_write_bw、main_mem_read_bw、main_mem_write_bw
+
+- ACL_AICORE_L0B_AND_WIDTH ：表示内部内存读写类指令占比，包括采集项scalar_ld_ratio、scalar_st_ratio、l0a_read_bw、l0a_write_bw、l0b_read_bw、l0b_write_bw、l0c_read_bw、l0c_write_bw
+
+- ACL_AICORE_RESOURCE_CONFLICT_RATIO ：表示流水线队列类指令占比，包括采集项vec_bankgroup_cflt_ratio、vec_bank_cflt_ratio、vec_resc_cflt_ratio、mte1_iq_full_ratio、mte2_iq_full_ratio、mte3_iq_full_ratio、cube_iq_full_ratio、vec_iq_full_ratio、iq_full_ratio
+
+- ACL_AICORE_NONE = 0xFF：表示不采集
+
+​    
+
+### 亲和库
 
 
 <h4 id="来源介绍md">来源介绍</h4>
