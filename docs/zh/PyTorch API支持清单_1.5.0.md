@@ -788,19 +788,7 @@
 | 121  | torch.nn.BatchNorm3d                                     | 是                           |
 | 122  | torch.nn.GroupNorm                                       | 是                           |
 | 123  | torch.nn.SyncBatchNorm                                   | 是                           |
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
 | 124  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 是                           |
-=======
-| 124  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 否                           |
->>>>>>> 34d323c (new api support)
-=======
-| 124  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 是                           |
->>>>>>> 0585771 (new api support)
-=======
-| 124  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 是                           |
->>>>>>> ba861db (new file)
 | 125  | torch.nn.InstanceNorm1d                                  | 是                           |
 | 126  | torch.nn.InstanceNorm2d                                  | 是                           |
 | 127  | torch.nn.InstanceNorm3d                                  | 是                           |
@@ -3251,7 +3239,7 @@ Rotate Bounding Box Encoding.
 
 - Examples：
 
-  ```python
+  ```
   >>> anchor_boxes = torch.tensor([[[30.69], [32.6], [45.94], [59.88], [-44.53]]], dtype=torch.float16).to("npu")
       >>> gt_bboxes = torch.tensor([[[30.44], [18.72], [33.22], [45.56], [8.5]]], dtype=torch.float16).to("npu")
       >>> weight = torch.tensor([1., 1., 1., 1., 1.], dtype=torch.float16).npu()
@@ -3264,32 +3252,33 @@ Rotate Bounding Box Encoding.
               [ 1.1328]]], device='npu:0', dtype=torch.float16)
   ```
 
->   npu_rotated_box_decode(anchor_boxes, deltas, weight) -> Tensor
+  >   npu_rotated_box_decode(anchor_boxes, deltas, weight) -> Tensor
 
-Rotate Bounding Box Encoding
+  Rotate Bounding Box Encoding
 
-- Parameters：
+  - Parameters：
 
-  - anchor_box (Tensor) -  A 3D Tensor with shape (B, 5, N). the input tensor.Anchor boxes. "B" indicates the number of batch size, "N" indicates the number of bounding boxes, and the value "5" refers to "x0", "x1", "y0", "y1" and "angle" .
-  - deltas (Tensor) - A 3D Tensor of float32 (float16) with shape (B, 5, N).   
-  - weight (Tensor) - A float list for "x0", "x1", "y0", "y1" and "angle", defaults to [1.0, 1.0, 1.0, 1.0, 1.0].
+    - anchor_box (Tensor) -  A 3D Tensor with shape (B, 5, N). the input tensor.Anchor boxes. "B" indicates the number of batch size, "N" indicates the number of bounding boxes, and the value "5" refers to "x0", "x1", "y0", "y1" and "angle" .
+    - deltas (Tensor) - A 3D Tensor of float32 (float16) with shape (B, 5, N).   
+    - weight (Tensor) - A float list for "x0", "x1", "y0", "y1" and "angle", defaults to [1.0, 1.0, 1.0, 1.0, 1.0].
 
-- constraints：
+  - constraints：
 
-  None
+    None
 
-- Examples：
+  - Examples：
 
-  ```python
-   >>> anchor_boxes = torch.tensor([[[4.137],[33.72],[29.4], [54.06], [41.28]]], dtype=torch.float16).to("npu")
-      >>> deltas = torch.tensor([[[0.0244], [-1.992], [0.2109], [0.315], [-37.25]]], dtype=torch.float16).to("npu")
-      >>> weight = torch.tensor([1., 1., 1., 1., 1.], dtype=torch.float16).npu()
-      >>> out = torch.npu_rotated_box_decode(anchor_boxes, deltas, weight)
-      >>> out
-      tensor([[[  1.7861],
-              [-10.5781],
-              [ 33.0000],
-              [ 17.2969],
-              [-88.4375]]], device='npu:0', dtype=torch.float16)
-  ```
+    ```
+     >>> anchor_boxes = torch.tensor([[[4.137],[33.72],[29.4], [54.06], [41.28]]], dtype=torch.float16).to("npu")
+        >>> deltas = torch.tensor([[[0.0244], [-1.992], [0.2109], [0.315], [-37.25]]], dtype=torch.float16).to("npu")
+        >>> weight = torch.tensor([1., 1., 1., 1., 1.], dtype=torch.float16).npu()
+        >>> out = torch.npu_rotated_box_decode(anchor_boxes, deltas, weight)
+        >>> out
+        tensor([[[  1.7861],
+                [-10.5781],
+                [ 33.0000],
+                [ 17.2969],
+                [-88.4375]]], device='npu:0', dtype=torch.float16)
+    ```
 
+    
