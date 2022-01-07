@@ -30,14 +30,14 @@ torch.npu.set_device(npu_device)
 print(f"Your device is {npu_device}")
 
 
-# format value description：
-# -1 ：FORMAT_UNDEFINED
-#  0 ：FORMAT_NCHW
-#  1 ：FORMAT_NHWC
-#  2 ：FORMAT_ND
-#  3 ：FORMAT_NC1HWC0
-#  4 ：FORMAT_FRACTAL_Z
-# 29 ：FORMAT_FRACTAL_NZ
+# format value description:
+# -1 : FORMAT_UNDEFINED
+#  0 : FORMAT_NCHW
+#  1 : FORMAT_NHWC
+#  2 : FORMAT_ND
+#  3 : FORMAT_NC1HWC0
+#  4 : FORMAT_FRACTAL_Z
+# 29 : FORMAT_FRACTAL_NZ
 
 def create_common_tensor(item, minValue, maxValue):
     dtype = item[0]

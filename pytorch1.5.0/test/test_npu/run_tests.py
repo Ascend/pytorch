@@ -67,8 +67,8 @@ def load_local_case(test_case_path):
     return discover
 
 def run_tests():
-    test_case_path = './'
-    test_report_path = test_case_path+'ReportResult'
+    test_case_path = os.path.dirname(os.path.realpath(__file__))
+    test_report_path = os.path.join(test_case_path, 'ReportResult')
     ENABLE_HTML = bool(os.environ.get('ENABLE_HTML'))
     ENABLE_HTML_MX = bool(os.environ.get('ENABLE_HTML_MX'))
     ENABLE_CASE_PATH = os.environ.get('ENABLE_CASE_PATH')
@@ -77,8 +77,8 @@ def run_tests():
     if WHITE_LIST_PATH and os.path.exists(WHITE_LIST_PATH):
         global FAILURE_FILE_NAME
         global ERROR_FILE_NAME
-        FAILURE_FILE_NAME = WHITE_LIST_PATH + '/failures.txt'
-        ERROR_FILE_NAME = WHITE_LIST_PATH + '/errors.txt'
+        FAILURE_FILE_NAME = os.path.join(WHITE_LIST_PATH, 'failures.txt')
+        ERROR_FILE_NAME = os.path.join(WHITE_LIST_PATH, 'errors.txt')
 
     if ENABLE_CASE_PATH is not None:
         if not os.path.exists(ENABLE_CASE_PATH):
@@ -127,7 +127,7 @@ def run_tests():
                 raise RuntimeError("Some cases TEXT unittest failed")
         print('report files path', txtFileName)
 
-if __name__=="__main__":
+if __name__ == "__main__":
     run_tests()
 
 

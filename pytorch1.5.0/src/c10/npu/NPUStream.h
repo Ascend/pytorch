@@ -123,8 +123,6 @@ CAFFE2_API NPUStream getCurrentSecondaryStream(DeviceIndex device_index = -1);
 
 CAFFE2_API aclrtStream getCurrentNPUStreamNoWait(DeviceIndex device_index = -1);
 
-CAFFE2_API NPUStatus emptyAllNPUStream();
-
 CAFFE2_API void npuSynchronizeDevice();
 
 CAFFE2_API void enCurrentNPUStream(

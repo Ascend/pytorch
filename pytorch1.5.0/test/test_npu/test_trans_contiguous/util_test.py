@@ -18,18 +18,8 @@ import sys
 import numpy as np
 import torch
 
-common_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__))) + "/common/"
+common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common")
 if common_path not in sys.path:
     sys.path.append(common_path)
-from util_test_new import create_common_tensor, test_2args_broadcast, create_dtype_tensor
-
-def create_common_tensor_for_broadcast(item, minValue, maxValue):
-    dtype = item[0]
-    npu_format = item[1]
-    shape = item[2]
-    input1 = np.random.uniform(minValue, maxValue, shape[0]).astype(dtype)
-    cpu_input = torch.from_numpy(input1)
-    npu_input = torch.from_numpy(input1).to("npu")
-    if npu_format != -1:
-        npu_input = npu_input.npu_format_cast(npu_format)
-    return cpu_input, npu_input
+from util_test_new import create_common_tensor, test_2args_broadcast,\
+    create_dtype_tensor, create_common_tensor_for_broadcast

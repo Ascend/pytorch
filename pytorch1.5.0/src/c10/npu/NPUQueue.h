@@ -87,7 +87,7 @@ class NPUQueueBase {
   virtual void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) = 0;
   virtual void Dequeue() = 0;
   virtual NPUStatus MakeSureQueueEmpty() = 0;
-  virtual void InitRepo(DeviceIndex device_id) = 0;
+  virtual void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) = 0;
   virtual bool CheckInit() const = 0;
 };
 
@@ -107,7 +107,7 @@ class Repository : public NPUQueueBase {
   void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) override;
   void Dequeue() override;
   NPUStatus MakeSureQueueEmpty() override;
-  void InitRepo(DeviceIndex device_id) override;
+  void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) override;
   bool CheckInit() const override;
 
  private:
@@ -139,10 +139,11 @@ class Repository : public NPUQueueBase {
   // The logic is ensured by original pytorch, but this is added here just in
   // case.
   std::mutex mu_enqueue;
+  aclrtStream calcu_stream_;
   ReleaseQueue releaseQueue;
 };
 
-using ACL_EXEC_FUNC     = std::function<int(void*, uint32_t)>;
+using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream, uint32_t)>;
 using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
