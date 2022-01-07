@@ -78,10 +78,10 @@ public:
     this->deleteFunc = func;
   }
 
-  int Call(void* head, int offset, uint32_t queueLen) {
+  int Call(void* head, int offset, aclrtStream stream, uint32_t queueLen) {
     TORCH_CHECK(this->execFunc, "Failed to find execution function.");
     auto dstPtr = (uint8_t*)head + sizePerParams * offset;
-    return this->execFunc(dstPtr, queueLen);
+    return this->execFunc(dstPtr, stream, queueLen);
   }
 
   void Copy(void* dstHead, int offset, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
@@ -284,7 +284,7 @@ bool Repository::ReadQueue() {
   }
 
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
-  auto ret = manager().Call(datas, read_idx.idx, queueLen);
+  auto ret = manager().Call(datas, read_idx.idx, calcu_stream_, queueLen);
 
   if (ret != 0) {
     while (!IsEmptyQueue()) { // ignore other tasks
@@ -491,7 +491,7 @@ void StartConsume(Repository* repo, DeviceIndex device_id) {
   return;
 }
 
-void Repository::InitRepo(DeviceIndex device_id) {
+void Repository::InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   QUEUE_COUT(
@@ -503,7 +503,11 @@ void Repository::InitRepo(DeviceIndex device_id) {
   if (datas == nullptr) {
     datas = manager().Init(kQueueCapacity);
   }
-
+  if (calcu_stream == nullptr) {
+    NPU_LOGE("stream should not be null when init task queue.");
+    return;
+  }
+  calcu_stream_ = calcu_stream;
   efd_read = eventfd(0, 0);
   efd_write = eventfd(0, 0);
   efd_empty = eventfd(0, 0);

@@ -19,7 +19,6 @@
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/NPUQueue.h>
 #include <c10/npu/OptionsManager.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <c10/util/Exception.h>
 
 #include <Python.h>
@@ -170,12 +169,15 @@ static void initGlobalStreamState() {
   auto& default_streamsi = default_streams[device_id];
   C10_NPU_CHECK(aclrtCreateStream(&default_streamsi.stream));
   if (OptionsManager::CheckQueueEnable()) {
-    default_streamsi.repo->InitRepo(device_id);
+    default_streamsi.repo->InitRepo(device_id, default_streamsi.stream);
   }
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
   auto& secondary_streamsi = secondary_streams[device_id];
   C10_NPU_CHECK(aclrtCreateStream(&secondary_streamsi.stream));
+  if (OptionsManager::CheckQueueEnable()) {
+    secondary_streamsi.repo->InitRepo(device_id, secondary_streamsi.stream);
+  }
 }
 
 static void initDeviceStreamState(DeviceIndex device_index) {
@@ -188,6 +190,9 @@ static void initDeviceStreamState(DeviceIndex device_index) {
     npu_streami.device_index = device_index;
 
     C10_NPU_CHECK(aclrtCreateStream(&npu_streami.stream));
+    if (OptionsManager::CheckQueueEnable()) {
+      npu_streami.repo->InitRepo(device_index, npu_streami.stream);
+    }
   }
 }
 
@@ -350,7 +355,8 @@ NPUStatus emptyAllNPUStream() {
   NPUStatus ret;
   for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
     auto& default_streamsi = default_streams[i];
-    if (default_streamsi.stream == nullptr) {
+    auto& secondary_streamsi = secondary_streams[i];
+    if (default_streamsi.stream == nullptr && secondary_streamsi.stream == nullptr) {
       continue;
     }
     NPUGuard device_guard{i};
@@ -358,6 +364,28 @@ NPUStatus emptyAllNPUStream() {
       ret = default_streamsi.repo->MakeSureQueueEmpty();
       if (ret != SUCCESS) {
         return ret;
+      }
+    }
+    if (secondary_streamsi.stream != nullptr && secondary_streamsi.repo->CheckInit()) {
+      ret = secondary_streamsi.repo->MakeSureQueueEmpty();
+      if (ret != SUCCESS) {
+        return ret;
+      }
+    }
+  }
+
+  for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
+    for (auto j = decltype(kStreamsPerPool){0}; j < kStreamsPerPool; ++j) {
+      auto& npu_streamj = npu_streams[i][j];
+      if (npu_streamj.stream == nullptr) {
+        continue;
+      }
+      NPUGuard device_guard{i};
+      if (npu_streamj.repo->CheckInit()) {
+        ret = npu_streamj.repo->MakeSureQueueEmpty();
+        if (ret != SUCCESS) {
+          return ret;
+        }
       }
     }
   }
@@ -384,13 +412,10 @@ void enCurrentNPUStream(
     device_index = current_device();
   }
   check_npu(device_index);
-
-  c10::npu::queue::QueueParas* queueParam = static_cast<c10::npu::queue::QueueParas* >(cur_paras);
-  queueParam->paramStream = current_streams[device_index]->stream;
-  default_streams[device_index].repo->Enqueue(cur_paras, needClearVec);
-  if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
-    default_streams[device_index].repo->MakeSureQueueEmpty();
-    default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+  current_streams[device_index]->repo->Enqueue(cur_paras, needClearVec);
+  if (current_streams[device_index]->repo->GetStatus() == RepoStatus::INIT) {
+    current_streams[device_index]->repo->MakeSureQueueEmpty();
+    current_streams[device_index]->repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
   }
 }
 
