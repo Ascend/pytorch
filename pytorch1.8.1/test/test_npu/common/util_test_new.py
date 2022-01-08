@@ -29,10 +29,15 @@ else:
 torch.npu.set_device(npu_device)
 print(f"Your device is {npu_device}")
 
-threshold = 1.e-4
-threshold2 = 1.e-3
 
-UT_FAST_MODE = os.getenv('UT_FAST_MODE') == '1' 
+# format value description:
+# -1 : FORMAT_UNDEFINED
+#  0 : FORMAT_NCHW
+#  1 : FORMAT_NHWC
+#  2 : FORMAT_ND
+#  3 : FORMAT_NC1HWC0
+#  4 : FORMAT_FRACTAL_Z
+# 29 : FORMAT_FRACTAL_NZ
 
 def create_common_tensor(item, minValue, maxValue):
     dtype = item[0]
@@ -125,5 +130,16 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
     cpu_input = torch.from_numpy(input)
     npu_input = torch.from_numpy(input).to(npu_device)
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
+        npu_input = npu_input.npu_format_cast(npu_format)
+    return cpu_input, npu_input
+
+def create_common_tensor_for_broadcast(item, minValue, maxValue):
+    dtype = item[0]
+    npu_format = item[1]
+    shape = item[2]
+    input1 = np.random.uniform(minValue, maxValue, shape[0]).astype(dtype)
+    cpu_input = torch.from_numpy(input1)
+    npu_input = torch.from_numpy(input1).to("npu")
+    if npu_format != -1:
         npu_input = npu_input.npu_format_cast(npu_format)
     return cpu_input, npu_input
