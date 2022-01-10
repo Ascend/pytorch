@@ -220,68 +220,6 @@ y：一个tensor，数据类型和shape与输入一致
 
 Opset v9/v10/v11/v12/v13
 
-<h2 id="AdaptiveAvgPool2Dmd">AdaptiveAvgPool2D</h2>
-
-### 功能<a name="section12725193815114"></a>
-
-对输入进行2d自适应平均池化计算
-
-### 边界<a name="section9981612134"></a>
-
-【输入】
-
-一个输入
-
-x：一个tensor，数据类型：float16、float32
-
-【属性】
-
-一个属性：
-
-output\_size：int型数组，指定输出的hw的shape大小
-
-【输出】
-
-一个输出
-
-y：一个tensor，数据类型：与x类型一致
-
-### 支持的ONNX版本<a name="section13311501226"></a>
-
-自定义算子，无对应onnx版本
-
-<h2 id="AdaptiveMaxPool2Dmd">AdaptiveMaxPool2D</h2>
-
-### 功能<a name="section12725193815114"></a>
-
-对输入进行2d自适应最大池化计算
-
-### 边界<a name="section9981612134"></a>
-
-【输入】
-
-一个输入
-
-x：一个tensor，数据类型：float16、float32、float64
-
-【属性】
-
-一个属性：
-
-output\_size：int型数组，指定输出的hw的shape大小
-
-【输出】
-
-两个输出
-
-y：一个tensor，数据类型：与x类型一致
-
-argmax：一个tensor，数据类型：int32，int64
-
-### 支持的ONNX版本<a name="section13311501226"></a>
-
-自定义算子，无对应onnx版本
-
 <h2 id="Addmd">Add</h2>
 
 ### 功能<a name="section12725193815114"></a>
@@ -305,36 +243,6 @@ C：一个张量，数据类型与A相同
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
-
-<h2 id="Addcmulmd">Addcmul</h2>
-
-### 功能<a name="section12725193815114"></a>
-
-元素级计算\(x1 \* x2\) \* value + input\_data
-
-### 边界<a name="section9981612134"></a>
-
-【输入】
-
-四个输入
-
-input\_data：一个tensor，数据类型：float16、float32、int32、int8、uint8
-
-x1： 一个tensor，类型与input\_data相同
-
-x2： 一个tensor，类型与input\_data相同
-
-value： 一个tensor，类型与input\_data相同
-
-【输出】
-
-一个输出
-
-y：一个tensor，数据类型：y与输入相同
-
-### 支持的ONNX版本<a name="section13311501226"></a>
-
-自定义算子，无对应onnx版本
 
 <h2 id="AffineGridmd">AffineGrid</h2>
 
@@ -3568,38 +3476,6 @@ reshaped：一个张量
 ### 支持的ONNX版本<a name="section13311501226"></a>
 
 Opset v8/v9/v10/v11/v12/v13
-
-<h2 id="ReverseSequencemd">ReverseSequence</h2>
-
-### 功能<a name="section12725193815114"></a>
-
-根据指定长度对batch序列进行排序
-
-### 边界<a name="section9981612134"></a>
-
-【输入】
-
-2个输入
-
-x：tensor，rank \>= 2，数据类型：float16、float32
-
-sequence\_lens：tensor，每个batch的指定长度，数据类型：int64
-
-【输出】
-
-一个输出
-
-y：一个张量，和输入x同样的type和shape
-
-【属性】
-
-batch\_axis：int，默认为1，含义：指定batch轴
-
-time\_axis：int，默认为1，含义：指定time轴
-
-### 支持的ONNX版本<a name="section13311501226"></a>
-
-Opset v10/v11/v12/v13
 
 <h2 id="RoiExtractormd">RoiExtractor</h2>
 
