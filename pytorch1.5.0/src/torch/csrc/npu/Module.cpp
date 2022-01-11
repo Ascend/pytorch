@@ -445,7 +445,7 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   uint64_t npu_event = THPUtils_unpackLong(value_2);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
   pybind11::gil_scoped_release no_gil;
-  at::native::npu::profiler::init_e2e_profiler(dump_path, npu_event, aicore_metrics);
+  at::native::npu::profiler::init_e2e_profiler(std::string(dump_path), npu_event, aicore_metrics);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

@@ -12,13 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import torch
 import numpy as np
 from common_utils import TestCase, run_tests
 import unittest
-from util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor
 from common_device_type import dtypes, instantiate_device_type_tests
 
+
+UT_FAST_MODE = os.getenv('UT_FAST_MODE') == '1' 
 class TestDiv(TestCase):
     def get_outputs(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
