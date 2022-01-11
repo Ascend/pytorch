@@ -30,26 +30,12 @@ Tensor softmax_backward_out_npu(
   SmallVector<int64_t, N> dimList = {dim};
   // executing the NPU operator
   OpCommand cmd;
-  if (CalcuOpUtil::get_tensor_npu_format(output) == ACL_FORMAT_FRACTAL_NZ && !env::CheckFuzzyEnable()) {
-    // use SoftmaxGradExt only on the scene of static and nz 
-    float one = 1.;
-    Tensor one_tensor = CalcuOpUtil::CopyScalarToDevice(one, grad_output.scalar_type());
-    cmd.Name("SoftmaxGradExt")
-        .Input(grad_output)
-        .Input(output)
-        .Input(one_tensor)
-        .Output(grad_input)
-        .Attr("axes", dimList)
-        .Attr("keep_dims", true)
-        .Run();
-  } else {
-    cmd.Name("SoftmaxGrad")
-        .Input(output)
-        .Input(grad_output)
-        .Output(grad_input)
-        .Attr("axes", dimList)
-        .Run();
-  }
+  cmd.Name("SoftmaxGrad")
+      .Input(output)
+      .Input(grad_output)
+      .Output(grad_input)
+      .Attr("axes", dimList)
+      .Run();
 
   return grad_input;
 }

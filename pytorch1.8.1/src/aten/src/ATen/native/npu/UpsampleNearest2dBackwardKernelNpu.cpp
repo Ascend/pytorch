@@ -21,7 +21,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& upsample_nearest2d_backward_out_npu(
+Tensor& upsample_nearest2d_backward_grad_input_npu(
     const Tensor& grads,
     IntArrayRef output_size,
     IntArrayRef input_size,
@@ -53,7 +53,7 @@ Tensor upsample_nearest2d_backward_npu(
   }
   Tensor grad_input = OpPreparation::ApplyTensor(
       input_size, grads.options(), grad_output);
-  upsample_nearest2d_backward_out_npu(
+  upsample_nearest2d_backward_grad_input_npu(
       grads, output_size, input_size, scales_h, scales_w, grad_input);
   return grad_input;
 }
@@ -67,14 +67,14 @@ Tensor upsample_nearest2d_backward_vec_npu(
   auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
   auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
   Tensor grad_input = OpPreparation::ApplyTensor(grad_output, input_size);
-  upsample_nearest2d_backward_out_npu(grad_output, osize, input_size, scales_h, scales_w, grad_input);
+  upsample_nearest2d_backward_grad_input_npu(grad_output, osize, input_size, scales_h, scales_w, grad_input);
   return grad_input;
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m){
   m.impl("upsample_nearest2d_backward.vec", TORCH_FN(upsample_nearest2d_backward_vec_npu));
   m.impl("upsample_nearest2d_backward", TORCH_FN(upsample_nearest2d_backward_npu));
-  m.impl("upsample_nearest2d_backward.out", TORCH_FN(upsample_nearest2d_backward_out_npu));
+  m.impl("upsample_nearest2d_backward.grad_input", TORCH_FN(upsample_nearest2d_backward_grad_input_npu));
 }
 
 } // namespace native
