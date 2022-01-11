@@ -57,10 +57,10 @@ The following are the environment variables required for starting the inference 
 export PATH=/usr/local/python3.7.5/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib:$LD_LIBRARY_PATH
 
-# Sets the logical ID of a processor.
+# Set the logical ID of a processor.
 export ASCEND_DEVICE_ID=0
 
-# Outputs log information. Replace it as required.
+# Output log information. Replace it as required.
 export ASCEND_SLOG_PRINT_TO_STDOUT=1
 export ASCEND_GLOBAL_LOG_LEVEL=0
 
@@ -416,11 +416,11 @@ The following uses the ResNet-50 model as an example to describe how to perform 
 
 2.  Edit the inference script.
 
-    Create a model script file  **resnet50\_infer\_for\_pytorch.py**  and write code by referring to  [Sample Code]().
+    Create a model script file  **resnet50\_infer\_for\_pytorch.py**  and write code. For how to write the code, see [Sample Code]().
 
 3.  Run inference.
 
-    Set environment variables by referring to  [Environment Variable Configuration](#environment-variable-configurationmd)  and then run the following command:
+    Set environment variables (for how to set them, see [Environment Variable Configuration](#environment-variable-configurationmd)) and then run the following command:
 
     ```
     python3 pytorch-resnet50-apex.py --data /data/imagenet \
@@ -491,13 +491,13 @@ However, the mixed precision training is limited by the precision range expresse
 
 #### Initializing the Mixed Precision Model<a name="section18178125518268"></a>
 
-1.  To use the mixed precision module Apex, you need to import the amp module from the Apex library as follows:
+1.  To use the mixed precision module Apex, import the amp module from the Apex library.
 
     ```
     from apex import amp
     ```
 
-2.  After the amp module is imported, you need to initialize it so that it can modify the model, optimizer, and PyTorch internal functions. The initialization code is as follows:
+2.  Initialize the amp module so that it can modify the model, optimizer, and PyTorch internal functions.
 
     ```
     model, optimizer = amp.initialize(model, optimizer)
@@ -585,7 +585,7 @@ Perform the following steps as the  **root**  user.
 
 5.  Set the environment variable.
 
-    The build environment after GCC upgrade is required for training. Therefore, you need to configure the following environment variable in the training script:
+    Training must be performed in the compilation environment with GCC upgraded. Therefore, configure the following environment variable in the training script:
 
     ```
     export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
@@ -594,6 +594,6 @@ Perform the following steps as the  **root**  user.
     **$\{install\_path\}**  indicates the GCC 7.3.0 installation path configured in  [3.](#en-us_topic_0000001146754749_en-us_topic_0000001072593337_l75d31a2874534a2092e80a5f865b46f0). In this example, the GCC 7.3.0 installation path is  **/usr/local/linux\_gcc7.3.0/**.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >The environment variable needs to be configured only when you need to use the build environment after the GCC upgrade.
+    >Skip this step if you do not the compilation environment with GCC upgraded.
 
 
