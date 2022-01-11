@@ -444,13 +444,13 @@ You can develop an operator adaptation plugin to convert the formats of the inpu
 
 3.  Define the main adaptation function of the operator.
 
-    Determine the adaptation theme function for custom operators based on the dispatch function in the registered operator.
+    Determine the main adaptation function for custom operators based on the dispatch function in the registered operator.
 
 4.  Implement the main adaptation functions.
 
-    Implement the operator adaptation theme function and construct the corresponding input, output, and attributes based on the TBE operator prototype.
+    Implement the operator's main adaptation function and construct the corresponding input, output, and attributes based on the TBE operator prototype.
 
-5.  Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the operator description func in the  **native\_functions.yaml**  file generated during the operator registration. \(Only PyTorch 1.8.1 requires this step.\) 
+5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the operator description func in the  **native\_functions.yaml**  file generated during the operator registration.  
 
     **TORCH\_LIBRARY\_IMPL**  is a macro provided by PyTorch for registered operator distribution. To use it, perform the following steps:
 
@@ -618,7 +618,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
         }
         ```
 
-5.  Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the registered operator. \(Only PyTorch 1.8.1 requires this step.\) 
+5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the registered operator. 
 
     ```
     TORCH_LIBRARY_IMPL(aten, NPU, m) {  
@@ -827,7 +827,7 @@ pip3.7 install torchvision --no-deps
 
 #### Symptom<a name="en-us_topic_0000001125315883_en-us_topic_0175549220_section197270431505"></a>
 
-During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" " is displayed.
+During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
 
 ![](figures/en-us_image_0000001144082048.png)
 
@@ -900,7 +900,7 @@ The custom TBE operator has been developed and adapted to PyTorch. However, the 
 
         There should be no error in this step. The log added in  **add**  should be displayed. If an error occurs, check the code to ensure that no newly developed code affects the test.
 
-    3.  The newly developed custom TBE operator is combined into CANN. Logs are added to the operator entry as the running identifier.
+    3.  Combine the newly developed custom TBE operator into CANN. Add logs to the operator entry as the running identifier.
     4.  After the compilation and installation of CANN are complete, call  **python3.7.5 test\_add.py**  to perform the test.
 
         >![](public_sys-resources/icon-note.gif) **NOTE:** 
@@ -1047,7 +1047,7 @@ The following describes how to upgrade CMake to 3.12.1.
     ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
     ```
 
-5.  Run the following command to check whether CMake has been installed:
+5.  Check whether CMake has been installed.
 
     ```
     cmake --version
