@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -30,15 +31,7 @@ Tensor& binary_cross_entropy_backward_out_npu(
   Tensor weightTensor = weight.defined() ? weight :
               at::ones(self.sizes(), self.options());
 
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
-
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("BinaryCrossEntropyGrad")
      .Input(self)

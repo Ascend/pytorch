@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -30,14 +31,7 @@ Tensor& mse_loss_backward_out_npu(
     grad_input = at::zeros_like(self, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     return grad_input;
   }
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("MseLossGrad")
       .Input(self)

@@ -214,7 +214,6 @@ class CalcuOpUtil {
   static bool is_scalar_one(const Scalar& scalar);
   static float get_scalar_float_value(const Scalar& scalar);
   static int64_t get_tensor_npu_format(const Tensor& tensor);
-  static string get_reduction_str(int64_t reduction);
   static ScalarType GetNPUTensorDescScalarType(
       const NPUTensorDesc& npuTensorDesc);
   static SmallVector<Tensor, N> ConvertTensorListToSmallVector(

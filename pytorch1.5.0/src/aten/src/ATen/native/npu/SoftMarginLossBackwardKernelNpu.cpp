@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -24,15 +25,7 @@ Tensor& soft_margin_loss_backward_out_npu(
     const Tensor& input,
     const Tensor& target,
     int64_t reduction) {
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
-
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("SoftMarginLossGrad")

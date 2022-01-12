@@ -64,6 +64,7 @@ class NpuUtils {
 
   static bool check_5d_5d_match(const Tensor& tensor);
   static bool IsOomError(aclError ret, int index);
+  static std::string get_reduction_str(int64_t reduction);
 };
 } // namespace npu
 } // namespace native

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -26,7 +26,7 @@ std::tuple<Tensor&, Tensor&> multilabel_margin_loss_forward_out_npu(
     const Tensor& target,
     int64_t reduction) {
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("MultilabelMarginLoss")
     .Input(self)

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -25,16 +26,8 @@ Tensor& smooth_l1_loss_backward_out_npu(
     const Tensor& target,
     int64_t reduction) {
   float sigma = 1.0;
-  string reductionStr;
 
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
-
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("SmoothL1LossGradV2")
       .Input(self)

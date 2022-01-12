@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -46,14 +47,7 @@ Tensor binary_cross_entropy_with_logits_backward_npu(
 
   Tensor doutTensor = broadcast_npu(grad_output, self.sizes());
 
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
 
   OpCommand cmd;
   cmd.Name("SigmoidCrossEntropyWithLogitsGradV2")

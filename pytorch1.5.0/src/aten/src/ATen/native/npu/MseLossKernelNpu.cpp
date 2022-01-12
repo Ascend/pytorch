@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -33,15 +34,7 @@ Tensor& mse_loss_out_npu_nocheck(
   }
 
   auto unified_result = OpPreparation::binary_op_check(result, self, target, true);
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
-  
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("MseLoss")
       .Expect(unified_result)

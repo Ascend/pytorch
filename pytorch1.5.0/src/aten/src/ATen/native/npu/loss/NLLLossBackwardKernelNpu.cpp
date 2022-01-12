@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -47,7 +47,7 @@ Tensor& nll_loss_backward_out_npu(
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
 
-  string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
 
   Tensor targetCast = target;
   auto scalar_type = target.scalar_type();

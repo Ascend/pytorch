@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
@@ -34,7 +34,7 @@ Tensor& l1_loss_backward_out_npu(
     targetBroadcast = broadcast_npu(target, self.sizes());
   }
   
-  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction);
+  auto reductionStr = NpuUtils::get_reduction_str(reduction);
 
   OpCommand cmd;
   cmd.Name("L1LossGrad")

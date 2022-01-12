@@ -308,6 +308,19 @@ bool NpuUtils::IsOomError(aclError ret, int index)
   }
   return false;
 }
+
+std::string NpuUtils::get_reduction_str(int64_t reduction) {
+  string reductionStr;
+  if (reduction == Reduction::Mean) {
+    reductionStr = "mean";
+  } else if (reduction == Reduction::Sum) {
+    reductionStr = "sum";
+  } else {
+    reductionStr = "none";
+  }
+  return reductionStr;
+}
+
 } // namespace npu
 } // namespace native
 } // namespace at

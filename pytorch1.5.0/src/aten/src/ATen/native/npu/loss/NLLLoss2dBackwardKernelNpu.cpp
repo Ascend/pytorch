@@ -31,14 +31,7 @@ SmallVector<NPUTensorDesc, N> nll_loss2d_backward_npu_output(
 }
 
 SmallVector<NPUAttrDesc, N> nll_loss2d_backward_npu_attr(int64_t reduction) {
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
 
   NPUAttrDesc npuAttrReduction = NPUAttrDesc("reduction", reductionStr);
   SmallVector<NPUAttrDesc, N> attrs = {npuAttrReduction};

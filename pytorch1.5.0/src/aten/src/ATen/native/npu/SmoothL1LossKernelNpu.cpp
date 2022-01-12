@@ -33,14 +33,7 @@ Tensor& smooth_l1_loss_out_npu_nocheck(
     return result;
   }
 
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else if (reduction == Reduction::Sum) {
-    reductionStr = "sum";
-  }
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
 
   OpCommand cmd;
   cmd.Name("SmoothL1LossV2")

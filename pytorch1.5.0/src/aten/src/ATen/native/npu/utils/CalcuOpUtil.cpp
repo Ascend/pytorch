@@ -197,19 +197,6 @@ void CalcuOpUtil::check_memory_over_laps(
   }
 }
 
-string CalcuOpUtil::get_reduction_str(int64_t reduction) {
-  string reductionStr;
-  if (reduction == Reduction::None) {
-    reductionStr = "none";
-  } else if (reduction == Reduction::Mean) {
-    reductionStr = "mean";
-  } else {
-    reductionStr = "sum";
-  }
-
-  return reductionStr;
-}
-
 int64_t CalcuOpUtil::make_wrap_dim(int64_t dim, int64_t dim_post_expr) {
   if (dim_post_expr <= 0) {
     dim_post_expr = 1; // this will make range [-1, 0]

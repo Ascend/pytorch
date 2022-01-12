@@ -64,7 +64,7 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
 
-  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction) ;
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction) ;
   OpCommand cmd;
   cmd.Name("NLLLoss")
       .Input(self)
