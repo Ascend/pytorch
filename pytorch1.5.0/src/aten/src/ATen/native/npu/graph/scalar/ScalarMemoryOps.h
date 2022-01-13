@@ -39,6 +39,8 @@ public:
   ScalarMemContext& operator=(const ScalarMemContext&) = delete;
   ScalarMemContext& operator=(ScalarMemContext&&) = delete;
 
+  ~ScalarMemContext() = default;
+
   uint8_t* GetDeviceMemBuffer() {
     return reinterpret_cast<uint8_t*>(npu_tensor_.data_ptr());
   }

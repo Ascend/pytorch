@@ -211,12 +211,14 @@ void AddExtInfo(NodeExtInfoType ext_info_type, any any_attr) {
     return ext_info_;
   }
 
+public:
+  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum> ext_info_;
+
 private:
   std::string op_type_;
   std::shared_ptr<ge::Operator> ge_op_ = nullptr;
   hash_t node_hash_ = hash_utils::hash_seed;
   SmallVector<NodeInput, kDefaultMaxInputNum> inputs_;
-  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum> ext_info_;
 };
 
 } // namespace graph

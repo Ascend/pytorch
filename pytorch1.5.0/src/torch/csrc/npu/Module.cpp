@@ -440,7 +440,7 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   }
   const char *dump_path = PyUnicode_AsUTF8(value_1);
   if (dump_path == nullptr) {
-    NPU_LOGE("e2eProfiler path can not be nullptr.");
+    throw ValueError("e2eProfiler path can not be nullptr.");
   }
   uint64_t npu_event = THPUtils_unpackLong(value_2);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
