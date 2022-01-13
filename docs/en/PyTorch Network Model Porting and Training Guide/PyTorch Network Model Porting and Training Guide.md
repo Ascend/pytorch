@@ -3654,7 +3654,8 @@ Perform the following steps as the  **root**  user.
     ```
 
 
-##FAQs
+## FAQs
+
 
 -   **[FAQs About Software Installation](#faqs-about-software-installationmd)**  
 
@@ -3667,7 +3668,8 @@ Perform the following steps as the  **root**  user.
 -   **[FAQs About Distributed Model Training](#faqs-about-distributed-model-trainingmd)**  
 
 
-###FAQs About Software Installation
+### FAQs About Software Installation
+
 
 -   **[pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failedmd)**  
 
@@ -3695,7 +3697,8 @@ Run the following commands to install the dependencies:
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-###FAQs About Model and Operator Running
+### FAQs About Model and Operator Running
+
 
 -   **[What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operatormd)**  
 
@@ -4051,7 +4054,8 @@ A public API is called.
 
 The error information does not affect the training function and performance and can be ignored.
 
-###FAQs About Model Commissioning
+### FAQs About Model Commissioning
+
 
 -   **[What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-npmd)**  
 
@@ -4132,7 +4136,8 @@ In the preceding figure, the error path is  **.../code/pytorch/torch/\_\_init\_\
 
 Switch to another directory to run the script.
 
-###FAQs About Other Operations
+### FAQs About Other Operations
+
 
 -   **[What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronizationmd)**  
 
@@ -4320,7 +4325,7 @@ The script is as follows:
    model.load_state_dict(state_dict)
 ```
 
-###FAQs About Distributed Model Training
+### FAQs About Distributed Model Training
 
 -   **[What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd)**  
 
