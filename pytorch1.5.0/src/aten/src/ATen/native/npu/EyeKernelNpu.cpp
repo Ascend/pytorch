@@ -11,32 +11,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> eye_npu_output(const Tensor& result) {
-  return CalcuOpUtil::create_npu_output_tensor_desc({result});
-}
-
-SmallVector<NPUAttrDesc, N> eye_npu_attr(int64_t n) {
-  NPUAttrDesc npuDescScalarRow = NPUAttrDesc("num_rows", n);
-  NPUAttrDesc npuDescScalarCol = NPUAttrDesc("num_columns", n);
-  SmallVector<NPUAttrDesc, N> attrs = {npuDescScalarRow, npuDescScalarCol};
-
-  return attrs;
-}
-
-SmallVector<NPUAttrDesc, N> eye_npu_attr(int64_t n, int64_t m) {
-  NPUAttrDesc npuDescScalarRow = NPUAttrDesc("num_rows", n);
-  NPUAttrDesc npuDescScalarCol = NPUAttrDesc("num_columns", m);
-  SmallVector<NPUAttrDesc, N> attrs = {npuDescScalarRow, npuDescScalarCol};
-
-  return attrs;
+Tensor& eye_out_npu_nocheck(Tensor& result, int64_t n, int64_t m){
+  OpCommand cmd;
+  cmd.Name("Eye")
+    .Output(result)      
+    .Attr("num_rows", n)
+    .Attr("num_columns", m)
+    .Run();
+    
+  return result;
 }
 
 Tensor& eye_out_npu(Tensor& result, int64_t n) {
@@ -51,47 +41,43 @@ Tensor& eye_out_npu(Tensor& result, int64_t n, int64_t m) {
   }
 
   result.resize_({n, m});
-
-  SmallVector<NPUTensorDesc, N> inputs;
-
-  // constracts the output NPUTensorDesc
-  auto outputs = eye_npu_output(result);
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = eye_npu_attr(n, m);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Eye", inputs, outputs, attrs);
-
+  eye_out_npu_nocheck(result, n, m);  
   return result;
 }
 
 Tensor eye_npu(int64_t n, const TensorOptions& options) {
-
   // get the output size
-  auto outputSize = SmallVector<int64_t, N>{n, n};
+  SmallVector<int64_t, N> outputSize = {n, n};
 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(outputSize, options, ACL_FORMAT_ND);
+  // The operator does not support the bool type and needs to be converted to an integer.
+  Tensor result = (options.dtype() == at::kBool) 
+      ? OpPreparation::ApplyTensorWithFormat(outputSize, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND) 
+      : OpPreparation::ApplyTensorWithFormat(outputSize, options, ACL_FORMAT_ND);
 
-  // constructs the attr of the NPUAttrDesc
   eye_out_npu(result, n);
+  
+  if(options.dtype() == at::kBool){
+    result = result.to(at::kBool); 
+  }
 
-  // calculate the output result of the NPU
   return result;
 }
 
 Tensor eye_npu(int64_t n, int64_t m, const TensorOptions& options) {
   // get the output size
-  auto outputSize = SmallVector<int64_t, N>{n, m};
+  SmallVector<int64_t, N> outputSize = {n, m};
 
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(outputSize, options, ACL_FORMAT_ND);
+  // The operator does not support the bool type and needs to be converted to an integer.
+  Tensor result = (options.dtype() == at::kBool) 
+      ? OpPreparation::ApplyTensorWithFormat(outputSize, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND) 
+      : OpPreparation::ApplyTensorWithFormat(outputSize, options, ACL_FORMAT_ND);
 
-  // constructs the attr of the NPUAttrDesc
-  eye_out_npu(result, n, m);
+  eye_out_npu_nocheck(result, n, m);
+  
+  if(options.dtype() == at::kBool){
+    result = result.to(at::kBool); 
+  }
 
-  // calculate the output result of the NPU
   return result;
 }
 

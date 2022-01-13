@@ -75,5 +75,4 @@ class Test_Bitwise_Not(TestCase):
 
 instantiate_device_type_tests(Test_Bitwise_Not, globals(), except_for='cpu')
 if __name__ == "__main__":
-    torch.npu.set_device("npu:5")
     run_tests()

@@ -92,24 +92,54 @@ ge::Shape ATenGeBridge::GetGeShape(ArrayRef<int64_t> vec) {
 ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
     const NPUStorageDesc& storage_desc,
     const caffe2::TypeMeta& type_meta,
-    const c10::optional<string>& real_dtype) {
-  ge::TensorDesc tensor_desc;
+    const c10::optional<string>& real_dtype,
+    bool is_op_desc) {
+  ge::TensorDesc desc;
 
   if (real_dtype.has_value()) {
-    tensor_desc.SetDataType(ATenGeBridge::GetGeDType(real_dtype.value()));
+    desc.SetDataType(ATenGeBridge::GetGeDType(real_dtype.value()));
   } else {
-    tensor_desc.SetDataType(ATenGeBridge::GetGeDType(type_meta));
+    desc.SetDataType(ATenGeBridge::GetGeDType(type_meta));
   }
 
-  tensor_desc.SetPlacement(ge::kPlacementDevice);
-  tensor_desc.SetOriginShape(
+  desc.SetPlacement(ge::kPlacementDevice);
+  desc.SetOriginShape(
       ATenGeBridge::GetGeShape(storage_desc.base_sizes_));
-  tensor_desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.storage_sizes_));
+  desc.SetOriginFormat(ge::Format(storage_desc.origin_format_));
 
-  tensor_desc.SetOriginFormat(ge::Format(storage_desc.origin_format_));
-  tensor_desc.SetFormat(ge::Format(storage_desc.npu_format_));
+  /*
+   * NB
+   * AOE does not support inner format
+   * So we set Operator description as origin format and shape
+   * Then we can dump ge graph to begin offline auto tune
+   *
+   *   data1          data2                                                            data1          data2
+   * (nchw/nchw)   (nchw/nchw)                                                       (nchw/5hd)   (nchw/fz)
+   *      \         /                                                                       \         /
+   *       \       /           Param:input_tensors{tensor1(nchw/5hd), tensor2(nchw/fz)}      \       /
+   *        \     /        -----------------RunGraphWithStreamAsync----------------->         \     /
+   *         conv2d                                                                           conv2d
+   *            |                                                                                |
+   *            |                                                                                |
+   *        netoutput                                                                        netoutput
+   *
+   * In graph, we set data node as data1:nchw(origin format) / nchw (format)
+   * and data2: nchw(origin format) / nchw (format)
+   * when we run graph, we give input tensors as tensor1:nchw(origin format) / 5hd(format)
+   * and tensor2:nchw(origin format) / fz(format)
+   * In interface RunGraphWithStreamAsync, ge will refresh data description with input tensor description
+   * to support inner format
+   * In aoe scene, we dump raw graph without inner format
+   */
+  if (is_op_desc) {
+    desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.base_sizes_));
+    desc.SetFormat(ge::Format(storage_desc.origin_format_));
+  } else {
+    desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.storage_sizes_));
+    desc.SetFormat(ge::Format(storage_desc.npu_format_));
+  }
 
-  return tensor_desc;
+  return desc;
 }
 
 template <typename ConstType>

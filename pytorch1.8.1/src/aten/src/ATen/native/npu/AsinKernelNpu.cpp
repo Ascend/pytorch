@@ -18,34 +18,40 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& asin_out_npu(
-    const Tensor& self,
-    Tensor& result) {
+Tensor& asin_out_npu_nocheck(Tensor& result, const Tensor& self) {
   OpCommand cmd;
   cmd.Name("Asin")
      .Input(self)
      .Output(result)
      .Run();
-
   return result;
+}
+
+Tensor& asin_out_npu(
+    const Tensor& self,
+    Tensor& result) {
+  OpPreparation::CheckOut(
+    {self},
+    result,
+    self);
+    asin_out_npu_nocheck(result, self);
+    return result;
 }
 
 Tensor asin_npu(const Tensor& self) {
   Tensor result = OpPreparation::ApplyTensor(self);
-  asin_out_npu(self, result);
+  asin_out_npu_nocheck(result, self);
   return result;
 }
 
 Tensor& asin_npu_(Tensor& self) {
-  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = asin_out_npu(contiguousSelf, contiguousSelf);
+    Tensor result = asin_out_npu_nocheck(contiguousSelf, contiguousSelf);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    asin_out_npu(self, self);
+    asin_out_npu_nocheck(self, self);
   }
-
   return self;
 }
 TORCH_LIBRARY_IMPL(aten, NPU, m) {

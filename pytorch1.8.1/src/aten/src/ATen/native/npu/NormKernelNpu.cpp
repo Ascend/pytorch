@@ -90,7 +90,7 @@ Tensor& norm_out_npu(
   OpPipeWithDefinedOut pipe;
   return pipe.CheckMemory({self}, {out})
     .Func([&self, &p, &dim, &keepdim](Tensor& out){norm_out_npu_nocheck(out, self, p, dim, keepdim, self.scalar_type());})
-    .Call(out);
+    .Call(out);  
 }
 
 // norm.dtype_out
@@ -152,6 +152,46 @@ Tensor norm_scalaropt_dim_npu(
   return norm_scalaropt_dim_dtype_npu(self, p, dim, keepdim, self.scalar_type());
 }
 
+// norm.names_ScalarOpt_dim_dtype
+Tensor norm_name_scalaropt_dim_dtype_npu(
+    const Tensor& self,
+    optional<Scalar> p,
+    DimnameList dim,
+    bool keepdim,
+    ScalarType dtype) {
+  return norm_scalaropt_dim_dtype_npu(self, p, dimnames_to_positions(self, dim), keepdim, dtype);
+}
+
+// norm.names_ScalarOpt_dim
+Tensor norm_names_scalaropt_dim_npu(
+    const Tensor& self,
+    optional<Scalar> p,
+    DimnameList dim,
+    bool keepdim) {
+  return norm_scalaropt_dim_npu(self, p, dimnames_to_positions(self, dim), keepdim);
+}
+
+// norm.names_dtype_out
+Tensor& norm_names_dtype_out_npu(
+    const Tensor& self,
+    optional<Scalar> p,
+    DimnameList dim,
+    bool keepdim, 
+    ScalarType dtype, 
+    Tensor& out) {
+  return norm_dtype_out_npu(self, p, dimnames_to_positions(self, dim), keepdim, dtype, out);
+}
+
+// norm.names_out
+Tensor& norm_names_out_npu(
+    const Tensor& self,
+    optional<Scalar> p,
+    DimnameList dim,
+    bool keepdim,
+    Tensor& out) {
+  return norm_out_npu(self, p, dimnames_to_positions(self, dim), keepdim, out);
+}
+
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("norm.ScalarOpt_dtype", TORCH_FN(norm_scalaropt_dtype_npu));
   m.impl("norm.Scalar", TORCH_FN(norm_scalar_npu));
@@ -159,6 +199,10 @@ TORCH_LIBRARY_IMPL(aten, NPU, m) {
   m.impl("norm.ScalarOpt_dim", TORCH_FN(norm_scalaropt_dim_npu));
   m.impl("norm.dtype_out", TORCH_FN(norm_dtype_out_npu));
   m.impl("norm.out", TORCH_FN(norm_out_npu));
+  m.impl("norm.names_ScalarOpt_dim_dtype", TORCH_FN(norm_name_scalaropt_dim_dtype_npu));
+  m.impl("norm.names_ScalarOpt_dim", TORCH_FN(norm_names_scalaropt_dim_npu));
+  m.impl("norm.names_dtype_out", TORCH_FN(norm_names_dtype_out_npu));
+  m.impl("norm.names_out", TORCH_FN(norm_names_out_npu));
 }
 
 } // namespace native

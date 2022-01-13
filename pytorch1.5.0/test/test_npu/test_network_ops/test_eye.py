@@ -68,6 +68,16 @@ class TestEye(TestCase):
             cpu_output = self.cpu_op_exec(item[2])
             npu_output = self.npu_op_exec(item[2])
             self.assertRtolEqual(cpu_output, npu_output)
+            
+    def test_eye_bool_common_shape_format(self, device):
+        shape_format = [
+            [torch.bool, 3, 3],
+            [torch.bool, 5, 6]
+        ]
+        for item in shape_format:
+            cpu_output = torch.eye(item[1], item[2], dtype=item[0], device="cpu")
+            npu_output = torch.eye(item[1], item[2], dtype=item[0], device="npu")
+            self.assertRtolEqual(cpu_output, npu_output.cpu())
 
     def test_eye_float32_common_shape_format(self, device):
         shape_format = [

@@ -44,7 +44,8 @@ public:
   static ge::TensorDesc InferGeTenosrDesc(
       const NPUStorageDesc& storage_desc,
       const caffe2::TypeMeta& type_meta,
-      const c10::optional<string>& real_dtype);
+      const c10::optional<string>& real_dtype,
+      bool is_op_desc = false);
 
   static void CheckAndBuildGeOpForNode(NodePtr node);
 

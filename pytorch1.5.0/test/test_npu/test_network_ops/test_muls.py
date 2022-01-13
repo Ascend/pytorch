@@ -42,6 +42,14 @@ class TestMuls(TestCase):
         input3 = input3.to("cpu")
         input3 = input3.numpy()
         return input3
+    
+    def cpu_inp_op_exec(self, input1, input2):
+        input1 *= input2
+        return input1
+    
+    def npu_inp_op_exec(self, input1, input2):
+        input1 *= input2
+        return input1.cpu()
 
     def test_muls_shape_format_fp16(self, device):
         format_list = [0, 3, 4, 29]
@@ -112,6 +120,21 @@ class TestMuls(TestCase):
         cpu_output = self.cpu_op_exec(cpu_input1, 0.5)
         npu_output = self.npu_op_exec(npu_input1, 0.5)
         self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_mul_inp_shape_format_bool(self, device):
+        format_list = [0, 3, 4, 29]
+        shape_list = [[1], (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
+        shape_format = [
+            [torch.bool, i, j] for i in format_list for j in shape_list
+        ]
+        for item in shape_format:
+            cpu_input1 = torch.randint(0, 2, item[2]).to(item[0])
+            npu_input1 = cpu_input1.npu().npu_format_cast(item[1])
+            cpu_input2 = torch.randint(0, 2, item[2]).to(item[0])
+            npu_input2 = cpu_input2.npu().npu_format_cast(item[1])
+            cpu_output = self.cpu_inp_op_exec(cpu_input1, cpu_input2)
+            npu_output = self.npu_inp_op_exec(npu_input1, npu_input2)
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestMuls, globals(), except_for="cpu")
 if __name__ == "__main__":

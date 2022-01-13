@@ -133,13 +133,21 @@ Tensor& mul_npu_(Tensor& self, const Tensor& other) {
   SmallVector<Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-  if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
+  Tensor selfDtypeCast = 
+      (self.scalar_type() == at::kBool) ? self.npu_dtype_cast(at::kFloat) : self;
+  Tensor otherDtypeCast = 
+      (other.scalar_type() == at::kBool) ? other.npu_dtype_cast(at::kFloat) : other;
+  if (!NpuUtils::check_match(&selfDtypeCast)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(selfDtypeCast);
+    Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, otherDtypeCast);
+    NpuUtils::format_fresh_view(selfDtypeCast, result);
   } else {
-    mul_out_npu_nocheck(self, self, other);
+    mul_out_npu_nocheck(selfDtypeCast, selfDtypeCast, otherDtypeCast);
   }
+  if (self.scalar_type() == at::kBool) {
+    selfDtypeCast = selfDtypeCast.npu_dtype_cast(at::kBool);
+  }
+  self.copy_(selfDtypeCast);
 
   return self;
 }

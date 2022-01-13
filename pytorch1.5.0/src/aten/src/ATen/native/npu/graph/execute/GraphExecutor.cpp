@@ -213,15 +213,22 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
   auto input_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
   for (size_t index = 0; index < input_storages.size(); ++index) {
-    auto data_node = input_storages[index]
-                         ->get_mutable_npu_graph_desc()
-                         .graph_value.GetDataNode();
+    auto &graph_desc = input_storages[index]->get_mutable_npu_graph_desc();
+    auto data_node = graph_desc.graph_value.GetDataNode();
     auto op_ptr = data_node.value()->GetGeOp();
     if (data_node.value()->GetOpType() == kDataNodeType) {
       if (op_ptr == nullptr) {
         data_node.value()->SetGeOp(std::make_shared<ge::op::Data>());
         op_ptr = data_node.value()->GetGeOp();
       }
+      auto op_desc = ATenGeBridge::InferGeTenosrDesc(
+          input_storages[index]->get_npu_desc(),
+          input_storages[index]->dtype(),
+          graph_desc.graph_value.GetRealDtype(),
+          true);
+      // x and y are the input and output names of Data IR
+      op_ptr->UpdateInputDesc("x", op_desc);
+      op_ptr->UpdateOutputDesc("y", op_desc);
       op_ptr->SetAttr(kDataAttrIndex, static_cast<uint32_t>(index));
     }
     ops.push_back(*op_ptr);

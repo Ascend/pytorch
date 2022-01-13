@@ -31,7 +31,7 @@ class TestNorm(TestCase):
           if  i < data.dim() and keepdimVal == False:
             output_size.pop(i)  
         return output_size
-        
+    
     def cpu_dtype_out_exec(self, data, pVal, dimVal, keepdimVal, dtypeVal):
         output_size = self.norm_output_size(data, dimVal, keepdimVal)
         cpu_output = torch.randn(output_size)
@@ -77,4 +77,4 @@ class TestNorm(TestCase):
 
 instantiate_device_type_tests(TestNorm, globals(), except_for="cpu")
 if __name__ == "__main__":
-    run_tests()
+    run_tests() 
