@@ -32,7 +32,7 @@
 
 This framework is modified based on the open-source PyTorch 1.5.0 developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
-PyTorch 1.8.1 is supported by this version and later, and this version inherits the features of PyTorch 1.5.0 and provides the same functions, except for the profiling tool. In addition, it optimizes the backend operator adaptation. Currently, PyTorch 1.8.1 supports only the ResNet-50 network model.
+PyTorch 1.8.1 is supported by this version and later, and this version inherits the features of PyTorch 1.5.0 and provides the same functions, except for the Profiling tool. In addition, it optimizes the backend operator adaptation. Currently, PyTorch 1.8.1 supports only the ResNet-50 network model.
 
 <h3 id="new-featuresmd">New Features</h3>
 
@@ -61,7 +61,7 @@ PyTorch 1.8.1 is supported by this version and later, and this version inherits 
 </tr>
 <tr id="row13971435754"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p79831331353"><a name="p79831331353"></a><a name="p79831331353"></a>Operator overflow/underflow detection tool</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a>Supported IR-level operator overflow/underflow detection in the PyTorch framework. When AI Core operator overflow/underflow occurs, the IR information is displayed.</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a>Supported IR-level operator overflow/underflow detection in the PyTorch framework. When an AI Core operator overflow/underflow occurs, the IR information is displayed.</p>
 </td>
 </tr>
 <tr id="row185381431133610"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p953883153611"><a name="p953883153611"></a><a name="p953883153611"></a>OS compatibility</p>
@@ -226,9 +226,9 @@ N/A
 </th>
 </tr>
 </thead>
-<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type</p>
+<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type support</p>
 </td>
-<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPU does not support the input or output of the inf/nan data of the float16 type.</p>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPUs do not support the input or output of the inf/nan data of the float16 type.</p>
 </td>
 </tr>
 <tr id="row146991520153016"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p156997200308"><a name="p156997200308"></a><a name="p156997200308"></a>Data format</p>
@@ -296,12 +296,12 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 </thead>
 <tbody><tr id="row171322953713"><td class="cellrowborder" rowspan="7" valign="top" width="10.489999999999998%" headers="mcps1.2.4.1.1 "><p id="p10237517181"><a name="p10237517181"></a><a name="p10237517181"></a>Adapted training models</p>
 </td>
-<td class="cellrowborder" valign="top" width="26.3%" headers="mcps1.2.4.1.2 "><p id="p6134294377"><a name="p6134294377"></a><a name="p6134294377"></a>YOLOV4</p>
+<td class="cellrowborder" valign="top" width="26.3%" headers="mcps1.2.4.1.2 "><p id="p6134294377"><a name="p6134294377"></a><a name="p6134294377"></a>YOLOv4</p>
 </td>
 <td class="cellrowborder" valign="top" width="63.21%" headers="mcps1.2.4.1.3 "><p id="p314533811397"><a name="p314533811397"></a><a name="p314533811397"></a>-</p>
 </td>
 </tr>
-<tr id="row15990182233714"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p399019224374"><a name="p399019224374"></a><a name="p399019224374"></a>YOLOV3</p>
+<tr id="row15990182233714"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p399019224374"><a name="p399019224374"></a><a name="p399019224374"></a>YOLOv3</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p1714553816396"><a name="p1714553816396"></a><a name="p1714553816396"></a>-</p>
 </td>
@@ -333,22 +333,22 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 </tr>
 <tr id="row9627165910386"><td class="cellrowborder" rowspan="4" valign="top" width="10.489999999999998%" headers="mcps1.2.4.1.1 "><p id="p1561535993811"><a name="p1561535993811"></a><a name="p1561535993811"></a>PyTorch features adapted to NPUs</p>
 </td>
-<td class="cellrowborder" valign="top" width="26.3%" headers="mcps1.2.4.1.2 "><p id="p136151659163819"><a name="p136151659163819"></a><a name="p136151659163819"></a>Basic Framework Functions</p>
+<td class="cellrowborder" valign="top" width="26.3%" headers="mcps1.2.4.1.2 "><p id="p136151659163819"><a name="p136151659163819"></a><a name="p136151659163819"></a>Basic framework functions</p>
 </td>
 <td class="cellrowborder" valign="top" width="63.21%" headers="mcps1.2.4.1.3 "><p id="p1661535983813"><a name="p1661535983813"></a><a name="p1661535983813"></a>Added the function of adapted operator development. For details, see the operator list.</p>
 </td>
 </tr>
 <tr id="row7627155917380"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p1561525916383"><a name="p1561525916383"></a><a name="p1561525916383"></a>Model Accuracy Analyzer</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p19616115953816"><a name="p19616115953816"></a><a name="p19616115953816"></a>Added model accuracy analyzers and supported training accuracy demarcation.</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p19616115953816"><a name="p19616115953816"></a><a name="p19616115953816"></a>Added the Model Accuracy Analyzer and supported training accuracy demarcation.</p>
 </td>
 </tr>
 <tr id="row46269593383"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p0616559163819"><a name="p0616559163819"></a><a name="p0616559163819"></a>Ascend 710 AI Processor</p>
 </td>
-<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p186161459193813"><a name="p186161459193813"></a><a name="p186161459193813"></a>Supported the online inference on the Ascend 710 AI Processor.</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p186161459193813"><a name="p186161459193813"></a><a name="p186161459193813"></a>Supported the online inference on Ascend 710 AI Processors.</p>
 </td>
 </tr>
-<tr id="row76261059153817"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p11616175953812"><a name="p11616175953812"></a><a name="p11616175953812"></a>OS Compatibility</p>
+<tr id="row76261059153817"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p11616175953812"><a name="p11616175953812"></a><a name="p11616175953812"></a>OS compatibility</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p8935115971714"><a name="p8935115971714"></a><a name="p8935115971714"></a>Supported Ubuntu 18.04.5 and openEuler 20.03 LTS.</p>
 </td>
@@ -373,9 +373,9 @@ N/A
 </th>
 </tr>
 </thead>
-<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type</p>
+<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type support</p>
 </td>
-<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>The NPU does not support the input or output of the inf/nan data of the float16 type.</p>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPUs do not support the input or output of the inf/nan data of the float16 type.</p>
 </td>
 </tr>
 <tr id="row146991520153016"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p156997200308"><a name="p156997200308"></a><a name="p156997200308"></a>Data format</p>
