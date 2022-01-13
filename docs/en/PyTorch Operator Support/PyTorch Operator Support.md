@@ -1,9 +1,11 @@
-# PyTorch Operator Support
--   [Mapping Between PyTorch Native Operators and Ascend Adapted Operators](#mapping-between-pytorch-native-operators-and-ascend-adapted-operatorsmd)
--   [PyTorch Operators Customized by Ascend](#pytorch-operators-customized-by-ascendmd)
-<h2 id="mapping-between-pytorch-native-operators-and-ascend-adapted-operatorsmd">Mapping Between PyTorch Native Operators and Ascend Adapted Operators</h2>
+#  PyTorch Operator Support
+
+-   [Mapping Between PyTorch Native Operators and Ascend Adapted Operators](#Mapping Between PyTorch Native Operators and Ascend Adapted Operatorsmd)
+-   [PyTorch Operators Customized by Ascend](#PyTorch Operators Customized by Ascendmd)
+<h2 id="Mapping Between PyTorch Native Operators and Ascend Adapted Operatorsmd">Mapping Between PyTorch Native Operators and Ascend Adapted Operators</h2>
 
 <a name="table16733238131217"></a>
+
 <table><thead align="left"><tr id="row1869443913127"><th class="cellrowborder" valign="top" width="8.694379391100702%" id="mcps1.1.4.1.1"><p id="p354012516592"><a name="p354012516592"></a><a name="p354012516592"></a>No.</p>
 </th>
 <th class="cellrowborder" valign="top" width="46.18462138953943%" id="mcps1.1.4.1.2"><p id="p1369433921218"><a name="p1369433921218"></a><a name="p1369433921218"></a>PyTorch Native Operator</p>
@@ -5643,7 +5645,7 @@
 </tbody>
 </table>
 
-<h2 id="pytorch-operators-customized-by-ascendmd">PyTorch Operators Customized by Ascend</h2>
+<h2 id="PyTorch Operators Customized by Ascendmd">PyTorch Operators Customized by Ascend</h2>
 
 <a name="table336910472136"></a>
 <table><thead align="left"><tr id="row145917478132"><th class="cellrowborder" valign="top" width="8.334944884935215%" id="mcps1.1.4.1.1"><p id="p1055148824"><a name="p1055148824"></a><a name="p1055148824"></a>No.</p>
@@ -6293,4 +6295,3 @@
 </tr>
 </tbody>
 </table>
-

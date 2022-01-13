@@ -1,106 +1,125 @@
 # PyTorch Network Model Porting and Training Guide
--   [Overview](#overviewmd)
--   [Restrictions and Limitations](#restrictions-and-limitationsmd)
--   [Porting Process](#porting-processmd)
--   [Model Porting Evaluation](#model-porting-evaluationmd)
--   [Environment Setup](#environment-setupmd)
--   [Model Porting](#model-portingmd)
-    -   [Tool-Facilitated](#tool-facilitatedmd)
-        -   [Introduction](#introductionmd)
-        -   [Instructions](#instructionsmd)
-        -   [Result Analysis](#result-analysismd)
-    -   [Manual](#manualmd)
-        -   [Single-Device Training Model Porting](#single-device-training-model-portingmd)
-        -   [Multi-Device Training Model Porting](#multi-device-training-model-portingmd)
-        -   [PyTorch-related API Replacement](#pytorch-related-api-replacementmd)
-    -   [Mixed Precision](#mixed-precisionmd)
--   [Model Training](#model-trainingmd)
--   [Performance Analysis and Optimization](#performance-analysis-and-optimizationmd)
-    -   [Prerequisites](#prerequisitesmd)
-    -   [Commissioning Process](#commissioning-processmd)
-        -   [Overall Guideline](#overall-guidelinemd)
-        -   [Training Data Collection](#training-data-collectionmd)
-        -   [Host-side Performance Optimization](#host-side-performance-optimizationmd)
-            -   [Overview](#overview-0md)
-            -   [Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-x86-servermd)
-            -   [Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-arm-servermd)
-            -   [Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-x86-servermd)
-            -   [\(Optional\) Installing the OpenCV Library of the Specified Version](#optional-installing-the-opencv-library-of-the-specified-versionmd)
-        -   [Training Performance Optimization](#training-performance-optimizationmd)
-    -   [Affinity Library](#affinity-librarymd)
-        -   [Source](#sourcemd)
-        -   [Functions](#functionsmd)
--   [Precision Commissioning](#precision-commissioningmd)
-    -   [Prerequisites](#prerequisites-1md)
-    -   [Commissioning Process](#commissioning-process-2md)
-        -   [Overall Guideline](#overall-guideline-3md)
-        -   [Precision Tuning Methods](#precision-tuning-methodsmd)
-            -   [Single-Operator Overflow/Underflow Detection](#single-operator-overflow-underflow-detectionmd)
-            -   [Network-wide Commissioning ](#network-wide-commissioningmd)
--   [Model Saving and Conversion](#model-saving-and-conversionmd)
-    -   [Introduction](#introduction-4md)
-    -   [Saving a Model](#saving-a-modelmd)
-    -   [Exporting an ONNX Model](#exporting-an-onnx-modelmd)
--   [Samples](#samplesmd)
-    -   [ResNet-50 Model Porting](#resnet-50-model-portingmd)
-        -   [Obtaining Samples](#obtaining-samplesmd)
-        -   [Porting the Training Script](#porting-the-training-scriptmd)
-            -   [Single-Device Training Modification](#single-device-training-modificationmd)
-            -   [Distributed Training Modification](#distributed-training-modificationmd)
-        -   [Script Execution](#script-executionmd)
-    -   [ShuffleNet Model Optimization](#shufflenet-model-optimizationmd)
-        -   [Obtaining Samples](#obtaining-samples-5md)
-        -   [Model Evaluation](#model-evaluationmd)
-        -   [Porting the Network](#porting-the-networkmd)
-        -   [Commissioning the Network](#commissioning-the-networkmd)
--   [References](#referencesmd)
-    -   [Single-Operator Sample Building](#single-operator-sample-buildingmd)
-    -   [Single-Operator Dump Method](#single-operator-dump-methodmd)
-    -   [Common Environment Variables](#common-environment-variablesmd)
-    -   [dump op Method](#dump-op-methodmd)
-    -   [Compilation Option Settings](#compilation-option-settingsmd)
-    -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)
-    -   [HDF5 Compilation and Installation](#hdf5-compilation-and-installationmd)
--   [FAQs](#faqsmd)
-    -   [FAQs About Software Installation](#faqs-about-software-installationmd)
-        -   [pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failedmd)
-    -   [FAQs About Model and Operator Running](#faqs-about-model-and-operator-runningmd)
-        -   [What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operatormd)
-        -   [What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operatmd)
-        -   [What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what-hemd)
-        -   [What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what\(\): 0 INTERNAL ASSERT" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what-0md)
-        -   [What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-runningmd)
-        -   [What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-runningmd)
-        -   [What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-runningmd)
-        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-runningmd)
-        -   [What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-6md)
-        -   [What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled \(export TASK\_QUEUE\_ENABLE=0\) During Model Running?](#what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabledmd)
-        -   [What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1\(failed\)" Is Displayed During Model Running?](#what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1failed-is-displayed-duringmd)
-    -   [FAQs About Model Commissioning](#faqs-about-model-commissioningmd)
-        -   [What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-npmd)
-        -   [What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning](#what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-themd)
-        -   [What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?](#what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissionimd)
-        -   [What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?](#what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tormd)
-    -   [FAQs About Other Operations](#faqs-about-other-operationsmd)
-        -   [What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronizationmd)
-        -   [What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?](#what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-existmd)
-        -   [What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?](#what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-mmd)
-        -   [What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?](#what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-usedmd)
-        -   [What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?](#what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreenginemd)
-        -   [What Do I Do If a Hook Failure Occurs?](#what-do-i-do-if-a-hook-failure-occursmd)
-        -   [What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?](#what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loadedmd)
-    -   [FAQs About Distributed Model Training](#faqs-about-distributed-model-trainingmd)
-        -   [What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd)
-        -   [What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect-timed-out-is-displayed-during-distributed-mmd)
-<h2 id="overviewmd">Overview</h2>
+
+- [PyTorch Network Model Porting and Training Guide](#pytorch-network-model-porting-and-training-guide)
+  - [Overview](#overview)
+    - [Solution Features and Advantages](#solution-features-and-advantages)
+  - [Restrictions and Limitations](#restrictions-and-limitations)
+  - [Porting Process](#porting-process)
+  - [Quick Start](#quick-start)
+    - [Introduction](#introduction)
+    - [Model Selection](#model-selection)
+    - [Model Porting Evaluation](#model-porting-evaluation)
+    - [Environment Setup](#environment-setup)
+    - [Model Porting](#model-porting)
+      - [Single-Device Training Porting](#single-device-training-porting)
+      - [Single-Server Multi-Device Training Modification](#single-server-multi-device-training-modification)
+    - [Model Training](#model-training)
+  - [Model Porting Evaluation](#model-porting-evaluation-1)
+  - [Environment Setup](#environment-setup-1)
+  - [Model Porting](#model-porting-1)
+    - [Tool-Facilitated](#tool-facilitated)
+      - [Introduction](#introduction-1)
+        - [Overview](#overview-1)
+        - [System Requirement](#system-requirement)
+        - [Environment Setup](#environment-setup-2)
+      - [Instructions](#instructions)
+        - [Command-line Options](#command-line-options)
+        - [Customizing a Rule File](#customizing-a-rule-file)
+        - [Performing Conversion](#performing-conversion)
+      - [Result Analysis](#result-analysis)
+    - [Manual](#manual)
+      - [Single-Device Training Model Porting](#single-device-training-model-porting)
+      - [Multi-Device Training Model Porting](#multi-device-training-model-porting)
+      - [PyTorch-related API Replacement](#pytorch-related-api-replacement)
+    - [Mixed Precision](#mixed-precision)
+      - [Overview](#overview-2)
+      - [Supported Features](#supported-features)
+      - [Integrating Mixed Precision Module Into the PyTorch Model](#integrating-mixed-precision-module-into-the-pytorch-model)
+  - [Model Training](#model-training-1)
+  - [Performance Analysis and Optimization](#performance-analysis-and-optimization)
+    - [Prerequisites](#prerequisites)
+    - [Commissioning Process](#commissioning-process)
+      - [Overall Guideline](#overall-guideline)
+      - [Training Data Collection](#training-data-collection)
+        - [Profile Data Collection](#profile-data-collection)
+        - [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info)
+      - [Host-side Performance Optimization](#host-side-performance-optimization)
+        - [Overview](#overview-3)
+        - [Changing the CPU Performance Mode (x86 Server)](#changing-the-cpu-performance-mode-x86-server)
+          - [Setting the Power Policy to High Performance](#setting-the-power-policy-to-high-performance)
+          - [Setting the CPU Mode to Performance](#setting-the-cpu-mode-to-performance)
+        - [Changing the CPU Performance Mode (ARM Server)](#changing-the-cpu-performance-mode-arm-server)
+          - [Setting the Power Policy to High Performance](#setting-the-power-policy-to-high-performance-1)
+        - [Installing the High-Performance Pillow Library (x86 Server)](#installing-the-high-performance-pillow-library-x86-server)
+        - [(Optional) Installing the OpenCV Library of the Specified Version](#optional-installing-the-opencv-library-of-the-specified-version)
+      - [Training Performance Optimization](#training-performance-optimization)
+        - [Operator Bottleneck Optimization](#operator-bottleneck-optimization)
+        - [Copy Bottleneck Optimization](#copy-bottleneck-optimization)
+        - [Framework Bottleneck Optimization](#framework-bottleneck-optimization)
+        - [Compilation Bottleneck Optimization](#compilation-bottleneck-optimization)
+    - [E2E Performance Tool (E2E prof) Instructions](#e2e-performance-tool-e2e-prof-instructions)
+      - [Introduction](#introduction-2)
+      - [Usage Tutorial](#usage-tutorial)
+      - [Result Parsing](#result-parsing)
+      - [Advanced Settings](#advanced-settings)
+    - [Affinity Library](#affinity-library)
+      - [Source](#source)
+      - [Functions](#functions)
+  - [Precision Commissioning](#precision-commissioning)
+    - [Prerequisites](#prerequisites-1)
+    - [Commissioning Process](#commissioning-process-1)
+      - [Overall Guideline](#overall-guideline-1)
+      - [Precision Tuning Methods](#precision-tuning-methods)
+        - [**Environment Setup**](#environment-setup-3)
+        - [Model Operator Precision Comparison](#model-operator-precision-comparison)
+        - [Single-Operator Overflow/Underflow Detection](#single-operator-overflowunderflow-detection)
+        - [Mapping Between IR and TBE Operators](#mapping-between-ir-and-tbe-operators)
+        - [Mapping Between NPU and GPU Operators.](#mapping-between-npu-and-gpu-operators)
+  - [Model Saving and Conversion](#model-saving-and-conversion)
+    - [Introduction](#introduction-3)
+    - [Saving a Model](#saving-a-model)
+    - [Exporting an ONNX Model](#exporting-an-onnx-model)
+      - [Introduction](#introduction-4)
+      - [Using the .pth or .pt File to Export the ONNX Model](#using-the-pth-or-pt-file-to-export-the-onnx-model)
+      - [Using the .pth.tar File to Export the ONNX Model](#using-the-pthtar-file-to-export-the-onnx-model)
+  - [Samples](#samples)
+    - [ShuffleNet Model Optimization](#shufflenet-model-optimization)
+      - [Obtaining Samples](#obtaining-samples)
+        - [How to Obtain](#how-to-obtain)
+        - [Directory Structure](#directory-structure)
+      - [Model Evaluation](#model-evaluation)
+      - [Porting the Network](#porting-the-network)
+      - [Commissioning the Network](#commissioning-the-network)
+        - [Forward check](#forward-check)
+        - [Entire Network Check](#entire-network-check)
+        - [Python Optimization Details](#python-optimization-details)
+  - [References](#references)
+    - [Single-Operator Sample Building](#single-operator-sample-building)
+    - [Single-Operator Dump Method](#single-operator-dump-method)
+      - [Collecting Dump Data](#collecting-dump-data)
+      - [Viewing Overflowed Data](#viewing-overflowed-data)
+      - [Parse the dump file of an overflow operator.](#parse-the-dump-file-of-an-overflow-operator)
+    - [Common Environment Variables](#common-environment-variables)
+    - [dump op Method](#dump-op-method)
+    - [Compilation Option Settings](#compilation-option-settings)
+    - [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730)
+    - [HDF5 Compilation and Installation](#hdf5-compilation-and-installation)
+  - [FAQs](#faqs)
+    - [FAQs About Software Installation](#faqs-about-software-installation)
+    - [FAQs About Model and Operator Running](#faqs-about-model-and-operator-running)
+    - [FAQs About Model Commissioning](#faqs-about-model-commissioning)
+    - [FAQs About Other Operations](#faqs-about-other-operations)
+    - [FAQs About Distributed Model Training](#faqs-about-distributed-model-training)
+
+## Overview
 
 Currently, the solution of adapting to the Ascend AI Processor is an online solution.
 
-### Solution Features and Advantages<a name="section1335113523385"></a>
+### Solution Features and Advantages
 
-The acceleration of the Ascend AI Processor is implemented by calling various operators \(OP-based\). That is, the AscendCL is used to call one or more D affinity operators to replace the original GPU-based implementation.  [Figure 1](#fig2267112413239)  shows the logical model of the implementation.
+The acceleration of the Ascend AI Processor is implemented by calling various operators (OP-based). That is, the AscendCL is used to call one or more D affinity operators to replace the original GPU-based implementation.  [Figure 1](#fig2267112413239)  shows the logical model of the implementation.
 
-**Figure  1**  Logical model<a name="fig2267112413239"></a>  
+**Figure  1**  Logical model 
 
 
 ![](figures/pytorch适配逻辑结构图-优化.png)
@@ -113,7 +132,7 @@ Currently, the main reasons for selecting the online adaptation solution are as 
 4.  It has good scalability. During the streamlining process, only the development and implementation of related compute operators are involved for new network types or structures. Framework operators, reverse graph building, and implementation mechanisms can be reused.
 5.  The usage and style are the same as those of the GPU-based implementation. During online adaption, you only need to specify the device as the Ascend AI Processor in Python and device operations to develop, train, and debug the network in PyTorch using the Ascend AI Processor. You do not need to pay attention to the underlying details of the Ascend AI Processor. In this way, you can minimize the modification and complete porting with low costs.
 
-<h2 id="restrictions-and-limitationsmd">Restrictions and Limitations</h2>
+## Restrictions and Limitations
 
 -   In the  **infershape**  phase, operators do not support unknown shape inference.
 -   Only the float16 operator can be used for cube computing.
@@ -126,17 +145,15 @@ Currently, the main reasons for selecting the online adaptation solution are as 
     -   Allocation at only 1, 2, 4, or 8 processors is supported.
     -   Only the int8, int32, float16, and float32 data types are supported.
 
+## Porting Process
 
-<h2 id="porting-processmd">Porting Process</h2>
+Model porting refers to moving models that have been implemented in the open-source community to an Ascend AI Processor.  [Figure 2](#fig759451810422)  shows the model porting process.
 
-Model porting refers to moving models that have been implemented in the open-source community to an Ascend AI Processor.  [Figure 1](#fig759451810422)  shows the model porting process.
-
-**Figure  1**  Porting process<a name="fig759451810422"></a>  
+**Figure  2**  Porting process 
 ![](figures/porting-process.png "porting-process")
 
 **Table  1**  Porting process
 
-<a name="table634981613275"></a>
 <table><thead align="left"><tr id="row163496162279"><th class="cellrowborder" valign="top" width="28.18%" id="mcps1.2.3.1.1"><p id="p163497165271"><a name="p163497165271"></a><a name="p163497165271"></a>Scenario</p>
 </th>
 <th class="cellrowborder" valign="top" width="71.82%" id="mcps1.2.3.1.2"><p id="p12349121682716"><a name="p12349121682716"></a><a name="p12349121682716"></a>Description</p>
@@ -145,7 +162,7 @@ Model porting refers to moving models that have been implemented in the open-sou
 </thead>
 <tbody><tr id="row17349111602716"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1234921620273"><a name="p1234921620273"></a><a name="p1234921620273"></a>Model selection</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>For details, see <a href="#model-porting-evaluationmd#li5941731123517">Model Selection</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1338111557277"><a name="p1338111557277"></a><a name="p1338111557277"></a>Select the model to be ported.</a></p>
 </td>
 </tr>
 <tr id="row53492016112717"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p133501716132719"><a name="p133501716132719"></a><a name="p133501716132719"></a>Model porting evaluation</p>
@@ -155,7 +172,7 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>Operator development</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>For details, see the <span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a><em id="en-us_topic_0000001182024971_i12125819204013"><a name="en-us_topic_0000001182024971_i12125819204013"></a><a name="en-us_topic_0000001182024971_i12125819204013"></a>PyTorch Operator Development Guide</em></span></span>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>For details, see the <span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a><em id="en-us_topic_0000001182024971_i12125819204013"><a name="en-us_topic_0000001182024971_i12125819204013"></a><a name="en-us_topic_0000001182024971_i12125819204013"></a>PyTorch Operator Developer Guide</em></span></span>.</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>Environment setup</p>
@@ -206,54 +223,608 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tbody>
 </table>
 
-<h2 id="model-porting-evaluationmd">Model Porting Evaluation</h2>
+## Quick Start
 
-1.  When selecting models, select authoritative PyTorch models as benchmarks, including but not limited to PyTorch \([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)\), facebookresearch \([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)\), and open-mmlab \([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)\).
-2.  Check the operator adaptation. Before porting the original model and training script to an Ascend AI Processor, train the original model and training script on the CPU, obtain the operator information by using the dump op method, and compare the operator information with that in the  _PyTorch Operator Support_  to check whether the operator is supported. For details about the dump op method, see  [dump op Method](#dump-op-methodmd). If an operator is not supported, develop the operator. For details, see the  _PyTorch Operator Development Guide_.
+### Introduction
+
+This section describes how to port a ResNet-50 model to help users quickly understand the porting process.
+
+### Model Selection
+
+In this example, the [main.py](https://github.com/pytorch/examples/tree/master/imagenet/main.py) script for model training on the ImageNet dataset is ported to adapt to Ascend 910 AI Processors. This script can be obtained from the PyTorch official website 
+
+### Model Porting Evaluation
+
+Whether a model can be successfully ported depends on whether its operators are supported by Ascend AI Processors. Therefore, you can evaluate whether operators of the model are supported by Ascend AI Processors using either of the following methods:
+
+- Before model porting, obtain information about the operators by dumping them, and then compare them with those in the PyTorch Operator Support to determine whether they are supported by Ascend AI Processors.
+- After model porting, run the training script on an Ascend AI Processor. If operators not supported by Ascend AI Processors exist, an error is reported.
+
+If operators not supported by Ascend AI Processors exist, you can replace them with equivalent operators or develop other appropriate operators. For details, see the *PyTorch Operator Developer Guide*.
+
+The operators used by the ResNet-50 model are supported by Ascend AI Processors.
+
+### Environment Setup
+
+Install the CANN software, PyTorch framework, and mixed precision module, and set environment variables. For details, see the *PyTorch Installation Guide*.
+
+Set up the Python environment and prepare dependencies required for model running. For details, see the PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet).
+
+### Model Porting
+
+Modify the **main.py** training script to implement single-device model training and single-server multi-device model training porting.
+
+#### Single-Device Training Porting
+
+1. Import the **torch.npu** module to **main.py**.
+
+   ```python
+   import torch.npu
+   ```
+
+2. Define the training device in **main.py**.
+
+   ```python
+   CALCULATE_DEVICE = "npu:0"
+   ```
+
+3. Modify the parameters and options so that the script can be trained only on Ascend 910 AI Processors.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       # The source code specifies that the GPU is used for training. The following is an example.
+       # args.gpu = gpu
+       ############## npu modify begin #############
+       args.gpu = None
+       ############## npu modify end #############
+       
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+           
+       if args.distributed:
+           if args.dist_url == "env://" and args.rank == -1:
+               args.rank = int(os.environ["RANK"])
+           if args.multiprocessing_distributed:
+               # For multiprocessing distributed training, rank needs to be the
+               # global rank among all the processes
+               args.rank = args.rank * ngpus_per_node + gpu
+           dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                   world_size=args.world_size, rank=args.rank)
+       # create model
+       if args.pretrained:
+           print("=> using pre-trained model '{}'".format(args.arch))
+           model = models.__dict__[args.arch](pretrained=True)
+       else:
+           print("=> creating model '{}'".format(args.arch))
+           model = models.__dict__[args.arch]()
+       # The source code determines whether to perform training on the GPU. The following is an example.
+       # if not torch.cuda.is_available():
+           # print('using CPU, this will be slow')
+       # elif args.distributed:
+       ############## npu modify begin #############
+       # After the porting, the source code only determines whether to perform distributed training (without determining whether to perform training on the GPU).
+       if args.distributed:
+       ############## npu modify end #############
+           # For multiprocessing distributed, DistributedDataParallel constructor
+           # should always set the single device scope, otherwise,
+           # DistributedDataParallel will use all available devices.
+           if args.gpu is not None:
+              ......
+   ```
+
+4. Port the model and loss function to an Ascend 910 AI Processor for calculation.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python 
+   elif args.gpu is not None:
+           torch.cuda.set_device(args.gpu)
+           model = model.cuda(args.gpu)
+       else:
+           # DataParallel will divide and allocate batch_size to all available GPUs
+           if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+               model.features = torch.nn.DataParallel(model.features)
+               model.cuda()
+           else:
+               # The source code uses the torch.nn.DataParallel() class to accelerate training on multiple GPUs.
+               # model = torch.nn.DataParallel(model).cuda()
+           ############## npu modify begin #############
+               # Port the model to the NPU for training.
+              model = model.to(CALCULATE_DEVICE)
+          ############## npu modify end #############
+       # In the source code, the loss function is calculated on the GPU.
+       # # define loss function (criterion) and optimizer
+       # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+       ############## npu modify begin #############
+       # Port the loss function to the NPU for calculation.
+       criterion = nn.CrossEntropyLoss().to(CALCULATE_DEVICE)   
+       ############## npu modify end #############
+   ```
+
+5. Change the type of the **target** operator in the dataset to **int32** to resolve the operator error. Port the dataset to the Ascend 910 AI Processor for calculation.
+
+   - Code location: **train()** function in **main.py**:
+
+     ```python
+        for i, (images, target) in enumerate(train_loader):
+             # measure data loading time
+             data_time.update(time.time() - end)
+     
+             if args.gpu is not None:
+                 images = images.cuda(args.gpu, non_blocking=True)
+             # In the source code, the training dataset is loaded and calculated on the GPU. The following is an example.
+             # if torch.cuda.is_available():
+                 # target = target.cuda(args.gpu, non_blocking=True)
+             ############## npu modify begin #############
+             # Port the dataset to the NPU for calculation and modify the target data type to improve performance.
+             if 'npu' in CALCULATE_DEVICE:     
+                 target = target.to(torch.int32)                      
+             images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
+             ############## npu modify end #############
+     ```
+
+   - Code location: **validate()** function in **main.py**:
+
+     ```python
+         with torch.no_grad():
+             end = time.time()
+             for i, (images, target) in enumerate(val_loader):
+                 if args.gpu is not None:
+                     images = images.cuda(args.gpu, non_blocking=True)
+                 # In the source code, the training dataset is loaded and calculated on the GPU. The following is an example.
+                 # if torch.cuda.is_available():
+                     # target = target.cuda(args.gpu, non_blocking=True)
+                 ############## npu modify begin #############
+                 # Port the dataset to the NPU for calculation and modify the target data type.
+                 if 'npu' in CALCULATE_DEVICE:
+                     target = target.to(torch.int32)
+               images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
+                ############## npu modify end #############
+     ```
+
+6. Set the device in use.
+
+   Code location: Main function entry point in **main.py**
+
+   ```python
+   if __name__ == '__main__':
+       ############## npu modify begin #############
+       if 'npu' in CALCULATE_DEVICE:
+          torch.npu.set_device(CALCULATE_DEVICE)
+       ############## npu modify begin #############
+       main()
+   ```
+
+#### Single-Server Multi-Device Training Modification
+
+1. Add a header file to **main.py** to support mixed precision training of PyTorch-based models on Ascend 910 AI Processors.
+
+   ```python
+   import torch.npu
+   from apex import amp
+   ```
+
+2. Add the following parameters, including those for specifying the Ascend 910 AI Processors involved in training and those required for mixed precision training.
+
+   ```python
+   parser.add_argument('--device', default='npu', type=str, help='npu or gpu')                        
+   parser.add_argument('--addr', default='10.136.181.115', type=str, help='master addr')                        
+   parser.add_argument('--device-list', default='0,1,2,3,4,5,6,7', type=str, help='device id list')
+   parser.add_argument('--amp', default=False, action='store_true', help='use amp to train the model')                    
+   parser.add_argument('--loss-scale', default=1024., type=float,
+                       help='loss scale using in amp, default -1 means dynamic')
+   parser.add_argument('--opt-level', default='O2', type=str,
+                       help='loss scale using in amp, default -1 means dynamic')
+   ```
+
+3. Create a mapping function from **device_id** to **process_id** and specify the device for training. Add the following API to the **main.py** function:
+
+   ```python
+   def device_id_to_process_device_map(device_list):
+       devices = device_list.split(",")
+       devices = [int(x) for x in devices]
+       devices.sort()
+   
+       process_device_map = dict()
+       for process_id, device_id in enumerate(devices):
+           process_device_map[process_id] = device_id
+   
+       return process_device_map
+   ```
+
+4. Specify the IP address and port number of the training server.
+
+   Code location: Main function **main()** in **main.py** (The changes are in bold.)
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       ############## npu modify begin #############
+       os.environ['MASTER_ADDR'] = args.addr 
+       os.environ['MASTER_PORT'] = '29688'
+       ############## npu modify end #############
+   ```
+
+5. Create a mapping parameter from **device_id** to **process_id** to obtain the number of Ascend 910 AI Processors on a single node.
+
+   Code location: Main function **main()** in **main.py**
+
+   ```python
+   args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+   ############## npu modify begin #############
+   args.process_device_map = device_id_to_process_device_map(args.device_list)
+   if args.device == 'npu':
+       ngpus_per_node = len(args.process_device_map)
+   else:
+       ngpus_per_node = torch.cuda.device_count()
+   ############## npu modify end #############
+   # The source code is as follows:
+   # ngpus_per_node = torch.cuda.device_count()
+   ```
+
+6. Obtain the ID of the Ascend 910 AI Processor corresponding to **process_id** and specify the Ascend 910 AI Processor for training.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):   
+       global best_acc1
+       ############## npu modify begin #############
+       args.gpu = args.process_device_map[gpu]
+       ############## npu modify end #############
+       # The source code is as follows:
+       # args.gpu = gpu
+   ```
+
+7. Initialize the process group and mask the initialization mode.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python
+         ############## npu modify begin #############  
+           if args.device == 'npu':
+               dist.init_process_group(backend=args.dist_backend, #init_method=args.dist_url,
+                                   world_size=args.world_size, rank=args.rank)
+           else:
+               dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,         
+                                   world_size=args.world_size, rank=args.rank)
+         ############## npu modify begin #############  
+         # The source code is as follows:
+         # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+         #                          world_size=args.world_size, rank=args.rank)
+   ```
+
+8. To perform distributed training, the mixed precision module needs to be introduced, and the model needs to be ported to Ascend AI Processors. Therefore, the code for determining whether the training is distributed training and whether the model is trained on the GPU needs to be masked.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python
+       # create model
+       if args.pretrained:
+           print("=> using pre-trained model '{}'".format(args.arch))
+           model = models.__dict__[args.arch](pretrained=True)
+       else:
+           print("=> creating model '{}'".format(args.arch))
+           model = models.__dict__[args.arch]()
+   ############## npu modify begin #############
+       # Add the following content to the code.
+       # Specify Ascend AI Processors as the training devices.
+       loc = 'npu:{}'.format(args.gpu)
+       torch.npu.set_device(loc)
+       # Calculate batch_size and workers used for training.
+       args.batch_size = int(args.batch_size / ngpus_per_node)
+       args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
+   ############## npu modify end #############
+       # The source code is as follows, which needs to be masked and is commented out.
+       # if not torch.cuda.is_available():
+       #     print('using CPU, this will be slow')
+       # elif args.distributed:
+       #     # For multiprocessing distributed, DistributedDataParallel constructor
+       #     # should always set the single device scope, otherwise,
+       #     # DistributedDataParallel will use all available devices.
+       #     if args.gpu is not None:
+       #         torch.cuda.set_device(args.gpu)
+       #         model.cuda(args.gpu)
+       #         # When using a single GPU per process and per
+       #         # DistributedDataParallel, we need to divide the batch size
+       #         # ourselves based on the total number of GPUs we have
+       #         args.batch_size = int(args.batch_size / ngpus_per_node)
+       #         args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
+       #         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+       #     else:
+       #         model.cuda()
+       #         # DistributedDataParallel will divide and allocate batch_size to all
+       #         # available GPUs if device_ids are not set
+       #         model = torch.nn.parallel.DistributedDataParallel(model)
+       # elif args.gpu is not None:
+       #     torch.cuda.set_device(args.gpu)
+       #     model = model.cuda(args.gpu)
+       # else:
+       #     # DataParallel will divide and allocate batch_size to all available GPUs
+       #     if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+       #         model.features = torch.nn.DataParallel(model.features)
+       #         model.cuda()
+       #     else:
+       #         model = torch.nn.DataParallel(model).cuda()
+   ```
+
+9. Mask the loss function, optimizer, and resume training at breakpoint. This part is combined with the mixed precision training later.
+
+   Code location: **main_worker()** function in **main.py**:
+
+   ```python
+       # The source code is masked and commented out.
+       # # define loss function (criterion) and optimizer
+       # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
+       #
+       # optimizer = torch.optim.SGD(model.parameters(), args.lr,
+       #                             momentum=args.momentum,
+       #                             weight_decay=args.weight_decay)
+       #
+       # # optionally resume from a checkpoint
+       # if args.resume:
+       #     if os.path.isfile(args.resume):
+       #         print("=> loading checkpoint '{}'".format(args.resume))
+       #         if args.gpu is None:
+       #             checkpoint = torch.load(args.resume)
+       #         else:
+       #             # Map model to be loaded to specified single gpu.
+       #             loc = 'cuda:{}'.format(args.gpu)
+       #             checkpoint = torch.load(args.resume, map_location=loc)
+       #         args.start_epoch = checkpoint['epoch']
+       #         best_acc1 = checkpoint['best_acc1']
+       #         if args.gpu is not None:
+       #             # best_acc1 may be from a checkpoint from a different GPU
+       #             best_acc1 = best_acc1.to(args.gpu)
+       #         model.load_state_dict(checkpoint['state_dict'])
+       #         optimizer.load_state_dict(checkpoint['optimizer'])
+       #         print("=> loaded checkpoint '{}' (epoch {})"
+       #               .format(args.resume, checkpoint['epoch']))
+       #     else:
+       #         print("=> no checkpoint found at '{}'".format(args.resume))
+       #
+       # cudnn.benchmark = True
+   ```
+
+10. A data loader combines a dataset and a sampler and can provide multiple threads to process the dataset. If Ascend AI Processors are used for training, **pin_memory** must be set to **False**. Currently, only training in a static shape is supported. The number of remaining samples in the data flow may be less than the batch size. Therefore, **drop_last** must be set to **True**. In addition, you need to set **shuffle** to **True** for some datasets to be verified.
+
+    Code location: **main_worker()** function in **main.py**:
+
+    ```python
+        ############## npu modify begin #############
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
+            num_workers=args.workers, pin_memory=False, sampler=train_sampler, drop_last=True)
+    
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(valdir, transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers, pin_memory=False, drop_last=True)
+            ############## npu modify end #############
+    ```
+
+11. Construct the loss function and optimizer, and port the model and loss function to Ascend AI Processors. The optimizer, model, and resume training are combined with the mixed precision module are combined to support the mixed precision training.
+
+    Code location: after data loading verification in **main_worker()** in **main.py**.
+
+    ```python
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(valdir, transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=args.batch_size, shuffle=True,
+            num_workers=args.workers, pin_memory=False, drop_last=True)
+    
+        ############## npu modify begin #############
+        model = model.to(loc)
+        # define loss function (criterion) and optimizer
+        criterion = nn.CrossEntropyLoss().to(loc)
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                    momentum=args.momentum,
+                                    weight_decay=args.weight_decay)
+    
+        if args.amp:
+            model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, loss_scale=args.loss_scale)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+    
+        # optionally resume from a checkpoint
+        if args.resume:
+            if os.path.isfile(args.resume):
+                print("=> loading checkpoint '{}'".format(args.resume))
+                checkpoint = torch.load(args.resume, map_location=loc)
+                args.start_epoch = checkpoint['epoch']
+                best_acc1 = checkpoint['best_acc1']
+                model.load_state_dict(checkpoint['state_dict'])
+                optimizer.load_state_dict(checkpoint['optimizer'])
+                if args.amp:
+                  amp.load_state_dict(checkpoint['amp'])
+                print("=> loaded checkpoint '{}' (epoch {})"
+                      .format(args.resume, checkpoint['epoch']))
+            else:
+                print("=> no checkpoint found at '{}'".format(args.resume))
+    
+        cudnn.benchmark = True
+        ############## npu modify end #############
+    ```
+
+12. The checkpoint saving needs to be combined with the mixed precision training. The modification is as follows:
+
+    Code location: **main_worker()** in **main.py** (The changes are in bold.)
+
+    ```python
+            # remember best acc@1 and save checkpoint
+            is_best = acc1 > best_acc1
+            best_acc1 = max(acc1, best_acc1)
+    
+            if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                    and args.rank % ngpus_per_node == 0):
+            ############## npu modify begin #############
+                if args.amp:
+                    save_checkpoint({
+                        'epoch': epoch + 1,
+                        'arch': args.arch,
+                        'state_dict': model.state_dict(),
+                        'best_acc1': best_acc1,
+                        'optimizer' : optimizer.state_dict(),
+                        'amp': amp.state_dict(),
+                    }, is_best)
+                else:
+                    save_checkpoint({
+                        'epoch': epoch + 1,
+                        'arch': args.arch,
+                        'state_dict': model.state_dict(),
+                        'best_acc1': best_acc1,
+                        'optimizer' : optimizer.state_dict(),
+                    }, is_best)
+             ############## npu modify end #############
+    ```
+
+13. During training, you need to port the dataset to Ascend AI Processors. The modification is as follows:
+
+    Code location: **train()** in **main.py** (The changes are in bold.)
+
+    ```python
+        for i, (images, target) in enumerate(train_loader):
+            # measure data loading time
+            data_time.update(time.time() - end)
+            ############## npu modify begin #############
+            loc = 'npu:{}'.format(args.gpu)
+            target = target.to(torch.int32)
+            images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
+            ############## npu modify end #############
+            # The source model code is as follows:
+            # if args.gpu is not None:
+            #     images = images.cuda(args.gpu, non_blocking=True)
+            # if torch.cuda.is_available():
+            #     target = target.cuda(args.gpu, non_blocking=True)
+    ```
+
+14. Mark the location where the backpropagation **.backward()** occurs so that the mixed precision module can perform loss scaling and clear the status of each iteration. The code is as follows:
+
+    Code location: **train()** in **main.py** (The changes are in bold.)
+
+    ```python
+            optimizer.zero_grad()
+            ############## npu modify begin #############
+            if args.amp:
+                with amp.scale_loss(loss, optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
+            ############## npu modify end #############
+            # The source code is as follows:
+            # loss.backward()
+            optimizer.step()
+    ```
+
+15. Before validation, you need to port the validation dataset to Ascend AI Processors. The modification is as follows:
+
+    Code location: **validate()** function in **main.py**:
+
+    ```python
+        with torch.no_grad():
+            end = time.time()
+            for i, (images, target) in enumerate(val_loader):
+            ############## npu modify begin #############
+                loc = 'npu:{}'.format(args.gpu)
+                target = target.to(torch.int32)
+                images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
+            ############## npu modify end #############
+            # The source model code is as follows:
+            # if args.gpu is not None:
+            #     images = images.cuda(args.gpu, non_blocking=True)
+            # if torch.cuda.is_available():
+            #     target = target.cuda(args.gpu, non_blocking=True)
+    ```
+
+### Model Training
+
+**Dataset Preparation**
+
+Prepare a dataset and upload it to a directory in the operating environment, for example, **/home/data/resnet50/imagenet**.
+
+**Command Execution**
+
+Single-device training:
+
+```shell
+python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # Training batch size
+                                               --lr 0.1 \               # Learning rate
+                                               --epochs 90 \            # Number of training epochs
+                                               --arch resnet50 \        # Model architecture
+                                               --world-size 1 \
+                                               --rank 0 \         
+                                               --workers 40 \           # Number of processes for loading data
+                                               --momentum 0.9 \         # Momentum  
+                                               --weight-decay 1e-4      # Weight decay
+```
+
+Distributed training:
+
+```shell
+python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # Example IP address. Replace it with the actual IP address.
+                                               --seed 49  \                      # Random seed
+                                               --workers 160 \                   # Number of processes for loading data
+                                               --lr 0.8 \
+                                               --print-freq 1 \
+                                               --arch resnet50 \                 # Model architecture
+                                               --dist-url 'tcp://127.0.0.1:50000' \                   
+                                               --dist-backend 'hccl' \
+                                               --multiprocessing-distributed \   # Multi-device training
+                                               --world-size 1 \
+                                               --batch-size 2048 \               # Training batch size
+                                               --epochs 90 \                     # Number of training epochs
+                                               --rank 0 \
+                                               --device-list '0,1,2,3,4,5,6,7' \
+                                               --amp                             # Use mixed precision for training.
+```
+
+>![](public_sys-resources/icon-note.gif) **NOTE:** **dist-backend** must be set to **hccl** to support distributed training on Ascend AI devices.
+
+## Model Porting Evaluation
+
+1. When selecting models, select authoritative PyTorch models as benchmarks, including but not limited to PyTorch ([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)), facebookresearch ([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)), and open-mmlab ([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)).
+
+2. Check the operator adaptation. Before porting the original model and training script to an Ascend AI Processor, train the original model and training script on the CPU, obtain the operator information by using the dump op method, and compare the operator information with that in the  _PyTorch Operator Support_  to check whether the operator is supported. For details about the dump op method, see  [dump op Method](#dump-op-method). If an operator is not supported, develop the operator. For details, see the *PyTorch Operator Development Guide*.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator \(the first operator that is not supported\) cannot run in the backend of the Ascend AI Processor.
+    >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator (the first operator that is not supported) cannot run in the backend of the Ascend AI Processor. Environment Setup
 
-
-<h2 id="environment-setupmd">Environment Setup</h2>
+## Environment Setup
 
 Refer to the  _PyTorch Installation Guide_  to install PyTorch and the mixed precision module, and configure required environment variables.
 
-<h2 id="model-portingmd">Model Porting</h2>
+## Model Porting
 
--   **[Tool-Facilitated](#tool-facilitatedmd)**  
-
--   **[Manual](#manualmd)**  
-
--   **[Mixed Precision](#mixed-precisionmd)**  
-
-
-<h3 id="tool-facilitatedmd">Tool-Facilitated</h3>
+### Tool-Facilitated
 
 The Ascend platform provides a script conversion tool to enable you to port training scripts to Ascend AI Processors using commands. The following will provide the details. In addition to using commands, you can also use the PyTorch GPU2Ascend function integrated in MindStudio to port scripts. For details, see the  _MindStudio User Guide_.
 
--   **[Introduction](#introductionmd)**  
+#### Introduction
 
--   **[Instructions](#instructionsmd)**  
-
--   **[Result Analysis](#result-analysismd)**  
-
-
-<h4 id="introductionmd">Introduction</h4>
-
-##### Overview<a name="en-us_topic_0000001133095885_section20874690446"></a>
+##### Overview
 
 Ascend NPU is an up-and-comer in the AI computing field, but most training and online inference scripts are based on GPUs. Due to the architecture differences between NPUs and GPUs, GPU-based training and online inference scripts cannot be directly used on NPUs. The script conversion tool provides an automated method for converting GPU-based scripts into NPU-based scripts, reducing the learning cost and workload of manual script migration, thereby improving the migration efficiency.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 1](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
->-   The original scripts in  [Table 1](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
->-   For scripts in  [Table 1](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
+>-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
+>-   The original scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
+>-   For scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
 >-   This script conversion tool only supports the conversion of PyTorch training scripts.
 
-**Table  1**  Supported models
+**Table  2**  Supported models
 
-<a name="en-us_topic_0000001133095885_table4705239194613"></a>
 <table><thead align="left"><tr id="en-us_topic_0000001133095885_row1270543910462"><th class="cellrowborder" valign="top" width="27.41%" id="mcps1.2.3.1.1"><p id="en-us_topic_0000001133095885_p670613914465"><a name="en-us_topic_0000001133095885_p670613914465"></a><a name="en-us_topic_0000001133095885_p670613914465"></a>No.</p>
 </th>
 <th class="cellrowborder" valign="top" width="72.59%" id="mcps1.2.3.1.2"><p id="en-us_topic_0000001133095885_p57061739124611"><a name="en-us_topic_0000001133095885_p57061739124611"></a><a name="en-us_topic_0000001133095885_p57061739124611"></a>Model</p>
@@ -538,21 +1109,20 @@ Ascend NPU is an up-and-comer in the AI computing field, but most training and o
 </tbody>
 </table>
 
-##### System Requirement<a name="en-us_topic_0000001133095885_section1055723118446"></a>
+##### System Requirement
 
 msFmkTransplt runs on Ubuntu 18.04, CentOS 7.6, and EulerOS 2.8 only.
 
-##### Environment Setup<a name="en-us_topic_0000001133095885_section14907199142615"></a>
+##### Environment Setup
 
 Set up the development environment by referring to the  _CANN Software Installation Guide_.
 
-<h4 id="instructionsmd">Instructions</h4>
+#### Instructions
 
-##### Command-line Options<a name="en-us_topic_0000001086713630_section21951346163910"></a>
+##### Command-line Options
 
-**Table  1**  Command-line options
+**Table  3**  Command-line options
 
-<a name="en-us_topic_0000001086713630_table1581171912407"></a>
 <table><thead align="left"><tr id="en-us_topic_0000001086713630_row175811919124014"><th class="cellrowborder" valign="top" width="22.35%" id="mcps1.2.4.1.1"><p id="en-us_topic_0000001086713630_p155823194404"><a name="en-us_topic_0000001086713630_p155823194404"></a><a name="en-us_topic_0000001086713630_p155823194404"></a>Option</p>
 </th>
 <th class="cellrowborder" valign="top" width="54.75%" id="mcps1.2.4.1.2"><p id="en-us_topic_0000001086713630_p105820192400"><a name="en-us_topic_0000001086713630_p105820192400"></a><a name="en-us_topic_0000001086713630_p105820192400"></a>Description</p>
@@ -596,7 +1166,7 @@ Set up the development environment by referring to the  _CANN Software Installat
 </tbody>
 </table>
 
-##### Customizing a Rule File<a name="en-us_topic_0000001086713630_section1879318256392"></a>
+##### Customizing a Rule File
 
 An example of a custom conversion rule is as follows:
 
@@ -632,9 +1202,8 @@ An example of a custom conversion rule is as follows:
 }
 ```
 
-**Table  2**  Options
+**Table  4**  Options
 
-<a name="en-us_topic_0000001086713630_table1623617321279"></a>
 <table><thead align="left"><tr id="en-us_topic_0000001086713630_row20236153212276"><th class="cellrowborder" valign="top" width="30%" id="mcps1.2.3.1.1"><p id="en-us_topic_0000001086713630_p13236113220275"><a name="en-us_topic_0000001086713630_p13236113220275"></a><a name="en-us_topic_0000001086713630_p13236113220275"></a>Option</p>
 </th>
 <th class="cellrowborder" valign="top" width="70%" id="mcps1.2.3.1.2"><p id="en-us_topic_0000001086713630_p22366325276"><a name="en-us_topic_0000001086713630_p22366325276"></a><a name="en-us_topic_0000001086713630_p22366325276"></a>Description</p>
@@ -689,7 +1258,7 @@ An example of a custom conversion rule is as follows:
 </tbody>
 </table>
 
-##### Performing Conversion<a name="en-us_topic_0000001086713630_section163061458103913"></a>
+##### Performing Conversion
 
 1.  Go to the directory of the script conversion tool msFmkTransplt.
 
@@ -705,7 +1274,7 @@ An example of a custom conversion rule is as follows:
 
 3.  Find the converted script in the specified output path.
 
-<h4 id="result-analysismd">Result Analysis</h4>
+#### Result Analysis
 
 You can view the result files in the output path when the script is converted.
 
@@ -716,16 +1285,9 @@ You can view the result files in the output path when the script is converted.
 │   ├── unsupported_op.xlsx                // File of the unsupported operator list
 ```
 
-<h3 id="manualmd">Manual</h3>
+### Manual
 
--   **[Single-Device Training Model Porting](#single-device-training-model-portingmd)**  
-
--   **[Multi-Device Training Model Porting](#multi-device-training-model-portingmd)**  
-
--   **[PyTorch-related API Replacement](#pytorch-related-api-replacementmd)**  
-
-
-<h4 id="single-device-training-model-portingmd">Single-Device Training Model Porting</h4>
+#### Single-Device Training Model Porting
 
 The advantage of the online adaption is that the training on the Ascend AI Processor is consistent with the usage of the GPU. During online adaption,** you only need to specify the device as the Ascend AI Processor in Python and device operations**  to develop, train, and debug the network in PyTorch using the Ascend AI Processor. For single-device model training, main changes for porting are as follows:
 
@@ -755,11 +1317,11 @@ The code ported to the Ascend AI Processor is as follows:
     target = target.to(CALCULATE_DEVICE)
 ```
 
-For details, see  [Single-Device Training Modification](#single-device-training-modificationmd).
+For details, see  [Single-Device Training Porting](#single-device-training-porting).
 
-<h4 id="multi-device-training-model-portingmd">Multi-Device Training Model Porting</h4>
+#### Multi-Device Training Model Porting
 
-To port a multi-device training model,  **you need to specify the device as the Ascend AI Processor in Python and device operations**. In addition, you can perform distributed training using PyTorch  **DistributedDataParallel**, that is, run  **init\_process\_group**  during model initialization, and then initialize the model into a  **DistributedDataParallel**  model. Note that the  **backend **must be set to  **hccl **and the initialization mode must be shielded when  **init\_process\_group**  is executed.
+To port a multi-device training model,  you need to specify the device as the Ascend AI Processor in Python and device operations. In addition, you can perform distributed training using PyTorch  **DistributedDataParallel**, that is, run  **init\_process\_group**  during model initialization, and then initialize the model into a  **DistributedDataParallel**  model. Note that the  **backend **must be set to  **hccl **and the initialization mode must be shielded when  **init\_process\_group**  is executed.
 
 PyTorch distributed training code example \(some code is omitted\):
 
@@ -781,15 +1343,14 @@ def main():
           lr_scheduler)
 ```
 
-For details, see  [Distributed Training Modification](#distributed-training-modificationmd).
+For details, see [Single-Server Multi-Device Training Modification](#single-server-multi-device-training-modification).
 
-<h4 id="pytorch-related-api-replacementmd">PyTorch-related API Replacement</h4>
+#### PyTorch-related API Replacement
 
-1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 1](#table1922064517344)  lists the supported device-related APIs.
+1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 5](#table1922064517344)  lists the supported device-related APIs.
 
-    **Table  1**  Device-related APIs
+    **Table  5**  Device-related APIs
 
-    <a name="table1922064517344"></a>
     <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>Original PyTorch API</p>
     </th>
     <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>API Adapted to the Ascend AI Processor</p>
@@ -914,12 +1475,11 @@ For details, see  [Distributed Training Modification](#distributed-training-modi
     </tr>
     </tbody>
     </table>
-
+    
 2.  When building or porting a network, you need to create tensors of specified data types. The following table lists the tensors created on the Ascend AI Processor.
 
-    **Table  2**  Tensor-related APIs
+    **Table  6**  Tensor-related APIs
 
-    <a name="table13265344373"></a>
     <table><thead align="left"><tr id="row1926554133710"><th class="cellrowborder" valign="top" width="50.349999999999994%" id="mcps1.2.3.1.1"><p id="p797211564811"><a name="p797211564811"></a><a name="p797211564811"></a>GPU tensor</p>
     </th>
     <th class="cellrowborder" valign="top" width="49.65%" id="mcps1.2.3.1.2"><p id="p132651418371"><a name="p132651418371"></a><a name="p132651418371"></a>API Adapted to the Ascend AI Processor</p>
@@ -982,9 +1542,9 @@ For details, see  [Distributed Training Modification](#distributed-training-modi
 
 For more APIs, see the  _PyTorch API Support_.
 
-<h3 id="mixed-precisionmd">Mixed Precision</h3>
+### Mixed Precision
 
-#### Overview<a name="section166113311599"></a>
+#### Overview
 
 Based on the architecture features of the NPU chip, mixed precision training is involved, that is, the scenario where the float16 and float32 data types are used together. Replacing float32 with float16 has the following advantages:
 
@@ -999,13 +1559,12 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
 -   During mixed precision calculation, Apex calculates the grad of the model. You can enable combine\_grad to accelerate these operations. Set the  **combine\_grad**  parameter of the amp.initialize\(\) interface to  **True**.
 -   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with  **apex.optimizers.\***  \(**\***  indicates the optimizer name, for example,  **NpuFusedSGD**\).
 
-#### Supported Features<a name="section723462915303"></a>
+#### Supported Features
 
-[Table 1](#table10717173813332)  describes the functions and optimization of the mixed precision module.
+[Table 7](#table10717173813332)  describes the functions and optimization of the mixed precision module.
 
-**Table  1**  Functions of the mixed precision module
+**Table  7**  Functions of the mixed precision module
 
-<a name="table10717173813332"></a>
 <table><thead align="left"><tr id="row371716385333"><th class="cellrowborder" valign="top" width="32.269999999999996%" id="mcps1.2.3.1.1"><p id="p13717163815333"><a name="p13717163815333"></a><a name="p13717163815333"></a>Function</p>
 </th>
 <th class="cellrowborder" valign="top" width="67.73%" id="mcps1.2.3.1.2"><p id="p14400173910345"><a name="p14400173910345"></a><a name="p14400173910345"></a>Description</p>
@@ -1039,7 +1598,7 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
 >-   In the current version, Apex is implemented using Python and does not support AscendCL or CUDA optimization.
 >-   Ascend AI devices do not support the original FusedLayerNorm interface module of Apex. If the original model script file uses the FusedLayerNorm interface module, you need to replace the script header file  **from apex.normalization import FusedLayerNorm**  with  **from torch.nn import LayerNorm**.
 
-#### Integrating Mixed Precision Module Into the PyTorch Model<a name="section18578112873911"></a>
+#### Integrating Mixed Precision Module Into the PyTorch Model
 
 1.  To use the mixed precision module Apex, you need to import the amp from the Apex library as follows:
 
@@ -1072,41 +1631,24 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
     optimizer.step()
     ```
 
-
-<h2 id="model-trainingmd">Model Training</h2>
+## Model Training
 
 After the training scripts are ported, set environment variables by following the instructions in  [Environment Variable Configuration](#en-us_topic_0000001144082004md)  and run the  **python3** _xxx_  command to train a model. For details, see  [Script Execution](#script-executionmd).
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >When running the  **python3** _xxx_  command, create a soft link between Python 3 and the installation path of Python that matches the current PyTorch version.
 
-<h2 id="performance-analysis-and-optimizationmd">Performance Analysis and Optimization</h2>
+## Performance Analysis and Optimization
 
--   **[Prerequisites](#prerequisitesmd)**  
+### Prerequisites
 
--   **[Commissioning Process](#commissioning-processmd)**  
-
--   **[Affinity Library](#affinity-librarymd)**  
-
-
-<h3 id="prerequisitesmd">Prerequisites</h3>
-
-1.  Modify the open-source code to ensure that the model can run properly, including data preprocessing, forward propagation, loss calculation, mixed precision, back propagation, and parameter update. For details, see  [Samples](#samplesmd).
+1.  Modify the open-source code to ensure that the model can run properly, including data preprocessing, forward propagation, loss calculation, mixed precision, back propagation, and parameter update. For details, see [Samples](#samples).
 2.  During model porting, check whether the model can run properly and whether the existing operators can meet the requirements. If no operator meets the requirements, develop an adapted operator. For details, see the  _PyTorch Operator Development Guide_.
 3.  Prioritize the single-device function, and then enable the multi-device function.
 
-<h3 id="commissioning-processmd">Commissioning Process</h3>
+### Commissioning Process
 
--   **[Overall Guideline](#overall-guidelinemd)**  
-
--   **[Training Data Collection](#training-data-collectionmd)**  
-
--   **[Host-side Performance Optimization](#host-side-performance-optimizationmd)**  
-
--   **[Training Performance Optimization](#training-performance-optimizationmd)**  
-
-
-<h4 id="overall-guidelinemd">Overall Guideline</h4>
+#### Overall Guideline
 
 1.  Check whether the throughput meets the expected requirements based on the training execution result.
 2.  If the throughput does not meet requirements, you need to find out the causes of the performance bottleneck. Possible causes are as follows:
@@ -1117,16 +1659,16 @@ After the training scripts are ported, set environment variables by following th
 
 3.  Analyze the preceding causes of performance bottlenecks and optimize the performance.
 
-<h4 id="training-data-collectionmd">Training Data Collection</h4>
+#### Training Data Collection
 
-##### Profile Data Collection<a name="section141471611314"></a>
+##### Profile Data Collection
 
-During model training, if the throughput does not meet requirements, you can collect profile data generated during the training process to analyze which step and which operator cause the performance consumption. The profile data is collected at the PyTorch layer \(PyTorch API data\) and CANN layer \(TBE operator data\).
+During model training, if the throughput does not meet requirements, you can collect profile data generated during the training process to analyze which step and which operator cause the performance consumption. The profile data is collected at the PyTorch layer (PyTorch API data) and CANN layer (TBE operator data).
 
 Select a collection mode based on the site requirements and perform the following steps to collect the profile data.
 
 -   Profile data collection at the PyTorch layer
-    1.  Obtain the  **chrome\_trace**  file.
+    1. Obtain the  **chrome\_trace**  file.
 
         Use the profile API to reconstruct the loss calculation and optimization process of the original code.
 
@@ -1138,14 +1680,68 @@ Select a collection mode based on the site requirements and perform the followin
             loss.backward()
             optimizer.zero_grad()
             optimizer.step()
+        # Print the profiling result.
+        print(prof)
         # Export the chrome_trace file to a specified path.
         output_path = '/home/HwHiAiUser/profile_data.json'
         prof.export_chrome_trace(output_path)
         ```
 
-    2.  View the  **chrome\_trace**  file.
-
-        To view the  **chrome\_trace**  file, access  **chrome://tracing**  in the Chrome browser, drag the file in the blank space. You can press  **W**,  **A**,  **S**, or  **D**  to zoom in, zoom out, or move the profiling result.
+    2.  After the execution is successful, print the profiling result.
+    
+        The printed result includes the CPU and NPU time consumption. For details, see Table 8.
+        
+        <a name='Table 8 Profiling result field'>**Table 8** Profiling result fields</a>
+        
+        | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
+        | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
+        
+    3. View the **chrome_trace** file.
+    
+        To view the **chrome_trace** file, access **chrome://tracing** in the Chrome browser, drag the file in the blank space. You can press **W**, **A**, **S**, or **D** to zoom in, zoom out, or move the profiling result.
+    
+    4. Other profiling functions are as follows.
+    
+        - Obtain the shape information of the input tensor of an operator.
+    
+          ```python
+          # Add the record_shapes parameter to obtain the shape information of the input tensor.
+          with torch.autograd.profiler.profile(use_npu=True, record_shapes=True) as prof:
+              # Add the model calculation process.
+          print(prof)
+          ```
+    
+          The `Input Shape` information of each operator is added to the printed result.
+    
+        - Obtain the memory information of the NPU in use.
+    
+          ```python
+          # Add the profile parameter to obtain the memory usage of the operators.
+          with torch.autograd.profiler.profile(use_npu=True, profile_memory=True) as prof:
+              # Add the model calculation process.
+          print(prof)
+          ```
+    
+          The `CPU Mem`, `Self CPU Mem`, `NPU Mem`, and `Self NPU Mem` information of each operator is added to the printed result.
+    
+          >![](public_sys-resources/icon-note.gif) **NOTE:**  
+          >
+          >This function is supported only by PyTorch 1.8 or later.
+    
+        - Obtain a simplified operator performance report.
+    
+          This function prints only the operator information at the bottom layer of each operator stack, simplifying the analysis result.
+    
+          ```python
+          # Add the use_npu_simple parameter to obtain the simplified operator performance report.
+          with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
+              # Add the model calculation process.
+          # Export the chrome_trace file to a specified path.
+          output_path = '/home/HwHiAiUser/profile_data.json'
+          prof.export_chrome_trace(output_path)
+          ```
+    
+          Open the **chrome_trace** result file in the Chrome browser to view the simplified operator performance report.
 
 
 -   Profile data collection at the CANN layer
@@ -1166,15 +1762,13 @@ Select a collection mode based on the site requirements and perform the followin
 
     2.  Parse the profile data file.
 
-        For details, see "Profiling Instructions \(Training\)" in the  _CANN Auxiliary Development Tool User Guide _.
+        For details, see "Profiling Instructions \(Training\)" in the *CANN Auxiliary Development Tool User Guide*.
 
+##### Obtaining Operator Information (OP_INFO)
 
+The network model is executed as an operator (OP). The OPInfo log can be used to obtain the operator and its attributes during the actual execution. Obtain the information by running the  **get_ascend_op_info.py**  script.
 
-##### Obtaining Operator Information \(OP\_INFO\)<a name="section15654162853114"></a>
-
-The network model is executed as an operator \(OP\). The OPInfo log can be used to obtain the operator and its attributes during the actual execution. Obtain the information by running the  **get\_ascend\_op\_info.py**  script.
-
-1.  Write the  **get\_ascend\_op\_info.py**  script to obtain the operator information. The script content is as follows:
+1.  Write the  **get_ascend_op_info.py**  script to obtain the operator information. The script content is as follows:
 
     ```
     # -*- coding: utf-8 -*-
@@ -1228,8 +1822,8 @@ The network model is executed as an operator \(OP\). The OPInfo log can be used 
     ```
 
 3.  Set the log level to  **info**. For details, see the  _CANN Log Reference_.
-4.  Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the  **$HOME/ascend/log/plog**  directory.  **$HOME**  indicates the root directory of the user on the host.
-5.  After the host logs are parsed, obtain the operator information  **ascend\_op\_info\_summary.txt**  in the current directory.
+4.  Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the **$HOME/ascend/log/plog**  directory. **$HOME**  indicates the root directory of the user on the host.
+5.  After the host logs are parsed, obtain the operator information  **ascend_op_info_summary.txt**  in the current directory.
 
     ```
     python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
@@ -1237,61 +1831,54 @@ The network model is executed as an operator \(OP\). The OPInfo log can be used 
 
 6.  Analyze the extra tasks in TaskInfo, especially transdata.
 
-<h4 id="host-side-performance-optimizationmd">Host-side Performance Optimization</h4>
+#### Host-side Performance Optimization
 
--   **[Overview](#overview-0md)**  
+##### Overview
 
--   **[Changing the CPU Performance Mode \(x86 Server\)](#changing-the-cpu-performance-mode-(x86-server)md)**  
-
--   **[Changing the CPU Performance Mode \(ARM Server\)](#changing-the-cpu-performance-mode-(arm-server)md)**  
-
--   **[Installing the High-Performance Pillow Library \(x86 Server\)](#installing-the-high-performance-pillow-library-(x86-server)md)**  
-
--   **[\(Optional\) Installing the OpenCV Library of the Specified Version](#(optional)-installing-the-opencv-library-of-the-specified-versionmd)**  
-
-
-<h5 id="overview-0md">Overview</h5>
-
-During PyTorch model porting and training, the number of images recognized within one second \(FPS\) for some network models is low and the performance does not meet the requirements. You can perform the following optimization on the server to improve the training performance:
+During PyTorch model porting and training, the number of images recognized within one second (FPS) for some network models is low and the performance does not meet the requirements. You can perform the following optimization on the server to improve the training performance:
 
 -   Change the CPU performance mode.
 -   Install the high-performance Pillow library.
--   \(Optional\) Install the OpenCV library of the specified version.
+-   (Optional) Install the OpenCV library of the specified version.
 
-<h5 id="changing-the-cpu-performance-mode-(x86-server)md">Changing the CPU Performance Mode (x86 Server)</h5>
+##### Changing the CPU Performance Mode (x86 Server)
 
-###### Setting the Power Policy to High Performance<a name="section18832114453814"></a>
+###### Setting the Power Policy to High Performance
 
 To improve network performance, you need to set the power policy to high performance in the BIOS settings of the x86 server. The detailed operations are as follows:
 
-1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 1](#fig15869135420288).
+1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 3](#fig15869135420288).
 
-    **Figure  1**  Remote console<a name="fig15869135420288"></a>  
+    **Figure  3**  Remote console
+
     ![](figures/remote-console.png "remote-console")
 
-2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 2](#fig744814574243).
+2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 4](#fig744814574243).
 
-    **Figure  2**  Startup item tool<a name="fig744814574243"></a>  
+    **Figure  4**  Startup item tool
+
     ![](figures/startup-item-tool.png "startup-item-tool")
 
 3.  In the drop-down list, choose, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190201999.png)  on the toolbar to restart the server.
-4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 3](#fig4546303814).
+4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 5](#fig4546303814).
 
-    **Figure  3**  Socket Configuration<a name="fig4546303814"></a>  
+    **Figure  5**  Socket Configuration
+
     ![](figures/socket-configuration.png "socket-configuration")
 
-5.  On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 4](#fig15501111014442).
+5.  On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 6](#fig15501111014442).
 
-    **Figure  4**  Setting the power policy<a name="fig15501111014442"></a>  
+    **Figure  6**  Setting the power policy
+
     ![](figures/setting-the-power-policy.png "setting-the-power-policy")
 
 6.  Press  **F10**  to save the settings and reboot the server.
 
-###### Setting the CPU Mode to Performance<a name="section20155620469"></a>
+###### Setting the CPU Mode to Performance
 
 Perform the following steps as the  **root**  user:
 
-1.  <a name="li158435131344"></a>Run the following command to check the current CPU mode:
+1.  Run the following command to check the current CPU mode:
 
     ```
     cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
@@ -1301,7 +1888,6 @@ Perform the following steps as the  **root**  user:
 
     **Table  1**  CPU mode
 
-    <a name="table354392019384"></a>
     <table><thead align="left"><tr id="row16543172093819"><th class="cellrowborder" valign="top" width="30.819999999999997%" id="mcps1.2.3.1.1"><p id="p2526552113912"><a name="p2526552113912"></a><a name="p2526552113912"></a>Governor</p>
     </th>
     <th class="cellrowborder" valign="top" width="69.17999999999999%" id="mcps1.2.3.1.2"><p id="p452519525397"><a name="p452519525397"></a><a name="p452519525397"></a>Description</p>
@@ -1340,7 +1926,7 @@ Perform the following steps as the  **root**  user:
     </tr>
     </tbody>
     </table>
-
+    
 2.  Run the following command to install the tool:
     -   The  **ubuntu/debian**  system is used as an example.
 
@@ -1365,36 +1951,40 @@ Perform the following steps as the  **root**  user:
 
 4.  Perform  [Step 1](#li158435131344)  again to check whether the current CPU mode is set to performance.
 
-<h5 id="changing-the-cpu-performance-mode-(arm-server)md">Changing the CPU Performance Mode (ARM Server)</h5>
+##### Changing the CPU Performance Mode (ARM Server)
 
-###### Setting the Power Policy to High Performance<a name="section18832114453814"></a>
+###### Setting the Power Policy to High Performance
 
 Some models that have demanding requirements on the CPUs on the host, for example, the object detection model, require complex image pre-processing. Enabling the high-performance mode of the power supply can improve performance and stability. To improve network performance, you need to set the power policy to high performance in the BIOS settings of the ARM server. The detailed operations are as follows:
 
-1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 1](#fig15869135420288).
+1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 7](#fig15869135420288).
 
-    **Figure  1**  Remote console<a name="fig15869135420288"></a>  
+    **Figure  7**  Remote console
+
     ![](figures/remote-console-0.png "remote-console-0")
 
-2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 2](#fig744814574243).
+2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 8](#fig744814574243).
 
-    **Figure  2**  Startup item tool<a name="fig744814574243"></a>  
+    **Figure  8**  Startup item tool
+
     ![](figures/startup-item-tool-1.png "startup-item-tool-1")
 
 3.  In the drop-down list, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190081877.png)  on the toolbar to restart the server.
-4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 3](#fig4546303814).
+4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 9](#fig4546303814).
 
-    **Figure  3**  Performance Config<a name="fig4546303814"></a>  
+    **Figure  9**  Performance Config
+
     ![](figures/performance-config.png "performance-config")
 
-5.  On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 4](#fig15501111014442).
+5.  On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 10](#fig15501111014442).
 
-    **Figure  4**  Setting the power policy<a name="fig15501111014442"></a>  
+    **Figure  10**  Setting the power policy 
+
     ![](figures/setting-the-power-policy-2.png "setting-the-power-policy-2")
 
 6.  Press  **F10**  to save the settings and reboot the server.
 
-<h5 id="installing-the-high-performance-pillow-library-(x86-server)md">Installing the High-Performance Pillow Library (x86 Server)</h5>
+##### Installing the High-Performance Pillow Library (x86 Server)
 
 1.  Run the following command to install the dependencies for the high-performance pillow library:
 
@@ -1432,7 +2022,7 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
         >```
 
 
-3.  Modify the TorchVision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install TorchVision, see  [How to Obtain](#obtaining-samplesmd).
+3.  Modify the TorchVision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install TorchVision, see [How to Obtain](#how-to-obtain).
 
     Modify the code in line 5 of  **/usr/local/python3._x.x_/lib/python3._x_/site-packages/torchvision/transforms/functional.py**  as follows:
 
@@ -1444,37 +2034,36 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
         PILLOW_VERSION="7.0.0"
     ```
 
-
-<h5 id="(optional)-installing-the-opencv-library-of-the-specified-versionmd">(Optional) Installing the OpenCV Library of the Specified Version</h5>
+##### (Optional) Installing the OpenCV Library of the Specified Version
 
 If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensure training performance.
 
 1.  Source code:  [Link](https://opencv.org/releases/)
 2.  Installation guide:  [Link](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)
 
-<h4 id="training-performance-optimizationmd">Training Performance Optimization</h4>
+#### Training Performance Optimization
 
-##### Operator Bottleneck Optimization<a name="section8727652134111"></a>
+##### Operator Bottleneck Optimization
 
-1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#training-data-collectionmd).
+1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collection).
 2.  Analyze the profile data to obtain the time-consuming operator.
-3.  See  [Single-Operator Sample Building](#single-operator-sample-buildingmd)  to build the single-operator sample of the time-consuming operator, and compare the execution time of a single-operator sample on the CPU and GPU. If the performance is insufficient, use either of the following methods to solve the problem:
+3.  See [Single-Operator Sample Building](#single-operator-sample-building) to build the single-operator sample of the time-consuming operator, and compare the execution time of a single-operator sample on the CPU and GPU. If the performance is insufficient, use either of the following methods to solve the problem:
     -   Workaround: Use other efficient operators with the same semantics.
     -   Solution: Improve the operator performance.
 
 
-##### Copy Bottleneck Optimization<a name="section219718193717"></a>
+##### Copy Bottleneck Optimization
 
-1.  Obtain the profile data during training. For details, see  [Profile Data Collection](#training-data-collectionmd).
+1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collection).
 2.  Analyze the Profile data to obtain the execution time of  **D2DCopywithStreamSynchronize**,  **PTCopy**, or  **format\_contiguous**  in the entire network.
 3.  If the execution takes a long time, use either of the following methods to solve the problem:
     -   Method 1 \(workaround\): Replace view operators with compute operators. In PyTorch, view operators cause conversion from non-contiguous tensors to contiguous tensors. The optimization idea is to replace view operators with compute operators. Common view operators include view, permute, and transpose operators. For more view operators, go to  [https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html).
     -   Method 2 \(solution\): Accelerate the operation of converting non-contiguous tensors to contiguous tensors.
 
 
-##### Framework Bottleneck Optimization<a name="section1391981014420"></a>
+##### Framework Bottleneck Optimization
 
-1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#training-data-collectionmd).
+1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
 2.  Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
 3.  Solution: Specify the initialization format of some operators to eliminate cast operators.
 4.  In  **pytorch/torch/nn/modules/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
@@ -1487,30 +2076,102 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
     -   For the linear operator, weight can be set to NZ format, for example, line 409.
 
 
-##### Compilation Bottleneck Optimization<a name="section148361506506"></a>
+##### Compilation Bottleneck Optimization
 
-1.  Obtain the operator information \(OP\_INFO\) during the training. For details, see  [Obtaining Operator Information \(OP\_INFO\)](#training-data-collectionmd).
+1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
 2.  View the INFO log and check the keyword  **aclopCompile::aclOp**  after the first step. If  **Match op inputs/type failed**  or  **To compile op**  is displayed, the operator is dynamically compiled and needs to be optimized.
 3.  Use either of the following methods to solve the problem:
     -   Workaround: Based on the understanding of model semantics and related APIs, replace dynamic shape with static shape.
     -   Solution: Reduce compilation or do not compile the operator.
-    -   For details about how to optimize the operator compilation configuration, see  [Compilation Option Settings](#compilation-option-settingsmd).
+    -   For details about how to optimize the operator compilation configuration, see [Compilation Option Settings](#compilation-option-settings).
 
+### E2E Performance Tool (E2E prof) Instructions
 
-<h3 id="affinity-librarymd">Affinity Library</h3>
+#### Introduction
 
--   **[Source](#sourcemd)**  
+The E2E prof tool integrates the framework-layer data obtained by the Profiling tool of PyTorch and the operator profile data obtained by the CANN prof tool to implement end-to-end model and operator performance analysis.
 
--   **[Functions](#functionsmd)**  
+#### Usage Tutorial
 
+Add the following with statement to enable the E2E prof function.
 
-<h4 id="sourcemd">Source</h4>
+```
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+
+     model_train()
+```
+
+- **profiler_result_path** indicates the path for     storing the prof results. If no path is specified, the current path is     used by default.
+- **use_e2e_profiler** indicates whether to enable     the E2E prof function. The default value is **False**, indicating that only the CANN prof function is enabled.
+
+(The NUP operator can be executed only after compilation. To ensure data accuracy, you are advised to run it for 10 steps first, and then perform the E2E prof operation. Generally, only one or two steps are required for profiling.)
+
+#### Result Parsing
+
+The results obtained by using the E2E prof tool are raw data, which can be viewed only after being parsed.
+
+1. Use the path in the tutorial as an example. The tool creates a folder in the *profiler_result_path* directory to save the raw data.
+
+   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/1.png)
+
+2. Switch to the **./result** directory in the preceding figure and run the following script:
+
+   ```
+   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ```
+
+   - **output**: indicates the path of the raw data.
+
+3. After the running is complete, find the **timeline** directory in the raw data path. See the following figure.
+
+   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/2.png)
+
+4. The **timeline** directory stores the parsed profile data, which can be opened in **chrome://tracing/**.
+
+   1. Open a browser and enter **chrome://tracing/** in the address box.
+
+   2. Click **Load** to upload the file.
+
+      ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/chrometracing.png)
+   An example is provided as follows:
+
+   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/3.png)
+
+   This example contains four layers from top to bottom. The first layer (MsprofTx) contains the PyTorch framework data, the second layer (AscendCL) contains the AscendCL data, the third layer (Task Scheduler) contains the device data, and the fourth layer (AI CPU) contains the AI CPU data.
+
+#### Advanced Settings
+
+By default, the E2E prof tool can obtain all of the preceding data. However, the process of obtaining data affects the performance. If a large amount of data is obtained, the profile data cannot be used as a reference. Therefore, the E2E prof tool provides configurable options for fine-grained control over obtaining data of specified layers.
+
+```
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
+```
+
+-   **ACL_PROF_ACL_API**: collects profile data of     AscendCL APIs. The default value is **True**.
+-   **ACL_PROF_TASK_TIME**: collects the execution time     of AI Core operators. The default value is **True**.
+-   **ACL_PROF_AICORE_METRICS**: collects the AI Core     performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
+-   **ACL_PROF_AICPU**: 0x0008, collects traces of     AI CPU tasks, including the start and end of each task. The default value     is **True**.
+-   **ACL_PROF_L2CACHE**: collects L2 cache data. The     default value is **True**.
+-   **ACL_PROF_HCCL_TRACE**: collects HCCL data. The     default value is **True**.
+-   **ACL_PROF_TRAINING_TRACE**: collects iteration traces,     which record the forward and backward propagation steps of a model. The     default value is **True**.
+
+The values of **aiCoreMetricsType** are defined as follows. The default value is **0**.
+
+- **ACL_AICORE_ARITHMETIC_UTILIZATION     = 0**: percentages of arithmetic     throughput, including metrics **mac_fp16_ratio**,     **mac_int8_ratio**, **vec_fp32_ratio**, **vec_fp16_ratio**, **vec_int32_ratio**, and **vec_misc_ratio**
+- **ACL_AICORE_PIPE_UTILIZATION =     1**: percentages of time taken     by the compute units and MTEs, including metrics **vec_ratio**, **mac_ratio**,     **scalar_ratio**, **mte1_ratio**, **mte2_ratio**, **mte3_ratio**,     and **icache_miss_rate**
+- **ACL_AICORE_MEMORY_BANDWIDTH =     2**: percentages of external     memory read/write instructions, including metrics **ub_read_bw**, **ub_write_bw**,     **l1_read_bw**, **l1_write_bw**, **l2_read_bw**, **l2_write_bw**,     **main_mem_read_bw**, and **main_mem_write_bw**
+- **ACL_AICORE_L0B_AND_WIDTH**: percentages of internal     memory read/write instructions, including **scalar_ld_ratio**, **scalar_st_ratio**,     **l0a_read_bw**, **l0a_write_bw**, **l0b_read_bw**, **l0b_write_bw**,     **l0c_read_bw**, and **l0c_write_bw**.
+- **ACL_AICORE_RESOURCE_CONFLICT_RATIO**: percentages of pipeline     stall instructions, including **vec_bankgroup_cflt_ratio**,     **vec_bank_cflt_ratio**, **vec_resc_cflt_ratio**, **mte1_iq_full_ratio**, **mte2_iq_full_ratio**, **mte3_iq_full_ratio**, **cube_iq_full_ratio**, **vec_iq_full_ratio**, and **iq_full_ratio**.
+- **ACL_AICORE_NONE = 0xFF**: Profiling disabled
+
+### Affinity Library
+
+#### Source
 
 The common network structures and functions in the public models are optimized to greatly improve computing performance. In addition, the network structures and functions are integrated into the PyTorch framework to facilitate model performance optimization.
 
-<h4 id="functionsmd">Functions</h4>
+#### Functions
 
-<a name="table348133010119"></a>
 <table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>Function</p>
 </th>
 <th class="cellrowborder" valign="top" width="25.292529252925295%" id="mcps1.1.4.1.2"><p id="p1080553881111"><a name="p1080553881111"></a><a name="p1080553881111"></a>Location</p>
@@ -1553,36 +2214,26 @@ The common network structures and functions in the public models are optimized t
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >The optimization content will be enhanced and updated with the version. Use the content in the corresponding path of the actual PyTorch version.
 
-<h2 id="precision-commissioningmd">Precision Commissioning</h2>
+## Precision Commissioning
 
--   **[Prerequisites](#prerequisites-1md)**  
-
--   **[Commissioning Process](#commissioning-process-2md)**  
-
-
-<h3 id="prerequisites-1md">Prerequisites</h3>
+### Prerequisites
 
 Run a certain number of epochs \(20% of the total number of epoches is recommended\) with the same semantics and hyperparameters to align the precision and loss with the corresponding level of the GPU. After the alignment is complete, align the final precision.
 
-<h3 id="commissioning-process-2md">Commissioning Process</h3>
+### Commissioning Process
 
--   **[Overall Guideline](#overall-guideline-3md)**  
-
--   **[Precision Tuning Methods](#precision-tuning-methodsmd)**  
-
-
-<h4 id="overall-guideline-3md">Overall Guideline</h4>
+#### Overall Guideline
 
 To locate the precision problem, you need to find out the step in which the problem occurs. The following aspects are involved:
 
-1.  <a name="li17755175510322"></a>Model network calculation error
-    -   Locating method: Add a hook to the network to determine which part is suspected. Then build a  [single-operator sample](#single-operator-sample-buildingmd)  to narrow down the error range. This can prove that the operator calculation is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem.
+1.  Model network calculation error
+    -   Locating method: Add a hook to the network to determine which part is suspected. Then build a single-operator sample by referring to [Single-Operator Sample Building](#single-operator-sample-building) to narrow down the error range. This can prove that the operator calculation is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem.
 
     -   Workaround: Use other operators with the same semantics.
 
     -   Solution: Improve the operator precision or function.
 
-2.  <a name="li25281726103316"></a>Loss calculation error
+2.  Loss calculation error
     -   Locating method: The loss is special and can be customized. After determining that the loss calculation is incorrect, you are advised to dump the loss input in the network instead of a random tensor with the identical shape, so that the problem can be better reproduced and proved.
 
     -   Workaround: Use other operators with the same semantics.
@@ -1603,37 +2254,125 @@ To locate the precision problem, you need to find out the step in which the prob
 
     -   Solution: Contact Huawei support to provide the single-device script and multi-device script of stable reproduction.
 
-
-
-<h4 id="precision-tuning-methodsmd">Precision Tuning Methods</h4>
+#### Precision Tuning Methods
 
 General model precision problems are as follows: training loss not converge or unqualified precision due to operator overflow/underflow; unqualified performance due to network-wide training. You can perform single-operator overflow/underflow detection and network-wide commissioning to resolve the preceding problems.
 
--   **[Single-Operator Overflow/Underflow Detection](#single-operator-overflow-underflow-detectionmd)**  
+##### **Environment Setup**
 
--   **[Network-wide Commissioning](#network-wide-commissioningmd)**  
+- Install the HDF5 tool to support the operator dump function. For details about how to install the tool, see [HDF5 Compilation and Installation](#hdf5-compilation-and-installation)。
 
+  To use the operator precision comparison function, Install the HDF5 tool in both the NPU and GPU environments. Otherwise, install it only in the NPU environment.
 
-<h5 id="single-operator-overflow-underflow-detectionmd">Single-Operator Overflow/Underflow Detection</h5>
+- Install the Ascend PyTorch framework that supports the dump function. Modify the **build.sh** script before compilation. For details about other operations, see the *PyTorch Installation Guide*.
 
-With this function, you can check whether an operator overflows/underflows and collect data of overflowed/underflowed operators, helping developers quickly locate and solve operator precision problems.
+  - Install PyTorch in the NPU environment.
 
-###### Restrictions<a name="section52762019181510"></a>
+    Add the  `USE_DUMP=1` field to the **build.sh** script before compilation.
 
--   Install the HDF5 tool to support the operator dump function. For details about how to install the tool, see  [HDF5 Compilation and Installation](#hdf5-compilation-and-installationmd).
--   This function provides only IR-level operator overflow/underflow detection for only the AI Core \(not Atomic\).
--   Add the  **USE\_DUMP=1**  field to the  **build.sh**  file of the PyTorch source code.
-
-    ```
-    Before the modification: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 python3 setup.py build bdist_wheel
-    After the modification: DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python3 setup.py build
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
     ```
 
-    Recompile and install PyTorch by referring to "Manual Build and Installation" in the  _PyTorch Installation Guide_.
+  - (Optional) Install PyTorch in the GPU environment. Perform this operation only when you want to compare the precision of model operators.
 
+    Before compilation, open the **build.sh** script, add the `USE_DUMP=1 ` and `USE_NCCL=0` fields, change the values of the  `USE_HCCL` and `USE_NPU` fields to **0**, and change the value of the `USE_CUDA` field to **1**.
+
+    ```bash
+    DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
+    ```
+
+##### Model Operator Precision Comparison
+
+With the same inputs, you can use the Model Accuracy Analyzer to obtain the precision difference of the operator outputs of a model when the model is trained on the GPU and NPU, helping you locate operator precision problems.
+
+Restrictions:
+
+- You are advised to use a small batch size (**8** or fewer).
+
+  The input and output data of each operator is stored on drives and occupies a large space. Therefore, you are advised to set a small batch size to save the drive space.
+
+- You are advised to dump data of only one step for     precision comparison.
+
+- Currently, operators during O1 or O2 training can be     used for precision comparison (FP32 only).
+
+Comparison modes:
+
+- Assume that the input and output of the GPU are known     data. Load the input data of the GPU to the NPU to obtain the output data,     and compare the NPU-based output with the GPU-based output.
+- Assume that the input and output of the NPU are known     data. Load the input data of the NPU to the GPU to obtain the output data,     and compare the NPU-based output with the GPU-based output.
+
+Procedure:
+
+1. In the GPU or NPU environment, use the Dumper tool to obtain the model input and operator output on the GPU or NPU.
+
+   Modify the training code to add the data dump function. Use the `with` statement in the forward and backward propagation positions of the model training code to add the `torch.utils.dumper()` method to dump data. For example, the following is a modification example in the GPU environment:
+
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, dump_path="./model_gpu.h5") as dump:
+           # Model training code
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code 
+   ```
+
+   **dump_path** indicates the path of the dump data file, including the file name. You are advised to dump the data of only one step for precision comparison and place the parameter update code outside the with statement.
+
+2. Copy the **model_gpu.h5** data dumped in the GPU (NPU) environment to the NPU (GPU) environment.
+
+3. In the GPU or NPU environment, use the Dumper tool to load the dumped data and obtain the operator output data.
+
+   Modify the training code and add the data load and dump functions. Use the `with` statement in the forward and backward propagation positions of the model training code to add the `torch.utils.dumper()` method to load and dump data. For example, the following is a modification example in the NPU environment:
+
+   ```python
+   for i, data in enumerate(dataloader):
+       with torch.utils.dumper(use_dump=True, load_file_path="./model_gpu.h5", dump_path="./model_npu.h5") as dump:
+           # Model training code
+           xxx # forward code 
+           xxx # backward code
+       exit()
+       xxx # optimizer code
+   ```
+
+   **load_file_path** indicates the path of dump data obtained from the GPU or NPU. **dump_path** indicates the path of the dump data file, including the file name. You are advised to dump the data of only one step for precision comparison and place the parameter update code outside the with statement.
+
+4. Use msaccucmp.py to compare the operator output data.
+
+   1. Ascend-Toolkit provides the msaccucmp.py tool for precision comparison.
+
+      - The script is stored in **/user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py**.
+
+        The path is for reference only. Replace it with the actual installation path of Ascend-Toolkit.
+
+      - You can also run the following command to query the path of msaccucmp.py:
+
+        ```linux
+        find / -name msaccucmp.py
+        ```
+
+   2. Run the msaccucmp.py script to compare the precision.
+
+      ```
+      python3 /user/local/Ascend/ascend-toolkit/latest/tools/operator_cmp/compare/msaccucmp.py compare -m ./model_npu.h5 -g ./model_gpu.h5
+      ```
+
+      Parameters:
+
+      `-g` passes the path of dump data obtained from the GPU.
+
+      `-m` passes the path of dump data obtained from the NPU.
+
+##### Single-Operator Overflow/Underflow Detection
+
+With this function, you can check whether an operator overflows/underflows and collect data of overflow/underflow operators, helping developers quickly locate and solve operator precision problems.
+
+Restrictions:
+
+-   This function provides only IR-level operator overflow/underflow detection for only the AI Core (not Atomic).
 -   When using the single-operator overflow/underflow detection function, do not enable the dynamic loss scale mode of apex and the tensor fusion function at the same time.
 
-###### Collecting Data of Overflowed/Underflowed Operators<a name="section121407268191"></a>
+Collecting data of overflow/underflow operators
 
 ```
 # check_overflow is the overflow/underflow detection control switch.
@@ -1642,15 +2381,97 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
     # Code snippet for detecting operator overflow/underflow.
 ```
 
-During model running, if an operator overflows/underflows, the name of the corresponding IR is printed.
+During model running of a step, if an operator overflows/underflows, the name of the corresponding IR is printed.
 
-###### Viewing Dump Data<a name="section155351957142017"></a>
+Viewing dump data:
 
-If dump data is collected during training, an .h5 file of the dump data is generated in the  **\{dump\_path\}**  directory. You can go to the directory to view the dump data.
+If dump data is collected during training, an .h5 file of the dump data is generated in the {dump_path} directory. You can go to the directory to view the dump data.
 
-###### Solution<a name="section1729763162019"></a>
+Solution:
 
-Send the screenshots of operator overflow/underflow and the collected .h5 file to Huawei R&D engineers as the attachment of an issue.
+1. Map the collected .h5 file to the TBE operators. For details, see [Mapping Between IR and TBE Operators](#Mapping Between IR and TBE Operators).
+
+2. Send the screenshots of operator overflow/underflow and the input and output files of the mapped TBE operators to Huawei R&D engineers as the attachment of an issue.
+
+##### Mapping Between IR and TBE Operators
+
+Prerequisites:
+
+- Set the environment variable export `ACL_DUMP_DATA=0`.
+- Do not use the `torch.npu.init.dump()` and `torch.npu.set.dump()` APIs in the script.
+
+Procedure:
+
+1. Prepare the .h5 file of the operators to be mapped.
+
+   - In the operator overflow/underflow detection scenario, the .h5 file of the operators to be mapped has been generated for single-operator overflow/underflow detection.
+
+   - In the precision comparison scenario, run the following command to extract the .h5 file of the operators to be mapped based on the comparison result:
+
+     ```
+     h5copy -pv -i "./input.h5" -o "./output.h5" -s "/op1/seqid/" -d "/op1/seqid/"
+     ```
+
+     **-i** indicates the input precision comparison file.
+
+     **-o** indicates the output .h5 file of the operators to be mapped.
+
+     **-s** indicates the name and **seqid** of the source operator to be extracted.
+
+     **-d** indicates the name and **seqid** of the target operator to be extracted.
+
+     If multiple operators need to be extracted, modify the **-s** and **-d** parameters and run the command for multiple times to extract multiple operators to **output.h5**.
+
+     The **-s** and **-d** parameters in this command must be the same.
+
+     Example:
+
+     ```
+     h5copy -pv -i "./dump_npu.h5" -o "./output.h5" -s "/numpy_T/1/" -d "/numpy_T/1/"
+     ```
+
+     This example indicates that the input and output data of the numpy_T operator whose **seqid** is **1** is extracted from **./dump_npu.h5** to the **./output.h5** file.
+
+2. Configure the **acl.json** file.
+
+   Create the **acl.json** configuration file required by the AscendCL dump function in the model directory.
+
+   ```
+   {
+       "dump":
+   	    {
+               "dump_list":[]
+               "dump_path":"./output_IR2TBE"# Mapping result output path
+               "dump_mode":"all"
+               "dump_op_switch":"on"
+   	    }
+   
+   }
+   ```
+
+   Change `dump_path` to the result output path. Other fields do not need to be modified.
+
+3. Modify the training script.
+
+   Add the `with` statement to the training script to enable the IR-to-TBE mapping function.
+
+   ```python
+   with torch.utils.dumper(use_load=True, dump_path="./",load_file_path="./output.h5", load_with_acl_dump=True) as dump:
+       # Model calculation code, which needs to be added by users
+       # x = model(input_data)
+   ```
+
+4. Run the model.
+
+   Run a complete model calculation process. During the calculation, if **load** encounters data in **output.h5**, the AscendCL dump function is automatically enabled to execute the IR and dump the input and output data of the TBE operators corresponding to the IR. After the IR is executed, the AscendCL dump ends.
+
+5. Obtain the mapping file.
+
+   After the execution is successful, view the output result file in the `dump_path` directory in the **acl.json** configuration file.
+
+##### Mapping Between NPU and GPU Operators.
+
+For details, see "Data Preparation > [Preparing Data Files for Accuracy Comparison with PyTorch as the Original Training Network]([CANN 5.0.3 Auxiliary Development Tool User Guide 01 - Huawei](https://support.huawei.com/enterprise/en/doc/EDOC1100219270/2324edc8#ZH-CN_TOPIC_0000001162580808))" in "Model Accuracy Analyzer Instructions (Training)" in the Auxiliary Development Tool User Guide.
 
 <h5 id="network-wide-commissioningmd">Network-wide Commissioning </h5>
 
@@ -1658,7 +2479,7 @@ You can also commission the network model precision by analyzing the entire netw
 
 1.  Determine whether the calculation on the Ascend AI Processor is correct by comparing the calculation result on the CPU and that on the Ascend AI Processor.
 
-    Code example \(this example shows only the basic method and does not allow direct copy\):
+    Code example (this example shows only the basic method and does not allow direct copy):
 
     ```
     # The input parameters are fixed to ensure that the model and input data are the same on the CPU and Ascend AI Processor.
@@ -1680,7 +2501,7 @@ You can also commission the network model precision by analyzing the entire netw
 
 2.  Use the hook mechanism of PyTorch to print the inputs and outputs of the module in the forward and backward propagation for analysis.
 
-    Code example \(this example shows only the basic method and does not allow direct copy\):
+    Code example (this example shows only the basic method and does not allow direct copy):
 
     ```
     # Set the hook function.
@@ -1703,7 +2524,7 @@ You can also commission the network model precision by analyzing the entire netw
 
 3.  Obtain parameters such as  **grad**,  **running\_mean**, and  **running\_var**  of the module to analyze the updates.
 
-    Code example \(this example shows only the basic method and does not allow direct copy\):
+    Code example (this example shows only the basic method and does not allow direct copy):
 
     ```
     # For example, obtain the gradient and average value of BN for check.
@@ -1713,17 +2534,9 @@ You can also commission the network model precision by analyzing the entire netw
         print("[grad]: "+name, module.grad)
     ```
 
+## Model Saving and Conversion
 
-<h2 id="model-saving-and-conversionmd">Model Saving and Conversion</h2>
-
--   **[Introduction](#introduction-4md)**  
-
--   **[Saving a Model](#saving-a-modelmd)**  
-
--   **[Exporting an ONNX Model](#exporting-an-onnx-modelmd)**  
-
-
-<h3 id="introduction-4md">Introduction</h3>
+### Introduction
 
 After the model training is complete, save the model file and export the ONNX model by using the APIs provided by PyTorch. Then use the ATC tool to convert the model into an .om file that adapts to the Ascend AI Processor for offline inference.
 
@@ -1731,17 +2544,17 @@ This section describes how to convert the trained .pth or .pth.tar file into the
 
 For details about how to use the Auto Tune function, see "Auto Tune Instructions" in the  _CANN Auxiliary Development Tool User Guide _.
 
-For details about how to build an offline inference application, see the  _CANN Application Software Development Guide \(C and C++, Inference\)_. The process is as follows:
+For details about how to build an offline inference application, see the  _CANN Application Software Development Guide (C and C++, Inference)_. The process is as follows:
 
 ![](figures/en-us_image_0000001144082132.png)
 
-<h3 id="saving-a-modelmd">Saving a Model</h3>
+### Saving a Model
 
-During PyTorch training,  **torch.save\(\)**  is used to save checkpoint files. Based on the usage of model files, model files are saved in the following two formats:
+During PyTorch training,  **torch.save()**  is used to save checkpoint files. Based on the usage of model files, model files are saved in the following two formats:
 
--   .pth or .pt files: These files are used for online inference or exporting ONNX models. Only model parameters are saved, and the model structure is not saved, so that the compressed file can be opened using a visualization tool such as Netron.  [Figure 1](#fig315704722610)  shows an example.
+-   .pth or .pt files: These files are used for online inference or exporting ONNX models. Only model parameters are saved, and the model structure is not saved, so that the compressed file can be opened using a visualization tool such as Netron.  [Figure 11](#fig315704722610)  shows an example.
 
-    **Figure  1**  .pth file<a name="fig315704722610"></a>  
+    **Figure  11**  .pth file
     ![](figures/pth-file.jpg "pth-file")
 
     Use  **state\_dict**  to save and load a model. The following is an example:
@@ -1803,18 +2616,16 @@ During PyTorch training,  **torch.save\(\)**  is used to save checkpoint files. 
         model.train()
         ```
 
-
-
 >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
->Generally, an operator is processed in different ways in the training graph and inference graph \(for example, BatchNorm and dropout operators\), and the input formats are also different. Therefore, before inference or ONNX model exporting,  **model.eval\(\)**  must be called to set the dropout and batch normalization layers to the inference mode.
+>Generally, an operator is processed in different ways in the training graph and inference graph (for example, BatchNorm and dropout operators), and the input formats are also different. Therefore, before inference or ONNX model exporting,  **model.eval\(\)**  must be called to set the dropout and batch normalization layers to the inference mode.
 
-<h3 id="exporting-an-onnx-modelmd">Exporting an ONNX Model</h3>
+### Exporting an ONNX Model
 
-#### Introduction<a name="section5385151615714"></a>
+#### Introduction
 
 The deployment policy of the Ascend AI Processor for PyTorch models is implemented based on the ONNX module that is supported by PyTorch. ONNX is a mainstream model format in the industry and is widely used for model sharing and deployment. This section describes how to export a checkpoint file as an ONNX model by using the  **torch.onnx.export\(\)**  API.
 
-#### Using the .pth or .pt File to Export the ONNX Model<a name="section20969359757"></a>
+#### Using the .pth or .pt File to Export the ONNX Model
 
 The saved .pth or .pt file can be restored by building a model using PyTorch and then loading the weight. Then you can export the ONNX model. The following is an example.
 
@@ -1856,7 +2667,7 @@ if __name__ == "__main__":
 >-   The model in the sample script comes from the definition in the torchvision module. You need to specify a model when using your own model.
 >-   The constructed input and output must correspond to the input and output during training. Otherwise, the inference cannot be performed properly.
 
-#### Using the .pth.tar File to Export the ONNX Model<a name="section558814595300"></a>
+#### Using the .pth.tar File to Export the ONNX Model
 
 Before exporting the ONNX model using the .pth.tar file, you need to check the saved information. Sometimes, the saved node name may be different from the node name in the model definition. For example, a prefix and suffix may be added. During the conversion, you can modify the node name. The following is an example of the conversion.
 
@@ -1895,634 +2706,13 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="samplesmd">Samples</h2>
+## Samples
 
--   **[ResNet-50 Model Porting](#resnet-50-model-portingmd)**  
+### ShuffleNet Model Optimization
 
--   **[ShuffleNet Model Optimization](#shufflenet-model-optimizationmd)**  
+#### Obtaining Samples
 
-
-<h3 id="resnet-50-model-portingmd">ResNet-50 Model Porting</h3>
-
--   **[Obtaining Samples](#obtaining-samplesmd)**  
-
--   **[Porting the Training Script](#porting-the-training-scriptmd)**  
-
--   **[Script Execution](#script-executionmd)**  
-
-
-<h4 id="obtaining-samplesmd">Obtaining Samples</h4>
-
-##### How to Obtain<a name="section1155115015182"></a>
-
-1.  This sample is used to adapt to the porting and reconstruction of the  Ascend 910 AI Processor  based on the ImageNet dataset training model provided by the PyTorch official website. The sample can be obtained from  [https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet).
-2.  This sample depends on torchvision. Therefore, you need to install the torchvision dependency. If you install it as a non-root user, add  **--user**  to the end of the command.
-
-    If the server runs in the x86 environment, run the following command:
-
-    ```
-    pip3.7 install torchvision==0.6.0 --no-deps
-    ```
-
-    If the server runs in the ARM environment, run the following command:
-
-    ```
-    pip3.7 install torchvision==0.2.2.post3 --no-deps
-    ```
-
-3.  For details about the ResNet-50 model, go to  [https://pytorch.org/hub/pytorch\_vision\_resnet/](https://pytorch.org/hub/pytorch_vision_resnet/). The following two methods are available:
-    1.  Directly call the corresponding API. For example:
-
-        ```
-        import torchvision.models as models 
-        model = models.resnet50()
-        ```
-
-        >![](public_sys-resources/icon-note.gif) **NOTE:** 
-        >ResNet-50 is a model built in PyTorch. For more built-in models, visit the  [PyTorch official website](https://pytorch.org/).
-
-    2.  During script execution, set  **arch**  to  **resnet50**. This method is used in the sample. For details, see  [Script Execution](#script-executionmd).
-
-        ```
-        --arch resnet50
-        ```
-
-
-
-##### Directory Structure<a name="section766832317011"></a>
-
-The structure of major directories and files is as follows:
-
-```
-├──main.py 
-```
-
-<h4 id="porting-the-training-scriptmd">Porting the Training Script</h4>
-
--   **[Single-Device Training Modification](#single-device-training-modificationmd)**  
-
--   **[Distributed Training Modification](#distributed-training-modificationmd)**  
-
-
-<h5 id="single-device-training-modificationmd">Single-Device Training Modification</h5>
-
-1.  Add the header file to  **main.py**  to support model training on the  Ascend 910 AI Processor  based on the PyTorch framework.
-
-    ```
-    import torch.npu
-    ```
-
-2.  Add parameters to the end of the header file in the  **main.py**  file to specify that the  Ascend 910 AI Processor  is used for training.
-
-    ```
-    CALCULATE_DEVICE = "npu:1"
-    ```
-
-3.  Modify the parameter and option so that training is performed only on the  Ascend 910 AI Processor.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-    def main_worker(gpu, ngpus_per_node, args):
-        global best_acc1
-        # The original code specifies the GPU for training. The original code is as follows:
-        # args.gpu = gpu
-        ############## npu modify begin #############
-        args.gpu = None
-        ############## npu modify end #############
-        if args.gpu is not None:
-            print("Use GPU: {} for training".format(args.gpu))
-    
-        if args.distributed:
-            if args.dist_url == "env://" and args.rank == -1:
-                args.rank = int(os.environ["RANK"])
-            if args.multiprocessing_distributed:
-                # For multiprocessing distributed training, rank needs to be the
-                # global rank among all the processes
-                args.rank = args.rank * ngpus_per_node + gpu
-            dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-        # create model
-        if args.pretrained:
-            print("=> using pre-trained model '{}'".format(args.arch))
-            model = models.__dict__[args.arch](pretrained=True)
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = models.__dict__[args.arch]()
-        # The original code determines whether to perform training on the GPU. The code is as follows:
-        # if not torch.cuda.is_available():
-            # print('using CPU, this will be slow')
-        # elif args.distributed:
-        ############## npu modify begin #############
-        # After the migration, the code directly determines whether to perform distributed training and does not determine whether to perform training on the GPU.
-        if args.distributed:
-        ############## npu modify end #############
-            # For multiprocessing distributed, DistributedDataParallel constructor
-            # should always set the single device scope, otherwise,
-            # DistributedDataParallel will use all available devices.
-            if args.gpu is not None:
-               ......
-    ```
-
-4.  Migrate the model and loss function to the  Ascend 910 AI Processor  for calculation.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        elif args.gpu is not None:
-            torch.cuda.set_device(args.gpu)
-            model = model.cuda(args.gpu)
-        else:
-            # DataParallel will divide and allocate batch_size to all available GPUs
-            if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-                model.features = torch.nn.DataParallel(model.features)
-                model.cuda()
-            else:
-                # The original code uses the torch.nn.DataParallel() class to accelerate training using multiple GPUs.
-                # model = torch.nn.DataParallel(model).cuda()
-            ############## npu modify begin #############
-                # Migrate the model to the NPU for training.
-               model = model.to(CALCULATE_DEVICE)
-           ############## npu modify end #############
-        # In the original code, the loss function is calculated on the GPU.
-        # # define loss function (criterion) and optimizer
-        # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
-        ############## npu modify begin #############
-        # Migrate the loss function to the NPU for calculation.
-        criterion = nn.CrossEntropyLoss().to(CALCULATE_DEVICE)   
-        ############## npu modify end #############
-    ```
-
-5.  Change the type of the  **target**  operator in the dataset to  **int32**  to resolve the operator error. Migrate the dataset to the  Ascend 910 AI Processor  for calculation.
-    -   Code location:  **train\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-        ```
-            for i, (images, target) in enumerate(train_loader):
-                # measure data loading time
-                data_time.update(time.time() - end)
-        
-                if args.gpu is not None:
-                    images = images.cuda(args.gpu, non_blocking=True)
-                #  In the original code, the training dataset is loaded and calculated on the GPU. The original code is as follows:
-                # if torch.cuda.is_available():
-                    # target = target.cuda(args.gpu, non_blocking=True)
-                ############## npu modify begin #############
-                # Port the dataset to the NPU for calculation and modify the target data type to improve performance.
-                if 'npu' in CALCULATE_DEVICE:     
-                    target = target.to(torch.int32)                      
-                images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
-                ############## npu modify end #############
-        ```
-
-    -   Code location:  **validate\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-        ```
-            with torch.no_grad():
-                end = time.time()
-                for i, (images, target) in enumerate(val_loader):
-                    if args.gpu is not None:
-                        images = images.cuda(args.gpu, non_blocking=True)
-                    #  In the original code, the training dataset is loaded and calculated on the GPU. The original code is as follows:
-                    # if torch.cuda.is_available():
-                        # target = target.cuda(args.gpu, non_blocking=True)
-                    ############## npu modify begin #############
-                    # Port the dataset to the NPU for calculation and modify the target data type.
-                    if 'npu' in CALCULATE_DEVICE:
-                        target = target.to(torch.int32)
-                  images, target = images.to(CALCULATE_DEVICE, non_blocking=True), target.to(CALCULATE_DEVICE, non_blocking=True)
-                   ############## npu modify end #############
-        ```
-
-6.  Set the device in use.
-
-    Code location: Main function entry in  **main.py**  \(The changes are in bold.\)
-
-    ```
-    if __name__ == '__main__':
-        ############## npu modify begin #############
-        if 'npu' in CALCULATE_DEVICE:
-           torch.npu.set_device(CALCULATE_DEVICE)
-        ############## npu modify begin #############
-        main()
-    ```
-
-
-<h5 id="distributed-training-modificationmd">Distributed Training Modification</h5>
-
-1.  Add the header file to  **main.py**  to support mixed-precision model training on the  Ascend 910 AI Processor  based on the PyTorch framework.
-
-    ```
-    import torch.npu
-    from apex import amp
-    ```
-
-2.  Add the following parameters, including the parameters for specifying the  Ascend 910 AI Processor  involved in training and the parameters required for mixed-precision training.
-
-    ```
-    parser.add_argument('--device', default='npu', type=str, help='npu or gpu')                        
-    parser.add_argument('--addr', default='10.136.181.115', type=str, help='master addr')                        
-    parser.add_argument('--device-list', default='0,1,2,3,4,5,6,7', type=str, help='device id list')
-    parser.add_argument('--amp', default=False, action='store_true', help='use amp to train the model')                    
-    parser.add_argument('--loss-scale', default=1024., type=float,
-                        help='loss scale using in amp, default -1 means dynamic')
-    parser.add_argument('--opt-level', default='O2', type=str,
-                        help='loss scale using in amp, default -1 means dynamic')
-    ```
-
-3.  Create a mapping function from  **device\_id**  to  **process\_id**  and specify the device for training. Add the following API to the  **main.py**  function:
-
-    ```
-    def device_id_to_process_device_map(device_list):
-        devices = device_list.split(",")
-        devices = [int(x) for x in devices]
-        devices.sort()
-    
-        process_device_map = dict()
-        for process_id, device_id in enumerate(devices):
-            process_device_map[process_id] = device_id
-    
-        return process_device_map
-    ```
-
-4.  Specify the IP address and the port number of the training server.
-
-    Code location: Main function  **main\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-    def main():
-        args = parser.parse_args()
-        ############## npu modify begin #############
-        os.environ['MASTER_ADDR'] = args.addr 
-        os.environ['MASTER_PORT'] = '29688'
-        ############## npu modify end #############
-    ```
-
-5.  Create a mapping parameter from  **device\_id**  to  **process\_id**  to obtain the number of  Ascend 910 AI Processors  on a single node.
-
-    Code location: Main function  **main\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-    args.distributed = args.world_size > 1 or args.multiprocessing_distributed
-    ############## npu modify begin #############
-    args.process_device_map = device_id_to_process_device_map(args.device_list)
-    if args.device == 'npu':
-        ngpus_per_node = len(args.process_device_map)
-    else:
-        ngpus_per_node = torch.cuda.device_count()
-    ############## npu modify end #############
-    # The original code is as follows:
-    # ngpus_per_node = torch.cuda.device_count()
-    ```
-
-6.  Obtain the ID of the  Ascend 910 AI Processor  corresponding to  **process\_id**  and specify the  Ascend 910 AI Processor  for training.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-    def main_worker(gpu, ngpus_per_node, args):   
-        global best_acc1
-        ############## npu modify begin #############
-        args.gpu = args.process_device_map[gpu]
-        ############## npu modify end #############
-        # The original code is as follows:
-        # args.gpu = gpu
-    ```
-
-7.  Initialize the process group and shield the initialization mode.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-          ############## npu modify begin #############  
-            if args.device == 'npu':
-                dist.init_process_group(backend=args.dist_backend, #init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-            else:
-                dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,                                
-                                    world_size=args.world_size, rank=args.rank)
-          ############## npu modify begin #############  
-          # The original code is as follows:
-          # dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                    world_size=args.world_size, rank=args.rank)
-    ```
-
-8.  To perform distributed training, the mixed precision module needs to be introduced, and the model needs to be ported to the Ascend AI Processor. Therefore, the code for determining whether the training is distributed training and whether the model is trained on the GPU needs to be masked.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        # create model
-        if args.pretrained:
-            print("=> using pre-trained model '{}'".format(args.arch))
-            model = models.__dict__[args.arch](pretrained=True)
-        else:
-            print("=> creating model '{}'".format(args.arch))
-            model = models.__dict__[args.arch]()
-    ############## npu modify begin #############
-        # Add the following to the code:
-        # Specify the Ascend AI Processor as the training device.
-        loc = 'npu:{}'.format(args.gpu)
-        torch.npu.set_device(loc)
-        # Calculate batch_size and workers used for training.
-        args.batch_size = int(args.batch_size / ngpus_per_node)
-        args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-    ############## npu modify end #############
-        # The original code is as follows. The code needs to be masked and is commented out.
-        # if not torch.cuda.is_available():
-        #     print('using CPU, this will be slow')
-        # elif args.distributed:
-        #     # For multiprocessing distributed, DistributedDataParallel constructor
-        #     # should always set the single device scope, otherwise,
-        #     # DistributedDataParallel will use all available devices.
-        #     if args.gpu is not None:
-        #         torch.cuda.set_device(args.gpu)
-        #         model.cuda(args.gpu)
-        #         # When using a single GPU per process and per
-        #         # DistributedDataParallel, we need to divide the batch size
-        #         # ourselves based on the total number of GPUs we have
-        #         args.batch_size = int(args.batch_size / ngpus_per_node)
-        #         args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
-        #         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-        #     else:
-        #         model.cuda()
-        #         # DistributedDataParallel will divide and allocate batch_size to all
-        #         # available GPUs if device_ids are not set
-        #         model = torch.nn.parallel.DistributedDataParallel(model)
-        # elif args.gpu is not None:
-        #     torch.cuda.set_device(args.gpu)
-        #     model = model.cuda(args.gpu)
-        # else:
-        #     # DataParallel will divide and allocate batch_size to all available GPUs
-        #     if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
-        #         model.features = torch.nn.DataParallel(model.features)
-        #         model.cuda()
-        #     else:
-        #         model = torch.nn.DataParallel(model).cuda()
-    ```
-
-9.  The loss function, optimizer, and breakpoint training are masked, and this part is combined with the mixed precision training later.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        # The original code is masked and commented out.
-        # # define loss function (criterion) and optimizer
-        # criterion = nn.CrossEntropyLoss().cuda(args.gpu)
-        #
-        # optimizer = torch.optim.SGD(model.parameters(), args.lr,
-        #                             momentum=args.momentum,
-        #                             weight_decay=args.weight_decay)
-        #
-        # # optionally resume from a checkpoint
-        # if args.resume:
-        #     if os.path.isfile(args.resume):
-        #         print("=> loading checkpoint '{}'".format(args.resume))
-        #         if args.gpu is None:
-        #             checkpoint = torch.load(args.resume)
-        #         else:
-        #             # Map model to be loaded to specified single gpu.
-        #             loc = 'cuda:{}'.format(args.gpu)
-        #             checkpoint = torch.load(args.resume, map_location=loc)
-        #         args.start_epoch = checkpoint['epoch']
-        #         best_acc1 = checkpoint['best_acc1']
-        #         if args.gpu is not None:
-        #             # best_acc1 may be from a checkpoint from a different GPU
-        #             best_acc1 = best_acc1.to(args.gpu)
-        #         model.load_state_dict(checkpoint['state_dict'])
-        #         optimizer.load_state_dict(checkpoint['optimizer'])
-        #         print("=> loaded checkpoint '{}' (epoch {})"
-        #               .format(args.resume, checkpoint['epoch']))
-        #     else:
-        #         print("=> no checkpoint found at '{}'".format(args.resume))
-        #
-        # cudnn.benchmark = True
-    ```
-
-10. A data loader combines a dataset and a sampler and can provide multiple threads to process the dataset. If the Ascend AI Processor is used for training,  **pin\_memory**  must be set to  **False**. Currently, only training in a static shape is supported. The number of remaining samples in the data flow may be less than the batch size. Therefore,  **drop\_last**  must be set to  **True**. In addition, you need to set  **shuffle**  to  **True**  for some datasets to be verified.
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        ############## npu modify begin #############
-        train_loader = torch.utils.data.DataLoader(
-            train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-            num_workers=args.workers, pin_memory=False, sampler=train_sampler, drop_last=True)
-    
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers, pin_memory=False, drop_last=True)
-            ############## npu modify end #############
-    ```
-
-11. Construct the loss function and optimizer, and port the model and loss function to the Ascend AI Processor. The optimizer, the model and the mixed precision module are combined to support the mixed precision training. The breakpoint training part is combined with the mixed precision module to support the mixed precision training.
-
-    Code location: after the data loading verification part of  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(valdir, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=args.batch_size, shuffle=True,
-            num_workers=args.workers, pin_memory=False, drop_last=True)
-    
-        ############## npu modify begin #############
-        model = model.to(loc)
-        # define loss function (criterion) and optimizer
-        criterion = nn.CrossEntropyLoss().to(loc)
-        optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                    momentum=args.momentum,
-                                    weight_decay=args.weight_decay)
-    
-        if args.amp:
-            model, optimizer = amp.initialize(model, optimizer, opt_level=args.opt_level, loss_scale=args.loss_scale)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
-    
-        # optionally resume from a checkpoint
-        if args.resume:
-            if os.path.isfile(args.resume):
-                print("=> loading checkpoint '{}'".format(args.resume))
-                checkpoint = torch.load(args.resume, map_location=loc)
-                args.start_epoch = checkpoint['epoch']
-                best_acc1 = checkpoint['best_acc1']
-                model.load_state_dict(checkpoint['state_dict'])
-                optimizer.load_state_dict(checkpoint['optimizer'])
-                if args.amp:
-                  amp.load_state_dict(checkpoint['amp'])
-                print("=> loaded checkpoint '{}' (epoch {})"
-                      .format(args.resume, checkpoint['epoch']))
-            else:
-                print("=> no checkpoint found at '{}'".format(args.resume))
-    
-        cudnn.benchmark = True
-        ############## npu modify end #############
-    ```
-
-12. The checkpoint saving needs to be combined with the mixed precision training. The modification is as follows:
-
-    Code location:  **main\_worker\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-            # remember best acc@1 and save checkpoint
-            is_best = acc1 > best_acc1
-            best_acc1 = max(acc1, best_acc1)
-    
-            if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                    and args.rank % ngpus_per_node == 0):
-            ############## npu modify begin #############
-                if args.amp:
-                    save_checkpoint({
-                        'epoch': epoch + 1,
-                        'arch': args.arch,
-                        'state_dict': model.state_dict(),
-                        'best_acc1': best_acc1,
-                        'optimizer' : optimizer.state_dict(),
-                        'amp': amp.state_dict(),
-                    }, is_best)
-                else:
-                    save_checkpoint({
-                        'epoch': epoch + 1,
-                        'arch': args.arch,
-                        'state_dict': model.state_dict(),
-                        'best_acc1': best_acc1,
-                        'optimizer' : optimizer.state_dict(),
-                    }, is_best)
-             ############## npu modify end #############
-    ```
-
-13. During training, you need to migrate the dataset to the Ascend AI Processor. The modification is as follows:
-
-    Code location:  **train\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        for i, (images, target) in enumerate(train_loader):
-            # measure data loading time
-            data_time.update(time.time() - end)
-            ############## npu modify begin #############
-            loc = 'npu:{}'.format(args.gpu)
-            target = target.to(torch.int32)
-            images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
-            ############## npu modify end #############
-            # The original model code is as follows:
-            # if args.gpu is not None:
-            #     images = images.cuda(args.gpu, non_blocking=True)
-            # if torch.cuda.is_available():
-            #     target = target.cuda(args.gpu, non_blocking=True)
-    ```
-
-14. Mark the location where the backpropagation  .backward\(\)  occurs so that the mixed precision module can perform loss scaling and clear the status of each iteration. The code is as follows:
-
-    Code location:  **train\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-            optimizer.zero_grad()
-            ############## npu modify begin #############
-            if args.amp:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
-            # The original code is as follows:
-            # loss.backward()
-            ############## npu modify end #############
-            optimizer.step()
-    ```
-
-15. Before verification, you need to migrate the dataset to be verified to the Ascend AI Processor. The modification is as follows:
-
-    Code location:  **validate\(\)**  in  **main.py**  \(The changes are in bold.\)
-
-    ```
-        with torch.no_grad():
-            end = time.time()
-            for i, (images, target) in enumerate(val_loader):
-            ############## npu modify begin #############
-                loc = 'npu:{}'.format(args.gpu)
-                target = target.to(torch.int32)
-                images, target = images.to(loc, non_blocking=False), target.to(loc, non_blocking=False)
-            ############## npu modify end #############
-            # The original model code is as follows:
-            # if args.gpu is not None:
-            #     images = images.cuda(args.gpu, non_blocking=True)
-            # if torch.cuda.is_available():
-            #     target = target.cuda(args.gpu, non_blocking=True)
-    ```
-
-
-<h4 id="script-executionmd">Script Execution</h4>
-
-##### Preparing a Dataset<a name="section1570410549599"></a>
-
-Prepare a dataset and upload it to a directory in the operating environment, for example,  **/home/data/resnet50/imagenet**.
-
-##### Configuring Environment Variables<a name="section13239217203"></a>
-
-For details, see  [Environment Variable Configuration](#en-us_topic_0000001144082004md).
-
-##### Command<a name="section624019171308"></a>
-
-Example:
-
-Single-device:
-
-```
-python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # Training batch size
-                                               --lr 0.1 \               # Learning rate
-                                               --epochs 90 \            # Number of training iterations
-                                               --arch resnet50 \        # Model architecture
-                                               --world-size 1 \
-                                               --rank 0 \         
-                                               --workers 40 \           # Number of processes for loading data
-                                               --momentum 0.9 \         # Momentum
-                                               --weight-decay 1e-4      # Weight attenuation
-```
-
-Distributed:
-
-```
-python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # Example IP address. Replace it with the actual IP address.
-                                               --seed 49  \                      # Random seed
-                                               --workers 160 \                   # Number of processes for loading data
-                                               --lr 0.8 \
-                                               --print-freq 1 \
-                                               --arch resnet50 \                 # Model architecture
-                                               --dist-url 'tcp://127.0.0.1:50000' \                   
-                                               --dist-backend 'hccl' \
-                                               --multiprocessing-distributed \   # Multi-device training
-                                               --world-size 1 \
-                                               --batch-size 2048 \               # Training batch size
-                                               --epochs 90 \                     # Number of training iterations
-                                               --rank 0 \
-                                               --device-list '0,1,2,3,4,5,6,7' \
-                                               --amp                             # Use mixed precision for training.
-```
-
->![](public_sys-resources/icon-note.gif) **NOTE:** 
->**dist-backend**  must be set to  **hccl**  to support distributed training on the Ascend AI device.
-
-<h3 id="shufflenet-model-optimizationmd">ShuffleNet Model Optimization</h3>
-
--   **[Obtaining Samples](#obtaining-samples-5md)**  
-
--   **[Model Evaluation](#model-evaluationmd)**  
-
--   **[Porting the Network](#porting-the-networkmd)**  
-
--   **[Commissioning the Network](#commissioning-the-networkmd)**  
-
-
-<h4 id="obtaining-samples-5md">Obtaining Samples</h4>
-
-##### How to Obtain<a name="section1155115015182"></a>
+##### How to Obtain
 
 1.  This sample is used to adapt to the porting and reconstruction of the  Ascend 910 AI Processor  based on the ImageNet dataset training model provided by the PyTorch official website. The sample can be obtained from  [https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet).
 2.  For details about the ShuffleNet model, see the  [ShuffleNet V2](https://pytorch.org/hub/pytorch_vision_shufflenet_v2/)  in the PyTorch official website. Set the  **arch**  parameter to  **shufflenet\_v2\_x1\_0**  during script execution.
@@ -2535,7 +2725,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
     >ShuffleNet is a model built in PyTorch. For more built-in models, visit the  [PyTorch official website](https://pytorch.org/).
 
 
-##### Directory Structure<a name="section766832317011"></a>
+##### Directory Structure
 
 The structure of major directories and files is as follows:
 
@@ -2543,25 +2733,24 @@ The structure of major directories and files is as follows:
 ├──main.py 
 ```
 
-<h4 id="model-evaluationmd">Model Evaluation</h4>
+#### Model Evaluation
 
 Model evaluation focuses on operator adaptation. Use the dump op method to obtain the ShuffleNet operator information and compare the information with that in the  _PyTorch Operator Support_. If an operator is not supported, in simple scenarios, you can replace the operator with a similar operator or place the operator on the CPU to avoid this problem. In complex scenarios, operator development is required. For details, see the  _PyTorch Operator Development Guide_.
 
-<h4 id="porting-the-networkmd">Porting the Network</h4>
+#### Porting the Network
 
-For details about how to port the training scripts, see  [Single-Device Training Modification](#single-device-training-modificationmd)  and  [Distributed Training Modification](#distributed-training-modificationmd). During the script execution, select the  **--arch shufflenet\_v2\_x1\_0**  parameter.
+For details about how to port the training scripts, see  [Single-Device Training Porting](#single-device-training-porting)  and  [Single-Server Multi-Device Training Modification](#single-server-multi-device-training-modification). During the script execution, select the  **--arch shufflenet\_v2\_x1\_0**  parameter.
 
-<h4 id="commissioning-the-networkmd">Commissioning the Network</h4>
+#### Commissioning the Network
 
-For details about how to commission the network, see  [Commissioning Process](#commissioning-processmd). After check, it is found that too much time is consumed by operators during ShuffleNet running. The following provides the time consumption data and solutions.
+For details about how to commission the network, see [Commissioning Process](#commissioning-process). After check, it is found that too much time is consumed by operators during ShuffleNet running. The following provides the time consumption data and solutions.
 
-##### Forward check<a name="section7544311140"></a>
+##### Forward check
 
 The forward check record table is as follows:
 
 **Table  1**  Forward check
 
-<a name="table232610016208"></a>
 <table><thead align="left"><tr id="row5326170182016"><th class="cellrowborder" valign="top" width="6.419999999999999%" id="mcps1.2.5.1.1"><p id="p113266011202"><a name="p113266011202"></a><a name="p113266011202"></a>No.</p>
 </th>
 <th class="cellrowborder" valign="top" width="10.39%" id="mcps1.2.5.1.2"><p id="p1232670152015"><a name="p1232670152015"></a><a name="p1232670152015"></a>time (ms)</p>
@@ -2628,13 +2817,12 @@ The details are as follows:
 -   Set the weight initialization format to avoid repeated transdata during calculation, for example, the framework bottleneck described in the  [copy bottleneck optimization](#training-performance-optimizationmd).
 -   The output format of the DWCONV weight is rectified to avoid the unnecessary conversion from 5HD to 4D.
 
-##### Entire Network Check<a name="section1261194410241"></a>
+##### Entire Network Check
 
 The record table of the entire network check is as follows:
 
 **Table  2**  Entire network check
 
-<a name="table687975742418"></a>
 <table><thead align="left"><tr id="row487985710248"><th class="cellrowborder" valign="top" width="6.419999999999999%" id="mcps1.2.5.1.1"><p id="p10879125714244"><a name="p10879125714244"></a><a name="p10879125714244"></a>No.</p>
 </th>
 <th class="cellrowborder" valign="top" width="10.39%" id="mcps1.2.5.1.2"><p id="p887995716244"><a name="p887995716244"></a><a name="p887995716244"></a>time (ms)</p>
@@ -2787,19 +2975,19 @@ The details are as follows:
 
 1.  Replace framework operators with compute operators.
 
-2.  Use buffer to record the index information to the NPU, and cancel the  **index.to\(npu creation\)**  operation.
+2.  Use buffer to record the index information to the NPU, and cancel the  **index.to(npu creation)**  operation.
 
 3.  Use compute operators to eliminate non-contiguous tensors.
 
-4.  The AI Core operator GatherV2 is used for  **contiguous\_with\_gatherv2**  to convert non-contiguous tensors to contiguous tensors.
+4.  The AI Core operator GatherV2 is used for  **contiguous_with_gatherv2**  to convert non-contiguous tensors to contiguous tensors.
 
 5.  Modify  **batchsize**.
 
-6.  Modify  **batchsize **and  **contiguous\_with\_gatherv2**.
+6.  Modify  **batchsize **and  **contiguous_with_gatherv2**.
 
 7.  The chunk operator is the backward calculation mode of the Concat operator. It may produce non-contiguous tensors. Therefore, the backward calculation mode of the Concat operator needs to be customized. Combine cat, shuffle, and chunk, then replace chunk with GatherV2 to eliminate non-contiguous tensors.
 
-8.  The ReluGrad operator has two inputs:  **grad\_output**  \(backward input\) and  **self**  \(forward output\). In ShuffleNet, the 4D and 5HD formats exist at the same time in some cases. However, the FE format is usually aligned with the format of the first tensor, so the following process occurs: \(4D, 5HD\) \> \(4D, 4D\) \> ReluGrad \> 4D \> 5HD. The forward output format is basically the input format, and ReLU is usually used together with Conv and BN. In this scenario, 5HD format is more suitable for output. Therefore, insert  **npu\_format\_cast**  manually, and the following process occurs: \(4D, 5HD\) \> \(5HD, 5HD\) \> ReluGrad \> 5HD.
+8.  The ReluGrad operator has two inputs:  **grad_output**  (backward input) and  **self**  (forward output). In ShuffleNet, the 4D and 5HD formats exist at the same time in some cases. However, the FE format is usually aligned with the format of the first tensor, so the following process occurs: (4D, 5HD) > (4D, 4D) > ReluGrad > 4D > 5HD. The forward output format is basically the input format, and ReLU is usually used together with Conv and BN. In this scenario, 5HD format is more suitable for output. Therefore, insert  **npu_format_cast**  manually, and the following process occurs: (4D, 5HD) > (5HD, 5HD) > ReluGrad > 5HD.
 
 9.  In IndexSelectFullImplementation, the gatherv2 operation is performed twice on a 5HD tensor. In this case, the conversion from 5HD to 4D is performed twice. You can manually convert 5HD to 4D once, so that transdata is not performed during the gatherv2 operation, reducing a transdata operation.
 
@@ -2815,7 +3003,7 @@ The details are as follows:
 15. After using the GatherV3 operator optimized for the ShuffleNet V2 scenario, the overall performance can be further improved.
 
 
-##### Python Optimization Details<a name="section18548161019295"></a>
+##### Python Optimization Details
 
 The optimization on the Python side is to make the network more affinity on the NPU by modifying some equivalent semantics. The current operations of converting non-contiguous tensors to contiguous tensors can be the performance bottleneck. The  **channel\_shuffle**  operation in ShuffleNet V2 involves the conversion operations after permute, causing poor performance of the entire network. The performance of the entire network can be greatly improved by modifying the equivalent semantics of the  **channel\_shuffle**  operation and combining it with the concat operation. The torchvision version is used. For details, go to  [open source link](https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py).
 
@@ -3049,27 +3237,11 @@ for group in [2, 4, 8]:
             return out
     ```
 
+## References
 
-<h2 id="referencesmd">References</h2>
+### Single-Operator Sample Building
 
--   **[Single-Operator Sample Building](#single-operator-sample-buildingmd)**  
-
--   **[Single-Operator Dump Method](#single-operator-dump-methodmd)**  
-
--   **[Common Environment Variables](#common-environment-variablesmd)**  
-
--   **[dump op Method](#dump-op-methodmd)**  
-
--   **[Compilation Option Settings](#compilation-option-settingsmd)**  
-
--   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)**  
-
--   **[HDF5 Compilation and Installation](#hdf5-compilation-and-installationmd)**  
-
-
-<h3 id="single-operator-sample-buildingmd">Single-Operator Sample Building</h3>
-
-When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-methodmd).
+When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-method).
 
 1.  Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
 
@@ -3162,10 +3334,9 @@ When a problem occurs in a model, it is costly to reproduce the problem in the e
         run_tests()
     ```
 
+### Single-Operator Dump Method
 
-<h3 id="single-operator-dump-methodmd">Single-Operator Dump Method</h3>
-
-#### Collecting Dump Data<a name="en-us_topic_0235790166_section1470293916167"></a>
+#### Collecting Dump Data
 
 Currently, the PyTorch adapted to Ascend AI Processors uses the init\_dump\(\), set\_dump\(\), and finalize\_dump\(\) interfaces in  **torch.npu**  to collect operator dump data. The init\_dump\(\) interface initializes the dump configuration, invokes the set\_dump\(\) interface to import the configuration file to configure dump parameters, and invokes the finalize\_dump interface to end the dump. The following uses the add\_ operator as an example to describe how to collect dump data.
 
@@ -3194,7 +3365,6 @@ The configuration method of  **dump.json**  is as follows.
 
 The fields of  **dump.json**  are described as follows.
 
-<a name="table97610004010"></a>
 <table><thead align="left"><tr id="row7771809407"><th class="cellrowborder" valign="top" width="32.76%" id="mcps1.1.3.1.1"><p id="p107700114017"><a name="p107700114017"></a><a name="p107700114017"></a>Field</p>
 </th>
 <th class="cellrowborder" valign="top" width="67.24%" id="mcps1.1.3.1.2"><p id="p197718014407"><a name="p197718014407"></a><a name="p197718014407"></a>Description</p>
@@ -3229,7 +3399,7 @@ The fields of  **dump.json**  are described as follows.
 </tbody>
 </table>
 
-#### Viewing Overflowed Data<a name="section0890191215713"></a>
+#### Viewing Overflowed Data
 
 The collected dump data is generated in the  _\{dump\_path\}_**/**_\{time\}_**/**_\{deviceid\}_**/**_\{model\_id\}_**/**_\{data\_index\}_  directory, for example,  **/home/HwHiAiUser/output/20200808163566/0/0**.
 
@@ -3237,12 +3407,12 @@ The fields in the dump data path and file are described as follows:
 
 -   _dump\_path_: user-defined path for storing overflowed data, for example,  **/home/HwHiAiUser/output**.
 
--   _time_: timestamp \(for example,  **20200808163566**\)
+-   _time_: timestamp (for example,  **20200808163566**)
 -   _deviceid_: device ID
 -   **_model\_id_**: subgraph ID
 -   A dump file is named as:  _\{op\_type\}_._\{op\_name\}_._\{taskid\}_._\{stream\_id\}_._\{timestamp\}_. Any period \(.\), slash \(/\), backslash \(\\\), or space in the  _op\_type_  or  _op\_name_  field is replaced by an underscore \(\_\).
 
-#### Parse the dump file of an overflow operator.<a name="section19808125141913"></a>
+#### Parse the dump file of an overflow operator.
 
 1.  Upload the  **_\{op\_type\}.\{op\_name\}.\{taskid\}.\{stream\_id\}.\{timestamp\}_**  file to the environment with CANN installed.
 2.  Go to the path where the parsing script is stored. Assume that the installation directory of the CANN is  **/home/HwHiAiUser/Ascend**.
@@ -3262,16 +3432,15 @@ The fields in the dump data path and file are described as follows:
 
     **\>\>\> import numpy as np**
 
-    **\>\>\> a = np.load\("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.npy"\)**
+    **\>\>\> a = np.load("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.npy")**
 
     **\>\>\> b = a.flatten\(\)**
 
-    **\>\>\> np.savetxt\("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.txt", b\)**
+    **\>\>\> np.savetxt("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.txt", b)**
 
     The dimension and  **Dtype**  information no longer exist in the .txt file. For details, visit the NumPy website.
 
-
-<h3 id="common-environment-variablesmd">Common Environment Variables</h3>
+### Common Environment Variables
 
 1.  Enables the task delivery in multi-thread mode. When this function is enabled, the training performance of the entire network is improved in most cases.
 
@@ -3311,8 +3480,7 @@ The fields in the dump data path and file are described as follows:
 
     **export HCCL\_WHITELIST\_DISABLE=1**
 
-
-<h3 id="dump-op-methodmd">dump op Method</h3>
+### dump op Method
 
 1.  Use the profile API to reconstruct the loss calculation and optimization process of the original code training script and print the operator information. The following is a code example.
 
@@ -3327,7 +3495,7 @@ The fields in the dump data path and file are described as follows:
 
 2.  Train the reconstructed training script on the CPU. The related operator information is displayed.
 
-<h3 id="compilation-option-settingsmd">Compilation Option Settings</h3>
+### Compilation Option Settings
 
 Configure the attributes of an operator during compilation to improve performance, which is implemented by ACL APIs. The usage and explanation are as follows:
 
@@ -3368,7 +3536,7 @@ ACL_OP_COMPILER_CACHE_MODE: Configures the disk cache mode for operator compilat
 ACL_OP_COMPILER_CACHE_DIR: Configures the disk cache directory for operator compilation. This compilation option must be used together with ACL_OP_COMPILER_CACHE_MODE.
 ```
 
-<h3 id="how-do-i-install-gcc-7-3-0md">How Do I Install GCC 7.3.0?</h3>
+### How Do I Install GCC 7.3.0?
 
 Perform the following steps as the  **root**  user.
 
@@ -3424,7 +3592,7 @@ Perform the following steps as the  **root**  user.
 
         If the validation fails, check whether the dependency packages are repeatedly downloaded. The packages should be downloaded at a time.
 
-    3.  <a name="en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li1649343041310"></a>Run the following commands for configuration, build, and installation.
+    3.  Run the following commands for configuration, build, and installation.
 
         ```
         ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
@@ -3449,8 +3617,7 @@ Perform the following steps as the  **root**  user.
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
-
-<h3 id="hdf5-compilation-and-installationmd">HDF5 Compilation and Installation</h3>
+### HDF5 Compilation and Installation
 
 Perform the following steps as the  **root**  user.
 
@@ -3487,7 +3654,8 @@ Perform the following steps as the  **root**  user.
     ```
 
 
-<h2 id="faqsmd">FAQs</h2>
+## FAQs
+
 
 -   **[FAQs About Software Installation](#faqs-about-software-installationmd)**  
 
@@ -3500,22 +3668,23 @@ Perform the following steps as the  **root**  user.
 -   **[FAQs About Distributed Model Training](#faqs-about-distributed-model-trainingmd)**  
 
 
-<h3 id="faqs-about-software-installationmd">FAQs About Software Installation</h3>
+### FAQs About Software Installation
+
 
 -   **[pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failedmd)**  
 
 
-<h4 id="pip3-7-install-pillow-5-3-0-installation-failedmd">pip3.7 install Pillow==5.3.0 Installation Failed</h4>
+####pip3.7 install Pillow==5.3.0 Installation Failed
 
-##### Symptom<a name="en-us_topic_0175549220_section197270431505"></a>
+##### Symptom
 
 **pip3.7 install pillow==5.3.0**  installation failed.
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 Necessary dependencies are missing, such as libjpeg, python-devel, zlib-devel, and libjpeg-turbo-devel.
 
-##### Solutions<a name="section108142031907"></a>
+##### Solutions
 
 Run the following commands to install the dependencies:
 
@@ -3528,7 +3697,8 @@ Run the following commands to install the dependencies:
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-<h3 id="faqs-about-model-and-operator-runningmd">FAQs About Model and Operator Running</h3>
+### FAQs About Model and Operator Running
+
 
 -   **[What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operatormd)**  
 
@@ -3555,52 +3725,52 @@ Run the following commands to install the dependencies:
 
 <h4 id="what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operatormd">What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq1.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 Currently, only one NPU device can be called in a thread. When different NPU devices are switched, the preceding error occurs.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
-In the code, when  **torch.npu.set\_device\(device\)**,  **tensor.to\(device\)**, or  **model.to\(device\)**  is called in the same thread, the device names are inconsistent. For multiple threads \(such as multi-device training\), each thread can call only a fixed NPU device.
+In the code, when  **torch.npu.set_device(device)**,  **tensor.to(device)**, or  **model.to(device)**  is called in the same thread, the device names are inconsistent. For multiple threads (such as multi-device training), each thread can call only a fixed NPU device.
 
 <h4 id="what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operatmd">What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq2.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 If no NPU device is specified by  **torch.npu.device\(id\)**  during torch initialization, device 0 is used by default. If another NPU device is directly used, for example, a tensor is created on device 1, the preceding error occurs during running.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
-Before calling an NPU device, specify the NPU device by using  **torch.npu.set\_device\(device\)**.
+Before calling an NPU device, specify the NPU device by using  **torch.npu.set_device(device)**.
 
 <h4 id="what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what()-hemd">What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what(): HelpACLExecute:" Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq3.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
-Currently, the HelpACLExecute error cannot be directly located. In this case, an error is reported when the task is delivered. This is because the multi-thread delivery of the task is enabled \(**export TASK\_QUEUE\_ENABLE=1**\), and the error information is encapsulated at the upper layer. As a result, more detailed error logs cannot be obtained.
+Currently, the HelpACLExecute error cannot be directly located. In this case, an error is reported when the task is delivered. This is because the multi-thread delivery of the task is enabled (**export TASK_QUEUE_ENABLE=1**), and the error information is encapsulated at the upper layer. As a result, more detailed error logs cannot be obtained.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 You can resolve this exception by using either of the following methods:
 
 -   Check the host error log information. The default log path is  **/var/log/npu/slog/host-0/**. Search for the log file whose name is prefixed with  **host-0**  based on the time identifier, open the log file, and search for error information using keyword  **ERROR**.
--   Disable multi-thread delivery \(**export TASK\_QUEUE\_ENABLE=0**\) and run the code again. Generally, you can locate the fault based on the error information reported by the terminal.
+-   Disable multi-thread delivery (**export TASK_QUEUE_ENABLE=0**) and run the code again. Generally, you can locate the fault based on the error information reported by the terminal.
 
 <h4 id="what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what()-0md">What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what(): 0 INTERNAL ASSERT" Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section5498445105118"></a>
+##### Symptom
 
 ```
 import torch
@@ -3627,11 +3797,11 @@ The following error message is displayed after code execution.
 
 ![](figures/en-us_image_0000001208897433.png)
 
-##### Possible Causes<a name="section440935995113"></a>
+##### Possible Causes
 
 After the backward operation is performed, the  **set\_decice\(\)**  method is used to manually set the device. As a result, an error is reported. During the backward operation, if the device is not set, the program automatically initializes the device to  **0**  by default. That is,  **set\_device\("npu:0"\)**  is executed. Currently, the device cannot be switched for calculation. If the device is manually set by using the  **set\_decice\(\)**  method, this error may occur.
 
-##### Solution<a name="section1828321115218"></a>
+##### Solution
 
 Before performing the backward operation, use the  **set\_decice\(\)**  method to manually set the device. The modification is as follows:
 
@@ -3644,25 +3814,25 @@ if __name__ == "__main__":
 
 <h4 id="what-do-i-do-if-the-error-message-importerror-libhccl-so-is-displayed-during-model-runningmd">What Do I Do If the Error Message "ImportError: libhccl.so." Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq7.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 Currently, the released PyTorch installation package uses the NPU and HCCL functions by default. Therefore, you need to add the path of the HCCL module to the environment variables when calling the PyTorch installation package. The error message "can not find libhccl.so" indicates that the cause is that the HCCL library file is missing.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Add the path of the HCCL module to the environment variables. Generally, the path of the HCCL library file is  **.../fwkacllib/python/site-packages/hccl**  in the installation package.
 
 <h4 id="what-do-i-do-if-the-error-message-runtimeerror-initialize-is-displayed-during-model-runningmd">What Do I Do If the Error Message "RuntimeError: Initialize." Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq9.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 According to the error information, it is preliminarily determined that an error occurs during the initialization of the NPU device. The error information in the host log is as follows:
 
@@ -3670,7 +3840,7 @@ According to the error information, it is preliminarily determined that an error
 
 The log information indicates that an error is reported when the system starts the NPU device.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 To solve the problem, perform the following steps:
 
@@ -3680,39 +3850,39 @@ To solve the problem, perform the following steps:
 
     If the problem persists, go to  [2](#li77121667913).
 
-2.  <a name="li77121667913"></a>Check whether the driver version matches the firmware version.
+2.  Check whether the driver version matches the firmware version.
 
     If no, go to  [3](#li967615545918).
 
     If yes, go to  [4](#li475615212912).
 
-3.  <a name="li967615545918"></a>Ensure that the driver version matches the firmware version.
+3.  Ensure that the driver version matches the firmware version.
 
     If the problem is resolved, no further action is required.
 
     If the problem persists, go to Step 4.
 
-4.  <a name="li475615212912"></a>Contact Huawei technical support personnel.
+4.  Contact Huawei technical support personnel.
 
 <h4 id="what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-runningmd">What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq10.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 Calling an NPU operator in PyTorch strongly depends on the TE, CCE, and TVM components. The PyTorch, CANN/NNAE, and TE versions must be the same. After CANN/NNAE is updated, components such as TE are not automatically updated. When their versions do not match, this error is reported.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
-Update the versions of components such as TE. The  **te-\*.whl**  and  **topi-\*.whl**  installation packages need to be updated. In the  **lib64**  subdirectory of the CANN or NNAE installation directory \(the installation user is the  **root**  user and the default installation directory is  **/usr/local/Ascend/ascend-toolkit/latest/lib64**\), update the installation packages: The  **topi-0.4.0-py3-none-any.whl**  and  **te-0.4.0-py3-none-any.whl**  installation packages exist in the directory. Run the  **pip3 install --upgrade topi-0.4.0-py3-none-any.whl**  and  **pip install --upgrade te-0.4.0-py3-none-any.whl**  commands, respectively.
+Update the versions of components such as TE. The  **te-*.whl**  and  **topi-*.whl**  installation packages need to be updated. In the  **lib64**  subdirectory of the CANN or NNAE installation directory (the installation user is the  **root**  user and the default installation directory is  **/usr/local/Ascend/ascend-toolkit/latest/lib64**), update the installation packages: The  **topi-0.4.0-py3-none-any.whl**  and  **te-0.4.0-py3-none-any.whl**  installation packages exist in the directory. Run the  **pip3 install --upgrade topi-0.4.0-py3-none-any.whl**  and  **pip install --upgrade te-0.4.0-py3-none-any.whl**  commands, respectively.
 
 ![](figures/faq10-1.png)
 
 <h4 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-runningmd">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 Scripts:
 
@@ -3761,7 +3931,7 @@ Log message:
     [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.717 [../../../../../../runtime/feature/src/api_c.cc:224]12828 rtKernelLaunch:ErrCode=207001, desc=[module new memory error], InnerCode=0x70a0002
 ```
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The shell error message does not match the log message.
 
@@ -3769,7 +3939,7 @@ The shell error message indicates that the error occurs on the AI CPU during syn
 
 The possible cause is that the AI CPU operator is executed asynchronously. As a result, the error information is delayed.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Perform the following steps to locate the fault based on the actual error information:
 
@@ -3781,7 +3951,7 @@ Perform the following steps to locate the fault based on the actual error inform
 
 <h4 id="what-do-i-do-if-the-error-message-memcopysync-drvmemcpy-failed-is-displayed-during-model-running-6md">What Do I Do If the Error Message "MemCopySync:drvMemcpy failed." Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 Script:
 
@@ -3830,7 +4000,7 @@ Log message:
     [ERROR] RUNTIME(12731,python3.7):2021-02-02-22:23:56.475.717 [../../../../../../runtime/feature/src/api_c.cc:224]12828 rtKernelLaunch:ErrCode=207001, desc=[module new memory error], InnerCode=0x70a0002
 ```
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The shell error message does not match the log message.
 
@@ -3838,7 +4008,7 @@ The shell error message indicates that the error occurs on the AI CPU during syn
 
 The possible cause is that the AI CPU operator is executed asynchronously. As a result, the error information is delayed.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Perform the following steps to locate the fault based on the actual error information:
 
@@ -3850,15 +4020,15 @@ Perform the following steps to locate the fault based on the actual error inform
 
 <h4 id="what-do-i-do-if-the-error-message-helpaclexecute-is-displayed-after-multi-task-delivery-is-disabledmd">What Do I Do If the Error Message "HelpACLExecute." Is Displayed After Multi-Task Delivery Is Disabled (export TASK\_QUEUE\_ENABLE=0) During Model Running?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq8.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The PyTorch operator runs on the NPU and calls the optimized operators at the bottom layer through the AcendCL API. When the error message "HelpACLExecute." is reported at the upper layer, the error information and logs are being optimized. As a result, when errors occur in some operators, the error information fails to be obtained.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 View the host log to determine the operator and location where the error is reported. The default log path is  **/var/log/npu/slog/host-0**. Search for the  **ERROR**  field in the log file of the corresponding time to find the error information. For the preceding error, the  **ERROR**  field in the log is as follows:
 
@@ -3870,21 +4040,22 @@ Locate the topKD operator in the model code and check whether the operator can b
 
 <h4 id="what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1(failed)-is-displayed-duringmd">What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1(failed)" Is Displayed During Model Running?</h4>
 
-##### Symptom<a name="section170419711269"></a>
+##### Symptom
 
 During model training, the following error information may be displayed in the host training log \(directory:  **/root/ascend/log/plog/**\):
 
 ![](figures/20210720-102720(welinkpc).png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 A public API is called.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 The error information does not affect the training function and performance and can be ignored.
 
-<h3 id="faqs-about-model-commissioningmd">FAQs About Model Commissioning</h3>
+### FAQs About Model Commissioning
+
 
 -   **[What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-npmd)**  
 
@@ -3897,45 +4068,45 @@ The error information does not affect the training function and performance and 
 
 <h4 id="what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-npmd">What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq4.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 For the malloc error in  **NPUCachingAllocator**, the possible cause is that the required video memory is larger than the available video memory on the NPU.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 During model commissioning, you can decrease the value of the  **batch size**  parameter to reduce the size of the occupied video memory on the NPU.
 
 <h4 id="what-do-i-do-if-the-error-message-runtimeerror-could-not-run-aten-trunc-out-with-arguments-from-themd">What Do I Do If the Error Message "RuntimeError: Could not run 'aten::trunc.out' with arguments from the 'NPUTensorId' backend." Is Displayed During Model Commissioning</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq5.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 Currently, the NPU supports only some PyTorch operators. The preceding error is reported when operators that are not supported are used. The operators are being developed. For details about the supported operators, see  [PyTorch Native Operators](https://support.huaweicloud.com/intl/en-us/opl-pytorch/atlasptol_09_0001.html).
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 During model commissioning, you can decrease the value of the  **batch size**  parameter to reduce the size of the occupied video memory on the NPU.
 
 <h4 id="what-do-i-do-if-the-maxpoolgradwithargmaxv1-and-max-operators-report-errors-during-model-commissionimd">What Do I Do If the MaxPoolGradWithArgmaxV1 and max Operators Report Errors During Model Commissioning?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq6.png)
 
 ![](figures/faq6-1.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
-During model building, the operator input parameters are diversified. For some operators \(such as MaxPoolGradWithArgmaxV1 and max\) with specific parameters, an error is reported during calculation or the operators are not supported. You can locate the operators based on the error information.
+During model building, the operator input parameters are diversified. For some operators (such as MaxPoolGradWithArgmaxV1 and max) with specific parameters, an error is reported during calculation or the operators are not supported. You can locate the operators based on the error information.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Locate the operators based on the error information and perform the following steps:
 
@@ -3949,23 +4120,24 @@ Locate the operators based on the error information and perform the following st
 
 In the preceding figure, the error information indicates that the MaxPoolGradWithArgmaxV1 and max operators report the error. MaxPoolGradWithArgmaxV1 reports the error during backward propagation. Therefore, construct a reverse scenario. The max operator reports the error during forward propagation. Therefore, construct a forward scenario.
 
-If an operator error is reported in the model, you are advised to build a single-operator test case and determine the error scenario and cause. If a single-operator case cannot be built in a single operator, you need to construct a context-based single-operator scenario. For details about how to build a test case, see  [Single-Operator Sample Building](#single-operator-sample-buildingmd).
+If an operator error is reported in the model, you are advised to build a single-operator test case and determine the error scenario and cause. If a single-operator case cannot be built in a single operator, you need to construct a context-based single-operator scenario. For details about how to build a test case, see  [Single-Operator Sample Building](#single-operator-sample-building).
 
 <h4 id="what-do-i-do-if-the-error-message-modulenotfounderror-no-module-named-torch-_c-is-displayed-when-tormd">What Do I Do If the Error Message "ModuleNotFoundError: No module named 'torch.\_C'" Is Displayed When torch Is Called?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq11.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 In the preceding figure, the error path is  **.../code/pytorch/torch/\_\_init\_\_.py**. However, the current operating path is  **.../code/pytorch**. When the  **import torch**  command is executed, the  **torch**  folder is searched in the current directory by default. As a result, an error is reported. The torch package installed in the system directory instead of the torch package in the current directory is called.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Switch to another directory to run the script.
 
-<h3 id="faqs-about-other-operationsmd">FAQs About Other Operations</h3>
+### FAQs About Other Operations
+
 
 -   **[What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronizationmd)**  
 
@@ -3984,15 +4156,15 @@ Switch to another directory to run the script.
 
 <h4 id="what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronizationmd">What Do I Do If an Error Is Reported During CUDA Stream Synchronization?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/model_faq11_20210728.jpg)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The NPU does not use NPU stream synchronization.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Use NPU stream synchronization.
 
@@ -4003,15 +4175,15 @@ stream.synchronize()
 
 <h4 id="what-do-i-do-if-aicpu_kernels-libpt_kernels-so-does-not-existmd">What Do I Do If aicpu\_kernels/libpt\_kernels.so Does Not Exist?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq13.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The AI CPU is not imported.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Import the AI CPU. \(The following describes how to install the CANN software package as the  **root**  user in the default installation path.\)
 
@@ -4021,15 +4193,15 @@ export ASCEND_AICPU_PATH=/usr/local/Ascend/ascend-toolkit/latest
 
 <h4 id="what-do-i-do-if-the-python-process-is-residual-when-the-npu-smi-info-command-is-used-to-view-video-mmd">What Do I Do If the Python Process Is Residual When the npu-smi info Command Is Used to View Video Memory?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq14.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The Python process needs to be killed.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Kill the Python process.
 
@@ -4039,38 +4211,38 @@ pkill -9 python
 
 <h4 id="what-do-i-do-if-the-error-message-match-op-inputs-failed-is-displayed-when-the-dynamic-shape-is-usedmd">What Do I Do If the Error Message "match op inputs failed"Is Displayed When the Dynamic Shape Is Used?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq15.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The operator compiled by  **PTIndexPut**  does not match the input shape, and the log starting with  **acl\_dynamic\_shape\_op**  is displayed. It is determined that an error is reported for the dynamic shape.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 **PTIndexPut**  corresponds to  **tensor\[indices\] = value**. Locate the field in the code and change the dynamic shape to a fixed shape.
 
 <h4 id="what-do-i-do-if-the-error-message-op-type-sigmoidcrossentropywithlogitsv2-of-ops-kernel-aicoreenginemd">What Do I Do If the Error Message "Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported" Is Displayed?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ```
 [ERROR] GE(24836,python3.7):2021-01-27-18:27:51.562.111 [../../../../../../graphengine/ge/engine_manager/dnnengine_manager.cc:266]25155 GetDNNEngineName: ErrorNo: 1343242282(assign engine failed) GetDNNEngineName:Op type SigmoidCrossEntropyWithLogitsV2 of ops kernel AIcoreEngine is unsupported, reason:Op SigmoidCrossEntropyWithLogitsV2 not supported reason: The type of this op is not found in op store, check whether the op store has this type of op. Op store name is tbe-custom.
 The dtype, format or shape of input in op desc is not supported in op store, check the dtype, format or shape of input between the op store and the graph. Op store name is tbe-builtin.
 ```
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The input data type is not supported by the SigmoidCrossEntropyWithLogitsV2 operator. The possible cause is that the input data type is int64.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Check the input data type in the Python code and modify the data type.
 
 <h4 id="what-do-i-do-if-a-hook-failure-occursmd">What Do I Do If a Hook Failure Occurs?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ```
 Traceback (most recent call last):
@@ -4095,11 +4267,11 @@ Traceback (most recent call last):
 StopIteration
 ```
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The loss structure of the mmdet triggers the bug of the native hook of PyTorch, leading to an infinite loop.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Add  **try**  to line 658 to skip in the  **/usr/local/python3.7.5/lib/python3.7/site-packages/torch/nn/modules/module.py**  file:
 
@@ -4126,17 +4298,17 @@ return result
 
 <h4 id="what-do-i-do-if-the-error-message-load-state_dict-error-is-displayed-when-the-weight-is-loadedmd">What Do I Do If the Error Message "load state\_dict error." Is Displayed When the Weight Is Loaded?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq18.png)
 
 ![](figures/faq18-1.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 The key value of  **state\_dict**  saved after model training is different from the key value of  **state\_dict**  when the model is loaded. When the model is saved, a  **module**  prefix is added to the beginning of each key.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 When loading the weight, traverse the  **state\_dict**  dictionary, modify the key value, and use the new dictionary. For details about the test case, see  **demo.py**.
 
@@ -4153,7 +4325,7 @@ The script is as follows:
    model.load_state_dict(state_dict)
 ```
 
-<h3 id="faqs-about-distributed-model-trainingmd">FAQs About Distributed Model Training</h3>
+### FAQs About Distributed Model Training
 
 -   **[What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd)**  
 
@@ -4162,29 +4334,29 @@ The script is as follows:
 
 <h4 id="what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd">What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/faq19.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 During distributed model training, the Huawei Collective Communication Library \(HCCL\) is invoked. You need to set the IP address and port number based on the site requirements. The error information indicates that the IP address is incorrect.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Set the correct IP address in the running script. If a single server is deployed, set the IP address to the IP address of the server. If multiple servers are deployed, set the IP address in the script on each server to the IP address of the active node.
 
 <h4 id="what-do-i-do-if-the-error-message-runtimeerror-connect()-timed-out-is-displayed-during-distributed-mmd">What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?</h4>
 
-##### Symptom<a name="section1785905019184"></a>
+##### Symptom
 
 ![](figures/1234.png)
 
-##### Possible Causes<a name="en-us_topic_0175549220_section169499490501"></a>
+##### Possible Causes
 
 During distributed model training, the system firewall may block the communication of the HCCL port. Check whether the communication port is enabled based on the error information and perform related settings.
 
-##### Solution<a name="section8970834202112"></a>
+##### Solution
 
 Query the HCCL port that is blocked by the system firewall and enable the port.
 
