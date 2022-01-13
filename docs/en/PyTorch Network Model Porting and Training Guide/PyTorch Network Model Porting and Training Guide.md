@@ -1850,22 +1850,26 @@ To improve network performance, you need to set the power policy to high perform
 1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 3](#fig15869135420288).
 
     **Figure  3**  Remote console
+
     ![](figures/remote-console.png "remote-console")
 
 2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 4](#fig744814574243).
 
     **Figure  4**  Startup item tool
+
     ![](figures/startup-item-tool.png "startup-item-tool")
 
 3.  In the drop-down list, choose, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190201999.png)  on the toolbar to restart the server.
 4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 5](#fig4546303814).
 
     **Figure  5**  Socket Configuration
+
     ![](figures/socket-configuration.png "socket-configuration")
 
 5.  On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 6](#fig15501111014442).
 
     **Figure  6**  Setting the power policy
+
     ![](figures/setting-the-power-policy.png "setting-the-power-policy")
 
 6.  Press  **F10**  to save the settings and reboot the server.
@@ -1956,22 +1960,26 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
 1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 7](#fig15869135420288).
 
     **Figure  7**  Remote console
+
     ![](figures/remote-console-0.png "remote-console-0")
 
 2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 8](#fig744814574243).
 
     **Figure  8**  Startup item tool
+
     ![](figures/startup-item-tool-1.png "startup-item-tool-1")
 
 3.  In the drop-down list, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190081877.png)  on the toolbar to restart the server.
 4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 9](#fig4546303814).
 
     **Figure  9**  Performance Config
+
     ![](figures/performance-config.png "performance-config")
 
 5.  On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 10](#fig15501111014442).
 
     **Figure  10**  Setting the power policy 
+
     ![](figures/setting-the-power-policy-2.png "setting-the-power-policy-2")
 
 6.  Press  **F10**  to save the settings and reboot the server.
