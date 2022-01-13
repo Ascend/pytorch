@@ -103,10 +103,11 @@ class npuEvent(object):
         self.ACL_PROF_HCCL_TRACE         = 0x0020
         self.ACL_PROF_TRAINING_TRACE     = 0x0040
         self.ACL_PROF_MSPROFTX           = 0x0080
+        self.ACL_PROF_RUNTIME_API        = 0x0100
 
     def update(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True,
                 ACL_PROF_AICORE_METRICS=True, ACL_PROF_AICPU=True,
-                ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True,
+                ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
                 ACL_PROF_TRAINING_TRACE=True):
         if not ACL_PROF_ACL_API:
             self.ACL_PROF_ACL_API = 0x00
@@ -125,8 +126,9 @@ class npuEvent(object):
         return self.getConfig()
 
     def getConfig(self):
-        return self.ACL_PROF_ACL_API | self.ACL_PROF_TASK_TIME | self.ACL_PROF_AICORE_METRICS | self.ACL_PROF_AICPU \
-                | self.ACL_PROF_L2CACHE | self.ACL_PROF_HCCL_TRACE | self.ACL_PROF_TRAINING_TRACE
+        return self.ACL_PROF_ACL_API | self.ACL_PROF_TASK_TIME | self.ACL_PROF_AICORE_METRICS  \
+                | self.ACL_PROF_AICPU | self.ACL_PROF_L2CACHE | self.ACL_PROF_HCCL_TRACE \
+                | self.ACL_PROF_TRAINING_TRACE | self.ACL_PROF_RUNTIME_API
 
 class aiCoreMetrics(object):
     ACL_AICORE_ARITHMETIC_UTILIZATION = 0
@@ -138,7 +140,7 @@ class aiCoreMetrics(object):
 
 class profileConfig(object):
     def __init__(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,
-                ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True,
+                ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
                 ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
         self.NpuEventConfig = npuEvent().update(ACL_PROF_ACL_API, ACL_PROF_TASK_TIME, ACL_PROF_AICORE_METRICS,
                                                 ACL_PROF_AICPU, ACL_PROF_L2CACHE, ACL_PROF_HCCL_TRACE,
