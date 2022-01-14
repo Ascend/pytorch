@@ -31,11 +31,11 @@ Tensor& asin_out_npu(
     const Tensor& self,
     Tensor& result) {
   OpPreparation::CheckOut(
-    {self},
-    result,
-    self);
-    asin_out_npu_nocheck(result, self);
-    return result;
+      {self},
+      result,
+      self);
+  asin_out_npu_nocheck(result, self);
+  return result;
 }
 
 Tensor asin_npu(const Tensor& self) {
