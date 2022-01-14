@@ -17,8 +17,8 @@ import torch
 import numpy as np
 
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor, create_common_tensor_for_broadcast
+from common_device_type import instantiate_device_type_tests
+from util_test import create_common_tensor, create_common_tensor_for_broadcast, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 os.environ["PTCOPY_ENABLE"] = "1"
@@ -38,12 +38,16 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+permute
-            npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)).transpose(0, 1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)).transpose(0, 1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), cpu_input.size(3)).transpose(0, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view
-            npu_out2 = npu_input.permute(1, 0, 2, 3).view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.permute(1, 0, 2, 3).view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.permute(1, 0, 2, 3).view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2)*cpu_input.size(3)).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
     
@@ -60,11 +64,15 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view+select
-            npu_out1 = npu_input.view(npu_input.size(0), npu_input.size(1) * npu_input.size(2), npu_input.size(3)).select(2, 1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.view(npu_input.size(0), npu_input.size(1) * npu_input.size(2), npu_input.size(3)).select(2, 1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'select_npuStridedSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.view(npu_input.size(0), npu_input.size(1) * npu_input.size(2), npu_input.size(3)).select(2, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: select+view
-            npu_out2 = npu_input.select(2, 1).view(npu_input.size(1), npu_input.size(0), -1).contiguous()
+            # case 2: select+view ==> can be optimized as reshape+narrow
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.select(2, 1).view(npu_input.size(1), npu_input.size(0), -1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.select(2, 1).view(npu_input.size(1), npu_input.size(0), -1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
@@ -81,15 +89,19 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: view + narrow 
-            npu_out1 = npu_input.view(20, 1200, 16)[:,20:150,:].contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.view(20, 1200, 16)[:,20:150,:].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.view(20, 1200, 16)[:,20:150,:].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: narrow + view 
-            npu_out2 = npu_input[:,10:19,:,:].view(20, 360, 16).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,10:19,:,:].view(20, 360, 16).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[:,10:19,:,:].view(20, 360, 16).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_view_indexing_copy_contiguous(self, device):
+    def test_view_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -101,12 +113,16 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: view + indexing 
-            npu_out1 = npu_input.view(20, 1200, 10)[:,20:150:3,:].contiguous()
+            # case 1: view + strideslice 
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.view(20, 1200, 10)[:,20:150:3,:].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.view(20, 1200, 10)[:,20:150:3,:].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: indexing + view 
-            npu_out2 = npu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
+            # case 2: strideslice + view 
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
@@ -122,14 +138,18 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: squeeze+permute
-            npu_out1 = npu_input.squeeze(1).transpose(0,1).contiguous()
+            # case 1: squeeze+permute ==> can be optimized as single permute(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.squeeze(1).transpose(0,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out1 = cpu_input.squeeze(1).transpose(0,1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: permute+squeeze
-            npu_out2 = npu_input.permute(1,0,2,3).squeeze(0).contiguous()
-            cpu_out2 = cpu_input.permute(1,0,2,3).squeeze(0).contiguous()
+            # case 2: permute+squeeze ==> can be optimized as single permute(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.permute(1,0,3,2).squeeze(0).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof, ['npuCombined']), True, "Error operators called!")
+            cpu_out2 = cpu_input.permute(1,0,3,2).squeeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
     
     def test_squeeze_narrow_copy_contiguous(self, device):
@@ -146,11 +166,15 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze + narrow 
-            npu_out1 = npu_input.squeeze(1)[:,1:10,:].contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.squeeze(1)[:,1:10,:].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.squeeze(1)[:,1:10,:].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: narrow + squeeze
-            npu_out2 = npu_input[:,:,:,10:19].squeeze(1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,:,:,10:19].squeeze(1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[:,:,:,10:19].squeeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -167,15 +191,19 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: squeeze+select
-            npu_out1 = npu_input.squeeze().select(2,1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.squeeze().select(2,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'select_npuStridedSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.squeeze().select(2,1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: select+squeeze
-            npu_out2 = npu_input.select(2,1).squeeze().contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.select(2,1).squeeze().contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'select_npuStridedSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.select(2,1).squeeze().contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_squeeze_indexing_copy_contiguous(self, device):
+    def test_squeeze_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -187,12 +215,16 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: squeeze + indexing 
-            npu_out1 = npu_input.squeeze(1)[:,20:150:3].contiguous()
+            # case 1: squeeze + strideslice ==> cannot be optimized(npuCombined should not called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.squeeze(1)[:,20:150:3].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out1 = cpu_input.squeeze(1)[:,20:150:3].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: indexing + squeeze
-            npu_out2 = npu_input[:,:,10:19:3].squeeze(1).contiguous()
+            # case 2: strideslice + squeeze ==> cannot be optimized(npuCombined should not called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,:,10:19:3].squeeze(1).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out2 = cpu_input[:,:,10:19:3].squeeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
 
@@ -208,13 +240,17 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: unsqueeze+permute
-            npu_out1 = npu_input.unsqueeze(1).transpose(0,1).contiguous()
-            cpu_out1 = cpu_input.unsqueeze(1).transpose(0,1).contiguous()
+            # case 1: unsqueeze+permute ==> can be optimized as single permute(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(1).transpose(2,3).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof, ['npuCombined']), True, "Error operators called!")
+            cpu_out1 = cpu_input.unsqueeze(1).transpose(2,3).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: permute+unsqueeze
-            npu_out2 = npu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
+            # case 2: permute+unsqueeze ==> can be optimized as single permute(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out2 = cpu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -236,11 +272,15 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+narrow
-            npu_out1 = npu_input.unsqueeze(0)[:,1:10].contiguous()
-            cpu_out1 = cpu_input.unsqueeze(0)[:,1:10].contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(0)[:,:,1:10].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            cpu_out1 = cpu_input.unsqueeze(0)[:,:,1:10].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: narrow+unsqueeze
-            npu_out2 = npu_input[:,1:10].unsqueeze(2).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,1:10].unsqueeze(2).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[:,1:10].unsqueeze(2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -259,11 +299,15 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: unsqueeze+select
-            npu_out1 = npu_input.unsqueeze(0).select(2,1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(0).select(2,1).contiguous()
             cpu_out1 = cpu_input.unsqueeze(0).select(2,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: select+unsqueeze
-            npu_out2 = npu_input.select(1,1).unsqueeze(0).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.select(1,1).unsqueeze(0).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.select(1,1).unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
      
@@ -279,17 +323,21 @@ class CombinedViewsCopyToContiguous(TestCase):
     
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: unsqueeze+unfold
-            npu_out1 = npu_input.unsqueeze(1).unfold(0,2,2).contiguous()
+            # case 1: unsqueeze+unfold:size==step ==> can be optimized as reshape+permute
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(1).unfold(0,2,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.unsqueeze(1).unfold(0,2,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: unfold+unsqueeze
-            npu_out2 = npu_input.unfold(2,2,2).unsqueeze(1).contiguous()
-            cpu_out2 = cpu_input.unfold(2,2,2).unsqueeze(1).contiguous()
+            # case 2: unfold+unsqueeze: size!=step ==> cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.unfold(2,2,3).unsqueeze(1).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!") 
+            cpu_out2 = cpu_input.unfold(2,2,3).unsqueeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_unsqueeze_indexing_copy_contiguous(self, device):
+    def test_unsqueeze_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -302,12 +350,16 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: squeeze + indexing 
-            npu_out1 = npu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
+            # case 1: squeeze + strideslice ==> cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!") 
             cpu_out1 = cpu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: indexing + squeeze
-            npu_out2 = npu_input[:,:,10:19:3].unsqueeze(0).contiguous()
+            # case 2: strideslice + squeeze ==> cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,:,10:19:3].unsqueeze(0).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!") 
             cpu_out2 = cpu_input[:,:,10:19:3].unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -324,15 +376,19 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: flatten+select
-            npu_out1 = npu_input.flatten(2).select(1,1).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.flatten(2).select(1,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'select_npuStridedSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.flatten(2).select(1,1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: select+flatten
-            npu_out2 = npu_input.select(2,1).flatten(1).contiguous()
+            # case 2: select+flatten == can be optimized as single select(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.select(2,1).flatten(1).contiguous()
+            self.assertEqual(check_operators_in_prof(['select_npuStridedSlice'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out2 = cpu_input.select(2,1).flatten(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_flatten_indexing_copy_contiguous(self, device):
+    def test_flatten_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -344,12 +400,16 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: flatten+indexing
-            npu_out1 = npu_input.flatten()[2:100:10].contiguous()
+            # case 1: flatten+strideslice ==> can be optimized as slice(contiguous with offset) + select
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.flatten()[2:100:10].contiguous()
+            self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync', 'select_npuStridedSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.flatten()[2:100:10].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            # case 2: indexing+flatten
-            npu_out2 = npu_input[:,2:20:3].flatten().contiguous()
+            # case 2: strideslice+flatten==> can be optimized as single strideslice(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,2:20:3].flatten().contiguous()
+            self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out2 = cpu_input[:,2:20:3].flatten().contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -366,12 +426,16 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: permute+narrow
-            npu_out1 = npu_input.permute(1,3,2,0)[:10].contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.permute(1,3,2,0)[:10].contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.permute(1,3,2,0)[:10].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: narrow+permute
-            npu_out2 = npu_input[:,1:10].permute(1,0,3,2).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,1:10].permute(1,0,3,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[:,1:10].permute(1,0,3,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -388,16 +452,20 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: permute+select
-            npu_out1 = npu_input.permute(1,3,2,0).select(1,2).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.permute(1,3,2,0).select(1,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['select_npuStridedSlice', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.permute(1,3,2,0).select(1,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: select+permute
-            npu_out2 = npu_input.select(1,0).permute(1,0,2).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.select(1,0).permute(1,0,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['select_npuStridedSlice', 'npuTranspose'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.select(1,0).permute(1,0,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_permute_indexing_copy_contiguous(self, device):
+    def test_permute_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -409,13 +477,17 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: permute+indexing-no offset
-            npu_out1 = npu_input.permute(1,3,2,0)[::2].contiguous()
+            # case 1: permute+strideslice-no offset ==> all cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.permute(1,3,2,0)[::2].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out1 = cpu_input.permute(1,3,2,0)[::2].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: indexing+permute-with offset
-            npu_out2 = npu_input[:,1:10:3].permute(1,3,0,2).contiguous()
+            # case 2: strideslice+permute-with offset ==> all cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,1:10:3].permute(1,3,0,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out2 = cpu_input[:,1:10:3].permute(1,3,0,2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
@@ -432,57 +504,34 @@ class CombinedViewsCopyToContiguous(TestCase):
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # case 1: narrow+select  
-            # select the last dim
-            npu_out1 = npu_input[:,2:4].select(3,1).contiguous()
+            # narrow at any dim + select the last dim ==> narrow
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input[:,2:4].select(3,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input[:,2:4].select(3,1).contiguous()
-            # select the -2 dim
-            npu_out2 = npu_input[:,2:4].select(2,2).contiguous()
-            cpu_out2 = cpu_input[:,2:4].select(2,2).contiguous()
+            # narrow at 0 dim + select the any dim ==> common copy
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[2:4].select(2,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+            cpu_out2 = cpu_input[2:4].select(2,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
             # case 2: select+narrow
-            # select the last dim
-            npu_out3 = npu_input.select(3,1)[:,1:2].contiguous()
-            cpu_out3 = cpu_input.select(3,1)[:,1:2].contiguous()
-            # select the -2 dim
-            npu_out4 = npu_input.select(0,2)[:,1:2].contiguous()
-            cpu_out4 = cpu_input.select(0,2)[:,1:2].contiguous()
-            self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
-            self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
-
-    def test_narrow_indexing_copy_contiguous(self, device):
-        dtype_list = [np.float16, np.float32]
-        format_list = [-1]
-        shape_list = [
-                      [20, 30, 40, 16],
-                      ]
-        shape_format = [
-            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
-        ]
-
-        for item in shape_format: 
-            cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: narrow+indexing 
-            # slice at adjacent axes
-            npu_out1 = npu_input[2:4,::2].contiguous()
-            cpu_out1 = cpu_input[2:4,::2].contiguous()
-            # slice at non-adjacent axes
-            npu_out2 = npu_input[:,2:4,:,1:10:2].contiguous()
-            cpu_out2 = cpu_input[:,2:4,:,1:10:2].contiguous()
-            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
-            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+            # select the 0 dim + narrow at the 1 dim ==> reshape + select
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out3 = npu_input.select(0,2)[:,1:2].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")    
+            cpu_out3 = cpu_input.select(0,2)[:,1:2].contiguous()
+            # select the 0 dim + narrow at the last dim ==> reshape + select
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out4 = npu_input.select(0,1)[:,:,1:2].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            cpu_out4 = cpu_input.select(0,1)[:,:,1:2].contiguous()
             
-            # case 2: indexing+narrow
-            # slice at adjacent axes
-            npu_out3 = npu_input[1:10:2,1:10].contiguous()
-            cpu_out3 = cpu_input[1:10:2,1:10].contiguous()
-            # slice at non-adjacent axes
-            npu_out4 = npu_input[::2,:,1:10].contiguous()
-            cpu_out4 = cpu_input[::2,:,1:10].contiguous()
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
 
-    def test_indexing_select_contiguous(self, device):
+    def test_narrow_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [
@@ -494,18 +543,76 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: indexing+select
-            npu_out1 = npu_input[:10:2].select(3,1).contiguous()
-            cpu_out1 = cpu_input[:10:2].select(3,1).contiguous()
-            npu_out2 = npu_input[1:10:2].select(2,1).contiguous()
-            cpu_out2 = cpu_input[1:10:2].select(2,1).contiguous()
+            # case 1: narrow+strideslice 
+            # slice at adjacent axes + strideslice at lower dim ==> cannot be optimized(npuCombined is called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input[2:4,::2].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+            cpu_out1 = cpu_input[2:4,::2].contiguous()
+            # strideslice at last dim ==> cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,2:4,:,1:10:2].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
+            cpu_out2 = cpu_input[:,2:4,:,1:10:2].contiguous()
+            # narrow at 0 dim and strideslice at last dim==> can be optimized as slice(contiguous)+select
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out3 = npu_input[2:4,:,:,::2].contiguous()
+            self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync', 'select_npuStridedSlice'], prof), True, "Error operators called!")
+            cpu_out3 = cpu_input[2:4,:,:,::2].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
-            # case 2: select+indexing
-            npu_out3 = npu_input.select(3,1)[:,1:10:2].contiguous()
-            cpu_out3 = cpu_input.select(3,1)[:,1:10:2].contiguous()
-            npu_out4 = npu_input.select(2,1)[:,::3].contiguous()
-            cpu_out4 = cpu_input.select(2,1)[:,::3].contiguous()
+            self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
+            
+            # case 2: strideslice+narrow
+            # slice at adjacent axes + strideslice at higher dim ==> reshape+narrow
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out4 = npu_input[1:10:2,1:10].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            cpu_out4 = cpu_input[1:10:2,1:10].contiguous()
+            # slice at non-adjacent axes
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out5 = npu_input[::2,:,1:10].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            cpu_out5 = cpu_input[::2,:,1:10].contiguous()
+            self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
+            self.assertRtolEqual(npu_out5.to("cpu").numpy(), cpu_out5.numpy())
+
+    def test_strideslice_select_contiguous(self, device):
+        dtype_list = [np.float16, np.float32]
+        format_list = [-1]
+        shape_list = [
+                      [20, 30, 40, 16],
+                      ]
+        shape_format = [
+            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
+        ]
+
+        for item in shape_format: 
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
+            # case 1: strideslice+select
+            # select at last dim ==> cannot be optimized(npuCombined is called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input[:10:2].select(3,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+            cpu_out1 = cpu_input[:10:2].select(3,1).contiguous()
+            # select at lower dims except last dim ==> reshape+narrow
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[1:10:2].select(2,1).contiguous()
+            cpu_out2 = cpu_input[1:10:2].select(2,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
+            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+            # case 2: select+strideslice
+            # strideslice at lower dims except last dim ==> reshape+narrow
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out3 = npu_input.select(0,1)[1:10:2].contiguous()
+            self.assertEqual(check_operators_in_prof(['npuMatch', 'narrow_npuSlice'], prof), True, "Error operators called!")
+            cpu_out3 = cpu_input.select(0,1)[1:10:2].contiguous()
+            # strideslice at the last dim ==> cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out4 = npu_input.select(0,1)[:,:,::3].contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
+            cpu_out4 = cpu_input.select(0,1)[:,:,::3].contiguous()
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
             self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy())
     
@@ -522,7 +629,10 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor_for_broadcast(item, 0, 100)
-            npu_out1 = npu_input.expand(item[2][1]).transpose(1,3).contiguous()
+            # Broadcast + permute all cannot be optimized(npuCombined should not be called)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.expand(item[2][1]).transpose(1,3).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuCombined']), True, "Error operators called!")
             cpu_out1 = cpu_input.expand(item[2][1]).transpose(1,3).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
          

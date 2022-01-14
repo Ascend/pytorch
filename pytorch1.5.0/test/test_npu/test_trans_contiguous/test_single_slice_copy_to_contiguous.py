@@ -17,12 +17,12 @@ import torch
 import numpy as np
 
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor, create_common_tensor_for_broadcast
+from common_device_type import instantiate_device_type_tests
+from util_test import create_common_tensor, check_operators_in_prof
 
 os.environ["PTCOPY_ENABLE"] = "1"
 
-# Optimized view Ops contains Transpose, permute, narrow, indexing, select, unfold 
+# Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):
     def test_narrow_copy_contiguous(self, device):
         # AssertionError: required dtype in [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
@@ -43,9 +43,15 @@ class SingleViewCopyToContiguous(TestCase):
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             # for narrow with step=1, if narrow at the first axis, it will generate a contiguous tensor
-            npu_out1 = npu_input[:,:16,:,:].contiguous()
-            npu_out2 = npu_input[:,:,1:16,:].contiguous()
-            npu_out3 = npu_input[:,:,:,2:16].contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input[:,:16,:,:].contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "narrow_npuSlice is not called!")
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[:,:,1:16,:].contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "narrow_npuSlice is not called!")
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out3 = npu_input[:,:,:,2:16].contiguous()
+            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "narrow_npuSlice is not called!")
 
             cpu_out1 = cpu_input[:,:16,:,:].contiguous()
             cpu_out2 = cpu_input[:,:,1:16,:].contiguous()
@@ -59,7 +65,7 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
 
-    def test_indexing_copy_contiguous(self, device):
+    def test_strideslice_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32, np.int8, np.int32, np.uint8, np.bool]
         format_list = [-1]
         shape_list = [[10,32,16,9], [10,32,16,9,10]]
@@ -69,25 +75,37 @@ class SingleViewCopyToContiguous(TestCase):
 
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # for indexing with step>1 -- StridedSlice
-            npu_out1 = npu_input[::2].contiguous()
-            npu_out2 = npu_input[:,1:17:4].contiguous()
-            npu_out3 = npu_input[:,:,2:16:5].contiguous()
-            npu_out4 = npu_input[:,:,:,3:9:2].contiguous()
-            npu_out5 = npu_input[::2,1:17:4,2:16:5,3:9:2].contiguous()
+            # for indexing with step>1 -- stridedSlice
+            if cpu_input.dim() == 4:
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    npu_out1 = npu_input[::2].contiguous()
+                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), True, "Error operators called!")
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    npu_out2 = npu_input[:,1:17:4].contiguous()
+                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), True, "Error operators called!")
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    npu_out3 = npu_input[:,:,2:16:5].contiguous()
+                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), True, "Error operators called!")
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    # stridedSlice do not support slice at last dim 
+                    npu_out4 = npu_input[:,:,:,3:9:2].contiguous()
+                self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    npu_out5 = npu_input[::2,1:17:4,2:16:5,:].contiguous()
+                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), True, "Error operators called!")
 
-            cpu_out1 = cpu_input[::2].contiguous()
-            cpu_out2 = cpu_input[:,1:17:4].contiguous()
-            cpu_out3 = cpu_input[:,:,2:16:5].contiguous()
-            cpu_out4 = cpu_input[:,:,:,3:9:2].contiguous()
-            #indexing at each axis
-            cpu_out5 = cpu_input[::2,1:17:4,2:16:5,3:9:2].contiguous()
-            
-            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
-            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
-            self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy()) 
-            self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy()) 
-            self.assertRtolEqual(npu_out5.to("cpu").numpy(), cpu_out5.numpy()) 
+                cpu_out1 = cpu_input[::2].contiguous()
+                cpu_out2 = cpu_input[:,1:17:4].contiguous()
+                cpu_out3 = cpu_input[:,:,2:16:5].contiguous()
+                cpu_out4 = cpu_input[:,:,:,3:9:2].contiguous()
+                #strideslice at each axis
+                cpu_out5 = cpu_input[::2,1:17:4,2:16:5,:].contiguous()
+                
+                self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
+                self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
+                self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy()) 
+                self.assertRtolEqual(npu_out4.to("cpu").numpy(), cpu_out4.numpy()) 
+                self.assertRtolEqual(npu_out5.to("cpu").numpy(), cpu_out5.numpy()) 
             if cpu_input.dim() == 5:
                 cpu_out6 = cpu_input[:,:,:,:,1:7:3].contiguous()
                 npu_out6 = npu_input[:,:,:,:,1:7:3].contiguous()
@@ -104,9 +122,28 @@ class SingleViewCopyToContiguous(TestCase):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             for dim in range(1,len(item[2])):
-                npu_out = npu_input.select(dim,1).contiguous()
+                with torch.autograd.profiler.profile(use_npu=True) as prof:
+                    npu_out = npu_input.select(dim,1).contiguous()
+                self.assertEqual(check_operators_in_prof(['select_npuStridedSlice'], prof), True, "select_npuStridedSlice is not called!")
                 cpu_out = cpu_input.select(dim,1).contiguous()
-                self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())             
+                self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())  
+
+    def test_span_axis_strideslice_contiguous(self, device):
+        dtype_list = [np.float16, np.float32]
+        format_list = [-1]
+        shape_list = [[32,8,2], [(8,6,2), (5,4,1), 1]]
+        shape_format = [
+            [i, j, shape_list[0]] for i in dtype_list for j in format_list
+        ]
+
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
+            # npuStrideSlice do not support span-axis strideslice, can not be optimized
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out = torch.as_strided(npu_input, shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
+            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuStridedSlice']), True, "Error operators called!")
+            cpu_out = torch.as_strided(cpu_input, shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())      
                 
 instantiate_device_type_tests(SingleViewCopyToContiguous, globals(), except_for='cpu')
 if __name__ == "__main__":

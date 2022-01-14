@@ -17,12 +17,12 @@ import torch
 import numpy as np
 
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor, create_common_tensor_for_broadcast
+from common_device_type import instantiate_device_type_tests
+from util_test import create_common_tensor_for_broadcast, check_operators_in_prof
 
 os.environ["PTCOPY_ENABLE"] = "1"
 
-# Optimized view Ops contains Transpose, permute, narrow, indexing, select, unfold 
+# Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):
     def test_broadcast_copy_contiguous(self, device):
         dtype_list = [np.float16, np.float32, np.int32, np.int8, np.uint8]
@@ -32,8 +32,6 @@ class SingleViewCopyToContiguous(TestCase):
                     [[1, 2],       [3, 2]],
                     [[1, 2, 1],    [1, 2, 3]],
                     [[1, 2, 1, 3], [4, 2, 5, 3]],
-                    [[2, 3, 4],    [1, 2, 3, 4]],
-                    [[2, 3],       [1, 1, 2, 3]],
                     [[1, 3],       [1, 1, 4, 3]],
                     [[1, 3],       [2, 1, 4, 3]],
                     [[1, 3],       [1, 2, 4, 3]],
@@ -46,7 +44,9 @@ class SingleViewCopyToContiguous(TestCase):
 
         for item in shape_format: 
             cpu_input, npu_input = create_common_tensor_for_broadcast(item, 0, 100)
-            npu_out1 = npu_input.expand(item[2][1]).contiguous()
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.expand(item[2][1]).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuBroadcast'], prof), True, "npuBroadcast is not called!")
             cpu_out1 = cpu_input.expand(item[2][1]).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())                
                 
