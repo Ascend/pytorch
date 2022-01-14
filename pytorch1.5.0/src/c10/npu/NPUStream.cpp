@@ -49,8 +49,6 @@ struct LeakyStreamInternals {
     // to a crash. It's likely an issue in NPU, but to be safe - let's just
     // "forget" the destruction.
 
-    // if (stream) npuStreamDestroy(stream);
-
   }
 
   DeviceIndex device_index = -1;
