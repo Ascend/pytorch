@@ -52,19 +52,8 @@ auto get_result_names(const Tensor& self, IntArrayRef dim, bool keepdim){
   return result_names;
 }
 
-Tensor& var_before_npu(Tensor& mean, const Tensor& self, IntArrayRef dim) {
-  bool keepdim = true;
-  OpCommand cmd;
-  cmd.Name("ReduceStdV2A")
-     .Input(self)
-     .Output(mean)
-     .Attr("dim", dim)
-     .Run();
-  return mean;
-}
-
-Tensor& var_after_npu(
-    Tensor& out,
+Tensor& var_after_npu_nocheckout(
+    Tensor& var,
     const Tensor& self,
     const Tensor& mean_broadcast,
     IntArrayRef dim,
@@ -72,16 +61,16 @@ Tensor& var_after_npu(
     bool keepdim) {
   bool if_std = false;
   OpCommand cmd;
-  cmd.Name("ReduceStdV2B")
+  cmd.Name("ReduceStdV2Update")
      .Input(self)
      .Input(mean_broadcast)
-     .Output(out)
+     .Output(var)
      .Attr("dim", dim)
      .Attr("if_std", if_std)
      .Attr("unbiased", unbiased)
      .Attr("keepdim", keepdim)
      .Run();
-  return out;
+  return var;
 }
 
 tuple<Tensor&, Tensor&> var_mean_compute(
@@ -93,13 +82,13 @@ tuple<Tensor&, Tensor&> var_mean_compute(
     bool keepdim) {
   auto meanOutputSizeKeepDim = var_npu_output_size(self, dim, true);
   auto meanOutputSizeNotKeepDim = var_npu_output_size(self, dim, false);
-  var_before_npu(mean, self, dim);
+  mean = mean_npu(self, dim, false);
   mean.resize_(meanOutputSizeKeepDim);
   Tensor mean_broadcast = at::npu_broadcast(mean, self.sizes());
   if(!keepdim){
     mean.resize_(meanOutputSizeNotKeepDim);
   }
-  var_after_npu(variance, self, mean_broadcast, dim, unbiased, keepdim);
+  var_after_npu_nocheckout(variance, self, mean_broadcast, dim, unbiased, keepdim);
   return tuple<Tensor&, Tensor&>(variance, mean);
 }
 
@@ -120,23 +109,6 @@ tuple<Tensor&, Tensor&> var_mean_out_npu(
   if(variance.scalar_type() != mean.scalar_type() || variance.scalar_type() != ori_type) {
     AT_ERROR("mean's type and variance' type must be equal to input's type.");
   }
-  if(ori_type == c10::ScalarType::Half) {
-    Tensor self_no_name = self.rename(nullopt);
-    Tensor variance_no_name = variance.rename(nullopt);
-    Tensor mean_no_name = mean.rename(nullopt);
-    self_no_name = self_no_name.npu_dtype_cast(c10::ScalarType::Float);
-    variance_no_name = variance_no_name.npu_dtype_cast(c10::ScalarType::Float);
-    mean_no_name = mean_no_name.npu_dtype_cast(c10::ScalarType::Float);
-    var_mean_compute(
-        variance_no_name,
-        mean_no_name,
-        self_no_name,
-        dim_now,
-        unbiased,
-        keepdim);
-    variance.npu_dtype_cast_(variance_no_name);
-    mean.npu_dtype_cast_(mean_no_name);
-  } else {
     var_mean_compute(
         variance,
         mean,
@@ -144,17 +116,12 @@ tuple<Tensor&, Tensor&> var_mean_out_npu(
         dim_now,
         unbiased,
         keepdim);
-  }
-  if(self.has_names()){
-    auto names = get_result_names(self, dim_now, keepdim);
-    variance.rename_(names);
-    mean.rename_(names);
-  }
+ 
   return tuple<Tensor&, Tensor&>(variance, mean);
 }
 
 Tensor& var_out_npu(
-    Tensor& out,
+    Tensor& var,
     const Tensor& self,
     IntArrayRef dim,
     bool unbiased,
@@ -164,20 +131,26 @@ Tensor& var_out_npu(
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
   // construct the output mean tensor of the NPU
-  Tensor mean = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-  var_mean_out_npu(out, mean, self, dim, unbiased, keepdim);
-  return out;
+  Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
+  Tensor var_ = OpPreparation::ApplyTensor(self, outputSize);
+  
+  var_mean_out_npu(var_, mean, self, dim, unbiased, keepdim);
+  OpPreparation::CheckOut(
+      {var_},
+      var,
+      var_);
+      var.copy_(var_);
+   return var;
 }
 
 Tensor& var_out_npu(
-    Tensor& out,
+    Tensor& var,
     const Tensor& self,
     DimnameList dim,
     bool unbiased,
     bool keepdim) {
   return var_out_npu(
-      out, self, dimnames_to_positions(self, dim), unbiased, keepdim);
+      var, self, dimnames_to_positions(self, dim), unbiased, keepdim);
 }
 
 Tensor var_npu(const Tensor& self, bool unbiased) {
@@ -191,15 +164,13 @@ Tensor var_npu(
     const Tensor& self,
     IntArrayRef dim,
     bool unbiased,
-    bool keepdim
-) {
+    bool keepdim) {
   auto dim_now = check_and_trans_dim(self, dim);
   // calculate the output size
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
   // construct the output tensor of the NPU
-  Tensor variance = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+Tensor variance = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   var_out_npu(variance, self, dim, unbiased, keepdim);
@@ -211,8 +182,7 @@ Tensor var_npu(
     const Tensor& self,
     DimnameList dim,
     bool unbiased,
-    bool keepdim
-) {
+    bool keepdim) {
   return var_npu(self, dimnames_to_positions(self, dim), unbiased, keepdim);
 }
 
@@ -224,8 +194,7 @@ tuple<Tensor, Tensor> var_mean_npu(
     const Tensor& self,
     DimnameList dim,
     bool unbiased,
-    bool keepdim
-) {
+    bool keepdim) {
   return var_mean_npu(self, dimnames_to_positions(self, dim), unbiased, keepdim);
 }
 
@@ -233,19 +202,16 @@ tuple<Tensor, Tensor> var_mean_npu(
     const Tensor& self,
     IntArrayRef dim,
     bool unbiased,
-    bool keepdim
-) {
+    bool keepdim) {
   auto dim_now = check_and_trans_dim(self, dim);
   // calculate the output size
   auto outputSize = var_npu_output_size(self, dim_now, keepdim);
 
   // construct the output tensor of the NPU
-  Tensor variance = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  Tensor mean = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
+  Tensor variance = OpPreparation::ApplyTensor(self, outputSize);
+ 
+  Tensor mean = OpPreparation::ApplyTensor(self, outputSize);
+  
   // calculate the output result of the NPU
   var_mean_out_npu(variance, mean, self, dim, unbiased, keepdim);
 

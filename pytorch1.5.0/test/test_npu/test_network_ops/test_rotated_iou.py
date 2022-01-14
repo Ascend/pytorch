@@ -60,7 +60,7 @@ class TestRotatedIou(TestCase):
         return output
 
     def npu_op_exec(self,  box1, box2, trans=False):
-        output = torch.npu_rotated_iou(box1, box2, trans, 0, True)
+        output = torch.npu_rotated_iou(box1, box2, trans, 0, True, 0.0, 0.0)
         output = output.detach().cpu().numpy()
         return output
 
