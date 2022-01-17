@@ -30,6 +30,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 | :---------------- | :--------- | :------------------------------- |
 | 2.0.2             | CANN 5.0.2 | 1.5.0                            |
 | 2.0.3             | CANN 5.0.3 | 1.5.0 and 1.8.1 (Only the ResNet-50 model is supported.)|
+| 2.0.4             | CANN 5.0.4 | 1.5.0 and 1.8.1 (Only the ResNet-50 model is supported.)|
 
 # Method of Use - Full Code Generation and Compilation
 
@@ -183,6 +184,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | ---------- | ------------ | ------------ | -------------------------------------- | ------------ |
 | **v2.0.2** | Maintained   | 2021-07-29   | Unmaintained <br> 2022-07-29 estimated |              |
 | **v2.0.3** | Maintained   | 2021-10-15   | Unmaintained <br> 2022-10-15 estimated |              |
+| **v2.0.4** | Maintained   | 2022-11-15   | Unmaintained <br> 2023-01-15 estimated |              |
 
 
 # FAQs
