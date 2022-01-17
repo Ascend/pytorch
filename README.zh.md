@@ -30,6 +30,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 | :------------ | :----------- | :----------- |
 | 2.0.2 | CANN 5.0.2 | 1.5.0 |
 | 2.0.3 | CANN 5.0.3 | 1.5.0，1.8.1(仅支持resnet50模型) |
+| 2.0.4 | CANN 5.0.4 | 1.5.0，1.8.1(仅支持resnet50模型) |
 
 # 使用方式 --生成全量代码并编译
 
@@ -194,6 +195,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 |------------|--------------|----------------------|----------------------------------------|------------|
 | **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
 | **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
+| **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 
 
 # FAQ
