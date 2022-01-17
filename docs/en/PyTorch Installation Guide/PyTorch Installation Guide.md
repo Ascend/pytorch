@@ -94,7 +94,7 @@ When setting up the environment for PyTorch model development and running, you c
         │   ├── access_control_test.py
         │   ├── src                         # Source code directory
         │   └── test                        # Directory for storing test cases
-        └── scripts                          # Build and create a directory.
+        └── scripts                          # Build and creation directory
         ```
 
     2.  Obtain the native PyTorch source code from the root directory  **/pytorch**  of the current repository.
