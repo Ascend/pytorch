@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -275,7 +275,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
     // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
     // [3] copy_: Universal method
     std::vector<string> optimizations_reshape{"reshapeV2"};
-    auto reshapeTensor = 
+    auto reshapeTensor =
         TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
     if (reshapeTensor.has_value()) {
       return reshapeTensor.value();

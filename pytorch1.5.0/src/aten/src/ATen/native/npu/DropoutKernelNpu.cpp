@@ -40,13 +40,18 @@ Tensor dropout_do_mask(
 }
 
 Tensor dropout_gen_mask(const Tensor& self, Scalar prob) {
-  uint32_t length = (self.numel() + 128 - 1) / 128 * 128;
+  bool isFuzzyCompile = env::CheckFuzzyEnable();
+  int64_t numels;
+  auto desc_ = self.storage().get_npu_desc();
+  numels = isFuzzyCompile ? prod_intlist(desc_.storage_sizes_) : self.numel();
+
+  uint32_t length = (numels + 128 - 1) / 128 * 128;
   Tensor mask = at::empty_with_format(
       {length / 8},
       self.options().dtype(at::kByte),
       ACL_FORMAT_ND);
 
-  IntArrayRef selfShape = self.sizes();
+  IntArrayRef selfShape = isFuzzyCompile ? desc_.storage_sizes_ : self.sizes();
 
   OpCommand cmd;
   // If either seed or seed2 are set to be non-zero, the random number generator
@@ -67,30 +72,31 @@ std::tuple<Tensor, Tensor> dropout_v1_npu_impl(
     Tensor result,
     const Tensor& self,
     double p) {
+  Tensor selfCp = NpuUtils::format_contiguous(self);
   TORCH_CHECK(
       p >= 0 && p <= 1,
       "dropout probability has to be between 0 and 1, but got ",
       p);
   TORCH_CHECK(
-      at::isFloatingType(self.scalar_type()),
+      at::isFloatingType(selfCp.scalar_type()),
       "dropout only supports floating-point dtypes");
-  
+
   double retain = 1. - p;
   Scalar prob = Scalar(retain);
   Tensor mask;
   auto original_stream = c10::npu::getCurrentNPUStream();
   {
     // During the life cycle of this raii instance, the calcu stream is set as the
-    // secondary stream, and tasks are distributed to the secondary stream. At the 
+    // secondary stream, and tasks are distributed to the secondary stream. At the
     // same time, according to the one-stream-one-pool principle, memory is also
     // alloced from the pool of the secondary stream.
     c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-    mask = dropout_gen_mask(self, prob);
+    mask = dropout_gen_mask(selfCp, prob);
   }
   // When tasks on multiple streams read and write the same block of memory,
   // recordStream needs to be called to ensure the correctness of memory reuse.
   c10::npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
-  dropout_do_mask(result, self, mask, prob);
+  dropout_do_mask(result, selfCp, mask, prob);
 
   return std::tie(result, mask);
 }
@@ -107,7 +113,7 @@ std::tuple<Tensor, Tensor> _dropout_npu_inplace(
   return dropout_v1_npu_impl(self, self, p);
 }
 
-Tensor dropout_npu(const Tensor& self, double p, bool train) {    
+Tensor dropout_npu(const Tensor& self, double p, bool train) {
   if (p == 0 || !train || self.numel() == 0) {
     return self;
   }
