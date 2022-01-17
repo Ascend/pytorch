@@ -144,9 +144,7 @@ class TestLog(TestCase):
             cpu_output = self.cpu_inp_uncon_op_exec(cpu_input1)
             npu_output = self.npu_inp_uncon_op_exec(npu_input1)
             cpu_output = cpu_output.astype(np.float16)
-            print("cpu:", cpu_output, "npu:", npu_output)
             self.assertRtolEqual(cpu_output, npu_output)
-
 
 instantiate_device_type_tests(TestLog, globals(), except_for="cpu")
 if __name__ == '__main__':

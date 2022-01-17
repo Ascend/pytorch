@@ -41,7 +41,6 @@ class TestNonzero(TestCase):
                 [[i, j, k]] for i in dtype_list for j in format_list for k in shape_list
         ]
         for item in shape_format:
-            print(item)
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
             cpu_output = self.cpu_op_exec(cpu_input)
             npu_output = self.npu_op_exec(npu_input)
