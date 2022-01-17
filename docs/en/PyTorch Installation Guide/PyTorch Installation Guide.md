@@ -8,7 +8,7 @@
 -   [References](#referencesmd)
     -   [Installing CMake](#installing-cmakemd)
     -   [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)
-    -   [What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)
+    -   [What to Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-to-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)
 <h2 id="overviewmd">Overview</h2>
 
 When setting up the environment for PyTorch model development and running, you can manually build and install the modules adapted to the PyTorch framework on a server.
@@ -33,10 +33,11 @@ When setting up the environment for PyTorch model development and running, you c
 
 #### Prerequisites<a name="en-us_topic_0000001105856382_en-us_topic_0275872734_section108914373254"></a>
 
--   The development or operating environment of CANN has been installed. For details, see the  _CANN Software Installation Guide_.
+-   The development or operating environment of CANN has been installed. For details, see the _CANN Software Installation Guide_.
 -   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmakemd).
 -   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md).
--   Python 3.7.5 or 3.8 has been installed.
+-   Python 3.7.5, 3.8, or 3.9 has been installed.
+-   Note that PyTorch 1.5 does not support Python 3.9 build and installation. Only Torch 1.8.1 supports Python 3.9 build and installation.
 -   The Patch and Git tools have been installed in the environment. To install the tools for Ubuntu and CentOS, run the following commands:
     -   Ubuntu
 
@@ -70,10 +71,13 @@ When setting up the environment for PyTorch model development and running, you c
 
 3.  Obtain the PyTorch source code.
 
-    1.  Run the following command to obtain the PyTorch source code adapted to Ascend AI Processors:
+    1.  Run the following command to obtain the PyTorch source code adapted to Ascend AI Processors and switch to the required branch:
 
         ```
         git clone https://gitee.com/ascend/pytorch.git
+        # By default, the masterf branch is used. If other branches are required, run the git checkout command to switch to that branch.
+        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+
         ```
 
         The directory structure of the downloaded source code is as follows:
@@ -106,7 +110,7 @@ When setting up the environment for PyTorch model development and running, you c
             git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
             ```
 
-    3.  Run the following commands to go to the native PyTorch code directory  **pytorch**  and obtain the PyTorch passive dependency code:
+    3.  Go to the native PyTorch code directory  **pytorch**  and obtain the PyTorch passive dependency code.
 
         ```
         cd  pytorch
@@ -143,6 +147,9 @@ When setting up the environment for PyTorch model development and running, you c
         bash build.sh --python=3.7
         or
         bash build.sh --python=3.8
+        or
+        bash build.sh --python=3.9    # PyTorch 1.5 does not support build and installation using Python 3.9.
+
         ```
 
         Specify the Python version in the environment for build. The generated binary package is stored in the current dist directory  **pytorch/pytorch/dist**.
@@ -179,7 +186,7 @@ After the software packages are installed, configure environment variables to us
     export HCCL_WHITELIST_DISABLE=1 # Disable the HCCL trustlist.
     # Scenario 2: Multi-node scenario
     export HCCL_WHITELIST_DISABLE=1 # Disable the HCCL trustlist.
-    export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change it based on the site requirements. Ensure that the NIC IP addresses in use can communicate with each other in the cluster.
+    export HCCL_IF_IP="1.1.1.1"  # Replace 1.1.1.1 with the actual NIC IP address of the host. Ensure that the NIC IP addresses in use can communicate with each other in the cluster.
     ```
 
 3.  \(Optional\) Configure function or performance environment variables in the NPU scenario. The variables are disabled by default.
@@ -338,7 +345,7 @@ After the software packages are installed, configure environment variables to us
         apex
         │ ├─patch             # Directory of the patch adapted to Ascend AI Processors
         │    ├─npu.patch
-        │ ├─scripts           # Build and create a directory.
+        │ ├─scripts           # Build and creation directory
         │    ├─gen.sh
         │ ├─src               # Source code directory
         │ ├─tests              # Directory for storing test cases
@@ -358,7 +365,7 @@ After the software packages are installed, configure environment variables to us
         │ ├─apex              # Directory for storing the native Apex code
         │ ├─patch             # Directory of the patch adapted to Ascend AI Processors
         │    ├─npu.patch
-        │ ├─scripts           # Build and create a directory.
+        │ ├─scripts           # Build and creation directory
         │    ├─gen.sh
         │ ├─src               # Source code directory
         │ ├─tests              # Directory for storing test cases
@@ -384,7 +391,7 @@ After the software packages are installed, configure environment variables to us
 
         The full code adapted to Ascend AI Processors is generated in the  **apex/apex**  directory.
 
-    2.  Go to the full code directory  **apex/apex**, and compile and generate the binary installation package of Apex.
+    2.  Go to the full code directory  **apex/apex**, and build and generate the binary installation package of Apex.
 
         ```
         cd ../apex
@@ -414,12 +421,12 @@ After the software packages are installed, configure environment variables to us
 
 -   **[How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md)**  
 
--   **[What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)**  
+-   **[What to Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?](#what-to-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)**  
 
 
 <h3 id="installing-cmakemd">Installing CMake</h3>
 
-Procedure for upgrading CMake to 3.12.1
+The following describes how to install CMake 3.12.1.
 
 1.  Obtain the CMake software package.
 
@@ -447,8 +454,7 @@ Procedure for upgrading CMake to 3.12.1
     ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
     ```
 
-5.  Run the following command to check whether CMake has been installed:
-
+5.  Check whether CMake has been installed.
     ```
     cmake --version
     ```
@@ -525,7 +531,7 @@ Perform the following steps as the  **root**  user.
 
 5.  Set the environment variable.
 
-    Training must be performed in the compilation environment with GCC upgraded. If you want to run training, configure the following environment variable in your training script:
+    Training must be performed in the compilation environment with GCC upgraded. Therefore, configure the following environment variable in your training script:
 
     ```
     export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
@@ -537,11 +543,11 @@ Perform the following steps as the  **root**  user.
     >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 
-<h3 id="what-do-i-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd">What Do I Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h3>
+<h3 id="what-to-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd">What to Do If "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed?</h3>
 
 #### Symptom<a name="en-us_topic_0000001105856364_en-us_topic_0175549220_section197270431505"></a>
 
-During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" " is displayed.
+During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
 
 ![](figures/en-us_image_0000001190081735.png)
 
