@@ -22,23 +22,4 @@ common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__fi
 if common_path not in sys.path:
     sys.path.append(common_path)
 from util_test_new import create_common_tensor, test_2args_broadcast,\
-    create_dtype_tensor, create_common_tensor_for_broadcast
-
-def check_operators_in_prof(expected_operators, prof, unexpected_operators=None):
-    unexpected_operators = unexpected_operators or []
-    prof_key_averages = prof.key_averages()
-    if not prof_key_averages:
-        return print("torch profiling is empty, please check it")
-    for prof_item in prof_key_averages:        
-        if prof_item.key in unexpected_operators:
-            # if unexpected oprators are called, pattern inferring in trans-contiguous is failed
-            return False
-        elif prof_item.key in expected_operators:
-            # if expected oprator is called, empty it in expected_operators list
-            expected_operators.remove(prof_item.key)
-            
-    # if expected_operators list is empty, all oprators have been called
-    if not expected_operators:
-        return True
-    return False
-
+    create_dtype_tensor, create_common_tensor_for_broadcast, check_operators_in_prof

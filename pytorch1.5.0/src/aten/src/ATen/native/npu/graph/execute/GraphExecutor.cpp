@@ -155,10 +155,6 @@ void GraphExecutor::Init() {
     }
   }
 
-  auto ret = ge::GEInitialize(config);
-  if (ret != 0) {
-    AT_ERROR("GE init failed!");
-  }
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
   session_ = std::make_unique<ge::Session>(config);
@@ -172,7 +168,6 @@ void GraphExecutor::Finalize() {
   if (GraphExecutor::GetInstance().session_ != nullptr) {
     session_.reset();
     session_ = nullptr;
-    ge::GEFinalize();
   }
 }
 

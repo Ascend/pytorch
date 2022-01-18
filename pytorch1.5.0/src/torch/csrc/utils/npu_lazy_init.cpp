@@ -27,7 +27,7 @@ namespace utils {
 static bool npu_run_yet = false;
 
 void npu_lazy_init() {
-  AutoGIL g;
+  pybind11::gil_scoped_acquire g;
   // Protected by the GIL.  We don't use call_once because under ASAN it
   // has a buggy implementation that deadlocks if an instance throws an
   // exception.  In any case, call_once isn't necessary, because we

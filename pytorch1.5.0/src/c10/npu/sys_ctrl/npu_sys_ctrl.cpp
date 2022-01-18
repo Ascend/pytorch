@@ -15,10 +15,18 @@
 // limitations under the License.
 
 #include "npu_sys_ctrl.h"
+#include <Python.h>
 #include <c10/npu/npu_log.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/OptionsManager.h>
-
+#include <c10/npu/register/OptionRegister.h>
+#ifdef SUCCESS
+#undef SUCCESS
+#endif
+#ifdef FAILED
+#undef FAILED
+#endif
+#include <third_party/acl/inc/ge/ge_api.h>
 namespace c10 {
 namespace npu {
 
@@ -60,6 +68,41 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
       NPU_LOGD("set dump config success");  
     }
 
+    auto npu_device_id = std::to_string(device_id_);
+    std::map<ge::AscendString, ge::AscendString> config = {
+        {ge::AscendString(ge::OPTION_EXEC_DEVICE_ID),
+         ge::AscendString(npu_device_id.data())},
+        {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
+        {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
+        {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
+        {ge::AscendString(ge::OP_SELECT_IMPL_MODE.c_str()), "high_precision"}
+    };
+
+    config["ge.session_device_id"] = ge::AscendString(npu_device_id.data());
+    config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
+
+    static std::map<const std::string, const std::string>
+        STRING_TO_COMPILE_OPT_MAP = {
+            {"ACL_OP_DEBUG_LEVEL", ge::OP_DEBUG_LEVEL},
+            {"ACL_DEBUG_DIR", ge::DEBUG_DIR},
+            {"ACL_OP_COMPILER_CACHE_MODE", ge::OP_COMPILER_CACHE_MODE},
+            {"ACL_OP_COMPILER_CACHE_DIR", ge::OP_COMPILER_CACHE_DIR},
+            {"ACL_OP_SELECT_IMPL_MODE", ge::OP_SELECT_IMPL_MODE},
+            {"ACL_OPTYPELIST_FOR_IMPLMODE", ge::OPTYPELIST_FOR_IMPLMODE}
+    };
+
+    for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
+        auto val = c10::npu::GetOption(iter.first);
+        if (val.has_value() && (val.value().length() > 0)) {
+            config.emplace(iter.second.c_str(), val.value().c_str());
+        }
+    }
+
+    auto ge_ret = ge::GEInitialize(config);
+    if (ge_ret != ge::SUCCESS) {
+        AT_ERROR("GE init failed!");
+    }
+
     return INIT_SUCC;
 }
 
@@ -83,6 +126,7 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Finalize() {
     c10::npu::NPUEventManager::GetInstance().ClearEvent();
     auto stream = c10::npu::getCurrentNPUStream();
     (void)aclrtDestroyStream(stream);
+    C10_NPU_CHECK(ge::GEFinalize());
     C10_NPU_CHECK(aclrtResetDevice(device_id_));
     C10_NPU_CHECK(aclFinalize());
     init_flag_ = false;

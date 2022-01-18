@@ -19,5 +19,5 @@ common_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "common"
 if common_path not in sys.path:
     sys.path.append(common_path)
 from util_test_new import create_common_tensor, test_2args_broadcast,\
-    create_dtype_tensor, create_common_tensor_for_broadcast
+    create_dtype_tensor, create_common_tensor_for_broadcast, check_operators_in_prof
 
