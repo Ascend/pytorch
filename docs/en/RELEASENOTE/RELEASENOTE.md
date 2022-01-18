@@ -283,7 +283,7 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 
 <h3 id="new-features-1md">New Features</h3>
 
-**Table  1**  Features supported by PyTorch
+**Table  1**  Features supported by  PyTorch
 
 <a name="t76c34275cbb74753970f7c5a9eb594fa"></a>
 <table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.489999999999998%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>Level-1 Feature</p>
@@ -348,7 +348,7 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 <td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p186161459193813"><a name="p186161459193813"></a><a name="p186161459193813"></a>Supported the online inference on Ascend 710 AI Processors.</p>
 </td>
 </tr>
-<tr id="row76261059153817"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p11616175953812"><a name="p11616175953812"></a><a name="p11616175953812"></a>OS Compatibility</p>
+<tr id="row76261059153817"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p11616175953812"><a name="p11616175953812"></a><a name="p11616175953812"></a>OS compatibility</p>
 </td>
 <td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p8935115971714"><a name="p8935115971714"></a><a name="p8935115971714"></a>Supported Ubuntu 18.04.5 and openEuler 20.03 LTS.</p>
 </td>

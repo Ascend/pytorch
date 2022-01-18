@@ -594,6 +594,6 @@ Perform the following steps as the  **root**  user.
     **$\{install\_path\}**  indicates the GCC 7.3.0 installation path configured in  [3.](#en-us_topic_0000001146754749_en-us_topic_0000001072593337_l75d31a2874534a2092e80a5f865b46f0). In this example, the GCC 7.3.0 installation path is  **/usr/local/linux\_gcc7.3.0/**.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >Skip this step if you do not need the compilation environment with GCC upgraded.
+    >Skip this step if you do not the compilation environment with GCC upgraded.
 
 
