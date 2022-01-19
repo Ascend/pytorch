@@ -20,7 +20,6 @@
     -   [已修复问题](#已修复问题-3md)
     -   [已知问题](#已知问题-4md)
     -   [兼容性](#兼容性-5md)
--   -   ](#兼容性-5md)
 
 <h2 id="FrameworkPTAdapter-2-0-3md">FrameworkPTAdapter 2.0.4</h2>
 
