@@ -43,12 +43,14 @@ Scalar _local_scalar_dense_npu(const Tensor& self) {
             ACL_MEMCPY_DEVICE_TO_HOST,
             copy_stream);
         if (error != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
           AT_ERROR("aclrtMemcpy device to host error.");
           return;
         }
 
         error = aclrtSynchronizeStream(copy_stream);
         if (error != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
           AT_ERROR("ACL stream synchronize failed.");
           return;
         }

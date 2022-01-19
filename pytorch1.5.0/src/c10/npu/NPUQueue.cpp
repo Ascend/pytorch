@@ -481,6 +481,7 @@ void StartConsume(Repository* repo, DeviceIndex device_id) {
 
   aclError ret = aclrtSetDevice(device_id);
   if (ret != 0) {
+    C10_NPU_SHOW_ERR_MSG();
     std::cout << "***Thread*" << std::this_thread::get_id() << ": set device ("
               << device_id << "): ret = " << ret << std::endl;
   }

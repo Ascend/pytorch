@@ -154,6 +154,7 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     aclrtEventStatus status;
     const aclError err = aclrtQueryEvent(npu_event, &status);
     if (err != ACL_ERROR_NONE) {
+      C10_NPU_SHOW_ERR_MSG();
       C10_NPU_CHECK(err);
     }
     return (status == ACL_EVENT_STATUS_COMPLETE);

@@ -160,6 +160,7 @@ struct HostAllocator {
       // Sync when host memory is allocated by malloc
       aclError error = aclrtSynchronizeStream(stream);
       if (error != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         AT_ERROR("ACL stream synchronize failed.");
         return error;
       }
@@ -217,6 +218,7 @@ struct HostAllocator {
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
       if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         insertCompleteEvent(event);
         return err;
       }
@@ -227,6 +229,7 @@ struct HostAllocator {
 
       err = aclrtDestroyEvent(event);
       if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         insertCompleteEvent(event);
         return err;
       }
@@ -250,6 +253,7 @@ struct HostAllocator {
       Block& block = blocks.at(it->second);
       if (!block.allocated) {
         if (aclrtDestroyEvent(event) != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
           NPU_LOGW("destory acl event fail");
         }
         block.event_count--;
@@ -292,19 +296,23 @@ struct HostAllocator {
       if (ret != ACL_ERROR_NONE) {
         err = aclrtSetDevice(it->device_index());
         if (err != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
           break;
         }
       } else if (pre_device != it->device_index()) {
         err = aclrtSetDevice(it->device_index());
         if (err != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
           break;
         }
       }
 
       aclrtEvent event = nullptr;
       err = c10::npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE);
-      if (err != ACL_ERROR_NONE)
+      if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         break;
+      }
       err = c10::npu::queue::LaunchRecordEventTask(event, *it, needClearVec);
       if (err != ACL_ERROR_NONE)
         break;

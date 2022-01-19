@@ -40,6 +40,7 @@ void copy_d2d_via_host(Tensor& self, const Tensor& src, bool same_type) {
   c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
   aclError error = aclrtSynchronizeStream(copy_stream);
   if (error != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
     AT_ERROR("ACL stream synchronize failed.");
     return;
   }
@@ -57,6 +58,7 @@ void copy_d2d_via_host(Tensor& self, const Tensor& src, bool same_type) {
       real_bytes,
       ACL_MEMCPY_DEVICE_TO_HOST);
   if (error != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
     AT_ERROR("aclrtMemcpy device to cpu_src error.");
     return;
   }
@@ -82,6 +84,7 @@ void copy_d2d_via_host(Tensor& self, const Tensor& src, bool same_type) {
         real_bytes,
         ACL_MEMCPY_DEVICE_TO_HOST);
     if (error != ACL_ERROR_NONE) {
+      C10_NPU_SHOW_ERR_MSG();
       AT_ERROR("ACL_Memcpy device to cpu_dst error.");
       return;
     }
@@ -96,6 +99,7 @@ void copy_d2d_via_host(Tensor& self, const Tensor& src, bool same_type) {
       real_bytes,
       ACL_MEMCPY_HOST_TO_DEVICE);
   if (error != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
     AT_ERROR("aclrtMemcpy cpu_dst to device error.");
     return;
   }
@@ -242,6 +246,7 @@ void copy_between_host_and_device(
   } else {
     aclError error = aclrtSynchronizeStream(stream);
     if (error != ACL_ERROR_NONE) {
+      C10_NPU_SHOW_ERR_MSG();
       AT_ERROR("ACL stream synchronize failed, error code:", error);
     }
   }

@@ -40,6 +40,7 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
     }
     err = aclrtDestroyEvent(event);
     if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         return err;
     }
     npu_events_.pop_front();

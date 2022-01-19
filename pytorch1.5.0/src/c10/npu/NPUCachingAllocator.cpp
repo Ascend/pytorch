@@ -760,6 +760,7 @@ struct THNCachingAllocator {
       err = aclrtMalloc(
           devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
       if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
         return err;
       }
     }
