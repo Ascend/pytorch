@@ -10,7 +10,7 @@ GCC version: 7.3.0 (required only in compilation scenarios)
 
 CMake version: 3.12.0 or later (required only in compilation scenarios)
 
-Python versions: 3.7.5 and 3.8.*x* (The compilation methods are different. For details, see the script compilation section.)
+Python versions: 3.7.5, 3.8.*x* and 3.9.*x* (PyTorch1.5 does not support python3.9.x)
 
 
 # System Dependencies
@@ -88,6 +88,9 @@ bash build.sh --python=3.7 (recommended)
 
 # Python 3.8
 bash build.sh --python=3.8
+
+# Python 3.9
+bash build.sh --python=3.9
 ```
 
 The generated binary package is in the **pytorch/pytorch/dist/** directory.
