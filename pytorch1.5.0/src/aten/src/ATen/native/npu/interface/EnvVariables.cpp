@@ -64,6 +64,9 @@ REGISTER_OPTION_HOOK(fuzzycompileswitch, [](const std::string& val) {
  })
 REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, fuzzycompileswitch, "disable", "enable")
 
+REGISTER_OPTION_HOOK(ACL_AUTO_TUNE_MODE, [](const std::string& val) { 
+  aclSetCompileopt(aclCompileOpt::ACL_AUTO_TUNE_MODE, val.c_str());
+ })
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string& val) { 
   aclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());
  })

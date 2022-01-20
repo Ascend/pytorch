@@ -68,7 +68,7 @@ class TestLog2(TestCase):
         return output
 
     def test_log2_shape_format_fp32(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(4, 4)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list
@@ -81,7 +81,7 @@ class TestLog2(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_log2_shape_format_fp16(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(4, 4)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
@@ -95,7 +95,7 @@ class TestLog2(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_log2_inp_shape_format_fp32(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(5, 3)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list
@@ -107,7 +107,7 @@ class TestLog2(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_log2_inp_shape_format_fp16(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(4, 4)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
@@ -121,7 +121,7 @@ class TestLog2(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_log2_inp_uncon_shape_format_fp32(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(8, 6)]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list
@@ -133,7 +133,7 @@ class TestLog2(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_log_inp_uncon_shape_format_fp16(self, device):
-        format_list = [3]
+        format_list = [0, 3]
         shape_list = [(8, 6)]
         shape_format = [
             [np.float16, i, j] for i in format_list for j in shape_list
