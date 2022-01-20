@@ -2106,7 +2106,7 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
 ```
 
 -   ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
@@ -2120,7 +2120,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
 -  ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
 
-- · ACL_PROF_L2CACHE：表示采集L2 Cache数据，默认True
+- · ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
 
 -   ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
 
@@ -2364,7 +2364,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 约束说明：<a name="section52762019181510"></a>
 
 -   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
--   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能。
+-   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能，使用单P对模型进行训练，不使用分布式。
 
 采集溢出算子数据：<a name="section121407268191"></a>
 
