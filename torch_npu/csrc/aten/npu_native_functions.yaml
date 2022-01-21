@@ -1,0 +1,288 @@
+backend: NPU
+cpp_namespace: at_npu::native
+supported:
+  - add.Tensor
+  - add.Scalar
+  - add_.Tensor
+  - add_.Scalar
+  - add.out
+  - addmm
+  - addmm_
+  - addmm.out
+  - log_softmax.int
+  - log_softmax.Dimname
+  - _log_softmax
+  - _log_softmax_backward_data
+  - batch_norm
+  - native_batch_norm
+  - native_batch_norm_backward
+  - _batch_norm_impl_index
+  - _batch_norm_impl_index_backward
+  - slow_conv3d
+  - slow_conv3d.out
+  - slow_conv3d_forward.output
+  - slow_conv3d_forward
+  - convolution
+  - _convolution
+  - _convolution_nogroup
+  - conv2d
+  - conv_transpose2d.input
+  - thnn_conv2d.out
+  - thnn_conv2d
+  - thnn_conv2d_forward.output
+  - thnn_conv2d_forward
+  - thnn_conv_depthwise2d.out
+  - thnn_conv_depthwise2d
+  - thnn_conv2d_backward.output_mask
+  - conv_transpose3d.input
+  - thnn_conv_depthwise2d_backward.output_mask
+  - thnn_conv_depthwise2d_backward.grad_input
+  - thnn_conv_depthwise2d_forward.out
+  - thnn_conv_depthwise2d_forward
+  - div.Tensor
+  - div_.Tensor
+  - div.out
+  - div.Scalar
+  - div_.Scalar
+  - eq.Tensor
+  - eq.Tensor_out
+  - eq.Scalar
+  - eq.Scalar_out
+  - mean
+  - mean.dim
+  - mean.out
+  - mean.names_dim
+  - mean.names_out
+  - mul.Tensor
+  - mul_.Tensor
+  - mul.out
+  - mul.Scalar
+  - mul_.Scalar
+  - mv
+  - mv.out
+  - ones_like
+  - relu
+  - relu_
+  - sum
+  - sum.dim_IntList
+  - sum.dim_DimnameList
+  - sum.IntList_out
+  - sum.DimnameList_out
+  - threshold
+  - threshold_
+  - threshold.out
+  - threshold_backward
+  - topk
+  - topk.values
+  - _adaptive_avg_pool2d_backward
+  - adaptive_avg_pool2d
+  - _adaptive_avg_pool2d
+  - adaptive_avg_pool2d.out
+  - adaptive_avg_pool3d_backward
+  - adaptive_avg_pool3d_backward.grad_input
+  - adaptive_avg_pool3d
+  - adaptive_avg_pool3d.out
+  - adaptive_max_pool2d_backward
+  - adaptive_max_pool2d_backward.grad_input
+  - adaptive_max_pool2d
+  - adaptive_max_pool2d.out
+  - avg_pool2d_backward
+  - avg_pool2d_backward.grad_input
+  - avg_pool2d
+  - avg_pool2d.out
+  - avg_pool3d_backward
+  - avg_pool3d_backward.grad_input
+  - avg_pool3d
+  - avg_pool3d.out
+  - max_pool2d_with_indices_backward
+  - max_pool2d_with_indices_backward.grad_input
+  - max_pool2d_with_indices
+  - max_pool2d_with_indices.out
+  - max_pool3d_with_indices_backward
+  - max_pool3d_with_indices_backward.grad_input
+  - max_pool3d_with_indices
+  - max_pool3d_with_indices.out
+  - max_unpool3d_backward
+  - max_unpool3d_backward.grad_input
+  - max_unpool3d
+  - max_unpool3d.out
+  - max_pool2d
+  - fill_.Scalar
+  - fill_.Tensor
+  - mm
+  - mm.out
+  - zeros_like
+  - zero_
+  - lt.Scalar
+  - lt.Scalar_out
+  - lt.Tensor
+  - lt.Tensor_out
+  - lt_.Tensor
+  - lt_.Scalar
+  - gt.Scalar_out
+  - gt.Scalar
+  - gt.Tensor_out
+  - gt.Tensor
+  - gt_.Scalar
+  - gt_.Tensor
+  - soft_margin_loss
+  - soft_margin_loss.out
+  - soft_margin_loss_backward
+  - soft_margin_loss_backward.grad_input
+  - smooth_l1_loss
+  - smooth_l1_loss.out
+  - smooth_l1_loss_backward
+  - smooth_l1_loss_backward.grad_input
+  - nll_loss_forward
+  - nll_loss_forward.output
+  - nll_loss_backward
+  - nll_loss_backward.grad_input
+  - nll_loss2d_forward
+  - nll_loss2d_forward.output
+  - nll_loss2d_backward
+  - nll_loss2d_backward.grad_input
+  - multilabel_margin_loss_forward
+  - multilabel_margin_loss_forward.output
+  - mse_loss
+  - mse_loss.out
+  - mse_loss_backward
+  - mse_loss_backward.grad_input
+  - nll_loss
+  - nll_loss.out
+  - multilabel_margin_loss
+  - multilabel_margin_loss.out
+  - nll_loss2d
+  - nll_loss2d.out
+  - l1_loss
+  - l1_loss.out
+  - l1_loss_backward
+  - l1_loss_backward.grad_input
+  - _local_scalar_dense
+  - resize_
+  - resize_as_
+  - set_.source_Storage
+  - set_.source_Storage_storage_offset
+  - set_.source_Tensor
+  - set_
+  - clone
+  - hamming_window
+  - hamming_window.periodic
+  - hamming_window.periodic_alpha
+  - hamming_window.periodic_alpha_beta
+  - hann_window
+  - hann_window.periodic
+  - bartlett_window
+  - bartlett_window.periodic
+  - blackman_window
+  - blackman_window.periodic
+  - as_strided
+  - as_strided_
+  - view
+  - to.dtype_layout
+  - to.device
+  - to.dtype
+  - to.other
+  - copy_
+  - copy_memory_
+  - empty_strided
+  - empty_like
+  - empty.memory_format
+  - normal_
+  - normal.Tensor_float_out
+  - normal.Tensor_float
+  - normal.float_Tensor_out
+  - normal.float_Tensor
+  - normal.Tensor_Tensor_out
+  - normal.Tensor_Tensor
+  - normal.float_float_out
+  - normal.float_float
+  - reciprocal
+  - reciprocal_
+  - reciprocal.out
+  - norm.ScalarOpt_dtype
+  - norm.Scalar
+  - norm.ScalarOpt_dim_dtype
+  - norm.ScalarOpt_dim
+  - norm.dtype_out
+  - norm.out
+  - sub.Tensor
+  - sub.out
+  - sub_.Tensor
+  - sub.Scalar
+  - sub_.Scalar
+  - pow_.Scalar
+  - pow_.Tensor
+  - pow.Tensor_Tensor_out
+  - pow.Tensor_Tensor
+  - pow.Scalar_out
+  - pow.Scalar
+  - pow.Tensor_Scalar_out
+  - pow.Tensor_Scalar
+  - neg
+  - neg_
+  - neg.out
+  - sqrt
+  - sqrt_
+  - sqrt.out
+  - cat
+  - cat.out
+  - cat.names
+  - cat.names_out
+  - _cat
+  - _cat.out
+  - softmax.int
+  - softmax.Dimname
+  - _softmax
+  - _softmax_backward_data
+  - addcmul
+  - addcmul_
+  - addcmul.out
+  - addcdiv
+  - addcdiv_
+  - addcdiv.out
+
+custom:
+  - func: npu_transpose_to_contiguous(Tensor self) -> Tensor
+    variants: function, method
+  - func: npu_transpose(Tensor self, int[] perm) -> Tensor
+    variants: function, method
+  - func: npu_transpose.out(Tensor self, int[] perm, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_broadcast(Tensor self, int[] size) -> Tensor
+    variants: function, method
+  - func: npu_broadcast.out(Tensor self, int[] size, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_dtype_cast(Tensor self, ScalarType dtype) -> Tensor
+    variants: function, method
+  - func: npu_dtype_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+    variants: method
+  - func: npu_alloc_float_status(Tensor self) -> Tensor
+    variants: function, method
+  - func: npu_get_float_status(Tensor self) -> Tensor
+    variants: function, method
+  - func: npu_clear_float_status(Tensor self) -> Tensor
+    variants: function, method
+  - func: one_(Tensor(a!) self) -> Tensor(a!)
+    variants: method, function
+  - func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: npu_convolution_backward(Tensor input, Tensor grad_output, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: npu_conv_transpose2d(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
+  - func: npu_conv2d(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
+  - func: npu_conv2d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_conv2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: npu_conv3d(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
+  - func: npu_conv3d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_conv3d_backward(Tensor input, Tensor grad, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
+  - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+  - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+  - func: empty_with_format.names(int[] size, Dimname[]? names, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor
+  - func: copy_memory_(Tensor(a!) self, Tensor src, bool non_blocking=False) -> Tensor(a!)
+  - func: npu_stride_add(Tensor self, Tensor other, Scalar offset1, Scalar offset2, Scalar c1_len) -> Tensor
+  - func: npu_slice(Tensor self, int[] offsets, int[] size) -> Tensor
+  - func: npu_slice.out(Tensor self, int[] offsets, int[] size, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0) -> Tensor
+  - func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)
+custom_autograd:
+  - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
+  - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
