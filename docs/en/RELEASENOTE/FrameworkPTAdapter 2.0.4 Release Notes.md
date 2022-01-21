@@ -127,6 +127,7 @@ N/A
 </tr>
 </tbody>
 </table>
+
 ### Compatibility
 
 Atlas 800 (model 9010): CentOS 7.6, Ubuntu 18.04/2.04, BC-Linux 7.6, Debian 9.9, Debian 10, openEuler 20.03 LTS
@@ -355,6 +356,7 @@ N/A
 </tr>
 </tbody>
 </table>
+
 ### Compatibility
 
 Atlas 800 (model 9010): CentOS 7.6, Ubuntu 18.04, BC-Linux 7.6, Debian 9.9, Debian 10, and openEuler 20.03 LTS.
