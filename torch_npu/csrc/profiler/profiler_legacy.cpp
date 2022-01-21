@@ -465,3 +465,281 @@ bool profilerEnabled() {
   auto state_ptr = getProfilerTLSState();
   return state_ptr && state_ptr->config().state != ProfilerState::Disabled;
 }
+
+void enableProfilerLegacy(const ProfilerConfig& new_config) {
+  TORCH_CHECK(new_config.state != ProfilerState::NVTX || device_stubs()->enabled(),
+      "Can't use NVTX profiler - PyTorch was compiled without CUDA");
+
+  TORCH_CHECK(new_config.state != ProfilerState::KINETO);
+
+  auto state_ptr = getProfilerTLSState();
+  TORCH_CHECK(!state_ptr, "Profiler is already enabled on this thread");
+  auto state = std::make_shared<ProfilerThreadLocalState>(new_config);
+  c10::ThreadLocalDebugInfo::_push(c10::DebugInfoKind::PROFILER_STATE, state);
+
+  pushProfilingCallbacksLegacy();
+
+  if (new_config.state == ProfilerState::CUDA) {
+    // event recording appears to have some startup overhead, so we need to
+    // to generate some dummy events first before recording synchronization events
+    for (int idx = 0; idx < kCUDAWarmupStart; ++idx) {
+      device_stubs()->onEachDevice([state](int /* unused */) {
+          state->mark("__cuda_startup");
+          device_stubs()->synchronize();
+      });
+    }
+
+    // cuda events must be on the same device, so we need a start event recorded
+    // for each gpu. we then use this event to synchronize time on the GPU
+    // with the CPU clock.
+    device_stubs()->onEachDevice([state](int d) {
+        state->mark("__cuda_start_event");
+    });
+  }
+  else if (new_config.state == ProfilerState::NPU) {
+    // event recording appears to have some startup overhead, so we need to
+    // to generate some dummy events first before recording synchronization events
+    for (int idx = 0; idx < kNPUWarmupStart; ++idx) {
+      device_stubs()->onEachDevice([state](int /* unused */) {
+          state->mark("__npu_startup");
+          device_stubs()->synchronize();
+      });
+    }
+
+    // npu events must be on the same device, so we need a start event recorded
+    // for each npu. we then use this event to synchronize time on the NPU
+    // with the CPU clock.
+    device_stubs()->onEachDevice([state](int d) {
+        state->mark("__npu_start_event");
+    });
+  }
+  state->mark("__start_profile", false);
+}
+
+thread_event_lists disableProfilerLegacy(c10::optional<ProfilerDisableOptions> profilerDisableOptions) {
+  auto cleanupTLSState = profilerDisableOptions ? profilerDisableOptions->cleanupTLSState : true;
+  auto consolidate = profilerDisableOptions ? profilerDisableOptions->consolidate : true;
+  // all the DebugInfoBase objects are scope based and supposed to use DebugInfoGuard
+  std::shared_ptr<c10::DebugInfoBase> state;
+  if (cleanupTLSState) {
+    state = c10::ThreadLocalDebugInfo::_pop(c10::DebugInfoKind::PROFILER_STATE);
+  } else {
+    state = c10::ThreadLocalDebugInfo::_peek(c10::DebugInfoKind::PROFILER_STATE);
+  }
+
+  auto state_ptr = static_cast<ProfilerThreadLocalState*>(state.get());
+  TORCH_CHECK(state_ptr && state_ptr->config().state != ProfilerState::Disabled,
+      "Can't disable profiler when it's not running");
+
+  if (cleanupTLSState) {
+    at::removeCallback(state_ptr->callbackHandle());
+  }
+
+  if (!consolidate || state_ptr->config().state == ProfilerState::NVTX) {
+    return thread_event_lists();
+  }
+
+  state_ptr->mark("__stop_profile");
+  // Note that this will erase the underlying events.
+  return state_ptr->consolidate();
+}
+
+void addEventList(std::vector<LegacyEvent>&& profiledEvents) {
+  auto state_ptr = getProfilerTLSState();
+  TORCH_CHECK(state_ptr, "Profiler must be enabled.");
+  state_ptr->setOrAddRemoteProfiledEvents(std::move(profiledEvents));
+}
+
+void LegacyEvent::record(bool record_device) {
+  if (record_device && state_ == ProfilerState::CUDA) {
+    device_stubs()->record(&device_, &cuda_event, &cpu_ns_);
+    return;
+  } else if (c10::ObservedOperators::EnableNpuOp && record_device && state_ == ProfilerState::NPU) {
+    device_stubs()->record(&device_, &npu_event, &cpu_ns_);
+    return;  
+  }
+  cpu_ns_ = getTime();
+}
+
+LegacyEvent LegacyEvent::fromIValue(const at::IValue& eventIValue) {
+  TORCH_INTERNAL_ASSERT(
+      eventIValue.isList(),
+      "Expected IValue to contain type c10::impl::GenericList");
+  auto ivalues = eventIValue.toList();
+  TORCH_INTERNAL_ASSERT(
+      ivalues.size() >= NUM_EVENT_IVALUE_IDX,
+      "Expected at least ",
+      NUM_EVENT_IVALUE_IDX,
+      " elements to reconstruct LegacyEvent.");
+
+  // Reconstruct input shapes from ivalues.
+  auto shapeListIValue = ivalues.get(EventIValueIdx::SHAPES);
+  TORCH_INTERNAL_ASSERT(
+      shapeListIValue.isList(),
+      "Expected profiler shapes IValue to contain type c10::impl::GenericList.");
+
+  auto shapeList = shapeListIValue.toList();
+  std::vector<std::vector<int64_t>> shapes;
+  shapes.reserve(shapeList.size());
+  for (size_t i = 0 ; i < shapeList.size(); ++i) {
+    std::vector<int64_t> s;
+    auto shapeIValue = shapeList.get(i);
+    TORCH_INTERNAL_ASSERT(
+        shapeIValue.isList(),
+        "Expected each profiler shape element to contain shapes of type c10::impl::GenericList.")
+    auto curShapesList = shapeIValue.toList();
+    s.reserve(curShapesList.size());
+    for (size_t j = 0; j < curShapesList.size(); ++j) {
+      s.emplace_back(curShapesList.get(j).toInt());
+    }
+    shapes.emplace_back(s);
+  }
+
+  LegacyEvent evt(
+      static_cast<EventKind>(
+          ivalues.get(EventIValueIdx::KIND).toInt()), // EventKind
+      at::StringView(ivalues.get(EventIValueIdx::NAME).toStringRef()), // name
+      ivalues.get(EventIValueIdx::THREAD_ID).toInt(), // thread_id
+      static_cast<at::RecordFunctionHandle>(
+          ivalues.get(EventIValueIdx::HANDLE).toDouble()), // handle
+      std::move(shapes), // input shapes
+      ivalues.get(EventIValueIdx::NODE_ID).toInt(), // node id
+      true, // is remote
+      ivalues.get(EventIValueIdx::CPU_MEM_USAGE).toInt(), // cpu_mem_usage
+      ivalues.get(EventIValueIdx::CPU_NS).toInt(), // cpu_ns
+      ivalues.get(EventIValueIdx::CUDA_RECORDED).toBool(), // was cuda recorded
+      ivalues.get(EventIValueIdx::CUDA_MEM_USAGE).toInt(), // cuda memory usage
+      ivalues.get(EventIValueIdx::CUDA_DEVICE).toInt(), // device
+      ivalues.get(EventIValueIdx::CUDA_US).toInt() // cuda_us
+  );
+  return evt;
+}
+
+at::IValue LegacyEvent::toIValue() const {
+  c10::impl::GenericList eventIValueList(at::AnyType::get());
+  eventIValueList.reserve(NUM_EVENT_IVALUE_IDX);
+  eventIValueList.emplace_back(static_cast<int64_t>(kind_));
+  eventIValueList.emplace_back(std::string(name_.str()));
+  eventIValueList.emplace_back(static_cast<int64_t>(thread_id_));
+  eventIValueList.emplace_back(static_cast<double>(handle_));
+  eventIValueList.emplace_back(node_id_);
+  eventIValueList.emplace_back(cpu_memory_usage_);
+  eventIValueList.emplace_back(cpu_ns_);
+  // CUDA event information
+  bool cuda_profiling_enabled = hasCuda();
+  eventIValueList.emplace_back(cuda_profiling_enabled);
+  eventIValueList.emplace_back(static_cast<int64_t>(cuda_memory_usage_));
+  eventIValueList.emplace_back(device_);
+  eventIValueList.emplace_back(cuda_us_);
+  // Shapes
+  c10::impl::GenericList shapesList =
+      c10::impl::GenericList(at::ListType::create(at::IntType::get()));
+  shapesList.reserve(shapes_.size());
+  for (const auto& shape : shapes_) {
+    c10::impl::GenericList s = c10::impl::GenericList(at::IntType::get());
+    s.reserve(shape.size());
+    for (const auto& k : shape) {
+      s.emplace_back(k);
+    }
+    shapesList.emplace_back(s);
+  }
+  eventIValueList.emplace_back(shapesList);
+  return at::IValue(eventIValueList);
+}
+
+double LegacyEvent::npuElapsedUs(const LegacyEvent& e) const {
+  TORCH_CHECK(e.hasNpu() && hasNpu(), "Events were not recorded for NPU");
+  TORCH_CHECK(
+      e.device() == device(),
+      c10::str(
+          "Events are not on the same device: ", e.device(), " vs ", device()));
+  return device_stubs()->elapsed(npu_event, e.npu_event);
+}
+
+void  LegacyEvent::npu_destropy_event() {
+  if (!hasNpu()) {
+    throw std::logic_error("Events were not recorded for NPU");
+  }
+  device_stubs()->npu_destropy_event(npu_event);
+}
+
+double LegacyEvent::cudaElapsedUs(const LegacyEvent& e) const {
+  return 0.0;
+}
+
+DeviceStubs::~DeviceStubs() = default;
+
+void writeProfilerEventsToStream(std::ostream& out, const std::vector<LegacyEvent*>& events) {
+  TORCH_CHECK(out, "Could not open file");
+  LegacyEvent* profiler_start = nullptr;
+  for (LegacyEvent* e : events) {
+    if (0 == strcmp(e->name(), "__start_profile")) {
+      profiler_start = e;
+      break;
+    }
+  }
+  TORCH_CHECK(profiler_start, "Could not find __start_profile mark");
+
+  struct PairHash {
+    size_t operator()(std::pair<at::RecordFunctionHandle, int> p) const
+        noexcept {
+      return std::hash<at::RecordFunctionHandle>()(p.first) ^ std::hash<int64_t>()(p.second);
+    }
+  };
+  std::unordered_map<std::pair<at::RecordFunctionHandle, int64_t>, LegacyEvent*, PairHash> events_map;
+  out << "[\n";
+  bool first = true;
+  for (LegacyEvent* evt : events) {
+    if (evt->kindStr() == "push") {
+      events_map[std::make_pair(evt->handle(), evt->nodeId())] = evt;
+    } else if (evt->kindStr() == "pop") {
+      if (!first) {
+        out << ",\n";
+      }
+      first = false;
+      auto it = events_map.find(std::make_pair(evt->handle(), evt->nodeId()));
+      TORCH_CHECK(it != events_map.end(), "Unmatched pop event");
+      LegacyEvent* evt_start = it->second;
+      events_map.erase(it);
+    }
+  }
+  out << "]\n";
+}
+
+RecordProfile::RecordProfile(std::ostream& out)
+: out_(out) {
+  init();
+}
+
+RecordProfile::RecordProfile(const std::string& filename)
+: file_(new std::ofstream(filename)), out_(*file_) {
+  init();
+}
+
+void RecordProfile::init() {
+  enableProfilerLegacy(ProfilerConfig(ProfilerState::CPU));
+}
+
+RecordProfile::~RecordProfile() {
+  try {
+    thread_event_lists event_lists = disableProfilerLegacy();
+    std::vector<LegacyEvent*> events;
+    for (auto& l : event_lists) {
+      for (auto& e : l) {
+          events.push_back(&e);
+      }
+    }
+    processEvents(events);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << e.what() << std::endl;
+  } catch (...) {
+    LOG(ERROR) << "Unknown error" << std::endl;
+  }
+}
+
+void RecordProfile::processEvents(const std::vector<LegacyEvent*>& events) {
+  writeProfilerEventsToStream(out_, events);
+}
+
+}
+}
