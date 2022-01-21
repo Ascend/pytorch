@@ -18,7 +18,7 @@ import os
 import shutil
 from itertools import combinations
 import torch
-from common_utils import TestCase, run_tests
+from torch.testing._internal.common_utils import TestCase, run_tests
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel=3, out_channel=12):

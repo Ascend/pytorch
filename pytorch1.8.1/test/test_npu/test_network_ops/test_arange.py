@@ -41,7 +41,30 @@ class TestArange(TestCase):
                 dtype=item[3],
                 device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
+            
+    def test_arange_out(self, device):
+        shape_format = [
+            [0, 100, 1, torch.float32, [np.float32, 0, [10]]],
+            [1, 100, 2, torch.int32, [np.int32, 0, [20]]],
+            [5, 100, 3, torch.int64, [np.int64, 0, [30]]],
+        ]
 
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[4], 0, 10)
+            cpu_output = torch.arange(
+                item[0],
+                item[1],
+                item[2],
+                dtype=item[3],
+                device="cpu").numpy()
+            npu_output = torch.arange(
+                item[0],
+                item[1],
+                item[2],
+                out=npu_input1,
+                dtype=item[3],
+                device="npu").cpu().numpy()
+            self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestArange, globals(), except_for='cpu')
 if __name__ == "__main__":

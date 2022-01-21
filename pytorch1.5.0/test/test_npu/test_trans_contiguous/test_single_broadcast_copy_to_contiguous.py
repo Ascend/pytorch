@@ -16,8 +16,8 @@ import os
 import torch
 import numpy as np
 
-from common_utils import TestCase, run_tests
-from common_device_type import instantiate_device_type_tests
+from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor_for_broadcast, check_operators_in_prof
 
 os.environ["PTCOPY_ENABLE"] = "1"

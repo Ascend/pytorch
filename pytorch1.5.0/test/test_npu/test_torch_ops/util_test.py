@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -15,8 +15,10 @@
 # limitations under the License.
 import os
 import sys
+import numpy as np
+import torch
+
 common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common")
 if common_path not in sys.path:
     sys.path.append(common_path)
-
-from util_test_new import create_common_tensor
+from tensor_ds_utils import create_common_tensor

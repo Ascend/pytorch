@@ -14,15 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Importing this file must **not** initialize CUDA context. test_distributed
-relies on this assumption to properly run. This means that when this is imported
-no CUDA calls shall be made, including torch.cuda.device_count(), etc.
-
-torch.testing._internal.common_cuda.py can freely initialize CUDA context when imported.
-"""
-import os
-import sys
-common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common")
-if common_path not in sys.path:
-    sys.path.append(common_path)
-from common_utils_new import TestCase, run_tests
+from torch.testing._internal.common_utils import TestCase, run_tests

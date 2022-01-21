@@ -19,4 +19,4 @@ import sys
 common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "common")
 if common_path not in sys.path:
     sys.path.append(common_path)
-from graph_utils_new import graph_mode
+from graph_mode_utils import graph_mode

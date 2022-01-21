@@ -14,10 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import os
-import sys
-common_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "common")
-if common_path not in sys.path:
-    sys.path.append(common_path)
-from common_device_type_new import dtypes, instantiate_device_type_tests, formats
+from torch.testing._internal.common_device_type import instantiate_device_type_tests, dtypes, formats

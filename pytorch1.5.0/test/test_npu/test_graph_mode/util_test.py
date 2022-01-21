@@ -19,4 +19,4 @@ common_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__fi
 if common_path not in sys.path:
     sys.path.append(common_path)
 
-from util_test_new import create_common_tensor
+from tensor_ds_utils import create_common_tensor

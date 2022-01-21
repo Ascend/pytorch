@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import torch
 import numpy as np
-import os
 
 threshold = 1.e-4
 threshold2 = 1.e-3
@@ -112,23 +112,23 @@ def test_2args_broadcast(fn):
 
 def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, no_zero=False):
     if dtype == torch.bool:
-        input = np.random.randint(0, 2, size=shape).astype(np.bool)
+        input1 = np.random.randint(0, 2, size=shape).astype(np.bool)
 
     elif dtype == torch.half:
-        input = np.random.uniform(min_value, max_value, shape).astype(np.float16)
+        input1 = np.random.uniform(min_value, max_value, shape).astype(np.float16)
     
     elif dtype == torch.float:
-        input = np.random.uniform(min_value, max_value, shape).astype(np.float32)
+        input1 = np.random.uniform(min_value, max_value, shape).astype(np.float32)
 
     else:
-        input = np.random.randint(min_value, max_value+1, size = shape).astype(np.int32)
+        input1 = np.random.randint(min_value, max_value+1, size = shape).astype(np.int32)
 
     if no_zero:
-        ones = np.ones_like(input)
-        input = np.where(input != 0, input, ones)
+        ones = np.ones_like(input1)
+        input1 = np.where(input1 != 0, input1, ones)
 
-    cpu_input = torch.from_numpy(input)
-    npu_input = torch.from_numpy(input).to(npu_device)
+    cpu_input = torch.from_numpy(input1)
+    npu_input = torch.from_numpy(input1).to(npu_device)
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
         npu_input = npu_input.npu_format_cast(npu_format)
     return cpu_input, npu_input
