@@ -20,7 +20,7 @@ import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
 
-DEFAULT_UT_FILE = 'test/test_network_ops/test_add.py'
+DEFAULT_UT_FILE = '../test/test_network_ops/test_add.py'
 CUR_DIR = os.path.abspath(os.path.dirname(__file__))
 
 class AccurateTest(metaclass=ABCMeta):
