@@ -39,6 +39,7 @@ def _apply_patches():
     monkey_patches = [
         ["npu", torch_npu.npu],
         ["npu.amp", torch_npu.npu.amp],
+        ["autograd.profiler", torch_npu.npu.profiler],
         ["distributed", torch_npu.distributed],
         ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
         ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group]
