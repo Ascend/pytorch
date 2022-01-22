@@ -74,7 +74,7 @@ Tensor& rsub_out_npu_nocheck(
   return result;
 }
 
-Tensor rsqrt_tensor_npu(const Tensor& self, const Tensor& other, Scalar alpha) {
+Tensor rsub_tensor_npu(const Tensor& self, const Tensor& other, Scalar alpha) {
   // calculate the output size
   Tensor outputTensor = rsub_dest_output(self, other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -87,7 +87,7 @@ Tensor rsqrt_tensor_npu(const Tensor& self, const Tensor& other, Scalar alpha) {
   return result;
 }
 
-Tensor rsqrt_scalar_npu(const Tensor& self, Scalar other, Scalar alpha) {
+Tensor rsub_scalar_npu(const Tensor& self, Scalar other, Scalar alpha) {
   Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
@@ -97,8 +97,8 @@ Tensor rsqrt_scalar_npu(const Tensor& self, Scalar other, Scalar alpha) {
 }
 
 TORCH_LIBRARY_IMPL(aten, NPU, m) {
-  m.impl("rsub.Tensor", TORCH_FN(rsqrt_tensor_npu));
-  m.impl("rsub.Scalar", TORCH_FN(rsqrt_scalar_npu));
+  m.impl("rsub.Tensor", TORCH_FN(rsub_tensor_npu));
+  m.impl("rsub.Scalar", TORCH_FN(rsub_scalar_npu));
 }
 
 } // namespace native
