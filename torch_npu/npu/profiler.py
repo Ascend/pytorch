@@ -1165,7 +1165,7 @@ def parse_kineto_results(result):
 
         is_async = kineto_event.start_thread_id() != kineto_event.end_thread_id()
         fe = FunctionEvent(
-            id=kineto_event.correlation_id(),
+            id_event=kineto_event.correlation_id(),
             name=rewrite_name(name=kineto_event.name(), with_wildcard=True),
             trace_name=rewrite_name(name=kineto_event.name(), with_wildcard=False),
             thread=kineto_event.start_thread_id(),
@@ -1212,7 +1212,7 @@ def parse_kineto_results(result):
     for mem_record in mem_records:
         if not mem_record[1]:
             fe = FunctionEvent(
-                id=mem_record[0].handle(),
+                id_event=mem_record[0].handle(),
                 name="[memory]",
                 trace_name=None,  # not outputting in the trace
                 thread=mem_record[0].thread_id(),
@@ -1340,7 +1340,7 @@ def parse_legacy_records(thread_records):
                 start_flops = start.flops()
 
                 fe = FunctionEvent(
-                    id=record.handle(),
+                    id_event=record.handle(),
                     node_id=record.node_id(),
                     name=rewrite_name(name=start.name(), with_wildcard=True),
                     trace_name=rewrite_name(name=start.name(), with_wildcard=False),
@@ -1398,7 +1398,7 @@ def parse_legacy_records(thread_records):
                 if num_open_handles_cpu == 0:
                     # output event as a top-level memory event
                     fe = FunctionEvent(
-                        id=0,
+                        id_event=0,
                         name="[memory]",
                         trace_name=None,
                         thread=0,
