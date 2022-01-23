@@ -25,37 +25,25 @@ os.environ["PTCOPY_ENABLE"] = "1"
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):    
     def test_permute_copy_contiguous(self, device):
-        dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        dtype_list = [np.float16, np.float32]
         format_list = [-1]
-        shape_list = [[2, 6, 9, 4], [2, 3, 4, 5, 6]]
+        shape_list = [[2, 6, 9, 4]]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
         ]
 
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            if cpu_input.dim() == 4:
-                with torch.autograd.profiler.profile(use_npu=True) as prof:
-                    npu_out1 = npu_input.permute(1,0,2,3).contiguous()
-                self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.permute(1,0,2,3).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
 
-                with torch.autograd.profiler.profile(use_npu=True) as prof:
-                    npu_out2 = npu_input.permute(2,3,0,1).contiguous()
-                self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
-                
-                cpu_out1 = cpu_input.permute(1,0,2,3).contiguous()
-                cpu_out2 = cpu_input.permute(2,3,0,1).contiguous()
-            else:
-                with torch.autograd.profiler.profile(use_npu=True) as prof:
-                    npu_out1 = npu_input.permute(1,0,2,3,4).contiguous()
-                self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
-
-                with torch.autograd.profiler.profile(use_npu=True) as prof:
-                    npu_out2 = npu_input.permute(2,3,0,1,4).contiguous()
-                self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
-
-                cpu_out1 = cpu_input.permute(1,0,2,3,4).contiguous()
-                cpu_out2 = cpu_input.permute(2,3,0,1,4).contiguous()              
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.permute(2,3,0,1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "NpuTranspose op is not called!")
+            
+            cpu_out1 = cpu_input.permute(1,0,2,3).contiguous()
+            cpu_out2 = cpu_input.permute(2,3,0,1).contiguous()           
 
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())              
