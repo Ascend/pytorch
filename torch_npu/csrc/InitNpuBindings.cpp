@@ -24,7 +24,7 @@
 #include "torch_npu/csrc/framework/allocator/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/distributed/Init.h"
-
+#include "torch_npu/csrc/profiler/init.h"
 
 PyObject* module;
 
@@ -90,6 +90,7 @@ PyObject* initModule(){
 
   AddPyMethodDefs(methods, TorchNpuMethods);
   AddPyMethodDefs(methods, THNPModule_get_methods());
+  AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   static struct PyModuleDef torchnpu_module = {
      PyModuleDef_HEAD_INIT,
