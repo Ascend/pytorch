@@ -24,12 +24,12 @@ namespace npu {
 
 class BroadcastContiguousOpt : public ContiguousOpt {
 public:
-  bool Optimizer(const Tensor& src, Tensor& self) override {
+  bool Optimizer(Tensor& self, const Tensor& src, const ContiguousTensorDesc&  src_desc) override {
     if (self.dim() != src.dim()) {
         return false;
     }
 
-    if (can_use_broadcast(src)) {
+    if (can_use_broadcast( src_desc)) {
       RECORD_HOST_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
 
       IF_GRAPH_MODE_THEN_RUN(
@@ -43,20 +43,20 @@ public:
         return true;
       )
 
-      bool can_contiguous = broadcast_to_contiguous(src, self);
+      bool can_contiguous = broadcast_to_contiguous(self, src,  src_desc);
       return can_contiguous;
     }
     return false;
   }
 
 private:
-  bool can_use_broadcast(const Tensor& src) {
+  bool can_use_broadcast(const ContiguousTensorDesc& src_desc) {
     // Reshape is used to process dimension addition cases for expand/expand_as.
     // Here, dimension expansion cases of expand/expand_as are processed.
-    const auto& base_sizes = src.storage().get_npu_desc().base_sizes_;
-    const auto& base_strides = src.storage().get_npu_desc().base_strides_;
-    const auto& view_sizes = src.sizes();
-    const auto& view_strides = src.strides();
+    const auto& base_sizes = src_desc.base_sizes_;
+    const auto& base_strides = src_desc.base_strides_;
+    const auto& view_sizes = src_desc.sizes_;
+    const auto& view_strides = src_desc.strides_;
 
     // The new ones will be appended at the front.
     // Any dimension of size 1 can be expanded to an arbitrary value.
@@ -91,13 +91,13 @@ private:
     return has_zero_in_stride;
   }
 
-  bool broadcast_to_contiguous(const Tensor& src, Tensor& self) {
+  bool broadcast_to_contiguous(Tensor& self, const Tensor& src, const ContiguousTensorDesc& src_desc) {
     std::vector<int64_t> src_size(src.dim());
-    for (int64_t i = 0; i < src.dim(); i++) {
-      if (src.stride(i) == 0) {
+    for (int64_t i = 0; i < src_desc.sizes_.size(); i++) {
+      if (src_desc.strides_[i] == 0) {
           src_size[i] = 1;
       } else {
-          src_size[i] = src.size(i);
+          src_size[i] = src_desc.sizes_[i];
       }
     }
 

@@ -20,80 +20,84 @@ namespace at {
 namespace native {
 namespace npu {
 
-bool can_use_memecpy_for_NZ_format(const Tensor& tensor) {
-  auto base_size = tensor.storage().get_npu_desc().base_sizes_;
-  // No padding&&offset!=0 at same time. e.g. x(3, 15, 16)[1:] with format=29
-  if (((tensor.size(-1) % 16 != 0) || (tensor.size(-2) % 16 != 0)) &&
-      tensor.storage_offset() != 0) {
+bool can_use_memecpy_for_NZ_format(const ContiguousTensorDesc& tensor_desc) {
+  int64_t tensor_shape_size = tensor_desc.sizes_.size();
+  int64_t base_shape_size = tensor_desc.base_sizes_.size();
+  // No padding&&offset!=0 at the same time. e.g. x(3, 15, 16)[1:]
+  if (((tensor_desc.sizes_[tensor_shape_size - 1] % 16 != 0) ||
+       (tensor_desc.sizes_[tensor_shape_size - 2] % 16 != 0)) &&
+      tensor_desc.offset_ != 0) {
     return false;
   }
-
   // Make sure that sizes of last 2 dims don't change
-  if (tensor.size(-1) != base_size[base_size.size() - 1] ||
-      tensor.size(-2) != base_size[base_size.size() - 2]) {
+  if (tensor_desc.sizes_[tensor_shape_size - 1] !=
+          tensor_desc.base_sizes_[base_shape_size - 1] ||
+      tensor_desc.sizes_[tensor_shape_size - 2] !=
+          tensor_desc.base_sizes_[base_shape_size - 2]) {
     return false;
   }
   return true;
 }
 
-bool can_use_memcpy_for_other_format(const Tensor& src) {
+bool can_use_memcpy_for_other_format(const ContiguousTensorDesc& tensor_desc) {
   // torch.flatten(x) case should be removed
-  if (src.sizes().size() < 2) {
+  if (tensor_desc.sizes_.size() < 2) {
     return false;
   }
-  auto srcNpuDesc = src.storage().get_npu_desc();
-  switch(srcNpuDesc.npu_format_) {
+  switch (tensor_desc.npu_format_) {
     case ACL_FORMAT_FRACTAL_NZ:
-      return can_use_memecpy_for_NZ_format(src);
-    // TODO: 5HD format can also be optimized likes NZ format
+      return can_use_memecpy_for_NZ_format(tensor_desc);
+    // (Ascend): 5HD format can also be optimized likes NZ format
     default:
       // For other format, make sure that copy the whole memory.
       // Moreover, storage size expanding caused by padding could be avoided
-      if (!(srcNpuDesc.base_sizes_ == array_to_small_vector(src.sizes()))) {
+      if (!(tensor_desc.base_sizes_ == tensor_desc.sizes_)) {
         return false;
       }
       // Make sure no pandding happens
-      if (src.numel() != prod_intlist(srcNpuDesc.storage_sizes_)) {
+      if (prod_intlist(tensor_desc.sizes_) !=
+          prod_intlist(tensor_desc.storage_sizes_)) {
         return false;
       }
       return true;
   }
 }
 
-bool check_reshape_match(const Tensor& src, Tensor& self) {
+bool check_reshape_match(
+    const ContiguousTensorDesc& self_desc,
+    const ContiguousTensorDesc& src_desc) {
   // For all format, both src and self are taken into consideration
-  if (check_reshape_match(src) && check_reshape_match(self)) {
-    // tensor numels eqs for self and src tensor. i.e. make sure that storage keep same.
-    if (!self.sizes().equals(src.sizes())) {
+  if (check_reshape_match(src_desc) && check_reshape_match(self_desc)) {
+    // tensor numels eqs for self and src tensor. i.e. make sure that storage
+    // keep same.
+    if (!(self_desc.sizes_ == src_desc.sizes_)) {
       return false;
     }
 
     IF_GRAPH_MODE_THEN_RUN(
-      // In single op mode, this opt will be used for reshape/slice/select scenes.
-      // In graph mode, reshape opt is only used for reshape scenes,
-      // npu-reshape is used to calculae and get contiguous tensor.
-      const auto& base_sizes = src.storage().get_npu_desc().base_sizes_;
-      if (prod_intlist(base_sizes) != src.numel()) {
-        return false;
-      }
-    );
+        // In single op mode, this opt will be used for reshape/slice/select
+        // scenes. In graph mode, reshape opt is only used for reshape scenes,
+        // npu-reshape is used to calculae and get contiguous tensor.
+        if (prod_intlist(src_desc.base_sizes_) !=
+            prod_intlist(src_desc.sizes_)) { return false; });
 
     return true;
   }
   return false;
 }
 
-bool check_reshape_match(const Tensor& tensor) {
+bool check_reshape_match(const ContiguousTensorDesc& tensor_desc) {
   // (case 1) Reshape tensor should be contiguous
-  if (!tensor.is_contiguous()) {
-    return false;
+  if (!tensor_desc.is_contiguous_) {
+    return false; 
   }
   // (case2) for other format, sizes at key dims should remain unchanged
-  if (!FormatHelper::IsBaseFormatType(tensor)) {
-    return can_use_memcpy_for_other_format(tensor);
+  if (!FormatHelper::IsBaseFormatType(tensor_desc.npu_format_)) {
+    return can_use_memcpy_for_other_format(tensor_desc);
   }
   return true;
 }
+
 
 } // namespace npu
 } // namespace native
