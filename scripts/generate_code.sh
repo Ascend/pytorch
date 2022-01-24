@@ -32,6 +32,7 @@ python3 -m codegen.gen_backend_stubs  \
 
 if [ $? -ne 0 ]; then
   echo "Failed to generate NPU backend stubs."
+  mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
   exit 1
 fi
 
