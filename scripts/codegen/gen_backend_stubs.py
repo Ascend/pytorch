@@ -325,7 +325,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
             if not dispatch_key:
                 continue
 
-            native_func_header = f'#include "{output_dir[output_dir.index("torch_npu"):]}/{backend_key}NativeFunctions.h"'
+            native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"'
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
                 'namespaced_headers': '',
