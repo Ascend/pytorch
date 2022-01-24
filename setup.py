@@ -18,7 +18,6 @@ import inspect
 import multiprocessing
 import multiprocessing.pool
 import os
-import platform
 import re
 import shutil
 import subprocess
