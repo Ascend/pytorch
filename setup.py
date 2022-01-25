@@ -148,10 +148,9 @@ class Clean(distutils.command.clean.clean):
 
 class Build(build_ext, object):
 
-    def run(self):
-        # Run the original BuildExtension first. We need this before building
-        # the tests.
-        build_ext.run(self)
+    def build_extensions(self):
+        self.compiler.compiler_so.remove('-Wstrict-prototypes')
+        return super(Build, self).build_extensions()
 
 
 build_mode = _get_build_mode()
