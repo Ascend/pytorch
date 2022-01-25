@@ -28,7 +28,8 @@ Tensor hcom_allreduce_npu(const Tensor& self,
                           int64_t fusion_id,
                           double alpha,
                           double beta,
-                          Tensor& out) {
+                          Tensor& out,
+                          c10::optional<int64_t> hccl_comm) {
   OpCommand cmd;
   cmd.Name("HcomAllReduce")
      .Input(self)
@@ -37,8 +38,11 @@ Tensor hcom_allreduce_npu(const Tensor& self,
      .Attr("fusion", fusion)
      .Attr("fusion_id", fusion_id)
      .Attr("alpha", static_cast<float>(alpha))
-     .Attr("beta", static_cast<float>(beta))
-     .Output(out)
+     .Attr("beta", static_cast<float>(beta));
+  if (hccl_comm.has_value()) {
+    cmd.Attr("comm", hccl_comm.value());
+  }
+  cmd.Output(out)
      .Run();
   return out;
 }

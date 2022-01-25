@@ -7646,12 +7646,16 @@
   dispatch:
     CPU: reflection_pad1d_out_cpu
     CUDA: reflection_pad1d_out_cuda
+  npu_dispatch:
+    NPU: reflection_pad1d_out_npu   
 
 - func: reflection_pad1d(Tensor self, int[2] padding) -> Tensor
   python_module: nn
   dispatch:
     CPU: reflection_pad1d_cpu
     CUDA: reflection_pad1d_cuda
+  npu_dispatch:
+    NPU: reflection_pad1d_npu   
 
 - func: reflection_pad1d_backward.grad_input(Tensor grad_output, Tensor self, int[2] padding, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
@@ -7702,12 +7706,16 @@
   dispatch:
     CPU: replication_pad1d_out_cpu
     CUDA: replication_pad1d_out_cuda
+  npu_dispatch:
+    NPU: replication_pad1d_out_npu
 
 - func: replication_pad1d(Tensor self, int[2] padding) -> Tensor
   python_module: nn
   dispatch:
     CPU: replication_pad1d_cpu
     CUDA: replication_pad1d_cuda
+  npu_dispatch:
+    NPU: replication_pad1d_npu
 
 - func: replication_pad1d_backward.grad_input(Tensor grad_output, Tensor self, int[2] padding, *, Tensor(a!) grad_input) -> Tensor(a!)
   python_module: nn
@@ -8732,6 +8740,6 @@
   npu_dispatch_only:
     NPU: rotated_iou_npu
 
-- func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, Tensor(a!) out) -> Tensor(a!)
+- func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, Tensor(a!) out, int? hccl_comm) -> Tensor(a!)
   npu_dispatch_only:
     NPU: hcom_allreduce_npu

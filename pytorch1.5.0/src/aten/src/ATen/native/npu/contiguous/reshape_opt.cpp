@@ -21,9 +21,8 @@ namespace npu {
 
 class ReshapeContiguousOpt : public ContiguousOpt {
  public:
-  bool Optimizer(Tensor& self, const Tensor& src, const ContiguousTensorDesc& src_desc) override {
-    ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
-    if (check_reshape_match(self_desc, src_desc)) {
+  bool Optimizer(const Tensor& src, Tensor& self) override {
+    if (check_reshape_match(src, self)) {
       RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
       at::npu_reshape_out(self, src, self.sizes());
       return true;
@@ -31,8 +30,8 @@ class ReshapeContiguousOpt : public ContiguousOpt {
     return false;
   }
 
-  bool CanOptimizer(const ContiguousTensorDesc& src_desc) override {
-    return check_reshape_match(src_desc);
+  bool CanOptimizer(const Tensor& src) override {
+    return check_reshape_match(src);
   }
 }; // class ReshapeContiguousOpt
 

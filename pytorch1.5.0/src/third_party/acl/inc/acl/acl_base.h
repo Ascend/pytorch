@@ -506,6 +506,15 @@ ACL_FUNC_VISIBILITY void aclAppLog(aclLogLevel logLevel, const char *func, const
 
 ACL_FUNC_VISIBILITY aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type);
 
+/**
+ * @ingroup AscendCL
+ * @brief get soc name
+ *
+ * @retval null for failed
+ * @retval OtherValues success
+*/
+ACL_FUNC_VISIBILITY const char *aclrtGetSocName();
+
 #define ACL_APP_LOG(level, fmt, ...) \
     aclAppLog(level, __FUNCTION__, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 

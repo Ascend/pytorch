@@ -23,20 +23,17 @@
 #include "ATen/ATen.h"
 #include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/frame/StorageDescHelper.h"
-#include "ATen/native/npu/contiguous/ContiguousOpt.h"
-#include "ATen/native/npu/contiguous/ContiguousUtils.h"
+
 namespace at {
 namespace native {
 namespace npu {
+
 class ContiguousOpt {
  public:
   ContiguousOpt() {}
   virtual ~ContiguousOpt() = default;
-  virtual bool Optimizer(
-      Tensor& self,
-      const Tensor& src,      
-      const ContiguousTensorDesc& src_desc) = 0;
-  virtual bool CanOptimizer(const ContiguousTensorDesc& src_desc) {
+  virtual bool Optimizer(const Tensor& src, Tensor& self) = 0;
+  virtual bool CanOptimizer(const Tensor& src) {
     return false;
   }
 };
@@ -54,22 +51,18 @@ class CopyOptRegister {
     registry.emplace(name, std::move(ptr));
   }
 
-  bool CanOptimize(std::string& name, const ContiguousTensorDesc& src_desc) {
+  bool CanOptimize(std::string& name, const Tensor& src) {
     auto itr = registry.find(name);
     if (itr != registry.end()) {
-      return itr->second->CanOptimizer(src_desc);
+      return itr->second->CanOptimizer(src);
     }
     return false;
   }
 
-  bool Run(
-      const std::string& name,
-      Tensor& self,
-      const Tensor& src,
-      const ContiguousTensorDesc& src_desc) {
+  bool Run(const std::string& name, const Tensor& src, Tensor& self) {
     auto itr = registry.find(name);
     if (itr != registry.end()) {
-      return itr->second->Optimizer(self, src, src_desc);
+      return itr->second->Optimizer(src, self);
     }
     return false;
   }

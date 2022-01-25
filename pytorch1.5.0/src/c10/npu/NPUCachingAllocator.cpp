@@ -16,6 +16,7 @@
 
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUGuard.h>
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <c10/util/UniqueVoidPtr.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
@@ -233,6 +234,8 @@ struct THNCachingAllocator {
   // lock around calls to aclFree (to prevent deadlocks with NCCL)
   mutable std::mutex npu_free_mutex;
 
+  mutable std::mutex recorded_event_mutex;
+
   // cached blocks larger than 1 MB
   BlockPool large_blocks;
 
@@ -244,6 +247,8 @@ struct THNCachingAllocator {
 
   // outstanding acl events
   std::deque<std::pair<aclrtEvent, Block*>> npu_events;
+
+  std::set<aclrtEvent> recorded_events;
 
   THNCachingAllocator()
       : large_blocks(BlockComparator), small_blocks(BlockComparator) {}
@@ -825,6 +830,14 @@ struct THNCachingAllocator {
 
     for (auto& e : npu_events) {
       aclrtEvent event = e.first;
+      {
+        std::lock_guard<std::mutex> lock(recorded_event_mutex);
+        auto it = recorded_events.find(event);
+        if (c10::npu::OptionsManager::CheckQueueEnable() &&
+            it == recorded_events.end()) {
+          break;
+        }
+      }
       Block* block = e.second;
       if (device.has_value() && block->device != *device) {
         remaining_events.push_back(e);
@@ -832,6 +845,13 @@ struct THNCachingAllocator {
       }
 
       C10_NPU_CHECK(aclrtSynchronizeEvent(event));
+      {
+        std::lock_guard<std::mutex> lock(recorded_event_mutex);
+        auto it = recorded_events.find(event);
+        if (it != recorded_events.end()) {
+          recorded_events.erase(it);
+        }
+      }
       C10_NPU_CHECK(aclrtDestroyEvent(event));
       block->event_count--;
       if (block->event_count == 0) {
@@ -850,6 +870,11 @@ struct THNCachingAllocator {
     return it->second;
   }
 
+  void insertRecordedEvent(aclrtEvent event) {
+    std::lock_guard<std::mutex> lock(recorded_event_mutex);
+    recorded_events.insert(event);
+  }
+
   void insert_events(Block* block) {
     int prev_device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&prev_device));
@@ -866,10 +891,8 @@ struct THNCachingAllocator {
       }
 
       aclrtEvent event = nullptr;
-
-      aclrtCreateEvent(&event);
-
-      aclrtRecordEvent(event, it->stream());
+      C10_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+      c10::npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
 
       block->event_count++;
       npu_events.emplace_back(event, block);
@@ -895,6 +918,16 @@ struct THNCachingAllocator {
       aclrtEvent event = e.first;
       Block* block = e.second;
 
+      {
+        std::lock_guard<std::mutex> lock(recorded_event_mutex);
+        auto it = recorded_events.begin();
+        it = recorded_events.find(event);
+        if (c10::npu::OptionsManager::CheckQueueEnable() &&
+            it == recorded_events.end()) {
+          break;
+        }
+      }
+
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
       if (err != ACL_ERROR_NONE) {
@@ -904,6 +937,13 @@ struct THNCachingAllocator {
         break;
       }
 
+      {
+        std::lock_guard<std::mutex> lock(recorded_event_mutex);
+        auto it = recorded_events.find(event);
+        if (it != recorded_events.end()) {
+          recorded_events.erase(it);
+        }
+      }
       C10_NPU_CHECK(aclrtDestroyEvent(event));
 
       block->event_count--;
@@ -1083,6 +1123,10 @@ void resetPeakStats(int device) {
 
 std::vector<SegmentInfo> snapshot() {
   return caching_allocator.snapshot();
+}
+
+void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
+  return caching_allocator.insertRecordedEvent(event);
 }
 
 uint64_t currentMemoryAllocated(int device) {

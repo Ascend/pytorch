@@ -170,7 +170,7 @@ void copy_d2d_dtype_baseformat(
     if (c10::npu::NpuRunMode::IsGraphMode()) {
       // In graph mode, in order to identify and call the corresponding npu operators,
       // opt is necessary for contiguous tensor, such as reshape/slice/select. 
-      OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
+      std::vector<std::string> contiguous_opt_cases = {"reshape", "slice", "select"};
       if (TransContiguous::ContiguousOptimizeWithBaseFormat(
           self, src, contiguous_opt_cases)) {
         return;
@@ -311,24 +311,34 @@ void copy_h2d_baseformat(
 
 // the format of dst and src is baseformat now
 void copy_d2h_baseformat(Tensor& dst, const Tensor& src, bool non_blocking) {
+  TORCH_INTERNAL_ASSERT(FormatHelper::IsBaseFormatType(src));
   bool same_type = (src.dtype() == dst.dtype());
   bool dst_is_contiguous = dst.is_contiguous();
   if (same_type && dst_is_contiguous && src.is_contiguous()) {
     copy_d2h_baseformat_dtype_contigous(dst, src, non_blocking);
     return;
   }
-  Tensor dst_contig =
-      (dst_is_contiguous && same_type) ? dst : at::empty_like(dst, src.dtype());
-  Tensor src_contig = src.expand_as(dst).contiguous();
-  // perform a same-dtype copy on contiguous tensors
-  TORCH_INTERNAL_ASSERT(dst_contig.sizes().equals(src_contig.sizes()));
-  TORCH_INTERNAL_ASSERT(dst_contig.scalar_type() == src_contig.scalar_type());
-  copy_d2h_baseformat_dtype_contigous(dst_contig, src_contig, non_blocking);
-  // if necessary, copy back into dst
-  if (!dst_contig.is_same(dst)) {
-    TORCH_INTERNAL_ASSERT(dst_contig.device() == dst.device());
-    dst.copy_(dst_contig, non_blocking); // h2h, use cpu copy
-  }
+  // create a tensor that will accept src data.
+  Tensor src_cpu = at::empty(
+      src.storage().get_npu_desc().base_sizes_,
+      src.options().device(at::kCPU));
+  // synchronize stream
+  c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
+  AT_NPU_CHECK(aclrtSynchronizeStream(copy_stream));
+  // copy data: src -> src_cpu
+  AT_NPU_CHECK(
+      aclrtMemcpy(
+          src_cpu.data_ptr(),
+          src_cpu.storage().capacity(),
+          src.storage().data(),
+          src_cpu.storage().capacity(),
+          ACL_MEMCPY_DEVICE_TO_HOST));
+  src_cpu.unsafeGetTensorImpl()->set_sizes_and_strides(src.sizes(), src.strides());
+  src_cpu.unsafeGetTensorImpl()->set_storage_offset(src.storage_offset());
+  // leave the remaining operations to the cpu h2h.
+  TORCH_INTERNAL_ASSERT(src_cpu.scalar_type() == src.scalar_type());
+  TORCH_INTERNAL_ASSERT(src_cpu.device() == dst.device());
+  dst.copy_(src_cpu, non_blocking);
 }
 
 void copy_h2d(Tensor& self, const Tensor& src, bool non_blocking) {

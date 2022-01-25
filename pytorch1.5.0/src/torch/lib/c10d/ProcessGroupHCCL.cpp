@@ -100,7 +100,7 @@ void syncStreams(
     const std::vector<at::Device>& devices,
     std::vector<at::npu::NPUEvent>& hcclEvents,
     std::vector<c10::npu::NPUStream>& hcclStreams) {
-  if (c10::npu::NpuRunMode::CurRunMode() != c10::npu::ModeKind::SINGLE_OP_MODE) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
     return;
   }
   for (size_t i = 0; i < devices.size(); ++i) {
@@ -217,7 +217,7 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
 
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait() {
-  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+  if (!c10::npu::NpuRunMode::IsGraphMode()) {
     synchronize();
   }
   // Always return true, because abort API is not implemented.
@@ -471,7 +471,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::collective(
   c10::npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams_[key]);
 
-  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+  if (!c10::npu::NpuRunMode::IsGraphMode()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
       npuGuard.set_index(devices[i].index());
       c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
@@ -501,7 +501,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::collective(
     }
   }
   post(hcclStreams_[key]);
-  if (c10::npu::NpuRunMode::CurRunMode() == c10::npu::ModeKind::SINGLE_OP_MODE) {
+  if (!c10::npu::NpuRunMode::IsGraphMode()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
       c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
       work->npuEvents_[i].record(hcclStream);
@@ -567,6 +567,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
             c10::npu::NPUStream& stream) {
           aclrtSetExceptionInfoCallback(exceptionCallback);
           RECORD_HOST_FUNCTION("HcomAllReduce", std::vector<c10::IValue>({input}));
+          int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
           at::npu_hcom_allreduce(
               input,
               "sum",
@@ -575,7 +576,8 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
               fusion_id,
               1,
               0,
-              output);
+              output,
+              hccl_comm);
           return HCCL_SUCCESS;
         });
 }

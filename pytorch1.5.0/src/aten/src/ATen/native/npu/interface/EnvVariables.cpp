@@ -129,9 +129,6 @@ REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDEnable, MM_BMM_ND_ENABLE, "disable", "enable")
 
 REGISTER_OPTION_UNIQ(isUseHcom, ge.exec.isUseHcom, cli)
-REGISTER_OPTION_UNIQ(rankTableFile, ge.exec.rankTableFile, cli)
-REGISTER_OPTION_UNIQ(deployMode, ge.exec.deployMode, cli)
-REGISTER_OPTION_UNIQ(rankId, ge.exec.rankId, cli)
 } // namespace env
 } // namespace npu
 } // namespace native

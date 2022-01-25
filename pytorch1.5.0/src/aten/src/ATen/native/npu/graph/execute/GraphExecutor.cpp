@@ -18,6 +18,7 @@
 #include <aten/src/ATen/Utils.h>
 #include <aten/src/ATen/native/npu/graph/util/ATenGeBridge.h>
 #include <aten/src/ATen/native/npu/graph/util/GraphUtils.h>
+#include <c10/npu/interface/AclInterface.h>
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUFunctions.h>
 #include <c10/npu/NPUGraphContextManager.h>
@@ -121,7 +122,8 @@ void GraphExecutor::Init() {
        ge::AscendString(device_id.data())},
       {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
       {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
-      {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"}
+      {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
+      {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
   };
 
   static std::map<const std::string, const std::string>
@@ -136,23 +138,20 @@ void GraphExecutor::Init() {
 
   for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
     auto val = c10::npu::GetOption(iter.first);
-    if (val.has_value() && (val.value().length() > 0)) {
-      config.emplace(iter.second.c_str(), val.value().c_str());
+    if (val.has_value() && (!val.value().empty())) {
+      config.emplace(iter.second.data(), val.value().data());
     }
   }
 
-  static std::vector<std::string> HCOM_OPTIONS = {
-      "ge.exec.isUseHcom",
-      "ge.exec.rankTableFile",
-      "ge.exec.deployMode",
-      "ge.exec.rankId"
-  };
+  auto soc_name = c10::npu::acl::AclGetSocName();
+  if (soc_name != nullptr) {
+    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
+  }
 
-  for (const auto& hcom_config : HCOM_OPTIONS) {
-    auto val = c10::npu::GetOption(hcom_config);
-    if (val.has_value() && (val.value().length() > 0)) {
-      config.emplace(hcom_config.c_str(), val.value().c_str());
-    }
+  static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+  auto hcom_val = c10::npu::GetOption(HCOM_OPTIONS);
+  if (hcom_val.has_value() && (!hcom_val.value().empty())) {
+    config.emplace(HCOM_OPTIONS.data(), hcom_val.value().data());
   }
 
   config["ge.session_device_id"] = ge::AscendString(device_id.data());

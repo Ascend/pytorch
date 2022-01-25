@@ -29,6 +29,11 @@ typedef enum aclrtEventWaitStatus {
     ACL_EVENT_WAIT_STATUS_RESERVED  = 0xffff,
 } aclrtEventWaitStatus;
 
+typedef enum aclrtEventRecordedStatus {
+    ACL_EVENT_RECORDED_STATUS_NOT_READY  = 0,
+    ACL_EVENT_RECORDED_STATUS_COMPLETE = 1,
+} aclrtEventRecordedStatus;
+
 /**
   aclprofStepInfo is provide by acl, it used to be store dispatch op info.
  */
@@ -76,6 +81,16 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
   */
 aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus);
 
+/**
+  This API is used to check whether aclrtQueryEventStatus exist
+  */
+bool IsExistQueryEventRecordedStatus();
+
+/**
+  This API is used to query recorded status of event task
+  */
+aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status);
+
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
 aclError AclProfilingStop(const aclprofConfig *profilerConfig);
@@ -88,6 +103,7 @@ aclprofConfig * AclProfilingCreateConfig(
     uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
 
+const char *AclGetSocName();
 } // namespace acl
 } // namespace npu
 } // namespace c10

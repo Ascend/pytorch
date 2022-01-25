@@ -52,9 +52,16 @@ tuple<Tensor, Tensor> linear_backward_npu(
   Tensor inputGrad = OpPreparation::ApplyTensor(input, inputGradOutputSize);
   Tensor weightGrad = OpPreparation::ApplyTensor(weight, weightGradOutputSize);
 
-  linear_backward_out_npu(inputGrad, grad, weight, false, false);
-  linear_backward_out_npu(weightGrad, grad, input, true, false);
-  
+  if (CalcuOpUtil::get_tensor_npu_format(grad) == CalcuOpUtil::get_tensor_npu_format(weight)) {
+    linear_backward_out_npu(inputGrad, grad, weight, false, false);
+    linear_backward_out_npu(weightGrad, grad, input, true, false);
+  } else {
+    Tensor gradFormatcast = OpPreparation::ApplyTensor(grad, grad.sizes());
+    gradFormatcast = grad.npu_format_cast(CalcuOpUtil::get_tensor_npu_format(weight));
+    linear_backward_out_npu(inputGrad, gradFormatcast, weight, false, false);
+    linear_backward_out_npu(weightGrad, gradFormatcast, input, true, false);
+  }
+
   return std::tie(inputGrad, weightGrad);
 }
 

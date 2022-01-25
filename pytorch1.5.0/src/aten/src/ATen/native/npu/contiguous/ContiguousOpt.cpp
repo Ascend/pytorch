@@ -18,31 +18,32 @@
 namespace at {
 namespace native {
 namespace npu {
-OptimizationCases TransContiguous::optCasesDefault = {};
+const std::vector<string> TransContiguous::optimizations_default = {};
 
-OptimizationCases TransContiguous::optCasesAnyFormat = {
+const std::vector<string> TransContiguous::optimizations_any_format = {
     "reshape",
     "slice"};
 
-ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
-    const Tensor& src,
-    const OptimizationCases& opt_cases) {
-  NPUStorageDesc src_base_info = src.storage().get_npu_desc();
-  ContiguousTensorDesc src_desc = {
-      src.is_contiguous(),
-      array_to_small_vector(src.sizes()),
-      array_to_small_vector(src.strides()),
-      src.storage_offset(),
-      src_base_info.base_sizes_,
-      src_base_info.base_strides_,
-      src_base_info.storage_sizes_,
-      src_base_info.base_offset_,
-      src_base_info.npu_format_,
-      opt_cases};
-  if (src_desc.opt_cases_.empty()) {
-    src_desc.find_match_optimization_cases();
+std::vector<string> TransContiguous::FindMatchOptimizationsKeywords(
+    const Tensor& tensor) {
+  for (auto i = 0; i < tensor.sizes().size(); i++) {
+    if (tensor.stride(i) == 0) {
+      return {"broadcast"};
+    }
   }
-  return src_desc;
+  
+  for (auto i = 0; i < tensor.strides().size() - 1; i++) {
+    if (tensor.stride(i) < tensor.stride(i + 1)) {
+      return {"permute", "unfold"};
+    }
+  }
+
+  if (prod_intlist(tensor.sizes()) <
+      prod_intlist(tensor.storage().get_npu_desc().base_sizes_)) {
+    return {"slice", "select", "indexing"};
+  }
+
+  return {};
 }
 
 bool TransContiguous::CheckClone(const Tensor& src, Tensor& self) {
@@ -57,43 +58,12 @@ bool TransContiguous::CheckClone(const Tensor& src, Tensor& self) {
   return false;
 }
 
-bool TransContiguous::can_optimize_(
-    ContiguousTensorDesc& tensor_desc) {
-  for (auto opt_case : tensor_desc.opt_cases_) {
-    bool res =
-        register_opt::CopyOptRegister::GetInstance()->CanOptimize(opt_case, tensor_desc);
-    if (res) {
-      // refresh patterns to only keep optimized pattern
-      tensor_desc.opt_cases_.clear();
-      tensor_desc.opt_cases_.emplace_back(opt_case);
-      return true;
-    }
-  }
-  return false;
-}
-
 bool TransContiguous::CanOptimize(
-    ContiguousTensorDesc& tensor_desc) {
-  return can_optimize_(tensor_desc);
-}
-
-bool TransContiguous::CanOptimize(
-    const Tensor& tensor,
-    const OptimizationCases& opt_cases) {
-  ContiguousTensorDesc tensor_desc = GetTensorDescInfo(tensor, opt_cases);
-  return can_optimize_(tensor_desc);
-}
-
-bool TransContiguous::contiguous_optimize_with_anyformat_(
-    Tensor& self,
     const Tensor& src,
-    ContiguousTensorDesc& src_desc) {
-  if (!CheckClone(src, self)) {
-    return false;
-  }
-  for (auto& opt_case : src_desc.opt_cases_) {
+    std::vector<string> optimizations) {
+  for (auto opt : optimizations) {
     bool res =
-        register_opt::CopyOptRegister::GetInstance()->Run(opt_case, self, src, src_desc);
+        register_opt::CopyOptRegister::GetInstance()->CanOptimize(opt, src);
     if (res) {
       return true;
     }
@@ -104,18 +74,26 @@ bool TransContiguous::contiguous_optimize_with_anyformat_(
 bool TransContiguous::ContiguousOptimizeWithAnyFormat(
     Tensor& self,
     const Tensor& src,
-    const OptimizationCases& opt_cases) {
-  ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
-  return contiguous_optimize_with_anyformat_(self, src, src_desc);
+    const std::vector<string>& optimizations) {
+  if (!CheckClone(src, self)) {
+    return false;
+  }
+  for (auto& opt : optimizations) {
+    bool res =
+        register_opt::CopyOptRegister::GetInstance()->Run(opt, src, self);
+    if (res) {
+      return true;
+    }
+  }
+  return false;
 }
 
 c10::optional<Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
     const Tensor& src,
-    const OptimizationCases& opt_cases) {
+    const std::vector<string>& optimizations) {
   auto self = at::native::empty_with_format_npu(
       src.sizes(), src.options(), src.storage().get_npu_desc().npu_format_);
-  ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
-  if (contiguous_optimize_with_anyformat_(self, src, src_desc)) {
+  if (ContiguousOptimizeWithAnyFormat(self, src, optimizations)) {
     return self;
   }
   return c10::nullopt;
@@ -124,18 +102,22 @@ c10::optional<Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
 bool TransContiguous::ContiguousOptimizeWithBaseFormat(
     Tensor& self,
     const Tensor& src,
-    const OptimizationCases& opt_cases,
+    std::vector<string> optimizations,
     bool OpenCombined) {
-  TORCH_CHECK(
-      FormatHelper::IsBaseFormatType(src),
-      "ContiguousOptimizeWithBaseFormat func requires Input Tensor with base format!");
+  if (!FormatHelper::IsBaseFormatType(src)) {
+    // TODO: transadata???
+    return false;
+  }
   // In non-specific cases, classify the cases and simplify judgement.
-  ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
+  if (optimizations.size() == 0) {
+    optimizations = FindMatchOptimizationsKeywords(src);
+  }
+
   if (OpenCombined &&
       c10::npu::OptionsManager::CheckCombinedOptimizerEnable()) {
-    src_desc.add_optimization_case("combined");
+    optimizations.emplace_back("combined");
   }
-  return contiguous_optimize_with_anyformat_(self, src, src_desc);
+  return ContiguousOptimizeWithAnyFormat(self, src, optimizations);
 }
 
 } // namespace npu

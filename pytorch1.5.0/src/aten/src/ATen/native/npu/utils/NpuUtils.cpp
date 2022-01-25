@@ -274,7 +274,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
     // [1] memory-repoint: base format or NZ[1. key dims keep matched; 2. no padding]
     // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
     // [3] copy_: Universal method
-    OptimizationCases optimizations_reshape{"reshapeV2"};
+    std::vector<string> optimizations_reshape{"reshapeV2"};
     auto reshapeTensor =
         TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
     if (reshapeTensor.has_value()) {

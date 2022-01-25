@@ -17,6 +17,7 @@
 #include "npu_sys_ctrl.h"
 #include <Python.h>
 #include <c10/npu/npu_log.h>
+#include <c10/npu/interface/AclInterface.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/OptionsManager.h>
 #include <c10/npu/register/OptionRegister.h>
@@ -27,6 +28,43 @@
 #undef FAILED
 #endif
 #include <third_party/acl/inc/ge/ge_api.h>
+
+#if defined(_MSC_VER)
+#include <direct.h>
+#define GetCurrentDirPath _getcwd
+#define Mkdir(path, mode) _mkdir(path)
+#elif defined(__unix__)
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#define GetCurrentDirPath getcwd
+#define Mkdir(path, mode) mkdir(path, mode)
+#else
+#endif
+
+namespace {
+const size_t kMaxPathLen = 4096U;
+std::string GetCurDirPath() {
+  char buff[kMaxPathLen] = {'\0'};
+  GetCurrentDirPath(buff, kMaxPathLen);
+  return std::string(buff);
+}
+
+void MakeCompileCacheDirAndSetOption() {
+  auto compile_cache_dir = GetCurDirPath() + "/cache";
+  // mode : 750
+  auto ret = Mkdir(compile_cache_dir.c_str(), S_IRWXU | S_IRGRP | S_IXGRP);
+  if (ret == -1) {
+    if (errno != EEXIST) {
+      TORCH_WARN("make compile cache directory error: ", strerror(errno));
+      return;
+    }
+  }
+  c10::npu::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", "disable");
+  c10::npu::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
+}
+} // namespace
+
 namespace c10 {
 namespace npu {
 
@@ -75,7 +113,7 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
         {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
         {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
         {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
-        {ge::AscendString(ge::OP_SELECT_IMPL_MODE.c_str()), "high_precision"}
+        {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
     };
 
     config["ge.session_device_id"] = ge::AscendString(npu_device_id.data());
@@ -93,15 +131,31 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
 
     for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
         auto val = c10::npu::GetOption(iter.first);
-        if (val.has_value() && (val.value().length() > 0)) {
-            config.emplace(iter.second.c_str(), val.value().c_str());
+        if (val.has_value() && (!val.value().empty())) {
+            config.emplace(iter.second.data(), val.value().data());
         }
+    }
+
+    auto soc_name = c10::npu::acl::AclGetSocName();
+    if (soc_name != nullptr) {
+        config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
+    }
+
+    if (c10::npu::acl::IsExistQueryEventRecordedStatus()) {
+      static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+      auto hcom_val = c10::npu::GetOption(HCOM_OPTIONS);
+      if (hcom_val.has_value() && (!hcom_val.value().empty())) {
+        config.emplace(HCOM_OPTIONS.data(), hcom_val.value().data());
+      }
     }
 
     auto ge_ret = ge::GEInitialize(config);
     if (ge_ret != ge::SUCCESS) {
         AT_ERROR("GE init failed!");
     }
+
+    // set default compile cache mode and dir for users to improve op compile time
+    MakeCompileCacheDirAndSetOption();
 
     return INIT_SUCC;
 }

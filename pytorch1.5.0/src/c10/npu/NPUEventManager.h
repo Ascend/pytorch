@@ -19,16 +19,19 @@
 #include <c10/npu/NPUException.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include <deque>
+#include <mutex>
 namespace c10 {
 namespace npu {
 class TORCH_NPU_API NPUEventManager {
 public:
   static NPUEventManager& GetInstance();
+  aclError QueryAndDestroyEvent();
   aclError LazyDestroy(aclrtEvent npu_event);
   aclError ClearEvent();
   ~NPUEventManager(){}
 
 private:
+  std::mutex event_queue_mutex_;
   NPUEventManager();
   std::deque<aclrtEvent> npu_events_;
 };

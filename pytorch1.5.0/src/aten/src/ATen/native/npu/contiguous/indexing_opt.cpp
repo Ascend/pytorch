@@ -21,63 +21,60 @@ namespace npu {
 
 class IndexingContiguousOpt : public ContiguousOpt {
 public:
-  bool Optimizer(Tensor& self, const Tensor& src, const ContiguousTensorDesc& src_desc) override {
-    SmallVector<int64_t, MAX_DIM> start;
-    SmallVector<int64_t, MAX_DIM> end;
-    SmallVector<int64_t, MAX_DIM> step;
+  bool Optimizer(const Tensor& src, Tensor& self) override {
+    SmallVector<int64_t, SHAPE_SIZE> start;
+    SmallVector<int64_t, SHAPE_SIZE> end;
+    SmallVector<int64_t, SHAPE_SIZE> step;
 
-    if (can_use_indexing(src_desc, start, end, step)) {
+    if (can_use_indexing(src, start, end, step)) {
       RECORD_HOST_FUNCTION("npuStridedSlice", std::vector<c10::IValue>({src}));
-      indexing_to_contiguous(self, src, start, end, step, src_desc);
+      indexing_to_contiguous(src, self, start, end, step);
       return true;
     }
     return false;
   }
 
 private:
-  bool can_use_indexing(const ContiguousTensorDesc& src_desc,
-                        SmallVector<int64_t, MAX_DIM>& start,
-                        SmallVector<int64_t, MAX_DIM>& end,
-                        SmallVector<int64_t, MAX_DIM>& step) {
-    if (prod_intlist(src_desc.sizes_) >= prod_intlist(src_desc.base_sizes_)) {
+  bool can_use_indexing(const Tensor& src,
+                        SmallVector<int64_t, SHAPE_SIZE>& start,
+                        SmallVector<int64_t, SHAPE_SIZE>& end,
+                        SmallVector<int64_t, SHAPE_SIZE>& step) {
+    auto src_desc = src.storage().get_npu_desc();
+    if (src.numel() >= prod_intlist(src_desc.base_sizes_)) {
       return false;
     }
 
-    if (src_desc.sizes_.size() != src_desc.base_sizes_.size()) {
-      return false;
-    }
-    if (src_desc.strides_.size() != src_desc.base_strides_.size()) {
+    if (src.dim() != src_desc.base_sizes_.size() ||
+      src.strides().size() != src_desc.base_strides_.size()) {
       return false;
     }
 
-    const auto& base_size = src_desc.base_sizes_;
-    const auto& base_stride = src_desc.base_strides_;
-    const auto& indexing_size = src_desc.sizes_;
-    const auto& indexing_stride = src_desc.strides_;
+    auto base_size = src.storage().get_npu_desc().base_sizes_;
+    auto base_stride = src.storage().get_npu_desc().base_strides_;
 
     // indexing信息获取部分
     // Get step info(for indexing step at index aixs should > 1)
-    for (int64_t i = 0; i < indexing_size.size() ; i++) {
+    for (int64_t i = 0; i < src.dim() ; i++) {
       TORCH_CHECK(base_stride[i]!=0, "stride should not be 0");
-      step.emplace_back(indexing_stride[i] / base_stride[i]);
+      step.emplace_back(src.stride(i) / base_stride[i]);
     }
 
     // Get start index based on offset and base stride
-    int64_t src_offset = src_desc.offset_;
-    for (int64_t i = 0; i < indexing_size.size() ; i++) {
+    int64_t src_offset = src.storage_offset();
+    for (int64_t i = 0; i < src.dim() ; i++) {
       TORCH_CHECK(base_stride[i]!=0, "stride should not be 0");
       start.emplace_back(src_offset / base_stride[i]);
       src_offset = src_offset % base_stride[i];
     }
 
     // infer end index
-    for (int64_t i = 0; i < indexing_size.size(); i++) {
-      int64_t calculate_end = start[i] + indexing_size[i] * step[i];
+    for (int64_t i = 0; i < src.dim() ; i++) {
+      int64_t calculate_end = start[i] + src.size(i) * step[i];
       if (calculate_end - step[i] > src_desc.base_sizes_[i]) {
         // Op StrideSlice(Slice) don't support span-axis indexing(slice).
         return false;
       }
-      end.emplace_back(calculate_end);
+      end.emplace_back(calculate_end);   
     }
 
     // indexing场景判断: (1) step乘积>1(=1为slice); 
@@ -91,43 +88,39 @@ private:
     } 
     // case 3
     for (int64_t i = 0; i < step.size() ; i++) {
-      if (step[i] == 1 && indexing_size[i] != base_size[i]) {
+      if (step[i] == 1 && src.size(i) != base_size[i]) {
         return false;
       }
     }
     // case 4 and 5: step!=1的轴的校验
-    for (int64_t i = 0; i < step.size() - 1; i++) {
+    for (int64_t i = 0; i < step.size() - 1 ; i++) {
       // 对于非最后一轴的indexing，对应的stride[i]=step[i]*size[i+1]*stride[i+1],（此时最后一轴stride限制为1）
       // 不满足上述条件，需要予以剔除，主要干扰：组合类reshape操作。
       if (step[i] != 1) {
-        if (indexing_size[i] == 1) {
+        if (src.size(i) == 1) {
           return false;
         }
-        if (step[i + 1] == 1 &&
-            (indexing_stride[i] !=
-             indexing_size[i + 1] * indexing_stride[i + 1] * step[i])) {
+        if (step[i + 1] == 1 && (src.stride(i) != src.size(i + 1) * src.stride(i + 1)* step[i])) {
           return false;
         }
       }
     }
+
     return true;
   }
 
-  void indexing_to_contiguous(
-      Tensor& self,
-      const Tensor& src,
-      SmallVector<int64_t, MAX_DIM>& start,
-      SmallVector<int64_t, MAX_DIM>& end,
-      SmallVector<int64_t, MAX_DIM>& step,
-      const ContiguousTensorDesc& src_desc) {
-    const auto& base_size = src_desc.base_sizes_;
+  void indexing_to_contiguous(const Tensor& src, 
+    Tensor& self,
+    SmallVector<int64_t, SHAPE_SIZE>& start,
+    SmallVector<int64_t, SHAPE_SIZE>& end, 
+    SmallVector<int64_t, SHAPE_SIZE>& step) {
+
+    auto base_size = src.storage().get_npu_desc().base_sizes_;
+
     // recover contiguous base tensor
-    Tensor temp_src = at::empty(src_desc.base_sizes_, src.options());
-    temp_src.set_(
-        src.storage(),
-        temp_src.storage_offset(),
-        temp_src.sizes(),
-        temp_src.strides());
+    Tensor temp_src = at::empty(base_size, src.options());
+    temp_src.set_(src.storage(), temp_src.storage_offset(), 
+        temp_src.sizes(), temp_src.strides());
 
     // call StridedSliceD op
     at::npu_indexing_out(self, temp_src, start, end, step);
@@ -137,6 +130,6 @@ private:
 
 REGISTER_COPY_OPT(indexing, IndexingContiguousOpt)
 
-} // namespace npu
-} // namespace native
-} // namespace at
+} // npu
+} // native
+} // at

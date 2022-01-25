@@ -24,7 +24,8 @@ NPUEventManager& NPUEventManager::GetInstance() {
   return instance;
 }
 
-aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
+aclError NPUEventManager::QueryAndDestroyEvent() {
+  std::lock_guard<std::mutex> guard(event_queue_mutex_);
   while (!npu_events_.empty())
   {
     aclrtEvent event = npu_events_.front();
@@ -45,6 +46,11 @@ aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
     }
     npu_events_.pop_front();
   }
+  return ACL_ERROR_NONE;
+}
+
+aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
+  std::lock_guard<std::mutex> guard(event_queue_mutex_);
   npu_events_.push_back(npu_event);
   return ACL_ERROR_NONE;
 }

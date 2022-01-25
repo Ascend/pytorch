@@ -21,6 +21,7 @@
 #include <third_party/acl/inc/acl/acl.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUEventManager.h>
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <cstdint>
 #include <utility>
 
@@ -45,7 +46,8 @@ struct TORCH_NPU_API NPUEvent {
   ~NPUEvent() {
     try {
       if (is_created_) {
-        c10::npu::NPUEventManager::GetInstance().LazyDestroy(event_);
+        AT_NPU_CHECK(c10::npu::queue::LaunchLazyDestroyEventTask(event_));
+        AT_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
     } catch (...) {} /* No throw */
   }
@@ -79,7 +81,10 @@ struct TORCH_NPU_API NPUEvent {
     if (!is_created_) {
       return true;
     }
-
+    NPUStatus ret = c10::npu::emptyAllNPUStream();
+    if (ret != SUCCESS) {
+      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    }
     aclrtEventStatus currStatus = ACL_EVENT_STATUS_COMPLETE;
     AT_NPU_CHECK(aclrtQueryEvent(event_, &currStatus));
 
@@ -103,14 +108,14 @@ struct TORCH_NPU_API NPUEvent {
     TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
       " does not match recording stream's device ", stream.device_index(), ".");
     NPUGuard guard(device_index_);
-    AT_NPU_CHECK(aclrtRecordEvent(event_, stream));
+    AT_NPU_CHECK(c10::npu::queue::LaunchRecordEventTask(event_, stream));
     was_recorded_ = true;
   }
 
   void block(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
-      AT_NPU_CHECK(aclrtStreamWaitEvent(stream, event_));
+      AT_NPU_CHECK(c10::npu::queue::LaunchWaitEventTask(event_, stream));
     }
   }
 
@@ -118,6 +123,13 @@ struct TORCH_NPU_API NPUEvent {
     TORCH_CHECK(is_created_ && other.isCreated(),
       "Both events must be recorded before calculating elapsed time.");
     float time_ms = 0;
+    NPUStatus ret = c10::npu::emptyAllNPUStream();
+    if (ret != SUCCESS) {
+      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+    }
+
+    AT_NPU_CHECK(aclrtSynchronizeEvent(event_));
+    AT_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
     // raise error if either event is recorded but not yet completed
     AT_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
@@ -125,6 +137,10 @@ struct TORCH_NPU_API NPUEvent {
 
   void synchronize() const {
     if (is_created_) {
+      NPUStatus ret = c10::npu::emptyAllNPUStream();
+      if (ret != SUCCESS) {
+        NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
+      }
       AT_NPU_CHECK(aclrtSynchronizeEvent(event_));
     }
   }
