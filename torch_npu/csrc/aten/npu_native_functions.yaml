@@ -240,6 +240,7 @@ supported:
   - addcdiv
   - addcdiv_
   - addcdiv.out
+  - slogdet
 
 custom:
   - func: npu_transpose_to_contiguous(Tensor self) -> Tensor
