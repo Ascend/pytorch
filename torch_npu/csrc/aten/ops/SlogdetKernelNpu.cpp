@@ -52,4 +52,4 @@ tuple<at::Tensor, at::Tensor>NPUNativeFunctions::slogdet(const at::Tensor& self)
 }
 
 } // namespace native
-} // namespace at
+} // namespace at_npu
