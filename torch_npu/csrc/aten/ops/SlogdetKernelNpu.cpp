@@ -19,7 +19,7 @@
 namespace at_npu {
 namespace native {
 
-::std::tuple<at::Tensor&, at::Tensor&> slogdet_out_nocheck_npu(
+tuple<at::Tensor&, at::Tensor&> slogdet_out_nocheck_npu(
     const at::Tensor& self,
     at::Tensor& sign,
     at::Tensor& y) {
@@ -33,7 +33,7 @@ namespace native {
   return std::tie(sign, y);
 }
 
-::std::tuple<at::Tensor, at::Tensor> slogdet_npu(const at::Tensor& self) {
+tuple<at::Tensor, at::Tensor> slogdet_npu(const at::Tensor& self) {
 
   TORCH_CHECK(self.dim() >= 2, "input must be at least 2 dimensions");
 
