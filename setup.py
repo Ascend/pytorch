@@ -149,7 +149,9 @@ class Clean(distutils.command.clean.clean):
 class Build(build_ext, object):
 
     def build_extensions(self):
-        self.compiler.compiler_so.remove('-Wstrict-prototypes')
+        if self.compiler and '-Wstrict-prototypes' in self.compiler.compiler_so:
+            self.compiler.compiler_so.remove('-Wstrict-prototypes')
+
         return super(Build, self).build_extensions()
 
 
