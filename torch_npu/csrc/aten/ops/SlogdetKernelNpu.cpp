@@ -33,7 +33,7 @@ tuple<at::Tensor&, at::Tensor&> slogdet_out_nocheck_npu(
   return std::tie(sign, y);
 }
 
-tuple<at::Tensor, at::Tensor> slogdet_npu(const at::Tensor& self) {
+tuple<at::Tensor, at::Tensor>NPUNativeFunctions::slogdet(const at::Tensor& self) {
 
   TORCH_CHECK(self.dim() >= 2, "input must be at least 2 dimensions");
 
