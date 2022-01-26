@@ -116,9 +116,7 @@ class TestMgr():
         for ut in self.ut_files:
             if ut.split('/')[-1] == 'run_tests.py':
                 self.ut_files.remove(ut)
-
-        if len(self.ut_files) == 0:
-            self.ut_files.append(DEFAULT_UT_FILE)
+        self.ut_files.append(DEFAULT_UT_FILE)
 
     def get_ut_files(self):
         return self.ut_files
@@ -192,10 +190,6 @@ def main():
     test_mgr.print_ut_files()
 
     ret = exec_ut(ut_files)
-    if ret and DEFAULT_UT_FILE not in ut_files:
-        print("***** start resnet18:")
-        os.chdir(cur_dir)
-        exec_ut([DEFAULT_UT_FILE])
     sys.exit(ret)
 
 
