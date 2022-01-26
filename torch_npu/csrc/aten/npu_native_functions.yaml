@@ -240,7 +240,6 @@ supported:
   - convolution_overrideable
   - convolution_backward_overrideable
   - _convolution
-  - _convolution.deprecated
   - _convolution_nogroup
   - _convolution_double_backward
   - conv1d
@@ -319,13 +318,8 @@ supported:
   - div.Tensor
   - div_.Tensor
   - div.out
-  - div.Tensor_mode
-  - div_.Tensor_mode
-  - div.out_mode
   - div.Scalar
   - div_.Scalar
-  - div.Scalar_mode
-  - div_.Scalar_mode
   - divide.Tensor
   - divide_.Tensor
   - divide.out
@@ -362,7 +356,6 @@ supported:
   - _embedding_bag_dense_backward
   - _embedding_bag_per_sample_weights_backward
   - empty_meta
-  - empty.names
   - empty.memory_format
   - new_empty
   - new_empty_strided
@@ -950,10 +943,6 @@ supported:
   - norm.ScalarOpt_dim
   - norm.dtype_out
   - norm.out
-  - norm.names_ScalarOpt_dim_dtype
-  - norm.names_ScalarOpt_dim
-  - norm.names_dtype_out
-  - norm.names_out
   - frobenius_norm
   - frobenius_norm.dim
   - frobenius_norm.out
@@ -1096,7 +1085,6 @@ supported:
   - masked_scatter_
   - masked_scatter
   - view
-  - view.dtype
   - put_
   - index_add_
   - index_add
