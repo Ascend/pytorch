@@ -47,8 +47,8 @@ class TestAddmv(TestCase):
         for item in shape_format:
 
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
-            input_b, npu_input_b= create_common_tensor(item[1], -2, 2)
-            input_c, npu_input_c= create_common_tensor(item[2], -2, 2)
+            input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
+            input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
 
             input_a = input_a.to(torch.float32)
             input_b = input_b.to(torch.float32)
@@ -68,16 +68,16 @@ class TestAddmv(TestCase):
         for item in shape_format:
 
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
-            input_b, npu_input_b= create_common_tensor(item[1], -2, 2)
-            input_c, npu_input_c= create_common_tensor(item[2], -2, 2)
-            input, npu_input= create_common_tensor(item[3], -2, 2)
+            input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
+            input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
+            _, npu_input = create_common_tensor(item[3], -2, 2)
 
             input_a = input_a.to(torch.float32)
             input_b = input_b.to(torch.float32)
             input_c = input_c.to(torch.float32)
 
             cpu_output = self.cpu_op_exec(input_a, input_b, input_c, 1, 1)
-            npu_output= self.npu_op_exec_out(npu_input_a, npu_input_b, npu_input_c, 1, 1, npu_input)
+            npu_output = self.npu_op_exec_out(npu_input_a, npu_input_b, npu_input_c, 1, 1, npu_input)
             cpu_output = cpu_output.astype(np.float16)
             
             self.assertRtolEqual(cpu_output, npu_output)
@@ -90,8 +90,8 @@ class TestAddmv(TestCase):
         for item in shape_format:
 
             input_a, npu_input_a = create_common_tensor(item[0], -2, 2)
-            input_b, npu_input_b= create_common_tensor(item[1], -2, 2)
-            input_c, npu_input_c= create_common_tensor(item[2], -2, 2)
+            input_b, npu_input_b = create_common_tensor(item[1], -2, 2)
+            input_c, npu_input_c = create_common_tensor(item[2], -2, 2)
 
 
             cpu_output = self.cpu_op_exec(input_a, input_b, input_c, 1, 1)

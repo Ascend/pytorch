@@ -20,7 +20,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& __rshift___out_npu_nocheck(
+at::Tensor& rshift_out_npu_nocheck(
     const at::Tensor& self,
     at::Scalar other,
     at::Tensor& result) {
@@ -34,7 +34,7 @@ at::Tensor& __rshift___out_npu_nocheck(
   return result;
 }
 
-at::Tensor& __rshift___out_npu_nocheck(
+at::Tensor& rshift_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
@@ -51,7 +51,7 @@ at::Tensor& __rshift___out_npu_nocheck(
 at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, const at::Tensor& other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
-  __rshift___out_npu_nocheck( self, other,result);
+  rshift_out_npu_nocheck(self, other,result);
 
   return result;
 }
@@ -60,7 +60,7 @@ at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, at::Scalar oth
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
-  __rshift___out_npu_nocheck(self, other, result);
+  rshift_out_npu_nocheck(self, other, result);
 
   return result;
 }

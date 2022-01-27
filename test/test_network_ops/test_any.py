@@ -65,8 +65,8 @@ class TestAny(TestCase):
     
     def npu_op_out_exec1(self, input1, dim, keepdim):
         shape = list(input1.shape)
-        output0 = torch.randn(shape)>0
-        output1 = torch.randn(shape.pop())>0
+        output0 = torch.randn(shape) > 0
+        output1 = torch.randn(shape.pop()) > 0
         output0 = output0.npu()
         output1 = output1.npu()
         torch.any(input1, dim=dim, keepdim=keepdim, out=output0)

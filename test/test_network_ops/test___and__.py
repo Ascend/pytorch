@@ -25,14 +25,14 @@ class Test__And__(TestCase):
     def cpu_op_exec(self, input1, input2):        
         output = input1.__and__(input2)
         if output.dtype != torch.int32:
-          output = output.to(torch.int32)
+            output = output.to(torch.int32)
         return output.numpy()
 
     def npu_op_exec(self, input1, input2):
         output = input1.__and__(input2)
         output = output.to("cpu")
         if output.dtype != torch.int32:
-          output = output.to(torch.int32)
+            output = output.to(torch.int32)
         return output.numpy()
 
     def test___And___shape_format(self, device):
