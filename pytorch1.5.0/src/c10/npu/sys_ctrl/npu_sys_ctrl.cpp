@@ -60,7 +60,7 @@ void MakeCompileCacheDirAndSetOption() {
       return;
     }
   }
-  c10::npu::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", "disable");
+  c10::npu::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_MODE", "enable");
   c10::npu::register_options::OptionRegister::GetInstance()->Set("ACL_OP_COMPILER_CACHE_DIR", compile_cache_dir);
 }
 } // namespace

@@ -309,6 +309,7 @@ int RecordEventFunc(QueueParas* in, aclrtStream stream) {
 
 int WaitEventFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<EventParas* >(in->paramVal);
+  RECORD_HOST_FUNCTION("aclrtStreamWaitEvent", std::vector<c10::IValue>({}));
   aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
@@ -318,6 +319,7 @@ int WaitEventFunc(QueueParas* in, aclrtStream stream) {
 
 int LazyDestroyEventFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<EventParas* >(in->paramVal);
+  RECORD_HOST_FUNCTION("LazyDestroyEvent", std::vector<c10::IValue>({}));
   aclError ret = c10::npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
