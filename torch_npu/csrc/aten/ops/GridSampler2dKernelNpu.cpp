@@ -16,7 +16,6 @@
 
 #include <c10/npu/OptionsManager.h>
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
