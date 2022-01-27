@@ -16,6 +16,7 @@ import torch
 import torch_npu
 import torch.nn as nn
 import numpy as np
+
 from torch_npu.testing.common_utils import TestCase, run_tests
 from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
 from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
