@@ -13,7 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -30,7 +30,7 @@ at::Tensor& affine_grid_generator_npu_nocheck(
   for (int i = 0; i < value; i++) {
     tmp_vector.emplace_back(size[i]);
   }
-  at::Tensor sizeTensor_cpu = from_blob((void*)tmp_vector.data(), {value}, at::kInt);
+  at::Tensor sizeTensor_cpu = at::from_blob((void*)tmp_vector.data(), {value}, at::kInt);
   at::Tensor sizeTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(sizeTensor_cpu);
 
   OpCommand cmd;
@@ -51,7 +51,7 @@ at::Tensor NPUNativeFunctions::affine_grid_generator(
   TORCH_CHECK(size.size() == 4 || size.size() == 5, 
       "AffineGridGenerator needs 4d or 5d size(input).");
   // calculate the output size
-  SmallVector<int64_t, SIZE> outputSize = { };
+  at::SmallVector<int64_t, SIZE> outputSize = { };
   if(size.size() == 4) {
     outputSize = {size[0], size[2] * size[3], 2};
   } else {

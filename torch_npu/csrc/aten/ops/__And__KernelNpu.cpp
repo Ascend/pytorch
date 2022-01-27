@@ -65,7 +65,7 @@ at::Tensor& __and___out_npu_nocheck(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__and___tensor(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::__and__(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
   at::Tensor outputTensor = __and___dest_output(self, other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::__and___tensor(const at::Tensor& self, const at::
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__and___scalar(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__and__(const at::Tensor& self, at::Scalar other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   __and___out_npu_nocheck(self, other,result);
 

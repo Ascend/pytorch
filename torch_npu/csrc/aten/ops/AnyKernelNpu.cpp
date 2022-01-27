@@ -98,7 +98,7 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self) {
   }
 
   // calculate the output size 
-  IntArrayRef dims;
+  at::IntArrayRef dims;
   auto outputSize = reduce_ops_npu_output_size(self, dims, false);
 
   // construct the output tensor of the NPU

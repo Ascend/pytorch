@@ -23,8 +23,8 @@ namespace native {
 
 // bool inputs are considered integral
 static inline bool allIntegral(
-    std::initializer_list<std::reference_wrapper<Scalar>> l) {
-  for (Scalar& s : l) {
+    std::initializer_list<std::reference_wrapper<at::Scalar>> l) {
+  for (at::Scalar& s : l) {
     if (!s.isIntegral(true)) {
       return false;
     }
@@ -54,12 +54,12 @@ at::Tensor NPUNativeFunctions::arange(
     at::Scalar end,
     at::Scalar step,
     c10::optional<at::ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
   auto device = device_or_default(device_opt);
-  TensorOptions option;
+  at::TensorOptions option;
   option = option.dtype(dtype_opt)
                  .layout(layout_opt)
                  .device(device)
@@ -111,8 +111,8 @@ at::Tensor NPUNativeFunctions::arange(
     at::Scalar start, 
     at::Scalar end, 
     c10::optional<at::ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
   return NPUNativeFunctions::arange(start, end, 1, dtype_opt, layout_opt, device_opt, pin_memory_opt);
@@ -121,9 +121,9 @@ at::Tensor NPUNativeFunctions::arange(
 
 at::Tensor NPUNativeFunctions::arange(
     at::Scalar end, 
-    c10::optional<ScalarType> dtype_opt,
-    c10::optional<Layout> layout_opt,
-    c10::optional<Device> device_opt,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<at::Layout> layout_opt,
+    c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
   return NPUNativeFunctions::arange(0, end, dtype_opt, layout_opt, device_opt, pin_memory_opt);  // start = 0
@@ -147,7 +147,7 @@ at::Tensor& NPUNativeFunctions::arange_out(
   double size_arange = std::ceil(static_cast<double>(end.toDouble() - start.toDouble())
                                  / step.toDouble());
   int64_t size_value = static_cast<int64_t>(size_arange);
-  SmallVector<int64_t, SIZE> outputSize = {size_value};
+  at::SmallVector<int64_t, SIZE> outputSize = {size_value};
   result.resize_(outputSize);
 
   arange_out_npu_nocheck(result, start, end, step);
@@ -156,17 +156,18 @@ at::Tensor& NPUNativeFunctions::arange_out(
 }
 
 at::Tensor& arange_other_out_npu(at::Scalar start, at::Scalar end, at::Tensor& result) {
-  return arange_out(start, end, 1, result);
+  at::Scalar step = 1;
+  return NPUNativeFunctions::arange_out(start, end, step, result);
 }
 
-at::Tensor& NPUNativeFunctions::arange_out(Scalar end, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::arange_out(at::Scalar end, at::Tensor& result) {
   return arange_other_out_npu(0, end, result);
 }
 
 at::Tensor NPUNativeFunctions::_dim_arange(const at::Tensor& self, int64_t dim) {
   c10::optional<at::ScalarType> dtype_opt(at::kInt);
-  c10::optional<Layout> layout_opt(self.options().layout());
-  c10::optional<Device> device_opt(self.options().device());
+  c10::optional<at::Layout> layout_opt(self.options().layout());
+  c10::optional<at::Device> device_opt(self.options().device());
   c10::optional<bool> pin_memory_opt(self.options().pinned_memory());
 
   at::Tensor result = NPUNativeFunctions::arange(self.size(dim), dtype_opt, layout_opt, device_opt, pin_memory_opt);

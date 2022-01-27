@@ -48,7 +48,7 @@ at::Tensor& __rshift___out_npu_nocheck(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__rshift___tensor(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, const at::Tensor& other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
   __rshift___out_npu_nocheck( self, other,result);
@@ -56,7 +56,7 @@ at::Tensor NPUNativeFunctions::__rshift___tensor(const at::Tensor& self, const a
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__rshift___scalar(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, at::Scalar other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 

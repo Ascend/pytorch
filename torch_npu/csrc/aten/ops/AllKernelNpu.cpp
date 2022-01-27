@@ -21,7 +21,6 @@
 
 namespace at_npu {
 namespace native {
-using namespace at::native::npu;
 
 inline at::Tensor all_out_npu_nocheck(
     at::Tensor& result,
@@ -66,7 +65,7 @@ at::Tensor NPUNativeFunctions::all(const at::Tensor& self, int64_t dim, bool kee
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
   if (self.numel() == 0) {
-    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(kInt), self).fill_(1).to(at::ScalarType::Bool); 
+    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(at::kInt), self).fill_(1).to(at::ScalarType::Bool); 
     return res;
   }
 
@@ -87,7 +86,7 @@ at::Tensor NPUNativeFunctions::all(const at::Tensor& self) {
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
   if (self.numel() == 0) {
-    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(kInt), self).fill_(1).to(at::ScalarType::Bool);
+    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(at::kInt), self).fill_(1).to(at::ScalarType::Bool);
     return res;
   }
 
