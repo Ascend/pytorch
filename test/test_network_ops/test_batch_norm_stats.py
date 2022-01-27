@@ -21,7 +21,6 @@ from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type
 from torch_npu.testing.util_test import create_common_tensor, create_dtype_tensor, UT_FAST_MODE
 
 class TestBatchNormStats(TestCase):
-    # def cpu_op_exec(self, input1, mean, invstd, running_mean, running_var, momentum, eps, counts, normalize_type):
     def cuda_op_exec(self, *args):
         cpu_mean, cpu_invstd = torch.batch_norm_stats(*args)
         return cpu_mean.numpy(), cpu_invstd.numpy()
@@ -42,9 +41,7 @@ class TestBatchNormStats(TestCase):
             [[np.float16, -1, [2, 3, 12, 12]], 1e-5],
         ]
         for item in shape_format:
-            # NB: mixup precision ut, benchmarking with fp32 standard
             cpu_input1, npu_inputfp16 = create_common_tensor(item[0], 1, 10)
-            # fp32 standard
             npu_input1fp32 = npu_inputfp16.float()
             if torch.cuda.is_available():
                 cpu_output = self.cuda_op_exec(cpu_input1.cuda(), item[-1])
