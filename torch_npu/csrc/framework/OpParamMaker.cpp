@@ -18,7 +18,7 @@
 #include <c10/npu/NPUCachingAllocator.h>
 #include <ATen/record_function.h>
 
-#include "torch_npu/csrc/framework/aoe/AutoTune.h"
+#include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -171,7 +171,6 @@ namespace at_npu
 
     aclError OpCommandImpl::InnerRun(string name, AclExecParam &params)
     {
-      AutotuneManager::GetInstance()->PushGraph(name, params.graph);
       auto stream = c10::npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -185,6 +184,24 @@ namespace at_npu
       int index = 0;
       do
       {
+        if (at_npu::native::aoe::aoe_manager().IsAoeEnabled()) {
+          ret = at_npu::native::AclGenGraphAndDumpForOp(
+              name.c_str(),
+              inputSize,
+              params.inDesc.data(),
+              params.inBuffer.data(),
+              outputSize,
+              params.outDesc.data(),
+              params.outBuffer.data(),
+              params.attr,
+              ACL_ENGINE_SYS,
+              at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+              nullptr);
+          if (ret != ACL_ERROR_NONE) {
+            C10_NPU_SHOW_ERR_MSG();
+            TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
+          }
+        }
         ret = aclopCompileAndExecute(
             name.c_str(),
             inputSize,
@@ -222,6 +239,24 @@ namespace at_npu
       int index = 0;
       do
       {
+        if (at_npu::native::aoe::aoe_manager().IsAoeEnabled()) {
+          ret = at_npu::native::AclGenGraphAndDumpForOp(
+              (cur_paras->opType).c_str(),
+              cur_paras->paras.input_num,
+              cur_paras->paras.input_desc,
+              cur_paras->paras.input_data_buf,
+              cur_paras->paras.output_num,
+              cur_paras->paras.output_desc,
+              cur_paras->paras.output_data_buf,
+              cur_paras->attr,
+              ACL_ENGINE_SYS,
+              at_npu::native::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+              nullptr);
+          if (ret != ACL_ERROR_NONE) {
+            C10_NPU_SHOW_ERR_MSG();
+            TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
+          }
+        }
         ret = aclopCompileAndExecute(
             (cur_paras->opType).c_str(),
             cur_paras->paras.input_num,

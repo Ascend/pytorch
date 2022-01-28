@@ -21,7 +21,6 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
-#include "torch_npu/csrc/framework/interface/Graph.h"
 
 namespace at_npu
 {
@@ -220,7 +219,6 @@ namespace at_npu
       void SetName(string &name)
       {
         opName = name;
-        execParam.graph.Name(name);
       }
 
       void AddInput(
@@ -230,7 +228,6 @@ namespace at_npu
           aclFormat format)
       {
         inputCounter += 1;
-        execParam.graph.Input(desc);
         execParam.inDesc.emplace_back(std::move(desc));
         execParam.inBuffer.emplace_back(std::move(buffer));
         execParam.inDims.emplace_back(dim);
@@ -246,7 +243,6 @@ namespace at_npu
       {
         AddInput(desc, buffer, dim, format);
         execParam.hostMem.emplace_back(hostTensor);
-        execParam.graph.SetConst(hostTensor.data_ptr(), hostTensor.nbytes());
       }
 
       void AddConst(c10::SmallVector<int64_t, N> dimList)
@@ -268,7 +264,6 @@ namespace at_npu
           int64_t dim,
           aclFormat format)
       {
-        execParam.graph.Output(desc);
         execParam.outDesc.emplace_back(std::move(desc));
         execParam.outBuffer.emplace_back(std::move(buffer));
         execParam.outDims.emplace_back(dim);
@@ -281,7 +276,6 @@ namespace at_npu
         InitAttr();
         AttrInfoMaker::Add(value, attrInfo);
         OpAttrMaker::Set(execParam.attr, attrName, value);
-        execParam.graph.AddAttr(attrName, value);
         execParam.hasAttr = true;
       }
 
@@ -447,7 +441,6 @@ namespace at_npu
 
         aclopAttr *attr = nullptr;
         bool hasAttr = false;
-        Graph graph;
       };
 
       void InitAttr()
@@ -455,7 +448,6 @@ namespace at_npu
         if (execParam.attr == nullptr)
         {
           execParam.attr = aclopCreateAttr();
-          execParam.graph.Make();
         }
       }
 
