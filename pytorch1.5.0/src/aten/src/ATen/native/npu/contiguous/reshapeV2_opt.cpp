@@ -21,21 +21,25 @@ namespace npu {
 
 class ReshapeV2ContiguousOpt : public ContiguousOpt {
  public:
-  bool Optimizer(const Tensor& src, Tensor& self) override {
-    if (check_reshape_match(src, self)) {
-      if ((!c10::npu::NpuRunMode::IsGraphMode()) && can_use_memory_repoint(src) &&
+  bool Optimizer(Tensor& self, const Tensor& src, const ContiguousTensorDesc& src_desc)
+      override {
+    ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
+    if (check_reshape_match(self_desc, src_desc)) {
+      if ((!c10::npu::NpuRunMode::IsGraphMode()) &&
+          can_use_memory_repoint(src_desc) &&
           reshape_match_by_memory_repoint(src, self)) {
         return true;
       }
-      RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_HOST_FUNCTION(
+          "View_d2dCopyAsync", std::vector<c10::IValue>({src}));
       at::npu_reshape_out(self, src, self.sizes());
       return true;
     }
     return false;
   }
 
-  bool CanOptimizer(const Tensor& src) override {
-    return check_reshape_match(src);
+  bool CanOptimizer(const ContiguousTensorDesc& src_desc) override {
+    return check_reshape_match(src_desc);
   }
 
  private:
@@ -48,8 +52,6 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
   }
 
   bool reshape_match_by_memory_repoint(const Tensor& src, Tensor& self) {
-    // Memory-repointing optimization hasn't been fully demonstrated, Only FP16
-    // and FP32 are supported.
     RECORD_HOST_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
       case at::ScalarType::Half:
@@ -86,15 +88,15 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
     }
   }
 
-  bool can_use_memory_repoint(const Tensor& tensor) {
-    auto tensorNpuDesc = tensor.storage().get_npu_desc();
-    if (FormatHelper::IsBaseFormatType(tensor)) {
+  bool can_use_memory_repoint(const ContiguousTensorDesc& src_desc) {
+    if (FormatHelper::IsBaseFormatType(src_desc.npu_format_)) {
       return true;
     }
 
-    if (tensorNpuDesc.npu_format_ == ACL_FORMAT_FRACTAL_NZ) {
+    if (src_desc.npu_format_ == ACL_FORMAT_FRACTAL_NZ) {
       // No padding
-      if ((tensor.size(-1) % 16 == 0) && (tensor.size(-2) % 16 == 0)) {
+      if ((src_desc.sizes_[src_desc.sizes_.size() - 1] % 16 == 0) &&
+          (src_desc.sizes_[src_desc.sizes_.size() - 2] % 16 == 0)) {
         return true;
       }
       return false;

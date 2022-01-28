@@ -28,8 +28,7 @@
 #include "c10/npu/OptionsManager.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
-#include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
-#include <ATen/native/npu/contiguous/ReshapeOpt.h>
+#include "ATen/native/npu/contiguous/ReshapeOpt.h"
 
 namespace at {
 namespace native {
@@ -173,7 +172,7 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
 }
 
 int64_t CalcuOpUtil::get_tensor_npu_format(const Tensor& tensor) {
-  if (NpuUtils::check_match(&tensor) || can_use_memcpy_for_other_format(tensor)) {
+  if (NpuUtils::check_match(&tensor) || CanUseMemcpyForOtherFormat(tensor)) {
     auto tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
     return tensor_desc.npu_format_;
   } else {

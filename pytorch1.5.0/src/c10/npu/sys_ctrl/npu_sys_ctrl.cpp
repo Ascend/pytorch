@@ -143,10 +143,7 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
 
     if (c10::npu::acl::IsExistQueryEventRecordedStatus()) {
       static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
-      auto hcom_val = c10::npu::GetOption(HCOM_OPTIONS);
-      if (hcom_val.has_value() && (!hcom_val.value().empty())) {
-        config.emplace(HCOM_OPTIONS.data(), hcom_val.value().data());
-      }
+      config.emplace(HCOM_OPTIONS.data(), "1");
     }
 
     auto ge_ret = ge::GEInitialize(config);

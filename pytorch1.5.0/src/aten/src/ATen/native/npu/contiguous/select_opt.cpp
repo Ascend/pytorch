@@ -21,36 +21,36 @@ namespace npu {
 
 class SelectContiguousOpt : public ContiguousOpt {
  public:
-  bool Optimizer(const Tensor& src, Tensor& self)
+  bool Optimizer(Tensor& self, const Tensor& src, const ContiguousTensorDesc& src_desc)
       override {
     // select(dim, start), length[dim] == 1
-    SmallVector<int64_t, SHAPE_SIZE> start;
-    SmallVector<int64_t, SHAPE_SIZE> length;
+    SmallVector<int64_t, MAX_DIM> start;
+    SmallVector<int64_t, MAX_DIM> length;
 
-    if (can_use_select(src, start, length)) {
+    if (can_use_select(src_desc, start, length)) {
       RECORD_HOST_FUNCTION("select_npuStridedSlice", std::vector<c10::IValue>({src}));
-      select_to_contiguous(src, self, start, length);
+      select_to_contiguous(self, src, start, length, src_desc);
       return true;
     }
     return false;
   }
 
-  bool CanOptimizer(const Tensor& src) override {
-    SmallVector<int64_t, SHAPE_SIZE> start;
-    SmallVector<int64_t, SHAPE_SIZE> length;
-    return can_use_select(src, start, length);
+  bool CanOptimizer(const ContiguousTensorDesc& src_desc) override {
+    SmallVector<int64_t, MAX_DIM> start;
+    SmallVector<int64_t, MAX_DIM> length;
+    return can_use_select(src_desc, start, length);
   }
 
  private:
   bool can_use_select(
-      const Tensor& src,
-      SmallVector<int64_t, SHAPE_SIZE>& start,
-      SmallVector<int64_t, SHAPE_SIZE>& length) {
+      const ContiguousTensorDesc& src_desc,
+      SmallVector<int64_t, MAX_DIM>& start,
+      SmallVector<int64_t, MAX_DIM>& length) {
     // base info and src info
-    auto base_size = src.storage().get_npu_desc().base_sizes_;
-    auto base_stride = src.storage().get_npu_desc().base_strides_;
-    auto select_size = src.sizes();
-    auto select_stride = src.strides();
+    const auto& base_size = src_desc.base_sizes_;
+    const auto& base_stride = src_desc.base_strides_;
+    const auto& select_size = src_desc.sizes_;
+    const auto& select_stride = src_desc.strides_;
 
     // len(base_size) - len(select_size) == 1  && len(base_stride) -
     // len(select_stride) == 1
@@ -60,14 +60,14 @@ class SelectContiguousOpt : public ContiguousOpt {
     }
 
     // recover src tensor info: shape and stride
-    SmallVector<int64_t, SHAPE_SIZE> temp_size;
-    SmallVector<int64_t, SHAPE_SIZE> temp_stride;
-    for (int64_t i = 0; i <= src.dim(); i++) {
+    SmallVector<int64_t, MAX_DIM> temp_size;
+    SmallVector<int64_t, MAX_DIM> temp_stride;
+    for (int64_t i = 0; i <= select_size.size(); i++) {
       if (base_size[i] != select_size[i] ||
           base_stride[i] != select_stride[i]) {
         temp_size.emplace_back(base_size[i]);
         temp_stride.emplace_back(base_stride[i]);
-        for (int64_t j = i + 1; j <= src.dim(); j++) {
+        for (int64_t j = i + 1; j <= select_size.size(); j++) {
           temp_size.emplace_back(select_size[j - 1]);
           temp_stride.emplace_back(select_stride[j - 1]);
           i = j + 1;
@@ -78,7 +78,7 @@ class SelectContiguousOpt : public ContiguousOpt {
       }
     }
 
-    for (int64_t i = 0; i <= src.dim(); i++) {
+    for (int64_t i = 0; i <= select_size.size(); i++) {
       if (base_size[i] == temp_size[i] && base_stride[i] == temp_stride[i]) {
         continue;
       } else {
@@ -89,7 +89,7 @@ class SelectContiguousOpt : public ContiguousOpt {
     // Collect the select infos for SliceD: dim, start, length
     // confirm the selected dim
     int64_t dim = base_size.size() - 1;
-    for (int64_t i = 0; i < src.dim(); i++) {
+    for (int64_t i = 0; i < select_size.size(); i++) {
       if (base_size[i] != select_size[i] ||
           base_stride[i] != select_stride[i]) {
         dim = i;
@@ -98,7 +98,7 @@ class SelectContiguousOpt : public ContiguousOpt {
     }
 
     // Obtain start index and select length
-    int64_t int_index = src.storage_offset() / base_stride[dim];
+    int64_t int_index = src_desc.offset_ / base_stride[dim];
     for (int64_t i = 0; i < base_size.size(); i++) {
       if (i == dim) {
         start.emplace_back(int_index);
@@ -112,12 +112,12 @@ class SelectContiguousOpt : public ContiguousOpt {
   }
 
   void select_to_contiguous(
-      const Tensor& src,
       Tensor& self,
-      SmallVector<int64_t, SHAPE_SIZE>& start,
-      SmallVector<int64_t, SHAPE_SIZE>& length) {
-    auto base_size = src.storage().get_npu_desc().base_sizes_;
-
+      const Tensor& src,
+      SmallVector<int64_t, MAX_DIM>& start,
+      SmallVector<int64_t, MAX_DIM>& length,
+      const ContiguousTensorDesc& src_desc) {
+    const auto& base_size = src_desc.base_sizes_;
     // Recover base tensor(necessary) a = b.select(1, 1)
     Tensor temp_src = at::empty(base_size, src.options());
     temp_src.set_(
@@ -128,8 +128,8 @@ class SelectContiguousOpt : public ContiguousOpt {
 
     // construct StridedSlice param
     auto axis_size = start.size();
-    SmallVector<int64_t, SHAPE_SIZE> strides (axis_size, 1);
-    SmallVector<int64_t, SHAPE_SIZE> end;
+    SmallVector<int64_t, MAX_DIM> strides (axis_size, 1);
+    SmallVector<int64_t, MAX_DIM> end;
     int64_t shrink_mask = 0;
     for (auto i = 0; i < axis_size; ++i) {
       end.emplace_back(start[i] + length[i]);

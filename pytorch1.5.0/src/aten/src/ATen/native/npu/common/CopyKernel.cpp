@@ -170,7 +170,7 @@ void copy_d2d_dtype_baseformat(
     if (c10::npu::NpuRunMode::IsGraphMode()) {
       // In graph mode, in order to identify and call the corresponding npu operators,
       // opt is necessary for contiguous tensor, such as reshape/slice/select. 
-      std::vector<std::string> contiguous_opt_cases = {"reshape", "slice", "select"};
+      OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
       if (TransContiguous::ContiguousOptimizeWithBaseFormat(
           self, src, contiguous_opt_cases)) {
         return;

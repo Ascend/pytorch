@@ -24,10 +24,13 @@
 namespace at {
 namespace native {
 namespace npu {
-bool can_use_memecpy_for_NZ_format(const Tensor& tensor);
-bool can_use_memcpy_for_other_format(const Tensor& src);
-bool check_reshape_match(const Tensor& src, Tensor& self);
-bool check_reshape_match(const Tensor& tensor);
+bool can_use_memecpy_for_NZ_format(const ContiguousTensorDesc&);
+bool can_use_memcpy_for_other_format(const ContiguousTensorDesc&);
+bool check_reshape_match_flex(const ContiguousTensorDesc&, const ContiguousTensorDesc&);
+bool check_reshape_match(const ContiguousTensorDesc&, const ContiguousTensorDesc&);
+bool check_reshape_match_flex(const ContiguousTensorDesc&);
+bool check_reshape_match(const ContiguousTensorDesc&);
+bool CanUseMemcpyForOtherFormat(const Tensor&);
 } // namespace npu
 } // namespace native
 } // namespace at

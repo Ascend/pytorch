@@ -127,8 +127,6 @@ REGISTER_OPTION_HOOK(profiling, [](const std::string&val) {
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDEnable, MM_BMM_ND_ENABLE, "disable", "enable")
-
-REGISTER_OPTION_UNIQ(isUseHcom, ge.exec.isUseHcom, cli)
 } // namespace env
 } // namespace npu
 } // namespace native

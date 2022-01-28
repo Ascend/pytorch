@@ -122,8 +122,7 @@ void GraphExecutor::Init() {
        ge::AscendString(device_id.data())},
       {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
       {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
-      {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
-      {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
+      {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"}
   };
 
   static std::map<const std::string, const std::string>
@@ -148,10 +147,9 @@ void GraphExecutor::Init() {
     config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
   }
 
-  static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
-  auto hcom_val = c10::npu::GetOption(HCOM_OPTIONS);
-  if (hcom_val.has_value() && (!hcom_val.value().empty())) {
-    config.emplace(HCOM_OPTIONS.data(), hcom_val.value().data());
+  if (c10::npu::acl::IsExistQueryEventRecordedStatus()) {
+    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+    config.emplace(HCOM_OPTIONS.data(), "1");
   }
 
   config["ge.session_device_id"] = ge::AscendString(device_id.data());

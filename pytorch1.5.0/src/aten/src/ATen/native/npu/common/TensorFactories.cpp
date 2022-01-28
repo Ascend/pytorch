@@ -532,11 +532,10 @@ AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
-  RECORD_HOST_FUNCTION("clone_npu", vector<c10::IValue>({src}));
-  std::vector<string> opt_patterns{"reshape", "slice"};
-  if (TransContiguous::CanOptimize(src, opt_patterns)) {
+  OptimizationCases opt_cases{"reshape", "slice"};
+  if (TransContiguous::CanOptimize(src, opt_cases)) {
     auto formatTempTensor =
-        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_patterns);
+        TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
     return formatTempTensor.value();
   } else {
     auto baseSelf =

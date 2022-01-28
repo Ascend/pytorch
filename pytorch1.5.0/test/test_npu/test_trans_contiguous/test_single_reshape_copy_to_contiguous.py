@@ -158,7 +158,39 @@ class SingleViewCopyToContiguous(TestCase):
             else:
                 self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "narrow_npuSlice is not called!")
             cpu_out2 = cpu_input[1:10,:,:].clone()
-            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())       
+            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+    
+    def test_select_at_first_axis_to_single_element_tensor_copy(self, device):
+        dtype_list = [torch.float32]
+        format_list = [2, 3, 29]
+        shape_format = [
+            [i, j] for i in dtype_list for j in format_list
+        ]
+        
+        for item in shape_format: 
+            cpu_input = torch.tensor([1.0]).to(item[0])
+            npu_input = cpu_input.npu().npu_format_cast(item[1])
+
+            match_case = (item[1] == 2)
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input[0].clone()
+            if match_case:
+                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), True, "View_d2dCopyAsync is not called!")
+            else:
+                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), True, "narrow_npuSlice is not called!")
+            cpu_out1 = cpu_input[0].clone()
+            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
+
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input[0] + 1
+            if match_case:
+                self.assertEqual(check_operators_in_prof(['memory_repoint'], prof), True, "memory_repoint is not called!")
+            else:
+                # refresh storage desc after transdata
+                self.assertEqual(check_operators_in_prof(['Identity'], prof), True, "Identity is not called!")
+            cpu_out2 = cpu_input[0] + 1
+            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+
                 
 instantiate_device_type_tests(SingleViewCopyToContiguous, globals(), except_for='cpu')
 if __name__ == "__main__":

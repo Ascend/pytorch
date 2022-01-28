@@ -16,39 +16,43 @@
 #ifndef __NATIVE_NPU_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 #define __NATIVE_NPU_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 
-#include <ATen/native/npu/utils/NpuUtils.h>
 #include <c10/npu/OptionsManager.h>
 #include <torch/csrc/autograd/record_function.h>
-#include "ATen/native/npu/contiguous/contiguous_register.h"
-
+#include <ATen/native/npu/utils/KernelNpuOutputSize.h>
+#include <ATen/native/npu/contiguous/contiguous_register.h>
+#include <ATen/native/npu/utils/OpPreparation.h>
 namespace at {
 namespace native {
 namespace npu {
-
 class TransContiguous {
  public:
   TransContiguous() {}
   virtual ~TransContiguous() {}
-  static std::vector<string> FindMatchOptimizationsKeywords(
-      const Tensor& tensor);
   static bool CheckClone(const Tensor& src, Tensor& self);
-  static bool CanOptimize(const Tensor& src, std::vector<string> optimizations);
+  static ContiguousTensorDesc GetTensorDescInfo(const Tensor& src, const OptimizationCases& opt_cases=optCasesDefault);
+  static bool can_optimize_(ContiguousTensorDesc& tensor_desc);
+  static bool CanOptimize(ContiguousTensorDesc& tensor_desc);
+  static bool CanOptimize(const Tensor& tensor, const OptimizationCases& opt_cases);
+  static bool contiguous_optimize_with_anyformat_(
+      Tensor& self,
+      const Tensor& src,
+      ContiguousTensorDesc& src_desc);
   static bool ContiguousOptimizeWithAnyFormat(
       Tensor& self,
       const Tensor& src,
-      const std::vector<string>& optimizations = optimizations_any_format);
+      const OptimizationCases& opt_cases = optCasesAnyFormat);
   static c10::optional<Tensor> ContiguousOptimizeWithAnyFormat(
       const Tensor& src,
-      const std::vector<string>& optimizations = optimizations_any_format);
+      const OptimizationCases& opt_cases = optCasesAnyFormat);
   static bool ContiguousOptimizeWithBaseFormat(
       Tensor& self,
       const Tensor& src,
-      std::vector<string> optimizations = optimizations_default,
+      const OptimizationCases& opt_cases = optCasesDefault,
       bool OpenCombined = true);
 
  private:
-  static const std::vector<string> optimizations_default;
-  static const std::vector<string> optimizations_any_format;
+  static OptimizationCases optCasesDefault;
+  static OptimizationCases optCasesAnyFormat;
 };
 
 } // namespace npu
