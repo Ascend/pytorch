@@ -2096,7 +2096,7 @@ The E2E prof tool integrates the framework-layer data obtained by the Profiling 
 Add the following with statement to enable the E2E prof function.
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
@@ -2114,7 +2114,7 @@ The results obtained by using the E2E prof tool are raw data, which can be viewe
 
    ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/1.png)
 
-2. Switch to the **./result** directory in the preceding figure and run the following script:
+2. Switch to the **./results/PROF_**** directory in the preceding figure and run the following script, and the PROF_** folder is automatically generated.
 
    ```
    /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
