@@ -2059,12 +2059,12 @@ E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获�
 添加with语句使能E2E prof功能
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
 
-- profiler_result_path表示prof结果保存路径，默认为当前路径。
+- profiler_result_path表示prof结果保存路径，默认为当前路径，若设置其他路径请确保路径已存在。
 - use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
 
 （因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
@@ -2075,7 +2075,7 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
 
 1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
 
-2. 切换至如上图./result路径后，执行脚本。
+2. 切换至如上图./results/PROF_***路径后，执行下述脚本，其中PROF_***文件夹为自动生成的文件夹。
 
    ```
    /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
