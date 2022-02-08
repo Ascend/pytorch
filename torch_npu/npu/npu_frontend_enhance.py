@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from logging import exception
 import os
 import torch_npu._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
-__all__ = ["set_option", "global_step_inc", "set_start_fuzz_compile_step"]
+__all__ = ["set_option", "global_step_inc", "set_start_fuzz_compile_step", "set_aoe"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -34,7 +35,7 @@ def init_dump():
 
 def set_dump(cfg_file):
     if not os.path.exists(cfg_file):
-        raise AssertionError("cfg_file %s path not exists."%(cfg_file))
+        raise AssertionError("cfg_file %s path does not exists."%(cfg_file))
     cfg_file = os.path.abspath(cfg_file)
     option = {"mdldumpconfigpath": cfg_file}
     torch_npu._C._npu_setOption(option)
@@ -62,3 +63,12 @@ def set_start_fuzz_compile_step(step):
     option = {"fuzzycompileswitch": "disable"}
     torch_npu._C._npu_setOption(option)
 
+def set_aoe(dump_path):
+    if os.path.exists(dump_path):
+        option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
+        torch_npu._C._npu_setOption(option)
+    else:
+        try:
+            os.makedirs(dump_path)
+        except Exception:
+            raise ValueError("the path of '%s' is invaild."%(dump_path))

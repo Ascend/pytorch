@@ -48,8 +48,7 @@ class TestAoe(TestCase):
 
     @classmethod
     def enable_aoe(cls):
-        option = {"autotune": "enable", "autotunegraphdumppath": TestAoe.results_path}
-        torch.npu.set_option(option)
+        torch.npu.set_aoe(TestAoe.results_path)
 
     def test_aoe_dumpgraph(self):
         def train():
