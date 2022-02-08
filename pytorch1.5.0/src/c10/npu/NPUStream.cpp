@@ -232,7 +232,7 @@ LeakyStreamInternals* NPUStream_internals(NPUStream s) {
           si,
           ").",
           " Did you manufacture the StreamId yourself?  Don't do that; use the",
-          " official API like c10::cuda::getStreamFromPool() to get a new stream.");
+          " official API like c10::npu::getStreamFromPool() to get a new stream.");
       return &default_streams[device_index];
     case StreamIdType::HCCL:
       return &npu_streams[device_index][si];
