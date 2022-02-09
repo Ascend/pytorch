@@ -22,13 +22,13 @@ from torch_npu.testing.common_device_type import instantiate_device_type_tests
 from torch_npu.testing.util_test import create_common_tensor
 
 class TestNonzero(TestCase):
-    def cpu_op_exec(self, input):
-        output = torch.nonzero(input)
+    def cpu_op_exec(self, input1):
+        output = torch.nonzero(input1)
         output = output.numpy().astype(np.int32)
         return output
 
-    def npu_op_exec(self, input):
-        output = torch.nonzero(input)
+    def npu_op_exec(self, input1):
+        output = torch.nonzero(input1)
         output = output.to("cpu")
         output = output.numpy().astype(np.int32)
         return output

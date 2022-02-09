@@ -21,8 +21,8 @@ from torch_npu.testing.util_test import create_common_tensor
 
 
 class TestGe(TestCase):
-    def generate_scalar(self, min, max):
-        scalar = np.random.uniform(min, max)
+    def generate_scalar(self, min1, max1):
+        scalar = np.random.uniform(min1, max1)
         return scalar
 
     def cpu_op_exec(self, input1, input2):
@@ -59,8 +59,8 @@ class TestGe(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_exec_scalar(self, input, scalar):
-        output = torch.ge(input, scalar)
+    def cpu_op_exec_scalar(self, input1, scalar):
+        output = torch.ge(input1, scalar)
         output = output.numpy()
         return output
 
@@ -69,8 +69,8 @@ class TestGe(TestCase):
         output = input2.numpy()
         return output
 
-    def npu_op_exec_scalar(self, input, scalar):
-        output = torch.ge(input, scalar)
+    def npu_op_exec_scalar(self, input1, scalar):
+        output = torch.ge(input1, scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -81,13 +81,13 @@ class TestGe(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_inplace_exec_scalar(self, input, scalar):
-        output = input.ge_(scalar)
+    def cpu_op_inplace_exec_scalar(self, input1, scalar):
+        output = input1.ge_(scalar)
         output = output.numpy()
         return output
 
-    def npu_op_inplace_exec_scalar(self, input, scalar):
-        output = input.ge_(scalar)
+    def npu_op_inplace_exec_scalar(self, input1, scalar):
+        output = input1.ge_(scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -96,7 +96,7 @@ class TestGe(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -100, 100)
-            cpu_input3 = torch.randn(item[1][2])<0
+            cpu_input3 = torch.randn(item[1][2]) < 0
             npu_input3 = cpu_input3.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
@@ -123,7 +123,7 @@ class TestGe(TestCase):
     def ge_scalar_out_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
-            cpu_input2 = torch.randn(item[1][2])<0
+            cpu_input2 = torch.randn(item[1][2]) < 0
             npu_input2 = cpu_input2.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)

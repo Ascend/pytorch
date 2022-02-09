@@ -21,8 +21,8 @@ from torch_npu.testing.common_device_type import instantiate_device_type_tests
 from torch_npu.testing.util_test import create_common_tensor
 
 class TestLe(TestCase):
-    def generate_scalar(self, min, max):
-        scalar = np.random.uniform(min, max)
+    def generate_scalar(self, min1, max1):
+        scalar = np.random.uniform(min1, max1)
         return scalar
 
     def cpu_op_exec(self, input1, input2):
@@ -59,8 +59,8 @@ class TestLe(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_exec_scalar(self, input, scalar):
-        output = torch.le(input, scalar)
+    def cpu_op_exec_scalar(self, input1, scalar):
+        output = torch.le(input1, scalar)
         output = output.numpy()
         return output
 
@@ -69,26 +69,26 @@ class TestLe(TestCase):
         output = input2.numpy()
         return output
 
-    def npu_op_exec_scalar(self, input, scalar):
-        output = torch.le(input, scalar)
+    def npu_op_exec_scalar(self, input1, scalar):
+        output = torch.le(input1, scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def cpu_op_inplace_exec_scalar(self, input, scalar):
-        output = input.le_(scalar)
+    def cpu_op_inplace_exec_scalar(self, input1, scalar):
+        output = input1.le_(scalar)
         output = output.numpy()
         return output
 
-    def npu_op_inplace_exec_scalar(self, input, scalar):
-        input = input.to("npu")
-        output = input.le_(scalar)
+    def npu_op_inplace_exec_scalar(self, input1, scalar):
+        input1 = input1.to("npu")
+        output = input1.le_(scalar)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_exec_scalar_out(self, input, scalar, output):
-        torch.le(input, scalar, out=output)
+    def npu_op_exec_scalar_out(self, input1, scalar, output):
+        torch.le(input1, scalar, out=output)
         output = output.to("cpu")
         output = output.numpy()
         return output
@@ -128,7 +128,7 @@ class TestLe(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -100, 100)
-            cpu_input3 = torch.randn(item[1][2])<0
+            cpu_input3 = torch.randn(item[1][2]) < 0
             npu_input3 = cpu_input3.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
@@ -157,7 +157,7 @@ class TestLe(TestCase):
     def le_scalar_out_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
-            cpu_input2 = torch.randn(item[1][2])<0
+            cpu_input2 = torch.randn(item[1][2]) < 0
             npu_input2 = cpu_input2.npu()
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
