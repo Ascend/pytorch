@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::le(const at::Tensor& self, at::Scalar other) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       formatCastOfSelf.sizes(),
-      formatCastOfSelf.options().dtype(kBool),
+      formatCastOfSelf.options().dtype(at::kBool),
       ACL_FORMAT_ND);
   le_out_npu_nocheck(formatCastOfSelf, other, result);
   return result;
@@ -90,7 +90,7 @@ at::Tensor NPUNativeFunctions::le(const at::Tensor& self, const at::Tensor& othe
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      formatCastOfSelf.options().dtype(kBool),
+      formatCastOfSelf.options().dtype(at::kBool),
       ACL_FORMAT_ND);
 
   le_out_npu_nocheck(formatCastOfSelf, formatCastOfOther, result);

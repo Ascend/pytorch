@@ -107,7 +107,6 @@ class TestGe(TestCase):
             cpu_output_out = self.cpu_op_exec_out(cpu_input1, cpu_input2, cpu_input3)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             cpu_output_out = cpu_output_out.astype(npu_output_out.dtype)
-
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
     def test_ge_tensor_out(self, device):
@@ -163,8 +162,9 @@ class TestGe(TestCase):
             npu_output1 = self.npu_op_exec_scalar(npu_input1 > 50, item[1])
             cpu_output2 = self.cpu_op_exec(cpu_input1 > 50, cpu_input2 > 50)
             npu_output2 = self.npu_op_exec(npu_input1 > 50, npu_input2 > 50)
-            self.assertEqual(cpu_output1, npu_output1)
-            self.assertEqual(cpu_output2, npu_output2)
+
+            self.assertRtolEqual(cpu_output1, npu_output1)
+            self.assertRtolEqual(cpu_output2, npu_output2)
 
     def test_ge_scalar_float32(self, device):
         format_list = [0]
@@ -177,7 +177,7 @@ class TestGe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_scalar_float16(self, device):
         format_list = [0]
@@ -191,8 +191,7 @@ class TestGe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_scalar_int32(self, device):
         format_list = [0]
@@ -205,7 +204,7 @@ class TestGe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_tensor_float32(self, device):
         format_list = [0]
@@ -217,7 +216,7 @@ class TestGe(TestCase):
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_tensor_float16(self, device):
         format_list = [0]
@@ -231,8 +230,7 @@ class TestGe(TestCase):
             cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_inplace_float32(self, device):
         format_list = [0]
@@ -244,7 +242,7 @@ class TestGe(TestCase):
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_inplace_float16(self, device):
         format_list = [0, 3]
@@ -258,8 +256,8 @@ class TestGe(TestCase):
             cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_inplace_scalar_float32(self, device):
         format_list = [0]
@@ -272,7 +270,7 @@ class TestGe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_inplace_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_inplace_exec_scalar(npu_input, scalar)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_inplace_scalar_float16(self, device):
         format_list = [0]
@@ -286,14 +284,14 @@ class TestGe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_inplace_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_inplace_exec_scalar(npu_input, scalar)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_ge_mix_dtype(self, device):
-        npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
-        npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
-        npu_output = self.npu_op_exec(npu_input2, npu_input4)
+        cpu_input1, npu_input1 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
+        cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
+        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+        npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
 instantiate_device_type_tests(TestGe, globals(), except_for="cpu")

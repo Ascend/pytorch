@@ -62,7 +62,7 @@ at::Tensor& ne_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::S
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::ne(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -70,8 +70,8 @@ at::Tensor& NPUNativeFunctions::ne(const at::Tensor& self, const at::Tensor& oth
       {self, other},
       result,
       CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-      ScalarType::Bool,
-      IntArrayRef(outputSize));
+      at::ScalarType::Bool,
+      at::IntArrayRef(outputSize));
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
   return result;
 }
@@ -82,7 +82,7 @@ at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, at::Scalar other,
       {self},
       result,
       CalcuOpUtil::get_tensor_npu_format(formatCastOfSelf),
-      ScalarType::Bool,
+      at::ScalarType::Bool,
       formatCastOfSelf.sizes());
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;
@@ -95,7 +95,7 @@ at::Tensor NPUNativeFunctions::ne(const at::Tensor& self, const at::Tensor& othe
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize,
-      formatCastOfSelf.options().dtype(kBool),
+      formatCastOfSelf.options().dtype(at::kBool),
       formatCastOfSelf);
 
   ne_out_npu_nocheck(result, formatCastOfSelf, formatCastOfOther);
@@ -107,7 +107,7 @@ at::Tensor NPUNativeFunctions::ne(const at::Tensor& self, at::Scalar other) {
 
   at::Tensor result = OpPreparation::ApplyTensor(
       formatCastOfSelf,
-      formatCastOfSelf.options().dtype(kBool));
+      formatCastOfSelf.options().dtype(at::kBool));
 
   ne_out_npu_nocheck(result, formatCastOfSelf, other);
   return result;

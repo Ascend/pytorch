@@ -138,7 +138,8 @@ class TestLe(TestCase):
                 cpu_input3 = cpu_input3.to(torch.float32)
             cpu_output_out = self.cpu_op_exec_out(cpu_input1, cpu_input2, cpu_input3)
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
-            cpu_output_out = cpu_output_out.astype(npu_output_out.dtype)
+            if cpu_input1.dtype == torch.float16:
+                cpu_output_out = cpu_output_out.astype(np.float16)
 
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
@@ -165,7 +166,8 @@ class TestLe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output_out = self.cpu_op_exec_scalar_out(cpu_input1, scalar, cpu_input2)
             npu_output_out = self.npu_op_exec_scalar_out(npu_input1, scalar, npu_input2)
-            cpu_output_out = cpu_output_out.astype(npu_output_out.dtype)
+            if cpu_input1.dtype == torch.float16:
+                cpu_output_out = cpu_output_out.astype(np.float16)
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
     def test_le_scalar_out(self, device):
@@ -191,7 +193,7 @@ class TestLe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_scalar_int32(self, device):
         format_list = [0]
@@ -204,9 +206,9 @@ class TestLe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_gt_scalar_float16(self, device):
+    def test_le_scalar_float16(self, device):
         format_list = [0]
         shape_list = [(5, 3), (2, 3, 4)]
         shape_format = [
@@ -218,8 +220,7 @@ class TestLe(TestCase):
             scalar = self.generate_scalar(0, 100)
             cpu_output = self.cpu_op_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_exec_scalar(npu_input, scalar)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_tensor_float32(self, device):
         format_list = [0]
@@ -231,7 +232,7 @@ class TestLe(TestCase):
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_tensor_float16(self, device):
         format_list = [0]
@@ -245,8 +246,7 @@ class TestLe(TestCase):
             cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)
-            cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_inplace_float32(self, device):
         format_list = [0, 3]
@@ -258,7 +258,7 @@ class TestLe(TestCase):
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_inplace_float16(self, device):
         format_list = [0, 3]
@@ -273,7 +273,7 @@ class TestLe(TestCase):
             cpu_output = self.cpu_op_inplace_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_inplace_exec(npu_input1, npu_input2)
             cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_inplace_scalar_float32(self, device):
         format_list = [0]
@@ -288,7 +288,7 @@ class TestLe(TestCase):
             ncpu_input = copy.deepcopy(cpu_input)
             cpu_output = self.cpu_op_inplace_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_inplace_exec_scalar(npu_input, scalar1)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_inplace_scalar_float16(self, device):
         format_list = [0]
@@ -303,13 +303,13 @@ class TestLe(TestCase):
             cpu_output = self.cpu_op_inplace_exec_scalar(cpu_input, scalar)
             npu_output = self.npu_op_inplace_exec_scalar(npu_input, scalar)
             cpu_output = cpu_output.astype(np.float16)
-            self.assertEqual(cpu_output, npu_output)
+            self.assertRtolEqual(cpu_output, npu_output)
 
     def test_le_mix_dtype(self, device):
-        npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
-        npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
-        cpu_output = self.cpu_op_exec(npu_input1, npu_input3)
-        npu_output = self.npu_op_exec(npu_input2, npu_input4)
+        cpu_input1, npu_input1 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
+        cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
+        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+        npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
 

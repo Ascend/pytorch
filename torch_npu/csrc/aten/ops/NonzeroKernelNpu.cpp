@@ -37,7 +37,7 @@ at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& 
       {self},
       result,
       CalcuOpUtil::get_tensor_npu_format(self),
-      ScalarType::Long,
+      at::ScalarType::Long,
       outputSize);
 
   OpPipeWithDefinedOut pipe;
