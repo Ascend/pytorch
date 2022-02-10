@@ -152,6 +152,9 @@ class Build(build_ext, object):
         if self.compiler and '-Wstrict-prototypes' in self.compiler.compiler_so:
             self.compiler.compiler_so.remove('-Wstrict-prototypes')
 
+        if self.compiler and '-g' in self.compiler.compiler_so:
+            self.compiler.compiler_so.remove('-g')
+
         return super(Build, self).build_extensions()
 
 
