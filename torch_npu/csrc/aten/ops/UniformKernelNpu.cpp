@@ -36,7 +36,7 @@ at::Tensor& uniform_out_npu(
 }
 
 at::Tensor& NPUNativeFunctions::uniform_(at::Tensor& self, double from, double to, c10::optional<at::Generator> gen_) {
-  // TODO(Ascend): The operator needs to use fp32 for calculation.
+  // The operator needs to use fp32 for calculation.
   at::Tensor selfCopy = self;
   if (self.scalar_type() == at::ScalarType::Half) {
     selfCopy = self.to(at::ScalarType::Float);
