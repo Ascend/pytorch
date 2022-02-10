@@ -24,12 +24,14 @@
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
+#include <c10/npu/register/OptionRegister.h>
 #include <torch/csrc/Generator.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/python_strings.h>
 #include <torch/csrc/THP.h>
+#include <torch/csrc/Exceptions.h>
 #include <chrono>
 #include <sstream>
 #include <thread>
@@ -376,6 +378,41 @@ PyObject* THNPModule_finalizeDump(PyObject* _unused, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+
+  if (!PyDict_Check(arg)) {
+    throw torch::TypeError("npu option must be a dict.");
+  }
+
+  PyObject *key = nullptr;
+  PyObject *value = nullptr;
+  Py_ssize_t pos = 0;
+  std::map<std::string, std::string> option;
+
+  while (PyDict_Next(arg, &pos, &key, &value)) {
+    if (key == nullptr || !PyUnicode_Check(key)) {
+      throw torch::TypeError("option name is nullptr or is not string.");
+    }
+
+    if (value == nullptr || !PyUnicode_Check(value)) {
+      throw torch::TypeError("option value is nullptr or is not string.");
+    }
+
+    const char *pKey = PyUnicode_AsUTF8(key);
+    const char *pValue = PyUnicode_AsUTF8(value);
+    option[pKey] = pValue;
+  }
+
+  torch::utils::npu_lazy_init();
+  {
+    pybind11::gil_scoped_release no_gil;
+    c10::npu::SetOption(option);
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -399,6 +436,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_initDump", (PyCFunction)THNPModule_initDump, METH_NOARGS, nullptr},
     {"_npu_setDump", (PyCFunction)THNPModule_setDump, METH_O, nullptr},
     {"_npu_finalizeDump", (PyCFunction)THNPModule_finalizeDump, METH_NOARGS, nullptr},
+    {"_npu_setOption", (PyCFunction)THNPModule_setOption_wrap, METH_O, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

@@ -18,7 +18,6 @@ import inspect
 import multiprocessing
 import multiprocessing.pool
 import os
-import platform
 import re
 import shutil
 import subprocess
@@ -149,10 +148,14 @@ class Clean(distutils.command.clean.clean):
 
 class Build(build_ext, object):
 
-    def run(self):
-        # Run the original BuildExtension first. We need this before building
-        # the tests.
-        build_ext.run(self)
+    def build_extensions(self):
+        if self.compiler and '-Wstrict-prototypes' in self.compiler.compiler_so:
+            self.compiler.compiler_so.remove('-Wstrict-prototypes')
+
+        if self.compiler and '-g' in self.compiler.compiler_so:
+            self.compiler.compiler_so.remove('-g')
+
+        return super(Build, self).build_extensions()
 
 
 build_mode = _get_build_mode()
