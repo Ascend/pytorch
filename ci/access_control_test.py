@@ -20,8 +20,10 @@ import sys
 import subprocess
 from abc import ABCMeta, abstractmethod
 
-DEFAULT_UT_FILE = '../test/test_network_ops/test_add.py'
-CUR_DIR = os.path.abspath(os.path.dirname(__file__))
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'test/test_network_ops/test_add.py')
+
 
 class AccurateTest(metaclass=ABCMeta):
     @abstractmethod
@@ -34,7 +36,7 @@ class AccurateTest(metaclass=ABCMeta):
     @staticmethod
     def find_ut_by_regex(regex):
         ut_files = []
-        cmd = "find {} -name {}".format('../test/test_network_ops', regex)
+        cmd = "find {} -name {}".format(os.path.join(BASE_DIR, 'test'), regex)
         status, output = subprocess.getstatusoutput(cmd)
         if status:
             pass # 对于找不到的暂时不作处理
@@ -75,7 +77,7 @@ class DirectoryStrategy(AccurateTest):
     def identify(self, modify_file):
         second_dir = modify_file.split("/")[0]
         if second_dir == 'test':
-            return [modify_file]
+            return [os.path.join(BASE_DIR, modify_file)]
         return []
 
 
@@ -160,7 +162,6 @@ def exec_ut(ut_files):
     ret_status = 0
     exec_infos = []
     for ut_file in ut_files:
-        os.chdir(CUR_DIR)
         temp_ret = change_dir_and_exec(ut_file)
         if temp_ret:
             ret_status = temp_ret
@@ -175,7 +176,7 @@ def exec_ut(ut_files):
 
 
 if __name__ == "__main__":
-    cur_modify_files = os.path.join(CUR_DIR, '../modify_files.txt')
+    cur_modify_files = os.path.join(BASE_DIR, 'modify_files.txt')
     test_mgr = TestMgr()
     test_mgr.load(cur_modify_files)
     test_mgr.analyze()

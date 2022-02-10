@@ -72,7 +72,8 @@ class TestAmp(TestCase):
         opt_control = torch.optim.SGD(mod_control.parameters(), lr=1.0)
         opt_scaling = torch.optim.SGD(mod_scaling.parameters(), lr=1.0)
 
-        return mod_control, mod_scaling, opt_control, opt_scaling
+        ret = (mod_control, mod_scaling, opt_control, opt_scaling)
+        return ret
 
     def _create_scaling_case(self, device="npu", dtype=torch.float):
         data = [(torch.randn((8, 8), dtype=dtype, device=device), torch.randn((8, 8), dtype=dtype, device=device)),
