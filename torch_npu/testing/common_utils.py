@@ -64,6 +64,7 @@ import torch.backends.mkl
 from enum import Enum
 from torch.autograd import gradcheck
 from torch.autograd.gradcheck import gradgradcheck
+from torch_npu.testing.util_test import set_npu_device
 
 torch.backends.disable_global_flags()
 
@@ -587,9 +588,11 @@ class TestCase(expecttest.TestCase):
     def __init__(self, method_name='runTest'):
         super(TestCase, self).__init__(method_name)
 
+    @classmethod
+    def setUpClass(self):
+        self.npu_device = set_npu_device()
+
     def setUp(self):
-
-
         if TEST_SKIP_FAST:
             if not getattr(self, self._testMethodName).__dict__.get('slow_test', False):
                 raise unittest.SkipTest("test is fast; we disabled it with PYTORCH_TEST_SKIP_FAST")
