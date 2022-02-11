@@ -24,6 +24,7 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
+from .version import __version__ as __version__
 
 __all__ = []
 
