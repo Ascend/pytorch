@@ -898,9 +898,6 @@ supported:
   - var_mean.names_dim
   - view_as
   - where.self
-  - where.ScalarSelf
-  - where.ScalarOther
-  - where.Scalar
   - where
   - _s_where
   - norm_except_dim

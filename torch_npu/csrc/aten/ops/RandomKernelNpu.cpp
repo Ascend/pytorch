@@ -20,7 +20,7 @@
 
 namespace at_npu {
 namespace native {
-using namespace at::native::npu;
+
 namespace {
   constexpr int MAX_ERROR_OF_FP32_TO_FP16 = 16;
 }
@@ -39,7 +39,7 @@ at::Tensor& random_out_npu(at::Tensor& result, at::Tensor& self, int64_t from, i
 at::Tensor& random_npu_(at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
   at::Tensor selfCopy = self;
   if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = self.npu_dtype_cast(at::ScalarType::Float);
+    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
 
   if (!NpuUtils::check_match(&selfCopy)) {
@@ -72,7 +72,7 @@ at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, int64_t to, c10::optio
   random_npu_(self, from, to, gen_);
 
   // fp32 casting to fp16 will introduce error, so needing to counteract it.
-  if (self.scalar_type() == ScalarType::Half) {
+  if (self.scalar_type() == at::ScalarType::Half) {
     self = at::where(self == to, self - MAX_ERROR_OF_FP32_TO_FP16, self);
   }
 

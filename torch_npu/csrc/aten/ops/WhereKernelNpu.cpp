@@ -77,13 +77,13 @@ at::Tensor NPUNativeFunctions::where(
   return at::_s_where(b_condition, b_self, b_other);
 }
 
-SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition){
+at::SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition){
   int64_t dim = condition.dim();
-  at::Tensor boolSelf = condition.npu_dtype_cast(ScalarType::Bool);
-  at::Tensor intSelf  = boolSelf.npu_dtype_cast(ScalarType::Int);
-  at::Tensor coutNonzeroSelf = at::sum(intSelf, ScalarType::Int);
+  at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(condition, at::ScalarType::Bool);
+  at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(condition, at::ScalarType::Int);
+  at::Tensor coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Int);
   int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
-  SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
+  at::SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
   return outputSize;
 }
 
@@ -95,7 +95,7 @@ vector<at::Tensor> NPUNativeFunctions::where(const at::Tensor& condition) {
     formatCastOfCondition = formatCastOfCondition.npu_format_cast(ACL_FORMAT_ND);
   }
   if (condition.scalar_type() == at::ScalarType::Half) {
-    formatCastOfCondition = formatCastOfCondition.npu_dtype_cast(at::ScalarType::Float);
+    formatCastOfCondition = NPUNativeFunctions::npu_dtype_cast(formatCastOfCondition, at::ScalarType::Float);
   }
 
   // calculate the output size
