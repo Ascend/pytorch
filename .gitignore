@@ -193,5 +193,3 @@ TAGS
 
 # bazel symlinks
 bazel-*
-
-torch_npu/version.py

@@ -32,7 +32,7 @@ from setuptools import setup, find_packages, distutils, Extension
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.8.1-rc1'
+VERSION = '1.8.1rc1'
 
 
 def _get_build_mode():
