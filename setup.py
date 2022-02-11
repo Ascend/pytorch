@@ -174,7 +174,9 @@ class PostInstallCommand(install):
     def obfuscate():
         package_dir = get_package_dir()
         assert os.path.exists(os.path.join(package_dir, "torch")), "Cannot find torch."
-        with open(os.path.join(package_dir, "torch/__init__.py"), "a") as f:
+        with open(os.path.join(package_dir, "torch/__init__.py"), "r+") as f:
+            if "import torch_npu" in [line.strip() for line in f.readlines()]:
+                return
             f.write("try:\n    import torch_npu\nexcept:\n    pass\n")
 
 
