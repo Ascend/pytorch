@@ -1099,8 +1099,6 @@ supported:
   - scatter.value
   - scatter.dimname_src
   - scatter.dimname_value
-  - scatter_.reduce
-  - scatter_.value_reduce
   - scatter_add_
   - scatter_add
   - scatter_add.dimname
