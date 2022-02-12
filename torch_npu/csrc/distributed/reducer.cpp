@@ -1074,7 +1074,7 @@ void Reducer::copy_bucket_to_grad(
       if (!grad.defined()) {
         // Creates grad according to the "Gradient Layout Contract"
         // (see torch/csrc/grad/AccumulateGrad.h)
-        grad = OpPreparation::ApplyTensorWithFormat(
+        grad = at_npu::native::OpPreparation::ApplyTensorWithFormat(
           variable.sizes(), bucket_view.options(),
           variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
         at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);

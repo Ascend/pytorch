@@ -33,7 +33,7 @@ public:
   static at::Tensor& CovertSelfToBaseFormat(at::Tensor& src);
 private:
   // help function of format_cast_between_group
-  static void base_format_cast_nocheck(const at::Tensor& dst, const at::Tensor& src);
+  static void base_format_cast_nocheck(at::Tensor& dst, const at::Tensor& src);
 }; // class FormatCastHelper
 
 } // namespace native

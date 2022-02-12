@@ -312,7 +312,7 @@ void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (!FormatHelper::IsBaseFormatType(self)) {
     at::Tensor dst = OpPreparation::ApplyTensor(self);
     copy_h2d_baseformat(dst, src, non_blocking, true);
-    NPUNativeFunctions::npu_format_cast_(dst);
+    NPUNativeFunctions::npu_format_cast_(self, dst);
     return;
   }
   copy_h2d_baseformat(self, src, non_blocking);
@@ -363,7 +363,7 @@ void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) 
     }
     at::Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
     copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
-    NPUNativeFunctions::npu_format_cast_(dst_4D);
+    NPUNativeFunctions::npu_format_cast_(self, dst_4D);
     return;
   }
   copy_d2d_dtype_format(self, src, non_blocking);

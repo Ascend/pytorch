@@ -199,7 +199,7 @@ namespace at_npu
     at::Tensor &OpPreparation::CastBackToOriFormat(at::Tensor &tensor)
     {
       auto &tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
-      tensor.npu_format_cast_(tensor_desc.origin_format_);
+      NPUNativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
       return tensor;
     }
 
@@ -246,7 +246,7 @@ namespace at_npu
       auto format = InferFormat::GuessBaseFormat(sizes);
       return NPUNativeFunctions::empty_with_format(
         sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-        options.device_opt(), options.pinned_memory_opt(), fixFormat);
+        options.device_opt(), options.pinned_memory_opt(), format);
     }
 
     void OpPreparation::CheckMemory(const std::initializer_list<at::Tensor> &inputs, const std::initializer_list<at::Tensor> &outputs)

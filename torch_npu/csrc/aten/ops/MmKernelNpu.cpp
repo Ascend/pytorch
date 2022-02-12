@@ -188,7 +188,7 @@ Return:
       }
       else
       {
-        result = OpPreparation::ApplyTensor(outputSize, self.options());
+        result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
       }
 
       // calculate the output result of the NPU
