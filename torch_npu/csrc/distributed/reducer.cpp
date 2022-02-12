@@ -31,6 +31,7 @@
 #include <torch/csrc/utils/memory.h>
 
 #include "torch_npu/csrc/distributed/reducer.hpp"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace c10d_npu {
 namespace {
@@ -1072,9 +1073,9 @@ void Reducer::copy_bucket_to_grad(
       if (!grad.defined()) {
         // Creates grad according to the "Gradient Layout Contract"
         // (see torch/csrc/grad/AccumulateGrad.h)
-        grad = at::empty_with_format(variable.sizes(),
-                                     bucket_view.options(),
-                                     variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
+        grad = NPUNativeFunctions::empty_with_format(
+          variable.sizes(), bucket_view.options(),
+          variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
         grad.copy_memory_(bucket_view, true);
       } else {
         grad.copy_memory_(bucket_view, true);

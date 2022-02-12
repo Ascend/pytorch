@@ -182,7 +182,7 @@ namespace at_npu
         c10::optional<bool> pin_memory_opt)
     {
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
 
       // calculate the output result of the NPU

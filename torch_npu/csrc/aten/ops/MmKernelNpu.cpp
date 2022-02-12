@@ -183,12 +183,12 @@ Return:
 
       if ((self.scalar_type() == at::ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable())
       {
-        result = at::empty_with_format(
+        result = NPUNativeFunctions::empty_with_format(
             outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
       }
       else
       {
-        result = at::empty_with_format(outputSize, self.options());
+        result = NPUNativeFunctions::empty_with_format(outputSize, self.options());
       }
 
       // calculate the output result of the NPU

@@ -170,7 +170,7 @@ namespace at_npu
       else
       {
         c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-        at::Tensor src_new = at::empty_with_format(
+        at::Tensor src_new = NPUNativeFunctions::empty_with_format(
             src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
         src_new.set_(
             src.storage(),
@@ -206,7 +206,7 @@ namespace at_npu
       auto outputSize = broadcast_ops_npu_output_size(self, other);
 
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           outputSize,
           outputTensor.options(),
           CalcuOpUtil::get_tensor_npu_format(outputTensor));
@@ -223,7 +223,7 @@ namespace at_npu
       // calculate the output size
       auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // calculate the output result of the NPU

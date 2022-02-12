@@ -53,7 +53,7 @@ namespace at_npu
         input = input.to(at::kInt);
       }
 
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           size,
           input.options(),
           CalcuOpUtil::get_tensor_npu_format(self));

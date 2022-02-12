@@ -76,7 +76,7 @@ namespace at_npu
     {
       RECORD_FUNCTION("transpose_to_contiguous", vector<c10::IValue>({self}));
       int64_t self_format = CalcuOpUtil::get_tensor_npu_format(self);
-      at::Tensor result = at::empty_with_format(self.sizes(), self.options(), self_format);
+      at::Tensor result = NPUNativeFunctions::empty_with_format(self.sizes(), self.options(), self_format);
 
       // obtain the transpose axises
       at::IntArrayRef dim;

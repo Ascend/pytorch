@@ -96,11 +96,11 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss_forward(
       outputSize, totalWeightSize);
 
   // construct the output tensor of the NPU
-  at::Tensor result = at::empty_with_format(
+  at::Tensor result = NPUNativeFunctions::empty_with_format(
       std::get<0>(outputSizes),
       self.options(),
       CalcuOpUtil::get_tensor_npu_format(self));
-  at::Tensor total_weight = at::empty_with_format(
+  at::Tensor total_weight = NPUNativeFunctions::empty_with_format(
       std::get<1>(outputSizes),
       self.options(),
       CalcuOpUtil::get_tensor_npu_format(self));

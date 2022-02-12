@@ -17,6 +17,8 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
 
 namespace at_npu
 {
@@ -234,13 +236,13 @@ namespace at_npu
     at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format)
     {
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-      return at::empty_with_format(sizes, options, fixFormat);
+      return NPUNativeFunctions::empty_with_format(sizes, options, fixFormat);
     }
 
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
-      return at::empty_with_format(sizes, options, format);
+      return NPUNativeFunctions::empty_with_format(sizes, options, format);
     }
 
     void OpPreparation::CheckMemory(const std::initializer_list<at::Tensor> &inputs, const std::initializer_list<at::Tensor> &outputs)

@@ -109,7 +109,7 @@ namespace at_npu
         const at::Tensor &src,
         const std::vector<string> &optimizations)
     {
-      auto self = at::empty_with_format(
+      auto self = NPUNativeFunctions::empty_with_format(
           src.sizes(),
           src.options(),
           src.storage().get_npu_desc().npu_format_);

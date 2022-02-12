@@ -213,7 +213,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
   at::Tensor gradBias;
   // construct the output tensor of the NPU
   if (grad_input_mask[0]) {
-    gradInput = at::empty_with_format(
+    gradInput = NPUNativeFunctions::empty_with_format(
         std::get<0>(outputSizes), input.options(), ACL_FORMAT_NC1HWC0);
   }
 
@@ -221,12 +221,12 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
     // For group conv2d: keep consistent with weight to avoid allreduce accuracy problem.
     // For more info: https://gitee.com/ascend/pytorch-develop/pulls/2255
     if (groups > 1) {
-      gradWeight = at::empty_with_format(
+      gradWeight = NPUNativeFunctions::empty_with_format(
           std::get<1>(outputSizes),
           weight.options().dtype(at::kFloat),
           ACL_FORMAT_NCHW);      
     } else {
-      gradWeight = at::empty_with_format(
+      gradWeight = NPUNativeFunctions::empty_with_format(
           std::get<1>(outputSizes),
           weight.options().dtype(at::kFloat),
           ACL_FORMAT_FRACTAL_Z);      
@@ -234,7 +234,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
   }
 
   if (grad_input_mask[2]) {
-    gradBias = at::empty_with_format(
+    gradBias = NPUNativeFunctions::empty_with_format(
         std::get<2>(outputSizes), grad.options(), ACL_FORMAT_NCHW);
   }
 

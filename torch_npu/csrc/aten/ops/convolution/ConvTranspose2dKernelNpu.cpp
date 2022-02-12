@@ -81,7 +81,7 @@ at::Tensor NPUNativeFunctions::npu_conv_transpose2d(
 
   // construct the output tensor of the NPU
   at::Tensor result =
-      at::empty_with_format(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
+      NPUNativeFunctions::empty_with_format(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
 
   // calculate the output result of the NPU
   conv_transpose2d_out_npu(

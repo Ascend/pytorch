@@ -30,11 +30,12 @@
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/Exception.h>
 #include <c10/npu/NPUCachingAllocator.h>
+#include <ATen/record_function.h>
+
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/tensor_impl.h"
@@ -230,7 +231,7 @@ namespace at_npu
         {
           auto npu_format =
               self.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_;
-          result = at::empty_with_format(self.sizes(), self.options(), npu_format);
+          result = NPUNativeFunctions::empty_with_format(self.sizes(), self.options(), npu_format);
         }
       }
 
@@ -347,7 +348,7 @@ namespace at_npu
       options.layout(layout_opt);
       options.pinned_memory(pin_memory_opt);
       at::Tensor result =
-          at::empty_with_format(size, options, dst_format);
+          NPUNativeFunctions::empty_with_format(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -361,7 +362,7 @@ namespace at_npu
                                      int64_t dst_format)
     {
       at::Tensor result =
-          at::empty_with_format(size, options, dst_format);
+          NPUNativeFunctions::empty_with_format(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -376,7 +377,7 @@ namespace at_npu
                                           int64_t dst_format)
     {
       at::Tensor result =
-          at::empty_with_format(size, options, dst_format);
+          NPUNativeFunctions::empty_with_format(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);

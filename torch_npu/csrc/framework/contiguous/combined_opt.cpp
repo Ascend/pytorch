@@ -16,8 +16,10 @@
 #include <map>
 #include <ATen/quantized/QTensorImpl.h>
 #include <ATen/NamedTensorUtils.h>
+
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -498,7 +500,7 @@ namespace at_npu
           {
             // case 2: The first tensor is discontiguous-type,
             // conduct the standard optimization procedure.
-            auto contiguous_src = at::empty_with_format(
+            auto contiguous_src = NPUNativeFunctions::empty_with_format(
                 src.sizes(),
                 src.options(),
                 src.storage().get_npu_desc().npu_format_);
