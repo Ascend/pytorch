@@ -19,7 +19,7 @@
 
 #include <string>
 #include <c10/macros/Export.h>
-#include <torch_npu/csrc/framework/interface/AclInterface.h>
+#include "torch_npu/csrc/framework/interface/AclInterface.h"
 
 typedef enum {
   PROFILING_FINALIZE,

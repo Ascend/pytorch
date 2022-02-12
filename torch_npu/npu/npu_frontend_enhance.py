@@ -155,19 +155,25 @@ class profile(object):
         self.npu_event = config.NpuEventConfig
         self.aicore_metrics = config.AiCoreMetricsConfig
         self.entered = False
-        if self.use_e2e_profiler:
-            raise ValueError("This version dose not support E2E profiling now!")
 
     def __enter__(self):
         if self.entered:
             raise RuntimeError("npu profiler traces are not reentrant")
         self.entered = True
-        prof_init(self.result_path)
-        prof_start(self.npu_event, self.aicore_metrics)
+        if self.use_e2e_profiler:
+            torch_npu._C._enable_e2e_profiler(self.result_path, self.npu_event | npuEvent().ACL_PROF_MSPROFTX,
+                                          self.aicore_metrics)
+        else:
+            prof_init(self.result_path)
+            prof_start(self.npu_event, self.aicore_metrics)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        prof_stop()
-        prof_finalize()
+        if self.use_e2e_profiler:
+            torch_npu._C._disable_e2e_profiler()
+        else:
+            prof_stop()
+            prof_finalize()
         return False
+  
   

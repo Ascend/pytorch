@@ -34,30 +34,57 @@ class SmallModel(torch.nn.Module):
         input_1 = self.conv2(input_1)
         return input_1.reshape(input_1.shape[0], -1)
 
+def run_ops():
+    input_1 = torch.rand(10, 10).npu()
+    input_2 = torch.rand(10, 10).npu()
+    out = input_1*input_2
+
+def run_small_model():
+    input_shape = (4, 3, 24, 24)
+    out_shape = (4, 12, 24, 24)
+    device = "npu"
+    model = SmallModel(input_shape[1], out_shape[1]).to(device)
+    criterion = torch.nn.MSELoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
+    for i in range(10):
+        inputs = torch.rand(input_shape).to(device)
+        target =  torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
+        output = model(inputs)
+        loss = criterion(output, target)
+        loss.backward()
+        optimizer.zero_grad()
+        optimizer.step()
+
+def setUp(results_path, use_e2e_profiler=False):
+    if not os.path.exists(results_path):
+        os.makedirs(results_path)
+    if not use_e2e_profiler:
+        torch.npu.prof_init(results_path)
+    tensor = torch.rand(2,3).npu()
+    result = []
+
+    enevtTypes = [{"ACL_PROF_ACL_API":False}, {"ACL_PROF_TASK_TIME":False}, 
+                    {"ACL_PROF_AICORE_METRICS":False}, {"ACL_PROF_AICPU":False},
+                    {"ACL_PROF_L2CACHE":False}, {"ACL_PROF_HCCL_TRACE":False},
+                    {"ACL_PROF_TRAINING_TRACE":False}]
+
+    enevtTypeCombinations = list(combinations(enevtTypes, 1)) + list(combinations(enevtTypes, 2)) + \
+                            list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
+                            list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6)) 
+    for events in enevtTypeCombinations:
+        temp_events = {}
+        for event in events:
+            temp_events.update(event)
+        result.append(temp_events)
+    return result
+
 class TestCannProfiler(TestCase):
-    enevtTypeResults = []
+    enevtTypeResults = None
     results_path = "./results"
 
     @classmethod
     def setUpClass(cls):
-        if not os.path.exists(TestCannProfiler.results_path):
-            os.makedirs(TestCannProfiler.results_path)
-        torch.npu.prof_init(TestCannProfiler.results_path)
-        tensor = torch.rand(2,3).npu()
-
-        enevtTypes = [{"ACL_PROF_ACL_API":False}, {"ACL_PROF_TASK_TIME":False}, 
-                        {"ACL_PROF_AICORE_METRICS":False}, {"ACL_PROF_AICPU":False},
-                        {"ACL_PROF_L2CACHE":False}, {"ACL_PROF_HCCL_TRACE":False},
-                        {"ACL_PROF_TRAINING_TRACE":False}]
-
-        enevtTypeCombinations = list(combinations(enevtTypes, 1)) + list(combinations(enevtTypes, 2)) + \
-                                list(combinations(enevtTypes, 3)) + list(combinations(enevtTypes, 4)) + \
-                                list(combinations(enevtTypes, 5)) + list(combinations(enevtTypes, 6)) 
-        for events in enevtTypeCombinations:
-            temp_events = {}
-            for event in events:
-                temp_events.update(event)
-            TestCannProfiler.enevtTypeResults.append(temp_events)
+        TestCannProfiler.enevtTypeResults = setUp(TestCannProfiler.results_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -65,37 +92,16 @@ class TestCannProfiler(TestCase):
             shutil.rmtree(TestCannProfiler.results_path)
         torch.npu.prof_finalize()
 
-    def _run_ops(self):
-        input_1 = torch.rand(10, 10).npu()
-        input_2 = torch.rand(10, 10).npu()
-        out = input_1*input_2
-
-    def _run_small_model(self):
-        input_shape = (4, 3, 24, 24)
-        out_shape = (4, 12, 24, 24)
-        device = "npu"
-        model = SmallModel(input_shape[1], out_shape[1]).to(device)
-        criterion = torch.nn.MSELoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=0.0001)
-        for i in range(10):
-            inputs = torch.rand(input_shape).to(device)
-            target =  torch.rand(out_shape).reshape(out_shape[0], -1).to(device)
-            output = model(inputs)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-
     def _test_cann_ops(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)
         torch.npu.prof_start(config.NpuEventConfig, config.AiCoreMetricsConfig)
-        self._run_ops()
+        run_ops()
         torch.npu.prof_stop()
 
     def _test_cann_model(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)
         torch.npu.prof_start(config.NpuEventConfig, config.AiCoreMetricsConfig)
-        self._run_small_model()
+        run_small_model()
         torch.npu.prof_stop()
 
     def test_with_ops(self):
@@ -107,6 +113,42 @@ class TestCannProfiler(TestCase):
         for events in TestCannProfiler.enevtTypeResults:
             for i in range(5):
                 self._test_cann_model(**events, aiCoreMetricsType=i)
+
+
+class TestE2EProfiler(TestCase):
+    enevtTypeResults = None
+    results_path = "./results"
+
+    @classmethod
+    def setUpClass(cls):
+        TestE2EProfiler.enevtTypeResults = setUp(TestE2EProfiler.results_path, True)
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(TestE2EProfiler.results_path):
+            shutil.rmtree(TestE2EProfiler.results_path)
+
+    def _test_e2e_ops(self, *args, **kwargs):
+        config = torch.npu.profileConfig(**kwargs)
+        with torch.npu.profile(TestE2EProfiler.results_path, True, config):
+            run_ops()
+
+    def _test_e2e_model(self, *args, **kwargs):
+        config = torch.npu.profileConfig(**kwargs)
+        with torch.npu.profile(TestE2EProfiler.results_path, True, config):
+            run_small_model()
+
+    def test_with_ops(self):
+        for events in TestE2EProfiler.enevtTypeResults:
+            for i in range(5):
+                self._test_e2e_ops(**events, aiCoreMetricsType=i)
+            return
+
+    def test_with_small_model(self):
+        for events in TestE2EProfiler.enevtTypeResults:
+            for i in range(5):
+                self._test_e2e_model(**events, aiCoreMetricsType=i)
+            return
 
 if __name__ == "__main__":
         run_tests()
