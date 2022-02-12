@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include "torch_npu/csrc/framework/utils/IndexingUtils.h"
+#include <ATen/native/IndexingUtils.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
@@ -39,9 +39,9 @@ at::Tensor& index_out_nocheck_npu(
 }
 
 at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {  
-  checkIndexTensorTypes(orig);
+  at::native::checkIndexTensorTypes(orig);
   // first expand BoolTensor (masks) or ByteTensor (masks) into 1 or more LongTensors
-  auto indices = expandTensors(self, orig);
+  auto indices = at::native::expandTensors(self, orig);
   at::Tensor formatCastOfSelf = self.npu_format_cast(ACL_FORMAT_ND);
 
   // calculate the output size
