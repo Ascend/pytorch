@@ -252,7 +252,7 @@ namespace at_npu
       // a temporary tensor, which always monopolizes its own storage.
       if (numelEq && (!FormatHelper::IsBaseFormatType(src)))
       {
-        at::Tensor tempTensor = at::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
+        at::Tensor tempTensor = NPUNativeFunctions::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
         auto &temp_desc =
             tempTensor.storage().unsafeGetStorageImpl()->npu_desc_;
         temp_desc.base_sizes_ = tempTensor.sizes();

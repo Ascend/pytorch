@@ -118,7 +118,7 @@ namespace at_npu
       TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
       // the op of PTNormalFloatFloat only support format of ND
-      at::Tensor formatCastOfResult = result.npu_format_cast(ACL_FORMAT_ND);
+      at::Tensor formatCastOfResult = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
       if (formatCastOfResult.scalar_type() == at::ScalarType::Half)
       {
         formatCastOfResult = formatCastOfResult.to(at::ScalarType::Float);

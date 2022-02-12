@@ -45,7 +45,7 @@ void npu_fast_reshape_(at::Tensor& tensor) {
   // refresh matadata to input tensor
   StorageDescHelper::ReflushDescBySelf(tensor);
   auto base_format = InferFormat::GuessBaseFormat(tensor.sizes());
-  tensor.npu_format_cast_(base_format);
+  NPUNativeFunctions::npu_format_cast_(tensor, base_format);
 }
 } // namespace native
 } // namespace at_npu

@@ -442,7 +442,7 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
         // make sure grad has the same format as variable
         if (grad.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
               variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_) {
-          grad = grad.npu_format_cast(
+          grad = NPUNativeFunctions::npu_format_cast(grad,
               variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
         }
         this->copy_grad_to_bucket(grad, bucket_view);

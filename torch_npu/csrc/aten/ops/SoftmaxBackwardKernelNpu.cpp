@@ -55,7 +55,7 @@ namespace at_npu
       // output'format must be same with grad_output
       if (CalcuOpUtil::get_tensor_npu_format(output) != CalcuOpUtil::get_tensor_npu_format(grad_output))
       {
-        output.npu_format_cast_(CalcuOpUtil::get_tensor_npu_format(grad_output));
+        NPUNativeFunctions::npu_format_cast_(output, CalcuOpUtil::get_tensor_npu_format(grad_output));
       }
 
       // construct the output tensor of the NPU

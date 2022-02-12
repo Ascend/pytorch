@@ -178,13 +178,13 @@ namespace at_npu
         if (output.scalar_type() == at::ScalarType::Float || output.scalar_type() == at::ScalarType::Half)
         {
           TORCH_CHECK(!is_read_write, "can not cast format when output is input");
-          output.npu_format_cast_(format);
+          NPUNativeFunctions::npu_format_cast_(output, format);
         }
         else
         {
           TORCH_CHECK(FormatHelper::IsBaseFormatType(output) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(format)),
                       "can not cast format to un-base format when output has bool dtype");
-          output.npu_format_cast_(format);
+          NPUNativeFunctions::npu_format_cast_(output, format);
         }
       }
     }
