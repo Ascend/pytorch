@@ -138,7 +138,7 @@ namespace at_npu
       }
 
       if (OpenCombined &&
-          c10::npu::OptionsManager::CheckCombinedOptimizerEnable())
+          torch_npu::option::OptionsManager::CheckCombinedOptimizerEnable())
       {
         optimizations.emplace_back("combined");
       }

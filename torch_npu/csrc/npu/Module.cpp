@@ -24,7 +24,6 @@
 #include <c10/npu/NPUCachingAllocator.h>
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
-#include <c10/npu/register/OptionRegister.h>
 #include <torch/csrc/Generator.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
@@ -40,7 +39,8 @@
 #include <torch/csrc/utils/npu_lazy_init.h>
 
 #include "third_party/acl/inc/acl/acl.h"
-
+#include "torch_npu/csrc/register/OptionRegister.h"
+#include "torch_npu/csrc/profiler/cann_profiling.h"
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -407,11 +407,27 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
   torch::utils::npu_lazy_init();
   {
     pybind11::gil_scoped_release no_gil;
-    c10::npu::SetOption(option);
+    torch_npu::option::SetOption(option);
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
+
+PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+
+  PyObject *value_1 = nullptr;
+  PyObject *value_2 = nullptr;
+  if(!PyArg_ParseTuple(args, "OO", &value_1, &value_2)) {
+    throw torch::TypeError("prof_start npu_event type or aicore_metrics set error.");
+  }
+  uint64_t npu_event = THPUtils_unpackLong(value_1);
+  uint64_t aicore_metrics = THPUtils_unpackLong(value_2);
+  pybind11::gil_scoped_release no_gil;
+  torch_npu::profiler::NpuProfiling::Instance().Start(npu_event, aicore_metrics);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+} 
 
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
@@ -437,6 +453,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setDump", (PyCFunction)THNPModule_setDump, METH_O, nullptr},
     {"_npu_finalizeDump", (PyCFunction)THNPModule_finalizeDump, METH_NOARGS, nullptr},
     {"_npu_setOption", (PyCFunction)THNPModule_setOption_wrap, METH_O, nullptr},
+    {"_prof_start", (PyCFunction)THNPModule_prof_start, METH_VARARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

@@ -15,15 +15,14 @@
 // limitations under the License.
 
 #include <limits.h>
-#include <c10/npu/register/OptionRegister.h>
 #include <c10/util/Exception.h>
-#include <ATen/native/npu/profiler/NpuProfiling.h>
 
-#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
-#include "torch_npu/csrc/framework/utils/NpuProfilingDispatch.h"
 #include "third_party/acl/inc/acl/acl_mdl.h"
+#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
+#include "torch_npu/csrc/register/OptionRegister.h"
+#include "torch_npu/csrc/profiler/cann_profiling.h"
 namespace at_npu {
 namespace native {
 namespace env {
@@ -106,23 +105,21 @@ REGISTER_OPTION_HOOK(deliverswitch, [](const std::string &val) {
       "before you prepare to deliver op, ",
       "you should be enture profiling mode is on correctly!");
   if (val == "enable") {
-    NpuProfilingDispatch::Instance().start();
+    torch_npu::profiler::NpuProfilingDispatch::Instance().start();
   } else {
-    NpuProfilingDispatch::Instance().stop();
+    torch_npu::profiler::NpuProfilingDispatch::Instance().stop();
   }
 })
 
 REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string &val) {
-  at::native::npu::NpuProfiling::Instance().Init(val); 
+  torch_npu::profiler::NpuProfiling::Instance().Init(val); 
 })
 
 REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
-  if (val.compare("start") == 0) {
-    at::native::npu::NpuProfiling::Instance().Start();
-  } else if (val.compare("stop") == 0) {
-    at::native::npu::NpuProfiling::Instance().Stop();
+  if (val.compare("stop") == 0) {
+    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Stop();
   } else if (val.compare("finalize") == 0) {
-    at::native::npu::NpuProfiling::Instance().Finalize();
+    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Finalize();
   } else {
     TORCH_CHECK(false, "profiling input: (", val, " ) error!")
   }

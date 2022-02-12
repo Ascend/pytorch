@@ -15,8 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/OptionsManager.h>
-
+#include "torch_npu/csrc/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -36,7 +35,7 @@ namespace at_npu
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
       OpCommand cmd;
-      if (c10::npu::OptionsManager::CheckDynamicOptimizer("MUL"))
+      if (torch_npu::option::OptionsManager::CheckDynamicOptimizer("MUL"))
       {
         cmd.Name("Mul")
             .Expect(unified_result)

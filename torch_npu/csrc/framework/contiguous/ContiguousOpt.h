@@ -16,7 +16,7 @@
 #ifndef __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 #define __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/register/OptionsManager.h"
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
