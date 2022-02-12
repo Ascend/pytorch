@@ -407,9 +407,9 @@ void Reducer::copy_grad_to_bucket(
   if (comm_hook_ == nullptr) {
     // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
     // Divides while copying into the bucket view.
-    bucket_view.copy_memory_(grad.mul(float(1.) / divFactor_), true);
+    NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / divFactor_), true);
   } else {
-    bucket_view.copy_memory_(grad, true);
+    NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
   }
 }
 
@@ -1076,9 +1076,9 @@ void Reducer::copy_bucket_to_grad(
         grad = NPUNativeFunctions::empty_with_format(
           variable.sizes(), bucket_view.options(),
           variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
-        grad.copy_memory_(bucket_view, true);
+        NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       } else {
-        grad.copy_memory_(bucket_view, true);
+        NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       }
       // The grad is modified and needs to be written back.
       return true;
