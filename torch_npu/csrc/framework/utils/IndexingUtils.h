@@ -9,10 +9,9 @@ namespace at_npu { namespace native {
 
 TORCH_API bool canUse32BitIndexMath(const at::Tensor &t, int64_t max_elem=std::numeric_limits<int32_t>::max());
 
-[[noreturn]]
-static void invalid_mask(const at::Tensor & self, int64_t idx, const at::Tensor & mask, int64_t maskIdx) {
+[[noreturn]] static void invalid_mask(const at::Tensor & self, int64_t idx, const at::Tensor & mask, int64_t maskIdx) {
   TORCH_CHECK_INDEX(false, "The shape of the mask ", mask.sizes(), " at index ", maskIdx,
-  " does not match the shape of the indexed tensor ", self.sizes(), " at index ", idx);
+      " does not match the shape of the indexed tensor ", self.sizes(), " at index ", idx);
 }
 
 
@@ -88,8 +87,9 @@ static bool hasContiguousSubspace(at::TensorList tl) {
 // transposeToFront(tensor, {nullptr, a, nullptr, b})
 // returns
 // tensor.permute([1, 3, 0, 2]), {a, b, nullptr, nullptr}
-static std::tuple<at::Tensor, std::vector<at::Tensor>>
-transposeToFront(at::Tensor self, at::TensorList indices) {
+static std::tuple<at::Tensor, std::vector<at::Tensor>> transposeToFront(
+    at::Tensor self, 
+    at::TensorList indices) {
   std::vector<int64_t> dims;
   std::vector<at::Tensor> transposedIndices;
   dims.reserve(self.dim());
@@ -108,8 +108,9 @@ transposeToFront(at::Tensor self, at::TensorList indices) {
   return std::make_tuple(self.permute(dims), std::move(transposedIndices));
 }
 
-inline std::tuple<at::Tensor, std::vector<at::Tensor>, std::vector<int64_t>>
-transposeToFrontAndInvPerm(at::Tensor self, at::TensorList indices) {
+inline std::tuple<at::Tensor, std::vector<at::Tensor>, std::vector<int64_t>> transposeToFrontAndInvPerm(
+    at::Tensor self, 
+    at::TensorList indices) {
   std::vector<int64_t> dims;
   std::vector<int64_t> invPerm;
   std::vector<at::Tensor> transposedIndices;

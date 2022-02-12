@@ -21,7 +21,7 @@ from torch_npu.testing.util_test import create_common_tensor
 
 class TestIndex(TestCase):
     def generate_index_data_bool(self, shape): 
-        cpu_input = torch.randn(shape)>0 
+        cpu_input = torch.randn(shape) > 0 
         npu_input = cpu_input.to("npu") 
         return cpu_input, npu_input
 
@@ -103,7 +103,7 @@ class TestIndex(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_index_shape_format_tensor_x(self, device):
-        #test index is [tensor, x] , (x=1,bool,range)
+        # 注：test index is [tensor, x] , (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]       
         shape_list = [[256, 10], [256, 256, 100], [5, 256, 256, 100]]
@@ -152,7 +152,7 @@ class TestIndex(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             
     def test_index_shape_format_list_x(self, device):
-        #test index is [list, x],  (x=1,bool,range)
+        # 注：test index is [list, x],  (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
         shape_list = [[256, 10], [256, 256, 100], [5, 256, 256, 100]]
@@ -168,7 +168,7 @@ class TestIndex(TestCase):
                 self.assertRtolEqual(cpu_output, npu_output)  
                                 
     def test_index_shape_format_tensor_bool(self, device):      
-        #test index is bool tensor 
+        # 注：test index is bool tensor 
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
         shape_list = [[256, 10], [256, 256, 100], [5, 256, 256, 100]]        

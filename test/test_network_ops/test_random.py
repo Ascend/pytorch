@@ -23,7 +23,7 @@ from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type
 from torch_npu.testing.util_test import create_common_tensor
 
 class TestRandom(TestCase):
-    @dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
     def test_random_from_to(self, device, dtype):
         size = 2000
         alpha = 0.1
@@ -71,11 +71,12 @@ class TestRandom(TestCase):
                 else:
                     self.assertRaisesRegex(
                         RuntimeError,
-                        "random_ expects 'from' to be less than 'to', but got from=" + str(from_) + " >= to=" + str(to_),
+                        "random_ expects 'from' to be less than 'to', but got from=" \
+                        + str(from_) + " >= to=" + str(to_),
                         lambda: t.random_(from_, to_)
                     )
     
-    @dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
     def test_random_to(self, device, dtype):
         size = 2000
         alpha = 0.1
@@ -118,7 +119,7 @@ class TestRandom(TestCase):
                     lambda: t.random_(from_, to_)
                 )
 
-    @dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
     def test_random_default(self, device, dtype):
         size = 2000
         alpha = 0.1
