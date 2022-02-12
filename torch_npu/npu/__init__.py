@@ -26,7 +26,8 @@ __all__ = [
     "reset_peak_memory_stats", "reset_max_memory_allocated", "reset_max_memory_cached",
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
-    "Stream", "Event", "profiler", "set_option", "set_aoe"
+    "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
+    "prof_start", "prof_stop", "prof_finalize", "profileConfig"
 ]
 
 
@@ -44,4 +45,5 @@ from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_del
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
 from .streams import Stream, Event
 from . import profiler
-from .npu_frontend_enhance import set_option, set_aoe
+from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
+            prof_start, prof_stop, prof_finalize, profileConfig)

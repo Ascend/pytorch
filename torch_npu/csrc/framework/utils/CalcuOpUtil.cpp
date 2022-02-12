@@ -17,7 +17,7 @@
 #include <Python.h>
 #include <ATen/record_function.h>
 #include <c10/npu/NPUCachingAllocator.h>
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/register/OptionsManager.h"
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
@@ -686,7 +686,7 @@ namespace at_npu
         c10::SmallVector<NPUTensorDesc, N> &outputs,
         const c10::SmallVector<NPUAttrDesc, N> &attrs)
     {
-      if (c10::npu::OptionsManager::CheckQueueEnable())
+      if (torch_npu::option::OptionsManager::CheckQueueEnable())
       {
         ExecuteParas cur_paras;
         cur_paras.opType = opName;

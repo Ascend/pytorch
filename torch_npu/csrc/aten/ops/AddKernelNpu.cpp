@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <ATen/Tensor.h>
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/register/OptionsManager.h"
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -121,7 +121,7 @@ namespace at_npu
         }
         else
         {
-          if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD"))
+          if (torch_npu::option::OptionsManager::CheckDynamicOptimizer("ADD"))
           {
             cmd.Name("AxpyV2")
                 .Input(self)
