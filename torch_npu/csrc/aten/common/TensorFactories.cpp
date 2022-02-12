@@ -231,7 +231,7 @@ namespace at_npu
         {
           auto npu_format =
               self.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_;
-          result = NPUNativeFunctions::empty_with_format(self.sizes(), self.options(), npu_format);
+          result = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), npu_format);
         }
       }
 
@@ -348,7 +348,7 @@ namespace at_npu
       options.layout(layout_opt);
       options.pinned_memory(pin_memory_opt);
       at::Tensor result =
-          NPUNativeFunctions::empty_with_format(size, options, dst_format);
+          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -362,7 +362,7 @@ namespace at_npu
                                      int64_t dst_format)
     {
       at::Tensor result =
-          NPUNativeFunctions::empty_with_format(size, options, dst_format);
+          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -377,7 +377,7 @@ namespace at_npu
                                           int64_t dst_format)
     {
       at::Tensor result =
-          NPUNativeFunctions::empty_with_format(size, options, dst_format);
+          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -628,7 +628,7 @@ namespace at_npu
       AT_ASSERT(result.is_contiguous());
       AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
                                         { std::copy(
-                                            values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
+                                              values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
       return result;
     }
 

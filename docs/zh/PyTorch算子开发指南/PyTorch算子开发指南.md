@@ -524,7 +524,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
           auto outputSize = broadcast_ops_npu_output_size(self, other);
         
           // construct the output tensor of the NPU
-          Tensor result = NPUNativeFunctions::empty_with_format(
+          Tensor result = OpPreparation::ApplyTensorWithFormat(
               outputSize,
               outputTensor.options(),
               CalcuOpUtil::get_tensor_npu_format(outputTensor));
@@ -541,7 +541,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
           // calculate the output size
           auto outputSize = input_same_output_size(self);
           // construct the output tensor of the NPU
-          Tensor result = NPUNativeFunctions::empty_with_format(
+          Tensor result = OpPreparation::ApplyTensorWithFormat(
               outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
         
           // calculate the output result of the NPU

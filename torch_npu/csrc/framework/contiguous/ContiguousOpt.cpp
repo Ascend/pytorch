@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu
 {
@@ -109,7 +110,7 @@ namespace at_npu
         const at::Tensor &src,
         const std::vector<string> &optimizations)
     {
-      auto self = NPUNativeFunctions::empty_with_format(
+      auto self = OpPreparation::ApplyTensorWithFormat(
           src.sizes(),
           src.options(),
           src.storage().get_npu_desc().npu_format_);

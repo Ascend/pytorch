@@ -183,12 +183,12 @@ Return:
 
       if ((self.scalar_type() == at::ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable())
       {
-        result = NPUNativeFunctions::empty_with_format(
+        result = OpPreparation::ApplyTensorWithFormat(
             outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
       }
       else
       {
-        result = NPUNativeFunctions::empty_with_format(outputSize, self.options());
+        result = OpPreparation::ApplyTensor(outputSize, self.options());
       }
 
       // calculate the output result of the NPU

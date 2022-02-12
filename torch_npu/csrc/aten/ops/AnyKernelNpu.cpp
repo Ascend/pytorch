@@ -70,7 +70,7 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self, int64_t dim, bool kee
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
 
   // construct the output tensor of the NPU
-  at::Tensor result = NPUNativeFunctions::empty_with_format(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU  
@@ -88,7 +88,7 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self) {
   // when self's dim = 0, convert [1] tensor and reduce it
   if (self.dim() == 0) {
       at::Tensor self_tmp = self;
-      self_tmp = NPUNativeFunctions::empty_with_format(
+      self_tmp = OpPreparation::ApplyTensorWithFormat(
           {1}, 
           self.options().dtype(at::ScalarType::Float), 
           CalcuOpUtil::get_tensor_npu_format(self))

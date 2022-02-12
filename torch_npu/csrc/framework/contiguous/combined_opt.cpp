@@ -19,7 +19,7 @@
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu
 {
@@ -389,7 +389,7 @@ namespace at_npu
         // baseInfo = inferred info(infer_size, infer_stride, infer_offset)
         // If the first inferred tensor can be optimized, store its info.
         if (can_infer_view_tensor(
-            src, temp_src, infer_size, infer_stride, infer_offset) &&
+                src, temp_src, infer_size, infer_stride, infer_offset) &&
             emplace_info(
                 temp_src, view_infos, view_offsets, infer_offset, max_len))
         {
@@ -500,7 +500,7 @@ namespace at_npu
           {
             // case 2: The first tensor is discontiguous-type,
             // conduct the standard optimization procedure.
-            auto contiguous_src = NPUNativeFunctions::empty_with_format(
+            auto contiguous_src = OpPreparation::ApplyTensorWithFormat(
                 src.sizes(),
                 src.options(),
                 src.storage().get_npu_desc().npu_format_);

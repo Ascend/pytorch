@@ -119,7 +119,7 @@ namespace at_npu
       outputSize[1] = c1_len.toInt() * 16;
 
       // construct the output at::Tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // calculate the output result of the NPU

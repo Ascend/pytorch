@@ -25,6 +25,7 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu
 {
@@ -165,7 +166,7 @@ namespace at_npu
       // 3. get output size
       auto outputSize = index_select_npu_output_size(src_tmp, dim, index);
       int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(src_tmp);
-      at::Tensor result = NPUNativeFunctions::empty_with_format(outputSize, src_tmp.options(), npu_format);
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, src_tmp.options(), npu_format);
       // std::cout << "npu_format: " << npu_format << std::endl;
 
       // 4. get input and output
@@ -208,7 +209,7 @@ namespace at_npu
     at::Tensor deal_with_5d_5d_match(const at::Tensor &src)
     {
       auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-      at::Tensor src_new = NPUNativeFunctions::empty_with_format(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
+      at::Tensor src_new = OpPreparation::ApplyTensorWithFormat(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
       c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
       int64_t numel = src_new.numel();
       aclError error = aclrtMemcpyAsync(

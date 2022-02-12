@@ -50,7 +50,7 @@ namespace at_npu
     at::Tensor NPUNativeFunctions::neg(const at::Tensor &self)
     {
       // construct the output tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           self.sizes(), self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // calculate the output result of the NPU
