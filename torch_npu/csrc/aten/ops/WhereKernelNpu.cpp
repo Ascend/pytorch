@@ -80,7 +80,7 @@ at::Tensor NPUNativeFunctions::where(
 at::SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition){
   int64_t dim = condition.dim();
   at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(condition, at::ScalarType::Bool);
-  at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(intSelf, at::ScalarType::Int);
+  at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
   at::Tensor coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Int);
   int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
   at::SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};

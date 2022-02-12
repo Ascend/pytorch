@@ -184,7 +184,7 @@ class TestIndex(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_index_shape_format_bool_x(self, device):     
-        #test index is [bool, x] , (x=1,bool,range)
+        # 注：test index is [bool, x] , (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
         shape_list = [[256, 10], [256, 256, 100], [5, 256, 256, 100]]
