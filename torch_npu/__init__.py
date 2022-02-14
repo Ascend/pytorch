@@ -24,7 +24,7 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
-from torch_npu.utils import nn_monkey_patches
+from torch_npu.utils import nn_monkey_patches, apply_module_patch
 
 from .version import __version__ as __version__
 
@@ -83,6 +83,7 @@ def _apply_patches(monkey_patches):
 
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
+apply_module_patch()
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():

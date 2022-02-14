@@ -13,20 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .module import LayerNorm, Module
+from .module import LayerNorm, apply_module_patch
 
 
 def _get_monkey_patches():
-    nn_modules = ["activation", "adaptive", "batchnorm", "channelshuffle", "container",
-                  "conv", "distance", "dropout", "flatten", "fold", "instancenorm",
-                  "linear", "loss", "module", "normalization", "padding", "pixelshuffle",
-                  "pooling", "rnn", "sparse", "transformer", "upsampling"]
     _monkey_patches = []
-    for module_name in nn_modules:
-        _monkey_patches.append([f"nn.modules.{module_name}.Module", Module])
-
-    _monkey_patches.append(["nn.Module", Module])
-    _monkey_patches.append(["nn.modules.Module", Module])
     _monkey_patches.append(["nn.modules.normalization.LayerNorm", LayerNorm])
     _monkey_patches.append(["nn.modules.LayerNorm", LayerNorm])
     _monkey_patches.append(["nn.LayerNorm", LayerNorm])
