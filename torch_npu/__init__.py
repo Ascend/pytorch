@@ -24,6 +24,8 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
+from torch_npu.utils import nn_monkey_patches
+
 from .version import __version__ as __version__
 
 __all__ = []
@@ -35,16 +37,20 @@ for name in dir(torch_npu._C._VariableFunctions):
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
 
+all_monkey_patches = [
+    ["npu", torch_npu.npu],
+    ["npu.amp", torch_npu.npu.amp],
+    ["autograd.profiler", torch_npu.npu.profiler],
+    ["distributed", torch_npu.distributed],
+    ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
+    ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group]
+]
 
-def _apply_patches():
-    monkey_patches = [
-        ["npu", torch_npu.npu],
-        ["npu.amp", torch_npu.npu.amp],
-        ["autograd.profiler", torch_npu.npu.profiler],
-        ["distributed", torch_npu.distributed],
-        ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
-        ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group]
-    ]
+all_monkey_patches += nn_monkey_patches
+
+
+def _apply_patches(monkey_patches):
+    
     def _getattr(module_list, root_module=torch):
         if len(module_list) <= 1:
             return root_module
@@ -76,7 +82,7 @@ def _apply_patches():
             setattr(dest_module, attr, getattr(patch, attr))
 
 # Apply monkey-patches.
-_apply_patches()
+_apply_patches(all_monkey_patches)
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
