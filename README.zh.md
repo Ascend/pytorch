@@ -77,7 +77,6 @@ source pytorch/env.sh
 
 ```
 export TASK_QUEUE_ENABLE=1 # 使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1
-export PTCOPY_ENABLE=1 # 使用PTCopy算子模式，加速转连续及copy等过程，建议默认开启，开启设置为1
 ```
 
 可选的环境变量可能会对运行的模型产生影响:

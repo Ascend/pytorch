@@ -73,7 +73,6 @@ The following environment variables are function classes used in NPU scenarios o
 
 ```
 export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to 1.
-export PTCOPY_ENABLE=1 # Use the PTCopy operator mode to accelerate continuous rotation and copy. You are advised to enable this environment variable and set its value to 1.
 ```
 
 The following are optional environment variables that may affect running models:

@@ -128,3 +128,21 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
+
+def check_operators_in_prof(expected_operators, prof, unexpected_operators=None):
+    unexpected_operators = unexpected_operators or []
+    prof_key_averages = prof.key_averages()
+    if not prof_key_averages:
+        return print("torch profiling is empty, please check it")
+    for prof_item in prof_key_averages:        
+        if prof_item.key in unexpected_operators:
+            # if unexpected oprators are called, pattern inferring in trans-contiguous is failed
+            return False
+        elif prof_item.key in expected_operators:
+            # if expected oprator is called, empty it in expected_operators list
+            expected_operators.remove(prof_item.key)
+            
+    # if expected_operators list is empty, all oprators have been called
+    if not expected_operators:
+        return True
+    return False

@@ -27,7 +27,7 @@ namespace at_npu
     public:
       bool Optimizer(const at::Tensor &src, at::Tensor &self) override
       {
-        // Pattern slice. Current pattern should be used before PTcopy process.
+        // Pattern slice.
         // Current pattern does not directly depend on other patterns.
         // The relative sequence of this pattern and other patterns is not important.
         c10::SmallVector<int64_t, SHAPE_SIZE> offsets;
