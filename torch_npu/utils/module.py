@@ -67,35 +67,32 @@ def to(self, *args, **kwargs):
 
 
 def cast_weight(self, device):
-    if device is None:
-        return
-
-    if "npu" not in str(device):
+    if device is None or "npu" not in str(device):
         return
 
     current_class = self.__class__
     if issubclass(current_class, torch.nn.Linear):
         self.weight.data = self.weight.data.to(device)
-        self.weight.data = torch_npu.npu_format_cast(self.weight.data, 29) #ACL_FORMAT_FRACTAL_NZ
-    elif issubclass(current_class, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
-        if self.affine == True:
+        self.weight.data = torch_npu.npu_format_cast(self.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+    if issubclass(current_class, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
+        if self.affine:
             self.weight.data = self.weight.data.to(device)
-            self.weight.data = torch_npu.npu_format_cast(self.weight.data, 3)  #ACL_FORMAT_NC1HWC0
+            self.weight.data = torch_npu.npu_format_cast(self.weight.data, 3)  # ACL_FORMAT_NC1HWC0
             self.bias.data = self.bias.data.to(device)
             self.bias.data = torch_npu.npu_format_cast(self.bias.data, 3)
         self.running_mean.data = self.running_mean.data.to(device)
         self.running_mean.data = torch_npu.npu_format_cast(self.running_mean.data, 3)
         self.running_var.data = self.running_var.data.to(device)
         self.running_var.data = torch_npu.npu_format_cast(self.running_var.data, 3)
-    elif issubclass(current_class, torch.nn.Conv2d):
+    if issubclass(current_class, torch.nn.Conv2d):
         if (self.in_channels == self.groups and self.groups > 1 and self.weight.size(0) % self.in_channels == 0):
             return
         self.weight.data = self.weight.data.to(device)
-        self.weight.data = torch_npu.npu_format_cast(self.weight.data, 4)  #ACL_FORMAT_FRACTAL_Z
-    elif issubclass(current_class, torch.nn.Conv3d):
+        self.weight.data = torch_npu.npu_format_cast(self.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
+    if issubclass(current_class, torch.nn.Conv3d):
         self.weight.data = self.weight.data.to(device)
-        self.weight.data = torch_npu.npu_format_cast(self.weight.data.half(), 33).float()  #ACL_FRACTAL_Z_3D
-    elif ("MultiheadAttention" in str(current_class)):
+        self.weight.data = torch_npu.npu_format_cast(self.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
+    if ("MultiheadAttention" in str(current_class)):
         if hasattr(self,"q_proj_weight") and self.q_proj_weight is not None and \
             hasattr(self,"k_proj_weight") and self.k_proj_weight is not None and \
             hasattr(self,"v_proj_weight") and self.v_proj_weight is not None:

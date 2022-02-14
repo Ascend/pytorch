@@ -237,16 +237,16 @@ namespace at_npu
     {
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
       return NPUNativeFunctions::empty_with_format(
-        sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-        options.device_opt(), options.pinned_memory_opt(), fixFormat);
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), fixFormat);
     }
 
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
       return NPUNativeFunctions::empty_with_format(
-        sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
-        options.device_opt(), options.pinned_memory_opt(), format);
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), format);
     }
 
     void OpPreparation::CheckMemory(const std::initializer_list<at::Tensor> &inputs, const std::initializer_list<at::Tensor> &outputs)

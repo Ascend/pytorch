@@ -60,7 +60,7 @@ def _apply_patches(monkey_patches):
         else:
             empty_module_name = f'{root_module.__name__}.{module_list[0]}'
             sys.modules[empty_module_name] = types.ModuleType(empty_module_name)
-            setattr(root_module, module_list[0], sys.modules[empty_module_name])
+            setattr(root_module, module_list[0], sys.modules.get(empty_module_name))
             return _getattr(module_list[1:], getattr(root_module, module_list[0]))
 
     for patch_pair in monkey_patches:

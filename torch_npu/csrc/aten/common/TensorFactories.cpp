@@ -628,7 +628,7 @@ namespace at_npu
       AT_ASSERT(result.is_contiguous());
       AT_DISPATCH_ALL_TYPES_AND_COMPLEX(result.scalar_type(), "tensor_npu", [&]
                                         { std::copy(
-                                              values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
+                                            values.begin(), values.end(), result.template data_ptr<scalar_t>()); });
       return result;
     }
 
