@@ -83,9 +83,9 @@ at::Tensor pure_bmm_v2_npu(const at::Tensor& self, const at::Tensor& mat2, const
   at::Tensor result;
 
   if ((tensor1.scalar_type() == at::ScalarType::Half)) {
-    result = NPUNativeFunctions::empty_with_format(output_size, tensor1.options(), ACL_FORMAT_FRACTAL_NZ);
+    result = OpPreparation::ApplyTensorWithFormat(output_size, tensor1.options(), ACL_FORMAT_FRACTAL_NZ);
   } else {
-    result = NPUNativeFunctions::empty_with_format(output_size, tensor1.options(), ACL_FORMAT_ND);
+    result = OpPreparation::ApplyTensorWithFormat(output_size, tensor1.options(), ACL_FORMAT_ND);
   }
 
   at::Tensor contiguous_self = tensor1;
