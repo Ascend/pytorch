@@ -25,30 +25,30 @@ class TestLayerNorm(TestCase):
     def getWeightGrad(self, grad):
         self.weight_grad.append(grad.cpu())
 
-    def cpu_op_exec(self, input, normalized_shape):
-        input.requires_grad_(True)
-        input.retain_grad()
+    def cpu_op_exec(self, input1, normalized_shape):
+        input1.requires_grad_(True)
+        input1.retain_grad()
         m = torch.nn.LayerNorm(normalized_shape=normalized_shape)
-        res = m(input)
+        res = m(input1)
         w = torch.ones_like(res)
         res.backward(w)
 
-        grad_output = input.grad.detach().numpy()
+        grad_output = input1.grad.detach().numpy()
         grad_bias = m.bias.grad.detach().numpy()
         grad_weight = m.weight.grad.detach().numpy()
         return grad_output, grad_weight, grad_bias
 
-    def npu_op_exec_new(self, input, normalized_shape):
-        input.requires_grad_(True)
-        input.retain_grad()
-        input = input.npu()
+    def npu_op_exec_new(self, input1, normalized_shape):
+        input1.requires_grad_(True)
+        input1.retain_grad()
+        input1 = input1.npu()
         m = torch.nn.LayerNorm(normalized_shape = normalized_shape).npu() 
         m.weight.register_hook(lambda grad: self.getWeightGrad(grad))
-        res = m(input)
+        res = m(input1)
         w = torch.ones_like(res)
         res.backward(w)
 
-        grad_output = input.grad.cpu().detach().numpy()
+        grad_output = input1.grad.cpu().detach().numpy()
         grad_bias = m.bias.grad.cpu().detach().numpy()
         grad_weight = m.weight.grad.cpu().detach().numpy()
         return grad_output, grad_weight, grad_bias

@@ -22,26 +22,26 @@ namespace native {
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
     const at::Tensor& input,
-    at::IntArrayRef normalized_shape,
     const c10::optional<at::Tensor>& weight_ex,
     const c10::optional<at::Tensor>& bias_ex,
     int64_t M,
     int64_t N,
     double eps) {
-  at::Tensor weight = weight_ex;
-  at::Tensor bias = bias_ex;
-  int64_t M = normalized_shape[0];
-  int64_t N = normalized_shape[1];
+  const at::Tensor& weight_ = c10::value_or_else(weight_ex, [] {return at::Tensor();});
+  at::Tensor weight = weight_;
+  const at::Tensor& bias_ = c10::value_or_else(bias_ex, [] {return at::Tensor();});
+  at::Tensor bias = bias_;
+
   DCHECK_EQ(input.numel(), M * N);
   DCHECK(!weight.defined() || weight.numel() == N);
   DCHECK(!bias.defined() || bias.numel() == N);
 
-  at::Tensor Y = at::empty_with_format(input.sizes(), input.options(), CalcuOpUtil::get_tensor_npu_format(input));
+  at::Tensor Y = OpPreparation::ApplyTensor(input);
   at::Tensor mean;
   at::Tensor variance;
   if (M < 0) {
-    mean = at::empty_with_format({M}, input.options());
-    variance = at::empty_with_format({M}, input.options());
+    mean = OpPreparation::ApplyTensorWithFormat({M}, input.options(), ACL_FORMAT_ND);
+    variance = OpPreparation::ApplyTensorWithFormat({M}, input.options(), ACL_FORMAT_ND);
   } else {
     int64_t numels = 1;
     int64_t begin_dim = 0;
@@ -76,8 +76,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
       bias.resize_(weightDims);
     }
     
-    mean = at::empty_with_format(reduceDims, weight.options());
-    variance = at::empty_with_format(reduceDims, weight.options());
+    mean = OpPreparation::ApplyTensorWithFormat(reduceDims, weight.options(), ACL_FORMAT_ND);
+    variance = OpPreparation::ApplyTensorWithFormat(reduceDims, weight.options(), ACL_FORMAT_ND);
 
     OpCommand cmd;
     cmd.Name("LayerNorm")
@@ -93,19 +93,21 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
       .Run();
 
   }
-  
-  at::Tensor meanResult = mean.reshape({M});
-  at::Tensor varianceResult = variance.reshape({M});
+
+  mean = mean.reshape({M});
+  variance = variance.reshape({M});
         
-  return std::tie(Y, meanResult, varianceResult);
+  return std::tie(Y, mean, variance);
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::layer_norm(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_layer_norm(
     const at::Tensor& input,
     at::IntArrayRef normalized_shape,
-    const c10::optional<at::Tensor>& weight,
-    const c10::optional<at::Tensor>& bias,
+    const c10::optional<at::Tensor>& weight_ex,
+    const c10::optional<at::Tensor>& bias_ex,
     double eps) {
+  const at::Tensor& weight = c10::value_or_else(weight_ex, [] {return at::Tensor();});
+  const at::Tensor& bias = c10::value_or_else(bias_ex, [] {return at::Tensor();});
   const int normalized_ndim = normalized_shape.size();
   TORCH_CHECK(
       normalized_ndim >= 1,

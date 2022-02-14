@@ -44,14 +44,14 @@ class TestLayerNorm(TestCase):
                 weight.cpu()), torch.tensor(bias.cpu()), 1, epsilon, True)
         self.assertRtolEqual(expected_norm.cpu().numpy(), actual_norm.numpy())
 
-    def cpu_op_exec(self, input):
-        m = nn.LayerNorm(input.size()[1:])
-        output = m(input)
+    def cpu_op_exec(self, input1):
+        m = nn.LayerNorm(input1.size()[1:])
+        output = m(input1)
         return output
 
-    def npu_op_exec(self, input):
-        m = nn.LayerNorm(input.size()[1:]).npu()
-        output = m(input)
+    def npu_op_exec(self, input1):
+        m = nn.LayerNorm(input1.size()[1:]).npu()
+        output = m(input1)
         output = output.to("cpu")
         return output
 

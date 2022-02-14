@@ -20,24 +20,24 @@ namespace at_npu {
 namespace native {
 
 tuple<at::Tensor &, at::Tensor &, at::Tensor &> layer_norm_backward_npu_nocheck(
-    Tensor& dX, 
-    Tensor& dgamma, 
-    Tensor& dbeta, 
-    const Tensor& dY,
-    const Tensor& X,
-    const Tensor& mean,
-    const Tensor& variance,
-    const Tensor& gamma,
+    at::Tensor& dX, 
+    at::Tensor& dgamma, 
+    at::Tensor& dbeta, 
+    const at::Tensor& dY,
+    const at::Tensor& X,
+    const at::Tensor& mean,
+    const at::Tensor& variance,
+    const at::Tensor& gamma,
     int64_t M,
     int64_t N) 
 {
   // constructs the input and output NPUTensorDesc
-  SmallVector<int64_t, SIZE> tmpSize = array_to_small_vector(X.sizes());
+  at::SmallVector<int64_t, SIZE> tmpSize = array_to_small_vector(X.sizes());
   for (int i = X.dim() - gamma.dim(); i < X.dim(); i++) {
     tmpSize[i] = 1;
   }
-  Tensor mean_ex = mean.reshape(tmpSize);
-  Tensor variance_ex = variance.reshape(tmpSize);
+  at::Tensor mean_ex = mean.reshape(tmpSize);
+  at::Tensor variance_ex = variance.reshape(tmpSize);
   double eps = 1e-05;
 
   OpCommand cmd;
@@ -52,25 +52,25 @@ tuple<at::Tensor &, at::Tensor &, at::Tensor &> layer_norm_backward_npu_nocheck(
     .Output(dbeta)
     .Run();
 
-  return tuple<Tensor &, Tensor &, Tensor &>(dX, dgamma, dbeta);
+  return tuple<at::Tensor &, at::Tensor &, at::Tensor &>(dX, dgamma, dbeta);
 }
 
-std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu_support(
-    const Tensor& dY,
-    const Tensor& X,
-    const Tensor& mean,
-    const Tensor& variance,
-    const Tensor& gamma,
+std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_backward_npu_support(
+    const at::Tensor& dY,
+    const at::Tensor& X,
+    const at::Tensor& mean,
+    const at::Tensor& variance,
+    const c10::optional<at::Tensor>& gamma_ex,
     int64_t M,
     int64_t N,
-    std::array<bool, 3> output_mask) 
-{
-  Tensor dX;
-  Tensor dgamma;
-  Tensor dbeta;
-  Tensor gammaTemp = gamma;  
+    std::array<bool, 3> output_mask) {
+  const at::Tensor& gamma = c10::value_or_else(gamma_ex, [] {return at::Tensor();});
+  at::Tensor dX;
+  at::Tensor dgamma;
+  at::Tensor dbeta;
+  at::Tensor gammaTemp = gamma;  
   
-  SmallVector<int64_t, 8> tmpSize;
+  at::SmallVector<int64_t, 8> tmpSize;
   int64_t numels = 1;
   for (int64_t i = X.dim() - 1; i >= 0; i--) {
     numels *= X.size(i);
@@ -105,17 +105,18 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward_npu_support(
   return layer_norm_backward_npu_nocheck(dX, dgamma, dbeta, dY, X, mean, variance, gammaTemp, M, N);
 }
 
-std::tuple<Tensor, Tensor, Tensor> layer_norm_backward(
-    const Tensor& dY,
-    const Tensor& X,
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_layer_norm_backward(
+    const at::Tensor& dY,
+    const at::Tensor& X,
     at::IntArrayRef normalized_shape,
-    const Tensor& mean,
-    const Tensor& variance,
+    const at::Tensor& mean,
+    const at::Tensor& variance,
     const c10::optional<at::Tensor>& gamma,
-    const c10::optional<at::Tensor>& bias,
+    const c10::optional<at::Tensor>& beta,
     std::array<bool, 3> output_mask) {
-  const auto input_shape = input.sizes();
-  const auto input_ndim = input.dim();
+  const int normalized_ndim = normalized_shape.size();
+  const auto input_shape = X.sizes();
+  const auto input_ndim = X.dim();
 
   if (input_ndim < normalized_ndim ||
       !input_shape.slice(input_ndim - normalized_ndim)
@@ -142,7 +143,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_backward(
       1LL,
       std::multiplies<int64_t>());
   
-  return layer_norm_backward_npu_nocheck(dY, X, mean, variance, gamma, output_mask);
+  return layer_norm_backward_npu_support(dY, X, mean, variance, gamma, M, N, output_mask);
 }
 
-}}  // namespace at::native
+}}  // namespace at_npu::native
