@@ -41,6 +41,7 @@
 #include "third_party/acl/inc/acl/acl.h"
 #include "torch_npu/csrc/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -429,6 +430,35 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   END_HANDLE_TH_ERRORS
 } 
 
+PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+
+  PyObject *value_1 = nullptr;
+  PyObject *value_2 = nullptr;
+  PyObject *value_3 = nullptr;
+  if(!PyArg_ParseTuple(args, "OOO", &value_1, &value_2, &value_3)) {
+    throw torch::TypeError("e2eProfiler set path or option error.");
+  }
+  const char *dump_path = PyUnicode_AsUTF8(value_1);
+  if (dump_path == nullptr) {
+    throw torch::TypeError("e2eProfiler path can not be nullptr.");
+  }
+  uint64_t npu_event = THPUtils_unpackLong(value_2);
+  uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
+  pybind11::gil_scoped_release no_gil;
+  torch_npu::profiler::init_e2e_profiler(dump_path, npu_event, aicore_metrics);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  torch_npu::profiler::finalize_e2e_profiler();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -454,6 +484,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_finalizeDump", (PyCFunction)THNPModule_finalizeDump, METH_NOARGS, nullptr},
     {"_npu_setOption", (PyCFunction)THNPModule_setOption_wrap, METH_O, nullptr},
     {"_prof_start", (PyCFunction)THNPModule_prof_start, METH_VARARGS, nullptr},
+    {"_enable_e2e_profiler", (PyCFunction)THNPModule_enable_e2eProfiler, METH_VARARGS, nullptr},
+    {"_disable_e2e_profiler", (PyCFunction)THNPModule_disable_e2eProfiler, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {
