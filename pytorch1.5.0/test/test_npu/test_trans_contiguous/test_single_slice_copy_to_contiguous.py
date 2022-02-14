@@ -20,7 +20,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor, check_operators_in_prof
 
-os.environ["PTCOPY_ENABLE"] = "1"
+os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):
@@ -89,7 +89,7 @@ class SingleViewCopyToContiguous(TestCase):
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     # stridedSlice do not support slice at last dim 
                     npu_out4 = npu_input[:,:,:,3:9:2].contiguous()
-                self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+                self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof), True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out5 = npu_input[::2,1:17:4,2:16:5,:].contiguous()
                 self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), True, "Error operators called!")
@@ -141,7 +141,7 @@ class SingleViewCopyToContiguous(TestCase):
             # npuStrideSlice do not support span-axis strideslice, can not be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out = torch.as_strided(npu_input, shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
-            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof, ['npuStridedSlice']), True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['npuStridedSlice']), True, "Error operators called!")
             cpu_out = torch.as_strided(cpu_input, shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())      
                 

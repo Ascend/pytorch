@@ -29,14 +29,6 @@ bool OptionsManager::CheckQueueEnable() {
   return (queue_enable == 1);
 }
 
-bool OptionsManager::CheckPTcopy_Enable() {
-  static int32_t PTcopy__enable = -1;
-  if (PTcopy__enable == -1) {
-    PTcopy__enable = GetBoolTypeOption("PTCOPY_ENABLE");
-  }
-  return (PTcopy__enable == 1);
-}
-
 bool OptionsManager::CheckCombinedOptimizerEnable() {
   static int32_t combined_optimize = -1;
   if (combined_optimize == -1) {

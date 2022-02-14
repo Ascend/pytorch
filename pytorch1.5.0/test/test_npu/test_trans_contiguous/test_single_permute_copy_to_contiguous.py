@@ -20,7 +20,7 @@ from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor, check_operators_in_prof
 
-os.environ["PTCOPY_ENABLE"] = "1"
+os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):    

@@ -39,7 +39,6 @@ export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/lib/aarch64_64-linux-gnu
 export HCCL_WHITELIST_DISABLE=1
 
 export TASK_QUEUE_ENABLE=0 # 使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1
-export PTCOPY_ENABLE=1 # 使用PTCopy算子模式，加速转连续及copy等过程，建议默认开启，开启设置为1
 #export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选 开启设置为1
 #export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
 #export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1

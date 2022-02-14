@@ -21,7 +21,6 @@ from torch.testing._internal.common_device_type import instantiate_device_type_t
 from util_test import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
-os.environ["PTCOPY_ENABLE"] = "1"
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedFlattenXCopyToContiguous(TestCase):

@@ -33,79 +33,6 @@ namespace native {
 using namespace at::native::npu;
 
 namespace {
-// src :  host <-- device
-//          |  copy src to dst on cpu
-// dst :  host --> device
-void copy_d2d_via_host(Tensor& self, const Tensor& src, bool same_type) {
-  c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
-  aclError error = aclrtSynchronizeStream(copy_stream);
-  if (error != ACL_ERROR_NONE) {
-    C10_NPU_SHOW_ERR_MSG();
-    AT_ERROR("ACL stream synchronize failed.");
-    return;
-  }
-
-  int64_t real_bytes =
-      StorageDescHelper::GetValidMemorySize(src) * src.element_size();
-  auto cpu_src = at::empty(
-      real_bytes / src.element_size(), src.options().device(at::kCPU));
-  cpu_src = cpu_src.as_strided(src.sizes(), src.strides());
-
-  error = aclrtMemcpy(
-      cpu_src.data_ptr(),
-      real_bytes,
-      src.data_ptr(),
-      real_bytes,
-      ACL_MEMCPY_DEVICE_TO_HOST);
-  if (error != ACL_ERROR_NONE) {
-    C10_NPU_SHOW_ERR_MSG();
-    AT_ERROR("aclrtMemcpy device to cpu_src error.");
-    return;
-  }
-
-  real_bytes =
-      StorageDescHelper::GetValidMemorySize(self) * self.element_size();
-  auto cpu_dst = at::empty(
-      real_bytes / self.element_size(), self.options().device(at::kCPU));
-  cpu_dst = cpu_dst.as_strided(self.sizes(), self.strides());
-
-  if (!same_type) {
-    cpu_src = cpu_src.to(cpu_dst.dtype());
-  }
-
-  // sometimes npu_dst just need part of cpu_dst's elements, so we do memory
-  // copy from npu to cpu here, let npu_dst cover cpu_dst, to avoid unneeded
-  // cpu_dst's elements cover npu_dst's original elements
-  if ((!cpu_dst.is_contiguous()) && (self.defined())) {
-    error = aclrtMemcpy(
-        cpu_dst.data_ptr(),
-        real_bytes,
-        self.data_ptr(),
-        real_bytes,
-        ACL_MEMCPY_DEVICE_TO_HOST);
-    if (error != ACL_ERROR_NONE) {
-      C10_NPU_SHOW_ERR_MSG();
-      AT_ERROR("ACL_Memcpy device to cpu_dst error.");
-      return;
-    }
-  }
-
-  cpu_dst.copy_(cpu_src);
-
-  error = aclrtMemcpy(
-      self.data_ptr(),
-      real_bytes,
-      cpu_dst.data_ptr(),
-      real_bytes,
-      ACL_MEMCPY_HOST_TO_DEVICE);
-  if (error != ACL_ERROR_NONE) {
-    C10_NPU_SHOW_ERR_MSG();
-    AT_ERROR("aclrtMemcpy cpu_dst to device error.");
-    return;
-  }
-  NPU_LOGD("Src or dst is not contiguous when do device to device copy.");
-}
-
 // NOTE: helper function of copy, the input parameter is not checked, The caller
 // needs to ensure that the parameters are correct.
 
@@ -136,18 +63,8 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  if (c10::npu::OptionsManager::CheckPTcopy_Enable()) {
-    RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
-    copy_kernel_npu(self, src, non_blocking);
-  } else {
-    IF_GRAPH_MODE_THEN_RUN(
-      AT_ERROR("In graph mode, not support d2dCopyWithStreamSynchronize, "
-               "export PTCOPY_ENABLE=1 to enable PTcopy.");
-    );
-    RECORD_HOST_FUNCTION(
-        "d2dCopyWithStreamSynchronize", std::vector<c10::IValue>({src}));
-    copy_d2d_via_host(self, src, same_type);
-  }
+  RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
+  copy_kernel_npu(self, src, non_blocking);
 }
 
 // the dst and src are same format now
@@ -158,15 +75,22 @@ void copy_d2d_dtype_baseformat(
     const Tensor& src,
     bool non_blocking) {
   if (!self.is_contiguous()) {
+    // Contiguous/discontiguous source tensor copy to discontiguous self tensor
     return copy_d2d_last_method(self, src, true, non_blocking);
   }
 
   if (!src.is_contiguous()) {
-    // discontiguous
+    // Discontiguous source tensor copy to contiguous self tensor
     if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src)) {
+      // Optimized trans-contiguous method
       return;
-    }
+    } else {
+      // General trans-contiguous method
+      at::npu_stride_copy_out(self, src, src.sizes(), src.strides(), src.storage_offset());
+      return;
+    } 
   } else {
+    // Contiguous source tensor copy to contiguous self tensor
     if (c10::npu::NpuRunMode::IsGraphMode()) {
       // In graph mode, in order to identify and call the corresponding npu operators,
       // opt is necessary for contiguous tensor, such as reshape/slice/select. 

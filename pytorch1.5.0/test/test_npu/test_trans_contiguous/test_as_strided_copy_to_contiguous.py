@@ -1,0 +1,68 @@
+# Copyright (c) 2020, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import torch
+import numpy as np
+
+from torch.testing._internal.common_utils import TestCase, run_tests
+from torch.testing._internal.common_device_type import instantiate_device_type_tests
+from util_test import create_common_tensor, check_operators_in_prof
+
+os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
+
+class AsStridedCopyToContiguous(TestCase):
+    def cpu_op_exec(self, input1, size, stride, storage_offset):
+        output = torch.as_strided(input1, size, stride, storage_offset).contiguous()
+        output = output.numpy()
+        return output
+
+    def npu_op_exec(self,input1, size, stride, storage_offset):
+        with torch.autograd.profiler.profile(use_npu=True) as prof:
+            output = torch.as_strided(input1, size, stride, storage_offset).contiguous()
+        self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['npuCombined']), True, "Error operators called!")
+        output = output.cpu().numpy()
+        return output
+
+    def test_as_strided(self, device):
+        dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        format_list = [-1]
+        small_shape_list = [
+                      [5, 5]
+                      ]
+        small_shape_format = [
+            [i, j, k] for i in dtype_list for j in format_list for k in small_shape_list
+        ]
+        
+        for item in small_shape_format:
+            cpu_input, npu_input = create_common_tensor(item, -100, 100)
+            cpu_output = self.cpu_op_exec(cpu_input, (3, 3), (1, 2), 1)
+            npu_output = self.npu_op_exec(npu_input, (3, 3), (1, 2), 1)
+            self.assertRtolEqual(cpu_output, npu_output)
+        
+        other_shape_format = [
+                [[np.float16, 0, [13, 23]], (10, 15), (1, 2), 1],
+                [[np.float16, 3, [2, 13, 23]], (10, 15), (1, 2), 2],
+                [[np.float32, 29, [6, 32, 8, 2]], (8, 6, 2), (5, 4, 1), 3],
+        ]
+
+        for item in other_shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], -100, 100)
+            cpu_output = self.cpu_op_exec(cpu_input, item[1], item[2], item[3])
+            npu_output = self.npu_op_exec(npu_input, item[1], item[2], item[3])
+            self.assertRtolEqual(cpu_output, npu_output)
+
+instantiate_device_type_tests(AsStridedCopyToContiguous, globals(), except_for="cpu")
+if __name__ == "__main__":
+    run_tests()

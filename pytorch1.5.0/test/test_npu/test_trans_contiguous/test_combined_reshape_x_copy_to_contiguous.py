@@ -21,7 +21,6 @@ from torch.testing._internal.common_device_type import instantiate_device_type_t
 from util_test import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
-os.environ["PTCOPY_ENABLE"] = "1"
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedReshapeXCopyToContiguous(TestCase):
@@ -122,7 +121,7 @@ class CombinedReshapeXCopyToContiguous(TestCase):
             # case 2: strideslice + view 
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
-            self.assertEqual(check_operators_in_prof(['d2dCopyWithPTCopy'], prof), True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 

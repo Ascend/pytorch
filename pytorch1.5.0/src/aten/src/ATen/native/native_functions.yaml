@@ -8743,3 +8743,12 @@
 - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, Tensor(a!) out, int? hccl_comm) -> Tensor(a!)
   npu_dispatch_only:
     NPU: hcom_allreduce_npu
+
+- func: npu_stride_copy(Tensor self, int[] shape, int[] stride, Scalar storage_offset) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: stride_copy_npu
+
+- func: npu_stride_copy.out(Tensor self, int[] shape, int[] stride, Scalar storage_offset, *, Tensor(a!) out) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: stride_copy_out_npu
