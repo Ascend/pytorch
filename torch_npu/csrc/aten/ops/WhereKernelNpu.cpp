@@ -92,7 +92,7 @@ vector<at::Tensor> NPUNativeFunctions::where(const at::Tensor& condition) {
   at::Tensor formatCastOfCondition = condition;
   if (condition.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
     ACL_FORMAT_ND) {
-    formatCastOfCondition = formatCastOfCondition.npu_format_cast(ACL_FORMAT_ND);
+    formatCastOfCondition = NPUNativeFunctions::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
   }
   if (condition.scalar_type() == at::ScalarType::Half) {
     formatCastOfCondition = NPUNativeFunctions::npu_dtype_cast(formatCastOfCondition, at::ScalarType::Float);

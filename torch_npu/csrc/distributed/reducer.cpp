@@ -31,6 +31,8 @@
 #include <torch/csrc/utils/memory.h>
 
 #include "torch_npu/csrc/distributed/reducer.hpp"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace c10d_npu {
 namespace {
@@ -406,9 +408,9 @@ void Reducer::copy_grad_to_bucket(
   if (comm_hook_ == nullptr) {
     // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
     // Divides while copying into the bucket view.
-    bucket_view.copy_memory_(grad.mul(float(1.) / divFactor_), true);
+    at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / divFactor_), true);
   } else {
-    bucket_view.copy_memory_(grad, true);
+    at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
   }
 }
 
@@ -441,7 +443,7 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
         // make sure grad has the same format as variable
         if (grad.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
               variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_) {
-          grad = grad.npu_format_cast(
+          grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
               variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
         }
         this->copy_grad_to_bucket(grad, bucket_view);
@@ -1072,12 +1074,12 @@ void Reducer::copy_bucket_to_grad(
       if (!grad.defined()) {
         // Creates grad according to the "Gradient Layout Contract"
         // (see torch/csrc/grad/AccumulateGrad.h)
-        grad = at::empty_with_format(variable.sizes(),
-                                     bucket_view.options(),
-                                     variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
-        grad.copy_memory_(bucket_view, true);
+        grad = at_npu::native::OpPreparation::ApplyTensorWithFormat(
+            variable.sizes(), bucket_view.options(),
+            variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
+        at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       } else {
-        grad.copy_memory_(bucket_view, true);
+        at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       }
       // The grad is modified and needs to be written back.
       return true;

@@ -95,7 +95,7 @@ namespace at_npu
       auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
           formatCastOfSelf.options().dtype(at::kBool),
           ACL_FORMAT_ND);
@@ -113,7 +113,7 @@ namespace at_npu
       auto outputSize = input_same_output_size(formatCastOfSelf);
 
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
           formatCastOfSelf.options().dtype(at::kBool),
           ACL_FORMAT_ND);
@@ -131,7 +131,7 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> outputs = {self};
       CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           self.sizes(),
           self.options().dtype(c10::ScalarType::Byte),
           CalcuOpUtil::get_tensor_npu_format(self));
@@ -159,7 +159,7 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> outputs = {self};
       CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           self.sizes(),
           self.options().dtype(c10::ScalarType::Byte),
           CalcuOpUtil::get_tensor_npu_format(self));

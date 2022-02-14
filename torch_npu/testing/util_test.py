@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import torch
+import torch_npu
 import numpy as np
 import os
 
@@ -42,7 +43,7 @@ def create_common_tensor(item, minValue, maxValue):
     cpu_input = torch.from_numpy(input1)
     npu_input = torch.from_numpy(input1).to(npu_device)
     if npu_format != -1:
-        npu_input = npu_input.npu_format_cast(npu_format)
+        npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
 
 
@@ -125,5 +126,5 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
     cpu_input = torch.from_numpy(x)
     npu_input = torch.from_numpy(x).to(npu_device)
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
-        npu_input = npu_input.npu_format_cast(npu_format)
+        npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input

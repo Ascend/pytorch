@@ -31,7 +31,7 @@ at::Tensor& NPUNativeFunctions::resize_(
   // because of resize _impl_npu_ only support at base format, so
   // no need to reflush NpuStorageDesc here.
   if (!FormatHelper::IsBaseFormatType(self)) {
-    self.npu_format_cast_(FormatHelper::GetBaseFormat(self));
+    NPUNativeFunctions::npu_format_cast_(self, FormatHelper::GetBaseFormat(self));
   }
   auto* self_ = self.unsafeGetTensorImpl();
   resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);

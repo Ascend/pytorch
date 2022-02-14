@@ -219,11 +219,11 @@ namespace at_npu
         // construct the output tensor of the NPU
         at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
         auto outputSize = transpose_npu_output_size(values, perm);
-        at::Tensor transposeValue = at::empty_with_format(
+        at::Tensor transposeValue = OpPreparation::ApplyTensorWithFormat(
             outputSize,
             values.options(),
             CalcuOpUtil::get_tensor_npu_format(values));
-        at::Tensor transposeIndices = at::empty_with_format(
+        at::Tensor transposeIndices = OpPreparation::ApplyTensorWithFormat(
             outputSize,
             indices.options(),
             CalcuOpUtil::get_tensor_npu_format(indices));
@@ -290,9 +290,9 @@ namespace at_npu
       // calculate the output size
       auto outputSize = topk_npu_output_size(selfCp, k, dim, largest, sorted);
       // construct the output tensor of the NPU
-      at::Tensor values = at::empty_with_format(
+      at::Tensor values = OpPreparation::ApplyTensorWithFormat(
           outputSize, selfCp.options(), CalcuOpUtil::get_tensor_npu_format(selfCp));
-      at::Tensor indices = at::empty_with_format(
+      at::Tensor indices = OpPreparation::ApplyTensorWithFormat(
           outputSize, selfCp.options().dtype(at::kInt), ACL_FORMAT_ND);
 
       // calculate the output result of the NPU

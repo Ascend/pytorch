@@ -13,4 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "1.8.1rc1"
+from .module import LayerNorm, apply_module_patch
+
+
+def _get_monkey_patches():
+    _monkey_patches = []
+    _monkey_patches.append(["nn.modules.normalization.LayerNorm", LayerNorm])
+    _monkey_patches.append(["nn.modules.LayerNorm", LayerNorm])
+    _monkey_patches.append(["nn.LayerNorm", LayerNorm])
+    return _monkey_patches
+
+
+nn_monkey_patches = _get_monkey_patches()

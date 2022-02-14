@@ -183,12 +183,12 @@ Return:
 
       if ((self.scalar_type() == at::ScalarType::Half) && !torch_npu::option::OptionsManager::CheckSwitchMMOutputEnable())
       {
-        result = at::empty_with_format(
+        result = OpPreparation::ApplyTensorWithFormat(
             outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
       }
       else
       {
-        result = at::empty_with_format(outputSize, self.options());
+        result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
       }
 
       // calculate the output result of the NPU

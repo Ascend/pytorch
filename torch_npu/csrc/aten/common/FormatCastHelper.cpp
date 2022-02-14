@@ -26,9 +26,9 @@ bool FormatCastHelper::IsSameGroupType(const at::Tensor& src, const at::Tensor& 
   return FormatHelper::GetBaseFormat(src_format) == FormatHelper::GetBaseFormat(dst_format);
 }
 
-void FormatCastHelper::base_format_cast_nocheck(const at::Tensor& dst, const at::Tensor& src) {
+void FormatCastHelper::base_format_cast_nocheck(at::Tensor& dst, const at::Tensor& src) {
   dst.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
-  dst.copy_memory_(src, true);
+  NPUNativeFunctions::copy_memory_(dst, src, true);
 }
 
 void FormatCastHelper::format_cast_as_base_format(const at::Tensor& src, aclFormat format) {

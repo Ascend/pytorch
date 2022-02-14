@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -45,7 +46,7 @@ void npu_fast_reshape_(at::Tensor& tensor) {
   // refresh matadata to input tensor
   StorageDescHelper::ReflushDescBySelf(tensor);
   auto base_format = InferFormat::GuessBaseFormat(tensor.sizes());
-  tensor.npu_format_cast_(base_format);
+  NPUNativeFunctions::npu_format_cast_(tensor, base_format);
 }
 } // namespace native
 } // namespace at_npu

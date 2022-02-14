@@ -112,7 +112,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Ten
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
   // construct the output at::Tensor of the NPU
-  at::Tensor result = at::empty_with_format(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       ref_tensor.options(),
       CalcuOpUtil::get_tensor_npu_format(ref_tensor));
@@ -128,7 +128,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, at::Scalar ot
   auto outputSize = input_same_output_size(self);
 
   // construct the output at::Tensor of the NPU
-  at::Tensor result = at::empty_with_format(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU

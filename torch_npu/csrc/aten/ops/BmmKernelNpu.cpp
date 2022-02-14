@@ -73,9 +73,9 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Float || self.scalar_type() == at::ScalarType::Half) &&
       !torch_npu::option::OptionsManager::CheckSwitchMMOutputEnable()) {
-    result = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+    result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
   } else {
-    result = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_ND);
+    result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
   }
 
   // calculate the output result of the NPU

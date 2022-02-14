@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
@@ -119,7 +120,7 @@ namespace at_npu
       outputSize[1] = c1_len.toInt() * 16;
 
       // construct the output at::Tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // calculate the output result of the NPU

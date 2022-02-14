@@ -515,7 +515,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
             Scalar other_c1_offset(
                 other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
             Scalar stride_len(self.size(1) / c0_len);
-            Tensor result = at::npu_stride_add(
+            Tensor result = NPUNativeFunctions::npu_stride_add(
                 self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
             return result;
           }
@@ -524,7 +524,8 @@ The following uses the torch.add\(\) operator as an example to describe how to a
           auto outputSize = broadcast_ops_npu_output_size(self, other);
         
           // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
+          at::Tensor result = (self, outputSize, npu_format);
+          Tensor result = OpPreparation::ApplyTensorWithFormat(
               outputSize,
               outputTensor.options(),
               CalcuOpUtil::get_tensor_npu_format(outputTensor));
@@ -541,7 +542,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
           // calculate the output size
           auto outputSize = input_same_output_size(self);
           // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
+          Tensor result = OpPreparation::ApplyTensorWithFormat(
               outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
         
           // calculate the output result of the NPU

@@ -45,12 +45,9 @@ namespace at_npu
 
       auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(outputSize,
-                                                dtype_opt,
-                                                layout_opt,
-                                                device_opt,
-                                                pin_memory_opt,
-                                                CalcuOpUtil::get_tensor_npu_format(self));
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
+          outputSize, dtype_opt, layout_opt, device_opt, pin_memory_opt,
+          CalcuOpUtil::get_tensor_npu_format(self));
       // calculate the output result of the NPUc
       return NPUNativeFunctions::one_(result);
     }

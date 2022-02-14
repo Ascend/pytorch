@@ -91,7 +91,7 @@ at::Tensor NPUNativeFunctions::nll_loss_backward(
   auto outputSize = input_same_output_size(self);
 
   // construct the output tensor of the NPU
-  at::Tensor grad_input = at::empty_with_format(
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU

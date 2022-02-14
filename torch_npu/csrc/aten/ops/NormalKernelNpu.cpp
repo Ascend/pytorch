@@ -118,7 +118,7 @@ namespace at_npu
       TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
       // the op of PTNormalFloatFloat only support format of ND
-      at::Tensor formatCastOfResult = result.npu_format_cast(ACL_FORMAT_ND);
+      at::Tensor formatCastOfResult = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
       if (formatCastOfResult.scalar_type() == at::ScalarType::Half)
       {
         formatCastOfResult = formatCastOfResult.to(at::ScalarType::Float);
@@ -182,7 +182,7 @@ namespace at_npu
         c10::optional<bool> pin_memory_opt)
     {
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
 
       // calculate the output result of the NPU

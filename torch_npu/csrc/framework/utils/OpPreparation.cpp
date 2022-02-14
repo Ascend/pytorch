@@ -17,6 +17,8 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
 
 namespace at_npu
 {
@@ -176,13 +178,13 @@ namespace at_npu
         if (output.scalar_type() == at::ScalarType::Float || output.scalar_type() == at::ScalarType::Half)
         {
           TORCH_CHECK(!is_read_write, "can not cast format when output is input");
-          output.npu_format_cast_(format);
+          NPUNativeFunctions::npu_format_cast_(output, format);
         }
         else
         {
           TORCH_CHECK(FormatHelper::IsBaseFormatType(output) && FormatHelper::IsBaseFormatType(static_cast<aclFormat>(format)),
                       "can not cast format to un-base format when output has bool dtype");
-          output.npu_format_cast_(format);
+          NPUNativeFunctions::npu_format_cast_(output, format);
         }
       }
     }
@@ -197,7 +199,7 @@ namespace at_npu
     at::Tensor &OpPreparation::CastBackToOriFormat(at::Tensor &tensor)
     {
       auto &tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
-      tensor.npu_format_cast_(tensor_desc.origin_format_);
+      NPUNativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
       return tensor;
     }
 
@@ -234,13 +236,17 @@ namespace at_npu
     at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format)
     {
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-      return at::empty_with_format(sizes, options, fixFormat);
+      return NPUNativeFunctions::empty_with_format(
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), fixFormat);
     }
 
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
-      return at::empty_with_format(sizes, options, format);
+      return NPUNativeFunctions::empty_with_format(
+          sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+          options.device_opt(), options.pinned_memory_opt(), format);
     }
 
     void OpPreparation::CheckMemory(const std::initializer_list<at::Tensor> &inputs, const std::initializer_list<at::Tensor> &outputs)

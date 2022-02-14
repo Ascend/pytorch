@@ -39,7 +39,7 @@ class TestUniform(TestCase):
 
         for item in shape_format:
             input1 = torch.zeros(item[0], dtype=item[3]).npu()
-            input1.npu_format_cast(3)
+            input1 = torch_npu.npu_format_cast(input1, 3)
             input1.uniform_(item[1], item[2])
             self.assertTrue(item[1] <= input1.min())
             self.assertTrue(item[2] >= input1.max())

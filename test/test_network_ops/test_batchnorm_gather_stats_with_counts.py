@@ -47,7 +47,7 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
         input1 = np.array(data).astype(dtype)
         npu_counts = torch.from_numpy(input1).to("npu:0")
         if npu_format != -1:
-            npu_counts = npu_counts.npu_format_cast(npu_format)
+            npu_counts = torch_npu.npu_format_cast(npu_counts, npu_format)
         return npu_counts
 
     def create_counts_tensor16(self, item):
@@ -58,7 +58,7 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
         input1 = np.array(data).astype(dtype)
         npu_counts = torch.from_numpy(input1).to("npu:0")
         if npu_format != -1:
-            npu_counts = npu_counts.npu_format_cast(npu_format)
+            npu_counts = torch_npu.npu_format_cast(npu_counts, npu_format)
         return npu_counts
 
     def test_batch_norm_gather_stats_with_counts(self, device):

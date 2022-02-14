@@ -62,7 +62,7 @@ namespace at_npu
       auto outputSize = input_same_output_size(self);
 
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // use 5HD in Relu

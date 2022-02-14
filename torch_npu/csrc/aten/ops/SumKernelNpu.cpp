@@ -197,7 +197,7 @@ namespace at_npu
       }
 
       // construct the output tensor of the NPU
-      at::Tensor result = at::empty_with_format(
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize, self.options().dtype(dstType), npu_format);
 
       // calculate the output result of the NPU
