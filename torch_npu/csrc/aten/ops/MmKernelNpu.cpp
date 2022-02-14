@@ -181,7 +181,7 @@ Return:
       // construct the output tensor of the NPU
       at::Tensor result;
 
-      if ((self.scalar_type() == at::ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable())
+      if ((self.scalar_type() == at::ScalarType::Half) && !torch_npu::option::OptionsManager::CheckSwitchMMOutputEnable())
       {
         result = OpPreparation::ApplyTensorWithFormat(
             outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);

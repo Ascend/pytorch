@@ -15,7 +15,7 @@
 #ifndef __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 #define __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/register/OptionsManager.h"
 #include <ATen/npu/Exceptions.h>
 
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
@@ -137,7 +137,7 @@ namespace at_npu
 
       void Run()
       {
-        if (c10::npu::OptionsManager::CheckQueueEnable())
+        if (torch_npu::option::OptionsManager::CheckQueueEnable())
         {
           ExecuteParas params;
           aclCmd->ExportParams(params);

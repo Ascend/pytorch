@@ -37,7 +37,7 @@ namespace at_npu
         int64_t maxLen = 2;
 
         // Setting for 3-combined cases: "TRI_COMBINED_ENABLE=1".
-        if (c10::npu::OptionsManager::CheckTriCombinedOptimizerEnable())
+        if (torch_npu::option::OptionsManager::CheckTriCombinedOptimizerEnable())
         {
           maxLen = 3;
         }

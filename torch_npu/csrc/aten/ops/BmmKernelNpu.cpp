@@ -72,7 +72,7 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
 
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Float || self.scalar_type() == at::ScalarType::Half) &&
-      !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
+      !torch_npu::option::OptionsManager::CheckSwitchMMOutputEnable()) {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
   } else {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);

@@ -17,7 +17,7 @@
 #include <ATen/ATen.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUGuard.h>
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/register/OptionsManager.h"
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -132,7 +132,7 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  if (c10::npu::OptionsManager::CheckPTcopy_Enable()) {
+  if (torch_npu::option::OptionsManager::CheckPTcopy_Enable()) {
     RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
     copy_kernel_npu(self, src, non_blocking);
   } else {
