@@ -33,6 +33,7 @@ public:
   static bool CheckAclDumpDateEnable();
   static bool CheckSwitchMMOutputEnable();
   static bool CheckDynamicOptimizer(const char* op);
+  static bool CheckScalarToHostMemEnable();
   static bool CheckUseNpuLogEnable();
   static std::string CheckDisableDynamicPath();
 private:

@@ -117,16 +117,21 @@ namespace at_npu
         return AddHostTensorInput(cpuTensor);
       }
 
-      Derived &Input(const c10::Scalar &input, const at::ScalarType type, MemoryType memoryType = MemoryType::MEMORY_DEVICE)
+      Derived &Input(const c10::Scalar &input, const at::ScalarType type,
+        CompileType compileType = CompileType::MEMORY_DEVICE_COMPILE)
       {
-        if (memoryType == MemoryType::MEMORY_DEVICE)
+        if ((compileType == MEMORY_DEVICE_COMPILE) &&
+          (torch_npu::option::OptionsManager::CheckScalarToHostMemEnable())) {
+          compileType = MEMORY_HOST_COMPILE_INDEPENDENT;
+        }
+        if (compileType == CompileType::MEMORY_DEVICE_COMPILE)
         {
           return AddScalarInput(input, type);
         }
         else
         {
           auto scalarTensor = CreateScalarTensor(input, type);
-          return AddHostTensorInput(scalarTensor);
+          return AddHostTensorInput(scalarTensor, compileType);
         }
       }
 
@@ -183,10 +188,11 @@ namespace at_npu
             std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
         return static_cast<Derived &>(*this);
       }
-      Derived &AddHostTensorInput(const at::Tensor &tensor)
+      Derived &AddHostTensorInput(const at::Tensor &tensor,
+        CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       {
         std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat> res;
-        res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type());
+        res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
         aclCmd->AddInput(
             std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res), tensor);
         return static_cast<Derived &>(*this);
@@ -269,8 +275,11 @@ namespace at_npu
         storage.emplace_back(std::move(cpuTensor));
         return storage.back();
       }
-      at::Tensor CreateScalarTensor(const c10::Scalar &scalar, const at::ScalarType type)
+      at::Tensor CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type)
       {
+        if (commonType.has_value()) {
+          type = commonType.value();
+        }
         storage.emplace_back(scalar_to_tensor(scalar).to(type));
         return storage.back();
       }

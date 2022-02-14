@@ -119,5 +119,15 @@ bool OptionsManager::CheckDynamicOptimizer(const char* op) {
   return op_map[op];
 }
 
+bool OptionsManager::CheckScalarToHostMemEnable()
+{
+  static int32_t scalarToHostMemFlag = -1;
+  if (scalarToHostMemFlag == -1) {
+    // this env will be deleted when cann sets scalar input to data input
+    // whether in fuzzy compile or no fuzzy compile
+    scalarToHostMemFlag = GetBoolTypeOption("SCALAR_TO_HOST_MEM");
+  }
+  return (scalarToHostMemFlag == 1);
+}
 } // namespace option
 } // namespace torch_npu
