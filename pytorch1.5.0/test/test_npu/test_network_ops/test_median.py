@@ -83,26 +83,6 @@ class TestMedian(TestCase):
             self.assertRtolEqual(npu_output1_out, npu_output1)
             self.assertRtolEqual(npu_output2_out, npu_output2)
 
-    def test_median_dimname_shape_format(self, device):
-        shape_format = [
-            [[np.float16, -1, (10,)], 'A', False, ['A']],
-            [[np.float16, -1, (1, 2, 3, 4)], 'B', False, ['A', 'B', 'C', 'D']],
-            [[np.float16, -1, (64, 63)], 'B', True, ['A', 'B']],
-        ]
-        for item in shape_format:
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
-            npu_input2 = torch.empty(0).npu().to(cpu_input1.dtype)
-            npu_input3 = torch.empty(0).npu().int()
-            cpu_input1.names = item[3]
-            npu_input1.names = item[3]
-            cpu_output1, cpu_output2 = self.cpu_op_exec_dim(cpu_input1, item[1], item[2])
-            npu_output1, npu_output2 = self.npu_op_exec_dim(npu_input1, item[1], item[2])
-            npu_output1_out, npu_output2_out = self.npu_op_exec_dim_out(npu_input1, item[1], item[2], npu_input2, npu_input3)
-            self.assertRtolEqual(cpu_output1, npu_output1)
-            self.assertRtolEqual(cpu_output2, npu_output2)
-            self.assertRtolEqual(npu_output1_out, npu_output1)
-            self.assertRtolEqual(npu_output2_out, npu_output2)
-
 instantiate_device_type_tests(TestMedian, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

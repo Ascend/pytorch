@@ -42,7 +42,7 @@ Tensor& median_out_npu_nocheck(
   Tensor topkValues = std::get<0>(ret);
   Tensor value = topkValues[k];
   
-  result.fill_(value.item());
+  result.fill_(value);
   return result;
 }
 
