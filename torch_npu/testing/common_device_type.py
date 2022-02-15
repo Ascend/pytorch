@@ -19,7 +19,8 @@ import threading
 from functools import wraps
 import unittest
 import torch
-from torch.testing._internal.common_utils import TestCase, TEST_MKL
+from torch.testing._internal.common_utils import TEST_MKL
+from torch_npu.testing.common_utils import TestCase
 
 # Note: Generic Device-Type Testing
 #
@@ -86,14 +87,6 @@ from torch.testing._internal.common_utils import TestCase, TEST_MKL
 # test_diagonal_cpu, test_diagonal_npu, ... test_erfinv, which accepts a dtype,
 # becomes test_erfinv_cpu_float, test_erfinv_cpu_double, test_erfinv_npu_half,
 # ...
-#
-# In short, if you write a test signature like
-#   def textX(self, device)
-# You are effectively writing
-#   def testX_cpu(self, device='cpu')
-#   def textX_npu(self, device='npu')
-#   def testX_xla(self, device='xla')
-#   ...
 #
 # These tests can be run directly like normal tests:
 # "python test_torch.py TestTorchDeviceTypeCPU.test_diagonal_cpu"

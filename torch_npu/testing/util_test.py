@@ -19,29 +19,36 @@ import torch_npu
 import numpy as np
 import os
 
-threshold = 1.e-4
-threshold2 = 1.e-3
-
-npu_device = os.environ.get('SET_NPU_DEVICE')
-if npu_device is None:
-    npu_device = "npu:0"
-else:
-    npu_device = f"npu:{npu_device}"
-torch.npu.set_device(npu_device)
-print(f"Your device is {npu_device}")
-
-threshold = 1.e-4
-threshold2 = 1.e-3
 
 UT_FAST_MODE = os.getenv('UT_FAST_MODE') == '1' 
 
-def create_common_tensor(item, minValue, maxValue):
+
+def set_npu_device():
+    npu_device = get_npu_device()
+    torch.npu.set_device(npu_device)
+    print(f"Your device is {npu_device}")
+    return npu_device
+
+
+def get_npu_device():
+    npu_device = os.environ.get('SET_NPU_DEVICE')
+    if npu_device is None:
+        npu_device = "npu:0"
+    else:
+        npu_device = f"npu:{npu_device}"
+    return npu_device
+
+
+def create_common_tensor(item, minValue, maxValue, device=None):
+    if device is None:
+        device = get_npu_device()
+        
     dtype = item[0]
     npu_format = item[1]
     shape = item[2]
     input1 = np.random.uniform(minValue, maxValue, shape).astype(dtype)
     cpu_input = torch.from_numpy(input1)
-    npu_input = torch.from_numpy(input1).to(npu_device)
+    npu_input = torch.from_numpy(input1).to(device)
     if npu_format != -1:
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
@@ -72,16 +79,19 @@ def compare_res_new(cpu_output, npu_output, testcase_name):
     print('testcase_name={0}, datatype={1} shape={2} pass!'.format(testcase_name, cpu_output.dtype, cpu_output.shape))
 
 
-def __generate_2args_broadcast_cases():
+def __generate_2args_broadcast_cases(device=None):
+    if device is None:
+        device = get_npu_device()
+        
     # Set broadcast and no axis, i.e. broadcasting 1.
     X = np.random.rand(2, 3, 4, 5).astype(np.float32)
     Y = np.random.rand(1, 1, 1).astype(np.float32)
 
     cpu_x = torch.from_numpy(X)
-    npu_x = torch.from_numpy(X).to(npu_device)
+    npu_x = torch.from_numpy(X).to(device)
 
     cpu_y = torch.from_numpy(Y)
-    npu_y = torch.from_numpy(Y).to(npu_device)
+    npu_y = torch.from_numpy(Y).to(device)
 
     yield cpu_x, cpu_y, npu_x, npu_y
 
@@ -90,10 +100,10 @@ def __generate_2args_broadcast_cases():
     Y = np.random.rand(4, 5).astype(np.float32)
 
     cpu_x = torch.from_numpy(X)
-    npu_x = torch.from_numpy(X).to(npu_device)
+    npu_x = torch.from_numpy(X).to(device)
 
     cpu_y = torch.from_numpy(Y)
-    npu_y = torch.from_numpy(Y).to(npu_device)
+    npu_y = torch.from_numpy(Y).to(device)
 
     yield cpu_x, cpu_y, npu_x, npu_y
 
@@ -106,7 +116,11 @@ def test_2args_broadcast(fn):
 
     return output_list
 
-def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, no_zero=False):
+
+def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, no_zero=False, device=None):
+    if device is None:
+        device = get_npu_device()
+        
     if dtype == torch.bool:
         x = np.random.randint(0, 2, size=shape).astype(np.bool)
 
@@ -124,7 +138,7 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
         x = np.where(x != 0, x, ones)
 
     cpu_input = torch.from_numpy(x)
-    npu_input = torch.from_numpy(x).to(npu_device)
+    npu_input = torch.from_numpy(x).to(device)
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
