@@ -121,7 +121,7 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
         device = get_npu_device()
         
     if dtype == torch.bool:
-        x = np.random.randint(0, 2, size=shape).astype(np.bool)
+        x = np.random.randint(0, 2, size=shape).astype(bool)
 
     elif dtype == torch.half:
         x = np.random.uniform(min_value, max_value, shape).astype(np.float16)
@@ -141,6 +141,7 @@ def create_dtype_tensor(shape, dtype, npu_format=-1, min_value=-5, max_value=5, 
     if npu_format != -1 and (dtype in [torch.float, torch.half]):
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
+
 
 def check_operators_in_prof(expected_operators, prof, unexpected_operators=None):
     unexpected_operators = unexpected_operators or []
