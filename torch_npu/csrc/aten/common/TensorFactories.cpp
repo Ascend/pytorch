@@ -39,6 +39,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/tensor_impl.h"
+#include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 
 namespace at_npu
 {
@@ -654,25 +655,16 @@ namespace at_npu
     AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 #undef TENSOR
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    at::Tensor NPUNativeFunctions::clone(const at::Tensor &src, c10::optional<c10::MemoryFormat> format)
-    {
-      auto desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-      auto formatSelf = OpPreparation::ApplyTensorWithFormat(
-          src.sizes(), src.options(), desc.npu_format_);
-      if (try_to_optimize_copy_with_any_format(formatSelf, src))
-      {
-        return formatSelf;
-      }
-      else if (can_use_memcpy(formatSelf, src))
-      {
-        RECORD_FUNCTION("d2dCopyAsync with format", std::vector<c10::IValue>({src}));
-        copy_d2d_by_memcpy(formatSelf, src);
-        return formatSelf;
-      }
-      else
-      {
-        auto baseSelf = OpPreparation::ApplyTensor(src);
+    at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
+                     c10::optional<c10::MemoryFormat> format) {
+      std::vector<string> opt_cases{"reshape", "slice"};
+      if (TransContiguous::CanOptimize(src, opt_cases)) {
+        auto formatTempTensor =
+            TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
+        return formatTempTensor.value();
+      } else {
+        auto baseSelf =
+            OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
         copy_d2d_dtype(baseSelf, src, false);
         return baseSelf;
       }

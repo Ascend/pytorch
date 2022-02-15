@@ -33,7 +33,7 @@ namespace at_npu
         if (can_use_permute(src, perm, sizes))
         {
           // delete call and implementation, after more test
-          RECORD_FUNCTION("npuTransposeD", std::vector<c10::IValue>({src}));
+          RECORD_FUNCTION("npuTranspose", std::vector<c10::IValue>({src}));
           // create contiguous tensor for npu transpose
           at::Tensor temp_src = at::empty(sizes, src.options());
           temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(), temp_src.strides());

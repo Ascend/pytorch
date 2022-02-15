@@ -42,7 +42,7 @@ namespace at_npu
       {
         if (tensor.stride(i) < tensor.stride(i + 1))
         {
-          return {"permute", "unfold"};
+          return {"permute"};
         }
       }
 

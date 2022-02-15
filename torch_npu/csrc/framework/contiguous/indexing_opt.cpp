@@ -32,7 +32,7 @@ namespace at_npu
 
         if (can_use_indexing(src, start, end, step))
         {
-          RECORD_FUNCTION("npuStridedSliceD", std::vector<c10::IValue>({src}));
+          RECORD_FUNCTION("npuStridedSlice", std::vector<c10::IValue>({src}));
           indexing_to_contiguous(src, self, start, end, step);
           return true;
         }
@@ -86,7 +86,7 @@ namespace at_npu
         for (int64_t i = 0; i < src.dim(); i++)
         {
           int64_t calculate_end = start[i] + src.size(i) * step[i];
-          if (calculate_end > src.size(i))
+          if (calculate_end - step[i] > src_desc.base_sizes_[i])
           {
             // Op StrideSlice(Slice) don't support span-axis indexing(slice).
             return false;
@@ -148,7 +148,7 @@ namespace at_npu
                       temp_src.sizes(), temp_src.strides());
 
         // call StridedSliceD op
-        NPUNativeFunctions::npu_indexing_out(self, start, end, step, 0, 0, 0, 0, 0, temp_src);
+        NPUNativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0, 0, self);
         return;
       }
     }; // class IndexingContiguousOpt
