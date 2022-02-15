@@ -72,6 +72,14 @@ namespace at_npu
         return static_cast<Derived &>(*this);
       }
 
+      Derived &InputWithoutContiguous(
+          const at::Tensor &input,
+          const string &descName = "",
+          const string &realData = "")
+      {
+        return AddTensorInput(const_cast<at::Tensor &>(input), at::ScalarType::Undefined, descName, realData);
+      }
+
       Derived &Input()
       {
         return AddNoneTensor();

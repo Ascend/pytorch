@@ -28,7 +28,7 @@ c10::SmallVector<int64_t, N> get_view_value(
   static c10::SmallVector<int64_t, N> value;
   // It is determined by the definition of view attr
   value.resize(strides.size() + 3);
-  value[0] = t.numel(); // storageImpl numel
+  value[0] = t.storage().nbytes() / t.element_size(); // storageImpl numel
   value[1] = t.storage_offset(); // default to 0
   value[2] = strides.size();
   for (size_t i = 0; i < strides.size(); i++) {

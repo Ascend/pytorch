@@ -27,7 +27,6 @@ namespace option {
 class OptionsManager {
 public:
   static bool CheckQueueEnable();
-  static bool CheckPTcopy_Enable();
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();
