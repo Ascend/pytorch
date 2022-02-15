@@ -154,8 +154,8 @@ class SingleViewCopyToContiguous(TestCase):
                 self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
                     True, "View_d2dCopyAsync is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
-                    True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
+                    True, "narrow_npuSlice is not called!")
             cpu_out1 = cpu_input[:10,:,:].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())  
             
@@ -167,8 +167,8 @@ class SingleViewCopyToContiguous(TestCase):
                 self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
                     True, "View_d2dCopyAsync is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
-                    True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
+                    True, "narrow_npuSlice is not called!")
             cpu_out2 = cpu_input[1:10,:,:].clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
@@ -190,8 +190,8 @@ class SingleViewCopyToContiguous(TestCase):
                 self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
                     True, "View_d2dCopyAsync is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
-                    True, "d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
+                    True, "narrow_npuSlice is not called!")
             cpu_out1 = cpu_input[0].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
