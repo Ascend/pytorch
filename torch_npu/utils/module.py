@@ -109,24 +109,23 @@ def cast_weight(self, device):
     _format_cast(self, current_class)
 
     if not self.children:
-        return
+        return 
 
     for sub_module in self.children():
         if isinstance(sub_module, torch.nn.Module):
             sub_module.cast_weight(device)
 
 
+def layernorm_forward(self, input: torch.Tensor) -> torch.Tensor:
+    if self.training:
+        return torch.nn.functional.layer_norm(
+            input, self.normalized_shape, self.weight, self.bias, self.eps)
+    else:
+        return torch_npu.npu_layer_norm_eval(input, self.normalized_shape, self.weight, self.bias, self.eps)
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
-
-
-class LayerNorm(torch.nn.LayerNorm):
-
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.training:
-            return torch.nn.functional.layer_norm(
-                input, self.normalized_shape, self.weight, self.bias, self.eps)
-        else:
-            return torch_npu.npu_layer_norm_eval(input, self.normalized_shape, self.weight, self.bias, self.eps)
+    torch.nn.LayerNorm.forward = layernorm_forward
