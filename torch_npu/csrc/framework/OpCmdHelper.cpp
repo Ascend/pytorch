@@ -104,7 +104,7 @@ namespace at_npu
     }
 
     std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat> OpCmdHelper::CovertHostTensorToAclInput(
-        const at::Tensor &tensor, at::ScalarType type)
+        const at::Tensor &tensor, at::ScalarType type, CompileType compileType)
     {
       aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
@@ -112,7 +112,7 @@ namespace at_npu
       AclTensorDescMaker desc;
       aclFormat format = ACL_FORMAT_ND;
       auto aclDesc = desc.Create(aclDataType, dims, format)
-                         .SetPlacement(aclMemType::ACL_MEMTYPE_HOST)
+                         .SetPlacement(static_cast<aclMemType>(compileType))
                          .Get();
       int64_t numel = at::prod_intlist(dims);
       AclTensorBufferMaker buffer(tensor, numel);
