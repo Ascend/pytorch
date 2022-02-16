@@ -17,7 +17,7 @@
 #include <ATen/Parallel.h>
 #include <torch/csrc/Exceptions.h>
 
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
 #include <torch/csrc/utils/npu_lazy_init.h>
 
@@ -53,7 +53,7 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   if (c10::npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     c10::npu::npuSynchronizeDevice();
     THNPUCachingHostAllocator_emptyCache();
-    c10::npu::NPUCachingAllocator::emptyCache();
+    c10_npu::emptyCache();
     c10::npu::NpuSysCtrl::SysStatus status = c10::npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10::npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       fprintf(stdout, "THPModule_npu_shutdown failed.\n");

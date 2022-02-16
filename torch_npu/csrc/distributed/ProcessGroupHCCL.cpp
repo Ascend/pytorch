@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/NPUStream.h>
 #include <ATen/record_function.h>
@@ -460,7 +460,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     // operations where `inputs' and `outputs' are not the same.
     //
     // See [Sync Streams].
-    c10::npu::NPUCachingAllocator::recordStream(
+    c10_npu::recordStream(
         inputs[i].storage().data_ptr(), hcclStream);
   }
   {
@@ -578,7 +578,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
-        c10::npu::NPUCachingAllocator::recordStream(
+        c10_npu::recordStream(
             output.storage().data_ptr(), stream);
         return HcclAllGather(
             input.data_ptr(),
@@ -595,7 +595,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           c10::npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < outputTensors[0].size(); ++j) {
             // See [Sync Streams].
-            c10::npu::NPUCachingAllocator::recordStream(
+            c10_npu::recordStream(
                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
             outputTensors[i][j].copy_(outputFlattened[i][j], true);
@@ -629,7 +629,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
-        c10::npu::NPUCachingAllocator::recordStream(
+        c10_npu::recordStream(
             output.storage().data_ptr(), stream);
         return HcclReduceScatter(
             input.data_ptr(),
@@ -646,7 +646,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           c10::npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < inputTensors[0].size(); ++j) {
             // See [Sync Streams].
-            c10::npu::NPUCachingAllocator::recordStream(
+            c10_npu::recordStream(
                 inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
             inputFlattened[i][j].copy_(inputTensors[i][j], true);

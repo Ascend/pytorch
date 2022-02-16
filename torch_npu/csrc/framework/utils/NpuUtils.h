@@ -18,7 +18,7 @@
 #define __PULGIN_NATIVE_NPU_UTILS_NUP_UTILS__
 
 #include <stdint.h>
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <string>
 #include <vector>
 #include <ATen/ATen.h>

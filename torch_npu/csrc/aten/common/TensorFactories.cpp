@@ -29,9 +29,9 @@
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/Exception.h>
-#include <c10/npu/NPUCachingAllocator.h>
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
@@ -84,7 +84,7 @@ namespace at_npu
       AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = at::npu::NPUCachingAllocator::get();
+      c10::Allocator *allocator = c10_npu::get();
       int64_t nelements = at::prod_intlist(size);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       int64_t size_bytes = nelements * dtype.itemsize();
@@ -272,7 +272,7 @@ namespace at_npu
       AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = at::npu::NPUCachingAllocator::get();
+      c10::Allocator *allocator = c10_npu::get();
       // when the shape and format are not match, fix format here.
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
@@ -306,7 +306,7 @@ namespace at_npu
       AT_ASSERT(options.backend() == at::Backend::NPU);
       TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = at::npu::NPUCachingAllocator::get();
+      c10::Allocator *allocator = c10_npu::get();
       // when the shape and format are not match, fix format here.
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
@@ -347,8 +347,7 @@ namespace at_npu
       options.device(device);
       options.layout(layout_opt);
       options.pinned_memory(pin_memory_opt);
-      at::Tensor result =
-          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -361,8 +360,7 @@ namespace at_npu
                                      const c10::TensorOptions &options,
                                      int64_t dst_format)
     {
-      at::Tensor result =
-          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);
@@ -376,8 +374,7 @@ namespace at_npu
                                           const c10::TensorOptions &options,
                                           int64_t dst_format)
     {
-      at::Tensor result =
-          OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
         internal_set_names_inplace(result, names);

@@ -16,7 +16,7 @@
 
 #include <ATen/Tensor.h>
 #include <c10/util/SmallVector.h>
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
