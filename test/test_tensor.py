@@ -1,9 +1,10 @@
+import tempfile
 import torch
 import torch_npu
-import tempfile
 
 from torch.testing._internal.common_utils import TestCase, run_tests
-from torch.testing._internal.common_device_type import device_type_test_bases, DeviceTypeTestBase, onlyOn, dtypes, instantiate_device_type_tests
+from torch.testing._internal.common_device_type import device_type_test_bases, \
+      DeviceTypeTestBase, onlyOn, dtypes, instantiate_device_type_tests
 from itertools import product, combinations, combinations_with_replacement, permutations
 
 
@@ -17,6 +18,7 @@ class NPUTestBase(DeviceTypeTestBase):
 device_type_test_bases.append(NPUTestBase)
 
 class TestTensor(TestCase):
+    
     @onlyNPU
     def test_narrow_empty(self, device):
         x = torch.randn(2, 3, 4).to(device=device)
@@ -62,6 +64,7 @@ class TestTensor(TestCase):
             t2 = torch.tensor([False, False], dtype=torch.bool)
             t1.set_(t2)
             self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+    
     @onlyNPU
     @dtypes(torch.half, torch.float)
     def test_cat_all_dtypes_and_devices(self, device, dtype):
@@ -102,8 +105,8 @@ class TestTensor(TestCase):
         z = torch.cat([x, y])
         self.assertEqual(z.size(), (21, SIZE, SIZE))
 
-
     # TODO: this test should be updated
+
     @onlyNPU
     def test_zeros(self, device):
         res1 = torch.zeros(100, 100, device=device)
@@ -126,6 +129,7 @@ class TestTensor(TestCase):
         self.assertEqual(bfloat16Tensor.to('cpu'), expected.to('cpu'))
 
     # TODO: this test should be updated
+
     @onlyNPU
     def test_zeros_out(self, device):
         shape = (3, 4)
@@ -147,6 +151,7 @@ class TestTensor(TestCase):
                          torch.zeros(shape, device=device, out=out).to('cpu'))
 
     # TODO: this test should be updated
+
     @onlyNPU
     def test_ones(self, device):
         res1 = torch.ones(100, 100, device=device)
@@ -220,6 +225,7 @@ class TestTensor(TestCase):
         self.assertEqual(torch.full(size, 1, out=o).dtype, o.dtype)
 
     # TODO: this test should be updated
+    
     @onlyNPU
     def test_ones_like(self, device):
         expected = torch.ones(100, 100, device=device)
