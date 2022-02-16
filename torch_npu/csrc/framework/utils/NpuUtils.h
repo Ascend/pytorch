@@ -47,11 +47,12 @@ namespace at_npu
     const int NPU_HALF_MIN = -65504;
     const int NPU_MAX_OP_EXEC_TRY_NUM = 2;
 
-    typedef enum MemoryType
+    typedef enum CompileType 
     {
-      MEMORY_DEVICE,
-      MEMORY_HOST,
-    } MemoryType;
+      MEMORY_DEVICE_COMPILE = 0,
+      MEMORY_HOST_COMPILE_DEPENDENT = 1,
+      MEMORY_HOST_COMPILE_INDEPENDENT = 2,
+    } CompileType;
 
     class NpuUtils
     {
