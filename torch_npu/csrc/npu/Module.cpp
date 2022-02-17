@@ -171,7 +171,7 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
 PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
-  c10_npu::NPUCachingAllocatoremptyCache();
+  c10_npu::NPUCachingAllocator::emptyCache();
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
 }
@@ -182,10 +182,10 @@ PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to memory_allocated");
   const int device = (int) THPUtils_unpackLong(arg);
 
-  using c10_npu::NPUCachingAllocatorStatType;
-  using c10_npu::NPUCachingAllocatorStat;
-  using c10_npu::NPUCachingAllocatorStatArray;
-  using c10_npu::NPUCachingAllocatorDeviceStats_;
+  using c10_npu::NPUCachingAllocator::StatType;
+  using c10_npu::NPUCachingAllocator::Stat;
+  using c10_npu::NPUCachingAllocator::StatArray;
+  using c10_npu::NPUCachingAllocator::DeviceStats_;
 
   const auto statToDict = [](const Stat& stat) {
     py::dict dict;
@@ -208,7 +208,7 @@ PyObject * THNPModule_memoryStats(PyObject *_unused, PyObject *arg)
     return dict;
   };
 
-  const DeviceStats_ stats = c10_npu::NPUCachingAllocatorgetDeviceStats(device);
+  const DeviceStats_ stats = c10_npu::NPUCachingAllocator::getDeviceStats(device);
 
   py::dict result;
   result["num_alloc_retries"] = stats.num_alloc_retries;
@@ -231,7 +231,7 @@ PyObject * THNPModule_resetAccumulatedMemoryStats(PyObject *_unused, PyObject *a
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_accumulated_memory_stats");
   const int device = (int) THPUtils_unpackLong(arg);
-  c10_npu::NPUCachingAllocatorresetAccumulatedStats(device);
+  c10_npu::NPUCachingAllocator::resetAccumulatedStats(device);
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
 }
@@ -241,7 +241,7 @@ PyObject * THNPModule_resetPeakMemoryStats(PyObject *_unused, PyObject *arg)
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(arg), "invalid argument to reset_peak_memory_stats");
   const int device = (int) THPUtils_unpackLong(arg);
-  c10_npu::NPUCachingAllocatorresetPeakStats(device);
+  c10_npu::NPUCachingAllocator::resetPeakStats(device);
   END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
 }
@@ -250,8 +250,8 @@ PyObject * THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
 
-  using c10_npu::NPUCachingAllocatorSegmentInfo;
-  using c10_npu::NPUCachingAllocatorBlockInfo;
+  using c10_npu::NPUCachingAllocator::SegmentInfo;
+  using c10_npu::NPUCachingAllocator::BlockInfo;
 
   const auto segmentInfoToDict = [](const SegmentInfo& segmentInfo) {
     py::dict segmentDict;
@@ -274,7 +274,7 @@ PyObject * THNPModule_memorySnapshot(PyObject *_unused, PyObject *noargs)
     return segmentDict;
   };
 
-  const std::vector<SegmentInfo>& snapshot = c10_npu::NPUCachingAllocatorsnapshot();
+  const std::vector<SegmentInfo>& snapshot = c10_npu::NPUCachingAllocator::snapshot();
   py::list result;
 
   for (const auto& segmentInfo : snapshot) {
@@ -300,7 +300,7 @@ PyObject * THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject 
   }
   ssize_t size = PyLong_AsSsize_t(size_o);
   aclrtStream stream = static_cast<aclrtStream>(PyLong_AsVoidPtr(stream_o));
-  void* mem = c10_npu::NPUCachingAllocatorraw_alloc_with_stream(size, stream);
+  void* mem = c10_npu::NPUCachingAllocator::raw_alloc_with_stream(size, stream);
   return PyLong_FromVoidPtr(mem);
   END_HANDLE_TH_ERRORS
 }
@@ -308,7 +308,7 @@ PyObject * THNPModule_npuCachingAllocator_raw_alloc(PyObject *_unused, PyObject 
 PyObject * THNPModule_npuCachingAllocator_raw_delete(PyObject *_unused, PyObject *obj){
   HANDLE_TH_ERRORS
   void* mem_ptr = PyLong_AsVoidPtr(obj);
-  c10_npu::NPUCachingAllocatorraw_delete(mem_ptr);
+  c10_npu::NPUCachingAllocator::raw_delete(mem_ptr);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -322,7 +322,7 @@ static PyGILState_STATE npuMutexGILState;
 
 PyObject * THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
 {
-  auto mutex = c10_npu::NPUCachingAllocatorgetFreeMutex();
+  auto mutex = c10_npu::NPUCachingAllocator::getFreeMutex();
   // This has to be a busy loop because we **absolutely need to** hold the GIL
   // or it's a recipe for a deadlock otherwise (if we let other Python threads
   // run while we have the cudaMutex, but not the GIL, they might try to e.g.
@@ -343,7 +343,7 @@ PyObject * THNPModule_npuLockMutex(PyObject *module, PyObject *noargs)
 
 PyObject * THNPModule_npuUnlockMutex(PyObject *module, PyObject *noargs)
 {
-  auto mutex = c10_npu::NPUCachingAllocatorgetFreeMutex();
+  auto mutex = c10_npu::NPUCachingAllocator::getFreeMutex();
   PyGILState_Release(npuMutexGILState);
   mutex->unlock();
   Py_RETURN_NONE;

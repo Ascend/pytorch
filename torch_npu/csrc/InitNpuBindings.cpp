@@ -53,7 +53,7 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   if (c10::npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     c10::npu::npuSynchronizeDevice();
     THNPUCachingHostAllocator_emptyCache();
-    c10_npu::NPUCachingAllocatoremptyCache();
+    c10_npu::NPUCachingAllocator::emptyCache();
     c10::npu::NpuSysCtrl::SysStatus status = c10::npu::NpuSysCtrl::GetInstance().Finalize();
     if (status != c10::npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       fprintf(stdout, "THPModule_npu_shutdown failed.\n");

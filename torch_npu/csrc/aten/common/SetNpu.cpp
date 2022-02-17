@@ -32,7 +32,7 @@ c10::StorageImpl* storage_new_npu(caffe2::TypeMeta data_type) {
       c10::make_intrusive<c10::StorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           0,
-          c10_npu::NPUCachingAllocatorget(),
+          c10_npu::NPUCachingAllocator::get(),
           true)
           .release();
   return storage;

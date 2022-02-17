@@ -84,7 +84,7 @@ namespace at_npu
       AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocatorget();
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       int64_t nelements = at::prod_intlist(size);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       int64_t size_bytes = nelements * dtype.itemsize();
@@ -272,7 +272,7 @@ namespace at_npu
       AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocatorget();
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
@@ -306,7 +306,7 @@ namespace at_npu
       AT_ASSERT(options.backend() == at::Backend::NPU);
       TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
-      c10::Allocator *allocator = c10_npu::NPUCachingAllocatorget();
+      c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
       // when the shape and format are not match, fix format here.
       aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
       int64_t nelements = StorageDescHelper::GetMemorySize(size, format);
