@@ -1156,7 +1156,7 @@
 | 29   | torch.cuda.comm.scatter               | torch.npu.comm.scatter               | 否       |
 | 30   | torch.cuda.comm.gather                | torch.npu.comm.gather                | 否       |
 | 31   | torch.cuda.Stream                     | torch.npu.Stream                     | 是       |
-| 32   | torch.cuda.Stream.query               | torch.npu.Stream.query               | 是       |
+| 32   | torch.cuda.Stream.query               | torch.npu.Stream.query               | 否       |
 | 33   | torch.cuda.Stream.record_event        | torch.npu.Stream.record_event        | 是       |
 | 34   | torch.cuda.Stream.synchronize         | torch.npu.Stream.synchronize         | 是       |
 | 35   | torch.cuda.Stream.wait_event          | torch.npu.Stream.wait_event          | 是       |
