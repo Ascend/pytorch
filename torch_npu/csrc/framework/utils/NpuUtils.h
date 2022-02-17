@@ -18,7 +18,6 @@
 #define __PULGIN_NATIVE_NPU_UTILS_NUP_UTILS__
 
 #include <stdint.h>
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <string>
 #include <vector>
 #include <ATen/ATen.h>
@@ -26,9 +25,11 @@
 
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
-#include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "third_party/acl/inc/acl/acl_op.h"
 #include "third_party/acl/inc/ge/ge_error_codes.h"
+
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 
 using std::string;
 using std::vector;
