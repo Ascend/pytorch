@@ -17,7 +17,7 @@
 #ifndef THNP_EVENT_INC
 #define THNP_EVENT_INC
 
-#include <ATen/npu/NPUEvent.h>
+#include <c10/npu/NPUEvent.h>
 #include <torch/csrc/python_headers.h>
 
 struct THNPEvent {

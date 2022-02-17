@@ -34,7 +34,7 @@ namespace at_npu
         c10::SmallVector<int64_t, SHAPE_SIZE> size;
         if (can_use_slice(src, offsets, size))
         {
-          RECORD_FUNCTION("narrow_npuSliceD", std::vector<c10::IValue>({src}));
+          RECORD_FUNCTION("narrow_npuSlice", std::vector<c10::IValue>({src}));
           slice_to_contiguous(src, self, offsets, size);
           return true;
         }

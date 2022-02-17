@@ -23,9 +23,9 @@ at::Tensor& NPUNativeFunctions::addmv_out(
     const at::Tensor& vec,
     at::Scalar beta,
     at::Scalar alpha,
-    at::Tensor& result) {    
+    at::Tensor& result) {
   NpuUtils::check_1d(vec, "vec", "addmv");
-  
+
   at::Tensor mat1 = vec.unsqueeze(1);
 
   // matmul mat*alpha
@@ -33,7 +33,7 @@ at::Tensor& NPUNativeFunctions::addmv_out(
 
   // matmul*alpha
   at::Tensor mmMulResult = at::mm(mat_alpha, mat1);
-  
+
   at::Tensor mmMulResult1 = mmMulResult.squeeze();
 
   // calculate the output size

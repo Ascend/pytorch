@@ -18,8 +18,8 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <TH/THTensor.hpp>
-#include <c10/npu/NPUCachingAllocator.h>
 
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -32,7 +32,7 @@ c10::StorageImpl* storage_new_npu(caffe2::TypeMeta data_type) {
       c10::make_intrusive<c10::StorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           0,
-          at::npu::NPUCachingAllocator::get(),
+          c10_npu::NPUCachingAllocator::get(),
           true)
           .release();
   return storage;

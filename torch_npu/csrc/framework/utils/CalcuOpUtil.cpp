@@ -16,7 +16,7 @@
 
 #include <Python.h>
 #include <ATen/record_function.h>
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/register/OptionsManager.h"
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"

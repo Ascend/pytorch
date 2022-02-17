@@ -15,7 +15,7 @@
 
 #include "torch_npu/csrc/register/OptionsManager.h"
 #include <c10/npu/NPUQueue.h>
-#include <c10/npu/NPUCachingAllocator.h>
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
