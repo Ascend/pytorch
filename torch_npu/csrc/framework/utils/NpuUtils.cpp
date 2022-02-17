@@ -345,7 +345,7 @@ namespace at_npu
         if (index == 1)
         {
           C10_NPU_CHECK(aclrtGetDevice(&deviceId));
-          c10::npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
+          c10_npu::NPUCachingAllocator::FreeDeviceCachedMemory(deviceId);
           return true;
         }
         AT_ERROR("NPU out of memory. device id: ", deviceId);
