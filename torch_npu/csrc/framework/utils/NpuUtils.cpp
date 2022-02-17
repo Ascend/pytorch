@@ -232,18 +232,6 @@ namespace at_npu
       return ret_tmp;
     }
 
-    at::Tensor tensors_convert_contiguous(const at::Tensor &src)
-    {
-      std::vector<string> optimizations{"slice"};
-      auto formatTempTensor =
-          TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations);
-      if (formatTempTensor.has_value())
-      {
-        return formatTempTensor.value();
-      }
-      return src.contiguous();
-    }
-
     at::Tensor metadata_convert_match(const at::Tensor &src)
     {
       auto &src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
@@ -285,7 +273,7 @@ namespace at_npu
       if (!src.is_contiguous())
       {
         RECORD_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
-        return tensors_convert_contiguous(src);
+        return src.contiguous();
       }
       // case2:meta data not match, sizes or strides of presentation
       // layer is different from that of storage layer
@@ -314,7 +302,7 @@ namespace at_npu
       if (!src.is_contiguous())
       {
         RECORD_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
-        return tensors_convert_contiguous(src);
+        return src.contiguous();
       }
       // case2:meta data not match, sizes or strides of presentation
       // layer is different from that of storage layer

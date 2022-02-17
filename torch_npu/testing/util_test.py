@@ -53,7 +53,6 @@ def create_common_tensor(item, minValue, maxValue, device=None):
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
 
-
 def compare_res_new(cpu_output, npu_output, testcase_name):
     if cpu_output.shape != npu_output.shape:
         return print("result shape error!", cpu_output.shape, npu_output.shape)

@@ -23,6 +23,11 @@ namespace at_npu
     bool can_use_memecpy_for_NZ_format(const at::Tensor &tensor)
     {
       auto base_size = tensor.storage().get_npu_desc().base_sizes_;
+      // No padding&&offset!=0 at same time. e.g. x(3, 15, 16)[1:] with format=29
+      if (((tensor.size(-1) % 16 != 0) || (tensor.size(-2) % 16 != 0)) &&
+          tensor.storage_offset() != 0) {
+        return false;
+      }
       // Make sure that sizes of last 2 dims don't change
       if (tensor.size(-1) != base_size[base_size.size() - 1] ||
           tensor.size(-2) != base_size[base_size.size() - 2])
