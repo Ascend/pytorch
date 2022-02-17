@@ -1,11 +1,12 @@
 import tempfile
+from itertools import product, combinations, combinations_with_replacement, permutations
+
 import torch
 import torch_npu
 
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.testing._internal.common_device_type import device_type_test_bases, \
       DeviceTypeTestBase, onlyOn, dtypes, instantiate_device_type_tests
-from itertools import product, combinations, combinations_with_replacement, permutations
 
 
 def onlyNPU(fn):
@@ -30,51 +31,51 @@ class TestTensor(TestCase):
 
     @onlyNPU
     def test_tensor_set(self, device):
-            t1 = torch.Tensor()
-            t2 = torch.Tensor(3, 4, 9, 10).uniform_()
-            t1.set_(t2)
-            self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
-            size = torch.Size([9, 3, 4, 10])
-            t1.set_(t2.storage(), 0, size)
-            self.assertEqual(t1.size(), size)
-            t1.set_(t2.storage(), 0, tuple(size))
-            self.assertEqual(t1.size(), size)
-            self.assertEqual(t1.stride(), (120, 40, 10, 1))
-            stride = (10, 360, 90, 1)
-            t1.set_(t2.storage(), 0, size, stride)
-            self.assertEqual(t1.stride(), stride)
-            t1.set_(t2.storage(), 0, size=size, stride=stride)
-            self.assertEqual(t1.size(), size)
-            self.assertEqual(t1.stride(), stride)
+        t1 = torch.Tensor()
+        t2 = torch.Tensor(3, 4, 9, 10).uniform_()
+        t1.set_(t2)
+        self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+        size = torch.Size([9, 3, 4, 10])
+        t1.set_(t2.storage(), 0, size)
+        self.assertEqual(t1.size(), size)
+        t1.set_(t2.storage(), 0, tuple(size))
+        self.assertEqual(t1.size(), size)
+        self.assertEqual(t1.stride(), (120, 40, 10, 1))
+        stride = (10, 360, 90, 1)
+        t1.set_(t2.storage(), 0, size, stride)
+        self.assertEqual(t1.stride(), stride)
+        t1.set_(t2.storage(), 0, size=size, stride=stride)
+        self.assertEqual(t1.size(), size)
+        self.assertEqual(t1.stride(), stride)
 
-            # test argument names
-            t1 = torch.Tensor()
-            # 1. case when source is tensor
-            t1.set_(source=t2)
-            self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
-            # 2. case when source is storage
-            t1.set_(source=t2.storage())
-            self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
-            # 3. case when source is storage, and other args also specified
-            t1.set_(source=t2.storage(), storage_offset=0, size=size, stride=stride)
-            self.assertEqual(t1.size(), size)
-            self.assertEqual(t1.stride(), stride)
+        # test argument names
+        t1 = torch.Tensor()
+        # 1. case when source is tensor
+        t1.set_(source=t2)
+        self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+        # 2. case when source is storage
+        t1.set_(source=t2.storage())
+        self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+        # 3. case when source is storage, and other args also specified
+        t1.set_(source=t2.storage(), storage_offset=0, size=size, stride=stride)
+        self.assertEqual(t1.size(), size)
+        self.assertEqual(t1.stride(), stride)
 
-            t1 = torch.tensor([True, True], dtype=torch.bool)
-            t2 = torch.tensor([False, False], dtype=torch.bool)
-            t1.set_(t2)
-            self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
+        t1 = torch.tensor([True, True], dtype=torch.bool)
+        t2 = torch.tensor([False, False], dtype=torch.bool)
+        t1.set_(t2)
+        self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
     
     @onlyNPU
     @dtypes(torch.half, torch.float)
     def test_cat_all_dtypes_and_devices(self, device, dtype):
-            x = torch.tensor([[1, 2], [3, 4]], dtype=dtype, device=device)
+        x = torch.tensor([[1, 2], [3, 4]], dtype=dtype, device=device)
 
-            expected1 = torch.tensor([[1, 2], [3, 4], [1, 2], [3, 4]], dtype=dtype, device=device)
-            self.assertEqual(torch.cat((x, x), 0).to('cpu'), expected1.to('cpu'))
+        expected1 = torch.tensor([[1, 2], [3, 4], [1, 2], [3, 4]], dtype=dtype, device=device)
+        self.assertEqual(torch.cat((x, x), 0).to('cpu'), expected1.to('cpu'))
 
-            expected2 = torch.tensor([[1, 2, 1, 2], [3, 4, 3, 4]], dtype=dtype, device=device)
-            self.assertEqual(torch.cat((x, x), 1).to('cpu'), expected2.to('cpu'))
+        expected2 = torch.tensor([[1, 2, 1, 2], [3, 4, 3, 4]], dtype=dtype, device=device)
+        self.assertEqual(torch.cat((x, x), 1).to('cpu'), expected2.to('cpu'))
 
     @onlyNPU
     def test_cat_mem_overlap(self, device):
@@ -105,8 +106,6 @@ class TestTensor(TestCase):
         z = torch.cat([x, y])
         self.assertEqual(z.size(), (21, SIZE, SIZE))
 
-    # TODO: this test should be updated
-
     @onlyNPU
     def test_zeros(self, device):
         res1 = torch.zeros(100, 100, device=device)
@@ -128,8 +127,6 @@ class TestTensor(TestCase):
         expected = torch.tensor([[0.]], device=device, dtype=torch.half)
         self.assertEqual(bfloat16Tensor.to('cpu'), expected.to('cpu'))
 
-    # TODO: this test should be updated
-
     @onlyNPU
     def test_zeros_out(self, device):
         shape = (3, 4)
@@ -149,8 +146,6 @@ class TestTensor(TestCase):
                          torch.zeros(shape, device=device, layout=torch.strided, out=out).to('cpu'))
         self.assertEqual(torch.zeros(shape, device=device).to('cpu'),
                          torch.zeros(shape, device=device, out=out).to('cpu'))
-
-    # TODO: this test should be updated
 
     @onlyNPU
     def test_ones(self, device):
@@ -178,6 +173,7 @@ class TestTensor(TestCase):
                                          device=device).as_strided(shape, strides)
                 self.assertEqual(empty_strided.shape, as_strided.shape)
                 self.assertEqual(empty_strided.stride(), as_strided.stride())
+
     @onlyNPU
     def test_empty_tensor_props(self, device):
         sizes = [(0,), (0, 3), (5, 0), (5, 0, 3, 0, 2), (0, 3, 0, 2), (0, 5, 0, 2, 0)]
@@ -225,7 +221,7 @@ class TestTensor(TestCase):
         self.assertEqual(torch.full(size, 1, out=o).dtype, o.dtype)
 
     # TODO: this test should be updated
-    
+
     @onlyNPU
     def test_ones_like(self, device):
         expected = torch.ones(100, 100, device=device)

@@ -25,6 +25,7 @@
 #include <mutex>
 
 namespace c10_npu {
+namespace NPUCachingAllocator {
 
 // Caching allocator will execute every registered callback if it unable to find
 // block inside of already allocated area.
@@ -112,31 +113,32 @@ struct SegmentInfo {
 };
 
 
-C10_NPU_API void* raw_alloc(size_t nbytes);
-C10_NPU_API void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
-C10_NPU_API void raw_delete(void* ptr);
+void* raw_alloc(size_t nbytes);
+void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
+void raw_delete(void* ptr);
 
-C10_NPU_API std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2);
+std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2);
 
-C10_NPU_API c10::Allocator* get();
-C10_NPU_API void emptyCache();
-C10_NPU_API void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
-C10_NPU_API void* getBaseAllocation(void* ptr, size_t* size);
-C10_NPU_API void recordStream(const c10::DataPtr& ptr, c10::npu::NPUStream stream);
-C10_NPU_API DeviceStats_ getDeviceStats(int device);
-C10_NPU_API void resetAccumulatedStats(int device);
-C10_NPU_API void resetPeakStats(int device);
-C10_NPU_API std::vector<SegmentInfo> snapshot();
+c10::Allocator* get();
+void emptyCache();
+void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
+void* getBaseAllocation(void* ptr, size_t* size);
+void recordStream(const c10::DataPtr& ptr, c10::npu::NPUStream stream);
+DeviceStats_ getDeviceStats(int device);
+void resetAccumulatedStats(int device);
+void resetPeakStats(int device);
+std::vector<SegmentInfo> snapshot();
 
-C10_NPU_API uint64_t currentMemoryAllocated(int device);
-C10_NPU_API uint64_t maxMemoryAllocated(int device);
-C10_NPU_API void resetMaxMemoryAllocated(int device);
-C10_NPU_API uint64_t currentMemoryCached(int device);
-C10_NPU_API uint64_t maxMemoryCached(int device);
-C10_NPU_API void resetMaxMemoryCached(int device);
+uint64_t currentMemoryAllocated(int device);
+uint64_t maxMemoryAllocated(int device);
+void resetMaxMemoryAllocated(int device);
+uint64_t currentMemoryCached(int device);
+uint64_t maxMemoryCached(int device);
+void resetMaxMemoryCached(int device);
 
-C10_NPU_API std::mutex* getFreeMutex();
+std::mutex* getFreeMutex();
 
-C10_NPU_API void FreeDeviceCachedMemory(int device);
+void FreeDeviceCachedMemory(int device);
 
+} // namespace NPUCachingAllocator
 } // namespace c10

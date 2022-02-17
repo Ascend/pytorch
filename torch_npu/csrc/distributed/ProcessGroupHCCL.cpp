@@ -460,7 +460,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     // operations where `inputs' and `outputs' are not the same.
     //
     // See [Sync Streams].
-    c10_npu::recordStream(
+    c10_npu::NPUCachingAllocatorrecordStream(
         inputs[i].storage().data_ptr(), hcclStream);
   }
   {
@@ -578,7 +578,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
-        c10_npu::recordStream(
+        c10_npu::NPUCachingAllocatorrecordStream(
             output.storage().data_ptr(), stream);
         return HcclAllGather(
             input.data_ptr(),
@@ -595,7 +595,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
           c10::npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < outputTensors[0].size(); ++j) {
             // See [Sync Streams].
-            c10_npu::recordStream(
+            c10_npu::NPUCachingAllocatorrecordStream(
                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
             outputTensors[i][j].copy_(outputFlattened[i][j], true);
@@ -629,7 +629,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
-        c10_npu::recordStream(
+        c10_npu::NPUCachingAllocatorrecordStream(
             output.storage().data_ptr(), stream);
         return HcclReduceScatter(
             input.data_ptr(),
@@ -646,7 +646,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           c10::npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < inputTensors[0].size(); ++j) {
             // See [Sync Streams].
-            c10_npu::recordStream(
+            c10_npu::NPUCachingAllocatorrecordStream(
                 inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
 
             inputFlattened[i][j].copy_(inputTensors[i][j], true);

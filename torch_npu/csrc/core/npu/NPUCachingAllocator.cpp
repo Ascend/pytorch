@@ -14,11 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-#include <c10/npu/NPUGuard.h>
-#include <c10/util/UniqueVoidPtr.h>
-#include <third_party/acl/inc/acl/acl_base.h>
-#include <third_party/acl/inc/acl/acl_rt.h>
 #include <algorithm>
 #include <bitset>
 #include <deque>
@@ -29,13 +24,19 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include <c10/npu/NPUGuard.h>
+#include <c10/util/UniqueVoidPtr.h>
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
 #include <c10/util/intrusive_ptr.h>
 
+#include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace c10_npu {
+namespace NPUCachingAllocator {
 
 C10_DEFINE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 
@@ -1174,4 +1175,5 @@ void FreeDeviceCachedMemory(int device)
   caching_allocator.free_cached_blocks(device);
 }
 
+} // namespace NPUCachingAllocator
 } // namespace c10_npu
