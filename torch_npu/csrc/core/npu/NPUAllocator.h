@@ -23,7 +23,6 @@
 #include <c10/util/Logging.h>
 #include <c10/util/numa.h>
 
-// TODO: rename to c10
 C10_DECLARE_bool(caffe2_report_npu_memory_usage);
 C10_DECLARE_bool(caffe2_npu_allocator_do_zero_fill);
 C10_DECLARE_bool(caffe2_npu_allocator_do_junk_fill);
@@ -36,7 +35,6 @@ constexpr size_t gAlignment = 64;
 using MemoryDeleter = void (*)(void*);
 
 // A helper function that is basically doing nothing.
-// C10_API void NoDelete(void*);
 
 // Fill the data memory region of num bytes with a particular garbage pattern.
 // The garbage value is chosen to be NaN if interpreted as floating point value,
