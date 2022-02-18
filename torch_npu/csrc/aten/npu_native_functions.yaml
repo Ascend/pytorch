@@ -1001,7 +1001,6 @@ supported:
   - mkldnn_reorder_conv3d_weight
   - to_mkldnn_backward
   - quantize_per_tensor
-  - quantize_per_tensor.tensors
   - quantize_per_channel
   - dequantize.self
   - dequantize.tensors
