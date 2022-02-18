@@ -269,7 +269,9 @@ C10_API aclrtStream NPUStream::stream() const {
       return nullptr;
     }
   }
-  return ptr->stream;
+  auto cur_ptr = NPUStream_internals(*this);
+  AT_ASSERT(cur_ptr);
+  return cur_ptr->stream;
 }
 
 NPUStream getNPUStreamFromPool(DeviceIndex device_index) {
