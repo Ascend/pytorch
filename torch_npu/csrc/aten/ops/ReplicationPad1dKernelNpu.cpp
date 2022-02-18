@@ -69,9 +69,7 @@ at::Tensor& NPUNativeFunctions::replication_pad1d_out(
   at::Tensor selfCopy = self;
   int diff = 4 - selfCopy.dim();
   int n = diff;
-  for (; diff > 0; diff--) {
-    selfCopy = selfCopy.unsqueeze(0);
-  }
+  selfCopy = selfCopy.unsqueeze(0);
   auto outputSize = replication_pad1d_npu_output_size(selfCopy, paddings);
   OpPreparation::CheckOut(
       {selfCopy},
@@ -79,9 +77,7 @@ at::Tensor& NPUNativeFunctions::replication_pad1d_out(
       selfCopy,
       outputSize);
   replication_pad1d_out_npu_nocheck(out, selfCopy, paddings);
-  for (; n > 0; n--) {
-    out = out.squeeze(0);
- }
+  out = out.squeeze(0);
   return out;
 }
 
@@ -90,16 +86,12 @@ at::Tensor NPUNativeFunctions::replication_pad1d(const at::Tensor& self, at::Int
   at::Tensor selfCopy = self;
   int diff = 4 - selfCopy.dim();
   int n = diff;
-  for (; diff > 0; diff--) {
-    selfCopy = selfCopy.unsqueeze(0);
-  }
+  selfCopy = selfCopy.unsqueeze(0);
 
   auto outputSize = replication_pad1d_npu_output_size(selfCopy, paddings);
   at::Tensor out = OpPreparation::ApplyTensor(selfCopy, outputSize);
   replication_pad1d_out_npu_nocheck(out, selfCopy, paddings);
-  for (; n > 0; n--) {
-    out = out.squeeze(0);
- }
+  out = out.squeeze(0);
   return out;
 }
 } // namespace native
