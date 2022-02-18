@@ -25,11 +25,11 @@ struct SecondaryStreamGuard{
   explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
 
   ~SecondaryStreamGuard() {
-      c10::NPUEvent npu_event;
+      c10::npu::NPUEvent npu_event;
       npu_event.record(guard_.current_stream());
       npu_event.block(guard_.original_stream());
   }
 private:
-  c10::NPUStreamGuard guard_;
+  c10::npu::NPUStreamGuard guard_;
 };
 } // namespace torch_npu
