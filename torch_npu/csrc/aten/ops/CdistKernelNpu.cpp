@@ -17,7 +17,6 @@
 
 namespace at_npu {
 namespace native {
-using namespace at::native::npu;
 
 at::Tensor NPUNativeFunctions::_cdist_forward(
     const at::Tensor& x1,
@@ -54,7 +53,7 @@ at::Tensor NPUNativeFunctions::_cdist_forward(
 
   at::IntArrayRef batch_tensor1(x1.sizes().data(), dim1 - 2);
   at::IntArrayRef batch_tensor2(x2.sizes().data(), dim2 - 2);
-  std::vector<int64_t> expand_batch_portion = infer_size(batch_tensor1, batch_tensor2);
+  std::vector<int64_t> expand_batch_portion = at::infer_size(batch_tensor1, batch_tensor2);
   std::vector<int64_t> tensor1_expand_size(expand_batch_portion);
   tensor1_expand_size.insert(tensor1_expand_size.end(), {r1, c1});
   std::vector<int64_t> tensor2_expand_size(expand_batch_portion);
@@ -64,7 +63,7 @@ at::Tensor NPUNativeFunctions::_cdist_forward(
   std::vector<int64_t> tensor1_view{expand_batch_product, r1, 1, c1};
   std::vector<int64_t> tensor2_view{expand_batch_product, 1, r2, c2};
   std::vector<int64_t> result_size{expand_batch_product, r1, r2};
-  std::vector<int64_t> tensor_broadcast_size = infer_size(tensor1_view, tensor2_view);
+  std::vector<int64_t> tensor_broadcast_size = at::infer_size(tensor1_view, tensor2_view);
 
   // Broadcast batch dim.
   at::Tensor tensor1_expanded = x1.expand(tensor1_expand_size).contiguous().view(tensor1_view);

@@ -22,12 +22,12 @@ from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type
 from torch_npu.testing.util_test import create_common_tensor
  
 class TestAtan(TestCase):
-    def cpu_op_exec(self, input):
-        output = torch.atan(input) 
+    def cpu_op_exec(self, input1):
+        output = torch.atan(input1) 
         return output
  
-    def npu_op_exec(self, input):
-        output = torch.atan(input) 
+    def npu_op_exec(self, input1):
+        output = torch.atan(input1) 
         output = output.to("cpu") 
         return output  
         

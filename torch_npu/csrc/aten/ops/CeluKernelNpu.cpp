@@ -19,28 +19,24 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor celu_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, Scalar alpha) {
-  float alpha3 = 1.0;
-
+at::Tensor celu_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::Scalar alpha) {
   OpCommand cmd;
   cmd.Name("Celu")
         .Input(self)
         .Output(result)
-        .Attr("alpha1", alpha)
-        .Attr("alpha2", alpha)
-        .Attr("alpha3", alpha3)
+        .Attr("alpha", alpha)
         .Run();
 
   return result;
 }
 
-at::Tensor NPUNativeFunctions::celu(const at::Tensor& self, Scalar alpha) {
+at::Tensor NPUNativeFunctions::celu(const at::Tensor& self, at::Scalar alpha) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   celu_out_npu_nocheck(result, self, alpha);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::celu_(at::Tensor& self, Scalar alpha) {
+at::Tensor& NPUNativeFunctions::celu_(at::Tensor& self, at::Scalar alpha) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = celu_out_npu_nocheck(contiguousSelf, contiguousSelf, alpha);

@@ -69,6 +69,13 @@ class TestCelu(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
+    
+    def cpu_op_exec_fp16(self, input1, alpha):
+        input1 = input1.to(torch.float32)
+        output = torch.nn.functional.celu(input1, alpha=alpha)
+        output = output.numpy()
+        output = output.astype(np.float16)
+        return output
 
     def test_celu_3_3_float32_alpha1(self, device):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
@@ -89,13 +96,6 @@ class TestCelu(TestCase):
         self.assertRtolEqual(cpu_output1, npu_output1)
     
     def test_celu_float16_alpha1(self, device):
-        def cpu_op_exec_fp16(input1, alpha):
-            input1 = input1.to(torch.float32)
-            output = torch.nn.functional.celu(input1, alpha=alpha)
-            output = output.numpy()
-            output = output.astype(np.float16)
-            return output
-
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -103,18 +103,11 @@ class TestCelu(TestCase):
 
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -2, 2)
-            cpu_output = cpu_op_exec_fp16(cpu_input1, 1.0)
+            cpu_output = self.cpu_op_exec_fp16(cpu_input1, 1.0)
             npu_output = self.npu_op_exec(npu_input1, 1.0)
             self.assertRtolEqual(cpu_output, npu_output)  
 
     def test_celu_float16_alpha2_success(self, device):
-        def cpu_op_exec_fp16(input1, alpha):
-            input1 = input1.to(torch.float32)
-            output = torch.nn.functional.celu(input1, alpha=alpha)
-            output = output.numpy()
-            output = output.astype(np.float16)
-            return output
-
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -122,18 +115,11 @@ class TestCelu(TestCase):
 
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
-            cpu_output = cpu_op_exec_fp16(cpu_input1, 2.0)
+            cpu_output = self.cpu_op_exec_fp16(cpu_input1, 2.0)
             npu_output = self.npu_op_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output)  
 
     def test_celu_float16_alpha2_fail(self, device):
-        def cpu_op_exec_fp16(input1, alpha):
-            input1 = input1.to(torch.float32)
-            output = torch.nn.functional.celu(input1, alpha=alpha)
-            output = output.numpy()
-            output = output.astype(np.float16)
-            return output
-
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -141,7 +127,7 @@ class TestCelu(TestCase):
 
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -2, 2)
-            cpu_output = cpu_op_exec_fp16(cpu_input1, 2.0)
+            cpu_output = self.cpu_op_exec_fp16(cpu_input1, 2.0)
             npu_output = self.npu_op_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output) 
 
@@ -180,7 +166,7 @@ class TestCelu(TestCase):
     
     def test_celu_inplace_shape_format_alpha_range(self, device):
         shape_format_alpha_range = [
-            # [[dtype, format, shape], alpha, min, max]
+            # 注：[[dtype, format, shape], alpha, min, max]
             [[np.float16, 2, (16, 5, 7, 11)], 5.6, -2, 2],
             [[np.float32, 2, (16, 5, 7, 11)], 0.5, -2, 2],
             [[np.float32, 2, (16, 5, 7, 11)], 0.7, -2, 2],
@@ -206,7 +192,7 @@ class TestCelu(TestCase):
     
     def test_celu_inplace_shape_format_alpha_range(self, device):
         shape_format_alpha_range = [
-            # [[dtype, format, shape], alpha, min, max]
+            # 注：[[dtype, format, shape], alpha, min, max]
             [[np.float32, 2, (16, 5, 7, 11)], 0.5, -2, 2],
             [[np.float32, 2, (16, 5, 7, 11)], 0.7, -2, 2],
             [[np.float32, 2, (16, 5, 7, 11)], 2.6, -2, 2],

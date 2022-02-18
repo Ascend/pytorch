@@ -32,12 +32,12 @@ class TestCeil(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
        
-    def cpu_op_exec(self, input):
-        output = torch.ceil(input)
+    def cpu_op_exec(self, input1):
+        output = torch.ceil(input1)
         return output
 
-    def npu_op_exec(self, input):
-        output = torch.ceil(input)
+    def npu_op_exec(self, input1):
+        output = torch.ceil(input1)
         output = output.to("cpu")
         return output
 

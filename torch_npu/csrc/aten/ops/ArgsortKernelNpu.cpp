@@ -65,7 +65,7 @@ at::Tensor& argsort_out_npu_nocheck(
   argsort_out_npu_no_transpose(
       transposeValues, transposeIndices, transposeSelf, lastDim, descending);
 
-  NPUNativeFunctions::npu_transpose_out(indices, transposeIndices, perm);
+  NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
   
   // indices dtype transform to Int64
   indices = NPUNativeFunctions::npu_dtype_cast(indices, at::kLong);
@@ -85,7 +85,7 @@ at::Tensor NPUNativeFunctions::argsort(const at::Tensor& self,
   return indices;
 }
 
-at::Tensor NPUNativeFunctions::argsort_dim(const at::Tensor& self,
+at::Tensor NPUNativeFunctions::argsort(const at::Tensor& self,
     at::Dimname dim,
     bool descending) {
   return NPUNativeFunctions::argsort(self, dimname_to_position(self, dim), descending);
