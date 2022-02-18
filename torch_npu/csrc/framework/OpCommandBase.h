@@ -15,9 +15,9 @@
 #ifndef __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 #define __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 
-#include "torch_npu/csrc/register/OptionsManager.h"
 #include <ATen/npu/Exceptions.h>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"

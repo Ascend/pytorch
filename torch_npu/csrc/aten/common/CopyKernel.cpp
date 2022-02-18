@@ -17,8 +17,8 @@
 #include <ATen/ATen.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/NPUGuard.h>
-#include "torch_npu/csrc/register/OptionsManager.h"
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"

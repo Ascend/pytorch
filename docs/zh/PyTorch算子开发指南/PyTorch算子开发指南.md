@@ -477,7 +477,6 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 2.  引入依赖头文件。
 
     ```
-    #include <c10/npu/OptionsManager.h>
     #include "ATen/native/npu/utils/CalcuOpUtil.h"
     #include "ATen/native/npu/utils/OpAdapter.h"
     ```

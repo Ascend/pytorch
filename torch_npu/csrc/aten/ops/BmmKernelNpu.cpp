@@ -14,8 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "c10/npu/OptionsManager.h"
-
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

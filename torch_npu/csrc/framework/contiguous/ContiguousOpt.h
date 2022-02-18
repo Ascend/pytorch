@@ -16,9 +16,9 @@
 #ifndef __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 #define __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 
-#include "torch_npu/csrc/register/OptionsManager.h"
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/contiguous/contiguous_register.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

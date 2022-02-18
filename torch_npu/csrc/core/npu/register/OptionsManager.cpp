@@ -14,8 +14,9 @@
 // limitations under the License.
 
 #include <string>
-#include "torch_npu/csrc/register/OptionRegister.h"
-#include "torch_npu/csrc/register/OptionsManager.h"
+
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace torch_npu {
 namespace option {

@@ -18,8 +18,8 @@
 #include <string>
 #include <vector>
 #include <c10/npu/npu_log.h>
-#include <c10/npu/register/OptionRegister.h>
 
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 
 using std::string;

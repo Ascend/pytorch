@@ -39,7 +39,7 @@
 #include <torch/csrc/utils/npu_lazy_init.h>
 
 #include "third_party/acl/inc/acl/acl.h"
-#include "torch_npu/csrc/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 

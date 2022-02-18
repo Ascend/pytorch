@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/register/FunctionLoader.h>
 #include <c10/util/Exception.h>
 
+#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 
 namespace at_npu

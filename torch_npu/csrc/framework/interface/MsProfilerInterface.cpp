@@ -15,7 +15,7 @@
 
 #include <c10/npu/NPUException.h>
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
-#include "torch_npu/csrc/register/FunctionLoader.h"
+#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
 namespace at_npu {
 namespace native {
