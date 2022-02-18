@@ -13,11 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/register/OptionsManager.h"
 #include <c10/npu/NPUQueue.h>
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"

@@ -15,7 +15,8 @@
 
 #include <algorithm>
 #include <c10/util/Exception.h>
-#include "torch_npu/csrc/register/OptionRegister.h"
+
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 
 namespace torch_npu {
 namespace option {

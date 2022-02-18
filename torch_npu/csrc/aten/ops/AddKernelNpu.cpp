@@ -15,9 +15,9 @@
 // limitations under the License.
 
 #include <ATen/Tensor.h>
-#include "torch_npu/csrc/register/OptionsManager.h"
 #include <c10/util/SmallVector.h>
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

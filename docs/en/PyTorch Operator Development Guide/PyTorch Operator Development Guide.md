@@ -477,7 +477,6 @@ The following uses the torch.add\(\) operator as an example to describe how to a
 2.  Introduce the dependency header files.
 
     ```
-    #include <c10/npu/OptionsManager.h>
     #include "ATen/native/npu/utils/CalcuOpUtil.h"
     #include "ATen/native/npu/utils/OpAdapter.h"
     ```

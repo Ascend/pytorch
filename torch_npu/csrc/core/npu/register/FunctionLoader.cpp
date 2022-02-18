@@ -15,7 +15,8 @@
 
 #include <dlfcn.h>
 #include <c10/util/Exception.h>
-#include "torch_npu/csrc/register/FunctionLoader.h"
+
+#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
 namespace torch_npu {
 namespace option {

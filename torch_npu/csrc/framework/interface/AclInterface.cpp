@@ -14,7 +14,8 @@
 // limitations under the License.
 
 #include <c10/util/Exception.h>
-#include "torch_npu/csrc/register/FunctionLoader.h"
+
+#include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 
 namespace at_npu {

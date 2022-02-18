@@ -21,7 +21,7 @@
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
-#include "torch_npu/csrc/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 namespace at_npu {
 namespace native {

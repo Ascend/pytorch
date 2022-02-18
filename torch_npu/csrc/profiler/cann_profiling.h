@@ -18,7 +18,7 @@
 #define __CANN_PROFILING__
 
 #include <string>
-#include <c10/macros/Export.h>
+
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 
 typedef enum {
@@ -31,7 +31,7 @@ typedef enum {
 namespace torch_npu {
 namespace profiler {
 
-class TORCH_NPU_API NpuProfiling
+class NpuProfiling
 {
 public:
   static NpuProfiling& Instance();
