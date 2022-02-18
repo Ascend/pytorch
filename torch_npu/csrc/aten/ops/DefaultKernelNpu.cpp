@@ -1,4 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION. 
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -18,19 +19,13 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::embedding_backward(
-    const at::Tensor& grad, 
-    const at::Tensor& indices, 
-    int64_t num_weights, 
-    int64_t padding_idx, 
-    bool scale_grad_by_freq, 
-    bool sparse) {
-    TORCH_CHECK(sparse == false, "NPU error, not yet support sparse tensor, when sparse == True");
+at::Tensor NPUNativeFunctions::isnan(const at::Tensor& self) {
+  return at::native::isnan(self);
+}
 
-    // run dense tensor backward
-    return at::embedding_dense_backward(
-        grad, indices, num_weights, padding_idx, scale_grad_by_freq);
+at::Tensor NPUNativeFunctions::unfold(const at::Tensor& self, int64_t dimension, int64_t size, int64_t step) {
+  return at::native::unfold(self, dimension, size, step);
 }
 
 } // namespace native
-} // namespace at
+} // namespace at_npu
