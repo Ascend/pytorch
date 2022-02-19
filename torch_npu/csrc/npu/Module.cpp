@@ -45,10 +45,14 @@
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
-  c10::npu::NpuSysCtrl::SysStatus status =
-  c10::npu::NpuSysCtrl::GetInstance().Initialize(); if (status !=
-  c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
-    throw python_error();
+  {
+    pybind11::gil_scoped_release no_gil;
+    c10::npu::NpuSysCtrl::SysStatus status =
+        c10::npu::NpuSysCtrl::GetInstance().Initialize();
+    if (status !=
+        c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+      throw python_error();
+    }
   }
   auto m = THPObjectPtr(PyImport_ImportModule("torch_npu.npu"));
   if (!m) throw python_error();
@@ -97,10 +101,13 @@ void THNPModule_setDevice(int device) {
 PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   int device = THPUtils_unpackLong(arg);
-  c10::npu::NpuSysCtrl::SysStatus status =
-      c10::npu::NpuSysCtrl::GetInstance().Initialize(device);
-  if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+  {
+    pybind11::gil_scoped_release no_gil;
+    c10::npu::NpuSysCtrl::SysStatus status =
+        c10::npu::NpuSysCtrl::GetInstance().Initialize(device);
+    if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       NPU_LOGE("Npu init fail.");
+    }
   }
 
   int pre_device = 0;
