@@ -1895,7 +1895,9 @@ custom:
   - func: npu_conv3d(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_conv3d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_conv3d_backward(Tensor input, Tensor grad, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  - func: get_npu_format(Tensor self) -> int
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
   - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
   - func: empty_with_format(int[] size, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None, int acl_format=2) -> Tensor

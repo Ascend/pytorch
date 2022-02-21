@@ -88,6 +88,15 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
   return dst;
 }
 
+// conver self to dst'format, write the result into new result tensor
+at::Tensor NPUNativeFunctions::npu_format_cast(
+    const at::Tensor& src,
+    const at::Tensor& dst) {
+  c10::NPUStorageDesc dst_desc = dst.storage().unsafeGetStorageImpl()->npu_desc_;
+  int64_t dst_format = dst_desc.npu_format_;
+  return NPUNativeFunctions::npu_format_cast(src, dst_format);
+}
+
 // conver self to acl_format, write the result into self
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& src,
@@ -116,6 +125,11 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
   src.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
 
   return src;
+}
+
+int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
+  c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  return src_desc.npu_format_;
 }
 
 } // namespace native
