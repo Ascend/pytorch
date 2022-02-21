@@ -16,11 +16,10 @@
 
 #pragma once
 
-#include <aten/src/ATen/npu/NPUEvent.h>
+#include <c10/npu/NPUEvent.h>
 #include <c10/npu/NPUStream.h>
 namespace c10 {
 namespace npu {
-using namespace at::npu;
 struct SecondaryStreamGuard{
   explicit SecondaryStreamGuard() = delete;
   explicit SecondaryStreamGuard(Stream stream) : guard_(stream) {};

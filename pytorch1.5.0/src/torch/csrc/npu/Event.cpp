@@ -44,7 +44,7 @@ static PyObject * THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *
 
   THNPEvent* self = (THNPEvent *)ptr.get();
 
-  new (&self->npu_event) at::npu::NPUEvent();
+  new (&self->npu_event) c10::npu::NPUEvent();
 
   return (PyObject *)ptr.release();
   END_HANDLE_TH_ERRORS

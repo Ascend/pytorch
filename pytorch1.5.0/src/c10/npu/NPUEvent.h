@@ -19,13 +19,13 @@
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/NPUGuard.h>
 #include <third_party/acl/inc/acl/acl.h>
-#include <ATen/npu/Exceptions.h>
+#include <c10/npu/NPUException.h>
 #include <c10/npu/NPUEventManager.h>
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <cstdint>
 #include <utility>
 
-namespace at {
+namespace c10 {
 namespace npu {
 
 using namespace c10::npu;
@@ -46,8 +46,8 @@ struct TORCH_NPU_API NPUEvent {
   ~NPUEvent() {
     try {
       if (is_created_) {
-        AT_NPU_CHECK(c10::npu::queue::LaunchLazyDestroyEventTask(event_));
-        AT_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
+        C10_NPU_CHECK(c10::npu::queue::LaunchLazyDestroyEventTask(event_));
+        C10_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
     } catch (...) {} /* No throw */
   }
@@ -86,7 +86,7 @@ struct TORCH_NPU_API NPUEvent {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
     aclrtEventStatus currStatus = ACL_EVENT_STATUS_COMPLETE;
-    AT_NPU_CHECK(aclrtQueryEvent(event_, &currStatus));
+    C10_NPU_CHECK(aclrtQueryEvent(event_, &currStatus));
 
     if (currStatus == ACL_EVENT_STATUS_COMPLETE) {
       return true;
@@ -108,14 +108,14 @@ struct TORCH_NPU_API NPUEvent {
     TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
       " does not match recording stream's device ", stream.device_index(), ".");
     NPUGuard guard(device_index_);
-    AT_NPU_CHECK(c10::npu::queue::LaunchRecordEventTask(event_, stream));
+    C10_NPU_CHECK(c10::npu::queue::LaunchRecordEventTask(event_, stream));
     was_recorded_ = true;
   }
 
   void block(const NPUStream& stream) {
     if (is_created_) {
       NPUGuard guard(stream.device_index());
-      AT_NPU_CHECK(c10::npu::queue::LaunchWaitEventTask(event_, stream));
+      C10_NPU_CHECK(c10::npu::queue::LaunchWaitEventTask(event_, stream));
     }
   }
 
@@ -128,10 +128,10 @@ struct TORCH_NPU_API NPUEvent {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
 
-    AT_NPU_CHECK(aclrtSynchronizeEvent(event_));
-    AT_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
+    C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
+    C10_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
     // raise error if either event is recorded but not yet completed
-    AT_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
+    C10_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
     return time_ms;
   }
 
@@ -141,7 +141,7 @@ struct TORCH_NPU_API NPUEvent {
       if (ret != SUCCESS) {
         NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
       }
-      AT_NPU_CHECK(aclrtSynchronizeEvent(event_));
+      C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
     }
   }
 
@@ -156,7 +156,7 @@ private:
   void createEvent(DeviceIndex device_index) {
     device_index_ = device_index;
     NPUGuard guard(device_index_);
-    AT_NPU_CHECK(aclrtCreateEvent(&event_));
+    C10_NPU_CHECK(aclrtCreateEvent(&event_));
     is_created_ = true;
   }
 
@@ -170,4 +170,3 @@ private:
 
 } // namespace NPU
 } // namespace at
-

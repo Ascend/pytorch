@@ -25,7 +25,7 @@
 #include <c10d/ProcessGroup.hpp>
 #include <c10d/Store.hpp>
 
-#include <aten/src/ATen/npu/NPUEvent.h>
+#include <c10/npu/NPUEvent.h>
 #include <c10/npu/interface/HcclInterface.h>
 namespace c10d {
 // Environment variable which controls whether or not wait() is blocking or
@@ -104,7 +104,7 @@ class ProcessGroupHCCL : public ProcessGroup {
     std::vector<at::Device> devices_;
 
     // The NPU events tracking this work item on multiple NPU devices
-    std::vector<at::npu::NPUEvent> npuEvents_;
+    std::vector<c10::npu::NPUEvent> npuEvents_;
 
     // The HCCL communicators used for this work item.
     std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
@@ -324,10 +324,10 @@ class ProcessGroupHCCL : public ProcessGroup {
       hcclStreams_;
 
   // The NPU events used to sync HCCL streams
-  std::unordered_map<std::string, std::vector<at::npu::NPUEvent>> hcclEvents_;
+  std::unordered_map<std::string, std::vector<c10::npu::NPUEvent>> hcclEvents_;
 
   // The NPU events used to control task rate to protect streams
-  std::unordered_map<std::string, std::vector<at::npu::NPUEvent>>
+  std::unordered_map<std::string, std::vector<c10::npu::NPUEvent>>
       rateCtrlEvents_;
   std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 

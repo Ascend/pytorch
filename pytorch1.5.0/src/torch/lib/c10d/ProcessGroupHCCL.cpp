@@ -98,14 +98,14 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
 // event is done.
 void syncStreams(
     const std::vector<at::Device>& devices,
-    std::vector<at::npu::NPUEvent>& hcclEvents,
+    std::vector<c10::npu::NPUEvent>& hcclEvents,
     std::vector<c10::npu::NPUStream>& hcclStreams) {
   if (c10::npu::NpuRunMode::IsGraphMode()) {
     return;
   }
   for (size_t i = 0; i < devices.size(); ++i) {
     c10::npu::NPUStream& hcclStream = hcclStreams[i];
-    at::npu::NPUEvent& hcclEvent = hcclEvents[i];
+    c10::npu::NPUEvent& hcclEvent = hcclEvents[i];
     hcclEvent.record(c10::npu::getCurrentNPUStream(devices[i].index()));
     hcclEvent.block(hcclStream);
   }
