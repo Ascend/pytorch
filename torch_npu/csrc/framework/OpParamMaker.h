@@ -216,7 +216,7 @@ namespace at_npu
         // queue-enable
       }
 
-      void SetName(string &name)
+      void SetName(const string &name)
       {
         opName = name;
       }
