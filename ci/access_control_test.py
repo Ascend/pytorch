@@ -22,7 +22,7 @@ from abc import ABCMeta, abstractmethod
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'test/test_network_ops/test_add.py')
+DEFAULT_UT_FILE = os.path.join(BASE_DIR, 'ci/pytorch_resnet.py')
 
 
 class AccurateTest(metaclass=ABCMeta):
@@ -115,9 +115,7 @@ class TestMgr():
             if os.path.exists(changed_file):
                 exist_ut_file.append(changed_file)
         self.ut_files = exist_ut_file
-
-        if len(self.ut_files) == 0:
-            self.ut_files.append(DEFAULT_UT_FILE)
+        self.ut_files.append(DEFAULT_UT_FILE)
 
     def get_ut_files(self):
         return self.ut_files
