@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import warnings
+import logging
 import torch
 import torch_npu
 
@@ -137,8 +138,63 @@ def layernorm_forward(self, input: torch.Tensor) -> torch.Tensor:
         return torch_npu.npu_layer_norm_eval(input, self.normalized_shape, self.weight, self.bias, self.eps)
 
 
+def ddp_forward(self, *inputs, **kwargs):
+    if self.ddp_uneven_inputs_config.ddp_join_enabled:
+        ones = torch.ones(
+            1, device=self.device
+        )
+        work = torch_npu.distributed.all_reduce(ones, group=self.process_group, async_op=True)
+        self.reducer._set_forward_pass_work_handle(
+            work, self.ddp_uneven_inputs_config.ddp_join_divide_by_initial_world_size
+        )
+
+    # Calling _rebuild_buckets before forward compuation,
+    # It may allocate new buckets before deallocating old buckets
+    # inside _rebuild_buckets. To save peak memory usage,
+    # call _rebuild_buckets before the peak memory usage increases
+    # during forward computation.
+    # This should be called only once during whole training period.
+    if self.reducer._rebuild_buckets():
+        logging.info("Reducer buckets have been rebuilt in this iteration.")
+
+    if self.require_forward_param_sync:
+        self._sync_params()
+
+    if self.ddp_uneven_inputs_config.ddp_join_enabled:
+        # Notify joined ranks whether they should sync in backwards pass or not.
+        self._check_global_requires_backward_grad_sync(is_joined_rank=False)
+
+    if self.device_ids and self.device_type != "npu":
+        if len(self.device_ids) == 1:
+            inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
+            output = self.module(*inputs[0], **kwargs[0])
+        else:
+            inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
+            outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
+            output = self.gather(outputs, self.output_device)
+    else:
+        output = self.module(*inputs, **kwargs)
+
+    if torch.is_grad_enabled() and self.require_backward_grad_sync:
+        self.require_forward_param_sync = True
+        # We'll return the output object verbatim since it is a freeform
+        # object. We need to find any tensors in this object, though,
+        # because we need to figure out which parameters were used during
+        # this forward pass, to ensure we short circuit reduction for any
+        # unused parameters. Only if `find_unused_parameters` is set.
+        if self.find_unused_parameters:
+            self.reducer.prepare_for_backward(list(torch.nn.parallel.distributed._find_tensors(output)))
+        else:
+            self.reducer.prepare_for_backward([])
+    else:
+        self.require_forward_param_sync = False
+
+    return output
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.LayerNorm.forward = layernorm_forward
+    torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
