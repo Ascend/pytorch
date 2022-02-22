@@ -53,7 +53,7 @@ class TestFormatCast(TestCase):
             for j in dst_shape_format:
                 dst_tensor = self.create_single_npu_tensor(j, 3, 6)
                 result_tensor = torch_npu.npu_format_cast(src_tensor, dst_tensor)
-                self.check_result(torch_npu.get_npu_format(dst_tensor), npu_tensor)
+                self.check_result(torch_npu.get_npu_format(dst_tensor), result_tensor)
 
     def test_format_cast(self, device):
         shape_format = [np.float16, -1, (2, 2, 4, 4)]
