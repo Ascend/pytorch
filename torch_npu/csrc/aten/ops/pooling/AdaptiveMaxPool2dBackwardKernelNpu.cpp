@@ -59,7 +59,7 @@ at::Tensor& NPUNativeFunctions::adaptive_max_pool2d_backward_out(
       cmd.Name("MaxPoolGradWithArgmaxV1")
           .Input(self)
           .Input(grad_output)
-          .Input(indices, "", "uint16")
+          .Input(indices, "", c10::nullopt, "uint16")
           .Output(grad_input)
           .Attr("ksize", kernelSize)
           .Attr("strides", stridesSize)

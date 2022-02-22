@@ -42,6 +42,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
+#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -172,6 +174,43 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
   }
   c10::npu::setCurrentNPUStream(stream);
   Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::GRAPH_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_disable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::SINGLE_OP_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_launch_graph_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  auto is_graph_mode = c10_npu::NpuRunMode::IsGraphMode();
+  if (is_graph_mode) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
   END_HANDLE_TH_ERRORS
 }
 
@@ -476,6 +515,10 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
+    {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
+    {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},

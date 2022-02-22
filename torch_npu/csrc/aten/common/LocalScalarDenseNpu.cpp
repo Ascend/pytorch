@@ -17,7 +17,7 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <c10/npu/NPUStream.h>
-
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -33,6 +33,7 @@ c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
       self.scalar_type(),
       "_local_scalar_dense_npu",
       [&] {
+        GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
         scalar_t value = 0;
         c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
         aclError error = aclrtMemcpyAsync(

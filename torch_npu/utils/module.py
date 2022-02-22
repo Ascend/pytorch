@@ -35,8 +35,14 @@ def npu(self, device=None):
     if device is None:
         device = torch.device("npu")
     if torch_npu.npu.is_available():
+        # Ref [cast weight in single op mode]
+        is_graph_mode = torch_npu.npu.is_graph_mode()
+        if is_graph_mode:
+            torch_npu.npu.disable_graph_mode()
         with torch.no_grad():
             self.cast_weight(device)
+        if is_graph_mode:
+            torch_npu.npu.enable_graph_mode()
     return self._apply(lambda t: t.npu(device))
 
 
@@ -55,7 +61,14 @@ def to(self, *args, **kwargs):
                 "if a complex module does not work as expected.")
     if torch_npu.npu.is_available():
         with torch.no_grad():
-            self.cast_weight(device)
+            # Ref [cast weight in single op mode]
+            is_graph_mode = torch_npu.npu.is_graph_mode()
+            if is_graph_mode:
+                torch_npu.npu.disable_graph_mode()
+            with torch.no_grad():
+                self.cast_weight(device)
+            if is_graph_mode:
+                torch_npu.npu.enable_graph_mode();
 
     def convert(t):
         if convert_to_format is not None and t.dim() == 4:

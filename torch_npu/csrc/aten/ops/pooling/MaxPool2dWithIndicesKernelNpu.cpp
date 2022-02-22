@@ -51,7 +51,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_pool2d_with_indices_out(
   cmd.Name("MaxPoolWithArgmaxV1")
       .Input(self)
       .Output(output)
-      .Output(indices, "uint16")
+      .Output(indices, "", c10::nullopt, "uint16")
       .Attr("ksize", kernelSize)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)

@@ -44,6 +44,7 @@ from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_del
                      max_memory_allocated, memory_reserved, max_memory_reserved,
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
 from .streams import Stream, Event
+from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, profileConfig)
