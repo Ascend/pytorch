@@ -98,17 +98,17 @@ namespace at_npu
 
     void StorageDescHelper::SetDesc(at::Tensor &dst)
     {
-      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc();
+      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(dst.dtype());
     }
 
     void StorageDescHelper::SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides)
     {
-      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(size, strides);
+      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(dst.dtype(), size, strides);
     }
 
     void StorageDescHelper::SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides, aclFormat format)
     {
-      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(size, strides, format);
+      dst.storage().unsafeGetStorageImpl()->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
     }
 
     void StorageDescHelper::CopyDesc(at::Tensor &dst, const at::Tensor &src)
@@ -135,19 +135,22 @@ namespace at_npu
       desc.base_strides_ = src.strides();
     }
 
-    c10::NPUStorageDesc StorageDescHelper::SetDesc()
+    c10::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype)
     {
-      return SetDesc({0}, {});
+      return SetDesc(dtype, {0}, {});
     }
 
-    c10::NPUStorageDesc StorageDescHelper::SetDesc(c10::IntArrayRef size, c10::IntArrayRef strides)
+    c10::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+                                                   c10::IntArrayRef strides)
     {
-      return SetDesc(size, strides, InferFormat::GuessBaseFormat(size));
+      return SetDesc(dtype, size, strides, InferFormat::GuessBaseFormat(size));
     }
 
-    c10::NPUStorageDesc StorageDescHelper::SetDesc(c10::IntArrayRef size, c10::IntArrayRef strides, aclFormat format)
+    c10::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+                                                   c10::IntArrayRef strides, aclFormat format)
     {
       struct c10::NPUStorageDesc npu_desc;
+      npu_desc.data_type_ = dtype;
       npu_desc.base_sizes_ = size;
       npu_desc.base_strides_ = strides;
       // guess ori format and npu format unit by size and dst format

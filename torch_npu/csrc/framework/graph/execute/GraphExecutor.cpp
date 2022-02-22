@@ -216,16 +216,14 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
         data_node.value()->SetGeOp(std::make_shared<ge::op::Data>());
         op_ptr = data_node.value()->GetGeOp();
       }
-      // storageImpl has no dtype since 1.8, need a solution
-//      auto op_desc = ATenGeBridge::InferGeTenosrDesc(
-//          input_storages[index]->get_npu_desc(),
-//          input_storages[index]->dtype(),
-//          graph_desc.graph_value.GetRealDtype(),
-//          true);
-//      // x and y are the input and output names of Data IR
-//      op_ptr->UpdateInputDesc("x", op_desc);
-//      op_ptr->UpdateOutputDesc("y", op_desc);
-//      op_ptr->SetAttr(kDataAttrIndex, static_cast<uint32_t>(index));
+      auto op_desc = ATenGeBridge::InferGeTenosrDesc(
+          input_storages[index]->get_npu_desc(),
+          graph_desc.graph_value.GetRealDtype(),
+          true);
+      // x and y are the input and output names of Data IR
+      op_ptr->UpdateInputDesc("x", op_desc);
+      op_ptr->UpdateOutputDesc("y", op_desc);
+      op_ptr->SetAttr(kDataAttrIndex, static_cast<uint32_t>(index));
     }
     ops.push_back(*op_ptr);
   }
@@ -260,22 +258,20 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
         input_storages[index]->get_mutable_npu_graph_desc();
     auto data_node = graph_desc.graph_value.GetDataNode();
     TORCH_CHECK(data_node.has_value(), "Inputs Tensor must have data node");
-    // storageImpl has no dtype since 1.8, need a solution
-//    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-//        input_storages[index]->get_npu_desc(),
-//        input_storages[index]->dtype(),
-//        graph_desc.graph_value.GetRealDtype());
-//
-//    if (data_node.value()->GetOpType() == kDataNodeType) {
-//      ge::Tensor ge_tensor =
-//          PrepareInputTensor(input_storages[index], tensor_desc);
-//      input_infos.tensors.push_back(std::move(ge_tensor));
-//    }
-//    hash_t topo_hash =
-//        GraphCache::GetTensorTopoHash(graph_desc.graph_value, tensor_desc);
-//    input_infos.hash_of_topo_and_attr.push_back(topo_hash);
-//    hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
-//    input_infos.hash_of_shape.push_back(shape_hash);
+    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
+        input_storages[index]->get_npu_desc(),
+        graph_desc.graph_value.GetRealDtype());
+
+    if (data_node.value()->GetOpType() == kDataNodeType) {
+      ge::Tensor ge_tensor =
+          PrepareInputTensor(input_storages[index], tensor_desc);
+      input_infos.tensors.push_back(std::move(ge_tensor));
+    }
+    hash_t topo_hash =
+        GraphCache::GetTensorTopoHash(graph_desc.graph_value, tensor_desc);
+    input_infos.hash_of_topo_and_attr.push_back(topo_hash);
+    hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
+    input_infos.hash_of_shape.push_back(shape_hash);
   }
   return input_infos;
 }
@@ -303,18 +299,16 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
         output_storage->get_mutable_npu_graph_desc().graph_value;
     TORCH_CHECK(graph_value.HashNode(), "output must have node!");
     output_infos.nodes.push_back(graph_value.GetCurNode());
-    // storageImpl has no dtype since 1.8, need a solution
-//    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-//        output_storage->get_npu_desc(),
-//        output_storage->dtype(),
-//        graph_value.GetRealDtype());
-//    auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
-//    output_infos.tensors.push_back(std::move(ge_tensor));
-//    hash_t topo_hash = GraphCache::GetTensorTopoHash(graph_value, tensor_desc);
-//    output_infos.hash_of_topo_and_attr.emplace_back(topo_hash);
-//
-//    hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
-//    output_infos.hash_of_shape.push_back(shape_hash);
+    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
+        output_storage->get_npu_desc(),
+        graph_value.GetRealDtype());
+    auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
+    output_infos.tensors.push_back(std::move(ge_tensor));
+    hash_t topo_hash = GraphCache::GetTensorTopoHash(graph_value, tensor_desc);
+    output_infos.hash_of_topo_and_attr.emplace_back(topo_hash);
+
+    hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
+    output_infos.hash_of_shape.push_back(shape_hash);
   }
   return output_infos;
 }
