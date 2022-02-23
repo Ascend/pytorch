@@ -22,7 +22,7 @@
 #include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
 #include <torch/csrc/utils/npu_lazy_init.h>
 
-#include "torch_npu/csrc/framework/allocator/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"

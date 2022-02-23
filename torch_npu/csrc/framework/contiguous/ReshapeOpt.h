@@ -18,7 +18,7 @@
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/allocator/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 
 namespace at_npu
