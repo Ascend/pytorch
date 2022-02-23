@@ -1937,3 +1937,6 @@ custom_autograd:
   - func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
   - func: npu_linear(Tensor input, Tensor weight, Tensor? bias=None) -> Tensor
   - func: _npu_dropout(Tensor self, float p) -> (Tensor, Tensor)
+  - func: npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
+  - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor
+    variants: function, method
