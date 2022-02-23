@@ -25,3 +25,5 @@ THNPUCachingHostAllocator_recordEvent(void* ptr, at::npu::NPUStream stream);
 
 // Releases cached pinned memory allocations via npuHostFree
 C10_NPU_API void THNPUCachingHostAllocator_emptyCache(void);
+
+c10::Allocator* getPinnedMemoryAllocator(void);

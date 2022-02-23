@@ -22,9 +22,9 @@
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "torch_npu/csrc/framework/allocator/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 
