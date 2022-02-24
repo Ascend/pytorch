@@ -90,7 +90,6 @@ ge::Shape ATenGeBridge::GetGeShape(c10::ArrayRef<int64_t> vec) {
 
 ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
     const c10::NPUStorageDesc& storage_desc,
-    const caffe2::TypeMeta& type_meta,
     const c10::optional<std::string>& real_dtype,
     bool is_op_desc) {
   ge::TensorDesc desc;
@@ -98,7 +97,7 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
   if (real_dtype.has_value()) {
     desc.SetDataType(ATenGeBridge::GetGeDType(real_dtype.value()));
   } else {
-    desc.SetDataType(ATenGeBridge::GetGeDType(type_meta));
+    desc.SetDataType(ATenGeBridge::GetGeDType(storage_desc.data_type_));
   }
 
   desc.SetPlacement(ge::kPlacementDevice);

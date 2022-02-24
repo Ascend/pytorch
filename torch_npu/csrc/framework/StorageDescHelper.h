@@ -66,9 +66,11 @@ namespace at_npu
       static bool IsSameSize(c10::SmallVector<int64_t, 5> a, c10::IntArrayRef b);
       static int64_t GetMemorySize(const c10::NPUStorageDesc &dst);
       // Set Part
-      static c10::NPUStorageDesc SetDesc();
-      static c10::NPUStorageDesc SetDesc(c10::IntArrayRef size, c10::IntArrayRef strides);
-      static c10::NPUStorageDesc SetDesc(c10::IntArrayRef size, c10::IntArrayRef strides, aclFormat format);
+      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype);
+      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+                                         c10::IntArrayRef strides);
+      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+                                         c10::IntArrayRef strides, aclFormat format);
     };
 
   } // namespace native
