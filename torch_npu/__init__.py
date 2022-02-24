@@ -24,7 +24,7 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
-from torch_npu.utils import apply_module_patch
+from torch_npu.utils import apply_module_patch, serialization_patches
 
 from .version import __version__ as __version__
 
@@ -46,6 +46,7 @@ all_monkey_patches = [
     ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group]
 ]
 
+all_monkey_patches += serialization_patches
 
 def _apply_patches(monkey_patches):
     

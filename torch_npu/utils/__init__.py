@@ -14,3 +14,10 @@
 # limitations under the License.
 
 from .module import apply_module_patch
+from .serialization import save, load
+
+
+serialization_patches = [
+    ["save", save],
+    ["load", load]
+]
