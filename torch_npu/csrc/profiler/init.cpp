@@ -76,6 +76,9 @@ PyObject* profiler_initExtension(PyObject* _unused, PyObject *unused) {
       .def("correlation_id", &LegacyEvent::correlationId)
       .def("start_us", &LegacyEvent::cpuUs)
       .def("flops", &LegacyEvent::flops);
+  
+  m.def("_record_function_enter", record_function_enter);
+  m.def("_record_function_exit", record_function_exit);
 
   m.def("_enable_profiler_legacy", enableProfilerLegacy);
   py::class_<ProfilerDisableOptions>(m, "_ProfilerDisableOptions")

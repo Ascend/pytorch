@@ -34,6 +34,7 @@
 #include <ATen/record_function.h>
 #include <c10/core/Allocator.h>
 #include <c10/util/ThreadLocalDebugInfo.h>
+#include <ATen/cpp_custom_type_hack.h>
 
 #include <iostream>
 
@@ -49,6 +50,27 @@ std::vector<std::string> callstackStr(const std::vector<FileLineFunc>& cs) {
     cs_str.push_back(loc.str());
   }
   return cs_str;
+}
+
+// Creates a new profiling scope using RecordFunction and invokes its starting
+// callbacks.
+at::Tensor record_function_enter(const std::string& name) {
+  auto rec = std::make_unique<at::RecordFunction>(at::RecordScope::USER_SCOPE);
+  rec->before(name);
+  return at::cpp_custom_type_hack::create(std::move(rec), at::TensorOptions());
+}
+
+at::RecordFunction& getRecordFunctionFromTensor(const at::Tensor& handle) {
+  auto& rec = at::cpp_custom_type_hack::cast<at::RecordFunction>(handle);
+  return rec;
+}
+
+// Ends the profiling scope created with record_function_enter.
+void record_function_exit(const at::Tensor& handle) {
+  // We don't actually need to do anything with handle just need to persist the
+  // lifetime until now.
+  auto& rec = getRecordFunctionFromTensor(handle);
+  rec.end();
 }
 
 // We decompose the profiler logic into the following components:

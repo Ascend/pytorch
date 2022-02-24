@@ -30,6 +30,7 @@ __all__ = [
     "prof_start", "prof_stop", "prof_finalize", "profileConfig"
 ]
 
+import torch
 
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device,
@@ -48,3 +49,5 @@ from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, profileConfig)
+
+torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile

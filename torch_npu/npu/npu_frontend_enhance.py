@@ -155,6 +155,11 @@ class profile(object):
         self.npu_event = config.NpuEventConfig
         self.aicore_metrics = config.AiCoreMetricsConfig
         self.entered = False
+        if not os.path.exists(self.result_path):
+            try:
+                os.makedirs(self.result_path)
+            except Exception:
+                raise ValueError("the path of '%s' is invaild."%(self.result_path))   
 
     def __enter__(self):
         if self.entered:
