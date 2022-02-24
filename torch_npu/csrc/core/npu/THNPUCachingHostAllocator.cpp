@@ -16,6 +16,8 @@
 
 #include <c10/core/DeviceGuard.h>
 #include <c10/npu/npu_log.h>
+#include <c10/util/Logging.h>
+#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
 
 #include <Python.h>
 
@@ -28,7 +30,7 @@
 #include <unordered_set>
 #include <utility>
 
-#include "torch_npu/csrc/framework/allocator/THNPUCachingHostAllocator.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "third_party/acl/inc/acl/acl.h"
 
 namespace {
@@ -319,4 +321,14 @@ struct THNPUCachingHostAllocator final : public at::Allocator {
 static THNPUCachingHostAllocator thnpu_caching_host_allocator;
 at::Allocator* getTHNPUCachingHostAllocator() {
   return &thnpu_caching_host_allocator;
+}
+
+c10::Allocator* getPinnedMemoryAllocator(){
+  C10_LOG_API_USAGE_ONCE("aten.init.npu");
+  c10::npu::NpuSysCtrl::SysStatus status =
+      c10::npu::NpuSysCtrl::GetInstance().Initialize();
+  if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+    NPU_LOGE("Npu init fail.");
+  }
+  return getTHNPUCachingHostAllocator();
 }

@@ -42,7 +42,6 @@ public:
 
   static ge::TensorDesc InferGeTenosrDesc(
       const c10::NPUStorageDesc& storage_desc,
-      const caffe2::TypeMeta& type_meta,
       const c10::optional<std::string>& real_dtype,
       bool is_op_desc = false);
 

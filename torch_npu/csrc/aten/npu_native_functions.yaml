@@ -999,7 +999,6 @@ supported:
   - mkldnn_reorder_conv3d_weight
   - to_mkldnn_backward
   - quantize_per_tensor
-  - quantize_per_tensor.tensors
   - quantize_per_channel
   - dequantize.self
   - dequantize.tensors
@@ -1910,8 +1909,6 @@ custom:
   - func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
     variants: function, method
-  - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
-    variants: function, method
   - func: npu_softmax_cross_entropy_with_logits_backward(Tensor grad, Tensor self, Tensor labels) -> Tensor
     variants: function, method
   - func: npu_stride_copy(Tensor self, int[] shape, int[] stride, Scalar storage_offset) -> Tensor
@@ -1928,6 +1925,8 @@ custom:
   - func: npu_anchor_response_flags(Tensor self, int[2] featmap_size, int[2] stride, int num_base_anchors) -> Tensor
     variants: function, method
   - func: npu_dropout_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
+  - func: npu_nms_rotated(Tensor self, Tensor scores, float iou_threshold, float scores_threshold=0, int max_output_size=-1, int mode=0) -> (Tensor, Tensor)
+    variants: function, method
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
@@ -1939,4 +1938,4 @@ custom_autograd:
   - func: _npu_dropout(Tensor self, float p) -> (Tensor, Tensor)
   - func: npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
   - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor
-    variants: function, method
+  - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
