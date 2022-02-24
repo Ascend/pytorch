@@ -36,6 +36,7 @@ for name in dir(torch_npu._C._VariableFunctions):
         continue
     globals()[name] = getattr(torch_npu._C._VariableFunctions, name)
     __all__.append(name)
+    setattr(torch, name, getattr(torch_npu._C._VariableFunctions, name))
 
 all_monkey_patches = [
     ["npu", torch_npu.npu],
