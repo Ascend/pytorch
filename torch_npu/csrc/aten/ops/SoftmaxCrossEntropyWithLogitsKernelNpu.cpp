@@ -53,7 +53,7 @@ tuple<at::Tensor, at::Tensor> softmax_cross_entropy_with_logits_impl_npu(
   return std::make_tuple(result, backprop);
 }
 
-at::Tensor NPUNativeFunctions::npu_softmax_cross_entropy_with_logits(
+at::Tensor softmax_cross_entropy_with_logits_npu(
     const at::Tensor& self,
     const at::Tensor& labels) {
   TORCH_CHECK(self.device().type() == c10::DeviceType::NPU);
@@ -76,7 +76,7 @@ public:
     ctx->saved_data["labels"] = labels;
     at::AutoNonVariableTypeMode g;
     ctx->save_for_backward({self});
-    return NPUNativeFunctions::npu_softmax_cross_entropy_with_logits(self, labels);
+    return softmax_cross_entropy_with_logits_npu(self, labels);
   }
 
   static tensor_list backward(AutogradContext *ctx,
@@ -94,7 +94,7 @@ public:
   }
 };
 
-at::Tensor npu_softmax_cross_entropy_with_logits_autograd(const at::Tensor& self,
+at::Tensor NPUNativeFunctions::npu_softmax_cross_entropy_with_logits(const at::Tensor& self,
     const at::Tensor& labels) {
     return NPUSoftmaxCrossEntropyWithLogitsFunction::apply(self, labels);
 }
