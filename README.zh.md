@@ -34,30 +34,41 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # 安装方式
 
-## 编译安装PyTorch
+## 编译安装PyTorch和昇腾插件
 
-当前支持pytorch 1.5.0和1.8.1的版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
-
+下载插件代码
 ```sh
-// 1.5.0 版本
-git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-// 1.8.1 版本
-git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
+git clone https://gitee.com/ascend/pytorch.git
 ```
 
-进入到pytorch/pytorch/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
+当前对应PyTorch 1.8.1版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
+// 1.8.1 版本
+cd pytorch   # 插件根目录
+git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
+cd pytorch
 git submodule sync
 git submodule update --init --recursive
+cd ..
 ```
 
-完成且没有报错之后就生成了PyTorch及其依赖的三方代码，然后将Patch打入PyTorch源码。
+
+完成且没有报错之后就生成了PyTorch及其依赖的三方代码，然后将Patch打入PyTorch源码并编译。
 ```sh
-# apply patches.
+cd patch
+sh apply_patch.sh ../pytorch
+cd ../pytorch
+sh build.sh
 ```
 
-## 编译安装torch_npu
+然后安装pytorch/pytorch/dist下生成的torch包，接下来编译安装插件
+
+```
+cd ../ci   # 进入插件根目录
+sh build.sh
+```
+然后安装pytorch/dist下生成的插件torch_npu包
 
 
 # 运行

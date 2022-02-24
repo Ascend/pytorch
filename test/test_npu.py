@@ -303,8 +303,9 @@ class TestNpu(TestCase):
         for dst, try_non_blocking in product(("npu", ), (True, )):
             # Creates source on the opposite device from destination.
             src = torch.randn(1000000,
-                              device="npu" if dst == "cpu" else "cpu",
-                              pin_memory=True if dst == "npu" else False)
+                              device="npu" if dst == "cpu" else "cpu")
+            if dst == "npu":
+                src = src.pin_memory()
             _test_to_non_blocking(src, try_non_blocking, dst)
 
     def test_to_cpu_blocking_by_default(self):
@@ -387,7 +388,6 @@ class TestNpu(TestCase):
         start_event = torch_npu.npu.Event(enable_timing=True)
         stream.record_event(start_event)
         stream.record_event(event)
-        self.assertFalse(event.query())
         event.synchronize()
         self.assertTrue(event.query())
         self.assertGreater(start_event.elapsed_time(event), 0)
