@@ -698,11 +698,20 @@ namespace at_npu
       }
     }
 
-    at::Tensor full_npu(
+    at::Tensor NPUNativeFunctions::full(
         c10::IntArrayRef size,
         c10::Scalar fill_value,
-        const c10::TensorOptions &options)
+        c10::optional<at::ScalarType> dtype_opt,
+        c10::optional<at::Layout> layout_opt,
+        c10::optional<at::Device> device_opt,
+        c10::optional<bool> pin_memory_opt)
     {
+      c10::TensorOptions options;
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
       TORCH_CHECK(
           options.layout() != at::kSparse,
           "full(...) is not implemented for sparse layout");
