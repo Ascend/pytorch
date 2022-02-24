@@ -54,6 +54,9 @@ enum class ProfilerState {
   NUM_PROFILER_STATES, // must be the last one
 };
 
+at::Tensor record_function_enter(const std::string& name);
+void record_function_exit(const at::Tensor& handle);
+
 struct  DeviceStubs {
 
   virtual void record(int* device, aclrtEvent* event, int64_t* cpu_ns) const {

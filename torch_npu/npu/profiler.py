@@ -21,6 +21,7 @@ from operator import attrgetter
 from typing import Dict, List, Tuple, Optional
 import math
 from enum import Enum
+import functools
 import torch_npu
 
 try:
@@ -664,15 +665,15 @@ class record_function(ContextDecorator):
         self.handle = None
 
     def __enter__(self):
+        self.handle = torch_npu._C._profiler._record_function_enter(self.name)
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
         if self.run_callbacks_on_exit:
-            pass
+            torch_npu._C._profiler._record_function_exit(self.handle)
 
     def _call_end_callbacks_on_future(self, fut):
-        """
-        _call_end_callbacks_on_future is meant to be used for profiling async
+        """call_end_callbacks_on_future is meant to be used for profiling async
         calls that return a future. Calling this function will extend recording
         beyond this scope, until the future is satisfied. It is useful for profiling
         the end to end time of asynchronous calls. This function should only be called
@@ -699,6 +700,23 @@ class record_function(ContextDecorator):
         return profiled_future
 
 
+def _hook_for_profile(self):
+    self._zero_grad_profile_name = "Optimizer.zero_grad#{}.zero_grad".format(self.__class__.__name__)
+
+    def profile_hook_step(func):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            obj, *_ = args
+            profile_name = "Optimizer.step#{}.step".format(obj.__class__.__name__)
+            with record_function(profile_name):
+                return func(*args, **kwargs)
+        return wrapper
+
+    hooked = getattr(self.__class__.step, "hooked", None)
+    if not hooked:
+        self.__class__.step = profile_hook_step(self.__class__.step)
+        self.__class__.step.hooked = True
 
 def load_nvprof(path):
     """Opens an nvprof trace file and parses autograd annotations.
