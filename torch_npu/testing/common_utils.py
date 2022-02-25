@@ -601,11 +601,16 @@ class TestCase(expecttest.TestCase):
         set_rng_seed(SEED)
 
     def assertTensorsSlowEqual(self, x, y, prec=None, message=''):
-        max_err = 0
         self.assertEqual(x.size(), y.size())
-        for index in iter_indices(x):
-            max_err = max(max_err, abs(x[index] - y[index]))
-        self.assertLessEqual(max_err, prec, message)
+        self.assertEqual(x.dtype, y.dtype)
+        y = y.type_as(x)
+        if x.dtype == torch.bool:
+            self.assertEqual(x, y)
+        else:
+            max_err = 0
+            for index in iter_indices(x):
+                max_err = max(max_err, abs(x[index] - y[index]))
+            self.assertLessEqual(max_err, prec, message)
 
     def genSparseTensor(self, size, sparse_dim, nnz, is_uncoalesced, device='cpu'):
         # Assert not given impossible combination, where the sparse dims have
@@ -871,9 +876,11 @@ class TestCase(expecttest.TestCase):
                 super(TestCase, self).assertNotEqual(x.size(), y.size())
             self.assertGreater(x.numel(), 0)
             y = y.type_as(x)
-            y = y.cpu()
             nan_mask = x != x
             if torch.equal(nan_mask, y != y):
+                if x.dtype == torch.bool and y.dtype == torch.bool:
+                    x = x.to(torch.int)
+                    y = y.to(torch.int)
                 diff = x - y
                 if diff.is_signed():
                     diff = diff.abs()
