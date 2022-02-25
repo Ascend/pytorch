@@ -8330,7 +8330,17 @@
   device_guard: False
   supports_named_tensor: True
 
+- func: get_npu_format(Tensor self) -> int
+  variants: function, method
+  npu_dispatch_only:
+    NPU: get_npu_format
+    
 - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  variants: function, method
+  npu_dispatch_only:
+    NPU: format_cast_npu
+
+- func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
   variants: function, method
   npu_dispatch_only:
     NPU: format_cast_npu

@@ -139,7 +139,7 @@ class OpCommandBase {
         graphCmd.AddInput(input, descName, realData);
         )
     if (input.storage_offset() != 0) {
-      NPU_LOGW(
+      TORCH_WARN_ONCE(
           "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy",
           input.storage_offset());
     }

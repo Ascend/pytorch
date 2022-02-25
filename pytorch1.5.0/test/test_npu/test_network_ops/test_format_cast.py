@@ -30,14 +30,32 @@ class TestFormatCast(TestCase):
         return npu_input
     
     def check_result(self, expectValue, retTensor):
-        if retTensor.storage().npu_format() != expectValue:
-            print("expectValue: ", expectValue, " resultValue: ", retTensor.storage().npu_format())
+        if retTensor.get_npu_format() != expectValue:
+            print("expectValue: ", expectValue, " resultValue: ", retTensor.get_npu_format())
             sys.exit(-1)
+
+    def test_format_cast_tensor(self, device):
+        src_shape_format = [
+            [np.float16, 0, (2, 2, 4, 4)],
+            [np.float16, 2, (2, 2, 4, 4)]
+        ]
+        dst_shape_format = [
+            [np.float16, 3, (2, 2, 4, 4)],
+            [np.float16, 4, (2, 2, 4, 4)],
+            [np.float16, 29, (2, 2, 4, 4)], 
+            [np.float16, 30, (2, 2 ,2 , 4, 4)],
+        ]
+
+        for i in src_shape_format:
+            src_tensor = self.create_single_npu_tensor(i, 1, 5)
+            for j in dst_shape_format:
+                dst_tensor = self.create_single_npu_tensor(j, 3, 6)
+                result_tensor = src_tensor.npu_format_cast(dst_tensor)
+                self.check_result(dst_tensor.get_npu_format(), result_tensor)
 
     def test_format_cast(self, device):
         shape_format = [np.float16, -1, (2, 2, 4, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
-        # print("org format: ", npu_tensor.storage().npu_format())
         npu_tensor = npu_tensor.npu_format_cast(2)
         self.check_result(2, npu_tensor)
         npu_tensor = npu_tensor.npu_format_cast(3)
@@ -77,7 +95,6 @@ class TestFormatCast(TestCase):
         self.check_result(0, npu_tensor)
 
         npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
-        # print("five org format: ", npu_tensor.storage().npu_format())
         npu_tensor = npu_tensor.npu_format_cast(30)
         self.check_result(30, npu_tensor)
         npu_tensor = npu_tensor.npu_format_cast(33)
@@ -106,7 +123,6 @@ class TestFormatCast(TestCase):
     def test_format_cast_(self, device):
         shape_format = [np.float16, -1, (2, 2, 4, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
-        # print("org format: ", npu_tensor.storage().npu_format())
         npu_tensor = npu_tensor.npu_format_cast_(2)
         self.check_result(2, npu_tensor)
         npu_tensor = npu_tensor.npu_format_cast_(3)
@@ -146,7 +162,6 @@ class TestFormatCast(TestCase):
         self.check_result(0, npu_tensor)
 
         npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
-        # print("five org format: ", npu_tensor.storage().npu_format())
         npu_tensor = npu_tensor.npu_format_cast_(30)
         self.check_result(30, npu_tensor)
         npu_tensor = npu_tensor.npu_format_cast_(33)

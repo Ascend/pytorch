@@ -107,6 +107,15 @@ Tensor format_cast_npu(
   return dst;
 }
 
+// conver self to acl_format, write the result into new result tensor
+Tensor format_cast_npu(
+    const Tensor& src,
+    const Tensor& dst) {
+  NPUStorageDesc dst_desc = dst.storage().unsafeGetStorageImpl()->npu_desc_;
+  int64_t dst_format = dst_desc.npu_format_;
+  return format_cast_npu(src, dst_format);
+}
+
 // conver self to acl_format, write the result into self
 Tensor& format_cast_npu_(
     Tensor& src,
@@ -132,6 +141,12 @@ Tensor& format_cast_npu_(
   src.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
 
   return src;
+}
+
+int64_t get_npu_format(
+    const Tensor& self) {
+  NPUStorageDesc self_desc = self.storage().unsafeGetStorageImpl()->npu_desc_;
+  return self_desc.npu_format_;
 }
 
 } // namespace native
