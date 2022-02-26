@@ -16,9 +16,9 @@ import torch_npu
 import numpy as np
 from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestBaddBmm(TestCase):
     def generate_scalar(self, dtype, min1, max1):
@@ -52,7 +52,7 @@ class TestBaddBmm(TestCase):
         input1 = input1.numpy()
         return input1   
 
-    def test_baddbmm_common_shape_format(self, device):
+    def test_baddbmm_common_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, -1, (1, 3, 5)], [np.float32, -1, (1, 3, 4)], 
                 [np.float32, -1, (1, 4, 5)], "float32"],
@@ -77,7 +77,7 @@ class TestBaddBmm(TestCase):
             npu_output_ = self.npu_op_exec_(npu_input1, npu_input2, npu_input3, scalar1, scalar2)
             self.assertRtolEqual(cpu_output_, npu_output_)
             
-    def test_baddbmm_float16_shape_format(self, device):
+    def test_baddbmm_float16_shape_format(self, device="npu"):
         def cpu_op_exec_fp16(input1, input2, input3, scalar1, scalar2):
             input1 = input1.to(torch.float32)
             input2 = input2.to(torch.float32)
@@ -109,6 +109,5 @@ class TestBaddBmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)  
       
 
-instantiate_device_type_tests(TestBaddBmm, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

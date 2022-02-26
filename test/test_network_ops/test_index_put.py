@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestIndexPut(TestCase):
     def cpu_op_exec(self, input1, indices, value):
@@ -112,7 +112,7 @@ class TestIndexPut(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertEqual(cpu_output, npu_output)
 
-    def test_index_put_shape_format_fp32(self, device):
+    def test_index_put_shape_format_fp32(self, device="npu"):
         format_list = [0]
         shape_list = [(5, 6)]
         shape_format = [[[np.float32, i, j], [np.int64, 0, [1, 2]], [
@@ -120,7 +120,7 @@ class TestIndexPut(TestCase):
         self.case_exec(shape_format)
         self.case_inp_exec(shape_format)
 
-    def test_index_put_shape_format_fp16(self, device):
+    def test_index_put_shape_format_fp16(self, device="npu"):
         format_list = [0]
         shape_list = [(5, 6)]
         shape_format = [[[np.float16, i, j], [np.int64, 0, [1, 2]], [
@@ -128,7 +128,7 @@ class TestIndexPut(TestCase):
         self.case_exec_fp16(shape_format)
         self.case_inp_exec_fp16(shape_format)
 
-    def test_index_put_null(self, device):
+    def test_index_put_null(self, device="npu"):
         cpu_input1 = torch.rand(2, 2)
         cpu_input2 = torch.rand(2, 2)
         cpu_mask_index = torch.tensor([[False, False], [False, False]])
@@ -139,6 +139,6 @@ class TestIndexPut(TestCase):
         npu_input1[npu_mask_index] = npu_input2.detach()[npu_mask_index]
         self.assertEqual(cpu_input1, npu_input1.to("cpu"))
 
-instantiate_device_type_tests(TestIndexPut, globals(), except_for="cpu")
+\
 if __name__ == "__main__":
     run_tests()

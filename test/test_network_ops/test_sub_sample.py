@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestSubSample(TestCase):
     def get_num(self, input1, output):
@@ -60,7 +59,7 @@ class TestSubSample(TestCase):
             if input_num0 >= size - size * fraction and output_num0 != size - size * fraction:
                 self.fail(error_name)     
 
-    def test_subsample(self, device):
+    def test_subsample(self, device="npu"):
         for _ in range(20):
             input1 = np.random.randint(-1, 2, size = (10))
             npu_input = torch.from_numpy(input1).to("npu")
@@ -72,6 +71,5 @@ class TestSubSample(TestCase):
             self.nummore_equal(getlist[0], getlist[1], getlist[2], getlist[3], 5, 0.6)
             
 
-instantiate_device_type_tests(TestSubSample, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

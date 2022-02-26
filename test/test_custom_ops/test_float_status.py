@@ -16,13 +16,12 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestFloatStatus(TestCase):
 
-    def test_float_status(self, device):
+    def test_float_status(self, device="npu"):
         float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
         float_tensor = float_tensor + float_tensor
 
@@ -38,6 +37,6 @@ class TestFloatStatus(TestCase):
         local_float_status = torch_npu.npu_get_float_status(float_status)
         self.assertTrue(float_status.cpu()[0] == 0)
 
-instantiate_device_type_tests(TestFloatStatus, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

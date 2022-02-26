@@ -19,9 +19,7 @@ import torch
 import torch_npu
 from torch_npu.npu.amp import NpuGradScaler, NpuAutocast
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor  # Set device dependency, need to be removed.
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestAmp(TestCase):
@@ -29,7 +27,7 @@ class TestAmp(TestCase):
         float_tensor = torch.tensor([40000.0], dtype=torch.float16).npu()
         float_tensor = float_tensor + float_tensor
 
-    def test_grad_scaling_scale(self, device):
+    def test_grad_scaling_scale(self, device="npu"):
         scaler = NpuGradScaler(init_scale=2.)
         t0 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
         t1 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
@@ -40,7 +38,7 @@ class TestAmp(TestCase):
                         outputs[2][0] == 8.0 and outputs[2][1][0] == 8.0 and outputs[2][1][1] == 8.0)
         self.assertTrue(scaler._scale.device == t1.device)
         
-    def test_grad_scaling_state_dict(self, device):
+    def test_grad_scaling_state_dict(self, device="npu"):
         for lazy_init_scale in True, False:
             s0 = NpuGradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
             s1 = NpuGradScaler(init_scale=6., growth_factor=7., backoff_factor=.8, growth_interval=1)
@@ -118,7 +116,7 @@ class TestAmp(TestCase):
                 self.assertRtolEqual(c, s, atol)
                 
     # Compares no scaling + no autocasting against scaling + autocasting.
-    def test_grad_scaling_autocast(self, device):
+    def test_grad_scaling_autocast(self, device="npu"):
         try_pickle = False
 
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
@@ -147,7 +145,7 @@ class TestAmp(TestCase):
         try_pickle = True
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
 
-    def test_grad_scaling_clipping(self, device):
+    def test_grad_scaling_clipping(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
             for i, (input_data, target) in enumerate(data):
@@ -169,7 +167,7 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-6)
 
-    def test_grad_scaling_clipping_separate_unscale(self, device):
+    def test_grad_scaling_clipping_separate_unscale(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             max_norm = 0.2  # A reasonable value that actually has an effect, based on printouts of grads
             for i, (input_data, target) in enumerate(data):
@@ -192,7 +190,7 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
 
-    def test_grad_scaling_penalty(self, device):
+    def test_grad_scaling_penalty(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
@@ -226,7 +224,7 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=3, skipped=1)
 
-    def test_grad_scaling_accumulation(self, device):
+    def test_grad_scaling_accumulation(self, device="npu"):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             iters_to_accumulate = 2
             for i, (input_data, target) in enumerate(data):
@@ -248,7 +246,7 @@ class TestAmp(TestCase):
 
         self._run_scaling_case(run, unskipped=2, skipped=0)
 
-    def test_grad_scaling_multiple(self, device):
+    def test_grad_scaling_multiple(self, device="npu"):
         # Tests gradient scaling with 2 models and 2 optimizers that both receive gradients from 2 losses.
         # Some of the logic here cannot reuse the generic helper functions created for the 1-optimizer cases.
         for enabled in True, False:
@@ -300,6 +298,6 @@ class TestAmp(TestCase):
                 s = s.cpu().to(torch.float).detach().numpy()
                 self.assertRtolEqual(c, s, 1e-7)
 
-instantiate_device_type_tests(TestAmp, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

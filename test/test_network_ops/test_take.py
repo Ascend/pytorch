@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestTake(TestCase):
     def cpu_op_out_exec(self, input1,input2, out):
@@ -44,7 +44,7 @@ class TestTake(TestCase):
         output = output.to("cpu").numpy()
         return output
 
-    def test_take_shape_format(self, device):
+    def test_take_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (5,3)], [np.int64, 0, (3)],8],
                 [[np.int8, 0, (64, 10)], [np.int64,0, (10)],74],
@@ -64,7 +64,7 @@ class TestTake(TestCase):
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_take_out_shape_format(self, device):
+    def test_take_out_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (5,3)], [np.int64, 0, (3)],8, [np.float32, 0, (3)]],
                 [[np.int8, 0, (64, 10)], [np.int64,0, (10)],74, [np.int8, 0, (10)]],
@@ -86,6 +86,6 @@ class TestTake(TestCase):
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestTake, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

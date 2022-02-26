@@ -19,7 +19,9 @@ import shutil
 from itertools import combinations
 import torch
 import torch_npu
-from torch.testing._internal.common_utils import TestCase, run_tests
+
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel=3, out_channel=12):

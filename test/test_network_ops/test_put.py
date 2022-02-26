@@ -17,9 +17,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestPut(TestCase):
 
@@ -60,7 +60,7 @@ class TestPut(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_put_aicpu_common_shape_format_fp32(self, device):
+    def test_put_aicpu_common_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (4, 3)], [np.int64, -1, (4, 1)], [np.float32, -1, (4)]],
             [[np.float32, -1, (4, 3, 5)], [np.int64, -1, (4, 2)], [np.float32, -1, (4, 2)]],
@@ -71,7 +71,7 @@ class TestPut(TestCase):
         ]
         self.get_result(shape_format)
 
-    def test_put_aicore_common_shape_format_fp32(self, device):
+    def test_put_aicore_common_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (4, 3)], [np.int32, -1, (4, 1)], [np.float32, -1, (4)]],
             [[np.float32, -1, (4, 3, 5)], [np.int32, -1, (4, 2)], [np.float32, -1, (4, 2)]],
@@ -82,7 +82,7 @@ class TestPut(TestCase):
         ]
         self.get_result(shape_format)
 
-    def test_put_aicpu_common_shape_format_fp16(self, device):
+    def test_put_aicpu_common_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (4, 3)], [np.int64, -1, (4, 1)], [np.float16, -1, (4)]],
             [[np.float16, -1, (4, 3, 5)], [np.int64, -1, (4, 2)], [np.float16, -1, (4, 2)]],
@@ -95,7 +95,7 @@ class TestPut(TestCase):
         ]
         self.get_result(shape_format)
 
-    def test_put_aicore_common_shape_format_fp16(self, device):
+    def test_put_aicore_common_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (4, 3)], [np.int32, -1, (4, 1)], [np.float16, -1, (4)]],
             [[np.float16, -1, (4, 3, 5)], [np.int32, -1, (4, 2)], [np.float16, -1, (4, 2)]],
@@ -106,7 +106,7 @@ class TestPut(TestCase):
         ]
         self.get_result(shape_format)
 
-    def test_put_empty_shape(self, device):
+    def test_put_empty_shape(self, device="npu"):
         shape_format = [
             [np.float32, -1, (4, 3)],
             [np.float32, -1, (4, 3, 5)],
@@ -129,6 +129,6 @@ class TestPut(TestCase):
             npu_output = self.npu_op_exec(input_x_npu, index_npu, source_npu, accumulate)
             self.assertRtolEqual(cpu_output, npu_output)  
 
-instantiate_device_type_tests(TestPut, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

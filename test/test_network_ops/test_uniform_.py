@@ -13,14 +13,12 @@
 # limitations under the License.
 import torch
 import torch_npu
-import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestUniform(TestCase):
-    def test_uniform(self, device):
+    def test_uniform(self, device="npu"):
         shape_format = [
            [(20,300), -100, 100, torch.float32],
            [(20,300), -100, 100, torch.float16]
@@ -32,7 +30,7 @@ class TestUniform(TestCase):
             self.assertTrue(item[1] <= input1.min())
             self.assertTrue(item[2] >= input1.max())
     
-    def test_uniform_trans(self, device):
+    def test_uniform_trans(self, device="npu"):
         shape_format = [
            [(20,300), -100, 100, torch.float32],
         ]
@@ -45,6 +43,5 @@ class TestUniform(TestCase):
             self.assertTrue(item[2] >= input1.max())
 
 
-instantiate_device_type_tests(TestUniform, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

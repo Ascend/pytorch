@@ -17,15 +17,14 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Note: NPU only support trans-contiguous with base format, so format_list uses -1
 class CombinedUnsqueezeXCopyToContiguous(TestCase):
-    def test_unsqueeze_permute_copy_contiguous(self, device):
+    def test_unsqueeze_permute_copy_contiguous(self, device="npu"):
         dtype_list1 = [np.float16, np.float32]
         format_list1 = [-1]
         shape_list1 = [
@@ -53,7 +52,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out2 = cpu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_unsqueeze_narrow_copy_contiguous(self, device):
+    def test_unsqueeze_narrow_copy_contiguous(self, device="npu"):
         dtype_list2 = [np.float16, np.float32]
         format_list2 = [-1]
         shape_list2 = [
@@ -85,7 +84,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[:,1:10].unsqueeze(2).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-    def test_unsqueeze_select_copy_contiguous(self, device):
+    def test_unsqueeze_select_copy_contiguous(self, device="npu"):
         dtype_list3 = [np.float16, np.float32]
         format_list3 = [-1]
         shape_list3 = [
@@ -114,7 +113,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out2 = cpu_input.select(1,1).unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_unsqueeze_strideslice_copy_contiguous(self, device):
+    def test_unsqueeze_strideslice_copy_contiguous(self, device="npu"):
         dtype_list5 = [np.float16, np.float32]
         format_list5 = [-1]
         shape_list5 = [
@@ -142,7 +141,6 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[:,:,10:19:3].unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-         
-instantiate_device_type_tests(CombinedUnsqueezeXCopyToContiguous, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -15,8 +15,7 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestNllloss2d(TestCase):
@@ -34,7 +33,7 @@ class TestNllloss2d(TestCase):
         output = output.detach().numpy()
         return output
 
-    def test_nll_loss2d_mean(self, device):
+    def test_nll_loss2d_mean(self, device="npu"):
         m = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -51,7 +50,7 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_none(self, device):
+    def test_nll_loss2d_none(self, device="npu"):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -68,7 +67,7 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_sum(self, device):
+    def test_nll_loss2d_sum(self, device="npu"):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -85,6 +84,6 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestNllloss2d, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

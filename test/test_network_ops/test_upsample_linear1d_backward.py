@@ -16,12 +16,12 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestUpsampleLinear1DBackward(TestCase):
-    def creat_shape_format(self, device):
+    def creat_shape_format(self):
         format_list = [0]
         align_list = [True, False]
         dtype_list = [np.float16, np.float32]
@@ -51,7 +51,7 @@ class TestUpsampleLinear1DBackward(TestCase):
         output = output.to("cpu")
         return output.detach().numpy(), gradnpu.detach().numpy()
 
-    def test_upsample_linear1d_backward(self, device):
+    def test_upsample_linear1d_backward(self, device="npu"):
         for item in self.creat_shape_format(device):
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
 
@@ -94,6 +94,5 @@ class TestUpsampleLinear1DBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-instantiate_device_type_tests(TestUpsampleLinear1DBackward, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

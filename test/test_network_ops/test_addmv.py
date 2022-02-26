@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestAddmv(TestCase):
     def cpu_op_exec(self, a, b, c, alpha, beta):
@@ -39,7 +39,7 @@ class TestAddmv(TestCase):
         output = output.numpy()
         return output
 
-    def test_addmv_fp16(self, device):
+    def test_addmv_fp16(self, device="npu"):
         shape_format = [
            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )]]
            
@@ -60,7 +60,7 @@ class TestAddmv(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
             
-    def test_addmv_out_fp16(self, device):
+    def test_addmv_out_fp16(self, device="npu"):
         shape_format = [
            [[np.float16, 3, (2, 3)], [np.float16, 3, (3,)], [np.float16, 3, (2, )], [np.float16, 3, (10,)]]
            
@@ -82,7 +82,7 @@ class TestAddmv(TestCase):
             
             self.assertRtolEqual(cpu_output, npu_output)
      
-    def test_addmv_fp32(self, device):
+    def test_addmv_fp32(self, device="npu"):
         shape_format = [
            [[np.float32, 0, (2, 3)], [np.float32, 0, (3,)], [np.float32, 0, (2, )]],
            [[np.float32, 0, (3168, 320)], [np.float32, 0, (320,)], [np.float32, 0, (3168, )]],
@@ -100,7 +100,6 @@ class TestAddmv(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)        
     
 
-instantiate_device_type_tests(TestAddmv, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
 

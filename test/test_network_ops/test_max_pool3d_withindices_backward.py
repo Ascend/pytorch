@@ -19,9 +19,9 @@ import torch_npu
 import numpy as np
 import torch.nn.functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaxPool3dWithIndicesBackward(TestCase):
     def cpu_op_exec(self, inputCpu, kernel_size, stride, padding, dilation, ceil_mode):
@@ -49,7 +49,7 @@ class TestMaxPool3dWithIndicesBackward(TestCase):
         output1 = dataNpu.to("cpu").detach()
         return output1, npu_grad
 
-    def test_max_pool3d_backward_shape_format(self, device):
+    def test_max_pool3d_backward_shape_format(self, device="npu"):
         shape_format = [
             [np.float16, 30, [1, 3, 19, 19, 19], [3, 3, 3], [2, 2, 2], 1, 1, False],
             [np.float16, 30, [3, 3, 124, 112, 112], 3, [2, 2, 2], 1, 1, True],
@@ -70,6 +70,6 @@ class TestMaxPool3dWithIndicesBackward(TestCase):
             self.assertRtolEqual(cpu_output.numpy(), npu_output.numpy())
             self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy())
 
-instantiate_device_type_tests(TestMaxPool3dWithIndicesBackward, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

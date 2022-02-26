@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaskedScatter(TestCase):
     def cpu_op_exec(self, input1, maskbool, source):
@@ -45,7 +45,7 @@ class TestMaskedScatter(TestCase):
         npu_output = npu_output.to("cpu")
         return npu_output.numpy()
 
-    def test_masked_scatter_float(self, device):
+    def test_masked_scatter_float(self, device="npu"):
         dtype_list = [np.float32]
         format_list = [0, 3]
         shape_list = [[4, 5],[3, 4, 5], [2, 3, 4, 5]]
@@ -62,7 +62,7 @@ class TestMaskedScatter(TestCase):
             npu_output2 = self.npu_inp_op_exec(npu_input, maskbool, npu_source)
             self.assertRtolEqual(cpu_output2, npu_output2)
           
-    def test_masked_scatter_int(self, device):
+    def test_masked_scatter_int(self, device="npu"):
         dtype_list = [np.int32, np.int64]
         format_list = [0]
         shape_list = [[4, 5],[3, 4, 5], [2, 3, 4, 5]]
@@ -79,6 +79,6 @@ class TestMaskedScatter(TestCase):
             npu_output2 = self.npu_inp_op_exec(npu_input, maskbool, npu_source)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-instantiate_device_type_tests(TestMaskedScatter, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

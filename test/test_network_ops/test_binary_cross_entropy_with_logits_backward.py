@@ -17,8 +17,8 @@ import torch_npu
 import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 def generate_data(min1, max1, shape, dtype):
     input1 = np.random.uniform(min1, max1, shape).astype(dtype)
@@ -53,7 +53,7 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
         res = res.numpy()
         return input_npu, res
 
-    def test_binary_cross_entropy_with_logits_backward_fp32(self, device):
+    def test_binary_cross_entropy_with_logits_backward_fp32(self, device="npu"):
         npu_input1, npu_target = generate_data(0, 100, (5, 3), np.float32)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_target = copy.deepcopy(npu_target)
@@ -62,7 +62,7 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_grad_output, npu_grad_output)
 
-    def test_binary_cross_entropy_with_logits_backward_fp16(self, device):
+    def test_binary_cross_entropy_with_logits_backward_fp16(self, device="npu"):
         npu_input1, npu_target = generate_data(0, 100, (5, 3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_target = copy.deepcopy(npu_target)
@@ -75,7 +75,7 @@ class TestBinaryCrossEntropyWithLogitsBackward(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
         self.assertRtolEqual(cpu_grad_output, npu_grad_output)
 
-instantiate_device_type_tests(TestBinaryCrossEntropyWithLogitsBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()
 

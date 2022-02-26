@@ -19,9 +19,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestCtcLossBackward(TestCase):
     def generate_data(self, item):
@@ -79,7 +78,7 @@ class TestCtcLossBackward(TestCase):
 
         return grad
 
-    def test_ctc_loss_backward(self, device):
+    def test_ctc_loss_backward(self, device="npu"):
         sizes_list = [[50, 20, 16, 30, 10], [26, 37, 2560, 18, 10]]
         para_reduction = ["sum", "mean"]
         dtype = [np.float32]  # Insufficient accuracy when use fp16 data
@@ -95,6 +94,6 @@ class TestCtcLossBackward(TestCase):
             
             self.assertRtolEqual(grad_cpu, grad_npu, 1e-3)
 
-instantiate_device_type_tests(TestCtcLossBackward, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLayerNorm(TestCase):
     weight_grad = []
@@ -53,7 +53,7 @@ class TestLayerNorm(TestCase):
         grad_weight = m.weight.grad.cpu().detach().numpy()
         return grad_output, grad_weight, grad_bias
 
-    def test_layernorm_shape_format(self, device):
+    def test_layernorm_shape_format(self, device="npu"):
         shape_format = [
                 [np.float32, 3, [256, 32, 112, 112]],
                 [np.float16, 3, [256, 672, 7, 7]],
@@ -87,6 +87,5 @@ class TestLayerNorm(TestCase):
             self.assertRtolEqual(cpu_grad_bias, npu_grad_bias)
 
 
-instantiate_device_type_tests(TestLayerNorm, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

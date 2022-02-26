@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestAdd(TestCase):
@@ -143,7 +142,7 @@ class TestAdd(TestCase):
             
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_add_scalar_shape_format_fp16_1d(self, device):
+    def test_add_scalar_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         scalar_list = [0,1]
         shape_format = [
@@ -151,7 +150,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_1d(self, device):
+    def test_add_scalar_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         scalar_list = [0,1]
         shape_format = [
@@ -159,7 +158,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_2d(self, device):
+    def test_add_scalar_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -167,7 +166,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_2d(self, device):
+    def test_add_scalar_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -175,7 +174,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_3d(self, device):
+    def test_add_scalar_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -183,7 +182,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_3d(self, device):
+    def test_add_scalar_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -191,7 +190,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_4d(self, device):
+    def test_add_scalar_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -199,7 +198,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_4d(self, device):
+    def test_add_scalar_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -207,7 +206,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_result(shape_format)
           
-    def test_add_scalar_shape_format_fp16_1d(self, device):
+    def test_add_scalar_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         scalar_list = [0,1]
         shape_format = [
@@ -215,7 +214,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_1d(self, device):
+    def test_add_scalar_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         scalar_list = [0,1]
         shape_format = [
@@ -223,7 +222,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_2d(self, device):
+    def test_add_scalar_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -231,7 +230,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_2d(self, device):
+    def test_add_scalar_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -239,7 +238,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_3d(self, device):
+    def test_add_scalar_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -247,7 +246,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_3d(self, device):
+    def test_add_scalar_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -255,7 +254,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
         
-    def test_add_scalar_shape_format_fp16_4d(self, device):
+    def test_add_scalar_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -263,7 +262,7 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
     
-    def test_add_scalar_shape_format_fp32_4d(self, device):
+    def test_add_scalar_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 29]
         scalar_list = [0,1]
         shape_format = [
@@ -271,119 +270,119 @@ class TestAdd(TestCase):
         ]        
         self.add_scalar_alpha_result(shape_format)
 
-    def test_add_shape_format_fp16_1d(self, device):
+    def test_add_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [64]]  for i in format_list
         ]        
         self.add_result(shape_format)
     
-    def test_add_shape_format_fp32_1d(self, device):
+    def test_add_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [64]]  for i in format_list 
         ]        
         self.add_result(shape_format)
         
-    def test_add_shape_format_fp16_2d(self, device):
+    def test_add_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [5, 256]]  for i in format_list
         ]        
         self.add_result(shape_format)
     
-    def test_add_shape_format_fp32_2d(self, device):
+    def test_add_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [5, 256]]  for i in format_list 
         ]        
         self.add_result(shape_format)
         
-    def test_add_shape_format_fp16_3d(self, device):
+    def test_add_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [32, 3, 3]]  for i in format_list
         ]        
         self.add_result(shape_format)
     
-    def test_add_shape_format_fp32_3d(self, device):
+    def test_add_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 3, 3]]  for i in format_list 
         ]        
         self.add_result(shape_format)
         
-    def test_add_shape_format_fp16_4d(self, device):
+    def test_add_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [64, 112, 7, 7]]  for i in format_list
         ]        
         self.add_result(shape_format)
     
-    def test_add_shape_format_fp32_4d(self, device):
+    def test_add_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [64, 112, 7, 7]]  for i in format_list 
         ]        
         self.add_result(shape_format)
 
-    def test_add_shape_format_fp16_1d(self, device):
+    def test_add_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [64]]  for i in format_list
         ]        
         self.add_alpha_result(shape_format)
     
-    def test_add_shape_format_fp32_1d(self, device):
+    def test_add_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [64]]  for i in format_list 
         ]        
         self.add_alpha_result(shape_format)
         
-    def test_add_shape_format_fp16_2d(self, device):
+    def test_add_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [5, 256]]  for i in format_list
         ]        
         self.add_alpha_result(shape_format)
     
-    def test_add_shape_format_fp32_2d(self, device):
+    def test_add_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [5, 256]]  for i in format_list 
         ]        
         self.add_alpha_result(shape_format)
         
-    def test_add_shape_format_fp16_3d(self, device):
+    def test_add_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [32, 3, 3]]  for i in format_list
         ]        
         self.add_alpha_result(shape_format)
     
-    def test_add_shape_format_fp32_3d(self, device):
+    def test_add_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [32, 3, 3]]  for i in format_list 
         ]        
         self.add_alpha_result(shape_format)
         
-    def test_add_shape_format_fp16_4d(self, device):
+    def test_add_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [64, 112, 7, 7]]  for i in format_list
         ]        
         self.add_alpha_result(shape_format)
     
-    def test_add_shape_format_fp32_4d(self, device):
+    def test_add_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float32, i, [64, 112, 7, 7]]  for i in format_list 
         ]        
         self.add_alpha_result(shape_format)
 
-    def test_add_mix_dtype(self, device):
+    def test_add_mix_dtype(self, device="npu"):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output = torch.add(cpu_input1, cpu_input2)
@@ -391,8 +390,6 @@ class TestAdd(TestCase):
         npu_output = npu_output.to("cpu")
         self.assertRtolEqual(cpu_output, npu_output)
 
-
-instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
 
 if __name__ == "__main__":
     run_tests()

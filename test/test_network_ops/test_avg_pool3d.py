@@ -18,9 +18,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestAvgPool3D(TestCase):
@@ -40,7 +39,7 @@ class TestAvgPool3D(TestCase):
         output_data = m(input1)
         return output_data
 
-    def test_avg_pool_3d_fp32(self, device):
+    def test_avg_pool_3d_fp32(self, device="npu"):
         # shape_format:[[dtype, (input_shape)], kernel_size, stride]
         shape_format = [
                         [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
@@ -55,7 +54,7 @@ class TestAvgPool3D(TestCase):
             cpu_output = self.cpu_op_exec(item[1], item[2], cpu_input1)
             self.assertRtolEqual(cpu_output, npu_output.cpu(), 1.e-3)
 
-    def test_avg_pool_3d_fp16(self, device):
+    def test_avg_pool_3d_fp16(self, device="npu"):
         # shape_format:[[dtype, (input_shape)], kernel_size, stride]
         shape_format = [
                         [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
@@ -70,7 +69,7 @@ class TestAvgPool3D(TestCase):
             cpu_output = self.cpu_op_exec_fp16(item[1], item[2], cpu_input1)
             self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-instantiate_device_type_tests(TestAvgPool3D, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()
 

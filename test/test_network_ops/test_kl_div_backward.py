@@ -17,9 +17,8 @@ import torch_npu
 import torch.nn.functional as F
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestKlDivBackward(TestCase):  
     def cpu_op_exec(self, input1, input2, reduction):
@@ -37,7 +36,7 @@ class TestKlDivBackward(TestCase):
         output = output.detach().numpy()
         return output, input1.grad
     
-    def test_kl_div_backward_shape_format_fp32(self, device):
+    def test_kl_div_backward_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[torch.float16, 0, (192, 8)], [torch.float16, 0, (192, 8)], 1],
             [[torch.float16, 0, (192, 50000)], [torch.float16, 0, (192, 50000)], 1],
@@ -58,7 +57,7 @@ class TestKlDivBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_input_grad, npu_input_grad.cpu())
 
-    def test_kl_div_backward_shape_format_fp16(self, device):
+    def test_kl_div_backward_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[torch.float16, 0, (112, 8)], [torch.float16, 0, (112, 8)], 1],
             [[torch.float16, 0, (112, 50000)], [torch.float16, 0, (112, 50000)], 1],
@@ -82,6 +81,6 @@ class TestKlDivBackward(TestCase):
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)
             self.assertRtolEqual(cpu_input_grad.to(torch.float16), npu_input_grad.cpu())
 
-instantiate_device_type_tests(TestKlDivBackward, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

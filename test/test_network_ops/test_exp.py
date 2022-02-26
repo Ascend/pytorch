@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestExp(TestCase):
     def cpu_op_exec(self, input1):
@@ -32,7 +32,7 @@ class TestExp(TestCase):
         output = output.numpy()
         return output
 
-    def test_exp_shape_format_fp16(self, device):
+    def test_exp_shape_format_fp16(self, device="npu"):
         format_list = [0, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]
         shape_format = [
@@ -46,7 +46,7 @@ class TestExp(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_exp_shape_format_fp32(self, device):
+    def test_exp_shape_format_fp32(self, device="npu"):
         format_list = [0, 3]
         shape_list = [[5], [2, 4], [2, 2, 4], [2, 3, 3, 4]]
         shape_format = [
@@ -59,6 +59,5 @@ class TestExp(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-instantiate_device_type_tests(TestExp, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

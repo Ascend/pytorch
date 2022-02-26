@@ -18,9 +18,9 @@ import copy
 import torch
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestIndexSelect(TestCase):
     def cpu_op_exec(self, input1, axis, indices):
@@ -47,7 +47,7 @@ class TestIndexSelect(TestCase):
         output = output.numpy()
         return output
 
-    def test_index_select(self, device):
+    def test_index_select(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (3, )], torch.tensor(0, dtype=torch.int64), 0],
             [[np.float32, 0, (3, )], torch.tensor([0, 1], dtype=torch.int64), 0],
@@ -101,7 +101,7 @@ class TestIndexSelect(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    def test_index_select_fp16(self, device):
+    def test_index_select_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (3,)], torch.tensor([0, 1], dtype=torch.int64), 0],
             [[np.float16, 0, (2, 4)], torch.tensor([0, 1, 2], dtype=torch.int64), 1],
@@ -118,6 +118,6 @@ class TestIndexSelect(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestIndexSelect, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

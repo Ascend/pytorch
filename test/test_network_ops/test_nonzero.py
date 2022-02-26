@@ -17,9 +17,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestNonzero(TestCase):
     def cpu_op_exec(self, input1):
@@ -33,7 +33,7 @@ class TestNonzero(TestCase):
         output = output.numpy().astype(np.int32)
         return output
 
-    def test_nonzero_shape_format(self, device):
+    def test_nonzero_shape_format(self, device="npu"):
         dtype_list = [np.float32, np.float16, np.int32, np.int64]
         format_list = [0]
         shape_list = [[256,10], [256,256,100],[5,256,256,100]]
@@ -48,6 +48,5 @@ class TestNonzero(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-instantiate_device_type_tests(TestNonzero, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

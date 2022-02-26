@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestQuantizePerChannel(TestCase):
     def generate_data_per_channel(self, min_d, max_d, shape_x, shape_scale, shape_zp, dtype_x, dtype_scale, dtype_zp):
@@ -44,28 +43,28 @@ class TestQuantizePerChannel(TestCase):
         output = output.numpy()
         return output
 
-    def test_per_channel_3_3_0_int32(self, device):
+    def test_per_channel_3_3_0_int32(self, device="npu"):
         input_x1, scales, zero_points = self.generate_data_per_channel(-1, 1, (3, 3), (3,), (3,), np.float32,
                                                                        np.float32, np.int32)
         cpu_output1 = self.cpu_op_exec_per_channel(input_x1, scales, zero_points, 0, torch.qint32)
         npu_output1 = self.npu_op_exec_per_channel(input_x1, scales, zero_points, 0, torch.qint32)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_channel_3_3_3_3_1_int8(self, device):
+    def test_per_channel_3_3_3_3_1_int8(self, device="npu"):
         input_x1, scales, zero_points = self.generate_data_per_channel(-1, 1, (3, 3), (3,), (3,), np.float32,
                                                                        np.float32, np.int8)
         cpu_output1 = self.cpu_op_exec_per_channel(input_x1, scales, zero_points, 1, torch.qint8).astype(np.int32)
         npu_output1 = self.npu_op_exec_per_channel(input_x1, scales, zero_points, 1, torch.qint8).astype(np.int32)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_channel_3_3_3_3_3_3_3_3_4_uint8(self, device):
+    def test_per_channel_3_3_3_3_3_3_3_3_4_uint8(self, device="npu"):
         input_x1, scales, zero_points = self.generate_data_per_channel(-1, 1, (3, 3, 3, 3, 3, 3, 3, 3), (3,), (3,),
                                                                        np.float32, np.float32, np.int32)
         cpu_output1 = self.cpu_op_exec_per_channel(input_x1, scales, zero_points, 4, torch.quint8)
         npu_output1 = self.npu_op_exec_per_channel(input_x1, scales, zero_points, 4, torch.quint8)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_channel_30_30_30_30_30_2_uint8(self, device):
+    def test_per_channel_30_30_30_30_30_2_uint8(self, device="npu"):
         input_x1, scales, zero_points = self.generate_data_per_channel(-1, 1, (30, 30, 30, 30), (30,), (30,),
                                                                        np.float16, np.float32, np.uint8)
         input_x1_cpu = input_x1.float()
@@ -73,6 +72,6 @@ class TestQuantizePerChannel(TestCase):
         npu_output1 = self.npu_op_exec_per_channel(input_x1, scales, zero_points, 2, torch.quint8)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-instantiate_device_type_tests(TestQuantizePerChannel, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -15,8 +15,10 @@
 import os
 import shutil
 import torch
-from torch_npu.testing.common_utils import TestCase, run_tests
 import torch_npu
+
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel, out_channel):

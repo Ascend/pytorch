@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestBatchNormGatherStatsWithCounts(TestCase):
     def expect_cuda_out_fp16(self):
@@ -61,7 +61,7 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
             npu_counts = torch_npu.npu_format_cast(npu_counts, npu_format)
         return npu_counts
 
-    def test_batch_norm_gather_stats_with_counts(self, device):
+    def test_batch_norm_gather_stats_with_counts(self, device="npu"):
         shape_format = [
             [[np.float16, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
                     [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [np.float32, -1, [4]], 0],
@@ -99,6 +99,6 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
                 self.assertRtolEqual(npu_outputfp32[0], cuda_output[0])
                 self.assertRtolEqual(npu_outputfp32[1], cuda_output[1])
 
-instantiate_device_type_tests(TestBatchNormGatherStatsWithCounts, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

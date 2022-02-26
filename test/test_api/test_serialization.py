@@ -19,8 +19,7 @@ import torch_npu
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class NpuMNIST(nn.Module):
@@ -45,7 +44,7 @@ class TestSerialization(TestCase):
     The saved data is transferred to PyTorch CPU device before being saved, so a
     following `torch.load()` will load CPU data.
     '''
-    def test_save(self, device):
+    def test_save(self, device="npu"):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -54,7 +53,7 @@ class TestSerialization(TestCase):
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
 
-    def test_save_tuple(self, device):
+    def test_save_tuple(self, device="npu"):
         x = torch.randn(5).npu()
         number = 3
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -65,12 +64,12 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertTrue(number, number_loaded)
     
-    def test_save_error(self, device):
+    def test_save_error(self, device="npu"):
         a = 44
         with self.assertRaisesRegex(RuntimeError, "torch.save received invalid input."):
             out = torch.save(a, 'a.pth')
 
-    def test_serialization_model(self, device):
+    def test_serialization_model(self, device="npu"):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()
@@ -78,7 +77,7 @@ class TestSerialization(TestCase):
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
 
-    def test_serialization_state_dict(self, device):
+    def test_serialization_state_dict(self, device="npu"):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()
@@ -100,6 +99,5 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(before_save['fc2.bias'].cpu(), after_load['fc2.bias'].cpu())
             
 
-instantiate_device_type_tests(TestSerialization, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

@@ -18,12 +18,12 @@ import torch_npu
 import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLayerNorm(TestCase):
-    def test_c10_layer_norm(self, device):
+    def test_c10_layer_norm(self, device="npu"):
         # test that we can call c10 ops and they return a reasonable result
         X = torch.rand(5, 5, dtype=torch.float, device="cpu")
         X = X.to("npu")
@@ -55,7 +55,7 @@ class TestLayerNorm(TestCase):
         output = output.to("cpu")
         return output
 
-    def test_layer_norm_shape_format(self, device):
+    def test_layer_norm_shape_format(self, device="npu"):
         shape_format = [
                 [np.float32, 0, (64, 10)],
                 [np.float32, 0, (256, 2048, 7, 7)],
@@ -71,7 +71,7 @@ class TestLayerNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
-    def test_layer_norm_float16_format(self, device):
+    def test_layer_norm_float16_format(self, device="npu"):
         shape_format = [
                 [np.float16, 0, (64, 10)],
                 [np.float16, 0, (256, 2048, 7, 7)],
@@ -89,6 +89,6 @@ class TestLayerNorm(TestCase):
             cpu_output = cpu_output.to(torch.float16)
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
-instantiate_device_type_tests(TestLayerNorm, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

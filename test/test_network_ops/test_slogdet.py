@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestSlogdet(TestCase):
     def cpu_op_exec(self, input1):
@@ -37,7 +37,7 @@ class TestSlogdet(TestCase):
         logabsdet = logabsdet.numpy()
         return sign, logabsdet
 
-    def test_slogdet_shape_format(self, device):
+    def test_slogdet_shape_format(self, device="npu"):
         shape_format = [
                 [np.float32, -1, (3, 3)],
                 [np.float32, -1, (4, 3, 3)],
@@ -50,6 +50,6 @@ class TestSlogdet(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_indices, npu_indices)
 
-instantiate_device_type_tests(TestSlogdet, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

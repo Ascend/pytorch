@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import copy
 import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestLogicalAnd(TestCase):
     def generate_single_data(self, min_d, max_d, shape, dtype):
@@ -93,7 +90,7 @@ class TestLogicalAnd(TestCase):
             npu_output_out = self.npu_op_exec_out(cpu_input1, cpu_input2, cpu_input3)
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
-    def test_logical_and_out(self, device):
+    def test_logical_and_out(self, device="npu"):
         shape_format = [
             [[128, 116, 14, 14], [256, 116, 1, 1, 28]],
             [[128, 3, 224, 224], [3, 3, 3]],
@@ -104,18 +101,18 @@ class TestLogicalAnd(TestCase):
         ]
         self.logical_and_out_result(shape_format)
 
-    def test_logical_and_bool(self, device):
+    def test_logical_and_bool(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2).astype(np.float32)
         npu_output = self.npu_op_exec(npu_input1, npu_input2).astype(np.float32)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_logical_and_inplace_bool(self, device):
+    def test_logical_and_inplace_bool(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 2, (2, 5), np.bool)
         cpu_output = self.cpu_op_exec_(npu_input1, npu_input2).astype(np.float32)
         npu_output = self.npu_op_exec_(npu_input1, npu_input2).astype(np.float32)
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestLogicalAnd, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestThreshold(TestCase):
 
@@ -33,7 +33,7 @@ class TestThreshold(TestCase):
         output = output.numpy()
         return output
 
-    def test_threshold_common_shape_format(self, device):
+    def test_threshold_common_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (1,5)], [1.0], [20.0]],
                 [[np.int32, 0, (1,5)], [2], [20]],
@@ -46,7 +46,7 @@ class TestThreshold(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_threshold, npu_value)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_threshold_inplace_common_shape_format(self, device):
+    def test_threshold_inplace_common_shape_format(self, device="npu"):
         def cpu_op_inplace_exec(input1, threshold, value):
             torch.nn.functional.threshold_(input1, threshold, value)
             output = input1.numpy()
@@ -70,6 +70,6 @@ class TestThreshold(TestCase):
             npu_output = npu_op_inplace_exec(npu_input1, npu_threshold, npu_value)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestThreshold, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

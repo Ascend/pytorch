@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestTopK(TestCase):
 
@@ -47,62 +47,62 @@ class TestTopK(TestCase):
             #  目前只支持fp16,fp32降低阈值判断
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
             
-    def test_topk_shape_format_fp16_1d(self, device):
+    def test_topk_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [18]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp32_1d(self, device):
+    def test_topk_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [18]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp16_2d(self, device):
+    def test_topk_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [5, 256]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp32_2d(self, device):
+    def test_topk_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [5, 256]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp16_3d(self, device):
+    def test_topk_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [32, 8, 8]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp32_3d(self, device):
+    def test_topk_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [32, 8, 8]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp16_4d(self, device):
+    def test_topk_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float16, i, [64, 112, 7, 7]] for i in format_list
         ]        
         self.topk_result(shape_format)
         
-    def test_topk_shape_format_fp32_4d(self, device):
+    def test_topk_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [64, 112, 7, 7]] for i in format_list
         ]        
         self.topk_result(shape_format)
 
-instantiate_device_type_tests(TestTopK, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

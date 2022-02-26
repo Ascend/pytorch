@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestLogSoftmax(TestCase):
@@ -45,57 +44,43 @@ class TestLogSoftmax(TestCase):
             npu_output = self.npu_op_exec_new(npu_input1, 0)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    '''
-    def test_logsoftmax_shape_format_fp16_1d(self, device):
-        format_list = [0, 3]
-        shape_format = [
-            [np.float16, i, [1024]] for i in format_list
-        ]
-        self.logsoftmax_result(shape_format)
-        
-    def test_logsoftmax_shape_format_fp32_1d(self, device):
-        format_list = [0, 3]
-        shape_format = [
-            [np.float32, i, [1024]] for i in format_list
-        ]
-        self.logsoftmax_result(shape_format)
-    '''
-    def test_logsoftmax_shape_format_fp16_2d(self, device):
+
+    def test_logsoftmax_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [256, 1000]] for i in format_list 
         ]
         self.logsoftmax_result(shape_format)
         
-    def test_logsoftmax_shape_format_fp32_2d(self, device):
+    def test_logsoftmax_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list 
         ]
         self.logsoftmax_result(shape_format)
         
-    def test_logsoftmax_shape_format_fp16_3d(self, device):
+    def test_logsoftmax_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [32, 48, 64]] for i in format_list 
         ]
         self.logsoftmax_result(shape_format)
         
-    def test_logsoftmax_shape_format_fp32_3d(self, device):
+    def test_logsoftmax_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [32, 48, 1024]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
         
-    def test_logsoftmax_shape_format_fp16_4d(self, device):
+    def test_logsoftmax_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [32, 24, 18, 1000]] for i in format_list
         ]
         self.logsoftmax_result(shape_format)
 
-    def test_logsoftmax_shape_format_fp32_4d(self, device):
+    def test_logsoftmax_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [32, 24, 18, 1000]] for i in format_list
@@ -103,6 +88,5 @@ class TestLogSoftmax(TestCase):
         self.logsoftmax_result(shape_format)
             
 
-instantiate_device_type_tests(TestLogSoftmax, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

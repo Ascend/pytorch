@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestExpm1(TestCase):
     def get_shapeFormat1(self):
@@ -86,7 +86,7 @@ class TestExpm1(TestCase):
         output = output.numpy()
         return output
 
-    def test_expm1_float32_common_shape_format(self, device):
+    def test_expm1_float32_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat1()
         for item in shape_format:            
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -94,7 +94,7 @@ class TestExpm1(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
     		
-    def test_expm1_float321_common_shape_format(self, device):
+    def test_expm1_float321_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat1()
         for item in shape_format:        
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -102,7 +102,7 @@ class TestExpm1(TestCase):
             npu_output = self.npu_op_exec_(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 	
-    def test_expm1_out_float32_common_shape_format(self, device):
+    def test_expm1_out_float32_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat2()
         for item in shape_format:          
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -111,7 +111,7 @@ class TestExpm1(TestCase):
             npu_output = self.npu_op_exec_out(npu_input1,npu_out)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_expm1_float16_common_shape_format(self, device):
+    def test_expm1_float16_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat2()
         for item in shape_format:            
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -123,7 +123,7 @@ class TestExpm1(TestCase):
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
     		
-    def test_expm1_float16__common_shape_format(self, device):
+    def test_expm1_float16__common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat3()
         for item in shape_format:        
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -135,7 +135,7 @@ class TestExpm1(TestCase):
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 	
-    def test_expm1_out_float16_common_shape_format(self, device):
+    def test_expm1_out_float16_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat3()
         for item in shape_format:          
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 10)
@@ -149,7 +149,6 @@ class TestExpm1(TestCase):
                 cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestExpm1, globals(), except_for="cpu")
 
 if __name__ == "__main__":
     run_tests()

@@ -14,12 +14,12 @@
 
 import torch
 import torch_npu
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestBatchNormBackwardElemt(TestCase):
 
-    def test_batch_norm_backward_elemt_4d(self, device):
+    def test_batch_norm_backward_elemt_4d(self, device="npu"):
         grad_output = torch.ones([2, 3, 1, 4]).npu()
         input1 = torch.ones([2, 3, 1, 4]).npu()
         mean = torch.tensor([8., 5., 9.]).npu()
@@ -38,7 +38,7 @@ class TestBatchNormBackwardElemt(TestCase):
                                          [[2776., 2776., 2776, 2776.]]]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
-    def test_batch_norm_backward_elemt_2d(self, device):
+    def test_batch_norm_backward_elemt_2d(self, device="npu"):
         grad_output = torch.ones([2, 3]).npu()
         input1 = torch.ones([2, 3]).npu()
         mean = torch.tensor([8., 5., 9.]).npu()
@@ -53,7 +53,7 @@ class TestBatchNormBackwardElemt(TestCase):
                                         [110., 11., 2776.]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
-    def test_batch_norm_backward_elemt_2d_fp(self, device):
+    def test_batch_norm_backward_elemt_2d_fp(self, device="npu"):
         grad_output = torch.ones([2, 3]).npu()
         input1 = torch.ones([2, 3]).npu()
         mean = torch.tensor([8.123456, 5.147125, 9.365778]).npu()
@@ -68,6 +68,6 @@ class TestBatchNormBackwardElemt(TestCase):
                                         [361.5542, 41.5013, 4467.4121]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
-instantiate_device_type_tests(TestBatchNormBackwardElemt, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

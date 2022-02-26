@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestErfc(TestCase):
     def get_shapeFormat(self):
@@ -65,7 +65,7 @@ class TestErfc(TestCase):
         output = output.numpy()
         return output
  
-    def test_erfc_float32_common_shape_format(self, device):
+    def test_erfc_float32_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:            
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -73,7 +73,7 @@ class TestErfc(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_erfc_float16_common_shape_format(self, device):
+    def test_erfc_float16_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:            
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -83,7 +83,7 @@ class TestErfc(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_erfc_float321_common_shape_format(self, device):
+    def test_erfc_float321_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:        
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -91,7 +91,7 @@ class TestErfc(TestCase):
             npu_output = self.npu_op_exec_(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_erfc_float161_common_shape_format(self, device):
+    def test_erfc_float161_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:        
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -101,7 +101,7 @@ class TestErfc(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_erfc_out_float32_common_shape_format(self, device):
+    def test_erfc_out_float32_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:          
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -110,7 +110,7 @@ class TestErfc(TestCase):
             npu_output = self.npu_op_exec_out(npu_input1, npu_out)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_erfc_out_float16_common_shape_format(self, device):
+    def test_erfc_out_float16_common_shape_format(self, device="npu"):
         shape_format = self.get_shapeFormat()
         for item in shape_format:          
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
@@ -122,6 +122,6 @@ class TestErfc(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestErfc, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

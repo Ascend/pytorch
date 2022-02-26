@@ -20,7 +20,8 @@ import gc
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests, freeze_rng_state, SkipIfRocm
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import freeze_rng_state
 
 
 class TestNpu(TestCase):
@@ -363,7 +364,6 @@ class TestNpu(TestCase):
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
             torch_npu.npu.synchronize("cpu")
 
-    @SkipIfRocm()
     def test_streams(self):
         default_stream = torch_npu.npu.current_stream()
         user_stream = torch_npu.npu.Stream()

@@ -15,15 +15,15 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestNmsRotated(TestCase):
     def npu_op_exec(self, det, score):
         output1, output2 = torch_npu.npu_nms_rotated(det.npu(), score.npu(), 0.2, 0, -1, 1)
         return output1, output2
 
-    def test_nms_rotated_float32(self, device):
+    def test_nms_rotated_float32(self, device="npu"):
         det = torch.tensor([[1.0382e+03, 3.1657e+02, 1.1556e+03, 4.4303e+02, 2.3674e+00],
                             [1.1503e+03, 3.0598e+02, 1.2602e+03, 4.3456e+02, 3.2729e-01],
                             [1.1508e+03, 3.0652e+02, 1.2607e+03, 4.3472e+02, 5.1713e-01],
@@ -53,6 +53,6 @@ class TestNmsRotated(TestCase):
         self.assertRtolEqual(expect_output1, npu_output1.cpu())
         self.assertRtolEqual(expect_output2, npu_output2.cpu())
 
-instantiate_device_type_tests(TestNmsRotated, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

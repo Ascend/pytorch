@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestBatchNormStats(TestCase):
     def cuda_op_exec(self, *args):
@@ -36,7 +36,7 @@ class TestBatchNormStats(TestCase):
         out_invstd = npu_invstd.cpu().numpy()
         return out_mean, out_invstd
 
-    def test_batch_norm_stats(self, device):
+    def test_batch_norm_stats(self, device="npu"):
         shape_format = [
             [[np.float16, -1, [2, 3, 12, 12]], 1e-5],
         ]
@@ -57,6 +57,5 @@ class TestBatchNormStats(TestCase):
             self.assertRtolEqual(cpu_output[1], npu_outputfp32[1], 1e-2)
 
 
-instantiate_device_type_tests(TestBatchNormStats, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

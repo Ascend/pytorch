@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestSum(TestCase):
     def cpu_op_exec(self, input1):
@@ -88,56 +88,56 @@ class TestSum(TestCase):
             cpu_output_dim = cpu_output_dim.astype(npu_output_dim.dtype)
             self.assertRtolEqual(cpu_output_dim, npu_output_dim)
             
-    def test_sum_shape_format_fp16_1d(self, device):
+    def test_sum_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [18]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp32_1d(self, device):
+    def test_sum_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [18]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp16_2d(self, device):
+    def test_sum_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [256, 1000]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp32_2d(self, device):
+    def test_sum_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3,  29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp16_3d(self, device):
+    def test_sum_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 29]
         shape_format = [
             [np.float16, i, [32, 48, 64]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp32_3d(self, device):
+    def test_sum_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3,  29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp16_4d(self, device):
+    def test_sum_shape_format_fp16_4d(self, device="npu"):
         format_list = [0,  4, 29]
         shape_format = [
             [np.float16, i, [32, 24, 18, 18]] for i in format_list 
         ]
         self.sum_result(shape_format)
         
-    def test_sum_shape_format_fp32_4d(self, device):
+    def test_sum_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [
             [np.float32, i, [32, 24, 18, 18]] for i in format_list 
@@ -146,35 +146,35 @@ class TestSum(TestCase):
         
         # --------sum dim---------------------
         
-    def test_sum_dim_shape_format_fp16_1d(self, device):
+    def test_sum_dim_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [18]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp32_1d(self, device):
+    def test_sum_dim_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float32, i, [18]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp16_2d(self, device):
+    def test_sum_dim_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3,  29]
         shape_format = [
             [np.float16, i, [256, 1000]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp32_2d(self, device):
+    def test_sum_dim_shape_format_fp32_2d(self, device="npu"):
         format_list = [0, 3,  29]
         shape_format = [
             [np.float32, i, [256, 1000]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp16_3d(self, device):
+    def test_sum_dim_shape_format_fp16_3d(self, device="npu"):
         # TODO(ascend): Insufficient precision
         #format=29精度不满足 format_list = [0, 3,  29]
         format_list = [0, 3]
@@ -183,28 +183,28 @@ class TestSum(TestCase):
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp32_3d(self, device):
+    def test_sum_dim_shape_format_fp32_3d(self, device="npu"):
         format_list = [0, 3,  29]
         shape_format = [
             [np.float32, i, [32, 48, 64]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp16_4d(self, device):
+    def test_sum_dim_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [
             [np.float16, i, [16, 16, 9, 9]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
         
-    def test_sum_dim_shape_format_fp32_4d(self, device):
+    def test_sum_dim_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3, 4]
         shape_format = [
             [np.float32, i, [32, 24, 18, 18]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
 
-    def test_sum_dim_with_zero_shape_format(self, device):
+    def test_sum_dim_with_zero_shape_format(self, device="npu"):
         format_list = [0, 3, 4]
         shape_format = [
             [np.float32, i, [2, 0, 3]] for i in format_list 
@@ -213,6 +213,5 @@ class TestSum(TestCase):
         self.sum_result(shape_format)
 
 
-instantiate_device_type_tests(TestSum, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

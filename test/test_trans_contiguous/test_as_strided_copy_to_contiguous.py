@@ -17,9 +17,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
@@ -37,7 +36,7 @@ class TestAsStridedCopyToContiguous(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_as_strided(self, device):
+    def test_as_strided(self, device="npu"):
         dtype_list = [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
         format_list = [-1]
         small_shape_list = [
@@ -65,6 +64,6 @@ class TestAsStridedCopyToContiguous(TestCase):
             npu_output = self.npu_op_exec(npu_input, item[1], item[2], item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestAsStridedCopyToContiguous, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

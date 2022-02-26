@@ -17,9 +17,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestKthvalues(TestCase):
     def generate_data(self, min1, max1, shape, dtype):
@@ -89,7 +88,7 @@ class TestKthvalues(TestCase):
         indices = indices.numpy()
         return y, indices
 
-    def test_kthvalues(self, device):
+    def test_kthvalues(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float32)
         k = self.generate_int_k(3)
         dim = self.generate_int_dim(4)
@@ -99,7 +98,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_without_dim(self, device):
+    def test_kthvalues_without_dim(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
         k = self.generate_int_k(3)
         keepdim = self.generate_bool_keepdim()
@@ -108,7 +107,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_without_keepdim(self, device):
+    def test_kthvalues_without_keepdim(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float16)
         k = self.generate_int_k(3)
         dim = self.generate_int_dim(4)
@@ -117,7 +116,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y.astype(np.float16), npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_out(self, device):
+    def test_kthvalues_out(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float32)
         k = self.generate_int_k(3)
         dim = self.generate_int_dim(4)
@@ -131,7 +130,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y.numpy(), npu_y.to("cpu").numpy())
         self.assertRtolEqual(cpu_indices.numpy().astype(np.int32), npu_indices.to("cpu").numpy().astype(np.int32))
     
-    def test_kthvalues_dimname(self, device):
+    def test_kthvalues_dimname(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
@@ -141,7 +140,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_dimname_without_dim(self, device):
+    def test_kthvalues_dimname_without_dim(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
@@ -151,7 +150,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_dimname_without_keepdim(self, device):
+    def test_kthvalues_dimname_without_keepdim(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.float32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
@@ -160,7 +159,7 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y, npu_y)
         self.assertRtolEqual(cpu_indices.astype(np.int32), npu_indices.astype(np.int32))
 
-    def test_kthvalues_dimname_out(self, device):
+    def test_kthvalues_dimname_out(self, device="npu"):
         x = self.generate_data(-100, 100, (3, 4, 5, 6), np.int32)
         x.names = ['A', 'B', 'C', 'D']
         k = self.generate_int_k(3)
@@ -175,6 +174,6 @@ class TestKthvalues(TestCase):
         self.assertRtolEqual(cpu_y.numpy(), npu_y.to("cpu").numpy())
         self.assertRtolEqual(cpu_indices.numpy().astype(np.int32), npu_indices.to("cpu").numpy().astype(np.int32))
 
-instantiate_device_type_tests(TestKthvalues, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

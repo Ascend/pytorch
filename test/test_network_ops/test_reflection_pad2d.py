@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestReflectionPad2d(TestCase):
     def cpu_op_out_exec(self, input1, pad, output):
@@ -60,7 +60,7 @@ class TestReflectionPad2d(TestCase):
         output = output.astype(np.float16)
         return output
 
-    def test_reflection_pad2d_out_shape_format_fp16(self, device):
+    def test_reflection_pad2d_out_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2]
@@ -74,7 +74,7 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_out_exec(npu_input1, item[1], npuout)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad2d_shape_format_fp16(self, device):
+    def test_reflection_pad2d_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (1, 1, 4, 3)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2]
@@ -86,7 +86,7 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_reflection_pad2d_shape_format_fp32(self, device):
+    def test_reflection_pad2d_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (1, 1, 37, 37)], [2, 2, 2, 2]],
             [[np.float32, 3, (1, 1, 17, 17)], 2]
@@ -98,7 +98,7 @@ class TestReflectionPad2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestReflectionPad2d, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()
     

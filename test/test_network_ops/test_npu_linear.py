@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestNpuLinear(TestCase):
     def cpu_op_exec(self, x, weight, bias):
@@ -30,7 +30,7 @@ class TestNpuLinear(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_npu_linear_shape_format_fp32(self, device):
+    def test_npu_linear_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (6144, 1024)], [np.float32, -1, (256, 1024)], [np.float32, -1, (256)]],
             [[np.float32, -1, (123, 456)], [np.float32, -1, (789, 456)], [np.float32, -1, (789)]],
@@ -44,7 +44,7 @@ class TestNpuLinear(TestCase):
             npu_output = self.npu_op_exec(npu_x, npu_w, npu_b)
             self.assertRtolEqual(cpu_output, npu_output, 0.0002)
 
-    def test_npu_linear_shape_format_fp16(self, device):
+    def test_npu_linear_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (6144, 1024)], [np.float16, -1, (256, 1024)], [np.float16, -1, (256)]],
             [[np.float16, -1, (123, 456)], [np.float16, -1, (789, 456)], [np.float16, -1, (789)]],
@@ -58,6 +58,6 @@ class TestNpuLinear(TestCase):
             npu_output = self.npu_op_exec(npu_x, npu_w, npu_b)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestNpuLinear, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

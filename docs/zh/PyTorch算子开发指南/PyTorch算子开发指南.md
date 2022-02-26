@@ -715,7 +715,6 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
     import torch
     import numpy as np
     from common_utils import TestCase, run_tests
-    from common_device_type import dtypes, instantiate_device_type_tests
     from util_test import create_common_tensor
     
     # 定义add测试用例类
@@ -746,14 +745,13 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # 定义具体add场景的测试用例，用例函数需要以test_开头
-        def test_add_shape_format_fp32_2d(self, device):
+        def test_add_shape_format_fp32_2d(self, device="npu"):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
-    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```

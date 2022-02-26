@@ -17,15 +17,14 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):
-    def test_narrow_copy_contiguous(self, device):
+    def test_narrow_copy_contiguous(self, device="npu"):
         # AssertionError: required dtype in [np.bool, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
         # However, considering the dtypes that Transdata supports, only np.float16, np.float32 are tested.
         dtype_list1 = [np.float16, np.float32]
@@ -69,7 +68,7 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
             self.assertRtolEqual(npu_out3.to("cpu").numpy(), cpu_out3.numpy())
 
-    def test_strideslice_copy_contiguous(self, device):
+    def test_strideslice_copy_contiguous(self, device="npu"):
         dtype_list2 = [np.float16, np.float32, np.int8, np.int32, np.uint8, np.bool]
         format_list2 = [-1]
         shape_list2 = [[10,32,16,9], [10,32,16,9,10]]
@@ -120,7 +119,7 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out6 = npu_input[:,:,:,:,1:7:3].contiguous()
                 self.assertRtolEqual(npu_out6.to("cpu").numpy(), cpu_out6.numpy()) 
     
-    def test_select_copy_contiguous(self, device):
+    def test_select_copy_contiguous(self, device="npu"):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [[2,32,16,9], [2,32,16,9,10]]
@@ -138,7 +137,7 @@ class SingleViewCopyToContiguous(TestCase):
                 cpu_out = cpu_input.select(dim,1).contiguous()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())  
 
-    def test_span_axis_strideslice_contiguous(self, device):
+    def test_span_axis_strideslice_contiguous(self, device="npu"):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [[32,8,2], [(8,6,2), (5,4,1), 1]]
@@ -158,6 +157,6 @@ class SingleViewCopyToContiguous(TestCase):
                 shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())      
                 
-instantiate_device_type_tests(SingleViewCopyToContiguous, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

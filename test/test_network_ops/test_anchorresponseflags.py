@@ -16,9 +16,9 @@ import torch_npu
 import numpy as np
 from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestAnchorResponseFlags(TestCase):
     def cpu_op_exec(self, gt_bboxes, featmap_size, strides, num_base_anchors):
@@ -40,7 +40,7 @@ class TestAnchorResponseFlags(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
         
-    def test_anchor_response_flags(self, device):
+    def test_anchor_response_flags(self, device="npu"):
         shape_format = [
             [[np.float32, -1, [100, 4]], [60, 60], [2, 2], 9],
             [[np.float16, -1, [200, 4]], [10, 10], [32, 32], 3],
@@ -54,6 +54,6 @@ class TestAnchorResponseFlags(TestCase):
             npu_output = self.npu_op_exec(npu_input, *item[1:])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestAnchorResponseFlags, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

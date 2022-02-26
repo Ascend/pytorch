@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import torch
+
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestFillDiagonal(TestCase):
     def npu_op_exec(self, input1):
@@ -56,7 +56,7 @@ class TestFillDiagonal(TestCase):
         output = input1.numpy()
         return output
 
-    def test_fill_diagonal_shape_format_fp32(self, device):
+    def test_fill_diagonal_shape_format_fp32(self, device="npu"):
         format_list = [0, 3]
         shape_list = ([7, 3], [3, 3, 3])
         shape_format = [
@@ -73,7 +73,7 @@ class TestFillDiagonal(TestCase):
             self.assertRtolEqual(cpu_output2, npu_output2)
             self.assertRtolEqual(cpu_output3, npu_output3)
 
-    def test_fill_diagonal_shape_format_fp16(self, device):
+    def test_fill_diagonal_shape_format_fp16(self, device="npu"):
         format_list = [0, 3]
         shape_list = ([7, 3], [3, 3, 3])
         shape_format = [
@@ -91,7 +91,7 @@ class TestFillDiagonal(TestCase):
             self.assertRtolEqual(cpu_output2, npu_output2)
 
 
-    def test_fill_diagonal_false_shape_format_fp32(self, device):
+    def test_fill_diagonal_false_shape_format_fp32(self, device="npu"):
         format_list1 = [0, 3]
         shape_list1 = ([7, 3], [3, 3, 3])
         shape_format = [
@@ -108,7 +108,7 @@ class TestFillDiagonal(TestCase):
             self.assertRtolEqual(cpu_output3, npu_output3)
             self.assertRtolEqual(cpu_output4, npu_output4)
 
-    def test_fill_diagonal_false_shape_format_fp16(self, device):
+    def test_fill_diagonal_false_shape_format_fp16(self, device="npu"):
         format_list1 = [0, 3]
         shape_list1 = ([7, 3], [3, 3, 3])
         shape_format = [
@@ -125,6 +125,6 @@ class TestFillDiagonal(TestCase):
             self.assertRtolEqual(cpu_output4, npu_output4)
             self.assertRtolEqual(cpu_output5, npu_output5)
 
-instantiate_device_type_tests(TestFillDiagonal, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

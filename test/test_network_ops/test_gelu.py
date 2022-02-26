@@ -18,10 +18,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
-#pylint: disable=unused-argument
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestGelu(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -57,41 +55,41 @@ class TestGelu(TestCase):
         output = output.numpy().astype(np.float16)
         return output 
         
-    def test_gelu_float32_1(self, device):
+    def test_gelu_float32_1(self, device="npu"):
         input1 = self.generate_data(0, 100, (4,3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_gelu_float32_2(self, device):
+    def test_gelu_float32_2(self, device="npu"):
         input1 = self.generate_data(0, 1000, (4,3), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output) 
                 
-    def test_gelu_float16_1(self, device):
+    def test_gelu_float16_1(self, device="npu"):
         npu_input1 = self.generate_data(0, 100, (5,3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = self.cpu_op_exec_fp16(cpu_input1)
         npu_output = self.npu_op_exec_fp16(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)  
 
-    def test_gelu_float16_2(self, device):
+    def test_gelu_float16_2(self, device="npu"):
         npu_input1 = self.generate_data(0, 1000, (5,3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = self.cpu_op_exec_fp16(cpu_input1)
         npu_output = self.npu_op_exec_fp16(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)  
 
-    def test_gelu_float16_3(self, device):
+    def test_gelu_float16_3(self, device="npu"):
         npu_input1 = self.generate_data(0, 1000, (3,3), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_output = self.cpu_op_exec_fp16(cpu_input1)
         npu_output = self.npu_op_exec_fp16(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)   
 
-instantiate_device_type_tests(TestGelu, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestGridSampler2dBackward(TestCase):
     def get_attrs(self):
@@ -50,7 +50,7 @@ class TestGridSampler2dBackward(TestCase):
         dgrid = dgrid.to("cpu").numpy()
         return dx, dgrid
 
-    def test_grid_sampler_2d_backward_fp32(self, device):
+    def test_grid_sampler_2d_backward_fp32(self, device="npu"):
         shape_list = [[100, 1, 28, 28], [100, 64, 32, 28]]
         shape_format = [
             [np.float32, -1, j] for j in shape_list
@@ -66,7 +66,7 @@ class TestGridSampler2dBackward(TestCase):
                 self.assertRtolEqual(cpu_output_dx, npu_output_dx)
                 self.assertRtolEqual(cpu_output_dgrid, npu_output_dgrid)
 
-    def test_grid_sampler_2d_backward_fp16(self, device):
+    def test_grid_sampler_2d_backward_fp16(self, device="npu"):
         def cpu_op_fp16_exec(input1, sample, pad_mode, align):
             input1 = input1.to(torch.float32)
             sample = sample.to(torch.float32)
@@ -95,6 +95,6 @@ class TestGridSampler2dBackward(TestCase):
                 self.assertRtolEqual(cpu_output_dx, npu_output_dx)
                 self.assertRtolEqual(cpu_output_dgrid, npu_output_dgrid)
 
-instantiate_device_type_tests(TestGridSampler2dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

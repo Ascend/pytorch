@@ -15,9 +15,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class Test_Bitwise_Not(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -57,31 +56,31 @@ class Test_Bitwise_Not(TestCase):
         output = output.numpy()
         return output
 
-    def test_bitwise_not_bool(self, device):
+    def test_bitwise_not_bool(self, device="npu"):
         npu_input1 = self.generate_bool_data((2, 3))
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_bitwise_not_int16(self, device):
+    def test_bitwise_not_int16(self, device="npu"):
         npu_input1 = self.generate_data(0, 2342, (2, 3), np.int16)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_bitwise_not_int32(self, device):
+    def test_bitwise_not_int32(self, device="npu"):
         npu_input1 = self.generate_data(0, 34222, (2, 3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
         
-    def test_bitwise_not_int64(self, device):
+    def test_bitwise_not_int64(self, device="npu"):
         npu_input1 = self.generate_data(0, 355553, (2, 3), np.int64)
         cpu_output = self.cpu_op_exec(npu_input1)
         npu_output = self.npu_op_exec(npu_input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_bitwise_not_out(self, device):
+    def test_bitwise_not_out(self, device="npu"):
         shape_format = [
             [[0, 2342, [2, 3], np.int16], [0, 2342, [10, 20], np.int16]],
             [[0, 34222, [2, 3], np.int32], [0, 34222, [10, 20], np.int32]],
@@ -96,6 +95,6 @@ class Test_Bitwise_Not(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output1)
 
-instantiate_device_type_tests(Test_Bitwise_Not, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

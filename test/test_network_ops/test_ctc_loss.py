@@ -18,9 +18,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestCtcLoss(TestCase):
     def generate_data(self, item):
@@ -72,7 +71,7 @@ class TestCtcLoss(TestCase):
 
         return neg_log_likelihood
 
-    def test_ctc_loss(self, device):
+    def test_ctc_loss(self, device="npu"):
         sizes_list = [[50, 20, 16, 30, 10], [26, 37, 256, 18, 10]]
         para_reduction = ["sum", "mean", "none"]
         dtype = [np.float32, np.float16]        
@@ -89,6 +88,6 @@ class TestCtcLoss(TestCase):
             
             self.assertRtolEqual(neg_log_likelihood_cpu, neg_log_likelihood_npu, 1e-3)
 
-instantiate_device_type_tests(TestCtcLoss, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

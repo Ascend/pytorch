@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestQuantizePerTensor(TestCase):
 
@@ -39,31 +38,31 @@ class TestQuantizePerTensor(TestCase):
         output = output.numpy()
         return output
 
-    def test_per_tensor_3_3_0p1_10_int32(self, device):
+    def test_per_tensor_3_3_0p1_10_int32(self, device="npu"):
         input_x1 = self.generate_data_per_tensor(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec_per_tensor(input_x1, 0.1, 10, torch.qint32)
         npu_output1 = self.npu_op_exec_per_tensor(input_x1, 0.1, 10, torch.qint32)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_tensor_3_3_0p1_10_int8(self, device):
+    def test_per_tensor_3_3_0p1_10_int8(self, device="npu"):
         input_x1 = self.generate_data_per_tensor(-1, 1, (3, 3), np.float16)
         input_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec_per_tensor(input_cpu, 0.1, 10, torch.qint8)
         npu_output1 = self.npu_op_exec_per_tensor(input_x1, 0.1, 10, torch.qint8)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_tensor_3_3_3_3_3_3_0p1_10_uint8(self, device):
+    def test_per_tensor_3_3_3_3_3_3_0p1_10_uint8(self, device="npu"):
         input_x1 = self.generate_data_per_tensor(-1, 1, (3, 3, 3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec_per_tensor(input_x1, 0.1, 10, torch.quint8)
         npu_output1 = self.npu_op_exec_per_tensor(input_x1, 0.1, 10, torch.quint8)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_per_tensor_30_30_30_30_30_30_0p01_5_uint8(self, device):
+    def test_per_tensor_30_30_30_30_30_30_0p01_5_uint8(self, device="npu"):
         input_x1 = self.generate_data_per_tensor(-1, 1, (30, 30, 30, 30, 30, 30), np.float32)
         cpu_output1 = self.cpu_op_exec_per_tensor(input_x1, 0.01, 5, torch.quint8)
         npu_output1 = self.npu_op_exec_per_tensor(input_x1, 0.01, 5, torch.quint8)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-instantiate_device_type_tests(TestQuantizePerTensor, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

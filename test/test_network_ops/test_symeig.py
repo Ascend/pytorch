@@ -17,8 +17,8 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestSymeig(TestCase):
     def op_exec(self, input1, eigenvectorsflag):
@@ -37,28 +37,28 @@ class TestSymeig(TestCase):
         self.op_exec(input1, False)
         self.op_exec(input1, True)
 
-    def test_symeig_null(self, device):
+    def test_symeig_null(self, device="npu"):
         a = torch.randn(0, 0)
         self.op_exec(a, False)
         self.op_exec(a, True)
 
-    def test_symeig_2d(self, device):
+    def test_symeig_2d(self, device="npu"):
         a = torch.randn(5, 5, dtype = torch.float32)
         self.case_exec(a)
 
-    def test_symeig_3d(self, device):
+    def test_symeig_3d(self, device="npu"):
         a = torch.randn(10, 5, 5, dtype = torch.float32)
         self.case_exec(a)
 
-    def test_symeig_4d(self, device):
+    def test_symeig_4d(self, device="npu"):
         a = torch.randn(10, 3, 5, 5, dtype = torch.float32)
         self.case_exec(a)
 
-    def test_symeig_5d(self, device):
+    def test_symeig_5d(self, device="npu"):
         a = torch.randn(2, 10, 3, 5, 5, dtype = torch.float32)
         self.case_exec(a)
 
-    def test_symeig_out(self, device):
+    def test_symeig_out(self, device="npu"):
         a = torch.randn(2, 3, 3, dtype = torch.float32)
         a = a + a.transpose(-2, -1)
         an = a.npu()
@@ -68,6 +68,6 @@ class TestSymeig(TestCase):
         ret = torch.matmul(v, torch.matmul(e.diag_embed(), v.transpose(-2, -1)))
         self.assertRtolEqual(ret.cpu(), a, prec = 1e-3)
 
-instantiate_device_type_tests(TestSymeig, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

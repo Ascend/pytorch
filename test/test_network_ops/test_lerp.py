@@ -17,9 +17,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLerp(TestCase):
     def cpu_op_exec(self, input1, input2, input3): 
@@ -95,7 +95,7 @@ class TestLerp(TestCase):
         output = output.numpy() 
         return output
 
-    def test_lerp_common_shape_format(self, device):
+    def test_lerp_common_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (4, 2, 2, 3)]],
             [[np.float32, -1, (2, 2, 3, 4)]],
@@ -113,7 +113,7 @@ class TestLerp(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_lerp_float16_shape_format(self, device):
+    def test_lerp_float16_shape_format(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (100, 4, 5, 5)]],
             [[np.float16, -1, (100, 5, 5, 4)]],
@@ -129,7 +129,7 @@ class TestLerp(TestCase):
             self.assertRtolEqual(cpu_output, npu_output, prec=0.003, prec16=0.003)
             self.assertRtolEqual(cpu_output1, npu_output1, prec=0.003, prec16=0.003)
 
-    def test_lerp_scalar_common_shape_format(self, device):
+    def test_lerp_scalar_common_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (4, 2, 2, 3)], 1.0],
             [[np.float32, -1, (2, 2, 3, 4)], 2.0],
@@ -148,7 +148,7 @@ class TestLerp(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_lerp_scalar_float16_shape_format(self, device):
+    def test_lerp_scalar_float16_shape_format(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (100, 4, 5, 5)], 1.2],
             [[np.float16, -1, (100, 5, 5, 4)], 1.2],
@@ -165,6 +165,6 @@ class TestLerp(TestCase):
             self.assertRtolEqual(cpu_output, npu_output, prec16=0.02)
             self.assertRtolEqual(cpu_output1, npu_output1, prec16=0.02)
             
-instantiate_device_type_tests(TestLerp, globals(), except_for='cpu')
+
 if __name__ == '__main__': 
     run_tests() 

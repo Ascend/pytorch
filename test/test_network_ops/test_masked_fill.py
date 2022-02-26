@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaskedFill(TestCase):
     def create_bool_tensor(self, shape, minValue, maxValue):
@@ -49,7 +49,7 @@ class TestMaskedFill(TestCase):
         output = output.numpy()
         return output
 
-    def test_masked_fill_shape_format_fp16(self, device):
+    def test_masked_fill_shape_format_fp16(self, device="npu"):
         format_list = [0]
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
         value_list = [1.25,
@@ -73,7 +73,7 @@ class TestMaskedFill(TestCase):
             cpu_output2 = cpu_output2.astype(npu_output2.dtype)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_masked_fill_shape_format_fp32(self, device):
+    def test_masked_fill_shape_format_fp32(self, device="npu"):
         format_list = [0]
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
         value_list = [1.25,
@@ -94,7 +94,7 @@ class TestMaskedFill(TestCase):
             npu_output2 = self.npu_inp_op_exec(npu_input1, mask_npu, item[1])
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_masked_fill_shape_format_int32(self, device):
+    def test_masked_fill_shape_format_int32(self, device="npu"):
         format_list = [0]
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
         value_list = [1.25,
@@ -115,7 +115,7 @@ class TestMaskedFill(TestCase):
             npu_output2 = self.npu_inp_op_exec(npu_input1, mask_npu, item[1])
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_masked_fill_shape_format_int64(self, device):
+    def test_masked_fill_shape_format_int64(self, device="npu"):
         format_list = [0]
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
         value_list = [1.25,
@@ -140,6 +140,6 @@ class TestMaskedFill(TestCase):
             npu_output2 = npu_output2.astype(np.int32)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-instantiate_device_type_tests(TestMaskedFill, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()
