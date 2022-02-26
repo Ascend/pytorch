@@ -15,9 +15,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class Testcdist(TestCase):
     def generate_data(self, min_n, max_n, shape_x, shape_y, src_type):
@@ -45,140 +44,140 @@ class Testcdist(TestCase):
             y = y.astype(np.float16)
         return y
 
-    def test_cdist_float16_1(self, device):
+    def test_cdist_float16_1(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 64), (4, 64), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 0.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 0.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_2(self, device):
+    def test_cdist_float16_2(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_3(self, device):
+    def test_cdist_float16_3(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 1.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 1.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_4(self, device):
+    def test_cdist_float16_4(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_5(self, device):
+    def test_cdist_float16_5(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_6(self, device):
+    def test_cdist_float16_6(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float16_7(self, device):
+    def test_cdist_float16_7(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (3, 5, 500), (4, 500), np.float16)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_1(self, device):
+    def test_cdist_float32_1(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 0.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 0.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_2(self, device):
+    def test_cdist_float32_2(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_3(self, device):
+    def test_cdist_float32_3(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 1.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 1.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_4(self, device):
+    def test_cdist_float32_4(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_5(self, device):
+    def test_cdist_float32_5(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_6(self, device):
+    def test_cdist_float32_6(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 10), (4, 10), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_7(self, device):
+    def test_cdist_float32_7(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1, 1,
                                 (5, 500), (3, 4, 500), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_8(self, device):
+    def test_cdist_float32_8(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-100, 100,
                                 (5, 100), (3, 4, 100), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_9(self, device):
+    def test_cdist_float32_9(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-1000, 1000,
                                 (5, 100), (3, 4, 100), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 1.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_10(self, device):
+    def test_cdist_float32_10(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-0.1, 0.1,
                                 (5, 100), (3, 4, 100), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cdist_float32_11(self, device):
+    def test_cdist_float32_11(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-0.1, 0.1,
                                 (5, 100), (3, 4, 100), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 0.5, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_cdist_float32_12(self, device):
+    def test_cdist_float32_12(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-0.1, 0.1,
                                 (16, 11, 17, 5, 84, 2), (16, 11, 17, 5, 84, 2), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
         npu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'npu')
         self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_cdist_float32_13(self, device):
+    def test_cdist_float32_13(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(-0.1, 0.1,
                                 (2, 2, 13, 39, 97, 14, 2, 7), (2, 2, 13, 39, 97, 14, 12, 7), np.float32)
         cpu_output = self.op_exec(npu_input1, npu_input2, 2.0, 'cpu')
@@ -186,6 +185,5 @@ class Testcdist(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
     
 
-instantiate_device_type_tests(Testcdist, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

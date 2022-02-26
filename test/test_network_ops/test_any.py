@@ -15,9 +15,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestAny(TestCase):
     def create_bool_tensor(self, shape, minValue, maxValue):
@@ -37,7 +36,7 @@ class TestAny(TestCase):
         output = output.numpy()
         return output
 
-    def test_any_shape_format(self, device):
+    def test_any_shape_format(self, device="npu"):
         shape_list = [[],
                       [1024], 
                       [32, 1024], 
@@ -75,7 +74,7 @@ class TestAny(TestCase):
         output1 = output1.to("cpu").numpy()
         return output0, output1
 
-    def test_anyd_shape_format(self, device):
+    def test_anyd_shape_format(self, device="npu"):
         shape_list = [[ [1024],             0, False],
                       [ [32, 1024],         1, False],
                       [ [32, 8, 1024],      2, True ],
@@ -90,6 +89,6 @@ class TestAny(TestCase):
             self.assertRtolEqual(cpu_output.astype(np.int32),npu_out0.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32),npu_out1.astype(np.int32))
 
-instantiate_device_type_tests(TestAny, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

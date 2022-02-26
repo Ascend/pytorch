@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestCelu(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -77,25 +77,25 @@ class TestCelu(TestCase):
         output = output.astype(np.float16)
         return output
 
-    def test_celu_3_3_float32_alpha1(self, device):
+    def test_celu_3_3_float32_alpha1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1.0)
         npu_output1 = self.npu_op_exec(input_x1, 1.0)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_celu_10_10_10_10_float32_alpha1(self, device):
+    def test_celu_10_10_10_10_float32_alpha1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (10, 10, 10, 10), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1.0)
         npu_output1 = self.npu_op_exec(input_x1, 1.0)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_celu_100_100_float32_alpha2(self, device):
+    def test_celu_100_100_float32_alpha2(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (100, 100), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2.0)
         npu_output1 = self.npu_op_exec(input_x1, 2.0)
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_celu_float16_alpha1(self, device):
+    def test_celu_float16_alpha1(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -107,7 +107,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_exec(npu_input1, 1.0)
             self.assertRtolEqual(cpu_output, npu_output)  
 
-    def test_celu_float16_alpha2_success(self, device):
+    def test_celu_float16_alpha2_success(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -119,7 +119,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output)  
 
-    def test_celu_float16_alpha2_fail(self, device):
+    def test_celu_float16_alpha2_fail(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (65535, 1, 1, 1)]],
             [[np.float16, 0, (1, 1, 1, 65535)]],
@@ -131,7 +131,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output) 
 
-    def test_celu_inplace_alpha1(self, device):
+    def test_celu_inplace_alpha1(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (65535, 1, 1, 1)]],
             [[np.float32, 0, (1, 1, 1, 65535)]],
@@ -142,7 +142,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_inplace_exec(npu_input1, 1.0)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_celu_inplace_alpha2(self, device):
+    def test_celu_inplace_alpha2(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (65535, 1, 1, 1)]],
             [[np.float32, 0, (1, 1, 1, 65535)]],
@@ -153,7 +153,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_inplace_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_celu_inplace_alpha2_fail(self, device):
+    def test_celu_inplace_alpha2_fail(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (65535, 1, 1, 1)]],
             [[np.float32, 0, (1, 1, 1, 65535)]],
@@ -164,7 +164,7 @@ class TestCelu(TestCase):
             npu_output = self.npu_op_inplace_exec(npu_input1, 2.0)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_celu_inplace_shape_format_alpha_range(self, device):
+    def test_celu_inplace_shape_format_alpha_range(self, device="npu"):
         shape_format_alpha_range = [
             # 注：[[dtype, format, shape], alpha, min, max]
             [[np.float16, 2, (16, 5, 7, 11)], 5.6, -2, 2],
@@ -190,7 +190,7 @@ class TestCelu(TestCase):
                 cpu_output = self.cpu_op_inplace_exec(cpu_input1, alpha)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_celu_inplace_shape_format_alpha_range(self, device):
+    def test_celu_inplace_shape_format_alpha_range(self, device="npu"):
         shape_format_alpha_range = [
             # 注：[[dtype, format, shape], alpha, min, max]
             [[np.float32, 2, (16, 5, 7, 11)], 0.5, -2, 2],
@@ -215,6 +215,6 @@ class TestCelu(TestCase):
                 cpu_output = self.cpu_op_exec(cpu_input1, alpha)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestCelu, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

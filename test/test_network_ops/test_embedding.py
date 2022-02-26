@@ -17,9 +17,8 @@ import torch_npu
 import numpy as np
 import torch.nn.functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestEmbedding(TestCase):
@@ -34,7 +33,7 @@ class TestEmbedding(TestCase):
         out_npu = out.to("cpu")
         return out_npu.detach().numpy()
 
-    def test_shape_format(self, device):
+    def test_shape_format(self, device="npu"):
         shape_format = [
                         [[np.float32, 0, [40,32]], [np.int64, 0, [40]]],
                         [[np.float32, 0, [40,1024]], [np.int64, 0, [40]]],
@@ -64,6 +63,6 @@ class TestEmbedding(TestCase):
 
             self.assertRtolEqual(cpu_out, npu_out)
 
-instantiate_device_type_tests(TestEmbedding, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

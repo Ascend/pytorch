@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestUpsampleLinear1D(TestCase):
     def cpu_op_exec(self, input1, size, align_corners):
@@ -36,7 +36,7 @@ class TestUpsampleLinear1D(TestCase):
         out_result = out_result.to("cpu")
         return output.numpy(), out_result.numpy()
         
-    def creat_shape_format1(self, device):
+    def creat_shape_format1(self, device="npu"):
         test_cases = [
             [[np.float16, 0, (1, 1, 1, 2)], [4, ], True],
             [[np.float16, 0, (2, 1, 1, 4)], [8, ], True],
@@ -80,7 +80,7 @@ class TestUpsampleLinear1D(TestCase):
         ]
         return test_cases
 
-    def test_upsample_linear1d(self, device):
+    def test_upsample_linear1d(self, device="npu"):
         for item in self.creat_shape_format1(device):
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
 
@@ -105,6 +105,6 @@ class TestUpsampleLinear1D(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_out_result, npu_out_result)
             
-instantiate_device_type_tests(TestUpsampleLinear1D, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

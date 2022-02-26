@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMultinomial(TestCase):
 
@@ -30,7 +30,7 @@ class TestMultinomial(TestCase):
             for index in sample:
                 self.assertNotEqual(weight[index], 0)
     
-    def test_multinomial_1d_shape_format(self, device):
+    def test_multinomial_1d_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (5,)], 0, 100, 5],
             [[np.float32, 0, (10,)], 0, 100, 10],
@@ -53,7 +53,7 @@ class TestMultinomial(TestCase):
                 for j in row:
                     self.assertNotEqual(weight[i][j], 0)
     
-    def test_multinomial_2d_shape_format(self, device):
+    def test_multinomial_2d_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (5,5)], 0, 100, 5],
             [[np.float32, 0, (5,10)], 0, 100, 10],
@@ -70,6 +70,5 @@ class TestMultinomial(TestCase):
             self.sample_2d(npu_input1, item[3])
 
 
-instantiate_device_type_tests(TestMultinomial, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

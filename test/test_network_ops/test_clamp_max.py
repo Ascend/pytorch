@@ -18,9 +18,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestClampMax(TestCase):
     def generate_data(self, data):
@@ -105,7 +104,7 @@ class TestClampMax(TestCase):
 
         return output
 
-    def test_clamp_max_common(self, device):
+    def test_clamp_max_common(self, device="npu"):
         shape_format = [
                 [1, 100, (4, 3), np.float32],
                 [1, 100, (4, 3), np.int32],
@@ -130,7 +129,7 @@ class TestClampMax(TestCase):
             self.assertRtolEqual(cpu_output, npu_out_output)
             self.assertRtolEqual(cpu_inp_uncon_output, npu_inp_uncon_output)
 
-    def test_clamp_max_float16(self, device):
+    def test_clamp_max_float16(self, device="npu"):
         shape_format = [
                 [1, 100, (4, 3), np.float16],
         ]
@@ -154,6 +153,6 @@ class TestClampMax(TestCase):
             self.assertRtolEqual(cpu_output, npu_out_output)
             self.assertRtolEqual(cpu_inp_uncon_output, npu_inp_uncon_output)
 
-instantiate_device_type_tests(TestClampMax, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

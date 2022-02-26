@@ -15,12 +15,11 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 class TestArange(TestCase):
-    def test_arange(self, device):
+    def test_arange(self, device="npu"):
         shape_format = [
             [0, 100, 2, torch.float32],
             [1, 100, 1, torch.int32],
@@ -34,7 +33,7 @@ class TestArange(TestCase):
                 device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_arange_out(self, device):
+    def test_arange_out(self, device="npu"):
         shape_format = [
             [0, 100, 1, torch.float32, [np.float32, 0, [10]]],
             [1, 100, 2, torch.int32, [np.int32, 0, [20]]],
@@ -50,6 +49,5 @@ class TestArange(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-instantiate_device_type_tests(TestArange, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLogSpace(TestCase):
     def cpu_op_exec(self, start, end, steps, base):
@@ -50,7 +50,7 @@ class TestLogSpace(TestCase):
         output = output.numpy()
         return output
 
-    def test_logspace_common_shape_format(self, device):
+    def test_logspace_common_shape_format(self, device="npu"):
         shape_format = [
                 [0.0, 1.0, 10, 0.2, torch.float32],
                 [2.0, 3.0, 10, 0.05, torch.float32],
@@ -69,7 +69,7 @@ class TestLogSpace(TestCase):
             npu_output = self.npu_op_exec(item[0], item[1], item[2], item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_logspace_out_common_shape_format(self, device):
+    def test_logspace_out_common_shape_format(self, device="npu"):
         shape_format = [
                 [0.0, 1.0, 10, 0.2, torch.float32, [np.float32, 0, [10, 2]]],
                 [2.0, 3.0, 10, 0.05, torch.float32, [np.float32, 0, [10, 2, 5]]],
@@ -89,7 +89,7 @@ class TestLogSpace(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_logspace_float16_shape_format(self, device):
+    def test_logspace_float16_shape_format(self, device="npu"):
         shape_format = [
                 [-2.0, 2.0, 32, 32, torch.float16],
                 [0.0, 1.0, 10, 0.2, torch.float16],
@@ -104,6 +104,6 @@ class TestLogSpace(TestCase):
             npu_output = self.npu_op_exec_dtype(item[0], item[1], item[2], item[3], item[4])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestLogSpace, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

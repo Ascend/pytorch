@@ -52,9 +52,8 @@
     import torch_npu
     import numpy as np
 
-    from torch_npu.testing.common_utils import TestCase, run_tests
-    from torch_npu.testing.common_device_type import instantiate_device_type_tests
-    from torch_npu.testing.util_test import create_common_tensor
+    from torch_npu.testing.testcase import TestCase, run_tests
+    from torch_npu.testing.common_utils import create_common_tensor
 
     
     # 定义add测试用例类
@@ -87,14 +86,13 @@
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # 定义具体add场景的测试用例，用例函数需要以test_开头
-        def test_add_shape_format_fp32_2d(self, device):
+        def test_add_shape_format_fp32_2d(self, device="npu"):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]        
             self.add_result(shape_format)
     
-    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```

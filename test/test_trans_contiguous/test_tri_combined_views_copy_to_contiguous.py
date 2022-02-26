@@ -17,14 +17,13 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 class TestTriCombinedViewsCopyToContiguous(TestCase):
-    def test_view_narrow_permute_copy_contiguous(self, device):
+    def test_view_narrow_permute_copy_contiguous(self, device="npu"):
         dtype_list1 = [np.float16, np.float32]
         format_list1 = [-1]
         shape_list1 = [
@@ -58,7 +57,7 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
                 [:,:,1:10].contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_view_select_permute_copy_contiguous(self, device):
+    def test_view_select_permute_copy_contiguous(self, device="npu"):
         dtype_list2 = [np.float16, np.float32]
         format_list2 = [-1]
         shape_list2 = [
@@ -92,6 +91,6 @@ class TestTriCombinedViewsCopyToContiguous(TestCase):
                 [:,:,2].contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-instantiate_device_type_tests(TestTriCombinedViewsCopyToContiguous, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

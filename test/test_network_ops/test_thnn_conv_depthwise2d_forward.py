@@ -17,9 +17,8 @@ import torch_npu
 import numpy as np
 import torch.nn as nn
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestThnnConvDepthwise2d(TestCase):
@@ -104,26 +103,26 @@ class TestThnnConvDepthwise2d(TestCase):
         else:
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy() )
 
-    def test_thnn_conv_depthwise2d_0(self, device):
+    def test_thnn_conv_depthwise2d_0(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(0)
         self.thnn_conv_depthwise2d_execute(item, 3)
 
-    def test_thnn_conv_depthwise2d_1(self, device):
+    def test_thnn_conv_depthwise2d_1(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(1)
         self.thnn_conv_depthwise2d_execute(item, 3)
 
-    def test_thnn_conv_depthwise2d_2(self, device):
+    def test_thnn_conv_depthwise2d_2(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(2)
         self.thnn_conv_depthwise2d_execute(item, 3)
 
-    def test_thnn_conv_depthwise2d_3(self, device):
+    def test_thnn_conv_depthwise2d_3(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(3)
         self.thnn_conv_depthwise2d_execute(item, 6)
 
-    def test_thnn_conv_depthwise2d_4(self, device):
+    def test_thnn_conv_depthwise2d_4(self, device="npu"):
         item = self.thnn_conv_depthwise2d_format(4)
         self.thnn_conv_depthwise2d_execute(item, 6)
 
-instantiate_device_type_tests(TestThnnConvDepthwise2d, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

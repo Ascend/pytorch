@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
-import copy
 import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestIndexAdd(TestCase):
 
@@ -46,7 +44,7 @@ class TestIndexAdd(TestCase):
         output = output.numpy()
         return output
     
-    def test_index_add_float32(self, device):
+    def test_index_add_float32(self, device="npu"):
         shape_format = [
                 [[np.float32, -1, (5, 3)], [np.int32, -1, (3, )], [np.float32, -1, (3, 3)], 0],
                 [[np.float32, -1, (6, 4)], [np.int32, -1, (5, )], [np.float32, -1, (5, 4)], 0],
@@ -71,7 +69,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_int32(self, device):
+    def test_index_add_int32(self, device="npu"):
         shape_format = [   
                 [[np.int32, -1, (5, 3)], [np.int32, -1, (3, )], [np.int32, -1, (3, 3)], 0],
                 [[np.int32, -1, (6, 4)], [np.int32, -1, (5, )], [np.int32, -1, (5, 4)], 0],
@@ -94,7 +92,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_int8(self, device):
+    def test_index_add_int8(self, device="npu"):
         shape_format = [  
                 [[np.int8, -1, (5, 3)], [np.int32, -1, (3, )], [np.int8, -1, (3, 3)], 0],
                 [[np.int8, -1, (6, 4)], [np.int32, -1, (5, )], [np.int8, -1, (5, 4)], 0],
@@ -118,7 +116,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_uint8(self, device):
+    def test_index_add_uint8(self, device="npu"):
         shape_format = [
                 [[np.uint8, -1, (5, 3)], [np.int32, -1, (3, )], [np.uint8, -1, (3, 3)], 0],
                 [[np.uint8, -1, (6, 4)], [np.int32, -1, (5, )], [np.uint8, -1, (5, 4)], 0],
@@ -143,7 +141,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_fp16(self, device):
+    def test_index_add_fp16(self, device="npu"):
         shape_format = [
                 [[np.float16, -1, (5, 3)], [np.int32, -1, (3, )], [np.float16, -1, (3, 3)], 0],
                 [[np.float16, -1, (3, 2)], [np.int32, -1, (2, )], [np.float16, -1, (2, 2)], 0],
@@ -171,6 +169,6 @@ class TestIndexAdd(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestIndexAdd, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

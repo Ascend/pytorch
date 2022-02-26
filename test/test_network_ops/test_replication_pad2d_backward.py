@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestReplicationPad2dBackward(TestCase):
@@ -33,7 +32,7 @@ class TestReplicationPad2dBackward(TestCase):
         output = output.detach().numpy()
         return output, npu_grad.cpu().numpy()
 
-    def test_replicationPad2d_backward_shape_format_fp16(self, device):
+    def test_replicationPad2d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (1, 1, 27, 27)], [2, 2, 2, 2]],
             [[np.float16, 0, (1, 1, 27, 27)], 3]
@@ -58,6 +57,5 @@ class TestReplicationPad2dBackward(TestCase):
             self.assertRtolEqual(cpu_grad, npu_grad)
 
 
-instantiate_device_type_tests(TestReplicationPad2dBackward, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

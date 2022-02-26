@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
 import torch
 import torch_npu
-import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestBinaryCrossEntropyWithLogits(TestCase):
 
@@ -75,7 +73,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
         res = res.to("cpu")
         return res.numpy()
 
-    def test_binary_cross_with_logits_float32(self, device):
+    def test_binary_cross_with_logits_float32(self, device="npu"):
         for shape, weight_shape, pos_weight_shape, reduction in [
            ((10, 64), None, None, "mean"),
            ((10, 64), (10, 1), None, "mean"),
@@ -102,7 +100,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             npu_output = self.npu_op_exec(input1, target, weight=weight, pos_weight=pos_weight, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_binary_cross_with_logits_float16(self, device):
+    def test_binary_cross_with_logits_float16(self, device="npu"):
         for shape, weight_shape, pos_weight_shape, reduction in [
            ((10, 64), None, None, "mean"),
            ((10, 64), (10, 1), None, "mean"),
@@ -139,7 +137,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_binary_cross_with_logits_function_float32(self, device):
+    def test_binary_cross_with_logits_function_float32(self, device="npu"):
         for shape, weight_shape, pos_weight_shape, reduction in [
             ((10, 64), None, None, "mean"),
            ((10, 64), (10, 1), None, "mean"),
@@ -166,7 +164,7 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             npu_output = self.npu_op_func_exec(input1, target, weight=weight, pos_weight=pos_weight, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_binary_cross_with_logits_function_float16(self, device):
+    def test_binary_cross_with_logits_function_float16(self, device="npu"):
         for shape, weight_shape, pos_weight_shape, reduction in [
              ((10, 64), None, None, "mean"),
            ((10, 64), (10, 1), None, "mean"),
@@ -204,6 +202,6 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
             cpu_output = cpu_output.astype(np.float16)                                
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestBinaryCrossEntropyWithLogits, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

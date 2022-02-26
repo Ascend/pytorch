@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestThresholdBackward(TestCase):
 
@@ -40,7 +40,7 @@ class TestThresholdBackward(TestCase):
         output = output.detach().to("cpu")
         return output.numpy(), out.numpy()
 
-    def test_threshold_backward_common_shape_format(self, device):
+    def test_threshold_backward_common_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (1,5)], [1.0], [20.0]],
                 [[np.float32, 0, (2,3,5)], [2.0], [20.0]],
@@ -63,6 +63,6 @@ class TestThresholdBackward(TestCase):
             self.assertRtolEqual(npu_output1.astype(np.float32), cpu_output1)
             self.assertRtolEqual(npu_output2.astype(np.float32), cpu_output2)
 
-instantiate_device_type_tests(TestThresholdBackward, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

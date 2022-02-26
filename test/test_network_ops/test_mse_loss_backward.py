@@ -18,8 +18,7 @@ import torch_npu
 from torch.autograd import Variable
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestMseLossGrad(TestCase):
@@ -113,36 +112,36 @@ class TestMseLossGrad(TestCase):
         output = grads['x'].to("cpu").detach().numpy()
         return output
 
-    def test_mse_loss_grad_float32(self, device):
+    def test_mse_loss_grad_float32(self, device="npu"):
         npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec_default(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_default(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_mse_loss_grad_float32_mean(self, device):
+    def test_mse_loss_grad_float32_mean(self, device="npu"):
         npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_mse_loss_grad_float32_none(self, device):
+    def test_mse_loss_grad_float32_none(self, device="npu"):
         npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "none")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "none")
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_mse_loss_grad_float32_sum(self, device):
+    def test_mse_loss_grad_float32_sum(self, device="npu"):
         npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "sum")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "sum")
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_mse_loss_grad_shape_0(self, device):
+    def test_mse_loss_grad_shape_0(self, device="npu"):
         npu_input1, npu_input2 = self.generate_mse_grad_inputs(0, 100, (0,4), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2, "mean")
         npu_output = self.npu_op_exec(npu_input1, npu_input2, "mean")
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestMseLossGrad, globals(), except_for='cpu')    
+
 if __name__ == '__main__':
     run_tests()

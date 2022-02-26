@@ -19,9 +19,7 @@ import torch_npu
 import numpy as np
 from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestAffineGridGenerator(TestCase):
@@ -36,7 +34,7 @@ class TestAffineGridGenerator(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_affine_grid_generator_2D(self, device):
+    def test_affine_grid_generator_2D(self, device="npu"):
         theta_list = [[1, 0, 0],
                       [0, 1, 0],
                      ]
@@ -57,7 +55,7 @@ class TestAffineGridGenerator(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output, 0.001)
 
-    def test_affine_grid_generator_3D(self, device):
+    def test_affine_grid_generator_3D(self, device="npu"):
         theta_list = [[1, 0, 0, 0],
                       [0, 1, 0, 0],
                       [0, 0, 1, 0],
@@ -79,6 +77,6 @@ class TestAffineGridGenerator(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output, 0.001)
 
-instantiate_device_type_tests(TestAffineGridGenerator, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

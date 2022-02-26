@@ -17,8 +17,7 @@ import torch_npu
 import numpy as np
 from torch.autograd import Variable
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestNllloss2dBackward(TestCase):
@@ -40,7 +39,7 @@ class TestNllloss2dBackward(TestCase):
         output = grads['x'].to("cpu").numpy()
         return output
     
-    def test_nll_loss2d_grad_mean(self, device):
+    def test_nll_loss2d_grad_mean(self, device="npu"):
         m = torch.nn.LogSoftmax(dim=1)
         N, C = 5, 4
         loss = torch.nn.NLLLoss()
@@ -57,7 +56,7 @@ class TestNllloss2dBackward(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_grad_none(self, device):
+    def test_nll_loss2d_grad_none(self, device="npu"):
         m = torch.nn.LogSoftmax(dim=1)
         N, C = 5, 4
         loss = torch.nn.NLLLoss()
@@ -74,7 +73,7 @@ class TestNllloss2dBackward(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_grad_sum(self, device):
+    def test_nll_loss2d_grad_sum(self, device="npu"):
         m = torch.nn.LogSoftmax(dim=1)
         N, C = 5, 4
         loss = torch.nn.NLLLoss()
@@ -91,6 +90,6 @@ class TestNllloss2dBackward(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestNllloss2dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

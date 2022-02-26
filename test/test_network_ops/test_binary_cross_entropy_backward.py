@@ -17,11 +17,10 @@
 import copy
 import torch
 import torch_npu
-import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestBinaryCrossEntropyBackward(TestCase):
     def generate_data(self, min_val, max_val, shape, dtype):
@@ -70,7 +69,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
         res = res.numpy()
         return npu_input, res
 
-    def test_binary_cross_entropy_backward_float16(self, device):
+    def test_binary_cross_entropy_backward_float16(self, device="npu"):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -87,7 +86,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_float32(self, device):
+    def test_binary_cross_entropy_backward_float32(self, device="npu"):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -104,7 +103,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float16(self, device):
+    def test_binary_cross_entropy_backward_with_weight_float16(self, device="npu"):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -122,7 +121,7 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-    def test_binary_cross_entropy_backward_with_weight_float32(self, device):
+    def test_binary_cross_entropy_backward_with_weight_float32(self, device="npu"):
         shape_list = [(10, 64)]
         reduction_list = ["none", "mean", "sum"]
         shape_format = [
@@ -140,6 +139,6 @@ class TestBinaryCrossEntropyBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-instantiate_device_type_tests(TestBinaryCrossEntropyBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

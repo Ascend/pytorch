@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import torch
-from torch_npu.testing.common_utils import TestCase, run_tests
 import torch_npu
+
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class SmallModel(torch.nn.Module):
     def __init__(self, in_channel, out_channel):
@@ -185,11 +187,6 @@ class TestProfiler(TestCase):
             self.train(steps)
         prof.export_chrome_trace("./test_trace.prof")
 
+
 if __name__ == '__main__':
-    try:
-        # to init the device
-        torch.rand(2,3).npu()
-    except Exception:
-        print("there is no npu device")
-        exit()
     run_tests()

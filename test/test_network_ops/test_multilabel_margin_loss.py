@@ -16,8 +16,7 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestMultilabelMarginLoss(TestCase):
@@ -46,7 +45,7 @@ class TestMultilabelMarginLoss(TestCase):
         output = output.detach().numpy()
         return output
     
-    def test_multilabel_margin_loss_1(self, device):
+    def test_multilabel_margin_loss_1(self, device="npu"):
         data = torch.Tensor([[0.1, 0.2, 0.4, 0.8], [0.1, 0.2, 0.4, 0.8]]).to(torch.float32)
         target = torch.Tensor([[3, 0, -1, 1], [0, 1, 3, -1]]).to(torch.int64)
 
@@ -58,7 +57,7 @@ class TestMultilabelMarginLoss(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_multilabel_margin_loss_2(self, device):
+    def test_multilabel_margin_loss_2(self, device="npu"):
         data = torch.Tensor([[0.1, 0.2, 0.4, 0.8], [0.1, 0.2, 0.4, 0.8]]).to(torch.float32)
         target = torch.Tensor([[1, 1, 1, 1], [1, 1, 1, 1]]).to(torch.int64)
 
@@ -69,7 +68,7 @@ class TestMultilabelMarginLoss(TestCase):
             npu_output = self.npu_op_exec(data_npu, target_npu, reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_multilabel_margin_loss_3(self, device):
+    def test_multilabel_margin_loss_3(self, device="npu"):
         data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1], [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
         target = torch.Tensor([[3, 0, 7, 8, 1, -1, 1, 2, 2], [4, 5, -1, 1, 1, 1, 1, 2, 2]]).to(torch.int64)
 
@@ -80,7 +79,7 @@ class TestMultilabelMarginLoss(TestCase):
             npu_output = self.npu_op_exec(data_npu, target_npu, reduction)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_multilabel_margin_loss_out(self, device):
+    def test_multilabel_margin_loss_out(self, device="npu"):
         data = torch.tensor([[-0.4191,  0.6214],
                    [-0.3765, -0.4781],
                    [0.2881,  0.4888]]).to(torch.float32)
@@ -98,7 +97,7 @@ class TestMultilabelMarginLoss(TestCase):
             npu_output = self.npu_op_exec_out(data_npu, target_npu, c_npu, reduction)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_multilabel_margin_loss_float16_1(self, device):
+    def test_multilabel_margin_loss_float16_1(self, device="npu"):
         data = torch.Tensor([[0.1, 0.2, 0.4, 0.8], [0.1, 0.2, 0.4, 0.8]]).to(torch.float32)
         target = torch.Tensor([[3, 0, -1, 1], [0, 1, 3, -1]]).to(torch.int64)
 
@@ -113,7 +112,7 @@ class TestMultilabelMarginLoss(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_multilabel_margin_loss_float16_2(self, device):
+    def test_multilabel_margin_loss_float16_2(self, device="npu"):
         data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1], [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
         target = torch.Tensor([[3, 0, 7, 8, 1, -1, 1, 2, 2], [4, 5, -1, 1, 1, 1, 1, 2, 2]]).to(torch.int64)
         
@@ -128,6 +127,6 @@ class TestMultilabelMarginLoss(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestMultilabelMarginLoss, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

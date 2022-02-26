@@ -13,10 +13,9 @@
 # limitations under the License.
 import torch
 import torch_npu
-import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestGridAssignPositive(TestCase):
     def npu_op_exec(self, *args):
@@ -24,7 +23,7 @@ class TestGridAssignPositive(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
         
-    def test_grid_assign_positive(self, device):
+    def test_grid_assign_positive(self, device="npu"):
         assigned_gt_inds = torch.rand((4,), dtype=torch.float32).to("npu")
         overlaps = torch.rand((2,4), dtype=torch.float32).to("npu")
         box_responsible_flags = torch.tensor([1,1,1,0], dtype=torch.uint8).to("npu")
@@ -45,6 +44,6 @@ class TestGridAssignPositive(TestCase):
         npu_output = self.npu_op_exec(*params)
         self.assertRtolEqual(expect_cpu.numpy(), npu_output)
 
-instantiate_device_type_tests(TestGridAssignPositive, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

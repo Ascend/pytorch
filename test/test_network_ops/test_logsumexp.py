@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLogsumexp(TestCase):
 
@@ -45,7 +45,7 @@ class TestLogsumexp(TestCase):
         output = out.to("cpu")
         return output
 
-    def test_logsumexp_shape_format(self, device):
+    def test_logsumexp_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (3, 4, 2)], [np.float32, 0, (3, 4, 1)], 2, True],
             [[np.float32, 0, (3, 4, 2)], [np.float32, 0, (3, 4)], 2, False],
@@ -77,7 +77,7 @@ class TestLogsumexp(TestCase):
             cpu_result = cpu_result.to(npu_result.dtype)
             self.assertRtolEqual(cpu_result.numpy(), npu_result.numpy())
 
-    def test_logsumexp_dimname1(self, device):
+    def test_logsumexp_dimname1(self, device="npu"):
         cpu_input = self.generate_data(-10, 10, (2, 14, 69, 96, 1824), np.float32)
         cpu_input.names = ['A', 'B', 'C', 'D', 'E']
         dim = ['C']
@@ -86,7 +86,7 @@ class TestLogsumexp(TestCase):
         npu_out = self.npu_op_exec(cpu_input.npu(), dim, keepdim)
         self.assertRtolEqual(cpu_out.numpy(), npu_out.numpy())
 
-    def test_logsumexp_dimname2(self, device):
+    def test_logsumexp_dimname2(self, device="npu"):
         cpu_input = self.generate_data(-10, 10, (14, 69, 96, 1824), np.float32)
         cpu_input.names = ['A', 'B', 'C', 'D']
         dim = ['B', 'C']
@@ -95,7 +95,7 @@ class TestLogsumexp(TestCase):
         npu_out = self.npu_op_exec(cpu_input.npu(), dim, keepdim)
         self.assertRtolEqual(cpu_out.numpy(), npu_out.numpy())
 
-    def test_logsumexp_dimname3(self, device):
+    def test_logsumexp_dimname3(self, device="npu"):
         cpu_input = self.generate_data(-10, 10, (14, 69, 96, 1824), np.float32)
         cpu_input.names = ['A', 'B', 'C', 'D']
         dim = ['B', 'C', 'D']
@@ -104,6 +104,6 @@ class TestLogsumexp(TestCase):
         npu_out = self.npu_op_exec(cpu_input.npu(), dim, keepdim)
         self.assertRtolEqual(cpu_out.numpy(), npu_out.numpy())
 
-instantiate_device_type_tests(TestLogsumexp, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

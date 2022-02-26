@@ -711,13 +711,11 @@ This section describes how to test the functions of a PyTorch operator.
 
     ```
     # Import the dependency library.
-    import sys
-    sys.path.append('..')
     import torch
     import numpy as np
-    from common_utils import TestCase, run_tests
-    from common_device_type import dtypes, instantiate_device_type_tests
-    from util_test import create_common_tensor
+
+    from torch_npu.testing.testcase import TestCase, run_tests
+    from torch_npu.testing.common_utils import create_common_tensor
     
     # Define the add test case class.
     class TestAdd(TestCase):
@@ -747,14 +745,13 @@ This section describes how to test the functions of a PyTorch operator.
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # Define a test case for a specific add scenario. The test case function must start with test_.
-        def test_add_shape_format_fp32_2d(self, device):
+        def test_add_shape_format_fp32_2d(self, device="npu"):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
-    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```

@@ -13,11 +13,9 @@
 # limitations under the License.
 import torch
 import torch_npu
-import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestSoftmaxCrossentropyWithLogits(TestCase):
     def npu_op_exec(self, input1, label):
@@ -26,13 +24,13 @@ class TestSoftmaxCrossentropyWithLogits(TestCase):
         output = output.numpy()
         return output
 
-    def test_softmaxcross(self, device):
+    def test_softmaxcross(self, device="npu"):
         input1 = torch.tensor([[1.,2.,3.,4.]]).npu()
         label = torch.tensor([[1.,2.,3.,4.]]).npu()
         exresult = torch.tensor([14.4019])
         output = self.npu_op_exec(input1, label)
         self.assertRtolEqual(exresult.numpy(), output)
 
-instantiate_device_type_tests(TestSoftmaxCrossentropyWithLogits, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

@@ -15,11 +15,11 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestMaxunpool2dBackward(TestCase):
-    def test_maxunpool2d_backward(self, device):
+    def test_maxunpool2d_backward(self, device="npu"):
         input1 = torch.tensor([[[[1., 2, 3, 4], [5, 6, 7, 8], [9, 10 , 11 , 12], [13, 14, 15, 16]]]])
         pool2d = torch.nn.MaxPool2d(2, stride = 2, return_indices = True)
         out, ind = pool2d(input1)
@@ -45,6 +45,6 @@ class TestMaxunpool2dBackward(TestCase):
         npu_grad = npu_upinput.grad
         self.assertRtolEqual(cpu_grad, npu_grad.cpu())
 
-instantiate_device_type_tests(TestMaxunpool2dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

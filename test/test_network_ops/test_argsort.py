@@ -17,9 +17,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 class TestArgSort(TestCase):
     def cpu_op_exec(self, input1, dim, descending):
@@ -39,7 +38,7 @@ class TestArgSort(TestCase):
         output = torch.argsort(input1)
         return output.cpu().numpy()
 
-    def test_sort_shape_format_fp32(self, device):
+    def test_sort_shape_format_fp32(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (8, 4, 3, 9)], 2, False],
                 [[np.float32, 0, (2, 3)]],
@@ -57,7 +56,7 @@ class TestArgSort(TestCase):
                 npu_output = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_sort_shape_format_fp16(self, device):
+    def test_sort_shape_format_fp16(self, device="npu"):
         shape_format = [
                 [[np.float16, 0, (8, 4, 3, 9)], 2, False],
                 [[np.float16, 0, (2, 3)]],
@@ -76,6 +75,5 @@ class TestArgSort(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-instantiate_device_type_tests(TestArgSort, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

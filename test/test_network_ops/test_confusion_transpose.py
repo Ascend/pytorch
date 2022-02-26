@@ -19,9 +19,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestConfusionTransposeD(TestCase):
     def npu_op_exec(self, input1, shape, perm, transpose_first):
@@ -37,7 +37,7 @@ class TestConfusionTransposeD(TestCase):
         output = output.numpy()
         return output
 
-    def test_confusion_transpose(self, device):
+    def test_confusion_transpose(self, device="npu"):
         shape_format = [
             [[np.float32, 0, [1, 576, 2560]],[1, 576, 32, 80], (0, 2, 1, 3), False],
             [[np.float32, 0, [1, 32, 576, 80]],[1, 576, 2560], (0, 2, 1, 3), True],
@@ -52,6 +52,6 @@ class TestConfusionTransposeD(TestCase):
             npu_output = self.npu_op_exec(npu_input, item[1], item[2], item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestConfusionTransposeD, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -17,9 +17,8 @@ import torch_npu
 import numpy as np
 import torch.nn as nn
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMatMul(TestCase):
@@ -62,7 +61,7 @@ class TestMatMul(TestCase):
             self.assertRtolEqual(cpu_mat1_grad.astype(npu_mat1_grad.dtype), npu_mat1_grad)
             self.assertRtolEqual(cpu_mat2_grad.astype(npu_mat2_grad.dtype), npu_mat2_grad)
     
-    def test_matmul_backward_shape_format_fp16_case1(self, device):
+    def test_matmul_backward_shape_format_fp16_case1(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 1dim       
             [[np.float16, 2, [5]], [np.float16, 2, [5]]],
@@ -70,7 +69,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
     
-    def test_matmul_backward_shape_format_fp16_case3(self, device):
+    def test_matmul_backward_shape_format_fp16_case3(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 2dim       
             [[np.float16, 2, [5]], [np.float16, 2, [5,6]]],
@@ -79,7 +78,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    def test_matmul_backward_shape_format_fp16_case4(self, device):
+    def test_matmul_backward_shape_format_fp16_case4(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 2dim       
             [[np.float16, 2, [5,7]], [np.float16, 2, [7,10]]],
@@ -87,7 +86,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
     
-    def test_matmul_backward_shape_format_fp16_case5(self, device):
+    def test_matmul_backward_shape_format_fp16_case5(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 2dim       
             [[np.float16, 2, [4,5,10]], [np.float16, 2, [10]]],
@@ -97,7 +96,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    def test_matmul_backward_shape_format_fp16_case6(self, device):
+    def test_matmul_backward_shape_format_fp16_case6(self, device="npu"):
         shape_format = [
             # mat1 >2dim, mat2 2dim       
             [[np.float16, 2, [5,7,10]], [np.float16, 2, [10,16]]],
@@ -106,7 +105,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
     
-    def test_matmul_backward_shape_format_fp16_case7(self, device):
+    def test_matmul_backward_shape_format_fp16_case7(self, device="npu"):
         shape_format = [
             # mat1 1dim, mat2 >2dim       
             [[np.float16, 2, [3,]], [np.float16, 2, [2,3,2]]],
@@ -114,7 +113,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    def test_matmul_backward_shape_format_fp16_case8(self, device):
+    def test_matmul_backward_shape_format_fp16_case8(self, device="npu"):
         shape_format = [
             # mat1 2dim, mat2 >2dim       
             [[np.float16, 2, [2,3]], [np.float16, 2, [2,3,2]]],
@@ -123,7 +122,7 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)
         
-    def test_matmul_backward_shape_format_fp16_case9(self, device):
+    def test_matmul_backward_shape_format_fp16_case9(self, device="npu"):
         shape_format = [       
             [[np.float16, 2, [5,7,10]], [np.float16, 2, [5,10,15]]],
             [[np.float16, 2, [68,75,16]], [np.float16, 2, [68,16,43]]],
@@ -133,6 +132,6 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)        
 
-instantiate_device_type_tests(TestMatMul, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

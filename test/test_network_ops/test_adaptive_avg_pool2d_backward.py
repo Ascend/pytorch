@@ -17,9 +17,8 @@ import torch_npu
 import numpy as np
 from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestAdaptiveAvgPool2dBackward(TestCase):
 
@@ -42,7 +41,7 @@ class TestAdaptiveAvgPool2dBackward(TestCase):
         out = output.detach().cpu(), input_x.grad.cpu()
         return out
 
-    def test_adaptiveAvgPool2d_backward_1(self, device):
+    def test_adaptiveAvgPool2d_backward_1(self, device="npu"):
         cpu_input = torch.randn((1, 8, 9), dtype=torch.float32)
         npu_input = cpu_input.npu()
         output_size = np.array((2, 3))
@@ -51,7 +50,7 @@ class TestAdaptiveAvgPool2dBackward(TestCase):
         self.assertRtolEqual(cpu_output[0], npu_output[0])
         self.assertRtolEqual(cpu_output[1], npu_output[1])
         
-    def test_adaptiveAvgPool2d_backward_2(self, device):
+    def test_adaptiveAvgPool2d_backward_2(self, device="npu"):
         cpu_input = torch.randn((1, 3, 3, 3), dtype=torch.float32)
         npu_input = cpu_input.npu()
         output_size = np.array((2, 2))
@@ -60,7 +59,7 @@ class TestAdaptiveAvgPool2dBackward(TestCase):
         self.assertRtolEqual(cpu_output[0], npu_output[0])
         self.assertRtolEqual(cpu_output[1], npu_output[1])
 
-    def test_adaptiveAvgPool2d_backward_fp16(self, device):
+    def test_adaptiveAvgPool2d_backward_fp16(self, device="npu"):
         input_x = np.random.uniform(0, 1, (1, 3, 6, 6)).astype(np.float16)
         cpu_input = torch.from_numpy(input_x)
         npu_input = cpu_input.npu()
@@ -70,6 +69,6 @@ class TestAdaptiveAvgPool2dBackward(TestCase):
         self.assertRtolEqual(cpu_output[0], npu_output[0])
         self.assertRtolEqual(cpu_output[1], npu_output[1])
         
-instantiate_device_type_tests(TestAdaptiveAvgPool2dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

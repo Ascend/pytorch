@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestRoll(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -37,37 +36,37 @@ class TestRoll(TestCase):
         output = output.numpy()
         return output
 
-    def test_roll_3_4_5_float32(self, device):
+    def test_roll_3_4_5_float32(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 4, 5), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, [2, 1], [0, 1])
         npu_output1 = self.npu_op_exec(input_x1, [2, 1], [0, 1])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_3_4_5_float16(self, device):
+    def test_roll_3_4_5_float16(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 4, 5), np.float16)
         input_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_cpu, [2, 1], [0, 1]).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1, [2, 1], [0, 1])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_30_40_50_int32(self, device):
+    def test_roll_30_40_50_int32(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (30, 40, 50), np.int32)
         cpu_output1 = self.cpu_op_exec(input_x1, [20], [])
         npu_output1 = self.npu_op_exec(input_x1, [20], [])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_20_30_40_50_uint8(self, device):
+    def test_roll_20_30_40_50_uint8(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (20, 30, 40, 50), np.uint8)
         cpu_output1 = self.cpu_op_exec(input_x1, [-20, 30], [-1, 0])
         npu_output1 = self.npu_op_exec(input_x1, [-20, 30], [-1, 0])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_20_30_40_50_flaot32(self, device):
+    def test_roll_20_30_40_50_flaot32(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (20, 30, 40, 50), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, [30], [3])
         npu_output1 = self.npu_op_exec(input_x1, [30], [3])
         self.assertRtolEqual(cpu_output1, npu_output1)
    
-instantiate_device_type_tests(TestRoll, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

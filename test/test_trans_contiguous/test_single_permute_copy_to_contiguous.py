@@ -17,15 +17,14 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):    
-    def test_permute_copy_contiguous(self, device):
+    def test_permute_copy_contiguous(self, device="npu"):
         dtype_list = [np.float16, np.float32]
         format_list = [-1]
         shape_list = [[2, 6, 9, 4]]
@@ -51,6 +50,6 @@ class SingleViewCopyToContiguous(TestCase):
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy()) 
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())              
                 
-instantiate_device_type_tests(SingleViewCopyToContiguous, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

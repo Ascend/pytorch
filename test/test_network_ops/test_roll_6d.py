@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestRoll6d(TestCase):
     def generate_data(self, min_d1, max_d1, shape1, dtype1):
@@ -37,12 +36,12 @@ class TestRoll6d(TestCase):
         output1 = output1.numpy()
         return output1
     
-    def test_roll_10_10_10_10_10_10_int8(self, device):
+    def test_roll_10_10_10_10_10_10_int8(self, device="npu"):
         input1 = self.generate_data(-1, 1, (10, 10, 10, 10, 10, 10), np.int8)
         cpu_output1 = self.cpu_op_exec(input1, [-20, 30, 5], [-3, -4, -5])
         npu_output1 = self.npu_op_exec(input1, [-20, 30, 5], [-3, -4, -5])
         self.assertRtolEqual(cpu_output1, npu_output1)
    
-instantiate_device_type_tests(TestRoll6d, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

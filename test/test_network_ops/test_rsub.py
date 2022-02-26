@@ -15,9 +15,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestRsub(TestCase):
@@ -63,109 +62,108 @@ class TestRsub(TestCase):
             cpu_output = cpu_output.astype(npu_output_scalar.dtype)
             self.assertRtolEqual(cpu_output, npu_output_scalar)
 
-    def test_sub_shape_format_fp16_1d(self, device):
+    def test_sub_shape_format_fp16_1d(self, device="npu"):
         format_list = [-1, 0, 3]
         shape_format = [[[np.float16, i, [32]], [np.float16, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp32_1d(self, device):
+    def test_sub_shape_format_fp32_1d(self, device="npu"):
         format_list = [-1, 0, 3]
         shape_format = [[[np.float16, i, [32]], [np.float16, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp16_2d(self, device):
+    def test_sub_shape_format_fp16_2d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [5, 3]], [np.float16, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp32_2d(self, device):
+    def test_sub_shape_format_fp32_2d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [5, 3]], [np.float16, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp16_3d(self, device):
+    def test_sub_shape_format_fp16_3d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [256, 480, 14]], [np.float16, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp32_3d(self, device):
+    def test_sub_shape_format_fp32_3d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [256, 480, 14]], [np.float16, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp16_4d(self, device):
+    def test_sub_shape_format_fp16_4d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [32, 3, 3, 3]], [np.float16, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_fp32_4d(self, device):
+    def test_sub_shape_format_fp32_4d(self, device="npu"):
         format_list = [-1, 0, 3, 29]
         shape_format = [[[np.float16, i, [32, 3, 3, 3]], [np.float16, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
     # int-------------------------------------------------------------------------------
-    def test_sub_shape_format_int32_1d(self, device):
+    def test_sub_shape_format_int32_1d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [32]], [np.int32, i, [32]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_int32_2d(self, device):
+    def test_sub_shape_format_int32_2d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [5, 3]], [np.int32, i, [5, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_int32_3d(self, device):
+    def test_sub_shape_format_int32_3d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [256, 480, 14]], [np.int32, i, [256, 480, 14]]] for i in format_list]
         self.rsub_result(shape_format)
 
-    def test_sub_shape_format_int32_4d(self, device):
+    def test_sub_shape_format_int32_4d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [32, 3, 3, 3]], [np.int32, i, [32, 3, 3, 3]]] for i in format_list]
         self.rsub_result(shape_format)
 
     # scalar----------------------------------------------------------------------------
-    def test_sub_scalar_shape_format_fp16_1d(self, device):
+    def test_sub_scalar_shape_format_fp16_1d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.float16, i, [32]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp32_1d(self, device):
+    def test_sub_scalar_shape_format_fp32_1d(self, device="npu"):
         format_list = [-1, 0]
         shape_format = [[[np.float16, i, [32]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp16_2d(self, device):
+    def test_sub_scalar_shape_format_fp16_2d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp32_2d(self, device):
+    def test_sub_scalar_shape_format_fp32_2d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp16_3d(self, device):
+    def test_sub_scalar_shape_format_fp16_3d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp32_3d(self, device):
+    def test_sub_scalar_shape_format_fp32_3d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp16_4d(self, device):
+    def test_sub_scalar_shape_format_fp16_4d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128, 28]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
-    def test_sub_scalar_shape_format_fp32_4d(self, device):
+    def test_sub_scalar_shape_format_fp32_4d(self, device="npu"):
         format_list = []
         shape_format = [[[np.float16, i, [32, 64, 128, 28]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
 
-instantiate_device_type_tests(TestRsub, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

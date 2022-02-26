@@ -18,9 +18,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestZerosLike(TestCase):
@@ -35,7 +34,7 @@ class TestZerosLike(TestCase):
         output = output.numpy()
         return output
 
-    def test_zeroslike_fp32(self, device):
+    def test_zeroslike_fp32(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (1000, 1280), (32, 3, 3), (32, 144, 1, 1)]
         shape_format = [
@@ -47,7 +46,7 @@ class TestZerosLike(TestCase):
             npu_output = self.npu_op_exec(npu_input, torch.float32)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_zeroslike_fp16(self, device):
+    def test_zeroslike_fp16(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (1000, 1280), (32, 3, 3), (32, 144, 1, 1)]
         shape_format = [
@@ -62,6 +61,5 @@ class TestZerosLike(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-instantiate_device_type_tests(TestZerosLike, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

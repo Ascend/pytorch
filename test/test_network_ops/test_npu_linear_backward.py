@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestNpuLinearBackward(TestCase):
     def cpu_op_exec(self, x, weight, bias):
@@ -42,7 +42,7 @@ class TestNpuLinearBackward(TestCase):
            bias.grad.cpu().numpy()]
         return list2
 
-    def test_npu_linear_backward_shape_format_fp32(self, device):
+    def test_npu_linear_backward_shape_format_fp32(self, device="npu"):
         shape_format = [
             [[np.float32, -1, (6144, 1024)], [np.float32, -1, (256, 1024)], [np.float32, -1, (256)]],
             [[np.float32, -1, (123, 456)], [np.float32, -1, (789, 456)], [np.float32, -1, (789)]],
@@ -59,7 +59,7 @@ class TestNpuLinearBackward(TestCase):
             self.assertRtolEqual(getlist1[2], getlist2[2])
             self.assertRtolEqual(getlist1[3], getlist2[3])
 
-    def test_npu_linear_shape_format_fp16(self, device):
+    def test_npu_linear_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, -1, (6144, 1024)], [np.float16, -1, (256, 1024)], [np.float16, -1, (256)]],
             [[np.float16, -1, (123, 456)], [np.float16, -1, (789, 456)], [np.float16, -1, (789)]],
@@ -76,6 +76,6 @@ class TestNpuLinearBackward(TestCase):
             self.assertRtolEqual(getlist1[2].astype(np.float16), getlist2[2])
             self.assertRtolEqual(getlist1[3].astype(np.float16), getlist2[3])
 
-instantiate_device_type_tests(TestNpuLinearBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

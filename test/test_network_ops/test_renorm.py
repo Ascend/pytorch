@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestRenorm(TestCase):
     def generate_data(self, min_d, max_d, shape, dtype):
@@ -70,110 +70,110 @@ class TestRenorm(TestCase):
         output = output.numpy()
         return output
 
-    def test_renorm_3_3_4_0_1(self, device):
+    def test_renorm_3_3_4_0_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 0, 1)
         npu_output1 = self.npu_op_exec(input_x1, 4, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_1_1(self, device):
+    def test_renorm_3_3_1_1_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 1, 1)
         npu_output1 = self.npu_op_exec(input_x1, 1, 1, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_0_0_1_float16(self, device):
+    def test_renorm_3_3_0_0_1_float16(self, device="npu"):
         input_x1 = self.generate_data(-10, 10, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_x1_cpu, 0, 0, 1).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1, 0, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_0_0_1(self, device):
+    def test_renorm_3_3_0_0_1(self, device="npu"):
         input_x1 = self.generate_data(-10, 10, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 0, 0, 1)
         npu_output1 = self.npu_op_exec(input_x1, 0, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_4_0_1_float16(self, device):
+    def test_renorm_3_3_4_0_1_float16(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_x1_cpu, 4, 0, 1).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1, 4, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_1_1_float16(self, device):
+    def test_renorm_3_3_1_1_1_float16(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float16)
         input_x1_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_x1_cpu, 1, 1, 1).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1, 1, 1, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_0_1(self, device):
+    def test_renorm_3_3_1_0_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 0, 1)
         npu_output1 = self.npu_op_exec(input_x1, 1, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_1_1(self, device):
+    def test_renorm_3_3_3_3_1_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 1, 1)
         npu_output1 = self.npu_op_exec(input_x1, 3, 1, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_2_2_1(self, device):
+    def test_renorm_3_3_3_2_2_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 2, 1)
         npu_output1 = self.npu_op_exec(input_x1, 2, 2, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_2_0_1(self, device):
+    def test_renorm_3_3_3_3_2_0_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 0, 1)
         npu_output1 = self.npu_op_exec(input_x1, 2, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_3_1(self, device):
+    def test_renorm_3_3_3_3_3_3_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 3, 1)
         npu_output1 = self.npu_op_exec(input_x1, 3, 3, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_4_4_1(self, device):
+    def test_renorm_3_3_3_3_3_4_4_1(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 4, 1)
         npu_output1 = self.npu_op_exec(input_x1, 4, 4, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_4_0_1_out(self, device):
+    def test_renorm_3_3_4_0_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 0, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 4, 0, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_1_1_out(self, device):
+    def test_renorm_3_3_1_1_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 1, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 1, 1, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_0_1_out(self, device):
+    def test_renorm_3_3_1_0_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 0, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 1, 0, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_1_1_out(self, device):
+    def test_renorm_3_3_3_3_1_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 1, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 3, 1, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_30_40_50_2_1_1_out_fp16(self, device):
+    def test_renorm_30_40_50_2_1_1_out_fp16(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (30, 40, 50), np.float16)
         output_y = self.generate_data(-1, 1, (30, 40, 50), np.float16)
         input_cpu = input_x1.float()
@@ -182,7 +182,7 @@ class TestRenorm(TestCase):
         npu_output1 = self.npu_op_exec_out(input_x1, 2, 1, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_30_40_50_2_0_2_out_fp16(self, device):
+    def test_renorm_30_40_50_2_0_2_out_fp16(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (30, 40, 50), np.float16)
         output_y = self.generate_data(-1, 1, (30, 40, 50), np.float16)
         input_cpu = input_x1.float()
@@ -191,82 +191,82 @@ class TestRenorm(TestCase):
         npu_output1 = self.npu_op_exec_out(input_x1, 2, 0, 2, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_2_2_1_out(self, device):
+    def test_renorm_3_3_3_2_2_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 2, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 2, 2, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_2_0_1_out(self, device):
+    def test_renorm_3_3_3_3_2_0_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 0, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 2, 0, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_3_1_out(self, device):
+    def test_renorm_3_3_3_3_3_3_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 3, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 3, 3, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_4_4_1_out(self, device):
+    def test_renorm_3_3_3_3_3_4_4_1_out(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3, 3), np.float32)
         output_y = self.generate_data(-1, 1, (3, 3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 4, 1)
         npu_output1 = self.npu_op_exec_out(input_x1, 4, 4, 1, output_y)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_4_0_1_inplace(self, device):
+    def test_renorm_3_3_4_0_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 0, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 4, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_1_1_inplace(self, device):
+    def test_renorm_3_3_1_1_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 1, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 1, 1, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_1_0_1_inplace(self, device):
+    def test_renorm_3_3_1_0_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 1, 0, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 1, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_1_1_inplace(self, device):
+    def test_renorm_3_3_3_3_1_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 1, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 3, 1, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_2_2_1_inplace(self, device):
+    def test_renorm_3_3_3_2_2_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 2, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 2, 2, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_2_0_1_inplace(self, device):
+    def test_renorm_3_3_3_3_2_0_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 2, 0, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 2, 0, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_3_1_inplace(self, device):
+    def test_renorm_3_3_3_3_3_3_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 3, 3, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 3, 3, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_renorm_3_3_3_3_3_4_4_1_inplace(self, device):
+    def test_renorm_3_3_3_3_3_4_4_1_inplace(self, device="npu"):
         input_x1 = self.generate_data(-1, 1, (3, 3, 3, 3, 3), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, 4, 4, 1)
         npu_output1 = self.npu_op_exec_inplace(input_x1, 4, 4, 1)
         self.assertRtolEqual(cpu_output1, npu_output1)
 
-instantiate_device_type_tests(TestRenorm, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

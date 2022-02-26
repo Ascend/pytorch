@@ -16,7 +16,7 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestL1Loss(TestCase):

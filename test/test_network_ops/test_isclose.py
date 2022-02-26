@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestIsclose(TestCase):
 
@@ -75,7 +74,7 @@ class TestIsclose(TestCase):
         output = output.numpy()
         return output 
     
-    def test_isclose_int32_float32(self, device):
+    def test_isclose_int32_float32(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.int32)
         npu_input1 = npu_input1.to(torch.float32)
         npu_input2 = npu_input2.to(torch.float32)
@@ -83,31 +82,31 @@ class TestIsclose(TestCase):
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_equal_nan_false(self, device):
+    def test_isclose_equal_nan_false(self, device="npu"):
         npu_input1, npu_input2 = self.generate_nan((4,3), np.int32)
         cpu_output = self.cpu_op_exec_equal_nan(npu_input1, npu_input2, False)
         npu_output = self.npu_op_exec_tensor_need_to_npu_equal_nan(npu_input1, npu_input2, False)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_equal_nan_true(self, device):
+    def test_isclose_equal_nan_true(self, device="npu"):
         npu_input1, npu_input2 = self.generate_nan((4,3), np.int32)
         cpu_output = self.cpu_op_exec_equal_nan(npu_input1, npu_input2, True)
         npu_output = self.npu_op_exec_tensor_need_to_npu_equal_nan(npu_input1, npu_input2, True)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_int32_001(self, device):
+    def test_isclose_int32_001(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_int32_002(self, device):
+    def test_isclose_int32_002(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(100, 100, (4,3,2), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_int32_003(self, device):
+    def test_isclose_int32_003(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3,2), np.int32)
         rtol = 8e-05
         atol = 8e-08
@@ -115,19 +114,19 @@ class TestIsclose(TestCase):
         npu_output = self.npu_op_exec_tensor_need_to_npu_rtol_atol(npu_input1, npu_input2, rtol, atol)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_float32_001(self, device):
+    def test_isclose_float32_001(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(100, 100, (4,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_float32_002(self, device):
+    def test_isclose_float32_002(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3,2), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec_tensor_need_to_npu(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_float32_003(self, device):
+    def test_isclose_float32_003(self, device="npu"):
         npu_input1, npu_input2 = self.generate_data(0, 100, (4,3,2), np.float32)
         rtol = 8e-05
         atol = 8e-08
@@ -135,7 +134,7 @@ class TestIsclose(TestCase):
         npu_output = self.npu_op_exec_tensor_need_to_npu_rtol_atol(npu_input1, npu_input2, rtol, atol)
         self.assertRtolEqual(cpu_output,npu_output)
 
-    def test_isclose_float16_001(self, device):
+    def test_isclose_float16_001(self, device="npu"):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
             input2 = input2.to(torch.float32)
@@ -148,7 +147,7 @@ class TestIsclose(TestCase):
         cpu_output = cpu_output.astype(npu_output.dtype)
         self.assertRtolEqual(cpu_output, npu_output) 
 
-    def test_isclose_float16_002(self, device):
+    def test_isclose_float16_002(self, device="npu"):
         def cpu_op_exec_fp16(input1, input2):
             input1 = input1.to(torch.float32)
             input2 = input2.to(torch.float32)
@@ -161,7 +160,7 @@ class TestIsclose(TestCase):
         cpu_output = cpu_output.astype(npu_output.dtype)
         self.assertRtolEqual(cpu_output, npu_output) 
 
-    def test_isclose_float16_003(self, device):
+    def test_isclose_float16_003(self, device="npu"):
         def cpu_op_exec_fp16_rtol_atol(input1, input2, rtol, atol):
             input1 = input1.to(torch.float32)
             input2 = input2.to(torch.float32)
@@ -176,6 +175,6 @@ class TestIsclose(TestCase):
         cpu_output = cpu_output.astype(npu_output.dtype)
         self.assertRtolEqual(cpu_output,npu_output)
 
-instantiate_device_type_tests(TestIsclose, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

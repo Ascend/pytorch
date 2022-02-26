@@ -17,9 +17,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestCeil(TestCase):
     @Dtypes(torch.float)
@@ -41,7 +41,7 @@ class TestCeil(TestCase):
         output = output.to("cpu")
         return output
 
-    def test_ceil_shape_format(self, device):
+    def test_ceil_shape_format(self, device="npu"):
         shape_format = [
                 [np.float32, 0,  10               ],
                 [np.float32, 0,  (64, 10)         ],
@@ -55,6 +55,6 @@ class TestCeil(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestCeil, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

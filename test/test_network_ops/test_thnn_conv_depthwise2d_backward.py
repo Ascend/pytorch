@@ -19,9 +19,9 @@ import torch_npu
 import numpy as np
 import torch.nn as nn
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 #TODO:The accuracy of the operator is not up to standard
 class TestThnnConvDepthwise2d(TestCase):
@@ -104,7 +104,7 @@ class TestThnnConvDepthwise2d(TestCase):
                 self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy(), prec16=1e-3)
                 self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy(), prec16=1e-2)
 
-    def test_conv_depthwise2d_backward_shape_format_fp16(self, device):
+    def test_conv_depthwise2d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [  # input, weight, padding, stride, dilation, bias
             [[np.float16, 0, [32, 32, 112, 112]], [np.float16, 0, [32, 1, 3, 3]], 0, 1, 1, True],
             [[np.float16, 0, [128, 232, 14, 14]], [np.float16, 0, [232, 1, 3, 3]], 1, [2, 2], 1, None],
@@ -113,7 +113,7 @@ class TestThnnConvDepthwise2d(TestCase):
         ]
         self.conv_depthwise2d_backward_result(shape_format)
 
-    def test_conv_depthwise2d_backward_shape_format_fp32(self, device):
+    def test_conv_depthwise2d_backward_shape_format_fp32(self, device="npu"):
         shape_format = [  # input, weight, padding, stride, dilation, bias
             [[np.float32, 3, [32, 32, 12, 12]], [np.float32, 0, [32, 1, 3, 3]], 1, 1, 1, None],
             [[np.float32, 0, [32, 32, 12, 12]], [np.float32, 0, [32, 1, 3, 3]], 0, 1, 1, None],
@@ -122,6 +122,6 @@ class TestThnnConvDepthwise2d(TestCase):
         ]
         self.conv_depthwise2d_backward_result(shape_format)
 
-instantiate_device_type_tests(TestThnnConvDepthwise2d, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

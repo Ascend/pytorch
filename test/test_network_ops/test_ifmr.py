@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestIFMR(TestCase):
     def cpu_op_exec(self,
@@ -108,7 +108,7 @@ class TestIFMR(TestCase):
 
         return scale, offset
 
-    def test_ifrm_with_offset(self, device):
+    def test_ifrm_with_offset(self, device="npu"):
         format_list = [0, 3]
         shape_list = [(2, 2, 3, 4), (5, 5)]
         shape_format = [[np.float32, i, j] for i in format_list
@@ -122,7 +122,7 @@ class TestIFMR(TestCase):
             self.assertTrue((scale_cpu - scale_npu[0]) / scale_cpu < 0.0001)
             self.assertEqual(offset_cpu, offset_npu[0])
 
-    def test_ifrm_without_offset(self, device):
+    def test_ifrm_without_offset(self, device="npu"):
         format_list = [0, 3]
         shape_list = [(2, 2, 3, 4), (5, 5)]
         shape_format = [[np.float32, i, j] for i in format_list
@@ -136,6 +136,6 @@ class TestIFMR(TestCase):
             self.assertTrue((scale_cpu - scale_npu[0]) / scale_cpu < 0.0001)
             self.assertEqual(offset_cpu, offset_npu[0])
 
-instantiate_device_type_tests(TestIFMR, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

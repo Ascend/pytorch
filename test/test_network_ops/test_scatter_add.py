@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestScatterAdd(TestCase):
     def cpu_op_exec_inp(self, input1, dim, index, src):
@@ -43,7 +43,7 @@ class TestScatterAdd(TestCase):
         output = output.numpy()
         return output
 
-    def test_scatter_add_common_shape_format(self, device):
+    def test_scatter_add_common_shape_format(self, device="npu"):
         shape_format = [
                 [0,     [np.int64, 0, [10, 20]],       [np.float32, 0, [10, 20]],         [np.float32, 0, [10, 20]]],
                 [1,     [np.int64, 0, [10, 20]],       [np.float32, 0, [10, 20]],         [np.float32, 0, [10, 20]]],
@@ -67,7 +67,7 @@ class TestScatterAdd(TestCase):
             npu_inp_output = self.npu_op_exec_inp(npu_input3, item[0], npu_input1, npu_input2)
             self.assertRtolEqual(cpu_inp_output, npu_inp_output)
     
-    def test_scatter_add_float16_shape_format(self, device):
+    def test_scatter_add_float16_shape_format(self, device="npu"):
         def cpu_op_exec_inp_fp16(input1, dim, index, src):
             input1 = input1.to(torch.float32)
             src = src.to(torch.float32)
@@ -104,6 +104,6 @@ class TestScatterAdd(TestCase):
             npu_inp_output = self.npu_op_exec_inp(npu_input3, item[0], npu_input1, npu_input2)
             self.assertRtolEqual(cpu_inp_output, npu_inp_output)
 
-instantiate_device_type_tests(TestScatterAdd, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

@@ -17,9 +17,9 @@ import torch_npu
 import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaxUnpool3dBackward(TestCase):
     def cpu_op_exec(self, input1):
@@ -52,7 +52,7 @@ class TestMaxUnpool3dBackward(TestCase):
         unpooled_output = unpooled_output.cpu().detach()
         return unpooled_output, unpool_input_grad
 
-    def test_max_unpool3d_backward_shape_format(self, device):
+    def test_max_unpool3d_backward_shape_format(self, device="npu"):
         dtype_list = [np.float32, np.float16]
         format_list = [-1]
         shape_list = [(20, 16, 51, 33, 15)]
@@ -71,6 +71,6 @@ class TestMaxUnpool3dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_unpool_input_grad, npu_unpool_input_grad)
 
-instantiate_device_type_tests(TestMaxUnpool3dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

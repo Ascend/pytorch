@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestCumsum(TestCase):
     def cpu_op_exec(self,input1, dim):
@@ -44,7 +44,7 @@ class TestCumsum(TestCase):
         output = output.numpy()
         return output
 
-    def test_cumsum_common_shape_format(self, device):
+    def test_cumsum_common_shape_format(self, device="npu"):
         shape_format = [
             [[np.float32, 0, (1, 2, 3, 4)]],
             [[np.float32, 0, (2, 3, 4)]],
@@ -66,7 +66,7 @@ class TestCumsum(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_cumsum_out_common_shape_format(self, device):
+    def test_cumsum_out_common_shape_format(self, device="npu"):
         shape_format = [
             [[[np.float32, 0, (1, 2, 3, 4)],    [np.float32, 0, (1, 2, 3, 4)]],
             [[np.float32, 0, (2, 3, 4)],    [np.float32, 0, (2, 3, 4)]],
@@ -91,6 +91,6 @@ class TestCumsum(TestCase):
             npu_output = self.npu_op_exec_out(npu_input1, npu_input2, dim)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestCumsum, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

@@ -14,14 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestGather(TestCase):
     def cpu_op_exec(self, input1, dim, index):
@@ -35,7 +34,7 @@ class TestGather(TestCase):
         output = output.numpy()
         return output
 
-    def test_gather_shape_format(self, device):
+    def test_gather_shape_format(self, device="npu"):
         shape_format = [
             [[np.int32, 0, (4, 3)], 0, torch.LongTensor([[0, 1, 1], [2, 0, 1]])],
             [[np.int64, 0, (2, 3)], 1, torch.LongTensor([[0, 1, 1], [0, 0, 1]])],
@@ -51,6 +50,6 @@ class TestGather(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1], npu_idx)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestGather, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

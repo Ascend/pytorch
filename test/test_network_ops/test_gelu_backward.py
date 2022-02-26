@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestGeluBackward(TestCase):
     def generate_single_data(self, min_val, max_val, shape, dtype): 
@@ -43,28 +42,28 @@ class TestGeluBackward(TestCase):
         res = input1.grad.to("cpu")        
         return res.detach().numpy()
         
-    def test_gelu_backward_float32_1(self, device):
+    def test_gelu_backward_float32_1(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (4, 3, 1, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
         
-    def test_gelu_backward_float32_2(self, device):
+    def test_gelu_backward_float32_2(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (15, 3, 1), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_gelu_backward_float32_3(self, device):
+    def test_gelu_backward_float32_3(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (4, 4), np.float32)
         cpu_input1 = copy.deepcopy(input1)
         cpu_output = self.cpu_op_exec(cpu_input1)
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output)       
 
-    def test_gelu_backward_float16(self, device):
+    def test_gelu_backward_float16(self, device="npu"):
         input1 = self.generate_single_data(0, 100, (5, 10, 100), np.float16)
         cpu_input1 =  input1.to(torch.float32)
         cpu_output = self.cpu_op_exec(cpu_input1)
@@ -72,6 +71,6 @@ class TestGeluBackward(TestCase):
         npu_output = self.npu_op_exec(input1)
         self.assertRtolEqual(cpu_output, npu_output) 
         
-instantiate_device_type_tests(TestGeluBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

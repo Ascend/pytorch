@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestiRshift(TestCase):
     def cpu_op_exec(self, input1, input2):
@@ -34,7 +34,7 @@ class TestiRshift(TestCase):
         output = output.numpy()
         return output
 
-    def test_iRshift_tensor(self, device):
+    def test_iRshift_tensor(self, device="npu"):
         format_list = [0]
         shape_list = [(256, 32, 56)]
         shape_format = [
@@ -49,7 +49,7 @@ class TestiRshift(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_iRshift_scalar(self, device):
+    def test_iRshift_scalar(self, device="npu"):
         format_list = [0]
         shape_list = [(256, 32, 56)]
         shape_format = [
@@ -64,6 +64,6 @@ class TestiRshift(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestiRshift, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

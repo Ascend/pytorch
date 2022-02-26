@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestXor(TestCase):
 
@@ -96,82 +95,82 @@ class TestXor(TestCase):
         output = output.numpy()
         return output
 
-    def test_xor_tensor_int32(self, device):
+    def test_xor_tensor_int32(self, device="npu"):
         npu_input1 = self.generate_single_data(0, 100, (10, 10), np.int32)
         npu_input2 = self.generate_single_data(0, 100, (10, 10), np.int32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_tensor_int16(self, device):
+    def test_xor_tensor_int16(self, device="npu"):
         npu_input1 = self.generate_single_data(0, 100, (10, 10), np.int16)
         npu_input2 = self.generate_single_data(0, 100, (10, 10), np.int16)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_tensor_int8(self, device):
+    def test_xor_tensor_int8(self, device="npu"):
         npu_input1 = self.generate_single_data(0, 100, (10, 10), np.int8)
         npu_input2 = self.generate_single_data(0, 100, (10, 10), np.int8)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_int32(self, device):
+    def test_xor_scalar_int32(self, device="npu"):
         npu_input = self.generate_single_data(0, 100, (1, 10), np.int32)
         npu_input_scalr = np.random.randint(0, 100)
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_int16(self, device):
+    def test_xor_scalar_int16(self, device="npu"):
         npu_input = self.generate_single_data(0, 100, (10, 20), np.int16)
         npu_input_scalr = np.random.randint(0, 100)
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_int8(self, device):
+    def test_xor_scalar_int8(self, device="npu"):
         npu_input = self.generate_single_data(0, 100, (20, 10), np.int8)
         npu_input_scalr = np.random.randint(0, 100)
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_tensor_uint8(self, device):
+    def test_xor_tensor_uint8(self, device="npu"):
         npu_input1 = self.generate_single_data(0, 100, (10, 10), np.uint8)
         npu_input2 = self.generate_single_data(0, 100, (10, 10), np.uint8)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_uint8(self, device):
+    def test_xor_scalar_uint8(self, device="npu"):
         npu_input = self.generate_single_data(0, 100, (5, 10), np.uint8)
         npu_input_scalr = np.random.randint(0, 100)
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_bool1(self, device):
+    def test_xor_scalar_bool1(self, device="npu"):
         npu_input = self.generate_single_bool_data((10, 10))
         npu_input_scalr = True
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_scalar_bool2(self, device):
+    def test_xor_scalar_bool2(self, device="npu"):
         npu_input = self.generate_single_bool_data((10, 10))
         npu_input_scalr = False
         cpu_output = self.cpu_op_exec(npu_input, npu_input_scalr)
         npu_output = self.npu_op_exec_scalar(npu_input, npu_input_scalr)
         self.assertEqual(cpu_output, npu_output)
 
-    def test_xor_tensor_bool(self, device):
+    def test_xor_tensor_bool(self, device="npu"):
         npu_input1, npu_input2 = self.generate_bool_data((10, 10))
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestXor, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

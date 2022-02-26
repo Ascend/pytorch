@@ -17,8 +17,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestFormatCast(TestCase):
     def create_single_npu_tensor(self, item, minvalue, maxvalue):
@@ -36,7 +36,7 @@ class TestFormatCast(TestCase):
             print("expectValue: ", expectValue, " resultValue: ", torch_npu.get_npu_format(retTensor))
             sys.exit(-1)
 
-    def test_format_cast_tensor(self, device):
+    def test_format_cast_tensor(self, device="npu"):
         src_shape_format = [
             [np.float16, 0, (2, 2, 4, 4)],
             [np.float16, 2, (2, 2, 4, 4)]
@@ -55,7 +55,7 @@ class TestFormatCast(TestCase):
                 result_tensor = torch_npu.npu_format_cast(src_tensor, dst_tensor)
                 self.check_result(torch_npu.get_npu_format(dst_tensor), result_tensor)
 
-    def test_format_cast(self, device):
+    def test_format_cast(self, device="npu"):
         shape_format = [np.float16, -1, (2, 2, 4, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
 
@@ -69,62 +69,20 @@ class TestFormatCast(TestCase):
         self.check_result(3, npu_tensor)
         npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
         self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
 
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 4)
-        self.check_result(4, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 29)
-        self.check_result(29, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 4)
-        self.check_result(4, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 29)
-        self.check_result(29, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
+        npu_format_list = [0, 2, 0, 4, 0, 29, 0, 2, 4, 0, 2, 29, 0]
+        for npu_format in npu_format_list:
+            npu_tensor = torch_npu.npu_format_cast(npu_tensor, npu_format)
+            self.check_result(npu_format, npu_tensor)
 
         npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
 
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 33)
-        self.check_result(33, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 33)
-        self.check_result(33, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 32)
-        self.check_result(32, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 32)
-        self.check_result(32, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
+        npu_format_list = [30, 33, 30, 2, 33, 2, 30, 32, 30, 2, 32, 2]
+        for npu_format in npu_format_list:
+            npu_tensor = torch_npu.npu_format_cast(npu_tensor, npu_format)
+            self.check_result(npu_format, npu_tensor)
 
-    def test_format_cast_inplace(self, device):
+    def test_format_cast_inplace(self, device="npu"):
         shape_format = [np.float16, -1, (2, 2, 4, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
 
@@ -138,63 +96,21 @@ class TestFormatCast(TestCase):
         self.check_result(3, npu_tensor)
         npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
         self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
 
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 4)
-        self.check_result(4, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 29)
-        self.check_result(29, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 4)
-        self.check_result(4, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 29)
-        self.check_result(29, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 0)
-        self.check_result(0, npu_tensor)
+        npu_format_list = [0, 2, 0, 4, 0, 29, 0, 2, 4, 0, 2, 29, 0]
+        for npu_format in npu_format_list:
+            npu_tensor = torch_npu.npu_format_cast_(npu_tensor, npu_format)
+            self.check_result(npu_format, npu_tensor)
 
         npu_tensor = npu_tensor.view(2,2,2,2,4).clone()
 
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 33)
-        self.check_result(33, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 33)
-        self.check_result(33, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 32)
-        self.check_result(32, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 30)
-        self.check_result(30, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 32)
-        self.check_result(32, npu_tensor)
-        npu_tensor = torch_npu.npu_format_cast_(npu_tensor, 2)
-        self.check_result(2, npu_tensor)
+        npu_format_list = [30, 33, 30, 2, 33, 2, 30, 32, 30, 2, 32, 2]
+        for npu_format in npu_format_list:
+            npu_tensor = torch_npu.npu_format_cast_(npu_tensor, npu_format)
+            self.check_result(npu_format, npu_tensor)
 
     # UT for view + transdata scene 
-    def test_format_cast_val(self, device):
+    def test_format_cast_val(self, device="npu"):
         shape_format = [np.float32, -1, (10, 4)]
         npu_tensor = self.create_single_npu_tensor(shape_format, 1, 5)
         npu_tensor = torch_npu.npu_format_cast(npu_tensor, 3)
@@ -204,6 +120,6 @@ class TestFormatCast(TestCase):
         b = b.to("cpu")
         self.assertRtolEqual(a, b)
 
-instantiate_device_type_tests(TestFormatCast, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

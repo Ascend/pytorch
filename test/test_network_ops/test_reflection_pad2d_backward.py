@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestReflectionPad2dBackward(TestCase):
     def cpu_op_exec(self, input1, pad):
@@ -42,7 +42,7 @@ class TestReflectionPad2dBackward(TestCase):
         input_grad = input_grad.cpu().numpy()
         return output, input_grad
 
-    def test_reflectionPad2d_backward_shape_format_fp16(self, device):
+    def test_reflectionPad2d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 0, (1, 1, 37, 37)], [2, 2, 2, 2]],
             [[np.float16, 3, (1, 1, 4, 3)], 2],
@@ -68,6 +68,6 @@ class TestReflectionPad2dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_grad, npu_grad)
 
-instantiate_device_type_tests(TestReflectionPad2dBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

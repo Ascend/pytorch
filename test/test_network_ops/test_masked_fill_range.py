@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaskedFillRange(TestCase):
     def cpu_op_exec(self, input1, start, end, value, axis, dim):
@@ -48,7 +48,7 @@ class TestMaskedFillRange(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
 
-    def test_normalize_batch(self, device):
+    def test_normalize_batch(self, device="npu"):
         shape_format = [
             [[np.float32, -1, [32, 64, 1688]], 
                 [list(range(0, 32))],
@@ -79,6 +79,6 @@ class TestMaskedFillRange(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestMaskedFillRange, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

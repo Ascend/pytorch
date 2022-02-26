@@ -17,9 +17,8 @@ import torch_npu
 import numpy as np
 import torch.nn as nn
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestConvDepthwise2d(TestCase):
@@ -95,7 +94,7 @@ class TestConvDepthwise2d(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
-    def test_conv_depthwise2d_backward_shape_format_fp16(self, device):
+    def test_conv_depthwise2d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [  # input , weight, padding, stide, dilation, bias
             # shuflenet
             [[np.float16, 0, [1024, 116, 28, 28]], [np.float16, 0, [116, 1, 3, 3]], 1, 2, 1, 0],
@@ -103,7 +102,7 @@ class TestConvDepthwise2d(TestCase):
         ]
         self.conv_depthwise2d_backward_result(shape_format)
 
-    def test_conv_depthwise2d_backward_shape_format_fp32(self, device):
+    def test_conv_depthwise2d_backward_shape_format_fp32(self, device="npu"):
         shape_format = [  # input , weight, padding, stide, dilation, bias
             # mobilenet
             [[np.float32, 3, [256, 32, 112, 112]], [np.float32, 0, [32, 1, 3, 3]], 1, 1, 1, None],
@@ -113,6 +112,5 @@ class TestConvDepthwise2d(TestCase):
         #self.conv_depthwise2d_backward_result(shape_format)
 
 
-instantiate_device_type_tests(TestConvDepthwise2d, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

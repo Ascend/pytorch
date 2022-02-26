@@ -16,9 +16,9 @@ import torch.nn as nn
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestAdaptiveMaxPool2d(TestCase):
     def cpu_op_exec(self, input1, output_size):
@@ -31,7 +31,7 @@ class TestAdaptiveMaxPool2d(TestCase):
         output = m(input1)
         return output.cpu().numpy()
 
-    def test_adaptive_max_pool2d_shape_format_fp32_6(self, device):
+    def test_adaptive_max_pool2d_shape_format_fp32_6(self, device="npu"):
         format_list = [-1]
         shape_list = [(1, 5, 9, 9)]
         shape_format = [
@@ -45,6 +45,6 @@ class TestAdaptiveMaxPool2d(TestCase):
                 npu_output = self.npu_op_exec(npu_input, output_size)
                 self.assertRtolEqual(cpu_output, npu_output, 0.0004)
 
-instantiate_device_type_tests(TestAdaptiveMaxPool2d, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

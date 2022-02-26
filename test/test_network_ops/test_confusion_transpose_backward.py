@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestConfusionTransposeDBackward(TestCase):
     def npu_op_exec(self, input1, shape, perm, transpose_first):
@@ -42,7 +42,7 @@ class TestConfusionTransposeDBackward(TestCase):
         output2 = input1.grad.numpy()
         return output1, output2
 
-    def test_confusion_transpose_backward(self, device):
+    def test_confusion_transpose_backward(self, device="npu"):
         shape_format = [
             [[np.float32, 0, [1, 576, 2560]],[1, 576, 32, 80], (0, 2, 1, 3), False],
             [[np.float32, 0, [1, 32, 576, 80]],[1, 576, 2560], (0, 2, 1, 3), True],
@@ -56,6 +56,6 @@ class TestConfusionTransposeDBackward(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-instantiate_device_type_tests(TestConfusionTransposeDBackward, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

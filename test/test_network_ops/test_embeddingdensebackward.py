@@ -17,9 +17,9 @@ import torch_npu
 import numpy as np
 import torch.nn.functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestEmbeddingDenseBackward(TestCase):
     def cpu_op_exec(self, weight, indices):
@@ -38,7 +38,7 @@ class TestEmbeddingDenseBackward(TestCase):
         grad_npu = grad_npu.to("cpu")
         return out_npu.detach().numpy(), grad_npu.detach().numpy()
 
-    def test_embedding_dense_backward_shape_format_fp32(self, device):
+    def test_embedding_dense_backward_shape_format_fp32(self, device="npu"):
         format_list = [0]
         shape_list1 = [[40, 32], [40, 1024], [40000, 1024], [33712, 1024]]
         shape_list2 = [[40], [40], [40000], [33712]]
@@ -62,7 +62,6 @@ class TestEmbeddingDenseBackward(TestCase):
             self.assertRtolEqual(cpu_grad, npu_grad)
 
 
-instantiate_device_type_tests(TestEmbeddingDenseBackward, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
 

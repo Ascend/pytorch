@@ -16,12 +16,12 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestFull(TestCase):
-    def test_full_shape_format_fp16(self, device):
+    def test_full_shape_format_fp16(self, device="npu"):
         format_list = [0, 3]
         dtype_list = [torch.float32, torch.float16, torch.int32]
         shape_list = [[5, 8], [2, 4, 1, 1], [16]]
@@ -36,7 +36,7 @@ class TestFull(TestCase):
             npu_output = npu_output.numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_full_shape_format_fp32(self, device):
+    def test_full_shape_format_fp32(self, device="npu"):
         format_list = [0, 3]
         dtype_list = [torch.float32, torch.float16, torch.int32]
         shape_list = [[5, 8], [2, 4, 1, 1], [16]]
@@ -51,7 +51,7 @@ class TestFull(TestCase):
             npu_output = npu_output.numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_full_out(self, device):
+    def test_full_out(self, device="npu"):
 
         shape_format = [[[np.float32, 0, [5, 8]], torch.float32]]
         for item in shape_format:
@@ -64,6 +64,6 @@ class TestFull(TestCase):
             npu_output = npu_output.numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestFull, globals(), except_for="cpu")
+
 if __name__ == '__main__':
     run_tests()

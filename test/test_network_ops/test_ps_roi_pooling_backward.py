@@ -13,15 +13,12 @@
 # limitations under the License.
 import torch
 import torch_npu
-import numpy as np
-from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestPsRoiPoolingBackward(TestCase):
-    def test_ps_roi_pooling_backward_fp16(self, device):
+    def test_ps_roi_pooling_backward_fp16(self, device="npu"):
         roi = torch.tensor([[[1], [2], [3], [4], [5]],
                             [[6], [7], [8], [9], [10]]
                            ], dtype = torch.float16).npu()
@@ -48,6 +45,6 @@ class TestPsRoiPoolingBackward(TestCase):
         self.assertRtolEqual(expect_out, out.detach().cpu())
         self.assertRtolEqual(expect_gradout, gradout.cpu())
 
-instantiate_device_type_tests(TestPsRoiPoolingBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

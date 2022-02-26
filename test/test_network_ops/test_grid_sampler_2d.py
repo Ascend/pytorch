@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestGridSampler2D(TestCase):
     def cpu_op_exec(self, input1, grid):
@@ -40,7 +40,7 @@ class TestGridSampler2D(TestCase):
         output = output.astype(np.float16)
         return output
 
-    def test_grid_sampler_2d_shape_format(self, device):
+    def test_grid_sampler_2d_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, (1,2,4,20)],[np.float32, 0, (1,10,8,2)]],
                 [[np.float32, 0, (1,4,64, 10)],[np.float32, 0, (1,2,32,2)]],
@@ -55,7 +55,7 @@ class TestGridSampler2D(TestCase):
             npu_output = self.npu_op_exec(npu_input, npu_grid)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_grid_sampler_2d_fp16_shape_format(self, device):
+    def test_grid_sampler_2d_fp16_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float16, 0, (1,2,4,20)],[np.float16, 0, (1,10,8,2)]],
                 [[np.float16, 0, (1,4,64, 10)],[np.float16, 0, (1,2,32,2)]],
@@ -70,7 +70,7 @@ class TestGridSampler2D(TestCase):
             npu_output = self.npu_op_exec(npu_input, npu_grid)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestGridSampler2D, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()
     

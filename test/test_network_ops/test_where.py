@@ -13,12 +13,11 @@
 # limitations under the License.
 import torch
 import torch_npu
-import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestWhere(TestCase):
     def cpu_op_exec(self, input1):
@@ -82,46 +81,46 @@ class TestWhere(TestCase):
             self.assertRtolEqual(cpu_output_cond, npu_output_cond)
             self.assertRtolEqual(cpu_output_s, npu_output_s)
 
-    def test_where_shape_format_fp32_1d(self, device):
+    def test_where_shape_format_fp32_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.where_result(shape_format)
 
-    def test_where_shape_format_fp32_2d(self, device):
+    def test_where_shape_format_fp32_2d(self, device="npu"):
         format_list = [0]
         shape_format = [[np.float32, i, [5, 256]] for i in format_list]
         self.where_result(shape_format)
 
-    def test_where_shape_format_fp32_3d(self, device):
+    def test_where_shape_format_fp32_3d(self, device="npu"):
         format_list = [0]
         shape_format = [[np.float32, i, [32, 3, 3]] for i in format_list]
         self.where_result(shape_format)
 
-    def test_where_shape_format_fp32_4d(self, device):
+    def test_where_shape_format_fp32_4d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [[np.float32, i, [64, 112, 7, 7]] for i in format_list]
         self.where_result(shape_format)
 
-    def test_where_shape_format_fp16_1d(self, device):
+    def test_where_shape_format_fp16_1d(self, device="npu"):
         format_list = [0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.where_result(shape_format)
 
-    def test_where_shape_format_fp16_2d(self, device):
+    def test_where_shape_format_fp16_2d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [5, 256]] for i in format_list]
         self.where_result(shape_format)
         
-    def test_where_shape_format_fp16_3d(self, device):
+    def test_where_shape_format_fp16_3d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [32, 3, 3]] for i in format_list]
         self.where_result(shape_format)
         
-    def test_where_shape_format_fp16_4d(self, device):
+    def test_where_shape_format_fp16_4d(self, device="npu"):
         format_list = [0, 3, 4, 29]
         shape_format = [[np.float16, i, [64, 112, 7, 7]] for i in format_list]
         self.where_result(shape_format)
 
-instantiate_device_type_tests(TestWhere, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

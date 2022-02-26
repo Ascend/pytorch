@@ -17,8 +17,7 @@ import torch
 import torch_npu
 import torch.nn as nn
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class Model(nn.Module):
@@ -38,7 +37,7 @@ class Model(nn.Module):
         return x
 
 class TestBn2dEval(TestCase):
-    def test_batchnorm_backward_eval(self, device):
+    def test_batchnorm_backward_eval(self, device="npu"):
         model = Model(in_channels=256)
         cpu_tensor = torch.randn(32,256,14,14)
         npu_tensor = cpu_tensor.npu()
@@ -74,6 +73,6 @@ class TestBn2dEval(TestCase):
                 #精度未满足 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy())
                 self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy(), 0.1)
 
-instantiate_device_type_tests(TestBn2dEval, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

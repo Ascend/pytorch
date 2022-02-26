@@ -15,9 +15,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestNe(TestCase):
     def cpu_op_exec(self, input1, input2):
@@ -38,7 +38,7 @@ class TestNe(TestCase):
         output = output.numpy()
         return output
 
-    def test_ne_shape_format_fp32(self, device):
+    def test_ne_shape_format_fp32(self, device="npu"):
         dtype_list = [np.float32]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -52,7 +52,7 @@ class TestNe(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)            
             self.assertRtolEqual(cpu_output, npu_output)
             
-    def test_ne_shape_format_fp16(self, device):
+    def test_ne_shape_format_fp16(self, device="npu"):
         dtype_list = [np.float16]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -70,7 +70,7 @@ class TestNe(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_input2)            
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_ne_out_shape_format_fp32(self, device):
+    def test_ne_out_shape_format_fp32(self, device="npu"):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -84,7 +84,7 @@ class TestNe(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)           
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    def test_ne_scalar_out_shape_format_fp32(self, device):
+    def test_ne_scalar_out_shape_format_fp32(self, device="npu"):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -97,13 +97,13 @@ class TestNe(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, 5)
             self.assertRtolEqual(cpu_output, npu_output_out)
 
-    def test_ne_mix_dtype(self, device):
+    def test_ne_mix_dtype(self, device="npu"):
         cpu_input1, npu_input1 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         cpu_input2, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestNe, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

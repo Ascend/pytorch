@@ -15,9 +15,8 @@
 import torch
 import torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestYoloBoxesEncode(TestCase):
     def npu_op_exec(self, anchor_boxes, gt_bboxes, stride, impl_mode=False):
@@ -25,7 +24,7 @@ class TestYoloBoxesEncode(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
         
-    def test_yolo_boxes_encode(self, device):
+    def test_yolo_boxes_encode(self, device="npu"):
         anchor_boxes = [(2, 4)]
         gt_bboxes = [(2 ,4)]
         stride = [[2, 2]]
@@ -45,6 +44,5 @@ class TestYoloBoxesEncode(TestCase):
             self.assertRtolEqual(exoutput_cpu_tensor.numpy(), npu_output)
 
 
-instantiate_device_type_tests(TestYoloBoxesEncode, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

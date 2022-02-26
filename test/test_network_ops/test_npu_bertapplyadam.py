@@ -14,14 +14,12 @@
 
 import torch
 import torch_npu
-import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestNpuBertApplyAdam(TestCase):
-    def test_npu_bert_apply_adam(self, device):
+    def test_npu_bert_apply_adam(self, device="npu"):
         seed = 3
         torch.manual_seed(seed)
         torch.npu.manual_seed(seed)
@@ -51,6 +49,6 @@ class TestNpuBertApplyAdam(TestCase):
         self.assertRtolEqual(m_out[:3].cpu(), m_ans)
         self.assertRtolEqual(v_out[:3].cpu(), v_ans)
 
-instantiate_device_type_tests(TestNpuBertApplyAdam, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

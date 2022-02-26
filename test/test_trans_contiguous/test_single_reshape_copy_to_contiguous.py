@@ -17,15 +17,14 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, check_operators_in_prof
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor, check_operators_in_prof
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 # Optimized view Ops contains Transpose, permute, narrow, strideslice, select, unfold 
 class SingleViewCopyToContiguous(TestCase):
-    def test_view_copy(self, device):
+    def test_view_copy(self, device="npu"):
         dtype_list1 = [np.float16, np.float32]
         format_list1 = [0, 3, 29]
         shape_list1 = [
@@ -68,7 +67,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out2 = cpu_input.view(1, 6, cpu_input.size(2)*cpu_input.size(3), 1).clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())        
 
-    def test_unsqueeze_copy(self, device):
+    def test_unsqueeze_copy(self, device="npu"):
         dtype_list2 = [np.float16, np.float32]
         format_list2 = [2, 3, 29]
         shape_list2 = [
@@ -98,7 +97,7 @@ class SingleViewCopyToContiguous(TestCase):
                 cpu_out = cpu_input.unsqueeze(i).clone()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy()) 
     
-    def test_flatten_copy(self, device):
+    def test_flatten_copy(self, device="npu"):
         dtype_list3 = [np.float16, np.float32]
         format_list3 = [0, 3, 29]
         shape_list3 = [
@@ -125,7 +124,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out = torch.flatten(cpu_input, 0, 1).clone()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())   
     
-    def test_narrow_at_first_axis_copy(self, device):
+    def test_narrow_at_first_axis_copy(self, device="npu"):
         # this case: slice at the first dim, tensor with offset remains contiguous
         dtype_list4 = [np.float16, np.float32]
         format_list4 = [2, 3, 29]
@@ -173,7 +172,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[1:10,:,:].clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
-    def test_select_at_first_axis_to_single_element_tensor_copy(self, device):
+    def test_select_at_first_axis_to_single_element_tensor_copy(self, device="npu"):
         dtype_list5 = [torch.float32]
         format_list5 = [2, 3, 29]
         shape_format5 = [
@@ -208,7 +207,6 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 
-                
-instantiate_device_type_tests(SingleViewCopyToContiguous, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

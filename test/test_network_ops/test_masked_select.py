@@ -14,14 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import makeSuite
 import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestMaskedSelect(TestCase):
     def get_mask(self):
@@ -58,7 +57,7 @@ class TestMaskedSelect(TestCase):
         output = torch.masked_select(input1, mask, out=output)
         return output.detach().to("cpu").numpy()
 
-    def test_maskedselect_out_result(self, device):
+    def test_maskedselect_out_result(self, device="npu"):
         shape_format = [
             [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [15, 15, 15, 16]]],
             [[np.float16, 2, [15, 15, 15, 16]], [np.float16, 2, [3, 3, 7, 7]]],
@@ -80,7 +79,7 @@ class TestMaskedSelect(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_maskedselect_shape_format_maskdiff(self, device):
+    def test_maskedselect_shape_format_maskdiff(self, device="npu"):
         dtype_list = [np.int64, np.int32, np.float32]
         format_list = [0]
         shape_list = [[3, 4, 5]]
@@ -94,7 +93,7 @@ class TestMaskedSelect(TestCase):
             npu_output = self.npu_op_exec(npu_input, mask_npu > 50)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_maskedselect_shape_format_fp32(self, device):
+    def test_maskedselect_shape_format_fp32(self, device="npu"):
         format_list = [0, 3]
         shape_list = [[3, 4, 5]]
         shape_format = [
@@ -108,7 +107,7 @@ class TestMaskedSelect(TestCase):
             npu_output = self.npu_op_exec(npu_input, mask)
             self.assertRtolEqual(cpu_output, npu_output)
             
-    def test_maskedselect_shape_format_int(self, device):
+    def test_maskedselect_shape_format_int(self, device="npu"):
         dtype_list = [np.int32, np.int64]
         format_list = [0]
         shape_list = [[3, 4, 5]]
@@ -123,6 +122,6 @@ class TestMaskedSelect(TestCase):
             npu_output = self.npu_op_exec(npu_input, mask)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestMaskedSelect, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

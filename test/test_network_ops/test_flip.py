@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestFlip(TestCase):
     def cpu_op_exec(self, input1, dims):
@@ -32,7 +32,7 @@ class TestFlip(TestCase):
         output = output.numpy()
         return output
 
-    def test_flip_shape_format(self, device):
+    def test_flip_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float32, 0, [2,2,2]], [0]],
                 [[np.float32, 0, [2,2,2,4]], [-2]],
@@ -45,6 +45,6 @@ class TestFlip(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestFlip, globals(), except_for="cpu")
+
 if __name__ == "__main__":
 	run_tests()

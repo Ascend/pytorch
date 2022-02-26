@@ -11,18 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import itertools
 import torch
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests, Dtypes, Formats
-from torch_npu.testing.util_test import create_dtype_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_dtype_tensor
+from torch_npu.testing.decorator import Dtypes, Formats, instantiate_tests
 
 
 # For testing TestCase methods and torch_npu.testing functions
+@instantiate_tests
 class TestTesting(TestCase):
+
     # Ensure that assertTensorSlowEqual handles npu arrays properly
-    
     @Dtypes(torch.int32, torch.bool, torch.half, torch.float)
     @Formats(0, 3, 4)
     def test_assert_tensor_slow_equal(self, device, dtype, npu_format):
@@ -122,10 +125,8 @@ class TestTesting(TestCase):
             self.assertNotEqual(a_cpu, b_cpu, message=msg)
             self.assertNotEqual(a_cpu, b_npu, message=msg)
             self.assertNotEqual(a_npu, b_cpu, message=msg)
-            self.assertNotEqual(a_npu, b_npu, message=msg)              
+            self.assertNotEqual(a_npu, b_npu, message=msg)  
     
-    
-instantiate_device_type_tests(TestTesting, globals(), except_for="cpu")
 
 if __name__ == '__main__':
     run_tests()

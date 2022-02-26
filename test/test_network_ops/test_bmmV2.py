@@ -15,9 +15,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestBatchMatMulV2(TestCase):
@@ -45,7 +44,7 @@ class TestBatchMatMulV2(TestCase):
           cpu_output = cpu_output.astype(npu_output.dtype)
           self.assertRtolEqual(cpu_output, npu_output)
 
-  def test_batchmatmul_shape_format_fp16_3d(self, device):
+  def test_batchmatmul_shape_format_fp16_3d(self, device="npu"):
       format_list = [0, 3, 29]
       shape_list = [(1, 3, 2)]
       shape_format1 = [[np.float16, i, j]
@@ -57,7 +56,7 @@ class TestBatchMatMulV2(TestCase):
       shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
       self.bmm_auto_list_exec(shape_format)
 
-  def test_batchmatmul_shape_format_fp32_3d(self, device):
+  def test_batchmatmul_shape_format_fp32_3d(self, device="npu"):
       format_list = [0, 3, 29]
       shape_list = [(1, 3, 2)]
       shape_format1 = [[np.float32, i, j]
@@ -69,6 +68,6 @@ class TestBatchMatMulV2(TestCase):
       shape_format = [[i, j] for i in shape_format1 for j in shape_format2]
       self.bmm_auto_list_exec(shape_format)
 
-instantiate_device_type_tests(TestBatchMatMulV2, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

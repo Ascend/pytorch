@@ -13,14 +13,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
 import torch
 import torch_npu
-import torch.nn as nn
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
 
 LOWER = 0
 UPPER = 1
@@ -49,7 +46,7 @@ class TestBinaryCrossEntropy(TestCase):
         res = res.to("cpu")
         return res.numpy()
 
-    def test_binary_cross_entropy_float32(self, device):
+    def test_binary_cross_entropy_float32(self, device="npu"):
         for shape, weight_shape, reduction in [
            ((10, 64), None,     "mean"),
            ((10, 64), (10, 1),  "mean"),
@@ -67,7 +64,7 @@ class TestBinaryCrossEntropy(TestCase):
             npu_output = self.npu_op_exec(predict, target, weight=weight, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_binary_cross_entropy_float16(self, device):
+    def test_binary_cross_entropy_float16(self, device="npu"):
         for shape, weight_shape, reduction in [
            ((10, 64), (10, 64), "sum"),
            ((10, 64), (10, 64), "mean"),
@@ -87,6 +84,6 @@ class TestBinaryCrossEntropy(TestCase):
             cpu_output = self.cpu_op_exec_half(predict_32, target_32, weight=weight_32, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestBinaryCrossEntropy, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

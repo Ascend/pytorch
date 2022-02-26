@@ -18,9 +18,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestQr(TestCase):
     def cpu_op_exec(self, input1, some):
@@ -57,7 +57,7 @@ class TestQr(TestCase):
         rout = input3.to("cpu").numpy()
         return qout, rout
 
-    def test_qr_shape_format(self, device):
+    def test_qr_shape_format(self, device="npu"):
         # TODO(ascend): 算子目前 暂不支持fp16, 后续开发中
         dtype_list = [np.float32]
         format_list = [-1]
@@ -92,7 +92,7 @@ class TestQr(TestCase):
             self.assertRtolEqual(npu_output1_out, npu_output1)
             self.assertRtolEqual(npu_output2_out, npu_output2)
 
-    def test_qr_common_shape_format(self, device):
+    def test_qr_common_shape_format(self, device="npu"):
         shape_format = [
             [np.float32, -1, (5, 3)],
             [np.float32, -1, (1, 64, 147, 147)],
@@ -117,6 +117,6 @@ class TestQr(TestCase):
                 self.assertRtolEqual(cpu_output_r, npu_output_r)
                 self.assertRtolEqual(cpu_input1.numpy(), npu_output)
 
-instantiate_device_type_tests(TestQr, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests()

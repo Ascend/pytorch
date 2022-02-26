@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLogicalNot(TestCase):
     def cpu_op_exec(self, input1):
@@ -38,7 +38,7 @@ class TestLogicalNot(TestCase):
         output = output.numpy()
         return output
 
-    def test_logical_not_common_shape_format(self, device):
+    def test_logical_not_common_shape_format(self, device="npu"):
         shape_format = [
                 [[np.int8, -1, 1]],
                 [[np.int8, -1, (64, 10)]],
@@ -65,7 +65,7 @@ class TestLogicalNot(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)  
 
-    def test_logical_not_out_common_shape_format(self, device):
+    def test_logical_not_out_common_shape_format(self, device="npu"):
         shape_format = [
                 [[np.float16, -1, (64, 10)], [np.float16, -1, (64, 1)]],
                 [[np.float16, -1, (256, 2048, 7, 7)], [np.float16, -1, (256, 2048, 7)]],
@@ -84,6 +84,6 @@ class TestLogicalNot(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-instantiate_device_type_tests(TestLogicalNot, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

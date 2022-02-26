@@ -16,9 +16,8 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
 
 class TestPreluBackward(TestCase): 
     def cpu_op_back_exec_ext(self,input1,weight):                    
@@ -44,7 +43,7 @@ class TestPreluBackward(TestCase):
         output = output.numpy()
         return output
 
-    def test_PreluBackward_shape_format_fp32(self, device):
+    def test_PreluBackward_shape_format_fp32(self, device="npu"):
         shape_format = [  
                 [np.float32, 0, (17, 12, 38, 15)],
                 [np.float32, 0, (1, 12, 38, 5)],
@@ -59,7 +58,7 @@ class TestPreluBackward(TestCase):
             npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_PreluBackward_shape_format_fp16(self, device):
+    def test_PreluBackward_shape_format_fp16(self, device="npu"):
         def cpu_op_back_exec_fp16_ext(input1,weight):            
             input1 = input1.to(torch.float32)            
             weight = weight.to(torch.float32)
@@ -88,6 +87,6 @@ class TestPreluBackward(TestCase):
             npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
             self.assertRtolEqual(cpu_output, npu_output)  
     
-instantiate_device_type_tests(TestPreluBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

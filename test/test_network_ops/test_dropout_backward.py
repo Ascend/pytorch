@@ -17,9 +17,9 @@ import torch_npu
 import numpy as np
 from torch.nn import functional as F
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestDropOutBackward(TestCase):
     def cpu_op_exec(self, input1):
@@ -66,7 +66,7 @@ class TestDropOutBackward(TestCase):
             else:
                 print(f'input = {item}, Successfully!')
 
-    def test_op_shape_format_fp16(self, device):
+    def test_op_shape_format_fp16(self, device="npu"):
         format_list = [-1]
         shape_list = [1, (32, 3, 3)]
         shape_format = [
@@ -74,7 +74,7 @@ class TestDropOutBackward(TestCase):
         ]
         self.dropout_list_exec(shape_format)
 
-    def test_op_shape_format_fp32(self, device):
+    def test_op_shape_format_fp32(self, device="npu"):
         format_list = [-1]
         shape_list = [1, (32, 3, 3)]
         shape_format = [
@@ -82,6 +82,6 @@ class TestDropOutBackward(TestCase):
         ]
         self.dropout_list_exec(shape_format)
 
-instantiate_device_type_tests(TestDropOutBackward, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

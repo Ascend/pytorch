@@ -13,18 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import ddt
 import torch
 import torch_npu
-import torch.nn as nn
-import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import Dtypes, instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
+
+@instantiate_tests
 class TestRandom(TestCase):
+
     @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
-    def test_random_from_to(self, device, dtype):
+    def test_random_from_to(self, dtype):
         size = 2000
         alpha = 0.1
 
@@ -77,7 +79,7 @@ class TestRandom(TestCase):
                     )
     
     @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
-    def test_random_to(self, device, dtype):
+    def test_random_to(self, dtype):
         size = 2000
         alpha = 0.1
 
@@ -120,7 +122,7 @@ class TestRandom(TestCase):
                 )
 
     @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
-    def test_random_default(self, device, dtype):
+    def test_random_default(self, dtype):
         size = 2000
         alpha = 0.1
 
@@ -138,6 +140,5 @@ class TestRandom(TestCase):
         self.assertTrue((to_inc - alpha * to_inc) < t.to(torch.double).max() <= to_inc)
 
 
-instantiate_device_type_tests(TestRandom, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

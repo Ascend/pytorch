@@ -15,11 +15,11 @@
 import torch
 import  torch_npu
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestPackPaddedSequence(TestCase):
-    def test_pack_padded_sequence_fp32(self, device):
+    def test_pack_padded_sequence_fp32(self, device="npu"):
         data = torch.randn(6, 3, 2, dtype = torch.float32).npu()
         lengths = torch.tensor([6, 5, 3], dtype = torch.int64)
         expect_dim2 = data.view(18, 2).cpu()
@@ -28,7 +28,7 @@ class TestPackPaddedSequence(TestCase):
         self.assertRtolEqual(expect_dim2, out_dim2.cpu())
         self.assertRtolEqual(expect_batch_sizes, batch_sizes.cpu())
 
-    def test_pack_padded_sequence_fp16(self, device):
+    def test_pack_padded_sequence_fp16(self, device="npu"):
         data = torch.randn(6, 3, 2, dtype = torch.float16).npu()
         lengths = torch.tensor([6, 5, 3], dtype = torch.int64)
         expect_dim2 = data.view(18, 2).cpu()
@@ -37,6 +37,6 @@ class TestPackPaddedSequence(TestCase):
         self.assertRtolEqual(expect_dim2, out_dim2.cpu())
         self.assertRtolEqual(expect_batch_sizes, batch_sizes.cpu())
 
-instantiate_device_type_tests(TestPackPaddedSequence, globals(), except_for="cpu")
+
 if __name__ == "__main__":
     run_tests()

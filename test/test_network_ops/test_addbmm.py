@@ -16,9 +16,9 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestAddbmm(TestCase):
     def generate_scalar(self, dtype, min_d, max_d):
@@ -78,7 +78,7 @@ class TestAddbmm(TestCase):
         output = output.numpy()
         return output
 
-    def test_addbmm(self, device):
+    def test_addbmm(self, device="npu"):
         shape_format = [
             [[np.float32, 0, [3, 5]], [np.float32, 0, [10, 3, 4]], [np.float32, 0, [10, 4, 5]], "float32"],
             [[np.int32, 0, [3, 5]], [np.int32, 0, [10, 3, 4]], [np.int32, 0, [10, 4, 5]], "int32"]
@@ -103,7 +103,7 @@ class TestAddbmm(TestCase):
             self.assertRtolEqual(cpu_output, npu_output1)
             self.assertRtolEqual(cpu_output, npu_output2)
 
-        def test_addbmm_transpose(self, device):
+        def test_addbmm_transpose(self, device="npu"):
             shape_format = [
                 [[np.float32, 0, [4, 5]], [np.float32, 0, [10, 4, 7]], [np.float32, 0, [10, 5, 7]], "float32"],
                 [[np.int32, 0, [4, 5]], [np.int32, 0, [10, 4, 7]], [np.int32, 0, [10, 5, 7]], "int32"]
@@ -123,6 +123,5 @@ class TestAddbmm(TestCase):
                 self.assertRtolEqual(cpu_transpose_output, npu_transpose_output)
 
 
-instantiate_device_type_tests(TestAddbmm, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()

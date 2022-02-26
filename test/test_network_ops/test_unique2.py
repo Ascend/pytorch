@@ -18,12 +18,11 @@ import torch
 import torch_npu
 import numpy as np
 
-from torch_npu.testing.common_utils import TestCase, run_tests
-from torch_npu.testing.common_device_type import instantiate_device_type_tests
-from torch_npu.testing.util_test import create_common_tensor
+from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestUnique2(TestCase):
-    def test_unique2(self, device):
+    def test_unique2(self, device="npu"):
         shape_format = [
                         [[np.uint8, (2, 3)], True, True, True],
                         [[np.int8, (2, 3)], True, True, True],
@@ -53,6 +52,6 @@ class TestUnique2(TestCase):
             self.assertRtolEqual(cpu_yInverse.numpy().astype(np.float32), npu_yInverse.cpu().numpy().astype(np.float32))
             self.assertRtolEqual(cpu_yCounts.numpy().astype(np.float32), npu_yCounts.cpu().numpy().astype(np.float32))
 
-instantiate_device_type_tests(TestUnique2, globals(), except_for='cpu')
+
 if __name__ == "__main__":
     run_tests() 
