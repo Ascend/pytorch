@@ -24,7 +24,7 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
-from torch_npu.utils import apply_module_patch, serialization_patches
+from torch_npu.utils import apply_module_patch, add_tensor_methods, serialization_patches
 
 from .version import __version__ as __version__
 
@@ -81,13 +81,21 @@ def _apply_patches(monkey_patches):
         for attr in patch.__all__:
             setattr(dest_module, attr, getattr(patch, attr))
 
+
+def apply_class_patches():
+    apply_module_patch()
+    add_tensor_methods()
+
+
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
-apply_module_patch()
+apply_class_patches()
+
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
     torch_npu._C._npu_shutdown()
+
 
 #register npu shutdown hook on exit
 atexit.register(_npu_shutdown)
