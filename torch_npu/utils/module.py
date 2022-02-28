@@ -131,7 +131,7 @@ def cast_weight(self, device):
 
 
 def layernorm_forward(self, input: torch.Tensor) -> torch.Tensor:
-    if self.training:
+    if self.training or (not input.is_npu):
         return torch.nn.functional.layer_norm(
             input, self.normalized_shape, self.weight, self.bias, self.eps)
     else:
