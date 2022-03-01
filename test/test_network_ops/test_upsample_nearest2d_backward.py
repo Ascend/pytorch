@@ -48,7 +48,7 @@ class TestUpsampleNearest2DBackward(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             cpu_output, cpu_grad = self.cpu_op_exec(cpu_input, item[1])

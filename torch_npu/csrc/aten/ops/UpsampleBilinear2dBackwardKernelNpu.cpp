@@ -76,7 +76,7 @@ at::Tensor& NPUNativeFunctions::upsample_bilinear2d_backward_out(
     bool align_corners,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w,
-    Tensor& grad_input) {
+    at::Tensor& grad_input) {
 
   OpPreparation::CheckOut(
       {grad_output},
@@ -119,7 +119,7 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d_backward(
   bool isAicore = upsample_bilinear2d_backward_check_is_aicore(grad_output);
   if (!isAicore) {
     if (grad_output.scalar_type() != at::ScalarType::Float) {
-      grad_output = grad_output.npu_dtype_cast(at::ScalarType::Float);
+      grad_output = NPUNativeFunctions::npu_dtype_cast(grad_output, at::ScalarType::Float);
     }
   }
   auto outputSize = upsample_bilinear2d_backward_npu_output_size(

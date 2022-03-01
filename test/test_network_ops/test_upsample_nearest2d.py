@@ -41,7 +41,7 @@ class TestUpsamleNearest2D(TestCase):
 
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
-            if cpu_input == torch.float16:
+            if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]

@@ -30,7 +30,7 @@ at::Tensor& upsample_bilinear2d_out_npu_nocheck(
   bool half_pixel_centers = !align_corners;
   int64_t H = output_size[0];
   int64_t W = output_size[1];
-  SmallVector<int64_t, N> attr_size = {H, W};
+  at::SmallVector<int64_t, N> attr_size = {H, W};
   cmd.Name("ResizeBilinearV2")
       .Input(self)
       .Input(attr_size, at::kInt)
@@ -50,7 +50,7 @@ at::Tensor& NPUNativeFunctions::upsample_bilinear2d_out(
     at::Tensor& result){
   at::Tensor self = self_ex;
   if (self.scalar_type() != at::ScalarType::Float) {
-    self = self.npu_dtype_cast(at::ScalarType::Float);
+    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   auto outputSize = upsample_bilinear2d_npu_output_size(
       self, output_size, align_corners, scales_h, scales_w);
@@ -81,7 +81,7 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
     c10::optional<double> scales_w) {
   at::Tensor self = self_ex;
   if (self.scalar_type() != at::ScalarType::Float) {
-    self = self.npu_dtype_cast(at::ScalarType::Float);
+    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   auto outputSize = upsample_bilinear2d_npu_output_size(
       self, output_size, align_corners, scales_h, scales_w);
@@ -90,7 +90,7 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
   upsample_bilinear2d_out_npu_nocheck(
       result, self, output_size, align_corners, scales_h, scales_w);
   if (result.dtype() != self_ex.dtype()) {
-    result = result.npu_dtype_cast(self_ex.scalar_type());
+    result = NPUNativeFunctions::npu_dtype_cast(result, self_ex.scalar_type());
   }
   return result;
 }

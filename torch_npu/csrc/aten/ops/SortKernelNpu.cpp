@@ -54,7 +54,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::sort_out(
     }
     std::swap(perm[dim], perm[lastDim]);
 
-    at::Tensor transposeSelf = at::npu_transpose(self, perm);
+    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
     auto outputSize = transpose_npu_output_size(values, perm);
     at::Tensor transposeValues = OpPreparation::ApplyTensor(values, outputSize);
     at::Tensor transposeIndices =OpPreparation::ApplyTensor(indices, outputSize);
@@ -62,8 +62,8 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::sort_out(
     sort_out_npu_no_transpose(
         transposeSelf, lastDim, descending, transposeValues, transposeIndices);
     
-    at::npu_transpose_out(values, transposeValues, perm);
-    at::npu_transpose_out(indices, transposeIndices, perm);
+    NPUNativeFunctions::npu_transpose_out(transposeValues, perm, values);
+    NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
   } else {
     sort_out_npu_no_transpose(
         self, lastDim, descending, values, indices);

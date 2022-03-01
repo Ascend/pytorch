@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::floor_(at::Tensor& self) {
 }
 
 at::Tensor NPUNativeFunctions::floor(const at::Tensor& self) {
-  Tensor result = OpPreparation::ApplyTensor(self);
+  at::Tensor result = OpPreparation::ApplyTensor(self);
   floor_out_npu_nocheck(self, result);
   return result;
 }
