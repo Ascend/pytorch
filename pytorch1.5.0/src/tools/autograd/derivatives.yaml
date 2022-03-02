@@ -1704,3 +1704,9 @@
 
 - name: npu_silu(Tensor self) -> Tensor
   self: npu_silu_backward(grad, self, result)
+
+- name: _dropout_with_byte_mask(Tensor self, float p, Tensor(a!) mask) -> Tensor
+  self: _dropout_with_byte_mask_backward(grad, mask, p)
+
+- name: _dropout_with_byte_mask_(Tensor(a!) self, float p, Tensor(b!) mask) -> Tensor(a!)
+  self: _dropout_with_byte_mask_backward(grad, mask, p)

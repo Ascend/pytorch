@@ -20,7 +20,8 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor dropout_backward_npu(
+Tensor dropout_backward_impl(
+    const string& opType,
     const Tensor& grad_output,
     const Tensor& mask,
     double scale) {
@@ -34,7 +35,7 @@ Tensor dropout_backward_npu(
   Tensor result = OpPreparation::ApplyTensor(grad_output);
 
   OpCommand cmd;
-  cmd.Name("DropOutDoMask")
+  cmd.Name(opType)
       .Input(grad_output)
       .Input(mask)
       .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
@@ -42,6 +43,20 @@ Tensor dropout_backward_npu(
       .Run();
 
   return result;
+}
+
+Tensor dropout_backward_npu(
+    const Tensor& grad_output,
+    const Tensor& mask,
+    double scale) {
+  return dropout_backward_impl("DropOutDoMask", grad_output, mask, scale);
+}
+
+Tensor dropout_with_byte_mask_backward_npu(
+    const Tensor& grad_output,
+    const Tensor& mask,
+    double scale) {
+  return dropout_backward_impl("DropOutDoMaskV3", grad_output, mask, scale);
 }
 
 } // namespace native

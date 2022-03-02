@@ -8762,3 +8762,19 @@
 - func: npu_stride_copy.out(Tensor self, int[] shape, int[] stride, Scalar storage_offset, *, Tensor(a!) out) -> Tensor(a!)
   npu_dispatch_only:
     NPU: stride_copy_out_npu
+
+- func: dropout_with_byte_mask(Tensor self, float p, bool train) -> Tensor
+
+- func: dropout_with_byte_mask_(Tensor(a!) self, float p, bool train) -> Tensor(a!)
+
+- func: _dropout_with_byte_mask(Tensor self, float p, Tensor(a!) mask) -> Tensor
+  npu_dispatch_only:
+    NPU: _dropout_with_byte_mask_npu
+
+- func: _dropout_with_byte_mask_(Tensor(a!) self, float p, Tensor(b!) mask) -> Tensor(a!)
+  npu_dispatch_only:
+    NPU: _dropout_with_byte_mask_npu_
+
+- func: _dropout_with_byte_mask_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
+  npu_dispatch_only:
+    NPU: dropout_with_byte_mask_backward_npu

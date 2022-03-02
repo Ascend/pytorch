@@ -168,6 +168,7 @@ class TestTopK(TestCase):
         ]        
         self.topk_result(shape_format)
 
+
 instantiate_device_type_tests(TestTopK, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
