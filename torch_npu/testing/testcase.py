@@ -175,10 +175,11 @@ class TestCase(expecttest.TestCase):
             y = y.numpy()
         size = x.size
         if (x.shape != y.shape):
-            self.fail("shpae error")
+            self.fail("shape error")
         if (x.dtype != y.dtype):
             self.fail("dtype error")
-        dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]
+        dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, 
+                      np.float32, np.int8, np.uint8, np.int64, np.float64]
         if x.dtype not in dtype_list:
             self.fail("required dtype in [np.bool, np.uint16, np.int16, " +
                       "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
@@ -188,7 +189,7 @@ class TestCase(expecttest.TestCase):
                 self.fail("result error")
         elif (x.dtype == np.float16):
             compare_res(prec16, minimum16)
-        elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64]):
+        elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64, np.float64]):
             compare_res(prec, minimum)
         else:
             self.fail("required numpy object")

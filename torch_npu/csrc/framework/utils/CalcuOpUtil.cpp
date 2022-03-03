@@ -49,6 +49,7 @@ namespace at_npu
           {at::ScalarType::Float, ACL_FLOAT},
           {at::ScalarType::Bool, ACL_BOOL},
           {at::ScalarType::Long, ACL_INT64},
+          {at::ScalarType::Double, ACL_DOUBLE},
       };
 
       static std::map<const at::ScalarType, const string> AT_SCALAR_TYPE_NAME_MAP = {
