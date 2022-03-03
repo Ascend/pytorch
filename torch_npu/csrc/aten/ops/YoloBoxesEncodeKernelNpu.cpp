@@ -71,5 +71,6 @@ at::Tensor NPUNativeFunctions::npu_yolo_boxes_encode(
       .Run();
   return result;
 }
+
 } // namespace native
 } // namespace at_npu

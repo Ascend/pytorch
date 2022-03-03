@@ -1676,8 +1676,6 @@ supported:
   - replication_pad3d
   - replication_pad3d_backward.grad_input
   - replication_pad3d_backward
-  - upsample_bilinear2d.vec
-  - upsample_bilinear2d_backward.vec
   - upsample_trilinear3d.vec
   - upsample_trilinear3d_backward.vec
   - upsample_bicubic2d.vec
@@ -1933,6 +1931,10 @@ custom:
   - func: npu_yolo_boxes_encode(Tensor self, Tensor gt_bboxes, Tensor stride, bool performance_mode=False) -> Tensor
   - func: npu_scatter(Tensor self, Tensor indices, Tensor updates, int dim) -> Tensor
   - func: npu_layer_norm_eval(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05) -> Tensor
+  - func: npu_max_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
+  - func: npu_rotated_box_encode(Tensor self, Tensor gt_bboxes, Tensor weight) -> Tensor
+  - func: npu_rotated_box_decode(Tensor self, Tensor deltas, Tensor weight) -> Tensor
+  - func: npu_rotated_overlaps(Tensor self, Tensor query_boxes, bool trans=False) -> Tensor
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
@@ -1945,3 +1947,5 @@ custom_autograd:
   - func: npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
   - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor
   - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
+  - func: npu_max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  - func: npu_max.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)

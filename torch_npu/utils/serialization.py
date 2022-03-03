@@ -87,8 +87,9 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     elif isinstance(obj, nn.Module):
         obj = obj.cpu()
         se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+        
     else:
-        raise RuntimeError('torch.save received invalid input.')
+        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
 def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     """Loads data previously saved with the `save()` API.

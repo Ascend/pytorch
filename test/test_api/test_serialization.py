@@ -64,10 +64,13 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertTrue(number, number_loaded)
     
-    def test_save_error(self, device="npu"):
-        a = 44
-        with self.assertRaisesRegex(RuntimeError, "torch.save received invalid input."):
-            out = torch.save(a, 'a.pth')
+    def test_save_value(self, device="npu"):
+        x = 44
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertTrue(x, x_loaded)
 
     def test_serialization_model(self, device="npu"):
         with tempfile.TemporaryDirectory() as tmpdir:
