@@ -40,7 +40,7 @@ class TestFormatCast(TestCase):
         a = torch.rand(2, 3).npu()
         a.requires_grad = True
         b = torch_npu.npu_format_cast(a, 29)
-        if b.requires_grad != True:
+        if b.requires_grad is not True:
             print("the output.requires_grad of npu_format_cast should be same with input, but not so.")
             sys.exit(-1)
 
