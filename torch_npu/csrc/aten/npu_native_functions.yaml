@@ -1676,8 +1676,6 @@ supported:
   - replication_pad3d
   - replication_pad3d_backward.grad_input
   - replication_pad3d_backward
-  - upsample_bilinear2d.vec
-  - upsample_bilinear2d_backward.vec
   - upsample_trilinear3d.vec
   - upsample_trilinear3d_backward.vec
   - upsample_bicubic2d.vec
