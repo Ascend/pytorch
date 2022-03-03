@@ -1929,6 +1929,7 @@ custom:
   - func: npu_sub_sample(Tensor self, int per_images, float positive_fraction) -> Tensor
   - func: npu_yolo_boxes_encode(Tensor self, Tensor gt_bboxes, Tensor stride, bool performance_mode=False) -> Tensor
   - func: npu_scatter(Tensor self, Tensor indices, Tensor updates, int dim) -> Tensor
+  - func: npu_layer_norm_eval(Tensor input, int[] normalized_shape, Tensor? weight=None, Tensor? bias=None, float eps=1e-05) -> Tensor
   - func: npu_max_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
   - func: npu_rotated_box_encode(Tensor self, Tensor gt_bboxes, Tensor weight) -> Tensor
   - func: npu_rotated_box_decode(Tensor self, Tensor deltas, Tensor weight) -> Tensor
