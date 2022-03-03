@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from .module import apply_module_patch
+from .tensor_methods import add_tensor_methods
 from .serialization import save, load
 
 

@@ -41,7 +41,7 @@
 
 1.  编写测试脚本。
 
-    以add运算为例，在“pytorch/test/test\_npu/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
+    以add运算为例，在“pytorch/test/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
 
     以下示例仅为一个简单的用例实现，供用户参考。具体测试用例的实现，需要根据运算定义进行完整的覆盖才能保证功能的基本正确。
 
@@ -86,7 +86,7 @@
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # 定义具体add场景的测试用例，用例函数需要以test_开头
-        def test_add_shape_format_fp32_2d(self, device="npu"):
+        def test_add_shape_format_fp32_2d(self):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
