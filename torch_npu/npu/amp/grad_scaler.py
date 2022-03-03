@@ -22,8 +22,8 @@ import torch
 import torch_npu
 import torch.distributed as dist
 from torch._six import container_abcs
-from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, \
-    _refresh_per_optimizer_state, GradScaler
+from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, _refresh_per_optimizer_state
+from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
 from .common import amp_definitely_not_available
 
 
@@ -37,9 +37,9 @@ class _NpuMultiDeviceReplicator(_MultiDeviceReplicator):
         self._per_device_tensors: Dict[torch.device, torch.Tensor] = {}
 
 
-class NpuGradScaler(GradScaler):
+class GradScaler(Cuda_GradScaler):
     """
-    An instance ``scaler`` of :class:`NpuGradScaler` helps perform the steps of gradient scaling
+    An instance ``scaler`` of :class:`GradScaler` helps perform the steps of gradient scaling
     conveniently.
 
     * ``scaler.scale(loss)`` multiplies a given loss by ``scaler``'s current scale factor.
@@ -48,8 +48,8 @@ class NpuGradScaler(GradScaler):
 
     Example::
 
-        # Creates a NpuGradScaler once at the beginning of training.
-        scaler = NpuGradScaler()
+        # Creates a GradScaler once at the beginning of training.
+        scaler = GradScaler()
 
         for epoch in epochs:
             for input, target in data:
@@ -110,7 +110,7 @@ class NpuGradScaler(GradScaler):
                  dynamic=True,
                  enabled=True):
         if enabled and amp_definitely_not_available():
-            warnings.warn("torch_npu.amp.NpuGradScaler is enabled, but NPU is not available.  Disabling.")
+            warnings.warn("torch_npu.amp.GradScaler is enabled, but NPU is not available.  Disabling.")
             self._enabled = False
         else:
             self._enabled = enabled
@@ -135,7 +135,7 @@ class NpuGradScaler(GradScaler):
             self._dist_initialized = False
             self._dist_overflow_count = None
 
-        print("NpuGradScaler options are:")
+        print("GradScaler options are:")
         print("{:22} : {}".format("init_scale", init_scale))
         print("{:22} : {}".format("growth_factor", growth_factor))
         print("{:22} : {}".format("backoff_factor", backoff_factor))
@@ -157,7 +157,7 @@ class NpuGradScaler(GradScaler):
         """
         Multiplies ('scales') a tensor or list of tensors by the scale factor.
 
-        Returns scaled outputs.  If this instance of :class:`NpuGradScaler` is not enabled, outputs are returned
+        Returns scaled outputs.  If this instance of :class:`GradScaler` is not enabled, outputs are returned
         unmodified.
 
         Args:
@@ -171,7 +171,7 @@ class NpuGradScaler(GradScaler):
             assert self._dist_overflow_count is not None
 
         if self._dynamic and not self._clear_overflow_flag:
-            NpuGradScaler.clear_npu_overflow_flag()
+            GradScaler.clear_npu_overflow_flag()
             self._clear_overflow_flag = True
 
         # Short-circuit for the common case.
@@ -216,7 +216,7 @@ class NpuGradScaler(GradScaler):
         # Google says mypy struggles with defaultdicts type annotations.
         with torch.no_grad():
             if self._dynamic:
-                self._has_overflow = NpuGradScaler.get_npu_overflow_flag()
+                self._has_overflow = GradScaler.get_npu_overflow_flag()
             self._sync_dist_overflow_count()
             per_device_found_inf_tensor = per_device_found_inf.get(found_inf.device)
             if not self._has_overflow:
@@ -343,7 +343,7 @@ class NpuGradScaler(GradScaler):
         self._clear_overflow_flag = False
 
     def state_dict(self):
-        state = super(NpuGradScaler, self).state_dict()
+        state = super(GradScaler, self).state_dict()
         if self._enabled:
             state["dynamic"] = self._dynamic
         return state
@@ -354,9 +354,9 @@ class NpuGradScaler(GradScaler):
 
         if len(state_dict) == 0:
             raise RuntimeError("The source state dict is empty, possibly because it was saved "
-                               "from a disabled instance of NpuGradScaler.")
+                               "from a disabled instance of GradScaler.")
 
-        super(NpuGradScaler, self).load_state_dict(state_dict)
+        super(GradScaler, self).load_state_dict(state_dict)
         self._dynamic = state_dict["dynamic"]
 
     @staticmethod

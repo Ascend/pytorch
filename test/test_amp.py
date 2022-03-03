@@ -17,7 +17,7 @@ import pickle
 
 import torch
 import torch_npu
-from torch_npu.npu.amp import NpuGradScaler, NpuAutocast
+from torch_npu.npu.amp import GradScaler, autocast
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -28,7 +28,7 @@ class TestAmp(TestCase):
         float_tensor = float_tensor + float_tensor
 
     def test_grad_scaling_scale(self, device="npu"):
-        scaler = NpuGradScaler(init_scale=2.)
+        scaler = GradScaler(init_scale=2.)
         t0 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
         t1 = torch.full((1,), 4.0, dtype=torch.float32, device="npu")
         # Create some nested iterables of tensors on different devices.
@@ -40,8 +40,8 @@ class TestAmp(TestCase):
         
     def test_grad_scaling_state_dict(self, device="npu"):
         for lazy_init_scale in True, False:
-            s0 = NpuGradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
-            s1 = NpuGradScaler(init_scale=6., growth_factor=7., backoff_factor=.8, growth_interval=1)
+            s0 = GradScaler(init_scale=3., growth_factor=4., backoff_factor=.5, growth_interval=2)
+            s1 = GradScaler(init_scale=6., growth_factor=7., backoff_factor=.8, growth_interval=1)
 
             # sets a random value for load_state_dict to overwrite
             s1._init_growth_tracker = 7
@@ -93,7 +93,7 @@ class TestAmp(TestCase):
 
             # For functionality, test with a modest initial scale, and an unrealistically-large growth factor
             # so any potential errors with the growth factor handling will be magnified.
-            scaler = NpuGradScaler(init_scale=128., growth_factor=2.0, enabled=enabled, growth_interval=1)
+            scaler = GradScaler(init_scale=128., growth_factor=2.0, enabled=enabled, growth_interval=1)
 
             _ = run(data, mod_control, opt_control, scaler, loss_fn, skip_iter, False)
             ret = run(data, mod_scaling, opt_scaling, scaler, loss_fn, skip_iter, True)
@@ -122,7 +122,7 @@ class TestAmp(TestCase):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
-                with NpuAutocast(enabled=try_scaling_api):
+                with autocast(enabled=try_scaling_api):
                     output = model(input_data)
                     loss = loss_fn(output, target)
                 if try_scaling_api:
@@ -142,7 +142,7 @@ class TestAmp(TestCase):
         # sets atol=1e-3 because we're comparing pure fp32 arithmetic vs a mixture of fp16 and fp32
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
         # this will be picked up by try_pickle within run():
-        try_pickle = True
+        try_pickle = False    # Need to support the serialization of Scaler.
         self._run_scaling_case(run, unskipped=3, skipped=1, atol=1e-3)
 
     def test_grad_scaling_clipping(self, device="npu"):
@@ -255,7 +255,7 @@ class TestAmp(TestCase):
             mod_control1, mod_scaling1, opt_control1, opt_scaling1 = \
                 self._create_scaling_models_optimizers()
 
-            scaler = NpuGradScaler(init_scale=128., growth_factor=2.0, enabled=enabled, growth_interval=1)
+            scaler = GradScaler(init_scale=128., growth_factor=2.0, enabled=enabled, growth_interval=1)
 
             def run(model0, model1, optimizer0, optimizer1, try_scaling_api):
                 for i, (input_data, target) in enumerate(data):

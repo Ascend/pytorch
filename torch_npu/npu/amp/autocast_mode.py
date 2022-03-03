@@ -15,25 +15,25 @@
 # limitations under the License.
 
 import warnings
-from torch.cuda.amp import autocast
+from torch.cuda.amp import autocast as cuda_autocast
 from .common import amp_definitely_not_available
 
 
-class NpuAutocast(autocast):
+class autocast(cuda_autocast):
     r"""
-    Instances of :class:`NpuAutocast` serve as context managers or decorators that
+    Instances of :class:`autocast` serve as context managers or decorators that
     allow regions of your script to run in mixed precision.
 
-    In these regions, NPU ops run in an op-specific dtype chosen by NpuAutocast
+    In these regions, NPU ops run in an op-specific dtype chosen by autocast
     to improve performance while maintaining accuracy.
     See the :ref:`Autocast Op Reference<autocast-op-reference>` for details.
 
-    When entering an NpuAutocast-enabled region, Tensors may be any type.
+    When entering an autocast-enabled region, Tensors may be any type.
     You should not call ``.half()`` on your model(s) or inputs when using autocasting.
 
-    :class:`NpuAutocast` should wrap only the forward pass(es) of your network, including the loss
-    computation(s).  Backward passes under NpuAutocast are not recommended.
-    Backward ops run in the same type that NpuAutocast used for corresponding forward ops.
+    :class:`autocast` should wrap only the forward pass(es) of your network, including the loss
+    computation(s).  Backward passes under autocast are not recommended.
+    Backward ops run in the same type that autocast used for corresponding forward ops.
 
     Example::
 
@@ -45,7 +45,7 @@ class NpuAutocast(autocast):
             optimizer.zero_grad()
 
             # Enables autocasting for the forward pass (model + loss)
-            with NpuAutocast():
+            with autocast():
                 output = model(input)
                 loss = loss_fn(output, target)
 
@@ -56,19 +56,19 @@ class NpuAutocast(autocast):
     See the :ref:`Automatic Mixed Precision examples<amp-examples>` for usage (along with gradient scaling)
     in more complex scenarios (e.g., gradient penalty, multiple models/losses, custom autograd functions).
 
-    :class:`NpuAutocast` can also be used as a decorator, e.g., on the ``forward`` method of your model::
+    :class:`autocast` can also be used as a decorator, e.g., on the ``forward`` method of your model::
 
         class AutocastModel(nn.Module):
             ...
-            @NpuAutocast()
+            @autocast()
             def forward(self, input):
                 ...
 
-    Floating-point Tensors produced in an NpuAutocast-enabled region may be ``float16``.
-    After returning to an NpuAutocast-disabled region, using them with floating-point
+    Floating-point Tensors produced in an autocast-enabled region may be ``float16``.
+    After returning to an autocast-disabled region, using them with floating-point
     Tensors of different dtypes may cause type mismatch errors.  If so, cast the Tensor(s)
-    produced in the NpuAutocast region back to ``float32`` (or other dtype if desired).
-    If a Tensor from the NpuAutocast region is already ``float32``, the cast is a no-op,
+    produced in the autocast region back to ``float32`` (or other dtype if desired).
+    If a Tensor from the autocast region is already ``float32``, the cast is a no-op,
     and incurs no additional overhead.  Example::
 
         # Creates some tensors in default dtype (here assumed to be float32)
@@ -77,23 +77,23 @@ class NpuAutocast(autocast):
         c_float32 = torch.rand((8, 8), device="npu")
         d_float32 = torch.rand((8, 8), device="npu")
 
-        with NpuAutocast():
-            # torch.mm is on NpuAutocast's list of ops that should run in float16.
+        with autocast():
+            # torch.mm is on autocast's list of ops that should run in float16.
             # Inputs are float32, but the op runs in float16 and produces float16 output.
             # No manual casts are required.
             e_float16 = torch.mm(a_float32, b_float32)
             # Also handles mixed input types
             f_float16 = torch.mm(d_float32, e_float16)
 
-        # After exiting NpuAutocast, calls f_float16.float() to use with d_float32
+        # After exiting autocast, calls f_float16.float() to use with d_float32
         g_float32 = torch.mm(d_float32, f_float16.float())
 
-    Type mismatch errors *in* an NpuAutocast-enabled region are a bug; if this is what you observe,
+    Type mismatch errors *in* an autocast-enabled region are a bug; if this is what you observe,
     please file an issue.
 
-    ``NpuAutocast(enabled=False)`` subregions can be nested in NpuAutocast-enabled regions.
-    Locally disabling NpuAutocast can be useful, for example, if you want to force a subregion
-    to run in a particular ``dtype``.  Disabling NpuAutocast gives you explicit control over
+    ``autocast(enabled=False)`` subregions can be nested in autocast-enabled regions.
+    Locally disabling autocast can be useful, for example, if you want to force a subregion
+    to run in a particular ``dtype``.  Disabling autocast gives you explicit control over
     the execution type.  In the subregion, inputs from the surrounding region
     should be cast to ``dtype`` before use::
 
@@ -103,19 +103,19 @@ class NpuAutocast(autocast):
         c_float32 = torch.rand((8, 8), device="npu")
         d_float32 = torch.rand((8, 8), device="npu")
 
-        with NpuAutocast():
+        with autocast():
             e_float16 = torch.mm(a_float32, b_float32)
 
-            with NpuAutocast(enabled=False):
+            with autocast(enabled=False):
                 # Calls e_float16.float() to ensure float32 execution
                 # (necessary because e_float16 was created in an autocasted region)
                 f_float32 = torch.mm(c_float32, e_float16.float())
 
-            # No manual casts are required when re-entering the NpuAutocast-enabled region.
+            # No manual casts are required when re-entering the autocast-enabled region.
             # torch.mm again runs in float16 and produces float16 output, regardless of input types.
             g_float16 = torch.mm(d_float32, f_float32)
 
-    The NpuAutocast state is thread-local.  If you want it enabled in a new thread, the context manager or decorator
+    The autocast state is thread-local.  If you want it enabled in a new thread, the context manager or decorator
     must be invoked in that thread.  This affects :class:`torch.nn.DataParallel` and
     :class:`torch.nn.parallel.DistributedDataParallel` when used with more than one NPU per process
     (see :ref:`Working with Multiple GPUs<amp-multigpu>`).
@@ -125,7 +125,7 @@ class NpuAutocast(autocast):
     """
     def __init__(self, enabled=True):
         if enabled and amp_definitely_not_available():
-            warnings.warn("torch.npu.amp.NpuAutocast only affects NPU ops, but NPU is not available.  Disabling.")
+            warnings.warn("torch_npu.npu.amp.autocast only affects NPU ops, but NPU is not available.  Disabling.")
             self._enabled = False
         else:
             self._enabled = enabled
