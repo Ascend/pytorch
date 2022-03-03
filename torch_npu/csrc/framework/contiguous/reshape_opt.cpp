@@ -15,32 +15,28 @@
 
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    class ReshapeContiguousOpt : public ContiguousOpt
-    {
-    public:
-      bool Optimizer(const at::Tensor &src, at::Tensor &self) override
-      {
-        if (check_reshape_match(src, self))
-        {
-          RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
-          copy_d2d_by_memcpy(self, src, at::prod_intlist(self.storage().get_npu_desc().storage_sizes_));
-          return true;
-        }
-        return false;
-      }
+class ReshapeContiguousOpt : public ContiguousOpt {
+public:
+  bool Optimizer(at::Tensor &self, const at::Tensor &src,
+                 const ContiguousTensorDesc &src_desc) override {
+    ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
+    if (check_reshape_match(self_desc, src_desc)) {
+      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      copy_d2d_by_memcpy(self, src, at::prod_intlist(self_desc.storage_sizes_));
+      return true;
+    }
+    return false;
+  }
 
-      bool CanOptimizer(const at::Tensor &src) override
-      {
-        return check_reshape_match(src);
-      }
-    }; // class ReshapeContiguousOpt
+  bool CanOptimizer(const ContiguousTensorDesc &src_desc) override {
+    return check_reshape_match(src_desc);
+  }
+}; // class ReshapeContiguousOpt
 
-    REGISTER_COPY_OPT(reshape, ReshapeContiguousOpt)
+REGISTER_COPY_OPT(reshape, ReshapeContiguousOpt)
 
-  } // namespace native
+} // namespace native
 } // namespace at_npu

@@ -15,111 +15,95 @@
 
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    class ReshapeV2ContiguousOpt : public ContiguousOpt
-    {
-    public:
-      bool Optimizer(const at::Tensor &src, at::Tensor &self) override
-      {
-        if (check_reshape_match(src, self))
-        {
-          if (can_use_memory_repoint(src) &&
-              reshape_match_by_memory_repoint(src, self))
-          {
-            return true;
-          }
-          RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
-          copy_d2d_by_memcpy(
-              self,
-              src,
-              at::prod_intlist(self.storage().get_npu_desc().storage_sizes_));
-          return true;
-        }
-        return false;
+class ReshapeV2ContiguousOpt : public ContiguousOpt {
+public:
+  bool Optimizer(at::Tensor &self, const at::Tensor &src,
+                 const ContiguousTensorDesc &src_desc) override {
+    ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
+    if (check_reshape_match(self_desc, src_desc)) {
+      if (can_use_memory_repoint(src_desc) &&
+          reshape_match_by_memory_repoint(src, self)) {
+        return true;
       }
+      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      copy_d2d_by_memcpy(self, src, at::prod_intlist(self_desc.storage_sizes_));
+      return true;
+    }
+    return false;
+  }
 
-      bool CanOptimizer(const at::Tensor &src) override
-      {
-        return check_reshape_match(src);
+  bool CanOptimizer(const ContiguousTensorDesc &src_desc) override {
+    return check_reshape_match(src_desc);
+  }
+
+private:
+  template <typename dataDtype>
+  void ResetDataPtr(const at::Tensor &src, at::Tensor &self, dataDtype *value) {
+    dataDtype *src_data_ptr = value + src.storage_offset();
+    at::DataPtr self_data_ptr =
+        at::DataPtr(src_data_ptr, self.storage().device());
+    self.storage().set_data_ptr(std::move(self_data_ptr));
+  }
+
+  bool reshape_match_by_memory_repoint(const at::Tensor &src,
+                                       at::Tensor &self) {
+    RECORD_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
+    switch (src.scalar_type()) {
+    case at::ScalarType::Half:
+      ResetDataPtr(src, self,
+                   static_cast<at::Half *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Float:
+      ResetDataPtr(src, self,
+                   static_cast<float *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Byte:
+      ResetDataPtr(src, self,
+                   static_cast<uint8_t *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Char:
+      ResetDataPtr(src, self,
+                   static_cast<int8_t *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Short:
+      ResetDataPtr(src, self,
+                   static_cast<int16_t *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Int:
+      ResetDataPtr(src, self,
+                   static_cast<int *>(src.storage().data_ptr().get()));
+      return true;
+    case at::ScalarType::Long:
+      ResetDataPtr(src, self,
+                   static_cast<int64_t *>(src.storage().data_ptr().get()));
+      return true;
+    default:
+      // Turn to conducting d2dCopyAsync for other dtypes.
+      return false;
+    }
+  }
+
+  bool can_use_memory_repoint(const ContiguousTensorDesc &src_desc) {
+    if (FormatHelper::IsBaseFormatType(src_desc.npu_format_)) {
+      return true;
+    }
+
+    if (src_desc.npu_format_ == ACL_FORMAT_FRACTAL_NZ) {
+      // No padding
+      if ((src_desc.sizes_[src_desc.sizes_.size() - 1] % 16 == 0) &&
+          (src_desc.sizes_[src_desc.sizes_.size() - 2] % 16 == 0)) {
+        return true;
       }
+      return false;
+    }
+    return false;
+  }
+}; // class ReshapeV2ContiguousOpt
 
-    private:
-      template <typename dataDtype>
-      void ResetDataPtr(const at::Tensor &src, at::Tensor &self, const dataDtype *value)
-      {
-        const dataDtype *src_data_ptr = value + src.storage_offset();
-        at::DataPtr self_data_ptr =
-            at::DataPtr(const_cast<dataDtype *>(src_data_ptr), self.storage().device());
-        self.storage().set_data_ptr(std::move(self_data_ptr));
-      }
+REGISTER_COPY_OPT(reshapeV2, ReshapeV2ContiguousOpt)
 
-      bool reshape_match_by_memory_repoint(const at::Tensor &src, at::Tensor &self)
-      {
-        // Memory-repointing optimization hasn't been fully demonstrated, Only FP16
-        // and FP32 are supported.
-        RECORD_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
-        switch (src.scalar_type())
-        {
-        case at::ScalarType::Half:
-          ResetDataPtr(
-              src, self, static_cast<at::Half *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Float:
-          ResetDataPtr(
-              src, self, static_cast<float *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Byte:
-          ResetDataPtr(
-              src, self, static_cast<uint8_t *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Char:
-          ResetDataPtr(
-              src, self, static_cast<int8_t *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Short:
-          ResetDataPtr(
-              src, self, static_cast<int16_t *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Int:
-          ResetDataPtr(
-              src, self, static_cast<int *>(src.storage().data_ptr().get()));
-          return true;
-        case at::ScalarType::Long:
-          ResetDataPtr(
-              src, self, static_cast<int64_t *>(src.storage().data_ptr().get()));
-          return true;
-        default:
-          // Turn to conducting d2dCopyAsync for other dtypes.
-          return false;
-        }
-      }
-
-      bool can_use_memory_repoint(const at::Tensor &tensor)
-      {
-        auto tensorNpuDesc = tensor.storage().get_npu_desc();
-        if (FormatHelper::IsBaseFormatType(tensor))
-        {
-          return true;
-        }
-
-        if (tensorNpuDesc.npu_format_ == ACL_FORMAT_FRACTAL_NZ)
-        {
-          // No padding
-          if ((tensor.size(-1) % 16 == 0) && (tensor.size(-2) % 16 == 0))
-          {
-            return true;
-          }
-          return false;
-        }
-        return false;
-      }
-    }; // class ReshapeV2ContiguousOpt
-
-    REGISTER_COPY_OPT(reshapeV2, ReshapeV2ContiguousOpt)
-
-  } // namespace native
+} // namespace native
 } // namespace at_npu

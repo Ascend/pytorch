@@ -16,87 +16,98 @@
 #include <c10/npu/NPUStream.h>
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    class BroadcastContiguousOpt : public ContiguousOpt
-    {
-    public:
-      bool Optimizer(const at::Tensor &src, at::Tensor &self) override
-      {
-        if (self.dim() != src.dim())
-        {
+class BroadcastContiguousOpt : public ContiguousOpt {
+public:
+  bool Optimizer(at::Tensor &self, const at::Tensor &src,
+                 const ContiguousTensorDesc &src_desc) override {
+    if (self.dim() != src.dim()) {
+      return false;
+    }
+
+    if (can_use_broadcast(src_desc)) {
+      RECORD_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
+      bool can_contiguous = broadcast_to_contiguous(self, src, src_desc);
+      return can_contiguous;
+    }
+    return false;
+  }
+
+private:
+  bool can_use_broadcast(const ContiguousTensorDesc &src_desc) {
+    // Reshape is used to process dimension addition cases for expand/expand_as.
+    // Here, dimension expansion cases of expand/expand_as are processed.
+    const auto &base_sizes = src_desc.base_sizes_;
+    const auto &base_strides = src_desc.base_strides_;
+    const auto &view_sizes = src_desc.sizes_;
+    const auto &view_strides = src_desc.strides_;
+
+    // The new ones will be appended at the front.
+    // Any dimension of size 1 can be expanded to an arbitrary value.
+    auto base_dim = base_sizes.size();
+    auto view_dim = view_sizes.size();
+    auto expand_dims = view_dim - base_dim;
+    if (expand_dims < 0) {
+      return false;
+    }
+
+    bool has_zero_in_stride = false;
+    for (auto i = 0; i < base_dim; i++) {
+      if (view_strides[i + expand_dims] == 0) {
+        has_zero_in_stride = true;
+        if (base_sizes[i] != 1 || view_sizes[i + expand_dims] == 1) {
           return false;
         }
-
-        if (can_use_broadcast(src))
-        {
-          RECORD_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
-          bool can_contiguous = broadcast_to_contiguous(src, self);
-          return can_contiguous;
+      } else {
+        if (view_sizes[i + expand_dims] != base_sizes[i] ||
+            view_strides[i + expand_dims] != base_strides[i]) {
+          return false;
         }
+      }
+    }
+
+    for (auto i = 0; i < expand_dims; i++) {
+      if (view_sizes[i] != 1 && view_strides[i] != 0) {
         return false;
       }
+      has_zero_in_stride = true;
+    }
+    return has_zero_in_stride;
+  }
 
-    private:
-      bool can_use_broadcast(const at::Tensor &src)
-      {
-        bool can_use = false;
-        for (int64_t i = 0; i < src.dim(); i++)
-        {
-          if (src.stride(i) == 0)
-          {
-            can_use = true;
-            break;
-          }
-        }
-        return can_use;
+  bool broadcast_to_contiguous(at::Tensor &self, const at::Tensor &src,
+                               const ContiguousTensorDesc &src_desc) {
+    std::vector<int64_t> src_size(src.dim());
+    for (int64_t i = 0; i < src_desc.sizes_.size(); i++) {
+      if (src_desc.strides_[i] == 0) {
+        src_size[i] = 1;
+      } else {
+        src_size[i] = src_desc.sizes_[i];
       }
+    }
 
-      bool broadcast_to_contiguous(const at::Tensor &src, at::Tensor &self)
-      {
-        std::vector<int64_t> src_size(src.dim());
-        for (int64_t i = 0; i < src.dim(); i++)
-        {
-          if (src.stride(i) == 0)
-          {
-            src_size[i] = 1;
-          }
-          else
-          {
-            src_size[i] = src.size(i);
-          }
-        }
+    // create contiguous tensor for npu BroadcastToD
+    at::Tensor temp_src = at::empty({0}, src.options());
+    temp_src.set_(src);
+    temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(src_size,
+                                                          src.strides());
 
-        // create contiguous tensor for npu BroadcastToD
-        at::Tensor temp_src = at::empty({0}, src.options());
-        temp_src.set_(src);
-        temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(
-            src_size, src.strides());
+    c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
+    if (temp_src.is_contiguous()) {
+      auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
+      aclrtMemcpyAsync(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
+                       self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE, copy_stream);
+      return true;
+    }
+    return false;
+  }
 
-        c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
-        if (temp_src.is_contiguous())
-        {
-          auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
-          aclrtMemcpyAsync(
-              self.data_ptr(),
-              self.nbytes(),
-              temp_dst.data_ptr(),
-              self.nbytes(),
-              ACL_MEMCPY_DEVICE_TO_DEVICE,
-              copy_stream);
-          return true;
-        }
-        return false;
-      }
+}; // class BroadcastContiguousOpt
 
-    }; // class BroadcastContiguousOpt
+REGISTER_COPY_OPT(broadcast, BroadcastContiguousOpt)
 
-    REGISTER_COPY_OPT(broadcast, BroadcastContiguousOpt)
-
-  } // native
-} // at
+} // namespace native
+} // namespace at_npu

@@ -314,7 +314,7 @@ namespace at_npu
         // [1] memory-repoint: base format or NZ[1. key dims keep matched; 2. no padding]
         // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
         // [3] copy_: Universal method
-        std::vector<string> optimizations_reshape{"reshapeV2"};
+        OptimizationCases optimizations_reshape{"reshapeV2"};
         auto reshapeTensor =
             TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
         if (reshapeTensor.has_value())

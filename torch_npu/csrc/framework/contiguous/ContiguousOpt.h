@@ -16,46 +16,47 @@
 #ifndef __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 #define __PULGIN_NATIVE_CONTIGUOUS_CONTIGUOUS_OPTIMIZE__
 
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/framework/contiguous/contiguous_register.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include <ATen/record_function.h>
 
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
-#include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/contiguous/contiguous_register.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+namespace at_npu {
+namespace native {
 
-namespace at_npu
-{
-    namespace native
-    {
+class TransContiguous {
+public:
+  TransContiguous() {}
+  virtual ~TransContiguous() {}
+  static bool CheckClone(const at::Tensor &src, at::Tensor &self);
+  static ContiguousTensorDesc
+  GetTensorDescInfo(const at::Tensor &src,
+                    const OptimizationCases &opt_cases = optCasesDefault);
+  static bool can_optimize_(ContiguousTensorDesc &tensor_desc);
+  static bool CanOptimize(ContiguousTensorDesc &tensor_desc);
+  static bool CanOptimize(const at::Tensor &tensor,
+                          const OptimizationCases &opt_cases);
+  static bool
+  contiguous_optimize_with_anyformat_(at::Tensor &self, const at::Tensor &src,
+                                      ContiguousTensorDesc &src_desc);
+  static bool ContiguousOptimizeWithAnyFormat(
+      at::Tensor &self, const at::Tensor &src,
+      const OptimizationCases &opt_cases = optCasesAnyFormat);
+  static c10::optional<at::Tensor> ContiguousOptimizeWithAnyFormat(
+      const at::Tensor &src,
+      const OptimizationCases &opt_cases = optCasesAnyFormat);
+  static bool ContiguousOptimizeWithBaseFormat(
+      at::Tensor &self, const at::Tensor &src,
+      const OptimizationCases &opt_cases = optCasesDefault,
+      bool OpenCombined = true);
 
-        class TransContiguous
-        {
-        public:
-            TransContiguous() {}
-            virtual ~TransContiguous() {}
-            static std::vector<string> FindMatchOptimizationsKeywords(
-                const at::Tensor &tensor);
-            static bool CheckClone(const at::Tensor &src, at::Tensor &self);
-            static bool CanOptimize(const at::Tensor &src, std::vector<string> optimizations);
-            static bool ContiguousOptimizeWithAnyFormat(
-                at::Tensor &self,
-                const at::Tensor &src,
-                const std::vector<string> &optimizations = optimizations_any_format);
-            static c10::optional<at::Tensor> ContiguousOptimizeWithAnyFormat(
-                const at::Tensor &src,
-                const std::vector<string> &optimizations = optimizations_any_format);
-            static bool ContiguousOptimizeWithBaseFormat(
-                at::Tensor &self,
-                const at::Tensor &src,
-                std::vector<string> optimizations = optimizations_default,
-                bool OpenCombined = true);
+private:
+  static OptimizationCases optCasesDefault;
+  static OptimizationCases optCasesAnyFormat;
+};
 
-        private:
-            static const std::vector<string> optimizations_default;
-            static const std::vector<string> optimizations_any_format;
-        };
-
-    } // namespace native
+} // namespace native
 } // namespace at_npu
 
 #endif

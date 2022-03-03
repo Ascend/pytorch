@@ -685,7 +685,7 @@ namespace at_npu
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
                      c10::optional<c10::MemoryFormat> format) {
-      std::vector<string> opt_cases{"reshape", "slice"};
+      OptimizationCases opt_cases{"reshape", "slice"};
       if (TransContiguous::CanOptimize(src, opt_cases)) {
         auto formatTempTensor =
             TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
