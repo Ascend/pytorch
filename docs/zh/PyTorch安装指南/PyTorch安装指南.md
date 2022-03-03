@@ -268,6 +268,11 @@
 <p id="zh-cn_topic_0000001152616261_p1167163719217"><a name="zh-cn_topic_0000001152616261_p1167163719217"></a><a name="zh-cn_topic_0000001152616261_p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡（网卡名字字典序升序排列）&gt;docker 网卡 &gt; local网卡</p>
 </td>
 </tr>
+<tr id="zh-cn_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p2034724894619"><a name="zh-cn_topic_0000001152616261_p2034724894619"></a><a name="zh-cn_topic_0000001152616261_p2034724894619"></a>PTCOPY_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p53477489462"><a name="zh-cn_topic_0000001152616261_p53477489462"></a><a name="zh-cn_topic_0000001152616261_p53477489462"></a>使用PTCopy算子模式,加速转连续及Copy等过程，建议开启，开启设置为1。</p>
+</td>
+</tr>
 <tr id="row743212132309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p17433111312307"><a name="p17433111312307"></a><a name="p17433111312307"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p6433151393018"><a name="p6433151393018"></a><a name="p6433151393018"></a>（可选）设置是否开启日志打屏。</p>
@@ -318,6 +323,7 @@
 </tr>
 </tbody>
 </table>
+
 
 
 <h3 id="安装混合精度模块md">安装混合精度模块</h3>
