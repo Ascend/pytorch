@@ -8778,3 +8778,13 @@
 - func: _dropout_with_byte_mask_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
   npu_dispatch_only:
     NPU: dropout_with_byte_mask_backward_npu
+
+- func: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
+  variants: function, method
+  npu_dispatch_only:
+    NPU: dropout_with_add_softmax_npu
+
+- func: npu_dropout_with_add_softmax_backward(Tensor grad, Tensor mask, Tensor softmax_out, Scalar alpha, float prob, int dim) -> (Tensor, Tensor)
+  variants: function, method
+  npu_dispatch_only:
+    NPU: dropout_with_add_softmax_backward_npu

@@ -1710,3 +1710,7 @@
 
 - name: _dropout_with_byte_mask_(Tensor(a!) self, float p, Tensor(b!) mask) -> Tensor(a!)
   self: _dropout_with_byte_mask_backward(grad, mask, p)
+
+- name: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
+  output_differentiability: [False, False, True]
+  self, x1: npu_dropout_with_add_softmax_backward(grad, result0, result1, alpha, prob, dim)
