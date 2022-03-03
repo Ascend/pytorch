@@ -13,6 +13,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
@@ -21,6 +22,9 @@
 
 namespace at_npu {
 namespace native {
+using torch::autograd::Function;
+using torch::autograd::AutogradContext;
+using tensor_list = std::vector<at::Tensor>;
 
 at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
   string srcFormat = FormatHelper::GetFormatName(src);
@@ -59,7 +63,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tens
 }
 
 // conver self to acl_format, write the result into new result tensor
-at::Tensor NPUNativeFunctions::npu_format_cast(
+at::Tensor npu_format_cast_impl(
     const at::Tensor& src,
     int64_t acl_format) {
   c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
@@ -130,6 +134,30 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
 int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
   c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
   return src_desc.npu_format_;
+}
+
+class NPUFormatCastFunction : public torch::autograd::Function<NPUFormatCastFunction> {
+public:
+  static at::Tensor forward(AutogradContext *ctx,
+      const at::Tensor& self,
+      int64_t acl_format) {
+  ctx->saved_data["acl_format"] = acl_format;
+  at::AutoNonVariableTypeMode g;
+  return npu_format_cast_impl(self, acl_format);
+  }
+
+  static tensor_list backward(AutogradContext *ctx,
+      tensor_list grad_outputs) {
+    auto acl_format = ctx->saved_data["acl_format"].toInt();
+    at::Tensor result = grad_outputs[0];
+    tensor_list output = {result, at::Tensor()};
+    return output;
+  }
+};
+
+at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self,
+    int64_t acl_format) {
+  return NPUFormatCastFunction::apply(self, acl_format);
 }
 
 } // namespace native

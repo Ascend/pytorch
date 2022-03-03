@@ -36,6 +36,14 @@ class TestFormatCast(TestCase):
             print("expectValue: ", expectValue, " resultValue: ", torch_npu.get_npu_format(retTensor))
             sys.exit(-1)
 
+    def test_format_cast_backward(self, device="npu"):
+        a = torch.rand(2, 3).npu()
+        a.requires_grad = True
+        b = torch_npu.npu_format_cast(a, 29)
+        if b.requires_grad is not True:
+            print("the output.requires_grad of npu_format_cast should be same with input, but not so.")
+            sys.exit(-1)
+
     def test_format_cast_tensor(self, device="npu"):
         src_shape_format = [
             [np.float16, 0, (2, 2, 4, 4)],
