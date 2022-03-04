@@ -45,9 +45,11 @@ class TestBatchMatMulV2(TestCase):
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 10)
             if cpu_input1.dtype == torch.float16:
                 cpu_output, cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float())
-                cpu_output = cpu_output.half()
-                cpu_grad1 = cpu_grad1.half()
-                cpu_grad2 = cpu_grad2.half()
+                cpu_output = cpu_output.astype(np.float16)
+                cpu_grad1 = cpu_grad1.astype(np.float16)
+                cpu_grad2 = cpu_grad2.astype(np.float16)
+            else:
+                cpu_output, cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input1, cpu_input2)
 
             npu_output, npu_grad1, npu_grad2 = self.npu_op_exec(npu_input1, npu_input2)
             self.assertRtolEqual(cpu_output, npu_output)
