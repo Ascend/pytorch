@@ -19,7 +19,7 @@
 #include <ATen/ATen.h>
 #include <TH/THTensor.hpp>
 #include <c10/npu/NPUStream.h>
-
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 
@@ -50,14 +50,12 @@ static void storage_resize_npu(
       copy_size = storage.nbytes();
     }
     if (copy_size > 0) {
-      c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
-      aclError error = aclrtMemcpyAsync(
+      aclError error = c10::npu::queue::LaunchAsyncCopyTask(
           storage.data(),
           copy_size,
           old_data.get(),
           copy_size,
-          ACL_MEMCPY_DEVICE_TO_DEVICE,
-          copy_stream);
+          ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
         return;

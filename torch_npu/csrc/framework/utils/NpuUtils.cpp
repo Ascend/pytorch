@@ -19,6 +19,7 @@
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
@@ -210,15 +211,13 @@ namespace at_npu
     {
       auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
       at::Tensor src_new = OpPreparation::ApplyTensorWithFormat(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
-      c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
       int64_t numel = src_new.numel();
-      aclError error = aclrtMemcpyAsync(
+      aclError error = c10::npu::queue::LaunchAsyncCopyTask(
           src_new.data_ptr(),
           numel * src_new.element_size(),
           (uint8_t *)src.data_ptr() - src.storage_offset() * src.element_size(),
           numel * src.element_size(),
-          ACL_MEMCPY_DEVICE_TO_DEVICE,
-          copy_stream);
+          ACL_MEMCPY_DEVICE_TO_DEVICE);
       src_new.set_(src_new.storage(), src.storage_offset(), src.sizes(), src.strides());
 
       src_new.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NCHW;

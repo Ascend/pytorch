@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "third_party/acl/inc/acl/acl.h"
 
 
@@ -62,18 +63,16 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
     src_size = (src_element > src_storage) ? src_storage : src_element;
   }
 
-  c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
-  AT_NPU_CHECK(aclrtMemcpyAsync(
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
       self.data_ptr(),
       dst_size * self.itemsize(),
       src.data_ptr(),
       dst_size * self.itemsize(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE,
-      stream));
+      ACL_MEMCPY_DEVICE_TO_DEVICE));
   if (!non_blocking) {
+    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
     AT_NPU_CHECK(aclrtSynchronizeStream(stream));
   }
   return self;
