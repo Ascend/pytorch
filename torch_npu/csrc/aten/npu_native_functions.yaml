@@ -1904,8 +1904,6 @@ custom:
   - func: npu_slice.out(Tensor self, int[] offsets, int[] size, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_indexing(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0) -> Tensor
   - func: npu_indexing.out(Tensor self, int[] begin, int[] end, int[] strides, int begin_mask=0, int end_mask=0, int ellipsis_mask=0, int new_axis_mask=0, int shrink_axis_mask=0, *, Tensor(a!) out) -> Tensor(a!)
-  - func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
-    variants: function, method
   - func: npu_softmax_cross_entropy_with_logits_backward(Tensor grad, Tensor self, Tensor labels) -> Tensor
     variants: function, method
   - func: npu_stride_copy(Tensor self, int[] shape, int[] stride, Scalar storage_offset) -> Tensor
@@ -1948,3 +1946,5 @@ custom_autograd:
   - func: npu_max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_max.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
+  - func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
+    variants: function, method
