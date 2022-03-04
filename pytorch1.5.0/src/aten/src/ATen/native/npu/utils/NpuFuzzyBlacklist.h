@@ -27,7 +27,7 @@ class FuzzyCompileBlacklist {
 public:
   static FuzzyCompileBlacklist& GetInstance() {
     static FuzzyCompileBlacklist fuzzy_black_list;
-      return fuzzy_black_list;
+    return fuzzy_black_list;
   }
   void RegisterBlacklist(const std::string& blacklist);
   bool IsInBlacklist(const std::string& opName) const;
@@ -35,7 +35,8 @@ public:
   ~FuzzyCompileBlacklist() = default;
 private:
   FuzzyCompileBlacklist() {}
-  std::set<std::string> black_list_;
+  // (Ascend) Op AsStided cannot be used in fuzzy compile now.
+  std::set<std::string> black_list_ = {"AsStrided"};
 };
 
 
