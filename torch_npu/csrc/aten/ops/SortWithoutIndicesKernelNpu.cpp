@@ -19,11 +19,13 @@
 
 namespace at_npu {
 namespace native {
-at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
+
+at::Tensor& npu_sort_v2_out_nocheck(
     const at::Tensor& self,
     int64_t dim,
     bool descending,
     at::Tensor& result) {
+
   OpCommand cmd;
   cmd.Name("SortV2")
       .Input(self)
@@ -35,15 +37,36 @@ at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
+    const at::Tensor& self,
+    int64_t dim,
+    bool descending,
+    at::Tensor& result) {
+  
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+  
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    at::Tensor newResult = npu_sort_v2_out_nocheck(self, dim, descending, contiguousResult);
+    NpuUtils::format_fresh_view(result, newResult);
+  } else {
+    npu_sort_v2_out_nocheck(self, dim, descending, result);
+  }
+  
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::npu_sort_v2(
     const at::Tensor& self,
     int64_t dim,
     bool descending) {
-  auto outputSize = input_same_output_size(self);
 
   at::Tensor result = OpPreparation::ApplyTensor(self);
   
-  npu_sort_v2_out(self, dim, descending, result);
+  npu_sort_v2_out_nocheck(self, dim, descending, result);
   
   return result;
 }

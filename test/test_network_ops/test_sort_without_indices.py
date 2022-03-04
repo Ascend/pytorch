@@ -45,15 +45,18 @@ class TestSortWithoutIndices(TestCase):
         output = output.numpy()
         return output
     
-    def test_sort_v2_shape_format(self, device="npu"):
-        shape_format = [
-                [[np.float16, 0, (1, 5000)]],
-                [[np.float16, 0, (1, 50000)]],
-                [[np.float16, 0, (1, 289600)], False],
-                [[np.float16, 0, (1, 409600)], True]
-        ]
+    def create_shape_format(self):
+        dtype_list = [np.float16]
+        format_list = [0]
+        shape_list = [(1, 5000), (1, 50000), (1, 289600), (1, 409600)]
+        descend_list = [True, False]
 
-        for item in shape_format:
+        shape_format = [[[i, j, k], h] for i in dtype_list
+                        for j in format_list for k in shape_list for h in descend_list]
+        return shape_format
+
+    def test_sort_v2_shape_format(self):
+        for item in self.create_shape_format():
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             if len(item) == 1:
                 cpu_output = self.cpu_default_op_exec(cpu_input1.to(torch.float))
@@ -64,14 +67,7 @@ class TestSortWithoutIndices(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
     
     def test_sort_v2_shape_format_big_range(self, device="npu"):
-        shape_format = [
-                [[np.float16, 0, (1, 5000)]],
-                [[np.float16, 0, (1, 50000)]],
-                [[np.float16, 0, (1, 289600)], False],
-                [[np.float16, 0, (1, 409600)], True]
-        ]
-
-        for item in shape_format:
+        for item in self.create_shape_format():
             cpu_input1, npu_input1 = create_common_tensor(item[0], -60000, 60000)
             if len(item) == 1:
                 cpu_output = self.cpu_default_op_exec(cpu_input1.to(torch.float))
