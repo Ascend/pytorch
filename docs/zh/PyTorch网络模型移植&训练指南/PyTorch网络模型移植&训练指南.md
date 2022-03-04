@@ -1601,12 +1601,12 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h4 id="NPU上AMP的使用方法md">NPU上AMP的使用方法</h4>
 
-1. 模型从GPU适配到NPU时，需要修改代码torch.cuda.amp修改为torch.npu.amp。
-2. 当前Pytroch1.8.1 AMP增加了dynamic选项（默认为True）,设置为False时，AMP能支持静态Loss Scale。
+1. 模型从GPU适配到NPU时，torch.cuda.amp需要改为torch.npu.amp，with autocast()需要改为with NpuAutocast()，scaler = GradScaler()需要改为scaler = NpuGradScaler()。
+2. 当前Pytroch1.8.1 AMP增加了dynamic选项（默认为True），设置为False时，AMP能支持静态Loss Scale。
 
 <h4 id="注意事项md">注意事项</h4>
 
-1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with NPUautocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
+1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with Npuautocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
 4. 当前1.8.1AMP不支持tensor融合功能。
 
 <h2 id="模型训练md">模型训练</h2>
