@@ -158,7 +158,7 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 
 ### 环境准备
 
-请参见《PyTorch安装指南》进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
+请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
 
 参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
 
@@ -717,7 +717,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 <h2 id="环境准备md">环境准备</h2>
 
-请参见《PyTorch安装指南》进行PyTorch及混合精度模块安装，并配置环境变量。
+请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch及混合精度模块安装，并配置环境变量。
 
 <h2 id="模型迁移md">模型迁移</h2>
 
@@ -1580,6 +1580,34 @@ def main():
     optimizer.step()
     ```
 
+<h3 id="Pytorch1.8.1  AMP 在NPU上的使用说明md">Pytorch1.8.1  AMP 在NPU上的使用说明</h3>
+
+<h4 id=总体说明md">总体说明</h4>
+
+Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale），也是通过将部分算子的输入转换为fp16类型来实现混合精度的训练。
+
+<h4 id="AMP使用场景md">AMP使用场景</h4>
+
+1. 典型场景。
+
+2. 梯度累加场景。
+
+3. 多Models,Losses,and Optimizers场景。
+
+4. DDP场景（one NPU per process）。
+
+
+目前针对pytorch1.8.1框架仅支持以上4种场景，更多场景使用请参考pytorch官方操作指南。
+
+<h4 id="NPU上AMP的使用方法md">NPU上AMP的使用方法</h4>
+
+1. 模型从GPU适配到NPU时，torch.cuda.amp需要改为torch.npu.amp，with autocast()需要改为with NpuAutocast()，scaler = GradScaler()需要改为scaler = NpuGradScaler()。
+2. 当前Pytroch1.8.1 AMP增加了dynamic选项（默认为True），设置为False时，AMP能支持静态Loss Scale。
+
+<h4 id="注意事项md">注意事项</h4>
+
+1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with Npuautocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
+4. 当前1.8.1AMP不支持tensor融合功能。
 
 <h2 id="模型训练md">模型训练</h2>
 
@@ -2257,7 +2285,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
   若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
 
-- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见《PyTorch安装指南》。
+- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 。
 
   - 在NPU环境PyTorch安装
 
