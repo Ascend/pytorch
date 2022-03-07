@@ -202,11 +202,11 @@ public:
     return inputs_;
   }
 
-void AddExtInfo(NodeExtInfoType ext_info_type, any any_attr) {
+  void AddExtInfo(NodeExtInfoType ext_info_type, c10::Any any_attr) {
     ext_info_.emplace_back(ext_info_type, std::move(any_attr));
   }
 
-  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum>&
+  SmallVector<std::pair<NodeExtInfoType, c10::Any>, kDefaultMaxInputNum>&
   GetExtInfo() {
     return ext_info_;
   }
@@ -216,7 +216,7 @@ private:
   std::shared_ptr<ge::Operator> ge_op_ = nullptr;
   hash_t node_hash_ = hash_utils::hash_seed;
   SmallVector<NodeInput, kDefaultMaxInputNum> inputs_;
-  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum> ext_info_;
+  SmallVector<std::pair<NodeExtInfoType, c10::Any>, kDefaultMaxInputNum> ext_info_;
 };
 
 } // namespace graph

@@ -23,23 +23,35 @@ from util_test import create_common_tensor
 
 class TestGridSampler(TestCase):
     def cpu_op_exec(self, input1, sample):
+        input1.requires_grad = True
+        sample.requires_grad = True
         output = torch.grid_sampler(input1, sample, 0, 0, True)
-        output = output.numpy()
-        return output
+        output.backward(torch.ones_like(output))
+        input_grad = input1.grad.numpy()
+        sample_grad = sample.grad.numpy()
+        return input_grad, sample_grad
 
     def npu_op_exec(self, input1, sample):
+        input1.requires_grad = True
+        sample.requires_grad = True
         output = torch.grid_sampler(input1, sample, 0, 0, True)
-        output = output.to("cpu")
-        output = output.numpy()
-        return output
+        output.backward(torch.ones_like(output))
+        input_grad = input1.grad.to("cpu").numpy()
+        sample_grad = sample.grad.to("cpu").numpy()
+        return input_grad, sample_grad
 
     def cpu_op_fp16_exec(self, input1, sample):
         input1 = input1.to(torch.float32)
         sample = sample.to(torch.float32)
+        input1.requires_grad = True
+        sample.requires_grad = True
         output = torch.grid_sampler(input1, sample, 0, 0, True)
-        output = output.numpy()
-        output = output.astype(np.float16)
-        return output
+        output.backward(torch.ones_like(output))
+        input_grad = input1.grad.numpy()
+        sample_grad = sample.grad.numpy()
+        input_grad = input_grad.astype(np.float16)
+        sample_grad = sample_grad.astype(np.float16)
+        return input_grad, sample_grad
 
     def test_grid_sampler_fp32(self, device):
         format_list = [0]
@@ -51,9 +63,10 @@ class TestGridSampler(TestCase):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
-            cpu_output = self.cpu_op_exec(cpu_input, cpu_sample)
-            npu_output = self.npu_op_exec(npu_input, npu_sample)
-            self.assertRtolEqual(cpu_output, npu_output)
+            cpu_grad1, cpu_grad2 = self.cpu_op_exec(cpu_input, cpu_sample)
+            npu_grad1, npu_grad2 = self.npu_op_exec(npu_input, npu_sample)
+            self.assertRtolEqual(cpu_grad1, npu_grad1)
+            self.assertRtolEqual(cpu_grad2, npu_grad2)
 
     def test_grid_sampler_fp16(self, device):
         format_list = [0]
@@ -65,10 +78,11 @@ class TestGridSampler(TestCase):
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item, 0, 10)
             cpu_sample, npu_sample = create_common_tensor(sample_format, -1, 1)
-            cpu_output = self.cpu_op_fp16_exec(cpu_input, cpu_sample)
-            npu_output = self.npu_op_exec(npu_input, npu_sample)
-            self.assertRtolEqual(cpu_output, npu_output)
-
+            cpu_grad1, cpu_grad2 = self.cpu_op_fp16_exec(cpu_input, cpu_sample)
+            npu_grad1, npu_grad2 = self.npu_op_exec(npu_input, npu_sample)
+            self.assertRtolEqual(cpu_grad1, npu_grad1)
+            self.assertRtolEqual(cpu_grad2, npu_grad2)
+        
 instantiate_device_type_tests(TestGridSampler, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

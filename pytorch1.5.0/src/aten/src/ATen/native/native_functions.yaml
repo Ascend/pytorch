@@ -1769,8 +1769,6 @@
 # `align_corners = True`.
 - func: grid_sampler(Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> Tensor
   use_c10_dispatcher: full
-  npu_dispatch:
-    NPU: grid_sampler_npu
 
 - func: grid_sampler_2d(Tensor input, Tensor grid, int interpolation_mode, int padding_mode, bool align_corners) -> Tensor
   use_c10_dispatcher: full
@@ -8767,13 +8765,13 @@
 
 - func: dropout_with_byte_mask_(Tensor(a!) self, float p, bool train) -> Tensor(a!)
 
-- func: _dropout_with_byte_mask(Tensor self, float p, Tensor(a!) mask) -> Tensor
+- func: _dropout_with_byte_mask(Tensor self, float p) -> (Tensor, Tensor)
   npu_dispatch_only:
     NPU: _dropout_with_byte_mask_npu
 
-- func: _dropout_with_byte_mask_(Tensor(a!) self, float p, Tensor(b!) mask) -> Tensor(a!)
+- func: _dropout_with_byte_mask_inplace(Tensor(a!) result, float p) -> (Tensor(a!), Tensor)
   npu_dispatch_only:
-    NPU: _dropout_with_byte_mask_npu_
+    NPU: _dropout_with_byte_mask_npu_inplace
 
 - func: _dropout_with_byte_mask_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
   npu_dispatch_only:

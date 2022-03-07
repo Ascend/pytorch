@@ -1705,11 +1705,11 @@
 - name: npu_silu(Tensor self) -> Tensor
   self: npu_silu_backward(grad, self, result)
 
-- name: _dropout_with_byte_mask(Tensor self, float p, Tensor(a!) mask) -> Tensor
-  self: _dropout_with_byte_mask_backward(grad, mask, p)
+- name: _dropout_with_byte_mask(Tensor self, float p) -> (Tensor, Tensor)
+  self: _dropout_with_byte_mask_backward(grad, result1, p)
 
-- name: _dropout_with_byte_mask_(Tensor(a!) self, float p, Tensor(b!) mask) -> Tensor(a!)
-  self: _dropout_with_byte_mask_backward(grad, mask, p)
+- name: _dropout_with_byte_mask_inplace(Tensor(a!) result, float p) -> (Tensor(a!), Tensor)
+  self: _dropout_with_byte_mask_backward(grad, result1, p)
 
 - name: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
   output_differentiability: [False, False, True]

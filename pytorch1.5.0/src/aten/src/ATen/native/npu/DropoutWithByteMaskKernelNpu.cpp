@@ -38,8 +38,12 @@ Tensor dropout_do_mask_with_byte_mask(
   return result;
 }
 
-void dropout_gen_byte_mask(const Tensor& self, Scalar prob, Tensor &mask) {
+Tensor dropout_gen_byte_mask(const Tensor& self, Scalar prob) {
   IntArrayRef selfShape = self.sizes();
+  Tensor mask = at::empty_with_format(
+      selfShape,
+      self.options().dtype(at::kByte),
+      ACL_FORMAT_ND);
   OpCommand cmd;
   // If either seed or seed2 are set to be non-zero, the random number generator
   // is seeded by the given seed. Otherwise, it is seeded by a random seed.
@@ -59,13 +63,13 @@ void dropout_gen_byte_mask(const Tensor& self, Scalar prob, Tensor &mask) {
       .Attr("seed", seed)
       .Attr("seed2", seed2)
       .Run();
+  return mask;
 }
 
-Tensor& dropout_npu_impl(
-    Tensor &result,
+std::tuple<Tensor, Tensor> dropout_npu_impl(
+    Tensor result,
     const Tensor& self,
-    double p,
-    Tensor &mask) {
+    double p) {
   Tensor selfCp = NpuUtils::format_contiguous(self);
   TORCH_CHECK(
       p >= 0 && p <= 1,
@@ -76,6 +80,7 @@ Tensor& dropout_npu_impl(
 
   double retain = 1. - p;
   Scalar prob = Scalar(retain);
+  Tensor mask;
   auto original_stream = c10::npu::getCurrentNPUStream();
   {
     // During the life cycle of this raii instance, the calcu stream is set as the
@@ -83,31 +88,27 @@ Tensor& dropout_npu_impl(
     // same time, according to the one-stream-one-pool principle, memory is also
     // alloced from the pool of the secondary stream.
     c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-    dropout_gen_byte_mask(selfCp, prob, mask);
+    mask = dropout_gen_byte_mask(selfCp, prob);
   }
   // When tasks on multiple streams read and write the same block of memory,
   // recordStream needs to be called to ensure the correctness of memory reuse.
   c10::npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
   dropout_do_mask_with_byte_mask(result, selfCp, mask, prob);
 
-  return result;
+  return std::tie(result, mask);
 }
 
-Tensor _dropout_with_byte_mask_npu(
+std::tuple<Tensor, Tensor> _dropout_with_byte_mask_npu(
     const Tensor& self,
-    double p,
-    Tensor &mask) {
+    double p) {
   Tensor result = OpPreparation::ApplyTensor(self);
-  dropout_npu_impl(result, self, p, mask);
-  return result;
+  return dropout_npu_impl(result, self, p);
 }
 
-Tensor& _dropout_with_byte_mask_npu_(
+std::tuple<Tensor, Tensor> _dropout_with_byte_mask_npu_inplace(
     Tensor& self,
-    double p,
-    Tensor &mask) {
-   dropout_npu_impl(self, self, p, mask);
-   return self;
+    double p) {
+   return dropout_npu_impl(self, self, p);
 }
 
 Tensor dropout_with_byte_mask(const Tensor& self, double p, bool train) {
@@ -120,11 +121,7 @@ Tensor dropout_with_byte_mask(const Tensor& self, double p, bool train) {
   if (p == 1) {
     return self.mul(at::zeros(self.sizes(), self.options()));
   }
-  Tensor mask = at::empty_with_format(
-      self.sizes(),
-      self.options().dtype(at::kByte),
-      ACL_FORMAT_ND);
-  return at::_dropout_with_byte_mask(self, p, mask);
+  return std::get<0>(at::_dropout_with_byte_mask(self, p));
 }
 
 Tensor& dropout_with_byte_mask_(Tensor& self, double p, bool train) {
@@ -137,16 +134,13 @@ Tensor& dropout_with_byte_mask_(Tensor& self, double p, bool train) {
   if (p == 1) {
     return self.mul_(at::zeros(self.sizes(), self.options()));
   }
-  Tensor mask = at::empty_with_format(
-      self.sizes(),
-      self.options().dtype(at::kByte),
-      ACL_FORMAT_ND);
+
   if (!NpuUtils::check_match(&self)) {
     Tensor result = NpuUtils::format_contiguous(self);
-    at::_dropout_with_byte_mask_(result, p, mask);
+    at::_dropout_with_byte_mask_inplace(result, p);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    at::_dropout_with_byte_mask_(self, p, mask);
+    at::_dropout_with_byte_mask_inplace(self, p);
   }
   return self;
 }

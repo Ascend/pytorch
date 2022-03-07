@@ -17,7 +17,7 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 from common_utils import TestCase, run_tests
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.npu_functional as F
 
 class TestDropoutWithByteMaskBackward(TestCase):
     def npu_op_exec(self, input1, prob):
