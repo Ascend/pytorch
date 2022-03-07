@@ -158,7 +158,7 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 
 ### 环境准备
 
-请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
+请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/2.0.4.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
 
 参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
 
@@ -717,7 +717,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 <h2 id="环境准备md">环境准备</h2>
 
-请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch及混合精度模块安装，并配置环境变量。
+请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/2.0.4.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch及混合精度模块安装，并配置环境变量。
 
 <h2 id="模型迁移md">模型迁移</h2>
 
@@ -1601,12 +1601,12 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h4 id="NPU上AMP的使用方法md">NPU上AMP的使用方法</h4>
 
-1. 模型从GPU适配到NPU时，torch.cuda.amp需要改为torch.npu.amp，with autocast()需要改为with NpuAutocast()，scaler = GradScaler()需要改为scaler = NpuGradScaler()。
-2. 当前Pytroch1.8.1 AMP增加了dynamic选项（默认为True），设置为False时，AMP能支持静态Loss Scale。
+1. 模型从GPU适配到NPU时，torch.cuda.amp需要改为torch.npu.amp，with Autocast()需要改为with NpuAutocast()，scaler = GradScaler()需要改为scaler = NpuGradScaler()。
+2. 当前Pytroch1.8.1 AMP工具中GradScaler增加了dynamic选项（默认为True），设置为False时，AMP能支持静态Loss Scale。
 
 <h4 id="注意事项md">注意事项</h4>
 
-1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with Npuautocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
+1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with NpuAutocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
 4. 当前1.8.1AMP不支持tensor融合功能。
 
 <h2 id="模型训练md">模型训练</h2>
@@ -2087,12 +2087,12 @@ E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获�
 添加with语句使能E2E prof功能
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
 
-- profiler_result_path表示prof结果保存路径，默认为当前路径。
+- profiler_result_path表示prof结果保存路径，默认为当前路径，若设置其他路径请确保路径已存在。
 - use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
 
 （因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
@@ -2103,7 +2103,7 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
 
 1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
 
-2. 切换至如上图./result路径后，执行脚本。
+2. 切换至如上图./results/PROF_***路径后，执行下述脚本，其中PROF_***文件夹为自动生成的文件夹。
 
    ```
    /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
@@ -2285,7 +2285,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
   若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
 
-- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 。
+- 安装支持dump功能的Ascend PyTorch框架，编译前请修改build.sh脚本，其余操作请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/2.0.4.tr5/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 。
 
   - 在NPU环境PyTorch安装
 
