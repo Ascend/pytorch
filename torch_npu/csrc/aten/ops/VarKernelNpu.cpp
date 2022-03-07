@@ -221,5 +221,6 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::var_mean(const at::Tensor& sel
 
   return NPUNativeFunctions::var_mean(self, dim, unbiased, false);
 }
+
 } // namespace native
 } // namespace at_npu

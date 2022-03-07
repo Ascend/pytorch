@@ -143,7 +143,7 @@ class TestVar(TestCase):
             npu_input = npu_input.npu_format_cast(npuformat)
         return cpu_input, npu_input
         
-    def test_var_shape_format_fp16(self, device="npu"):
+    def test_var_shape_format_fp16(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -158,7 +158,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_exec(npu_input, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_var_shape_format_fp32(self, device="npu"):
+    def test_var_shape_format_fp32(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -171,7 +171,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_exec(npu_input, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_var_dim_shape_format_fp16(self, device="npu"):
+    def test_var_dim_shape_format_fp16(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -189,7 +189,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_var_dim_shape_format_fp32(self, device="npu"):
+    def test_var_dim_shape_format_fp32(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -205,7 +205,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_dim_exec(npu_input, item[3], item[4], item[5])
             self.assertRtolEqual(cpu_output, npu_output)
     
-    def test_var_names_dim_shape_format_fp16(self, device="npu"):
+    def test_var_names_dim_shape_format_fp16(self):
         format_list = [-1]
         shape_list1 = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -223,7 +223,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_names_dim_exec(npu_input, item[3], item[4], item[5])       
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_var_names_dim_shape_format_fp32(self, device="npu"):
+    def test_var_names_dim_shape_format_fp32(self):
         format_list = [-1]
         shape_list1 = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -240,7 +240,7 @@ class TestVar(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
 
-    def test_var_out_shape_format_fp16(self, device="npu"):
+    def test_var_out_shape_format_fp16(self):
         format_list1 = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -261,7 +261,7 @@ class TestVar(TestCase):
             cpu_output1 = cpu_output1.astype(np.float16)
             self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test_var_out_shape_format_fp32(self, device="npu"):
+    def test_var_out_shape_format_fp32(self):
         format_list1 = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -279,7 +279,7 @@ class TestVar(TestCase):
             npu_output1 = self.npu_op_out_exec(npu_input1, item[3], npu_output, item[4], item[5])
             self.assertRtolEqual(cpu_output1, npu_output1)
 
-    def test__var_shape_format_fp16(self, device="npu"):
+    def test__var_shape_format_fp16(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -295,7 +295,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_var_exec(npu_input, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test__var_shape_format_fp32(self,device):
+    def test__var_shape_format_fp32(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -309,7 +309,7 @@ class TestVar(TestCase):
             npu_output = self.npu_op_var_exec(npu_input, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_var_mean_shape_format_fp16(self, device="npu"):
+    def test_var_mean_shape_format_fp16(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -327,7 +327,7 @@ class TestVar(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_mean_shape_format_fp32(self, device="npu"):
+    def test_var_mean_shape_format_fp32(self):
         format_list = [-1]
         shape_list = [[32, 24], [32, 8, 24]]
         unbiased_list = [True, False]
@@ -342,7 +342,7 @@ class TestVar(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_mean_dim_shape_format_fp16(self, device="npu"):
+    def test_var_mean_dim_shape_format_fp16(self):
         format_list1 = [-1]
         shape_list1 = [[32, 24], [32, 8, 24]]
         dim_list = [0]
@@ -362,7 +362,7 @@ class TestVar(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_mean_dim_shape_format_fp32(self, device="npu"):
+    def test_var_mean_dim_shape_format_fp32(self):
         format_list = [-1]
         shape_list = [[32, 1024], [32, 8, 1024]]
         dim_list = [0]
@@ -379,7 +379,7 @@ class TestVar(TestCase):
             self.assertRtolEqual(cpu_output1, npu_output1)
             self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_mean_names_dim_shape_format_fp16(self, device="npu"):
+    def test_var_mean_names_dim_shape_format_fp16(self):
         shape = (1024, 8, 32)
         dimlist = ['N', 'C', 'H']
         cpu_input = torch.rand(shape, dtype=torch.float32)
@@ -395,7 +395,7 @@ class TestVar(TestCase):
         self.assertRtolEqual(cpu_output1, npu_output1)
         self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_mean_names_dim_shape_format_fp32(self, device="npu"):
+    def test_var_mean_names_dim_shape_format_fp32(self):
         shape = (1024, 8, 32)
         dimlist = ['N', 'C', 'H']
         cpu_input = torch.rand(shape, dtype=torch.float32, names=('N', 'C', 'H'))
@@ -407,7 +407,7 @@ class TestVar(TestCase):
         self.assertRtolEqual(cpu_output1, npu_output1)
         self.assertRtolEqual(cpu_output2, npu_output2)
 
-    def test_var_dim_shape_format_5d_fp16(self, device="npu"):
+    def test_var_dim_shape_format_5d_fp16(self):
         format_list = [-1]
         shape_list = [[2, 94, 4, 52, 192]]
         dim_list = [0]

@@ -119,5 +119,6 @@ at::Tensor NPUNativeFunctions::upsample_linear1d_backward(
 
   return result;
 }
+
 } // namespace native
 } // namespace at_npu
