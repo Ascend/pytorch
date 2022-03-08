@@ -1,6 +1,6 @@
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/CMakeLists.txt patch/aten/CMakeLists.txt
 --- pytorch-v1.8.1/aten/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/CMakeLists.txt	2022-03-07 09:11:00.139876160 +0800
++++ patch/aten/CMakeLists.txt	2022-03-07 18:32:02.076336866 +0800
 @@ -22,9 +22,11 @@
  set(ATen_CPU_INCLUDE)
  set(ATen_THIRD_PARTY_INCLUDE)
@@ -42,7 +42,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  set(ATen_CPU_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/autocast_mode.h patch/aten/src/ATen/autocast_mode.h
 --- pytorch-v1.8.1/aten/src/ATen/autocast_mode.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/autocast_mode.h	2022-03-07 09:11:00.147876223 +0800
++++ patch/aten/src/ATen/autocast_mode.h	2022-03-07 18:32:02.084336916 +0800
 @@ -5,7 +5,7 @@
  
  namespace {
@@ -54,7 +54,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt patch/aten/src/ATen/CMakeLists.txt
 --- pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/CMakeLists.txt	2022-03-07 09:11:00.139876160 +0800
++++ patch/aten/src/ATen/CMakeLists.txt	2022-03-07 18:32:02.076336866 +0800
 @@ -85,6 +85,9 @@
  file(GLOB native_quantized_h "native/quantized/*.h" "native/quantized/cpu/*.h")
  file(GLOB native_cpu_h "native/cpu/*.h")
@@ -96,7 +96,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  set(ATen_HIP_SRCS ${ATen_HIP_SRCS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/dispatch/Dispatcher.h patch/aten/src/ATen/core/dispatch/Dispatcher.h
 --- pytorch-v1.8.1/aten/src/ATen/core/dispatch/Dispatcher.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/core/dispatch/Dispatcher.h	2022-03-07 09:11:00.147876223 +0800
++++ patch/aten/src/ATen/core/dispatch/Dispatcher.h	2022-03-07 18:32:02.088336941 +0800
 @@ -417,6 +417,11 @@
        }
      }
@@ -111,7 +111,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/dispatch/ObservedOperators.cpp patch/aten/src/ATen/core/dispatch/ObservedOperators.cpp
 --- pytorch-v1.8.1/aten/src/ATen/core/dispatch/ObservedOperators.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/core/dispatch/ObservedOperators.cpp	2022-03-07 09:11:00.147876223 +0800
++++ patch/aten/src/ATen/core/dispatch/ObservedOperators.cpp	2022-03-07 18:32:02.088336941 +0800
 @@ -6,6 +6,7 @@
  namespace c10 {
  
@@ -122,7 +122,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    std::unordered_set<std::string> not_observed_ops = {
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/dispatch/ObservedOperators.h patch/aten/src/ATen/core/dispatch/ObservedOperators.h
 --- pytorch-v1.8.1/aten/src/ATen/core/dispatch/ObservedOperators.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/core/dispatch/ObservedOperators.h	2022-03-07 09:11:00.147876223 +0800
++++ patch/aten/src/ATen/core/dispatch/ObservedOperators.h	2022-03-07 18:32:02.088336941 +0800
 @@ -1,12 +1,16 @@
  #pragma once
  
@@ -142,7 +142,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/VariableFallbackKernel.cpp patch/aten/src/ATen/core/VariableFallbackKernel.cpp
 --- pytorch-v1.8.1/aten/src/ATen/core/VariableFallbackKernel.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/core/VariableFallbackKernel.cpp	2022-03-07 09:11:00.147876223 +0800
++++ patch/aten/src/ATen/core/VariableFallbackKernel.cpp	2022-03-07 18:32:02.084336916 +0800
 @@ -48,4 +48,8 @@
    m.fallback(torch::CppFunction::makeFallthrough());
  }
@@ -154,14 +154,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/Exceptions.h patch/aten/src/ATen/npu/Exceptions.h
 --- pytorch-v1.8.1/aten/src/ATen/npu/Exceptions.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/Exceptions.h	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/npu/Exceptions.h	2022-03-07 18:32:02.192337599 +0800
 @@ -0,0 +1,3 @@
 +#include <c10/util/Exception.h>
 +
 +#define AT_NPU_CHECK(EXPR) C10_NPU_CHECK(EXPR)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.cpp patch/aten/src/ATen/npu/NPUGeneratorImpl.cpp
 --- pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/NPUGeneratorImpl.cpp	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/npu/NPUGeneratorImpl.cpp	2022-03-07 18:32:02.192337599 +0800
 @@ -0,0 +1,336 @@
 +#include <ATen/Utils.h>
 +#include <ATen/npu/NPUGeneratorImpl.h>
@@ -501,7 +501,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace at
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.h patch/aten/src/ATen/npu/NPUGeneratorImpl.h
 --- pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/NPUGeneratorImpl.h	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/npu/NPUGeneratorImpl.h	2022-03-07 18:32:02.192337599 +0800
 @@ -0,0 +1,162 @@
 +#pragma once
 +
@@ -667,7 +667,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace at
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/record_function.cpp patch/aten/src/ATen/record_function.cpp
 --- pytorch-v1.8.1/aten/src/ATen/record_function.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/record_function.cpp	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/record_function.cpp	2022-03-07 18:32:02.192337599 +0800
 @@ -400,6 +400,9 @@
    rf_tls_.tls_record_function_enabled_ = enable;
  }
@@ -680,7 +680,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    if (rf_tls_ptr->tls_record_function_enabled_) {
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/record_function.h patch/aten/src/ATen/record_function.h
 --- pytorch-v1.8.1/aten/src/ATen/record_function.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/record_function.h	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/record_function.h	2022-03-07 18:32:02.192337599 +0800
 @@ -2,6 +2,7 @@
  
  #include <ATen/core/ivalue.h>
@@ -738,7 +738,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    // between start and end callbacks.
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h patch/aten/src/ATen/templates/TensorBody.h
 --- pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/templates/TensorBody.h	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/templates/TensorBody.h	2022-03-07 18:32:02.192337599 +0800
 @@ -342,6 +342,9 @@
  
    /// Returns if a `Tensor` has CUDA backend.
@@ -751,7 +751,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    bool is_xpu() const;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp patch/aten/src/ATen/templates/TensorMethods.cpp
 --- pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/templates/TensorMethods.cpp	2022-03-07 09:11:00.227876851 +0800
++++ patch/aten/src/ATen/templates/TensorMethods.cpp	2022-03-07 18:32:02.192337599 +0800
 @@ -81,6 +81,10 @@
    return impl_->is_cuda();
  }
@@ -776,7 +776,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/TH/generic/THStorage.h patch/aten/src/TH/generic/THStorage.h
 --- pytorch-v1.8.1/aten/src/TH/generic/THStorage.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/TH/generic/THStorage.h	2022-03-07 09:11:00.231876883 +0800
++++ patch/aten/src/TH/generic/THStorage.h	2022-03-07 18:32:02.196337625 +0800
 @@ -51,6 +51,7 @@
  
  TH_API THStorage* THStorage_(new)(void);
@@ -787,7 +787,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/CMakeLists.txt patch/c10/CMakeLists.txt
 --- pytorch-v1.8.1/c10/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/CMakeLists.txt	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/CMakeLists.txt	2022-03-07 18:32:02.216337752 +0800
 @@ -79,6 +79,14 @@
    message(STATUS "don't use NUMA")
  endif()
@@ -816,7 +816,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    # not checked in
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Backend.h patch/c10/core/Backend.h
 --- pytorch-v1.8.1/c10/core/Backend.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Backend.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/Backend.h	2022-03-08 15:25:36.520231820 +0800
 @@ -45,6 +45,7 @@
    QuantizedXPU,
    Undefined,
@@ -834,63 +834,65 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      default:
        throw std::runtime_error("Unknown backend");
    }
-@@ -99,6 +102,8 @@
-       return Backend::QuantizedCUDA;
-     case Backend::QuantizedXPU:
-       return Backend::QuantizedXPU;
-+	  case Backend::NPU:
+@@ -71,6 +74,8 @@
+ 
+ static inline Backend toDense(Backend b) {
+   switch (b) {
++    case Backend::NPU:
 +      return Backend::NPU;
-     default:
-       throw std::runtime_error("Unknown backend");
-   }
-@@ -141,6 +146,8 @@
-     return Backend::QuantizedXPU;
-   } else if (t == DispatchKey::Undefined) {
-     return Backend::Undefined;
-+  } else if (t == DispatchKey::NPU || t == DispatchKey::AutogradNPU) {
+     case Backend::CPU:
+       return Backend::CPU;
+     case Backend::CUDA:
+@@ -105,7 +110,9 @@
+ }
+ 
+ static inline Backend dispatchKeyToBackend(DispatchKey t) {
+-  if (t == DispatchKey::CPU || t == DispatchKey::AutogradCPU) {
++  if (t == DispatchKey::NPU || t == DispatchKey::AutogradNPU) {
 +    return Backend::NPU;
-   } else {
-     AT_ERROR("Unrecognized tensor type ID: ", t);
-   }
-@@ -182,6 +189,8 @@
-       return DispatchKey::QuantizedCUDA;
-     case Backend::Undefined:
-       return DispatchKey::Undefined;
++  } else if (t == DispatchKey::CPU || t == DispatchKey::AutogradCPU) {
+     return Backend::CPU;
+   } else if (t == DispatchKey::CUDA || t == DispatchKey::AutogradCUDA) {
+     return Backend::CUDA;
+@@ -148,6 +155,8 @@
+ 
+ static inline DispatchKey backendToDispatchKey(Backend b) {
+   switch (b) {
 +    case Backend::NPU:
 +      return DispatchKey::NPUTensorId;
-     default:
-       throw std::runtime_error("Unknown backend");
-   }
-@@ -220,6 +229,8 @@
-       return DeviceType::Vulkan;
-     case Backend::Metal:
-       return DeviceType::Metal;
+     case Backend::CPU:
+       return DispatchKey::CPU;
+     case Backend::CUDA:
+@@ -189,6 +198,8 @@
+ 
+ static inline DeviceType backendToDeviceType(Backend b) {
+   switch (b) {
 +    case Backend::NPU:
 +      return DeviceType::NPU;
-     case Backend::Undefined:
-       AT_ERROR("Undefined backend is not a valid device type");
-     default:
-@@ -258,6 +269,8 @@
-       return Backend::QuantizedCPU;
-     case Backend::QuantizedXPU:
-       return Backend::QuantizedCPU;
-+	case Backend::NPU:
+     case Backend::CPU:
+       return DeviceType::CPU;
+     case Backend::CUDA:
+@@ -229,6 +240,8 @@
+ 
+ static inline Backend backendToCPU(Backend b) {
+   switch (b) {
++    case Backend::NPU:
 +      return Backend::NPU;
-     case Backend::Undefined:
-       return Backend::Undefined;
-     default:
-@@ -374,6 +387,8 @@
-       return "QuantizedCUDA";
-     case Backend::QuantizedXPU:
-       return "QuantizedXPU";
-+	  case Backend::NPU:
+     case Backend::CPU:
+       return Backend::CPU;
+     case Backend::CUDA:
+@@ -340,6 +353,8 @@
+ // TODO: This probably shouldn't actually be static inline
+ static inline const char* toString(Backend b) {
+   switch (b) {
++    case Backend::NPU:
 +      return "NPU";
-     default:
-       return "UNKNOWN_BACKEND";
-   }
+     case Backend::CPU:
+       return "CPU";
+     case Backend::CUDA:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.cpp patch/c10/core/Device.cpp
 --- pytorch-v1.8.1/c10/core/Device.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Device.cpp	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/Device.cpp	2022-03-07 18:32:02.216337752 +0800
 @@ -46,6 +46,7 @@
            {"msnpu", DeviceType::MSNPU},
            {"xla", DeviceType::XLA},
@@ -901,7 +903,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
        types.begin(),
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.h patch/c10/core/Device.h
 --- pytorch-v1.8.1/c10/core/Device.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Device.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/Device.h	2022-03-07 18:32:02.216337752 +0800
 @@ -85,6 +85,11 @@
    bool is_xpu() const noexcept {
      return type_ == DeviceType::XPU;
@@ -916,7 +918,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    bool is_cpu() const noexcept {
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.cpp patch/c10/core/DeviceType.cpp
 --- pytorch-v1.8.1/c10/core/DeviceType.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DeviceType.cpp	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/DeviceType.cpp	2022-03-07 18:32:02.216337752 +0800
 @@ -33,6 +33,8 @@
        return lower_case ? "metal" : "METAL";
      case DeviceType::XPU:
@@ -936,7 +938,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
        return false;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.h patch/c10/core/DeviceType.h
 --- pytorch-v1.8.1/c10/core/DeviceType.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DeviceType.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/DeviceType.h	2022-03-07 18:32:02.216337752 +0800
 @@ -26,15 +26,17 @@
    Vulkan = 10, // Vulkan
    Metal = 11, // Metal
@@ -958,8 +960,18 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  constexpr DeviceType kMSNPU = DeviceType::MSNPU;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.cpp patch/c10/core/DispatchKey.cpp
 --- pytorch-v1.8.1/c10/core/DispatchKey.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKey.cpp	2022-03-07 09:11:00.247877009 +0800
-@@ -80,6 +80,8 @@
++++ patch/c10/core/DispatchKey.cpp	2022-03-08 15:25:36.520231820 +0800
+@@ -6,7 +6,8 @@
+   switch (t) {
+     case DispatchKey::Undefined:
+       return "Undefined";
+-
++    case DispatchKey::NPU:
++      return "NPU";
+     case DispatchKey::CPU:
+       return "CPU";
+     case DispatchKey::CUDA:
+@@ -80,6 +81,8 @@
        return "AutogradCUDA";
      case DispatchKey::AutogradXLA:
        return "AutogradXLA";
@@ -968,16 +980,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      case DispatchKey::AutogradNestedTensor:
        return "AutogradNestedTensor";
      case DispatchKey::AutogradPrivateUse1:
-@@ -90,6 +92,8 @@
-       return "AutogradPrivateUse3";
-     case DispatchKey::AutogradOther:
-       return "AutogradOther";
-+	case DispatchKey::NPU:
-+      return "NPU";
-     case DispatchKey::BackendSelect:
-       return "BackendSelect";
-     case DispatchKey::Named:
-@@ -143,6 +147,8 @@
+@@ -143,6 +146,8 @@
        return DispatchKey::AutogradCUDA;
      case DispatchKey::XLA:
        return DispatchKey::AutogradXLA;
@@ -988,7 +991,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      case DispatchKey::PrivateUse1:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.h patch/c10/core/DispatchKey.h
 --- pytorch-v1.8.1/c10/core/DispatchKey.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKey.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/DispatchKey.h	2022-03-07 18:32:02.216337752 +0800
 @@ -114,6 +114,7 @@
    // Here are reserved backends for user-defined backends, see Note [Private use
    // DispatchKey]
@@ -1015,7 +1018,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    PrivateUse3_PreAutograd = AutogradPrivateUse3,
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.cpp patch/c10/core/DispatchKeySet.cpp
 --- pytorch-v1.8.1/c10/core/DispatchKeySet.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKeySet.cpp	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/DispatchKeySet.cpp	2022-03-07 18:32:02.216337752 +0800
 @@ -11,6 +11,7 @@
          DispatchKey::XLA,
          DispatchKey::NestedTensor,
@@ -1035,7 +1038,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      case DispatchKey::AutogradXPU:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.h patch/c10/core/DispatchKeySet.h
 --- pytorch-v1.8.1/c10/core/DispatchKeySet.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKeySet.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/DispatchKeySet.h	2022-03-07 18:32:02.216337752 +0800
 @@ -193,6 +193,7 @@
      DispatchKey::AutogradCPU,
      DispatchKey::AutogradCUDA,
@@ -1046,7 +1049,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      DispatchKey::AutogradPrivateUse1,
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Storage.h patch/c10/core/Storage.h
 --- pytorch-v1.8.1/c10/core/Storage.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Storage.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/Storage.h	2022-03-07 18:32:02.220337776 +0800
 @@ -147,6 +147,10 @@
          std::move(data_ptr), capacity);
    }
@@ -1060,7 +1063,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  };
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.cpp patch/c10/core/StorageImpl.cpp
 --- pytorch-v1.8.1/c10/core/StorageImpl.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/StorageImpl.cpp	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/StorageImpl.cpp	2022-03-07 18:32:02.220337776 +0800
 @@ -1 +1,18 @@
  #include <c10/core/StorageImpl.h>
 +
@@ -1083,7 +1086,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h patch/c10/core/StorageImpl.h
 --- pytorch-v1.8.1/c10/core/StorageImpl.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/StorageImpl.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/StorageImpl.h	2022-03-07 18:32:02.220337776 +0800
 @@ -2,11 +2,43 @@
  
  #include <c10/core/Allocator.h>
@@ -1181,7 +1184,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorImpl.h patch/c10/core/TensorImpl.h
 --- pytorch-v1.8.1/c10/core/TensorImpl.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/TensorImpl.h	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/core/TensorImpl.h	2022-03-08 15:25:36.520231820 +0800
 @@ -508,6 +508,10 @@
          key_set_.has(DispatchKey::SparseCUDA) ||
          key_set_.has(DispatchKey::QuantizedCUDA);
@@ -1193,39 +1196,41 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  
    bool is_xpu() const {
      // NB: This method is not virtual and avoid dispatches for performance
-@@ -998,7 +1002,7 @@
+@@ -997,7 +1001,7 @@
+    */
    inline bool has_compatible_shallow_copy_type(DispatchKeySet from) {
      auto is_dense = [](DispatchKeySet ts) {
-       return ts.has(DispatchKey::CPU) || ts.has(DispatchKey::CUDA) ||
--          ts.has(DispatchKey::HIP) || ts.has(DispatchKey::XPU);
-+          ts.has(DispatchKey::HIP) || ts.has(DispatchKey::XPU) || ts.has(DispatchKey::NPU);
+-      return ts.has(DispatchKey::CPU) || ts.has(DispatchKey::CUDA) ||
++      return ts.has(DispatchKey::NPU) || ts.has(DispatchKey::CPU) || ts.has(DispatchKey::CUDA) ||
+           ts.has(DispatchKey::HIP) || ts.has(DispatchKey::XPU);
      };
      auto is_sparse = [](DispatchKeySet ts) {
-       return ts.has(DispatchKey::SparseCPU) ||
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorOptions.h patch/c10/core/TensorOptions.h
 --- pytorch-v1.8.1/c10/core/TensorOptions.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/TensorOptions.h	2022-03-07 09:11:00.247877009 +0800
-@@ -633,6 +633,8 @@
-             return DispatchKey::Vulkan;
-           case DeviceType::Metal:
-             return DispatchKey::Metal;
-+		      case DeviceType::NPU:
++++ patch/c10/core/TensorOptions.h	2022-03-08 15:25:36.520231820 +0800
+@@ -595,6 +595,8 @@
+       case Layout::Strided: {
+         const auto dtype_ = dtype_or_default(dtype);
+         switch (device_.type()) {
++          case DeviceType::NPU:
 +            return DispatchKey::NPU;
-           default:
-             AT_ERROR("Unsupported device type for dense layout: ", device_.type());
-         }
-@@ -703,6 +705,8 @@
-     return DeviceType::CPU;
-   } else if (tid == DispatchKey::XPU) {
-     return DeviceType::XPU;
-+  } else if (tid == DispatchKey::NPU) {
+           case DeviceType::CPU: {
+             if (isQIntType(dtype_)) {
+               return DispatchKey::QuantizedCPU;
+@@ -665,7 +667,9 @@
+ // We deliberately ignore handling AutogradCPU/CUDA/XLA... keys to
+ // avoid adding asymmetry in device <--> Autograd dispatch key mapping.
+ inline DeviceType computeDeviceType(DispatchKey tid) {
+-  if (tid == DispatchKey::CPU) {
++  if (tid == DispatchKey::NPU) {
 +    return DeviceType::NPU;
-   } else if (tid == DispatchKey::SparseXPU) {
-     return DeviceType::XPU;
-   } else if (tid == DispatchKey::QuantizedXPU) {
++  } else if (tid == DispatchKey::CPU) {
+     return DeviceType::CPU;
+   } else if (tid == DispatchKey::CUDA) {
+     return DeviceType::CUDA;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/cuda/CMakeLists.txt patch/c10/cuda/CMakeLists.txt
 --- pytorch-v1.8.1/c10/cuda/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/cuda/CMakeLists.txt	2022-03-07 09:11:00.247877009 +0800
++++ patch/c10/cuda/CMakeLists.txt	2022-03-07 18:32:02.220337776 +0800
 @@ -36,6 +36,8 @@
      CUDAFunctions.h
      impl/CUDAGuardImpl.h
@@ -1237,7 +1242,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  torch_cuda_based_add_library(c10_cuda ${C10_CUDA_SRCS} ${C10_CUDA_HEADERS})
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/CMakeLists.txt patch/c10/npu/CMakeLists.txt
 --- pytorch-v1.8.1/c10/npu/CMakeLists.txt	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/CMakeLists.txt	2022-03-07 09:10:56.563848054 +0800
++++ patch/c10/npu/CMakeLists.txt	2022-03-07 18:31:59.236318895 +0800
 @@ -0,0 +1,18 @@
 +#Build file for C10 NPU
 +#
@@ -1259,7 +1264,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.cpp patch/c10/npu/impl/NPUGuardImpl.cpp
 --- pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/impl/NPUGuardImpl.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/impl/NPUGuardImpl.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,13 @@
 +#include <c10/npu/impl/NPUGuardImpl.h>
 +
@@ -1276,7 +1281,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.h patch/c10/npu/impl/NPUGuardImpl.h
 --- pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/impl/NPUGuardImpl.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/impl/NPUGuardImpl.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,165 @@
 +#pragma once
 +
@@ -1445,7 +1450,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/interface/AclInterface.cpp patch/c10/npu/interface/AclInterface.cpp
 --- pytorch-v1.8.1/c10/npu/interface/AclInterface.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/interface/AclInterface.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/interface/AclInterface.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,178 @@
 +#include "AclInterface.h"
 +#include "c10/npu/register/FunctionLoader.h"
@@ -1627,7 +1632,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/interface/AclInterface.h patch/c10/npu/interface/AclInterface.h
 --- pytorch-v1.8.1/c10/npu/interface/AclInterface.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/interface/AclInterface.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/interface/AclInterface.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,80 @@
 +#ifndef __C10_NPU_INTERFACE_ACLINTERFACE__
 +#define __C10_NPU_INTERFACE_ACLINTERFACE__
@@ -1710,9 +1715,288 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +#endif // __C10_NPU_INTERFACE_ACLINTERFACE__
 \ No newline at end of file
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.cpp patch/c10/npu/interface/AsyncTaskQueueInterface.cpp
+--- pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.cpp	1970-01-01 08:00:00.000000000 +0800
++++ patch/c10/npu/interface/AsyncTaskQueueInterface.cpp	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,196 @@
++#include "AsyncTaskQueueInterface.h"
++#include "c10/npu/OptionsManager.h"
++#include "c10/npu/NPUEventManager.h"
++namespace c10 {
++namespace npu {
++namespace queue {
++void CopyParas::Copy(CopyParas& other) {
++  this->dst = other.dst;
++  this->dstLen = other.dstLen;
++  this->src = other.src;
++  this->srcLen = other.srcLen;
++  this->kind = other.kind;
++  if (!other.pinMem.empty()) {
++    this->pinMem = other.pinMem;
++  }
++}
++
++void EventParas::Copy(EventParas& other) {
++  this->event = other.event;
++  this->eventAllocatorType = other.eventAllocatorType;
++}
++
++class AsyncCopyTask {
++public:
++  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
++  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Storage& st);
++  ~AsyncCopyTask() = default;
++  void LaunchCopyTask();
++  void LaunchCopyTask(bool isPinnedMem);
++
++private:
++  CopyParas copyParam_;
++};
++
++class EventTask {
++public:
++  explicit EventTask(aclrtEvent event, EventAllocatorType allocatorType = RESERVED) :
++      eventParam_(event, allocatorType) {};
++  ~EventTask() = default;
++  void LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec);
++  void LaunchWaitTask(at::npu::NPUStream npuStream);
++  void LaunchLazyDestroyTask();
++private:
++  EventParas eventParam_;
++};
++
++AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
++{
++  copyParam_.dst = dst;
++  copyParam_.dstLen = dstLen;
++  copyParam_.src = src;
++  copyParam_.srcLen = srcLen;
++  copyParam_.kind = kind;
++}
++
++AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
++    Storage& st)
++{
++  copyParam_.dst = dst;
++  copyParam_.dstLen = dstLen;
++  copyParam_.src = src;
++  copyParam_.srcLen = srcLen;
++  copyParam_.kind = kind;
++  copyParam_.pinMem.emplace_back(st);
++}
++
++void AsyncCopyTask::LaunchCopyTask()
++{
++  if (c10::npu::OptionsManager::CheckQueueEnable()) {
++    QueueParas params(ASYNC_MEMCPY, sizeof(CopyParas), &copyParam_);
++    SmallVector<Storage, N> needClearVec;
++    c10::npu::enCurrentNPUStream(&params, needClearVec);
++    // free pin memory
++    needClearVec.clear();
++  } else {
++    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
++    AT_NPU_CHECK(aclrtMemcpyAsync(
++        copyParam_.dst,
++        copyParam_.dstLen,
++        copyParam_.src,
++        copyParam_.srcLen,
++        copyParam_.kind,
++        stream));
++  }
++}
++
++void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem)
++{
++  if (c10::npu::OptionsManager::CheckQueueEnable() && isPinnedMem) {
++    QueueParas params(ASYNC_MEMCPY_EX, sizeof(CopyParas), &copyParam_);
++    SmallVector<Storage, N> needClearVec;
++    c10::npu::enCurrentNPUStream(&params, needClearVec);
++    // free pin memory
++    needClearVec.clear();
++  } else {
++    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
++    AT_NPU_CHECK(aclrtMemcpyAsync(
++        copyParam_.dst,
++        copyParam_.dstLen,
++        copyParam_.src,
++        copyParam_.srcLen,
++        copyParam_.kind,
++        stream));
++  }
++}
++
++aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
++{
++  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind);
++  copyTask.LaunchCopyTask();
++  return ACL_ERROR_NONE;
++}
++
++aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
++    Storage& st, bool isPinMem)
++{
++  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, st);
++  copyTask.LaunchCopyTask(isPinMem);
++  return ACL_ERROR_NONE;
++}
++
++void EventTask::LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec)
++{
++  if (c10::npu::OptionsManager::CheckQueueEnable()) {
++    at::npu::NPUStream currentStream = c10::npu::getCurrentNPUStream();
++    c10::npu::setCurrentNPUStream(npuStream);
++    QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
++    c10::npu::enCurrentNPUStream(&params, needClearVec);
++    c10::npu::setCurrentNPUStream(currentStream);
++  } else {
++    AT_NPU_CHECK(aclrtRecordEvent(
++        eventParam_.event,
++        npuStream));
++  }
++}
++
++aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
++                                            at::npu::NPUStream npuStream,
++                                            SmallVector<Storage, N>& needClearVec) {
++  EventTask recordTask(event, HOST_ALLOCATOR_EVENT);
++  recordTask.LaunchRecordTask(npuStream, needClearVec);
++  return ACL_ERROR_NONE;
++}
++
++aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
++                                           at::npu::NPUStream npuStream) {
++  EventTask recordTask(event, NPU_ALLOCATOR_EVENT);
++  SmallVector<Storage, N> needClearVec;
++  recordTask.LaunchRecordTask(npuStream, needClearVec);
++  return ACL_ERROR_NONE;
++}
++
++aclError LaunchRecordEventTask(aclrtEvent event, at::npu::NPUStream npuStream) {
++  EventTask recordTask(event);
++  SmallVector<Storage, N> needClearVec;
++  recordTask.LaunchRecordTask(npuStream, needClearVec);
++  return ACL_ERROR_NONE;
++}
++
++void EventTask::LaunchWaitTask(at::npu::NPUStream npuStream) {
++  if (c10::npu::OptionsManager::CheckQueueEnable()) {
++    at::npu::NPUStream currentStream = c10::npu::getCurrentNPUStream();
++    c10::npu::setCurrentNPUStream(npuStream);
++    QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
++    SmallVector<Storage, N> needClearVec;
++    c10::npu::enCurrentNPUStream(&params, needClearVec);
++    c10::npu::setCurrentNPUStream(currentStream);
++  } else {
++    AT_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
++  }
++}
++
++aclError LaunchWaitEventTask(aclrtEvent event, at::npu::NPUStream npuStream) {
++  EventTask waitTask(event);
++  waitTask.LaunchWaitTask(npuStream);
++  return ACL_ERROR_NONE;
++}
++
++void EventTask::LaunchLazyDestroyTask() {
++  if (c10::npu::OptionsManager::CheckQueueEnable()) {
++    QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
++    SmallVector<Storage, N> needClearVec;
++    c10::npu::enCurrentNPUStream(&params, needClearVec);
++  } else {
++    AT_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().LazyDestroy(eventParam_.event));
++  }
++}
++
++aclError LaunchLazyDestroyEventTask(aclrtEvent event) {
++  EventTask lazyDestroyTask(event);
++  lazyDestroyTask.LaunchLazyDestroyTask();
++  return ACL_ERROR_NONE;
++}
++} // namespace queue
++} // namespace npu
++} // namespace c10
+\ No newline at end of file
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.h patch/c10/npu/interface/AsyncTaskQueueInterface.h
+--- pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.h	1970-01-01 08:00:00.000000000 +0800
++++ patch/c10/npu/interface/AsyncTaskQueueInterface.h	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,73 @@
++#ifndef __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
++#define __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
++
++#include "c10/core/Storage.h"
++#include "c10/npu/NPUStream.h"
++#include "third_party/acl/inc/acl/acl_rt.h"
++
++namespace c10 {
++namespace npu {
++namespace queue {
++struct CopyParas {
++  void *dst = nullptr;
++  size_t dstLen = 0;
++  void *src = nullptr;
++  size_t srcLen = 0;
++  aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
++  SmallVector<Storage, 1> pinMem;
++  void Copy(CopyParas& other);
++};
++
++enum EventAllocatorType {
++  HOST_ALLOCATOR_EVENT = 1,
++  NPU_ALLOCATOR_EVENT = 2,
++  RESERVED = -1,
++};
++
++struct EventParas {
++  explicit EventParas(aclrtEvent aclEvent, EventAllocatorType allocatorType) :
++      event(aclEvent), eventAllocatorType(allocatorType) {}
++  aclrtEvent event = nullptr;
++  void Copy(EventParas& other);
++  EventAllocatorType eventAllocatorType = RESERVED;
++};
++
++enum QueueParamType {
++  COMPILE_AND_EXECUTE = 1,
++  ASYNC_MEMCPY = 2,
++  ASYNC_MEMCPY_EX = 3,
++  RECORD_EVENT = 4,
++  WAIT_EVENT = 5,
++  LAZY_DESTROY_EVENT = 6,
++};
++
++struct QueueParas {
++  QueueParas(QueueParamType type, size_t len, void *val) : paramType(type), paramLen(len), paramVal(val) {}
++  aclrtStream paramStream = nullptr;
++  QueueParamType paramType = COMPILE_AND_EXECUTE;
++  size_t paramLen = 0;
++  void* paramVal = nullptr;
++};
++
++aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
++
++aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
++    Storage& st, bool isPinMem);
++
++aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
++                                            at::npu::NPUStream npuStream,
++                                            SmallVector<Storage, N>& needClearVec);
++
++aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
++                                           at::npu::NPUStream npuStream);
++
++aclError LaunchRecordEventTask(aclrtEvent event, at::npu::NPUStream npuStream);
++
++aclError LaunchWaitEventTask(aclrtEvent event, at::npu::NPUStream npuStream);
++
++aclError LaunchLazyDestroyEventTask(aclrtEvent event);
++} // namespace queue
++} // namespace npu
++} // namespace c10
++
++#endif // __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
+\ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUAny.h patch/c10/npu/NPUAny.h
 --- pytorch-v1.8.1/c10/npu/NPUAny.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUAny.h	2022-03-07 09:10:56.563848054 +0800
++++ patch/c10/npu/NPUAny.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,375 @@
 +/**
 + * Port of boost::any for C++11 compilers.
@@ -2092,8 +2376,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUEvent.h patch/c10/npu/NPUEvent.h
 --- pytorch-v1.8.1/c10/npu/NPUEvent.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUEvent.h	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,141 @@
++++ patch/c10/npu/NPUEvent.h	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,157 @@
 +#pragma once
 +
 +#include <c10/npu/NPUStream.h>
@@ -2101,6 +2385,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#include <third_party/acl/inc/acl/acl.h>
 +#include <c10/npu/NPUException.h>
 +#include <c10/npu/NPUEventManager.h>
++#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 +#include <cstdint>
 +#include <utility>
 +
@@ -2125,9 +2410,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  ~NPUEvent() {
 +    try {
 +      if (is_created_) {
-+        c10::npu::NPUEventManager::GetInstance().LazyDestroy(event_);
++        C10_NPU_CHECK(c10::npu::queue::LaunchLazyDestroyEventTask(event_));
++        C10_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
 +      }
-+    } catch (...) { /* No throw */ }
++    } catch (...) {} /* No throw */
 +  }
 +
 +  NPUEvent(const NPUEvent&) = delete;
@@ -2159,7 +2445,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    if (!is_created_) {
 +      return true;
 +    }
-+
++    NPUStatus ret = c10::npu::emptyAllNPUStream();
++    if (ret != SUCCESS) {
++      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
++    }
 +    aclrtEventStatus currStatus = ACL_EVENT_STATUS_COMPLETE;
 +    C10_NPU_CHECK(aclrtQueryEvent(event_, &currStatus));
 +
@@ -2183,14 +2472,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
 +      " does not match recording stream's device ", stream.device_index(), ".");
 +    NPUGuard guard(device_index_);
-+    C10_NPU_CHECK(aclrtRecordEvent(event_, stream));
++    C10_NPU_CHECK(c10::npu::queue::LaunchRecordEventTask(event_, stream));
 +    was_recorded_ = true;
 +  }
 +
 +  void block(const NPUStream& stream) {
 +    if (is_created_) {
 +      NPUGuard guard(stream.device_index());
-+      C10_NPU_CHECK(aclrtStreamWaitEvent(stream, event_));
++      C10_NPU_CHECK(c10::npu::queue::LaunchWaitEventTask(event_, stream));
 +    }
 +  }
 +
@@ -2198,6 +2487,13 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    TORCH_CHECK(is_created_ && other.isCreated(),
 +      "Both events must be recorded before calculating elapsed time.");
 +    float time_ms = 0;
++    NPUStatus ret = c10::npu::emptyAllNPUStream();
++    if (ret != SUCCESS) {
++      NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
++    }
++
++    C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
++    C10_NPU_CHECK(aclrtSynchronizeEvent(other.event_));
 +    // raise error if either event is recorded but not yet completed
 +    C10_NPU_CHECK(aclrtEventElapsedTime(&time_ms, event_, other.event_));
 +    return time_ms;
@@ -2205,6 +2501,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +  void synchronize() const {
 +    if (is_created_) {
++      NPUStatus ret = c10::npu::emptyAllNPUStream();
++      if (ret != SUCCESS) {
++        NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
++      }
 +      C10_NPU_CHECK(aclrtSynchronizeEvent(event_));
 +    }
 +  }
@@ -2237,8 +2537,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUEventManager.cpp patch/c10/npu/NPUEventManager.cpp
 --- pytorch-v1.8.1/c10/npu/NPUEventManager.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUEventManager.cpp	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,44 @@
++++ patch/c10/npu/NPUEventManager.cpp	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,51 @@
 +#include "NPUEventManager.h"
 +namespace c10 {
 +namespace npu {
@@ -2249,7 +2549,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  return instance;
 +}
 +
-+aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
++aclError NPUEventManager::QueryAndDestroyEvent() {
++  std::lock_guard<std::mutex> guard(event_queue_mutex_);
 +  while (!npu_events_.empty())
 +  {
 +    aclrtEvent event = npu_events_.front();
@@ -2265,10 +2566,16 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    }
 +    err = aclrtDestroyEvent(event);
 +    if (err != ACL_ERROR_NONE) {
++        C10_NPU_SHOW_ERR_MSG();
 +        return err;
 +    }
 +    npu_events_.pop_front();
 +  }
++  return ACL_ERROR_NONE;
++}
++
++aclError NPUEventManager::LazyDestroy(aclrtEvent npu_event) {
++  std::lock_guard<std::mutex> guard(event_queue_mutex_);
 +  npu_events_.push_back(npu_event);
 +  return ACL_ERROR_NONE;
 +}
@@ -2286,23 +2593,26 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUEventManager.h patch/c10/npu/NPUEventManager.h
 --- pytorch-v1.8.1/c10/npu/NPUEventManager.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUEventManager.h	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,20 @@
++++ patch/c10/npu/NPUEventManager.h	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,23 @@
 +#pragma once
 +
 +#include <c10/npu/NPUException.h>
 +#include <third_party/acl/inc/acl/acl.h>
 +#include <deque>
++#include <mutex>
 +namespace c10 {
 +namespace npu {
 +class C10_EXPORT NPUEventManager {
 +public:
 +  static NPUEventManager& GetInstance();
++  aclError QueryAndDestroyEvent();
 +  aclError LazyDestroy(aclrtEvent npu_event);
 +  aclError ClearEvent();
 +  ~NPUEventManager(){}
 +
 +private:
++  std::mutex event_queue_mutex_;
 +  NPUEventManager();
 +  std::deque<aclrtEvent> npu_events_;
 +};
@@ -2311,7 +2621,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUException.h patch/c10/npu/NPUException.h
 --- pytorch-v1.8.1/c10/npu/NPUException.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUException.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUException.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,35 @@
 +#pragma once
 +
@@ -2350,7 +2660,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  } while (0)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUFunctions.h patch/c10/npu/NPUFunctions.h
 --- pytorch-v1.8.1/c10/npu/NPUFunctions.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUFunctions.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUFunctions.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,49 @@
 +#pragma once
 +
@@ -2403,7 +2713,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraphContextManager.cpp patch/c10/npu/NPUGraphContextManager.cpp
 --- pytorch-v1.8.1/c10/npu/NPUGraphContextManager.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraphContextManager.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUGraphContextManager.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,95 @@
 +#include "NPUGraphContextManager.h"
 +
@@ -2503,7 +2813,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraphContextManager.h patch/c10/npu/NPUGraphContextManager.h
 --- pytorch-v1.8.1/c10/npu/NPUGraphContextManager.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraphContextManager.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUGraphContextManager.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,105 @@
 +#pragma once
 +
@@ -2613,7 +2923,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraph.cpp patch/c10/npu/NPUGraph.cpp
 --- pytorch-v1.8.1/c10/npu/NPUGraph.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraph.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUGraph.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,12 @@
 +#include "NPUGraph.h"
 +
@@ -2630,7 +2940,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraph.h patch/c10/npu/NPUGraph.h
 --- pytorch-v1.8.1/c10/npu/NPUGraph.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraph.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUGraph.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,208 @@
 +#pragma once
 +
@@ -2843,7 +3153,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGuard.h patch/c10/npu/NPUGuard.h
 --- pytorch-v1.8.1/c10/npu/NPUGuard.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGuard.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUGuard.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,274 @@
 +#pragma once
 +
@@ -3122,7 +3432,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUHashUtils.h patch/c10/npu/NPUHashUtils.h
 --- pytorch-v1.8.1/c10/npu/NPUHashUtils.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUHashUtils.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUHashUtils.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,55 @@
 +#pragma once
 +
@@ -3181,7 +3491,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/npu_log.h patch/c10/npu/npu_log.h
 --- pytorch-v1.8.1/c10/npu/npu_log.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/npu_log.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/npu_log.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,46 @@
 +#ifndef __C10_NPU_NPU_LOG___
 +#define __C10_NPU_NPU_LOG___
@@ -3232,7 +3542,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUMacros.h patch/c10/npu/NPUMacros.h
 --- pytorch-v1.8.1/c10/npu/NPUMacros.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUMacros.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/NPUMacros.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,30 @@
 +#pragma once
 +// See c10/macros/Export.h for a detailed explanation of what the function
@@ -3266,8 +3576,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#define C10_COMPILE_TIME_MAX_NPUS 16
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUQueue.cpp patch/c10/npu/NPUQueue.cpp
 --- pytorch-v1.8.1/c10/npu/NPUQueue.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUQueue.cpp	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,475 @@
++++ patch/c10/npu/NPUQueue.cpp	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,637 @@
 +#include "c10/npu/NPUQueue.h"
 +#include "c10/npu/NPUStream.h"
 +#include "c10/npu/npu_log.h"
@@ -3317,6 +3627,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    this->releaseFunc = func;
 +  }
 +
++  void SetCopyReleaseParam(const ACL_COPY_RELEASE_PARM_FUNC& func) {
++    this->copyReleaseParamFunc = func;
++  }
++
++  void SetReleaseParam(const ACL_RELEASE_PARAM_FUNC& func) {
++    this->releaseParamFunc = func;
++  }
++
 +  void SetNew(const ACL_NEW_FUNC& func) {
 +    this->newFunc = func;
 +  }
@@ -3325,22 +3643,34 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    this->deleteFunc = func;
 +  }
 +
-+  int Call(void* head, int offset, aclrtStream stream) {
++  int Call(void* head, int offset, uint32_t queueLen) {
 +    TORCH_CHECK(this->execFunc, "Failed to find execution function.");
 +    auto dstPtr = (uint8_t*)head + sizePerParams * offset;
-+    return this->execFunc(dstPtr, stream);
++    return this->execFunc(dstPtr, queueLen);
 +  }
 +
-+  void Copy(void* dstHead, int offset, void* src) {
++  void Copy(void* dstHead, int offset, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
 +    TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
 +    auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
-+    return this->copyFunc(dstPtr, src);
++    return this->copyFunc(dstPtr, src, needClearVec, queueLen);
 +  }
 +
-+  void Release(void* head, int offset) {
++  void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
 +    TORCH_CHECK(this->releaseFunc, "Failed to find release function.");
 +    auto ptr = (uint8_t*)head +  sizePerParams * offset;
-+    return this->releaseFunc(ptr);
++    return this->releaseFunc(ptr, releaseQueue);
++  }
++
++  void CopyRealseParam(void* dstHead, int offset, void* src) {
++    TORCH_CHECK(this->copyReleaseParamFunc, "Failed to find copy release params function.");
++    auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
++    return this->copyReleaseParamFunc(dstPtr, src);
++  }
++
++  void ReleaseParam(void* head, int offset) {
++    TORCH_CHECK(this->releaseParamFunc, "Failed to find release params function.");
++    auto ptr = (uint8_t*)head +  sizePerParams * offset;
++    return this->releaseParamFunc(ptr);
 +  }
 +
 +  void* Init(int capacity) {
@@ -3363,23 +3693,35 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  ACL_RELEASE_FUNC releaseFunc = nullptr;
 +  ACL_NEW_FUNC newFunc = nullptr;
 +  ACL_DELETE_FUNC deleteFunc = nullptr;
++  ACL_COPY_RELEASE_PARM_FUNC copyReleaseParamFunc = nullptr;
++  ACL_RELEASE_PARAM_FUNC releaseParamFunc = nullptr;
 +}; // class CallBackManager
 +
 +CallBackManager& manager() {
 +  static CallBackManager instance;
 +  return instance;
 +}
++
++CallBackManager& releaseManager() {
++  static CallBackManager releaseinstance;
++  return releaseinstance;
++}
 +} // namespace
 +
 +namespace register_queue_cb {
 +NPUCallBackRegisterBuilder::NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execFunc,
 +    const ACL_COPY_FUNC& copyFunc, const ACL_RELEASE_FUNC& releaseFunc,
-+    const ACL_NEW_FUNC& newFunc, const ACL_DELETE_FUNC& deleteFunc) {
++    const ACL_NEW_FUNC& newFunc, const ACL_DELETE_FUNC& deleteFunc,
++    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF) {
 +  manager().SetExec(execFunc);
 +  manager().SetCopy(copyFunc);
 +  manager().SetRelease(releaseFunc);
 +  manager().SetNew(newFunc);
 +  manager().SetDelete(deleteFunc);
++  releaseManager().SetCopyReleaseParam(copyReleaseParamF);
++  releaseManager().SetReleaseParam(releaseParamF);
++  releaseManager().SetNew(newFunc);
++  releaseManager().SetDelete(deleteFunc);
 +}
 +} // namespace register_queue_cb
 +
@@ -3388,7 +3730,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +// a large amount of device memory is occupied at the same time;
 +// if the capacity is too small, and the main thread is fast enough,
 +// it does not make full use of concurrent design capabilities.
-+static constexpr size_t kQueueCapacity = 1000;
++static constexpr size_t kQueueCapacity = 4096;
 +
 +RepoStatus Repository::GetStatus() const {
 +  if (initialized == false) {
@@ -3482,7 +3824,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  return !working;
 +}
 +
-+bool Repository::WriteQueue(void* cur_paras) {
++bool Repository::WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) {
 +  QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
 +  if (IsFullQueue()) {
 +    QUEUE_DEBUG("queue is full");
@@ -3490,7 +3832,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  }
 +
 +  std::lock_guard<std::mutex> lock(mu_enqueue);
-+  manager().Copy(datas, write_idx.idx, cur_paras);
++  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
++  manager().Copy(datas, write_idx.idx, cur_paras, needClearVec, queueLen);
 +  __sync_synchronize();
 +
 +  write_idx.idx++;
@@ -3505,7 +3848,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    return false;
 +  }
 +
-+  auto ret = manager().Call(datas, read_idx.idx, calcu_stream_);
++  uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
++  auto ret = manager().Call(datas, read_idx.idx, queueLen);
 +
 +  if (ret != 0) {
 +    while (!IsEmptyQueue()) { // ignore other tasks
@@ -3513,7 +3857,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +              << ": device=" << device_idx << ", write_idx=" << write_idx.idx
 +              << ", read_idx=" << read_idx.idx << ", status=" << GetStatus()
 +              << ", ret = " << ret << std::endl;
-+      manager().Release(datas, read_idx.idx);
++      manager().Release(datas, read_idx.idx, releaseQueue);
 +      read_idx.idx++;
 +      read_idx.idx %= kQueueCapacity;
 +    }
@@ -3523,7 +3867,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    TORCH_CHECK(0, msg.str());
 +  }
 +
-+  manager().Release(datas, read_idx.idx);
++  manager().Release(datas, read_idx.idx, releaseQueue);
 +  __sync_synchronize();
 +
 +  read_idx.idx++;
@@ -3533,7 +3877,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  return true;
 +}
 +
-+void Repository::Enqueue(void* cur_paras) {
++void Repository::Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) {
 +  if (initialized == false) {
 +    NPU_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
 +    return;
@@ -3548,7 +3892,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +  DisableInterrupt(RepoRole::WRITER);
 +  while (ret == false) {
-+    ret = WriteQueue(cur_paras);
++    ret = WriteQueue(cur_paras, needClearVec);
 +    if (ret == false) {
 +      EnableInterrupt(RepoRole::WRITER);
 +      __sync_synchronize();
@@ -3702,6 +4046,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +  aclError ret = aclrtSetDevice(device_id);
 +  if (ret != 0) {
++    C10_NPU_SHOW_ERR_MSG();
 +    std::cout << "***Thread*" << std::this_thread::get_id() << ": set device ("
 +              << device_id << "): ret = " << ret << std::endl;
 +  }
@@ -3712,7 +4057,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  return;
 +}
 +
-+void Repository::InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) {
++void Repository::InitRepo(DeviceIndex device_id) {
 +  struct timeval tv;
 +  gettimeofday(&tv, NULL);
 +  QUEUE_COUT(
@@ -3724,11 +4069,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  if (datas == nullptr) {
 +    datas = manager().Init(kQueueCapacity);
 +  }
-+  if (calcu_stream == nullptr) {
-+    NPU_LOGE("stream should not be null when init task queue.");
-+    return;
-+  }
-+  calcu_stream_ = calcu_stream;
++
 +  efd_read = eventfd(0, 0);
 +  efd_write = eventfd(0, 0);
 +  efd_empty = eventfd(0, 0);
@@ -3738,16 +4079,147 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  device_idx = device_id;
 +  std::thread cur_consumer(StartConsume, this, device_id);
 +  consumer = std::move(cur_consumer);
++
++  releaseQueue.InitReleaseQueue();
 +}
 +
++static constexpr size_t kReleaseQueueCapacity = 8192;
++bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
++{
++  if (IsFullQueue()) {
++    QUEUE_DEBUG("Release queue is full");
++    return false;
++  }
 +
++  releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
++
++  __sync_synchronize();
++  write_idx.idx++;
++  write_idx.idx %= kReleaseQueueCapacity;
++  return true;
++}
++
++void ReleaseQueue::PushToReleaseQueue(void* cur_paras) {
++  if (initialized == false) {
++    NPU_LOGE("Release queue is not initialized, shouldn't call PushToReleaseQueue(). !!");
++    return;
++  }
++
++  bool ret = false;
++  while (ret == false) {
++    ret = WriteToReleaseQueue(cur_paras);
++    if (ret == true) {
++      break;
++    }
++  }
++}
++
++bool ReleaseQueue::ReadFromReleaseQueue() {
++  if (IsEmptyQueue()) {
++    QUEUE_DEBUG("Release queue is empty");
++    return false;
++  }
++
++  releaseManager().ReleaseParam(datas, read_idx.idx);
++
++  __sync_synchronize();
++  read_idx.idx++;
++  read_idx.idx %= kReleaseQueueCapacity;
++
++  return true;
++}
++
++void ReleaseQueue::PopFromReleaseQueue() {
++  if (initialized == false) {
++    NPU_LOGE("Release queue is not initialized, shouldn't call PopFromReleaseQueue(). !!");
++    return;
++  }
++
++  bool ret = false;
++  while ((ret == false) && (GetStatus() != RepoStatus::CAN_EXIT)) {
++    ret = ReadFromReleaseQueue();
++    if (ret == false) {
++      if (GetStatus() == RepoStatus::NEED_EXIT) {
++        ChangeStatus(NEED_EXIT, CAN_EXIT);
++        break;
++      }
++      usleep(2);
++    }
++  }
++}
++
++void StartRelease(ReleaseQueue* releaseQue) {
++  if (prctl(PR_SET_NAME, ("Release_thread")) != 0) {
++    std::cout << "set thread name failed!" << std::endl;
++  }
++
++  while (releaseQue->GetStatus() != RepoStatus::CAN_EXIT) {
++    releaseQue->PopFromReleaseQueue();
++  }
++  return;
++}
++
++void ReleaseQueue::InitReleaseQueue() {
++  if (datas == nullptr) {
++    datas = releaseManager().Init(kReleaseQueueCapacity);
++  }
++
++  initialized = true;
++  SetStatus(INIT);
++  std::thread cur_releaser(StartRelease, this);
++  releaser = std::move(cur_releaser);
++}
++
++ReleaseQueue::~ReleaseQueue() {
++  if (initialized) {
++    if (releaser.joinable()) {
++      SetStatus(NEED_EXIT);
++      releaser.join();
++    }
++  }
++  releaseManager().DeInit(datas);
++}
++
++bool ReleaseQueue::IsEmptyQueue() const {
++  return read_idx.idx == write_idx.idx;
++}
++
++bool ReleaseQueue::IsFullQueue() const {
++  return ((write_idx.idx + 1) % kReleaseQueueCapacity) == read_idx.idx;
++}
++
++RepoStatus ReleaseQueue::GetStatus() const {
++  if (initialized == false) {
++    NPU_LOGE("Release queue is not initialized, shouldn't call GetStatus(). !!");
++  }
++
++  return repo_status.load();
++}
++
++void ReleaseQueue::SetStatus(RepoStatus desired) {
++  if (initialized == false) {
++    NPU_LOGE("Release queue is not initialized, shouldn't call SetStatus(). !!");
++    return;
++  }
++
++  repo_status = desired;
++}
++
++void ReleaseQueue::ChangeStatus(RepoStatus expected, RepoStatus desired) {
++  if (initialized == false) {
++    NPU_LOGE("Release queue is not initialized, shouldn't call ChangeStatus(). !!");
++    return;
++  }
++
++  repo_status.compare_exchange_strong(expected, desired);
++}
 +} // namespace npu
 +} // namespace c10
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUQueue.h patch/c10/npu/NPUQueue.h
 --- pytorch-v1.8.1/c10/npu/NPUQueue.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUQueue.h	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,118 @@
++++ patch/c10/npu/NPUQueue.h	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,155 @@
 +#ifndef __C10_NPU_NPUQUEUE__
 +#define __C10_NPU_NPUQUEUE__
 +
@@ -3756,8 +4228,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#include <mutex>
 +#include <atomic>
 +
-+#include <c10/core/Device.h>
++#include "c10/core/Storage.h"
++#include "c10/core/Device.h"
 +#include "c10/npu/npu_log.h"
++#include "c10/util/SmallVector.h"
 +#include <third_party/acl/inc/acl/acl_op.h>
 +
 +namespace c10 {
@@ -3780,16 +4254,47 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  CAN_EXIT = 3,
 +};
 +
++// smallvector max size
++const int N = 32;
++
++class ReleaseQueue {
++ public:
++  ReleaseQueue() = default;
++  ~ReleaseQueue();
++  void PushToReleaseQueue(void* cur_paras);
++  void PopFromReleaseQueue();
++  void InitReleaseQueue();
++  RepoStatus GetStatus() const;
++
++ private:
++  bool IsEmptyQueue() const;
++  bool IsFullQueue() const;
++  bool WriteToReleaseQueue(void* cur_paras);
++  bool ReadFromReleaseQueue();
++  void SetStatus(RepoStatus desired);
++  void ChangeStatus(RepoStatus expected, RepoStatus desired);
++
++ private:
++  void* datas = nullptr;
++  std::thread releaser;
++
++ private:
++  sring_idx read_idx;
++  sring_idx write_idx;
++  std::atomic<RepoStatus> repo_status;
++  bool initialized = false;
++};
++
 +class NPUQueueBase {
 + public:
 +  virtual ~NPUQueueBase() {}
 +  virtual RepoStatus GetStatus() const = 0;
 +  virtual void SetStatus(RepoStatus desired) = 0;
 +  virtual void ChangeStatus(RepoStatus expected, RepoStatus desired) = 0;
-+  virtual void Enqueue(void* cur_paras) = 0;
++  virtual void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) = 0;
 +  virtual void Dequeue() = 0;
 +  virtual NPUStatus MakeSureQueueEmpty() = 0;
-+  virtual void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) = 0;
++  virtual void InitRepo(DeviceIndex device_id) = 0;
 +  virtual bool CheckInit() const = 0;
 +};
 +
@@ -3806,10 +4311,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  RepoStatus GetStatus() const override;
 +  void SetStatus(RepoStatus desired) override;
 +  void ChangeStatus(RepoStatus expected, RepoStatus desired) override;
-+  void Enqueue(void* cur_paras) override;
++  void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) override;
 +  void Dequeue() override;
 +  NPUStatus MakeSureQueueEmpty() override;
-+  void InitRepo(DeviceIndex device_id, aclrtStream calcu_stream) override;
++  void InitRepo(DeviceIndex device_id) override;
 +  bool CheckInit() const override;
 +
 + private:
@@ -3819,7 +4324,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  void EnableInterrupt(RepoRole role);
 +  void DisableInterrupt(RepoRole role);
 +  bool NeedNotify(RepoRole role) const;
-+  bool WriteQueue(void* cur_paras);
++  bool WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearVec);
 +  bool ReadQueue();
 +
 + private:
@@ -3841,26 +4346,30 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  // The logic is ensured by original pytorch, but this is added here just in
 +  // case.
 +  std::mutex mu_enqueue;
-+  aclrtStream calcu_stream_;
++  ReleaseQueue releaseQueue;
 +};
 +
-+using ACL_EXEC_FUNC     = std::function<int(void*, aclrtStream)>;
-+using ACL_COPY_FUNC     = std::function<void(void*, void*)>;
-+using ACL_RELEASE_FUNC  = std::function<void(void*)>;
++using ACL_EXEC_FUNC     = std::function<int(void*, uint32_t)>;
++using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
++using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 +using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 +using ACL_DELETE_FUNC   = std::function<void(void*)>;
++using ACL_COPY_RELEASE_PARM_FUNC = std::function<void(void*, void*)>;
++using ACL_RELEASE_PARAM_FUNC = std::function<void(void*)>;
 +
 +namespace register_queue_cb {
 +class NPUCallBackRegisterBuilder {
 +public:
-+  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF, const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF);
++  NPUCallBackRegisterBuilder(const ACL_EXEC_FUNC& execF, const ACL_COPY_FUNC& copyF,
++    const ACL_RELEASE_FUNC& releaseF, const ACL_NEW_FUNC& newF, const ACL_DELETE_FUNC& deleteF,
++    const ACL_COPY_RELEASE_PARM_FUNC& copyReleaseParamF, const ACL_RELEASE_PARAM_FUNC& releaseParamF);
 +  ~NPUCallBackRegisterBuilder(){}
 +};
 +} // namespace register_queue_cb
 +
-+#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF)          \
-+    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder    \
-+        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF);
++#define REGISTER_QUEUE_FUNC(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF)  \
++    static ::c10::npu::register_queue_cb::NPUCallBackRegisterBuilder                     \
++        register_queue_func_builder(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 +
 +} // namespace npu
 +} // namespace c10
@@ -3869,15 +4378,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUStream.cpp patch/c10/npu/NPUStream.cpp
 --- pytorch-v1.8.1/c10/npu/NPUStream.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUStream.cpp	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,421 @@
++++ patch/c10/npu/NPUStream.cpp	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,394 @@
 +#include "NPUStream.h"
-+#include "NPUQueue.h"
 +#include <c10/npu/NPUFunctions.h>
 +#include <c10/npu/NPUGuard.h>
 +#include <c10/npu/NPUQueue.h>
 +#include <c10/npu/OptionsManager.h>
-+
++#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 +#include <c10/util/Exception.h>
 +
 +#include <Python.h>
@@ -4028,15 +4536,12 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  auto& default_streamsi = default_streams[device_id];
 +  C10_NPU_CHECK(aclrtCreateStream(&default_streamsi.stream));
 +  if (OptionsManager::CheckQueueEnable()) {
-+    default_streamsi.repo->InitRepo(device_id, default_streamsi.stream);
++    default_streamsi.repo->InitRepo(device_id);
 +  }
 +  // Initializes secondary streams
 +  secondary_streams[device_id].device_index = device_id;
 +  auto& secondary_streamsi = secondary_streams[device_id];
 +  C10_NPU_CHECK(aclrtCreateStream(&secondary_streamsi.stream));
-+  if (OptionsManager::CheckQueueEnable()) {
-+    secondary_streamsi.repo->InitRepo(device_id, secondary_streamsi.stream);
-+  }
 +}
 +
 +static void initDeviceStreamState(DeviceIndex device_index) {
@@ -4049,10 +4554,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    npu_streami.device_index = device_index;
 +
 +    C10_NPU_CHECK(aclrtCreateStream(&npu_streami.stream));
-+
-+    if (OptionsManager::CheckQueueEnable()) {
-+      npu_streami.repo->InitRepo(device_index, npu_streami.stream);
-+    }
 +  }
 +}
 +
@@ -4127,7 +4628,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace
 +
 +C10_API aclrtStream NPUStream::stream() const {
-+  auto ptr = NPUStream_internals(*this);
++  auto ptr = NPUStream_internals(getDefaultNPUStream());
 +  AT_ASSERT(ptr);
 +  if (ptr->repo->CheckInit()) {
 +    NPUStatus ret = ptr->repo->MakeSureQueueEmpty();
@@ -4136,7 +4637,9 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +      return nullptr;
 +    }
 +  }
-+  return ptr->stream;
++  auto cur_ptr = NPUStream_internals(*this);
++  AT_ASSERT(cur_ptr);
++  return cur_ptr->stream;
 +}
 +
 +NPUStream getNPUStreamFromPool(DeviceIndex device_index) {
@@ -4215,8 +4718,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  NPUStatus ret;
 +  for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
 +    auto& default_streamsi = default_streams[i];
-+    auto& secondary_streamsi = secondary_streams[i];
-+    if (default_streamsi.stream == nullptr && secondary_streamsi.stream == nullptr) {
++    if (default_streamsi.stream == nullptr) {
 +      continue;
 +    }
 +    NPUGuard device_guard{i};
@@ -4224,29 +4726,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +      ret = default_streamsi.repo->MakeSureQueueEmpty();
 +      if (ret != SUCCESS) {
 +        return ret;
-+      }
-+    }
-+    if (secondary_streamsi.stream != nullptr && secondary_streamsi.repo->CheckInit()) {
-+      ret = secondary_streamsi.repo->MakeSureQueueEmpty();
-+      if (ret != SUCCESS) {
-+        return ret;
-+      }
-+    }
-+
-+  }
-+
-+  for (auto i = decltype(num_npus){0}; i < num_npus; ++i) {
-+    for (auto j = decltype(kStreamsPerPool){0}; j < kStreamsPerPool; ++j) {
-+      auto& npu_streamj = npu_streams[i][j];
-+      if (npu_streamj.stream == nullptr) {
-+        continue;
-+      }
-+      NPUGuard device_guard{i};
-+      if (npu_streamj.repo->CheckInit()) {
-+        ret = npu_streamj.repo->MakeSureQueueEmpty();
-+        if (ret != SUCCESS) {
-+          return ret;
-+        }
 +      }
 +    }
 +  }
@@ -4266,16 +4745,19 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +void enCurrentNPUStream(
 +    void* cur_paras,
++    SmallVector<Storage, N>& needClearVec,
 +    DeviceIndex device_index) {
 +  initNPUStreamsOnce();
 +  if (device_index == -1) {
 +    device_index = current_device();
 +  }
 +  check_npu(device_index);
-+  current_streams[device_index]->repo->Enqueue(cur_paras);
-+  if (current_streams[device_index]->repo->GetStatus() == RepoStatus::INIT) {
-+    current_streams[device_index]->repo->MakeSureQueueEmpty();
-+    current_streams[device_index]->repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
++  c10::npu::queue::QueueParas* queueParam = static_cast<c10::npu::queue::QueueParas* >(cur_paras);
++  queueParam->paramStream = current_streams[device_index]->stream;
++  default_streams[device_index].repo->Enqueue(cur_paras, needClearVec);
++  if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
++    default_streams[device_index].repo->MakeSureQueueEmpty();
++    default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
 +  }
 +}
 +
@@ -4294,20 +4776,19 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUStream.h patch/c10/npu/NPUStream.h
 --- pytorch-v1.8.1/c10/npu/NPUStream.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUStream.h	2022-03-07 09:11:00.251877040 +0800
-@@ -0,0 +1,132 @@
++++ patch/c10/npu/NPUStream.h	2022-03-08 15:25:36.520231820 +0800
+@@ -0,0 +1,133 @@
 +#pragma once
 +
 +#include <cstdint>
 +#include <mutex>
-+
++#include "NPUQueue.h"
 +#include <c10/core/DeviceGuard.h>
 +#include <c10/core/Stream.h>
 +#include <c10/npu/NPUException.h>
 +#include <c10/npu/NPUMacros.h>
 +#include <c10/npu/npu_log.h>
 +#include <c10/util/Exception.h>
-+#include "c10/npu/npu_log.h"
 +#include <third_party/acl/inc/acl/acl_op.h>
 +
 +namespace c10 {
@@ -4407,10 +4888,12 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +TORCH_API aclrtStream getCurrentNPUStreamNoWait(DeviceIndex device_index = -1);
 +
++TORCH_API NPUStatus emptyAllNPUStream();
 +TORCH_API void npuSynchronizeDevice();
 +
 +TORCH_API void enCurrentNPUStream(
 +    void* cur_paras,
++    SmallVector<Storage, N>& needClearVec,
 +    DeviceIndex device_index = -1);
 +
 +TORCH_API void setCurrentNPUStream(NPUStream stream);
@@ -4430,7 +4913,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace std
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/OptionsManager.cpp patch/c10/npu/OptionsManager.cpp
 --- pytorch-v1.8.1/c10/npu/OptionsManager.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/OptionsManager.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/OptionsManager.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,108 @@
 +#include "c10/npu/OptionsManager.h"
 +#include <string>
@@ -4543,7 +5026,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/OptionsManager.h patch/c10/npu/OptionsManager.h
 --- pytorch-v1.8.1/c10/npu/OptionsManager.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/OptionsManager.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/OptionsManager.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,30 @@
 +#ifndef __C10_NPU_OPTIONSMANAGER_H__
 +#define __C10_NPU_OPTIONSMANAGER_H__
@@ -4578,7 +5061,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/register/FunctionLoader.cpp patch/c10/npu/register/FunctionLoader.cpp
 --- pytorch-v1.8.1/c10/npu/register/FunctionLoader.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/register/FunctionLoader.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/register/FunctionLoader.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,87 @@
 +#include "FunctionLoader.h"
 +#include <dlfcn.h>
@@ -4669,7 +5152,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace at
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/register/FunctionLoader.h patch/c10/npu/register/FunctionLoader.h
 --- pytorch-v1.8.1/c10/npu/register/FunctionLoader.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/register/FunctionLoader.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/register/FunctionLoader.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,98 @@
 +#include <mutex>
 +#include <memory>
@@ -4771,7 +5254,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/register/OptionRegister.cpp patch/c10/npu/register/OptionRegister.cpp
 --- pytorch-v1.8.1/c10/npu/register/OptionRegister.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/register/OptionRegister.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/register/OptionRegister.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,87 @@
 +#include <algorithm>
 +#include "OptionRegister.h"
@@ -4862,7 +5345,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace npu
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/register/OptionRegister.h patch/c10/npu/register/OptionRegister.h
 --- pytorch-v1.8.1/c10/npu/register/OptionRegister.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/register/OptionRegister.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/register/OptionRegister.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,130 @@
 +#ifndef __C10_NPU_OPTION_REGISTER_H__
 +#define __C10_NPU_OPTION_REGISTER_H__
@@ -4997,7 +5480,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/sys_ctrl/npu_sys_ctrl.cpp patch/c10/npu/sys_ctrl/npu_sys_ctrl.cpp
 --- pytorch-v1.8.1/c10/npu/sys_ctrl/npu_sys_ctrl.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/sys_ctrl/npu_sys_ctrl.cpp	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/sys_ctrl/npu_sys_ctrl.cpp	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,183 @@
 +#include "npu_sys_ctrl.h"
 +#include <Python.h>
@@ -5184,7 +5667,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/sys_ctrl/npu_sys_ctrl.h patch/c10/npu/sys_ctrl/npu_sys_ctrl.h
 --- pytorch-v1.8.1/c10/npu/sys_ctrl/npu_sys_ctrl.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/sys_ctrl/npu_sys_ctrl.h	2022-03-07 09:11:00.251877040 +0800
++++ patch/c10/npu/sys_ctrl/npu_sys_ctrl.h	2022-03-07 18:32:02.224337802 +0800
 @@ -0,0 +1,61 @@
 +#ifndef __C10_NPU_SYS_CTRL___
 +#define __C10_NPU_SYS_CTRL___
@@ -5249,7 +5732,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#endif
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/caffe2/CMakeLists.txt patch/caffe2/CMakeLists.txt
 --- pytorch-v1.8.1/caffe2/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/caffe2/CMakeLists.txt	2022-03-07 09:11:00.259877103 +0800
++++ patch/caffe2/CMakeLists.txt	2022-03-07 18:32:02.232337853 +0800
 @@ -76,6 +76,7 @@
    # Add source, includes, and libs to lists
    list(APPEND Caffe2_CPU_SRCS ${ATen_CPU_SRCS})
@@ -5361,7 +5844,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    # Call again since Caffe2_HIP_INCLUDE is extended with ATen include dirs.
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/BuildVariables.cmake patch/cmake/BuildVariables.cmake
 --- pytorch-v1.8.1/cmake/BuildVariables.cmake	2022-03-05 10:10:10.000000000 +0800
-+++ patch/cmake/BuildVariables.cmake	2022-03-07 09:11:00.347877795 +0800
++++ patch/cmake/BuildVariables.cmake	2022-03-07 18:32:02.340338536 +0800
 @@ -11,6 +11,7 @@
  # CMakeLists.txt files under each folder respectively.
  set(Caffe2_CPU_SRCS)
@@ -5385,7 +5868,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  # symbols. However, if the lib is whole linked in caffe2 lib, we don't want
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Codegen.cmake patch/cmake/Codegen.cmake
 --- pytorch-v1.8.1/cmake/Codegen.cmake	2022-03-05 10:10:10.000000000 +0800
-+++ patch/cmake/Codegen.cmake	2022-03-07 09:11:00.347877795 +0800
++++ patch/cmake/Codegen.cmake	2022-03-07 18:32:02.340338536 +0800
 @@ -214,7 +214,7 @@
    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/aten/src/ATen)
    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/aten/src/ATen/core)
@@ -5411,7 +5894,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  function(append_filelist name outputvar)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Dependencies.cmake patch/cmake/Dependencies.cmake
 --- pytorch-v1.8.1/cmake/Dependencies.cmake	2022-03-05 10:10:10.000000000 +0800
-+++ patch/cmake/Dependencies.cmake	2022-03-07 09:11:00.347877795 +0800
++++ patch/cmake/Dependencies.cmake	2022-03-07 18:32:02.340338536 +0800
 @@ -1771,6 +1771,13 @@
    endif(NOT C_HAS_THREAD)
  endif()
@@ -5428,7 +5911,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  #
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/public/npu.cmake patch/cmake/public/npu.cmake
 --- pytorch-v1.8.1/cmake/public/npu.cmake	1970-01-01 08:00:00.000000000 +0800
-+++ patch/cmake/public/npu.cmake	2022-03-07 09:11:00.351877826 +0800
++++ patch/cmake/public/npu.cmake	2022-03-07 18:32:02.344338561 +0800
 @@ -0,0 +1,30 @@
 +if(NOT TARGET npu_interface)
 +  add_library(npu_interface INTERFACE)
@@ -5463,7 +5946,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/Summary.cmake patch/cmake/Summary.cmake
 --- pytorch-v1.8.1/cmake/Summary.cmake	2022-03-05 10:10:10.000000000 +0800
-+++ patch/cmake/Summary.cmake	2022-03-07 09:11:00.351877826 +0800
++++ patch/cmake/Summary.cmake	2022-03-07 18:32:02.344338561 +0800
 @@ -127,6 +127,7 @@
      message(STATUS "  USE_MKLDNN_CBLAS      : ${USE_MKLDNN_CBLAS}")
    endif()
@@ -5482,7 +5965,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    message(STATUS "  Private Dependencies : ${Caffe2_DEPENDENCY_LIBS}")
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/TorchConfig.cmake.in patch/cmake/TorchConfig.cmake.in
 --- pytorch-v1.8.1/cmake/TorchConfig.cmake.in	2022-03-05 10:10:10.000000000 +0800
-+++ patch/cmake/TorchConfig.cmake.in	2022-03-07 09:11:00.351877826 +0800
++++ patch/cmake/TorchConfig.cmake.in	2022-03-07 18:32:02.344338561 +0800
 @@ -158,6 +158,11 @@
    list(APPEND TORCH_LIBRARIES ${TORCH_CUDA_LIBRARIES})
  endif()
@@ -5497,7 +5980,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    set(TORCH_CXX_FLAGS "-D_GLIBCXX_USE_CXX11_ABI=@GLIBCXX_USE_CXX11_ABI@")
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/CMakeLists.txt patch/CMakeLists.txt
 --- pytorch-v1.8.1/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/CMakeLists.txt	2022-03-07 09:11:00.135876129 +0800
++++ patch/CMakeLists.txt	2022-03-07 18:32:02.068336815 +0800
 @@ -261,6 +261,10 @@
      "USE_DISTRIBUTED" OFF)
  option(USE_TBB "Use TBB" OFF)
@@ -5541,7 +6024,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  if(APPLE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/.jenkins/pytorch/win-test-helpers/installation-helpers/install_sccache.bat patch/.jenkins/pytorch/win-test-helpers/installation-helpers/install_sccache.bat
 --- pytorch-v1.8.1/.jenkins/pytorch/win-test-helpers/installation-helpers/install_sccache.bat	2022-03-05 10:10:10.000000000 +0800
-+++ patch/.jenkins/pytorch/win-test-helpers/installation-helpers/install_sccache.bat	2022-03-07 09:10:56.411846859 +0800
++++ patch/.jenkins/pytorch/win-test-helpers/installation-helpers/install_sccache.bat	2022-03-07 18:31:59.084317933 +0800
 @@ -1,18 +1,18 @@
 -mkdir %TMP_DIR_WIN%\bin
 -
@@ -5581,7 +6064,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/.jenkins/pytorch/win-test-helpers/test_custom_script_ops.bat patch/.jenkins/pytorch/win-test-helpers/test_custom_script_ops.bat
 --- pytorch-v1.8.1/.jenkins/pytorch/win-test-helpers/test_custom_script_ops.bat	2022-03-05 10:10:10.000000000 +0800
-+++ patch/.jenkins/pytorch/win-test-helpers/test_custom_script_ops.bat	2022-03-07 09:10:56.411846859 +0800
++++ patch/.jenkins/pytorch/win-test-helpers/test_custom_script_ops.bat	2022-03-07 18:31:59.084317933 +0800
 @@ -1,41 +1,41 @@
 -call %SCRIPT_HELPERS_DIR%\setup_pytorch_env.bat
 -
@@ -5667,7 +6150,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +if ERRORLEVEL 1 exit /b 1
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/scripts/appveyor/install.bat patch/scripts/appveyor/install.bat
 --- pytorch-v1.8.1/scripts/appveyor/install.bat	2022-03-05 10:10:10.000000000 +0800
-+++ patch/scripts/appveyor/install.bat	2022-03-07 09:10:56.723849312 +0800
++++ patch/scripts/appveyor/install.bat	2022-03-07 18:31:59.396319907 +0800
 @@ -1,10 +1,10 @@
 -:: Installation scripts for appveyor.
 -
@@ -5691,7 +6174,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +conda install -y numpy
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/scripts/appveyor/install_cuda.bat patch/scripts/appveyor/install_cuda.bat
 --- pytorch-v1.8.1/scripts/appveyor/install_cuda.bat	2022-03-05 10:10:10.000000000 +0800
-+++ patch/scripts/appveyor/install_cuda.bat	2022-03-07 09:10:56.723849312 +0800
++++ patch/scripts/appveyor/install_cuda.bat	2022-03-07 18:31:59.396319907 +0800
 @@ -1,22 +1,22 @@
 -@echo on
 -
@@ -5739,7 +6222,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +nvcc -V || exit /b
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/scripts/build_windows.bat patch/scripts/build_windows.bat
 --- pytorch-v1.8.1/scripts/build_windows.bat	2022-03-05 10:10:10.000000000 +0800
-+++ patch/scripts/build_windows.bat	2022-03-07 09:10:56.723849312 +0800
++++ patch/scripts/build_windows.bat	2022-03-07 18:31:59.396319907 +0800
 @@ -1,84 +1,84 @@
 -:: #############################################################################
 -:: Example command to build on Windows.
@@ -5911,7 +6394,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +exit /b 1
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/setup.py patch/setup.py
 --- pytorch-v1.8.1/setup.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/setup.py	2022-03-07 09:11:00.363877920 +0800
++++ patch/setup.py	2022-03-07 18:32:02.360338662 +0800
 @@ -298,6 +298,7 @@
              report("Did you run 'git submodule update --init --recursive'?")
              sys.exit(1)
@@ -5981,7 +6464,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
                  'utils/benchmark/utils/valgrind_wrapper/*.h',
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp patch/tools/autograd/templates/python_torch_functions.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/autograd/templates/python_torch_functions.cpp	2022-03-07 09:11:00.927882352 +0800
++++ patch/tools/autograd/templates/python_torch_functions.cpp	2022-03-07 18:32:03.068343142 +0800
 @@ -30,7 +30,7 @@
  #include "torch/csrc/autograd/generated/variable_factories.h"
  #include "torch/csrc/utils/structseq.h"
@@ -6017,7 +6500,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    return torch::range(start, end, step, options);
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp patch/tools/autograd/templates/python_variable_methods.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/autograd/templates/python_variable_methods.cpp	2022-03-07 09:11:00.927882352 +0800
++++ patch/tools/autograd/templates/python_variable_methods.cpp	2022-03-07 18:32:03.068343142 +0800
 @@ -21,6 +21,7 @@
  #include "torch/csrc/cuda/Event.h"
  #endif
@@ -6079,7 +6562,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    {"has_names", THPVariable_has_names, METH_NOARGS, NULL},
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/build_variables.bzl patch/tools/build_variables.bzl
 --- pytorch-v1.8.1/tools/build_variables.bzl	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/build_variables.bzl	2022-03-07 09:11:00.927882352 +0800
++++ patch/tools/build_variables.bzl	2022-03-07 18:32:03.068343142 +0800
 @@ -362,6 +362,7 @@
  libtorch_cuda_core_sources = [
      "torch/csrc/CudaIPCTypes.cpp",
@@ -6098,7 +6581,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      "torch/csrc/utils/python_arg_parser.cpp",
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/generate_torch_version.py patch/tools/generate_torch_version.py
 --- pytorch-v1.8.1/tools/generate_torch_version.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/generate_torch_version.py	2022-03-07 09:11:00.935882414 +0800
++++ patch/tools/generate_torch_version.py	2022-03-07 18:32:03.076343192 +0800
 @@ -17,10 +17,10 @@
  
      if os.getenv('PYTORCH_BUILD_VERSION'):
@@ -6115,7 +6598,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
              sha = get_sha(pytorch_root)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_C/_autograd.pyi patch/torch/_C/_autograd.pyi
 --- pytorch-v1.8.1/torch/_C/_autograd.pyi	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/_C/_autograd.pyi	2022-03-07 09:11:00.939882446 +0800
++++ patch/torch/_C/_autograd.pyi	2022-03-07 18:32:03.080343218 +0800
 @@ -9,14 +9,17 @@
      CUDA = ...
      NVTX = ...
@@ -6136,7 +6619,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  class ProfilerConfig:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/engine.cpp patch/torch/csrc/autograd/engine.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/engine.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/engine.cpp	2022-03-07 09:11:00.951882540 +0800
++++ patch/torch/csrc/autograd/engine.cpp	2022-03-07 18:32:03.100343345 +0800
 @@ -34,6 +34,11 @@
  #include <queue>
  #include <TH/TH.h>
@@ -6213,7 +6696,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    auto outputs = call_function(graph_task, func, inputs);
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp patch/torch/csrc/autograd/functions/tensor.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/functions/tensor.cpp	2022-03-07 09:11:00.951882540 +0800
++++ patch/torch/csrc/autograd/functions/tensor.cpp	2022-03-07 18:32:03.104343370 +0800
 @@ -26,7 +26,7 @@
        at::DeviceGuard device_guard(src_device);
        // TODO: What if !grad.is_cuda(), but src_device is CUDA?
@@ -6225,7 +6708,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
              /*non_blocking=*/false,
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp patch/torch/csrc/autograd/input_buffer.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/input_buffer.cpp	2022-03-07 09:11:00.951882540 +0800
++++ patch/torch/csrc/autograd/input_buffer.cpp	2022-03-07 18:32:03.104343370 +0800
 @@ -100,6 +100,28 @@
          opt_accumulate_stream->wait(event);
        }
@@ -6257,7 +6740,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    auto& old_var = buffer[pos];
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.cpp patch/torch/csrc/autograd/profiler_legacy.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/profiler_legacy.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/profiler_legacy.cpp	2022-03-07 09:11:00.951882540 +0800
++++ patch/torch/csrc/autograd/profiler_legacy.cpp	2022-03-07 18:32:03.104343370 +0800
 @@ -418,7 +418,7 @@
    auto state_ptr = getProfilerTLSState();
    TORCH_INTERNAL_ASSERT(state_ptr, "Expected profiler state set");
@@ -6278,7 +6761,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
            return;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/python_variable.cpp patch/torch/csrc/autograd/python_variable.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/python_variable.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/python_variable.cpp	2022-03-07 09:11:00.955882572 +0800
++++ patch/torch/csrc/autograd/python_variable.cpp	2022-03-07 18:32:03.104343370 +0800
 @@ -20,6 +20,7 @@
  #include <torch/csrc/tensor/python_tensor.h>
  #include <pybind11/pybind11.h>
@@ -6312,7 +6795,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    {"is_mkldnn", (getter)THPVariable_is_mkldnn, nullptr, nullptr, nullptr},
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp patch/torch/csrc/autograd/python_variable_indexing.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/python_variable_indexing.cpp	2022-03-07 09:11:00.955882572 +0800
++++ patch/torch/csrc/autograd/python_variable_indexing.cpp	2022-03-07 18:32:03.104343370 +0800
 @@ -368,6 +368,9 @@
    // TODO: This qint special case looks very suspicious...
    if (isQIntType(self_.scalar_type())) {
@@ -6325,7 +6808,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp patch/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/DynamicTypes.cpp	2022-03-07 09:11:00.943882478 +0800
++++ patch/torch/csrc/DynamicTypes.cpp	2022-03-07 18:32:03.088343269 +0800
 @@ -8,6 +8,7 @@
  #include <torch/csrc/autograd/generated/VariableType.h>
  #include <torch/csrc/utils/cuda_enabled.h>
@@ -6354,7 +6837,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      return it->second;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/Generator.cpp patch/torch/csrc/Generator.cpp
 --- pytorch-v1.8.1/torch/csrc/Generator.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/Generator.cpp	2022-03-07 09:11:00.943882478 +0800
++++ patch/torch/csrc/Generator.cpp	2022-03-07 18:32:03.088343269 +0800
 @@ -18,6 +18,10 @@
  #include <ATen/CUDAGeneratorImpl.h>
  #endif
@@ -6381,7 +6864,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
               " is not supported for torch.Generator() api.");
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/tensor/python_tensor.cpp patch/torch/csrc/tensor/python_tensor.cpp
 --- pytorch-v1.8.1/torch/csrc/tensor/python_tensor.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/tensor/python_tensor.cpp	2022-03-07 09:11:01.011883012 +0800
++++ patch/torch/csrc/tensor/python_tensor.cpp	2022-03-07 18:32:03.172343800 +0800
 @@ -13,6 +13,7 @@
  #include <torch/csrc/autograd/utils/wrap_outputs.h>
  #include <torch/csrc/utils/cuda_enabled.h>
@@ -6400,7 +6883,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/npu_lazy_init.cpp patch/torch/csrc/utils/npu_lazy_init.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/npu_lazy_init.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/torch/csrc/utils/npu_lazy_init.cpp	2022-03-07 09:11:01.011883012 +0800
++++ patch/torch/csrc/utils/npu_lazy_init.cpp	2022-03-07 18:32:03.176343826 +0800
 @@ -0,0 +1,34 @@
 +#include <torch/csrc/utils/npu_lazy_init.h>
 +
@@ -6438,7 +6921,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/npu_lazy_init.h patch/torch/csrc/utils/npu_lazy_init.h
 --- pytorch-v1.8.1/torch/csrc/utils/npu_lazy_init.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/torch/csrc/utils/npu_lazy_init.h	2022-03-07 09:11:01.011883012 +0800
++++ patch/torch/csrc/utils/npu_lazy_init.h	2022-03-07 18:32:03.176343826 +0800
 @@ -0,0 +1,33 @@
 +#pragma once
 +
@@ -6475,7 +6958,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +}
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/python_arg_parser.h patch/torch/csrc/utils/python_arg_parser.h
 --- pytorch-v1.8.1/torch/csrc/utils/python_arg_parser.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/utils/python_arg_parser.h	2022-03-07 09:11:01.011883012 +0800
++++ patch/torch/csrc/utils/python_arg_parser.h	2022-03-07 18:32:03.176343826 +0800
 @@ -495,7 +495,11 @@
    if (THPUtils_checkLong(args[i])) {
      const auto device_index = THPUtils_unpackLong(args[i]);
@@ -6490,7 +6973,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    return at::Device(device_str);
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp patch/torch/csrc/utils/tensor_new.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/utils/tensor_new.cpp	2022-03-07 09:11:01.015883043 +0800
++++ patch/torch/csrc/utils/tensor_new.cpp	2022-03-08 15:25:36.520231820 +0800
 @@ -7,6 +7,7 @@
  #include <torch/csrc/Size.h>
  #include <torch/csrc/autograd/variable.h>
@@ -6507,15 +6990,15 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  using at::kLong;
  using at::Scalar;
  using at::ScalarType;
-@@ -51,6 +53,8 @@
-       return backendToCPU(b);
-     case DeviceType::CUDA:
-       return backendToCUDA(b);
+@@ -47,6 +49,8 @@
+ 
+ Backend backendToBackendOfDeviceType(Backend b, DeviceType d) {
+   switch (d) {
 +    case DeviceType::NPU:
 +      return Backend::NPU;
-     case DeviceType::HIP:
-       return backendToHIP(b);
-     case DeviceType::MSNPU:
+     case DeviceType::CPU:
+       return backendToCPU(b);
+     case DeviceType::CUDA:
 @@ -88,26 +92,42 @@
    }
  }
@@ -6610,7 +7093,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
          dispatch_key);
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp patch/torch/csrc/utils/tensor_types.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/utils/tensor_types.cpp	2022-03-07 09:11:01.015883043 +0800
++++ patch/torch/csrc/utils/tensor_types.cpp	2022-03-07 18:32:03.176343826 +0800
 @@ -19,6 +19,7 @@
    switch (backend) {
      case at::Backend::CPU: return "torch";
@@ -6640,7 +7123,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/c10d/CMakeLists.txt patch/torch/lib/c10d/CMakeLists.txt
 --- pytorch-v1.8.1/torch/lib/c10d/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/lib/c10d/CMakeLists.txt	2022-03-07 09:11:01.027883138 +0800
++++ patch/torch/lib/c10d/CMakeLists.txt	2022-03-07 18:32:03.196343952 +0800
 @@ -127,6 +127,9 @@
  copy_header(TCPStore.hpp)
  copy_header(Types.hpp)
@@ -6653,7 +7136,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    copy_header(GlooDeviceFactory.hpp)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/c10d/frontend.hpp patch/torch/lib/c10d/frontend.hpp
 --- pytorch-v1.8.1/torch/lib/c10d/frontend.hpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/lib/c10d/frontend.hpp	2022-03-07 09:11:01.031883169 +0800
++++ patch/torch/lib/c10d/frontend.hpp	2022-03-07 18:32:03.200343977 +0800
 @@ -2,9 +2,8 @@
  
  #include <ATen/ATen.h>
@@ -6668,7 +7151,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  #include <memory>
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/lib/libshm/CMakeLists.txt patch/torch/lib/libshm/CMakeLists.txt
 --- pytorch-v1.8.1/torch/lib/libshm/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/lib/libshm/CMakeLists.txt	2022-03-07 09:11:01.035883200 +0800
++++ patch/torch/lib/libshm/CMakeLists.txt	2022-03-07 18:32:03.200343977 +0800
 @@ -41,8 +41,11 @@
  set_target_properties(shm PROPERTIES
    PREFIX "lib"
@@ -6684,13 +7167,13 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    # https://github.com/libgit2/libgit2/issues/2128#issuecomment-35649830
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/npu/__init__.py patch/torch/npu/__init__.py
 --- pytorch-v1.8.1/torch/npu/__init__.py	1970-01-01 08:00:00.000000000 +0800
-+++ patch/torch/npu/__init__.py	2022-03-07 09:11:01.043883264 +0800
++++ patch/torch/npu/__init__.py	2022-03-07 18:32:03.212344053 +0800
 @@ -0,0 +1 @@
 +# Empty Module for Npu-type Tensors.
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/storage.py patch/torch/storage.py
 --- pytorch-v1.8.1/torch/storage.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/storage.py	2022-03-07 09:11:01.051883326 +0800
++++ patch/torch/storage.py	2022-03-07 18:32:03.224344129 +0800
 @@ -8,6 +8,7 @@
  class _StorageBase(object):
      _cdata: Any
@@ -6710,7 +7193,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
          else:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/tensor.py patch/torch/tensor.py
 --- pytorch-v1.8.1/torch/tensor.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/tensor.py	2022-03-07 09:11:01.051883326 +0800
++++ patch/torch/tensor.py	2022-03-07 18:32:03.224344129 +0800
 @@ -59,6 +59,8 @@
          with torch.no_grad():
              if self.is_sparse or self.device.type == 'xla':
@@ -6735,7 +7218,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      def __reversed__(self):
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_tensor_str.py patch/torch/_tensor_str.py
 --- pytorch-v1.8.1/torch/_tensor_str.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/_tensor_str.py	2022-03-07 09:11:00.939882446 +0800
++++ patch/torch/_tensor_str.py	2022-03-07 18:32:03.084343243 +0800
 @@ -77,7 +77,9 @@
          self.int_mode = True
          self.sci_mode = False
@@ -6759,7 +7242,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      # TODO: add an API to map real -> complex dtypes
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/utils/data/dataloader.py patch/torch/utils/data/dataloader.py
 --- pytorch-v1.8.1/torch/utils/data/dataloader.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/utils/data/dataloader.py	2022-03-07 09:11:01.063883421 +0800
++++ patch/torch/utils/data/dataloader.py	2022-03-07 18:32:03.236344205 +0800
 @@ -16,6 +16,7 @@
  import torch.multiprocessing as multiprocessing
  from torch._utils import ExceptionWrapper
@@ -6800,7 +7283,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
              pin_memory_thread.start()
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/utils/data/_utils/pin_memory.py patch/torch/utils/data/_utils/pin_memory.py
 --- pytorch-v1.8.1/torch/utils/data/_utils/pin_memory.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/utils/data/_utils/pin_memory.py	2022-03-07 09:11:01.063883421 +0800
++++ patch/torch/utils/data/_utils/pin_memory.py	2022-03-07 18:32:03.236344205 +0800
 @@ -6,6 +6,7 @@
  """
  
@@ -6826,7 +7309,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      # logic of this function.
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/_utils.py patch/torch/_utils.py
 --- pytorch-v1.8.1/torch/_utils.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/_utils.py	2022-03-07 09:11:00.939882446 +0800
++++ patch/torch/_utils.py	2022-03-07 18:32:03.084343243 +0800
 @@ -133,9 +133,15 @@
      t = torch.tensor([], dtype=storage.dtype, device=storage.device)
      return t.set_(storage, storage_offset, size, stride)
