@@ -109,7 +109,7 @@ at::Tensor& NPUNativeFunctions::embedding_renorm_(
   auto self_arg = at::TensorArg(self, "self", 1);
   auto indices_arg = at::TensorArg(indices, "indices", 2);
   at::checkDim("embedding_renorm_", self_arg, 2);
-  at::checkScalarType("embedding_renorm_", indices_arg, kLong);
+  at::checkScalarType("embedding_renorm_", indices_arg, at::kLong);
 
   at::Tensor indices_copy = indices.clone();
   auto num_indices = indices.numel();
