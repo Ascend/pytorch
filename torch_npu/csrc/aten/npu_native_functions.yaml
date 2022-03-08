@@ -1048,7 +1048,6 @@ supported:
   - lstm.input
   - lstm.data
   - gru.input
-  - gru.data
   - rnn_tanh.input
   - rnn_tanh.data
   - rnn_relu.input
@@ -1929,6 +1928,7 @@ custom:
   - func: npu_silu_backward(Tensor grad_output, Tensor x0, Tensor x1) -> Tensor
   - func: npu_rotated_iou(Tensor self, Tensor query_boxes, bool trans=False, int mode=0, bool is_cross=True, float v_threshold=0.0, float e_threshold=0.0) -> Tensor
   - func: npu_nms_with_mask(Tensor input, Scalar iou_threshold) -> (Tensor, Tensor, Tensor)
+  - func: npu_gru_backward(Tensor? grady, Tensor? gradh, Tensor input, Tensor weight_input, Tensor weight_hidden, Tensor bias_input, Tensor bias_hidden, Tensor seq_length, Tensor hx, Tensor y_output, Tensor h_output, Tensor output_updata, Tensor output_reset, Tensor output_new, Tensor hidden_new) -> Tensor[]
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
@@ -1951,3 +1951,4 @@ custom_autograd:
     variants: function, method
   - func: npu_silu(Tensor self) -> Tensor
   - func: npu_silu_(Tensor(a!) self) -> Tensor(a!)
+  - func: npu_gru(Tensor input, Tensor hx, Tensor weight_input, Tensor weight_hidden, Tensor bias_input, Tensor bias_hidden, Tensor seq_length, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first) -> Tensor[]

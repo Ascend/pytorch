@@ -477,6 +477,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 2.  引入依赖头文件。
 
     ```
+    #include <c10/npu/OptionsManager.h>
     #include "ATen/native/npu/utils/CalcuOpUtil.h"
     #include "ATen/native/npu/utils/OpAdapter.h"
     ```
@@ -514,7 +515,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
             Scalar other_c1_offset(
                 other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
             Scalar stride_len(self.size(1) / c0_len);
-            Tensor result = NPUNativeFunctions::npu_stride_add(
+            Tensor result = at::npu_stride_add(
                 self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
             return result;
           }
@@ -523,7 +524,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
           auto outputSize = broadcast_ops_npu_output_size(self, other);
         
           // construct the output tensor of the NPU
-          Tensor result = OpPreparation::ApplyTensorWithFormat(
+          Tensor result = at::empty_with_format(
               outputSize,
               outputTensor.options(),
               CalcuOpUtil::get_tensor_npu_format(outputTensor));
@@ -540,7 +541,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
           // calculate the output size
           auto outputSize = input_same_output_size(self);
           // construct the output tensor of the NPU
-          Tensor result = OpPreparation::ApplyTensorWithFormat(
+          Tensor result = at::empty_with_format(
               outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
         
           // calculate the output result of the NPU
@@ -715,6 +716,7 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
     import torch
     import numpy as np
     from common_utils import TestCase, run_tests
+    from common_device_type import dtypes, instantiate_device_type_tests
     from util_test import create_common_tensor
     
     # 定义add测试用例类
@@ -745,13 +747,14 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # 定义具体add场景的测试用例，用例函数需要以test_开头
-        def test_add_shape_format_fp32_2d(self, device="npu"):
+        def test_add_shape_format_fp32_2d(self, device):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
+    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```

@@ -477,6 +477,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
 2.  Introduce the dependency header files.
 
     ```
+    #include <c10/npu/OptionsManager.h>
     #include "ATen/native/npu/utils/CalcuOpUtil.h"
     #include "ATen/native/npu/utils/OpAdapter.h"
     ```
@@ -514,7 +515,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
             Scalar other_c1_offset(
                 other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
             Scalar stride_len(self.size(1) / c0_len);
-            Tensor result = NPUNativeFunctions::npu_stride_add(
+            Tensor result = at::npu_stride_add(
                 self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
             return result;
           }
@@ -523,8 +524,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
           auto outputSize = broadcast_ops_npu_output_size(self, other);
         
           // construct the output tensor of the NPU
-          at::Tensor result = (self, outputSize, npu_format);
-          Tensor result = OpPreparation::ApplyTensorWithFormat(
+          Tensor result = at::empty_with_format(
               outputSize,
               outputTensor.options(),
               CalcuOpUtil::get_tensor_npu_format(outputTensor));
@@ -541,7 +541,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
           // calculate the output size
           auto outputSize = input_same_output_size(self);
           // construct the output tensor of the NPU
-          Tensor result = OpPreparation::ApplyTensorWithFormat(
+          Tensor result = at::empty_with_format(
               outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
         
           // calculate the output result of the NPU
@@ -711,11 +711,13 @@ This section describes how to test the functions of a PyTorch operator.
 
     ```
     # Import the dependency library.
+    import sys
+    sys.path.append('..')
     import torch
     import numpy as np
-
-    from torch_npu.testing.testcase import TestCase, run_tests
-    from torch_npu.testing.common_utils import create_common_tensor
+    from common_utils import TestCase, run_tests
+    from common_device_type import dtypes, instantiate_device_type_tests
+    from util_test import create_common_tensor
     
     # Define the add test case class.
     class TestAdd(TestCase):
@@ -745,13 +747,14 @@ This section describes how to test the functions of a PyTorch operator.
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # Define a test case for a specific add scenario. The test case function must start with test_.
-        def test_add_shape_format_fp32_2d(self, device="npu"):
+        def test_add_shape_format_fp32_2d(self, device):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
+    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```
