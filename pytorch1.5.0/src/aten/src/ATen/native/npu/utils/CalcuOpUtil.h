@@ -62,13 +62,15 @@ using std::vector;
           __LINE__,                               \
           " NPU error,NPU error code is:",        \
           expr, "\n",                             \
-          c10::npu::acl::AclGetErrMsg());  \
+          c10::npu::acl::AclGetErrMsg());         \
     }                                             \
   } while (0)
 
 namespace at {
 namespace native {
 namespace npu {
+
+using StorageAndOffsetPair = std::pair<const StorageImpl*, int64_t>;
 
 class NPUTensorDesc {
  public:
@@ -205,6 +207,43 @@ class CalcuOpUtil {
       const std::pair<Tensor, int64_t>& src,
       size_t src_size,
       aclrtMemcpyKind kind);
+
+  // Add some public interfaces for aclrtmemcpy process,
+  // to launch graph in graph mode automatically.
+  TORCH_NPU_API static aclError AclrtMemcpyAsyncWithModeSwitch(
+      const StorageAndOffsetPair& dst,
+      size_t dstMax,
+      const StorageAndOffsetPair& src,
+      size_t count,
+      aclrtMemcpyKind kind,
+      aclrtStream stream);
+  TORCH_NPU_API static aclError AclrtMemcpyAsyncWithModeSwitch(
+      const StorageAndOffsetPair& dst,
+      size_t dstMax,
+      const void* src,
+      size_t count,
+      aclrtMemcpyKind kind,
+      aclrtStream stream);
+  TORCH_NPU_API static aclError AclrtMemcpyAsyncWithModeSwitch(
+      void* dst,
+      size_t dstMax,
+      const StorageAndOffsetPair& src,
+      size_t count,
+      aclrtMemcpyKind kind,
+      aclrtStream stream);
+  TORCH_NPU_API static aclError LaunchAsyncCopyTaskWithModeSwitch(
+      const Tensor& dst,
+      size_t dstMax,
+      const Tensor& src,
+      size_t count,
+      aclrtMemcpyKind kind);
+  TORCH_NPU_API static aclError LaunchAsyncCopyTaskWithModeSwitch(
+      const StorageImpl& dst,
+      size_t dstMax,
+      void* src,
+      size_t count,
+      aclrtMemcpyKind kind);
+
   static void check_memory_over_laps(
       SmallVector<Tensor, N>& inputs,
       SmallVector<Tensor, N>& outputs);
@@ -230,7 +269,8 @@ class CalcuOpUtil {
       ScalarType scalar_type);
   static SmallVector<NPUTensorDesc, N> create_npu_output_tensor_desc(
       const SmallVector<Tensor, N>& outputTensor);
-  static std::tuple<aclopAttr*, string> CreateNpuAttrDesc(const SmallVector<NPUAttrDesc, N>& attrs);
+  static std::tuple<aclopAttr*, string> CreateNpuAttrDesc(
+      const SmallVector<NPUAttrDesc, N>& attrs);
   static NPUStatus CreateAclTensorDescInfo(
       SmallVector<NPUTensorDesc, N>& input,
       SmallVector<NPUTensorDesc, N>& output,
@@ -244,7 +284,11 @@ class CalcuOpUtil {
       const SmallVector<NPUAttrDesc, N>& attrs);
 
   static SmallVector<int64_t, N> get_dimlist_for_tensor(const Tensor& self);
-  static int64_t completePad(int64_t s_size, int64_t p_size, int64_t k_size, int64_t stride);
+  static int64_t completePad(
+      int64_t s_size,
+      int64_t p_size,
+      int64_t k_size,
+      int64_t stride);
 };
 
 } // namespace npu

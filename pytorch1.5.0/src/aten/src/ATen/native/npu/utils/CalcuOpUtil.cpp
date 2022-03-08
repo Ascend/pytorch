@@ -18,6 +18,7 @@
 #include "CalcuOpUtil.h"
 #include <Python.h>
 #include <third_party/acl/inc/acl/acl_base.h>
+#include <third_party/acl/inc/acl/acl_rt.h>
 #include "ATen/native/npu/interface/AclOpCompileInterface.h"
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/frame/InferFormat.h"
@@ -27,6 +28,7 @@
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "c10/npu/interface/AclInterface.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
 #include "ATen/native/npu/contiguous/ReshapeOpt.h"
 
@@ -76,6 +78,32 @@ string GetAtScalarTypeName(const ScalarType data_type) {
   }
 
   return iter->second;
+}
+
+aclError AclrtMemcpyAsyncParamCheck(
+    void* dst,
+    size_t destMax,
+    const void* src,
+    size_t count,
+    aclrtMemcpyKind kind,
+    aclrtStream stream) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    if (dst == nullptr) {
+      AT_ERROR(
+          "Dst ptr of aclrtMemcpyAsync is nullptr!",
+          "Current run mode is graph mode, "
+          "try to use torch.npu.disable_graph_mode() to fix this error.");
+    }
+    if (src == nullptr) {
+      AT_ERROR(
+          "Src ptr of aclrtMemcpyAsync is nullptr!",
+          "Current run mode is graph mode, "
+          "try to use torch.npu.disable_graph_mode() to fix this error.");
+    }
+  }
+
+  auto ret = aclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
+  return ret;
 }
 } // namespace
 
@@ -166,9 +194,100 @@ NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
         dst.second * dst.first.itemsize();
   void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
         src.second * src.first.itemsize();
-  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, dst_size, const_cast<void* >(src_ptr), src_size, kind));
+  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
+      dst_ptr, dst_size, const_cast<void*>(src_ptr), src_size, kind));
 
   return SUCCESS;
+}
+
+aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+    const StorageAndOffsetPair& dst,
+    size_t dstMax,
+    const StorageAndOffsetPair& src,
+    size_t count,
+    aclrtMemcpyKind kind,
+    aclrtStream stream) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  }
+
+  void* dst_ptr = static_cast<void*>(
+      static_cast<uint8_t*>(dst.first->data()) +
+      dst.second * dst.first->itemsize());
+  void* src_ptr = static_cast<void*>(
+      static_cast<uint8_t*>(src.first->data()) +
+      src.second * src.first->itemsize());
+  aclError ret = AclrtMemcpyAsyncParamCheck(
+      dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
+  return ret;
+}
+
+aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+    const StorageAndOffsetPair& dst,
+    size_t dstMax,
+    const void* src,
+    size_t count,
+    aclrtMemcpyKind kind,
+    aclrtStream stream) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  }
+
+  void* dst_ptr = static_cast<void*>(
+      static_cast<uint8_t*>(dst.first->data()) +
+      dst.second * dst.first->itemsize());
+  aclError ret = AclrtMemcpyAsyncParamCheck(
+      dst_ptr, dstMax, src, count, kind, stream);
+  return ret;
+}
+
+aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+    void* dst,
+    size_t dstMax,
+    const StorageAndOffsetPair& src,
+    size_t count,
+    aclrtMemcpyKind kind,
+    aclrtStream stream) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  }
+
+  void* src_ptr = static_cast<void*>(
+      static_cast<uint8_t*>(src.first->data()) +
+      src.second * src.first->itemsize());
+  aclError ret = AclrtMemcpyAsyncParamCheck(
+      dst, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
+  return ret;
+}
+
+aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+    const Tensor& dst,
+    size_t dstMax,
+    const Tensor& src,
+    size_t count,
+    aclrtMemcpyKind kind) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  }
+
+  aclError ret = c10::npu::queue::LaunchAsyncCopyTask(
+      dst.data_ptr(), dstMax, src.data_ptr(), count, kind);
+  return ret;
+}
+
+aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+    const StorageImpl& dst,
+    size_t dstMax,
+    void* src,
+    size_t count,
+    aclrtMemcpyKind kind) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  }
+
+  aclError ret = c10::npu::queue::LaunchAsyncCopyTask(
+      dst.data(), dstMax, src, count, kind);
+  return ret;
 }
 
 int64_t CalcuOpUtil::get_tensor_npu_format(const Tensor& tensor) {

@@ -28,13 +28,12 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
     int64_t M,
     int64_t N,
     double eps) {
-  Tensor weight = weight_ex;
-  Tensor bias = bias_ex;
-
   DCHECK_EQ(input.numel(), M * N);
-  DCHECK(!weight.defined() || weight.numel() == N);
-  DCHECK(!bias.defined() || bias.numel() == N);
+  DCHECK(!weight_ex.defined() || weight_ex.numel() == N);
+  DCHECK(!bias_ex.defined() || bias_ex.numel() == N);
 
+  Tensor weight = weight_ex.clone();
+  Tensor bias = bias_ex.clone();
   Tensor Y = at::empty_with_format(input.sizes(), input.options(), CalcuOpUtil::get_tensor_npu_format(input));
   Tensor mean;
   Tensor variance;
@@ -44,11 +43,7 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
   } else {
     int64_t numels = 1;
     int64_t begin_dim = 0;
-    
-    // the output of mean and rstd is Multidimension
     SmallVector<int64_t, 8> reduceDims;
-    
-    // the input of weight is Multidimension
     SmallVector<int64_t, 8> weightDims;
     for (int64_t i = 0; i < input.dim(); i++) {
       numels *= input.size(i);
@@ -90,12 +85,9 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
       .Attr("begin_params_axis", begin_dim)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-
   }
-  
   Tensor meanResult = mean.reshape({M});
   Tensor varianceResult = variance.reshape({M});
-        
   return std::tie(Y, meanResult, varianceResult);
 }
 

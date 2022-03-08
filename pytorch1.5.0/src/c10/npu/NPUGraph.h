@@ -24,7 +24,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
-
+#include <unordered_map>
 namespace c10 {
 namespace npu {
 namespace graph {
@@ -40,86 +40,12 @@ class Node;
 class Value;
 
 using NodePtr = std::shared_ptr<Node>;
+using NodeWeakPtr = std::weak_ptr<Node>;
 using ValueIndex = uint32_t;
 using c10::npu::hash_utils::hash_t;
 using DyNumAndIndex = std::vector<std::pair<uint32_t, uint32_t>>;
 using DynamicInputRegFunc =
     std::function<ge::OperatorPtr(DyNumAndIndex, std::string)>;
-
-class Value {
-public:
-  Value() = default;
-
-  Value(NodePtr node, ValueIndex index)
-      : cur_node_(node), value_index_(index) {}
-
-  Value(NodePtr data, NodePtr node, ValueIndex index)
-      : cur_node_(node), value_index_(index), data_node_(data) {}
-
-  ~Value() = default;
-
-  NodePtr GetCurNode() const {
-    return cur_node_;
-  }
-
-  c10::optional<NodePtr> GetDataNode() {
-    return data_node_;
-  }
-
-  const c10::optional<std::string>& GetRealDtype() const{
-    return real_type_;
-  }
-
-  ValueIndex GetValueIndex() const {
-    return value_index_;
-  }
-
-  bool HashNode() const {
-    return cur_node_ != nullptr;
-  }
-
-  void SetRealType(const std::string& real_type) {
-    real_type_ = real_type;
-  }
-
-  hash_t GetValueHash() const;
-
-  void SetScalarMemOffset(uint32_t addr_offset) {
-    scalar_mem_offset_ = addr_offset;
-  }
-
-  c10::optional<uint32_t> GetScalarMemOffset() const {
-    return scalar_mem_offset_;
-  }
-
-  void UpdateFromOther(const Value& other) {
-    if (other.data_node_.has_value()) {
-      data_node_ = other.data_node_;
-    }
-    cur_node_ = other.cur_node_;
-    value_index_ = other.value_index_;
-    real_type_ = other.real_type_;
-    value_hash_ = other.value_hash_;
-    scalar_mem_offset_ = other.scalar_mem_offset_;
-  }
-
-  void ResetValue() {
-    cur_node_ = nullptr;
-    value_index_ = 0;
-    value_hash_ = c10::nullopt;
-    data_node_ = c10::nullopt;
-    real_type_ = c10::nullopt;
-    scalar_mem_offset_ = c10::nullopt;
-  }
-
-private:
-  NodePtr cur_node_ = nullptr;
-  ValueIndex value_index_ = 0;
-  c10::optional<NodePtr> data_node_ = c10::nullopt;
-  c10::optional<hash_t> value_hash_ = c10::nullopt;
-  c10::optional<std::string> real_type_ = c10::nullopt;
-  c10::optional<uint32_t> scalar_mem_offset_ = c10::nullopt;
-};
 
 struct NodeInput {
   NodeInput() = default;
@@ -179,6 +105,10 @@ public:
     node_hash_ = hash_utils::hash_seed;
     inputs_.clear();
     ext_info_.clear();
+    is_inplace_ = false;
+    if (inplace_info_.has_value()) {
+      inplace_info_.value().clear();
+    }
   }
 
   template <typename... Args>
@@ -211,14 +141,130 @@ public:
     return ext_info_;
   }
 
+  void SetNodeInplace(bool is_inplace) {
+    is_inplace_ = is_inplace;
+  }
+
+  bool IsInplace() const {
+    return is_inplace_;
+  }
+
+  void SetInplaceNode(ValueIndex output_index, NodeWeakPtr inplace_node) {
+    auto node_ptr = inplace_node.lock();
+    if (node_ptr != nullptr) {
+      if (!inplace_info_.has_value()) {
+        inplace_info_ = {std::pair<ValueIndex, NodeWeakPtr>(output_index, inplace_node)};
+      } else {
+        inplace_info_.value().insert(std::pair<ValueIndex, NodeWeakPtr>(output_index, inplace_node));
+      }
+      node_ptr->SetNodeInplace(true);
+    }
+  }
+
+  c10::optional<NodeWeakPtr> GetInplaceNode(ValueIndex output_index) const {
+    if (!inplace_info_.has_value()) {
+      return c10::nullopt;
+    }
+    const auto& inplace_map = inplace_info_.value();
+    const auto& iter = inplace_map.find(output_index);
+    if (iter != inplace_map.end()) {
+      return iter->second;
+    }
+    return c10::nullopt;
+  }
+
 private:
   std::string op_type_;
   std::shared_ptr<ge::Operator> ge_op_ = nullptr;
   hash_t node_hash_ = hash_utils::hash_seed;
   SmallVector<NodeInput, kDefaultMaxInputNum> inputs_;
   SmallVector<std::pair<NodeExtInfoType, c10::Any>, kDefaultMaxInputNum> ext_info_;
+  bool is_inplace_ = false;
+  c10::optional<std::unordered_map<ValueIndex, NodeWeakPtr>> inplace_info_ = c10::nullopt;
 };
 
+class Value {
+public:
+  Value() = default;
+
+  Value(NodePtr node, ValueIndex index)
+      : cur_node_(node), value_index_(index) {}
+
+  Value(NodePtr data, NodePtr node, ValueIndex index)
+      : cur_node_(node), value_index_(index), data_node_(data) {}
+
+  ~Value() = default;
+
+  NodePtr GetCurNode() const {
+    return cur_node_;
+  }
+
+  c10::optional<NodePtr> GetDataNode() {
+    return data_node_;
+  }
+
+  const c10::optional<std::string>& GetRealDtype() const{
+    return real_type_;
+  }
+
+  ValueIndex GetValueIndex() const {
+    return value_index_;
+  }
+
+  bool HashNode() const {
+    return cur_node_ != nullptr;
+  }
+
+  void SetRealType(const std::string& real_type) {
+    real_type_ = real_type;
+  }
+
+  hash_t GetValueHash() const;
+
+  void SetScalarMemOffset(uint32_t addr_offset) {
+    scalar_mem_offset_ = addr_offset;
+  }
+
+  c10::optional<uint32_t> GetScalarMemOffset() const {
+    return scalar_mem_offset_;
+  }
+
+  void UpdateFromOther(const Value& other) {
+    if ((cur_node_ != nullptr) && (other.cur_node_ != nullptr)) {
+      NodeWeakPtr inplace_node(other.cur_node_);
+      cur_node_->SetInplaceNode(value_index_, inplace_node);
+    }
+    this->SetFromOther(other);
+  }
+
+  void SetFromOther(const Value& other) {
+    if (other.data_node_.has_value()) {
+      data_node_ = other.data_node_;
+    }
+    cur_node_ = other.cur_node_;
+    value_index_ = other.value_index_;
+    real_type_ = other.real_type_;
+    value_hash_ = other.value_hash_;
+    scalar_mem_offset_ = other.scalar_mem_offset_;
+  }
+
+  void ResetValue() {
+    cur_node_ = nullptr;
+    value_index_ = 0;
+    value_hash_ = c10::nullopt;
+    data_node_ = c10::nullopt;
+    real_type_ = c10::nullopt;
+    scalar_mem_offset_ = c10::nullopt;
+  }
+
+private:
+  NodePtr cur_node_ = nullptr;
+  ValueIndex value_index_ = 0;
+  c10::optional<NodePtr> data_node_ = c10::nullopt;
+  c10::optional<hash_t> value_hash_ = c10::nullopt;
+  c10::optional<std::string> real_type_ = c10::nullopt;
+  c10::optional<uint32_t> scalar_mem_offset_ = c10::nullopt;
+};
 } // namespace graph
 } // namespace npu
 } // namespace c10

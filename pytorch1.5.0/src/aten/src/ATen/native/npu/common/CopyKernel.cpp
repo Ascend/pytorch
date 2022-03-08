@@ -19,6 +19,7 @@
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
 #include <ATen/native/npu/frame/FormatHelper.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include <ATen/native/npu/utils/OpTemplate.h>
 #include <ATen/npu/Exceptions.h>
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
@@ -156,16 +157,20 @@ void copy_between_host_and_device(
     const Tensor& src,
     aclrtMemcpyKind kind,
     bool non_blocking) {
-  void* dst_ptr = dst.data_ptr();
-  void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
   c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-  AT_NPU_CHECK(
-      aclrtMemcpyAsync(dst_ptr, nbytes, src_ptr, nbytes, kind, stream));
+  auto ret = CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+      std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset()),
+      nbytes,
+      std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset()),
+      nbytes,
+      kind,
+      stream);
+  AT_NPU_CHECK(ret);
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
-    void* ptr = dst.is_npu() ? src_ptr : dst_ptr;
+    void* ptr = dst.is_npu() ? src.data_ptr() : dst.data_ptr();
     AT_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);

@@ -17,6 +17,7 @@
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
 #include <ATen/native/npu/graph/util/GraphModeGuard.h>
+#include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
@@ -32,13 +33,13 @@ Scalar _local_scalar_dense_npu(const Tensor& self) {
       self.scalar_type(),
       "_local_scalar_dense_npu",
       [&] {
-        npu::GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
         scalar_t value = 0;
         c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
-        aclError error = aclrtMemcpyAsync(
+        aclError error = npu::CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
             &value,
             sizeof(scalar_t),
-            self.data_ptr<scalar_t>(),
+            std::make_pair(
+                self.storage().unsafeGetStorageImpl(), self.storage_offset()),
             sizeof(scalar_t),
             ACL_MEMCPY_DEVICE_TO_HOST,
             copy_stream);

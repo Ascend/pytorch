@@ -50,8 +50,26 @@ void copy_kernel_npu(
     Tensor& self,
     const Tensor& src,
     bool non_blocking) {
-  // In graph mode, PTcopy will be supported in the future
-  GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
+  // In single op mode, PTcopy will be replaced by ViewCopy in the future
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    auto self_size = self.sizes();
+    auto self_stride = self.strides();
+    auto src_size = src.sizes();
+    auto src_stride = src.strides();
+    OpCommand cmd;
+    cmd.Name("ViewCopy")
+        .InputWithoutContiguous(self)
+        .Input(self_size)
+        .Input(self_stride)
+        .Input(self.storage_offset(), at::kLong)
+        .InputWithoutContiguous(src)
+        .Input(src_size)
+        .Input(src_stride)
+        .Input(src.storage_offset(), at::kLong)
+        .Output(self)
+        .Run();
+    return;
+  };
 
   const int64_t HEAD_FLAG = 0x6461656800000000;
   const int64_t FIXED_LEN =
@@ -133,6 +151,7 @@ void copy_d2d_by_memcpy(Tensor& dst, const Tensor& src, int64_t exceptSize) {
     return;
   }
 
+  // The current logic is only used in single op mode.
   aclError error = c10::npu::queue::LaunchAsyncCopyTask(
       dst.data_ptr(),
       size * dst.element_size(),

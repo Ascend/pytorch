@@ -22,6 +22,7 @@
 #include <c10/npu/NPUStream.h>
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "ATen/native/npu/frame/StorageDescHelper.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
@@ -51,12 +52,13 @@ static void storage_resize_npu(
       copy_size = storage.numel();
     }
     if (copy_size > 0) {
-      aclError error = c10::npu::queue::LaunchAsyncCopyTask(
-          storage.data(),
-          storage.itemsize() * copy_size,
-          old_data.get(),
-          storage.itemsize() * copy_size,
-          ACL_MEMCPY_DEVICE_TO_DEVICE);
+      aclError error =
+          at::native::npu::CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+              storage,
+              storage.itemsize() * copy_size,
+              old_data.get(),
+              storage.itemsize() * copy_size,
+              ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
         return;

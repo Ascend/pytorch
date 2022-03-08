@@ -110,6 +110,7 @@ private:
     c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     if (temp_src.is_contiguous()) {
       auto temp_dst = broadcast_npu(temp_src, self.sizes());
+      // The current logic is only used in single op mode.
       c10::npu::queue::LaunchAsyncCopyTask(
           self.data_ptr(),
           self.nbytes(),

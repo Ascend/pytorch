@@ -1,3 +1,18 @@
+// Copyright (c) 2022 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ScalarMemoryOps.h"
 
 namespace at {
@@ -26,7 +41,10 @@ void ScalarMemContext::ExecuteH2D(c10::npu::NPUStream stream) {
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
       at::TensorOptions().device(at::kNPU, deviceIndex).dtype(at::kByte));
-  
+
+  // This aclrtMemcpyAsync is only used for graph mode, and the target device
+  // memory is always available. Executing run graph here will result in a
+  // circular call to the run graph interface.
   AT_NPU_CHECK(
       aclrtMemcpyAsync(
           npu_tensor_.data_ptr(),
