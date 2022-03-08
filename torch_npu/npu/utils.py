@@ -166,7 +166,10 @@ def _get_device_index(device, optional=False):
     device if :attr:`optional` is ``True``.
     """
     if isinstance(device, torch._six.string_classes):
-        device = torch.device(device)
+        if "npu" not in device:
+            return int(device)
+        else:
+            device = torch.device(device)
     if isinstance(device, torch.device):
         dev_type = device.type
         if device.type != 'npu':
