@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from statistics import mode
 import warnings
 import logging
 import torch
@@ -86,29 +87,30 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Linear):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
-        if issubclass(class_name, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
+        if issubclass(class_name, (torch.nn.BatchNorm3d, torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
             if module.affine:
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 3)  # ACL_FORMAT_NC1HWC0
                 module.bias.data = module.bias.data.to(device)
                 module.bias.data = torch_npu.npu_format_cast(module.bias.data, 3)
-            module.running_mean.data = module.running_mean.data.to(device)
-            module.running_mean.data = torch_npu.npu_format_cast(module.running_mean.data, 3)
-            module.running_var.data = module.running_var.data.to(device)
-            module.running_var.data = torch_npu.npu_format_cast(module.running_var.data, 3)
+            if module.track_running_stats:
+                module.running_mean.data = module.running_mean.data.to(device)
+                module.running_mean.data = torch_npu.npu_format_cast(module.running_mean.data, 3)
+                module.running_var.data = module.running_var.data.to(device)
+                module.running_var.data = torch_npu.npu_format_cast(module.running_var.data, 3)
         if issubclass(class_name, torch.nn.Conv2d):
-            if (module.in_channels == module.groups and module.groups > 1
-                and module.weight.size(0) % module.in_channels == 0):
+            if module.groups > 1:
                 return
-            module.weight.data = module.weight.data.to(device)
-            module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
+            if hasattr(module, "weight") and module.weight is not None:
+                module.weight.data = module.weight.data.to(device)
+                module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
         if "MultiheadAttention" in str(class_name) and \
-            hasattr(module,"q_proj_weight") and module.q_proj_weight and \
-            hasattr(module,"k_proj_weight") and module.k_proj_weight and \
-            hasattr(module,"v_proj_weight") and module.v_proj_weight:
+            hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
+            hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
+            hasattr(module,"v_proj_weight") and module.v_proj_weight is not None:
             module.q_proj_weight.data = module.q_proj_weight.data.to(device)
             module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
             module.k_proj_weight.data = module.k_proj_weight.data.to(device)
