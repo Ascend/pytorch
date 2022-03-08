@@ -51,8 +51,8 @@ class TestUpsampleLinear1DBackward(TestCase):
         output = output.to("cpu")
         return output.detach().numpy(), gradnpu.detach().numpy()
 
-    def test_upsample_linear1d_backward(self, device="npu"):
-        for item in self.creat_shape_format(device):
+    def test_upsample_linear1d_backward(self):
+        for item in self.creat_shape_format():
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
 
             size = list(item[2])

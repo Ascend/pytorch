@@ -105,7 +105,7 @@ at::Tensor& NPUNativeFunctions::upsample_linear1d_out(
 
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    at::Tensor newResult = upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
+    at::Tensor newResult = upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, contiguousResult);
     NpuUtils::format_fresh_view(result, newResult);
   } else {
     upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
