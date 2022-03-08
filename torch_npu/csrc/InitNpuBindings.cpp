@@ -16,6 +16,7 @@
 #include <Python.h>
 #include <ATen/Parallel.h>
 #include <torch/csrc/Exceptions.h>
+#include "torch_npu/csrc/npu/Event.h"
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
@@ -23,7 +24,6 @@
 #include <torch/csrc/utils/npu_lazy_init.h>
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
 

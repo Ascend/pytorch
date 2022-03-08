@@ -14,7 +14,7 @@
 // limitations under the License.
 
 #include <c10/npu/NPUStream.h>
-
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 
 namespace at_npu {
@@ -95,11 +95,10 @@ private:
     temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(src_size,
                                                           src.strides());
 
-    c10::npu::NPUStream copy_stream = c10::npu::getCurrentNPUStream();
     if (temp_src.is_contiguous()) {
       auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
-      aclrtMemcpyAsync(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
-                       self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE, copy_stream);
+      c10::npu::queue::LaunchAsyncCopyTask(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
+                                           self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE);
       return true;
     }
     return false;

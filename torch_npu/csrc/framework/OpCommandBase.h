@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 
 #define IF_GRAPH_MODE_THEN_RUN(...)            \
   do {                                         \
@@ -222,10 +223,13 @@ public:
   void Run() {
     IF_GRAPH_MODE_THEN_RUN(return;)
     if (torch_npu::option::OptionsManager::CheckQueueEnable()) {
-      ExecuteParas params;
-      aclCmd->ExportParams(params);
-      c10::npu::enCurrentNPUStream(&params);
+      ExecuteParas execParams;
+      aclCmd->ExportParams(execParams);
+      c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+      c10::SmallVector<c10::Storage, N> needClearVec;
+      c10::npu::enCurrentNPUStream(&params, needClearVec);
       aclCmd->releaseSource(false);
+      needClearVec.clear();
     } else {
       aclCmd->Run();
       aclCmd->releaseSource();

@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_base.h"
+#include "c10/npu/interface/AsyncTaskQueueInterface.h"
 
 namespace at_npu
 {
@@ -182,8 +183,8 @@ namespace at_npu
         size_t src_size,
         aclrtMemcpyKind kind)
     {
-      AT_NPU_CHECK(aclrtMemcpyAsync(
-          dst, dst_size, src, src_size, kind, c10::npu::getCurrentNPUStream()));
+      AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
+          dst, dst_size, const_cast<void *>(src), src_size, kind));
 
       return SUCCESS;
     }
@@ -378,20 +379,40 @@ namespace at_npu
       int inputNum = input.size();
       int outputNum = output.size();
 
-      const aclTensorDesc **aclTensorInputDescArr =
-          inputNum == 0 ? nullptr : new const aclTensorDesc *[inputNum];
-      const aclTensorDesc **aclTensorOutputDescArr =
-          outputNum == 0 ? nullptr : new const aclTensorDesc *[outputNum];
+      size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+      size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+      size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+      size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
 
-      const aclDataBuffer **aclDataInputBuffArr =
-          inputNum == 0 ? nullptr : new const aclDataBuffer *[inputNum];
-      aclDataBuffer **aclDataOutputBuffArr =
-          outputNum == 0 ? nullptr : new aclDataBuffer *[outputNum];
+      size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+      size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+      size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+      size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
 
-      int64_t *inputDimsArr = new int64_t[inputNum];
-      int64_t *outputDimsArr = new int64_t[outputNum];
-      aclFormat *inputFormatsArr = new aclFormat[inputNum];
-      aclFormat *outputFormatsArr = new aclFormat[outputNum];
+      size_t totalMemLen =
+        inputTensorDescArrLen + inputDataBuffArrLen +
+        inputDimsArrLen + inputFormatsArrLen +
+        outputTensorDescArrLen + outputDataBuffArrLen +
+        outputDimsArrLen + outputFormatsArrLen;
+      char* basePtr = static_cast<char* >(malloc(totalMemLen));
+      AT_ASSERT(basePtr != nullptr);
+
+      const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+      basePtr += inputTensorDescArrLen;
+      const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+      basePtr += inputDataBuffArrLen;
+      int64_t* inputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+      basePtr += inputDimsArrLen;
+      aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+      basePtr += inputFormatsArrLen;
+
+      const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+      basePtr += outputTensorDescArrLen;
+      aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+      basePtr += outputDataBuffArrLen;
+      int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+      basePtr += outputDimsArrLen;
+      aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
 
       for (int i = 0; i < inputNum; i++)
       {
@@ -697,7 +718,13 @@ namespace at_npu
         auto attrRes = CalcuOpUtil::CreateNpuAttrDesc(attrs);
         cur_paras.attr = std::get<0>(attrRes);
         cur_paras.attrInfo = std::get<1>(attrRes);
-        c10::npu::enCurrentNPUStream(&cur_paras);
+        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
+          cur_paras.isFuzzy = true;
+        }
+        c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+        c10::SmallVector<c10::Storage, N> needClearVec;
+        c10::npu::enCurrentNPUStream(&params, needClearVec);
+        needClearVec.clear();
         return;
       }
 

@@ -21,6 +21,8 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
+#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
+#include "torch_npu/csrc/framework/interface/EnvVariables.h"
 
 namespace at_npu
 {
@@ -32,16 +34,16 @@ namespace at_npu
     class OpAttrMaker
     {
     public:
-      static void Set(aclopAttr *attr, string name, bool value);
-      static void Set(aclopAttr *attr, string name, int64_t value);
-      static void Set(aclopAttr *attr, string name, float value);
-      static void Set(aclopAttr *attr, string name, string value);
-      static void Set(aclopAttr *attr, string name, c10::IntArrayRef value);
-      static void Set(aclopAttr *attr, string name, at::ArrayRef<float> value);
-      static void Set(aclopAttr *attr, string name, c10::Scalar value);
+      static void Set(aclopAttr *attr, const string &name, bool value);
+      static void Set(aclopAttr *attr, const string &name, int64_t value);
+      static void Set(aclopAttr *attr, const string &name, float value);
+      static void Set(aclopAttr *attr, const string &name, string value);
+      static void Set(aclopAttr *attr, const string &name, c10::IntArrayRef value);
+      static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
+      static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
       static void Set(
           aclopAttr *attr,
-          string name,
+          const string &name,
           at::ArrayRef<c10::IntArrayRef> value);
     }; // class OpAttrMaker
 
@@ -242,7 +244,7 @@ namespace at_npu
           const at::Tensor &hostTensor)
       {
         AddInput(desc, buffer, dim, format);
-        execParam.hostMem.emplace_back(hostTensor);
+        execParam.hostMem.emplace_back(hostTensor.storage());
       }
 
       void AddConst(c10::SmallVector<int64_t, N> dimList)
@@ -271,7 +273,7 @@ namespace at_npu
       }
 
       template <typename dataType>
-      void AddAttr(string attrName, dataType value)
+      void AddAttr(const string& attrName, dataType value)
       {
         InitAttr();
         AttrInfoMaker::Add(value, attrInfo);
@@ -291,20 +293,49 @@ namespace at_npu
         int inputNum = execParam.inDesc.size();
         int outputNum = execParam.outDesc.size();
         int constNum = execParam.constLists.size();
-        const int64_t **constListArr = new const int64_t *[constNum];
-        const aclTensorDesc **aclTensorInputDescArr =
-            new const aclTensorDesc *[inputNum];
-        const aclTensorDesc **aclTensorOutputDescArr =
-            new const aclTensorDesc *[outputNum];
-        const aclDataBuffer **aclDataInputBuffArr =
-            new const aclDataBuffer *[inputNum];
-        aclDataBuffer **aclDataOutputBuffArr = new aclDataBuffer *[outputNum];
 
-        int64_t *constIdxArr = new int64_t[constNum];
-        int64_t *inputDimsArr = new int64_t[inputNum];
-        int64_t *outputDimsArr = new int64_t[outputNum];
-        aclFormat *inputFormatsArr = new aclFormat[inputNum];
-        aclFormat *outputFormatsArr = new aclFormat[outputNum];
+        size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+        size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
+        size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
+        size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
+
+        size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+        size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+        size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
+        size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
+
+        size_t constListArrLen = constNum * sizeof(uintptr_t);
+        size_t constIdxArrLen  = constNum * sizeof(int64_t);
+
+        size_t totalMemLen =
+          inputTensorDescArrLen + inputDataBuffArrLen +
+          inputDimsArrLen + inputFormatsArrLen +
+          outputTensorDescArrLen + outputDataBuffArrLen +
+          outputDimsArrLen + outputFormatsArrLen +
+          constListArrLen + constIdxArrLen;
+        char* basePtr = static_cast<char* >(malloc(totalMemLen));
+        AT_ASSERT(basePtr != nullptr);
+        const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        basePtr += inputTensorDescArrLen;
+        const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+        basePtr += inputDataBuffArrLen;
+        int64_t* inputDimsArr = reinterpret_cast<int64_t*>(basePtr);
+        basePtr += inputDimsArrLen;
+        aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
+        basePtr += inputFormatsArrLen;
+
+        const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        basePtr += outputTensorDescArrLen;
+        aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+        basePtr += outputDataBuffArrLen;
+        int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
+        basePtr += outputDimsArrLen;
+        aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
+        basePtr += outputFormatsArrLen;
+
+        const int64_t** constListArr = reinterpret_cast<const int64_t** >(basePtr);
+        basePtr += constListArrLen;
+        int64_t* constIdxArr = reinterpret_cast<int64_t* >(basePtr);
 
         std::copy(
             execParam.inDesc.begin(),
@@ -366,7 +397,10 @@ namespace at_npu
         params.constParams.constList = constListArr;
         params.constParams.constIdx = constIdxArr;
         params.hostMemory = execParam.hostMem;
-      }
+        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
+          params.isFuzzy = true;
+        }
+  }
 
       void Run();
 
@@ -437,7 +471,7 @@ namespace at_npu
         c10::SmallVector<aclFormat, N> outFormats;
         c10::SmallVector<const int64_t *, N> constLists;
         c10::SmallVector<int64_t, N> constIdxs;
-        c10::SmallVector<at::Tensor, N> hostMem;
+        c10::SmallVector<c10::Storage, N> hostMem;
 
         aclopAttr *attr = nullptr;
         bool hasAttr = false;

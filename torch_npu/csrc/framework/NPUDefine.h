@@ -100,11 +100,12 @@ namespace at_npu
       std::string opType;
       std::string attrInfo;
       bool isCompiling = false;
+      bool isFuzzy = false;
       ACL_PARAMS paras;
       CONST_PARAMS constParams;
       const aclopAttr *attr;
       int64_t constIdx = -1;
-      c10::SmallVector<at::Tensor, N> hostMemory;
+      c10::SmallVector<c10::Storage, N> hostMemory;
       ExecuteParas(
           std::string opName,
           aclopAttr *acl_attr,
@@ -117,11 +118,11 @@ namespace at_npu
       ExecuteParas() = default;
       void Release();
       void Copy(ExecuteParas &other);
+      void CopyEx(ExecuteParas& other);
     };
 
     NPUStatus DestroyAclParams(ACL_PARAMS &params);
     void DestroyConstParams(CONST_PARAMS &params);
-
   } // namespace native
 } // namespace at_npu
 
