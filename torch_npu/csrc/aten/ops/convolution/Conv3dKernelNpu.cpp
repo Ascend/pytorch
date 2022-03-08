@@ -244,9 +244,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv3d_f
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
-  auto output = OpPreparation::ApplyTensor(self, std::get<0>(outputSize));
-  auto finput = OpPreparation::ApplyTensor(self, {0});
-  auto fgrad_input = OpPreparation::ApplyTensor(self, {0});
+  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
+  auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
+  auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 
 
   slow_conv3d_forward_npu_nocheck(

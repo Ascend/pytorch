@@ -104,6 +104,8 @@ class TestConv3d(TestCase):
              [np.float32, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
             [[np.float32, 30, [128, 64, 4, 14, 14]],
              [np.float32, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
+            [[np.float32, 32, [128, 64, 8, 28, 28]], 
+             [np.float32, 33, [64, 64, 3, 3, 3]], [1, 1, 1], [1, 1, 1], [1, 1, 1], None, 1]
         ]
         self.conv3d_backward_result(shape_format)
 
