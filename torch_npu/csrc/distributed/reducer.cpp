@@ -207,7 +207,7 @@ Reducer::Reducer(
         if (replicas_[i][0].is_npu()) {
           at::DeviceGuard g(replicas_[i][0].device());
           local_used_maps_[i] = at::zeros(
-              {static_cast<long>(variable_count)}, options.pinned_memory(true));
+              {static_cast<long>(variable_count)}, options).pin_memory();
         } else {
           local_used_maps_[i] =
               at::zeros({static_cast<long>(variable_count)}, options);
