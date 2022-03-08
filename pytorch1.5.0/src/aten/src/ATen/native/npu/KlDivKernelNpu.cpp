@@ -23,17 +23,18 @@ Tensor kl_div_npu(
     const Tensor& self, 
     const Tensor& target, 
     int64_t reduction) {
-  TORCH_CHECK(reduction != Reduction::None,
-      "Reduction of None has not been supported at present.");
-
-  Tensor result = at::empty_with_format(
-      {}, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result =
+      reduction == Reduction::None ?
+      OpPreparation::ApplyTensor(self) :
+      OpPreparation::ApplyTensor({}, self.options(), self);
 
   string reductionStr;
   if (reduction == Reduction::Mean) {
     reductionStr = "batchmean";
   } else if (reduction == Reduction::Sum) {
     reductionStr = "sum";
+  } else if (reduction == Reduction::None) {
+    reductionStr = "none";
   }
 
   OpCommand cmd;

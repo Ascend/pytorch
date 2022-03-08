@@ -23,14 +23,14 @@ class TestKlDivBackward(TestCase):
     def cpu_op_exec(self, input1, input2, reduction):
         input1.requires_grad = True
         output = torch.kl_div(input1, input2, reduction=reduction)
-        output.backward()
+        output.backward(torch.ones_like(output))
         output = output.detach().numpy()
         return output, input1.grad
 
     def npu_op_exec(self, input1, input2, reduction):
         input1.requires_grad = True
         output = torch.kl_div(input1, input2, reduction=reduction)
-        output.backward()
+        output.backward(torch.ones_like(output))
         output = output.cpu()
         output = output.detach().numpy()
         return output, input1.grad
@@ -40,8 +40,8 @@ class TestKlDivBackward(TestCase):
             [[torch.float32, 0, (192, 8)], [torch.float32, 0, (192, 8)], 1],
             [[torch.float32, 0, (192, 50000)], [torch.float32, 0, (192, 50000)], 1],
             [[torch.float32, 0, (2, 3)], [torch.float32, 0, (2, 3)], 2],
-            [[torch.float32, 0, (4, 5)], [torch.float32, 0, (4, 5)], 2],
-            [[torch.float32, 0, (2, 3, 3)], [torch.float32, 0, (2, 3, 3)], 2],
+            [[torch.float32, 0, (4, 5)], [torch.float32, 0, (4, 5)], 0],
+            [[torch.float32, 0, (2, 3, 3)], [torch.float32, 0, (2, 3, 3)], 0],
         ]
         for item in shape_format:
             x = torch.randn(item[0][2])
@@ -61,8 +61,8 @@ class TestKlDivBackward(TestCase):
             [[torch.float16, 0, (192, 8)], [torch.float16, 0, (192, 8)], 1],
             [[torch.float16, 0, (192, 50000)], [torch.float16, 0, (192, 50000)], 1],
             [[torch.float16, 0, (2, 3)], [torch.float16, 0, (2, 3)], 2],
-            [[torch.float16, 0, (4, 5)], [torch.float16, 0, (4, 5)], 2],
-            [[torch.float16, 0, (2, 3, 3)], [torch.float16, 0, (2, 3, 3)], 2],
+            [[torch.float16, 0, (4, 5)], [torch.float16, 0, (4, 5)], 0],
+            [[torch.float16, 0, (2, 3, 3)], [torch.float16, 0, (2, 3, 3)], 0],
         ]
         for item in shape_format:
             x = torch.randn(item[0][2])
@@ -76,7 +76,6 @@ class TestKlDivBackward(TestCase):
             npu_output, npu_input_grad = self.npu_op_exec(npu_input, npu_target, reduction)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)
             self.assertRtolEqual(cpu_input_grad.to(torch.float16), npu_input_grad.cpu())
-
 
 instantiate_device_type_tests(TestKlDivBackward, globals(), except_for='cpu')
 if __name__ == "__main__":
