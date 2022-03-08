@@ -91,21 +91,21 @@ class TestConv3d(TestCase):
 
     def test_conv3d_backward_shape_format_fp16(self, device="npu"):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
-            [[np.float16, 30, [128, 128, 4, 14, 14]],
-             [np.float16, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float16, 30, [128, 64, 4, 14, 14]],
-             [np.float16, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
+            [[np.float16, 30, [1, 128, 4, 14, 14]],
+             [np.float16, 30, [1, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
+            [[np.float16, 30, [1, 64, 4, 14, 14]],
+             [np.float16, 30, [1, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
         ]
         self.conv3d_backward_result(shape_format)
 
     def test_conv3d_backward_shape_format_fp32(self, device="npu"):
         shape_format = [  # input, weight, padding, stride, dilation, bias, groups
-            [[np.float32, 30, [128, 128, 4, 14, 14]],
-             [np.float32, 30, [128, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
-            [[np.float32, 30, [128, 64, 4, 14, 14]],
-             [np.float32, 30, [128, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
-            [[np.float32, 32, [128, 64, 8, 28, 28]], 
-             [np.float32, 33, [64, 64, 3, 3, 3]], [1, 1, 1], [1, 1, 1], [1, 1, 1], None, 1]
+            [[np.float32, 30, [1, 128, 4, 14, 14]],
+             [np.float32, 30, [1, 128, 3, 3, 3]], [1,1,1], [1,1,1], 1, None, 1],
+            [[np.float32, 30, [1, 64, 4, 14, 14]],
+             [np.float32, 30, [1, 64, 3, 3, 3]], [1,1,1], [2,2,2], 1, None, 1],
+            [[np.float32, 32, [1, 64, 8, 28, 28]], 
+             [np.float32, 33, [1, 64, 3, 3, 3]], [1, 1, 1], [1, 1, 1], [1, 1, 1], None, 1]
         ]
         self.conv3d_backward_result(shape_format)
 
