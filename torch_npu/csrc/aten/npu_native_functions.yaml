@@ -1673,8 +1673,6 @@ supported:
   - replication_pad3d_backward
   - upsample_trilinear3d.vec
   - upsample_trilinear3d_backward.vec
-  - upsample_bicubic2d.vec
-  - upsample_bicubic2d_backward.vec
   - upsample_nearest1d.vec
   - upsample_nearest1d_backward.vec
   - upsample_nearest2d.vec
