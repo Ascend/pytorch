@@ -17,6 +17,7 @@
 #ifndef __NATIVE_NPU_TOOLS_AOEUTILS__
 #define __NATIVE_NPU_TOOLS_AOEUTILS__
 
+#include <unordered_set>
 #include <third_party/acl/inc/acl/acl_op_compiler.h>
 #include <c10/npu/NPUException.h>
 
@@ -34,11 +35,13 @@ public:
 
   void EnableAoe();
   bool IsAoeEnabled() const;
-
+  bool IsInBlacklist(const std::string &opName) const;
+  
   bool aoe_enable=false;
   // to save graph for autotune, default path is ./
   std::string autotune_graphdumppath="./";
   aclGraphDumpOption* AclGraphDumpOption=NULL;
+  std::unordered_set<std::string> black_list_ = {"TransData"};
    
 };
 

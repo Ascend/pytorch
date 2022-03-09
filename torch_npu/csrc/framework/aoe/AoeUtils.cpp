@@ -47,6 +47,14 @@ bool AoeDumpGraphManager::IsAoeEnabled() const {
     return aoe_enable;
 }
 
+bool AoeDumpGraphManager::IsInBlacklist(const std::string &opName) const {
+    if (black_list_.find(opName) != black_list_.end())
+    {
+        return true;
+    }
+    return false;
+}
+
 AoeDumpGraphManager& aoe_manager() {
     static AoeDumpGraphManager instance;
     return instance;

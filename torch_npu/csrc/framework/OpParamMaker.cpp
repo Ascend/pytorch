@@ -186,7 +186,8 @@ namespace at_npu
       int index = 0;
       do
       {
-        if (at_npu::native::aoe::aoe_manager().IsAoeEnabled()) {
+        if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
+            !at_npu::native::aoe::aoe_manager().IsInBlacklist(name)) {
           ret = at_npu::native::AclGenGraphAndDumpForOp(
               name.c_str(),
               inputSize,
@@ -238,7 +239,8 @@ namespace at_npu
         AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
         reset_flag = true;
       }
-      if (at_npu::native::aoe::aoe_manager().IsAoeEnabled()) {
+      if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
+          !at_npu::native::aoe::aoe_manager().IsInBlacklist(cur_paras->opType)) {
         ret = at_npu::native::AclGenGraphAndDumpForOp(
             (cur_paras->opType).c_str(),
             cur_paras->paras.input_num,
