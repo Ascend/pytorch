@@ -36,7 +36,7 @@ class TestRoll6d(TestCase):
         output1 = output1.numpy()
         return output1
     
-    def test_roll_10_10_10_10_10_10_int8(self, device="npu"):
+    def test_roll_10_10_10_10_10_10_int8(self):
         input1 = self.generate_data(-1, 1, (10, 10, 10, 10, 10, 10), np.int8)
         cpu_output1 = self.cpu_op_exec(input1, [-20, 30, 5], [-3, -4, -5])
         npu_output1 = self.npu_op_exec(input1, [-20, 30, 5], [-3, -4, -5])

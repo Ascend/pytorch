@@ -108,6 +108,5 @@ at::Tensor NPUNativeFunctions::roll(
   roll_out_npu(result, self, shifts, dims);
   return result;
 }
-
 } // namespace native
 } // namespace at_npu

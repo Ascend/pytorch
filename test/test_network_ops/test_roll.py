@@ -36,32 +36,32 @@ class TestRoll(TestCase):
         output = output.numpy()
         return output
 
-    def test_roll_3_4_5_float32(self, device="npu"):
+    def test_roll_3_4_5_float32(self):
         input_x1 = self.generate_data(-1, 1, (3, 4, 5), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, [2, 1], [0, 1])
         npu_output1 = self.npu_op_exec(input_x1, [2, 1], [0, 1])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_3_4_5_float16(self, device="npu"):
+    def test_roll_3_4_5_float16(self):
         input_x1 = self.generate_data(-1, 1, (3, 4, 5), np.float16)
         input_cpu = input_x1.float()
         cpu_output1 = self.cpu_op_exec(input_cpu, [2, 1], [0, 1]).astype(np.float16)
         npu_output1 = self.npu_op_exec(input_x1, [2, 1], [0, 1])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_30_40_50_int32(self, device="npu"):
+    def test_roll_30_40_50_int32(self):
         input_x1 = self.generate_data(-1, 1, (30, 40, 50), np.int32)
         cpu_output1 = self.cpu_op_exec(input_x1, [20], [])
         npu_output1 = self.npu_op_exec(input_x1, [20], [])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_20_30_40_50_uint8(self, device="npu"):
+    def test_roll_20_30_40_50_uint8(self):
         input_x1 = self.generate_data(-1, 1, (20, 30, 40, 50), np.uint8)
         cpu_output1 = self.cpu_op_exec(input_x1, [-20, 30], [-1, 0])
         npu_output1 = self.npu_op_exec(input_x1, [-20, 30], [-1, 0])
         self.assertRtolEqual(cpu_output1, npu_output1)
     
-    def test_roll_20_30_40_50_flaot32(self, device="npu"):
+    def test_roll_20_30_40_50_flaot32(self):
         input_x1 = self.generate_data(-1, 1, (20, 30, 40, 50), np.float32)
         cpu_output1 = self.cpu_op_exec(input_x1, [30], [3])
         npu_output1 = self.npu_op_exec(input_x1, [30], [3])
