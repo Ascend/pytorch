@@ -1933,6 +1933,9 @@ custom:
   - func: npu_min_backward(Tensor grad, int dim, Tensor indices, int[] sizes, bool keepdim=False) -> Tensor
   - func: npu_reshape(Tensor self, int[] shape, bool can_refresh=False) -> Tensor
   - func: npu_reshape.out(Tensor self, int[] shape, bool can_refresh=False, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_batch_nms(Tensor self, Tensor scores, float score_threshold, float iou_threshold, int max_size_per_class, int max_total_size, bool change_coordinate_frame=False, bool transpose_box=False) -> (Tensor, Tensor, Tensor, Tensor)
+  - func: npu_bounding_box_encode(Tensor anchor_box, Tensor ground_truth_box, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3) -> Tensor
+  - func: npu_bounding_box_decode(Tensor rois, Tensor deltas, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3, int[1] max_shape, float wh_ratio_clip) -> Tensor
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
