@@ -1,0 +1,144 @@
+# Copyright (c) 2020, Huawei Technologies.All rights reserved.
+#
+# Licensed under the BSD 3-Clause License  (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://opensource.org/licenses/BSD-3-Clause
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import torch
+import torch_npu
+import torch.nn as nn
+import torch.nn.functional as F
+
+from torch_npu.testing.testcase import TestCase, run_tests
+
+
+class TestPoolingFunctions(TestCase):
+    def test_avg_pool1d(self):
+        input1 = torch.tensor([[[1, 2, 3, 4, 5, 6, 7]]], dtype=torch.float32)
+        output = F.avg_pool1d(input1.npu(), kernel_size=3, stride=2)
+        expected_cpu_output = torch.tensor([[[2., 4., 6.]]])
+
+        self.assertEqual(output is not None, True)
+
+    def test_avg_pool2d(self):
+        input1 = torch.randn(1, 2, 3, 3)
+        output = F.avg_pool2d(input1.npu(), kernel_size=3, stride=2)
+        expected_cpu_output = torch.tensor([[[[0.4446]], [[0.4255]]]])
+
+        self.assertRtolEqual(expected_cpu_output.numpy(), output.cpu().numpy())
+
+    def test_avg_pool3d(self):
+        input1 = torch.randn(1, 2, 3, 3, 4)
+        output = F.avg_pool3d(input1.npu(), kernel_size=3, stride=2)
+        expected_cpu_output = torch.tensor([[[[[ 0.0008]]], [[[-0.0804]]]]])
+
+        self.assertRtolEqual(expected_cpu_output.numpy(), output.cpu().numpy())
+
+    def test_max_pool1d(self):
+        input1 = torch.randn(2, 4, 5)
+        cpu_output = F.max_pool1d(input1, kernel_size=3, stride=2)
+        npu_output = F.max_pool1d(input1.npu(), kernel_size=3, stride=2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_max_pool2d(self):
+        input1 = torch.randn(1, 2, 4, 5)
+        cpu_output = F.max_pool2d(input1, kernel_size=3, stride=2)
+        npu_output = F.max_pool2d(input1.npu(), kernel_size=3, stride=2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_max_pool3d(self):
+        input1 = torch.randn(1, 2, 4, 5, 6)
+        cpu_output = F.max_pool3d(input1, kernel_size=3, stride=2)
+        npu_output = F.max_pool3d(input1.npu(), kernel_size=3, stride=2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_max_unpool1d(self):
+        output, indices = F.max_pool1d(torch.randn([1, 1, 4]), 2, stride=2, return_indices=True)
+        cpu_output = F.max_unpool1d(output, indices, 2)
+        npu_output = F.max_unpool1d(output.npu(), indices.npu(), 2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_max_unpool2d(self):
+        output, indices = F.max_pool2d(torch.randn([1, 1, 4, 4]), 2, stride=2, return_indices=True)
+        cpu_output = F.max_unpool2d(output, indices, 2)
+        npu_output = F.max_unpool2d(output.npu(), indices.npu(), 2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_max_unpool3d(self):
+        output, indices = F.max_pool3d(torch.randn([4, 4, 4, 4, 4]), 2, stride=2, return_indices=True)
+        cpu_output = F.max_unpool3d(output, indices, 2)
+        npu_output = F.max_unpool3d(output.npu(), indices.npu(), 2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_lp_pool1d(self):
+        input1 = torch.randn(2, 3, 4)
+        cpu_output = F.lp_pool1d(input1, norm_type=1, kernel_size=2, stride=1)
+        input1 = input1.npu()
+        npu_output = F.lp_pool1d(input1, norm_type=1, kernel_size=2, stride=1)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_lp_pool2d(self):
+        input1 = torch.randn(1, 2, 3, 4)
+        cpu_output = F.lp_pool2d(input1, norm_type=1, kernel_size=2, stride=1)
+        input1 = input1.npu()
+        npu_output = F.lp_pool2d(input1, norm_type=1, kernel_size=2, stride=1)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_adaptive_max_pool1d(self):
+        input1 = torch.randn(2, 3, 4)
+        cpu_output = F.adaptive_max_pool1d(input1, output_size=2)
+        input1 = input1.npu()
+        npu_output = F.adaptive_max_pool1d(input1, output_size=2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_adaptive_max_pool2d(self):
+        input1 = torch.randn(1, 2, 3, 4)
+        cpu_output = F.adaptive_max_pool2d(input1, output_size=1)
+        input1 = input1.npu()
+        npu_output = F.adaptive_max_pool2d(input1, output_size=1)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_adaptive_avg_pool1d(self):
+        input1 = torch.randn(2, 3, 4)
+        cpu_output = F.adaptive_avg_pool1d(input1, output_size=2)
+        input1 = input1.npu()
+        npu_output = F.adaptive_avg_pool1d(input1, output_size=2)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_adaptive_avg_pool2d(self):
+        input1 = torch.randn(1, 2, 3, 4)
+        cpu_output = F.adaptive_avg_pool2d(input1, output_size=1)
+        input1 = input1.npu()
+        npu_output = F.adaptive_avg_pool2d(input1, output_size=1)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_adaptive_avg_pool3d(self):
+        input1 = torch.randn(1, 2, 3, 4, 2)
+        cpu_output = F.adaptive_avg_pool3d(input1, output_size=1)
+        input1 = input1.npu()
+        npu_output = F.adaptive_avg_pool3d(input1, output_size=1)
+
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+
+if __name__ == "__main__":
+    run_tests()
