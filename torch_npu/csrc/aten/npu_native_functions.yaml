@@ -1934,7 +1934,7 @@ custom:
   - func: npu_batch_nms(Tensor self, Tensor scores, float score_threshold, float iou_threshold, int max_size_per_class, int max_total_size, bool change_coordinate_frame=False, bool transpose_box=False) -> (Tensor, Tensor, Tensor, Tensor)
   - func: npu_bounding_box_encode(Tensor anchor_box, Tensor ground_truth_box, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3) -> Tensor
   - func: npu_bounding_box_decode(Tensor rois, Tensor deltas, float means0, float means1, float means2, float means3, float stds0, float stds1, float stds2, float stds3, int[1] max_shape, float wh_ratio_clip) -> Tensor
-
+  - func: npu_deformable_conv2dbk(Tensor input, Tensor grad_output, Tensor offset_out, Tensor weight, Tensor offset, int[2] kernel_size, int[] stride, int[] padding, int[] dilation=[1,1,1,1], int groups=1, int deformable_groups=1, bool modulated=True) -> (Tensor, Tensor, Tensor, Tensor)
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
@@ -1961,3 +1961,4 @@ custom_autograd:
     variants: function, method
   - func: npu_min.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_min.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
+  - func: npu_deformable_conv2d(Tensor input, Tensor weight, Tensor offset, Tensor? bias, int[2] kernel_size, int[] stride, int[] padding, int[] dilation=[1,1,1,1], int groups=1, int deformable_groups=1, bool modulated=True) -> (Tensor, Tensor)
