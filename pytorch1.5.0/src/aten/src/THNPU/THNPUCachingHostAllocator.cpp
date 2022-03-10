@@ -182,12 +182,9 @@ struct HostAllocator {
 
   void insertCompleteEvent(aclrtEvent event)
   {
-    static bool isExist = c10::npu::acl::IsExistQueryEventRecordedStatus();
-    if (!isExist) {
-      if (c10::npu::OptionsManager::CheckQueueEnable()) {
-        std::lock_guard<std::mutex> lock(record_mutex);
-        complete_events.insert(event);
-      }
+    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+      std::lock_guard<std::mutex> lock(record_mutex);
+      complete_events.insert(event);
     }
   }
 
@@ -213,38 +210,24 @@ struct HostAllocator {
     while (!npu_events.empty()) {
       auto& e = npu_events.front();
       aclrtEvent event = e.first;
-      static bool isExist = c10::npu::acl::IsExistQueryEventRecordedStatus();
-      if (isExist) {
-        c10::npu::acl::aclrtEventRecordedStatus status =
-          c10::npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-        aclError err = c10::npu::acl::AclQueryEventRecordedStatus(event, &status);
-        if (err != ACL_ERROR_NONE) {
-          C10_NPU_SHOW_ERR_MSG();
-          return err;
-        }
-        if (status != c10::npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
-          break;
-        }
-      } else {
-        // when TASK_QUEUE_ENABLE is set, pytorch thread can destroy event
-        // after acl thread has launched record event task
-        if (!findAndEraseCompleteEvent(event)) {
-          break;
-        }
-        aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
-        aclError err = aclrtQueryEvent(event, &status);
-        if (err != ACL_ERROR_NONE) {
-          C10_NPU_SHOW_ERR_MSG();
-          insertCompleteEvent(event);
-          return err;
-        }
-        if (status != ACL_EVENT_STATUS_COMPLETE) {
-          insertCompleteEvent(event);
-          break;
-        }
+      // when TASK_QUEUE_ENABLE is set, pytorch thread can destroy event
+      // after acl thread has launched record event task
+      if (!findAndEraseCompleteEvent(event)) {
+        break;
+      }
+      aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
+      aclError err = aclrtQueryEvent(event, &status);
+      if (err != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
+        insertCompleteEvent(event);
+        return err;
+      }
+      if (status != ACL_EVENT_STATUS_COMPLETE) {
+        insertCompleteEvent(event);
+        break;
       }
 
-      aclError err = aclrtDestroyEvent(event);
+      err = aclrtDestroyEvent(event);
       if (err != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         insertCompleteEvent(event);

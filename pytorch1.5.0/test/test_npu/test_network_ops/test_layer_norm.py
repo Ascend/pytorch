@@ -22,27 +22,6 @@ from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
 class TestLayerNorm(TestCase):
-    def test_c10_layer_norm(self, device):
-        # test that we can call c10 ops and they return a reasonable result
-        X = torch.rand(5, 5, dtype=torch.float, device="cpu")
-        X = X.to("npu")
-        weight = torch.rand(*X.size()[1:], dtype=torch.float, device="cpu")
-        weight = weight.to("npu")
-        bias = torch.rand(*X.size()[1:], dtype=torch.float, device="cpu")
-        bias = bias.to("npu")
-        epsilon = 1e-4
-
-        expected_norm = torch.nn.functional.layer_norm(
-            X, X.size()[1:], weight=weight, bias=bias, eps=epsilon)
-        expected_norm_cpu = torch.nn.functional.layer_norm(
-            X.cpu(), X.size()[1:], weight=weight.cpu(), bias=bias.cpu(), eps=epsilon)
-        self.assertRtolEqual(expected_norm.cpu().numpy(), expected_norm_cpu.numpy())
-
-        actual_norm, actual_mean, actual_stdev = \
-            torch.ops._caffe2.LayerNorm(torch.tensor(X.cpu()), torch.tensor(
-                weight.cpu()), torch.tensor(bias.cpu()), 1, epsilon, True)
-        self.assertRtolEqual(expected_norm.cpu().numpy(), actual_norm.numpy())
-
     def cpu_op_exec(self, input):
         m = nn.LayerNorm(input.size()[1:])
         output = m(input)
@@ -53,6 +32,34 @@ class TestLayerNorm(TestCase):
         output = m(input)
         output = output.to("cpu")
         return output
+
+    def test_bool_layer_norm(self, device):
+        input_data_cpu = torch.randn(1, 96, 128, 512)
+        input_data_npu = input_data_cpu.npu()
+        layer_norm_cpu = torch.nn.LayerNorm(512, 2, False)
+        layer_norm_npu = layer_norm_cpu.npu()
+        cpu_output = layer_norm_cpu(input_data_cpu)
+        npu_output = layer_norm_npu(input_data_npu)
+        self.assertRtolEqual(npu_output.cpu().numpy(), cpu_output.numpy())
+
+    def test_c10_layer_norm(self, device):
+        X = torch.rand(5, 5, dtype=torch.float, device="cpu")
+        X = X.to("npu")
+        weight = torch.rand(*X.size()[1:], dtype=torch.float, device="cpu")
+        weight = weight.to("npu")
+        bias = torch.rand(*X.size()[1:], dtype=torch.float, device="cpu")
+        bias = bias.to("npu")
+        epsilon = 1e-4
+        expected_norm = torch.nn.functional.layer_norm(
+            X, X.size()[1:], weight=weight, bias=bias, eps=epsilon)
+        expected_norm_cpu = torch.nn.functional.layer_norm(
+            X.cpu(), X.size()[1:], weight=weight.cpu(), bias=bias.cpu(), eps=epsilon)
+        self.assertRtolEqual(expected_norm.cpu().numpy(), expected_norm_cpu.numpy())
+
+        actual_norm, actual_mean, actual_stdev = \
+            torch.ops._caffe2.LayerNorm(torch.tensor(X.cpu()), torch.tensor(
+                weight.cpu()), torch.tensor(bias.cpu()), 1, epsilon, True)
+        self.assertRtolEqual(expected_norm.cpu().numpy(), actual_norm.numpy())
 
     def test_layer_norm_shape_format(self, device):
         shape_format = [
@@ -70,7 +77,7 @@ class TestLayerNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
-    def test_layer_norm_float16_format(self, device):
+    def _test_layer_norm_float16_format(self, device):
         shape_format = [
                 [np.float16, 0, (64, 10)],
                 [np.float16, 0, (256, 2048, 7, 7)],

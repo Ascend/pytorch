@@ -299,14 +299,14 @@ SmallVector<int64_t, SIZE> det_npu_output_size(const Tensor& self) {
 tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
     const Tensor& logProbs,
     const Tensor& targets,
-    IntArrayRef targetLengths) {
+    IntArrayRef targetLengths,
+    int64_t maxLength) {
   int64_t maxInputLength = logProbs.size(0);
   int64_t batchSize = logProbs.size(1);
   int64_t numLabels = logProbs.size(2);
 
   SmallVector<int64_t, SIZE> negLogLikelihoodSize = {batchSize};
-  
-  int64_t maxLength = targets.size(1);
+
   int64_t tSize = 2 * maxLength + 1;  
   SmallVector<int64_t, SIZE> logAlphaSize = {batchSize, maxInputLength, tSize};
 

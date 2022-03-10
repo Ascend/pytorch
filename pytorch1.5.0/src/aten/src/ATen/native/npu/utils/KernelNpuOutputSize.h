@@ -162,7 +162,8 @@ SmallVector<int64_t, SIZE> det_npu_output_size(const Tensor& self);
 tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
     const Tensor& logProbs,
     const Tensor& targets,
-    IntArrayRef targetLengths);
+    IntArrayRef targetLengths,
+    int64_t maxLength);
 
 SmallVector<int64_t, SIZE> dot_npu_output_size(const Tensor& self, const Tensor& other);
 

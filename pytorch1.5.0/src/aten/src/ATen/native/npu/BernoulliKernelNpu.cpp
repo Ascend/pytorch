@@ -25,32 +25,27 @@ using namespace at::native::npu;
 Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, double p) {
   auto original_stream = c10::npu::getCurrentNPUStream();
   {
+      auto self_ = at::empty_like(self);
       c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
       OpCommand cmd;
       cmd.Name("Bernoulli")
-        .Input(self)
+        .Input(self_)
         .Input(p, ScalarType::Float)
         .Output(result)
         .Run();
   }
-  c10::npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
+  c10::npu::NPUCachingAllocator::recordStream(result.storage().data_ptr(), original_stream);
 
   return result;
 }
 
 Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& p) {
-  auto original_stream = c10::npu::getCurrentNPUStream();
-  {
-      c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-      OpCommand cmd;
-      cmd.Name("Bernoulli")
-        .Input(self)
-        .Input(p)
-        .Output(result)
-        .Run();
-  }
-  c10::npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
-  c10::npu::NPUCachingAllocator::recordStream(p.storage().data_ptr(), original_stream);
+  OpCommand cmd;
+  cmd.Name("Bernoulli")
+    .Input(self)
+    .Input(p)
+    .Output(result)
+    .Run();
 
   return result;
 }

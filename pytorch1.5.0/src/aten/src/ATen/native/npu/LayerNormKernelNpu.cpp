@@ -28,12 +28,12 @@ std::tuple<Tensor, Tensor, Tensor> layer_norm_npu(
     int64_t M,
     int64_t N,
     double eps) {
+  Tensor weight = weight_ex;
+  Tensor bias = bias_ex;
   DCHECK_EQ(input.numel(), M * N);
-  DCHECK(!weight_ex.defined() || weight_ex.numel() == N);
-  DCHECK(!bias_ex.defined() || bias_ex.numel() == N);
+  DCHECK(!weight.defined() || weight.numel() == N);
+  DCHECK(!bias.defined() || bias.numel() == N);
 
-  Tensor weight = weight_ex.clone();
-  Tensor bias = bias_ex.clone();
   Tensor Y = at::empty_with_format(input.sizes(), input.options(), CalcuOpUtil::get_tensor_npu_format(input));
   Tensor mean;
   Tensor variance;
