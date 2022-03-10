@@ -99,7 +99,7 @@
 
 2.  设置环境变量。
 
-    进入"pytorch/src"路径，并执行env.sh脚本。
+    进入"pytorch"根目录，并执行env.sh脚本。
 
     ```
     bash env.sh
