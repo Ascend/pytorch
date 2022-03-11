@@ -2686,7 +2686,7 @@ def convert():
                       "resnet50_official.onnx", 
                       input_names = ["input"],   # 构造输入名
                       output_names = ["output"],    # 构造输出名
-                      opset_version=11，    # ATC工具目前仅支持opset_version=11
+                      opset_version=11，    # ATC工具目前支持opset_version=9，10，11，12，13
                       dynamic_axes={"input":{0:"batch_size"}, "output":{0:"batch_size"}})  #支持输出动态轴
                       ) 
      
