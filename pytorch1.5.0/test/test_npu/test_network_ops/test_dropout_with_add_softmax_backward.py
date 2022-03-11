@@ -38,7 +38,7 @@ class TestDropOutWithAddSoftMax(TestCase):
         x2_grad = x2.grad
         return softmax_out.cpu().detach().numpy(), output.cpu().detach().numpy(), x2_grad.cpu().detach().numpy()
 
-    def test_dropout_shape_format(self):
+    def test_dropout_shape_format(self, device):
         cpu_input1 = torch.rand(96, 12, 384, 384).half()
         cpu_input2 = torch.rand(96, 12, 384, 384).half()
         npu_input1 = cpu_input1.npu()

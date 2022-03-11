@@ -33,7 +33,7 @@ class TestDropOutWithAddSoftMax(TestCase):
         _, softmax_out, output = torch.npu_dropout_with_add_softmax(x2, x1, alpha, prod, dim)
         return softmax_out.cpu().detach().numpy(), output.cpu().detach().numpy()
 
-    def test_dropout_shape_format(self):
+    def test_dropout_shape_format(self, device):
         cpu_input1 = torch.rand(96, 12, 384, 384).half()
         cpu_input2 = torch.rand(96, 12, 384, 384).half()
         npu_input1 = cpu_input1.npu()
