@@ -49,11 +49,16 @@ class _ROIAlign(Function):
         spatial_scale = ctx.spatial_scale
         sampling_ratio = ctx.sampling_ratio
         bs, ch, h, w = ctx.input_shape
+        aligned = ctx.aligned
+        if aligned:
+            roi_end_mode = 3
+        else:
+            roi_end_mode = 0
 
         grad_input = torch_npu.npu_roi_alignbk(
             grad_output, rois, ctx.input_shape,
             output_size[0], output_size[1],
-            spatial_scale, sampling_ratio)
+            spatial_scale, sampling_ratio, roi_end_mode)
 
         return grad_input, None, None, None, None, None
 

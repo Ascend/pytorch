@@ -13,16 +13,21 @@
 # limitations under the License.
 
 from .channel_shuffle import ChannelShuffle
+from .prefetcher import Prefetcher
 from .crossentropy import LabelSmoothingCrossEntropy
 from .roi_align import ROIAlign
+from .deform_conv import ModulatedDeformConv, DCNv2
 from .activations import Mish, SiLU, Swish
 from .bidirectional_lstm import BiLSTM
 from .ps_roi_pooling import PSROIPool
 
 __all__ = [
     "ChannelShuffle",
+    "Prefetcher",
     "LabelSmoothingCrossEntropy",
     "ROIAlign",
+    "DCNv2",
+    "ModulatedDeformConv",
     "Mish",
     "BiLSTM",
     "PSROIPool",

@@ -15,7 +15,8 @@
 from .function import npu_iou, npu_ptiou, npu_giou, npu_multiclass_nms, npu_batched_multiclass_nms, \
     npu_single_level_responsible_flags, npu_fast_condition_index_put, npu_bbox_coder_encode_yolo, \
     npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy
-from .module import ChannelShuffle, LabelSmoothingCrossEntropy, ROIAlign, , Mish, BiLSTM, PSROIPool, SiLU, Swish
+from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
+    ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish
 
 __all__ = [
     # from function
@@ -32,8 +33,11 @@ __all__ = [
 
     # from module
     "ChannelShuffle",
+    "Prefetcher",
     "LabelSmoothingCrossEntropy",
     "ROIAlign",
+    "DCNv2",
+    "ModulatedDeformConv",
     "Mish",
     "BiLSTM",
     "PSROIPool",
