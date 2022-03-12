@@ -69,32 +69,3 @@ class PSROIPool(nn.Module):
         tmpstr += ", output_dim=" + str(self.output_dim)
         tmpstr += ")"
         return tmpstr
-
-
-def get_random_rois(shape):
-    rois_init = torch.zeros(shape)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            pi1 = torch.rand(1, 2).uniform_(0, 10)
-            pi2 = torch.rand(1, 2).uniform_(10, 100)
-            boxi = torch.cat((pi1, pi2), 1)
-            n = torch.tensor([[float(i)]])
-            boxi = torch.cat((n, boxi), 1)
-            rois_init[i, j, :] = boxi
-    return rois_init
-
-
-if __name__ == "__main__":
-    cls_feat = torch.randn(4, 1078, 84, 84).float()
-    cls_feat.requires_grad = True
-    rois_tensor = get_random_rois((4, 128, 5)).permute(0, 2, 1).float()
-
-    model = PSROIPool(pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22)
-
-    torch.npu.set_device(0)
-    cls_feat = cls_feat.npu()
-    rois_tensor = rois_tensor.npu()
-
-    x = model(cls_feat, rois_tensor)  # 512,22,7,7
-    l = x.sum()
-    l.backward()

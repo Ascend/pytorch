@@ -18,7 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.contrib.optimized_lib.module import ROIAlign
+from torch_npu.contrib.module import ROIAlign
 
 class TestRoiAlign(TestCase):
     

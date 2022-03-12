@@ -162,33 +162,3 @@ class IndexSelectHalfImplementation(torch.autograd.Function):
         out1 = grad_output.index_select(1, ctx.bp_index1)
         out2 = grad_output.index_select(1, ctx.bp_index2)
         return out1, out2, None, None, None, None
-
-
-def main():
-    device = 'cpu'
-
-    if device.startswith('npu'):
-        torch.npu.set_device(device)
-
-
-    def tescase(split_shuffle=True):
-        x = torch.randn(2, 32, 7, 7)
-        conv = torch.nn.Conv2d(32, 32, 1)
-        model = ChannelShuffle(64, split_shuffle=split_shuffle)
-
-        x = x.to(device)
-        conv = conv.to(device)
-        model = model.to(device)
-
-        x1 = conv(x)
-        x2 = conv(x)
-        output = model(x1, x2)
-        loss = sum([i.sum() for i in output]) if split_shuffle else output.sum()
-        loss.backward()
-
-
-    tescase(split_shuffle=True)
-    tescase(split_shuffle=False)
-
-if __name__ == '__main__':
-    main()

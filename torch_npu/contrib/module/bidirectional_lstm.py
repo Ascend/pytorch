@@ -85,18 +85,3 @@ class BiLSTM(torch.nn.Module):
         recurrent = torch.cat((recurrent_fw, recurrent_bw), 2)
 
         return recurrent
-
-
-if __name__ == '__main__':
-    x = torch.randn(26, 2560, 512)
-    x.requires_grad = True
-
-    torch.npu.set_device(0)
-    x = x.npu()
-    rnn = BiLSTM(512, 256).npu()
-    x.retain_grad()
-    output = rnn(x)
-    print('test forward: ', output)
-    output.backward(torch.ones(x.size(), dtype=torch.float).npu())
-    x_grad = x.grad
-    print('test grad ', x_grad)

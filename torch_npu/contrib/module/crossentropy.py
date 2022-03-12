@@ -42,22 +42,3 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
         loss = torch.mean(loss, [0], keepdim=False, dtype=torch.float32)
         return loss
-
-
-if __name__ == '__main__':
-    x = torch.randn(2, 10)
-    x.requires_grad = True
-    y = torch.randint(0, 10, size=(2,))
-
-    torch.npu.set_device(0)
-    x = x.npu()
-    y = y.npu()
-    m = LabelSmoothingCrossEntropy(10)
-    l = m(x, y)
-    l.backward()
-    print('test ce ok, loss is ', l)
-
-    m = LabelSmoothingCrossEntropy(10, 0.1)
-    l = m(x, y)
-    l.backward()
-    print('test lsce ok, loss is ', l)

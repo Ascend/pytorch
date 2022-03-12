@@ -20,7 +20,7 @@ import numpy as np
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
-from torch_npu.contrib.optimized_lib.module import Mish, SiLU
+from torch_npu.contrib.module import Mish, SiLU
 
 class TestActivations(TestCase):
 
