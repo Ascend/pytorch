@@ -1735,15 +1735,15 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
   1.  获取性能数据文件。
 
       ```
-      profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
-      with torch.npu.profile(profiler_result_path):
+      profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，请根据实际指定。
+      with torch.npu.profile(profiler_result_path, config):  # 一般只需要执行1个step即可，config可默认
           out = model(input_tensor)
           loss=loss_func(out,target)
           loss.backward()
           optimizer.zero_grad()
           optimizer.step()
       ```
-
+      其中config参数用于配置需要获取CANN的性能数据种类，设置方法见[E2E prof高级设置](#E2E prof高级设置)中的config参数说明。
       >![](public_sys-resources/icon-note.gif) **说明：** 
       >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
@@ -1751,6 +1751,24 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
       请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
 
+
+  3. 高级用法
+    pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
+    ```
+    option={"PROFILING_MODE":"true"}
+    torch.npu.set_option(option)
+    for i in range(steps):
+        if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
+            if i == 10:  ## 在第10个step时，开始使能该功能
+                torch.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
+                torch.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
+            torch.npu.iteration_start()  ## 进入每个step时打上开始标记
+            train_one_step()
+            torch.npu.iteration_end()    ## 每个step结束时打上开始标记
+            if i == 110:   ## 在第100个step时，关闭该功能
+                torch.npu.prof_stop()
+                torch.npu.prof_finalize()
+    ```
 
 
 **获取算子信息OP\_INFO**<a name="section15654162853114"></a>
@@ -2130,7 +2148,6 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
    该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
 
 #### E2E prof高级设置
-
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
