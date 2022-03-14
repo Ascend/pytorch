@@ -48,14 +48,6 @@ def finalize_dump():
     option = {"mdldumpswitch": "disable"}
     torch._C._npu_setOption(option)
 
-def iteration_start():
-    option = {"deliverswitch": "enable"}
-    torch._C._npu_setOption(option)
-
-def iteration_end():
-    option = {"deliverswitch": "disable"}
-    torch._C._npu_setOption(option)
-
 _GLOBAL_STEP = 0
 _START_FUZZ_COMPILE_STEP = 1
 def global_step_inc():
@@ -75,23 +67,6 @@ def set_start_fuzz_compile_step(step):
     option = {"fuzzycompileswitch": "disable"}
     torch._C._npu_setOption(option)
 
-def prof_init(path):
-    if not os.path.exists(path):
-        raise AssertionError("profiler_result_path: %s not exists."%(path))
-    profiler_result_path = os.path.abspath(path)
-    option = {"profilerResultPath": profiler_result_path}
-    torch._C._npu_setOption(option)
-
-def prof_start(npu_event, aicore_metrics):
-    torch._C._prof_start(npu_event, aicore_metrics)
-
-def prof_stop():
-    option = {"profiling": "stop"}
-    torch._C._npu_setOption(option)
-
-def prof_finalize():
-    option = {"profiling": "finalize"}
-    torch._C._npu_setOption(option)
 
 class npuEvent(object):
     def __init__(self):    
@@ -153,8 +128,7 @@ class profile(object):
         config=profileConfig()):
         self.result_path = profiler_result_path
         self.use_e2e_profiler = use_e2e_profiler
-        self.npu_event = config.NpuEventConfig
-        self.aicore_metrics = config.AiCoreMetricsConfig
+        self.config = config
         self.entered = False
 
     def __enter__(self):
@@ -162,11 +136,12 @@ class profile(object):
             raise RuntimeError("npu profiler traces are not reentrant")
         self.entered = True
         if self.use_e2e_profiler:
-            torch._C._enable_e2e_profiler(self.result_path, self.npu_event | npuEvent().ACL_PROF_MSPROFTX,
-                                          self.aicore_metrics)
+            torch._C._enable_e2e_profiler(self.result_path, 
+                                          self.config.NpuEventConfig | npuEvent().ACL_PROF_MSPROFTX,
+                                          self.config.AiCoreMetricsConfig)
         else:
             prof_init(self.result_path)
-            prof_start(self.npu_event, self.aicore_metrics)
+            prof_start(self.config)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -176,4 +151,29 @@ class profile(object):
             prof_stop()
             prof_finalize()
         return False
-  
+
+def prof_init(path):
+    if not os.path.exists(path):
+        raise AssertionError("profiler_result_path: %s not exists."%(path))
+    profiler_result_path = os.path.abspath(path)
+    option = {"profilerResultPath": profiler_result_path}
+    torch._C._npu_setOption(option)
+
+def prof_start(config=profileConfig()):
+    torch._C._prof_start(config.NpuEventConfig, config.AiCoreMetricsConfig)
+
+def prof_stop():
+    option = {"profiling": "stop"}
+    torch._C._npu_setOption(option)
+
+def prof_finalize():
+    option = {"profiling": "finalize"}
+    torch._C._npu_setOption(option)
+
+def iteration_start():
+    option = {"deliverswitch": "enable"}
+    torch._C._npu_setOption(option)
+
+def iteration_end():
+    option = {"deliverswitch": "disable"}
+    torch._C._npu_setOption(option)

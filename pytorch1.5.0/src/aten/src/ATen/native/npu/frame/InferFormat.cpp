@@ -78,6 +78,12 @@ aclFormat InferFormat::GuessStorageFormat(const IntArrayRef& size, aclFormat for
     }
   } else if (format == ACL_FORMAT_NCHW && dim != 4) {
       return ACL_FORMAT_ND;
+  } else if ((dim == 0) ||
+            ((dim == 1) && (size[0] == 1) && (baseFormat == ACL_FORMAT_ND))) {
+    // operators treat tensor with dimensions of 0 or shape = [1] as scalar,
+    // so these tensor will stay ND format except NCHW tensor whose origin shape
+    // can be expand into four dimensions.
+    return ACL_FORMAT_ND;
   }
   return format;
 }

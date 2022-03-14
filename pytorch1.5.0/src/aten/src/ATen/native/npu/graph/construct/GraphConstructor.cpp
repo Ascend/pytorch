@@ -168,6 +168,36 @@ void GraphCommandImpl::ReduceScalarValue(
         reinterpret_cast<uint8_t*>(&value),
         sizeof(Half),
         host_ptr_offset);
+  } else if (ScalarType::Byte == type) {
+    uint8_t value = input.toByte();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(uint8_t),
+        host_ptr_offset);
+  } else if (ScalarType::Char == type) {
+    int8_t value = input.toChar();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(int8_t),
+        host_ptr_offset);
+  } else if (ScalarType::Short == type) {
+    int16_t value = input.toShort();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(int16_t),
+        host_ptr_offset);
+  } else if (ScalarType::Bool == type) {
+    bool value = input.toBool();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(bool),
+        host_ptr_offset);
+  } else if (ScalarType::BFloat16 == type) {
+    at::BFloat16 value = input.toBFloat16();
+    ScalarMemContext::GetContext().AppendToHostMem(
+        reinterpret_cast<uint8_t*>(&value),
+        sizeof(at::BFloat16),
+        host_ptr_offset);
   } else {
     AT_ERROR("scalar not support '", at::toString(type), "' type currently.");
   }
