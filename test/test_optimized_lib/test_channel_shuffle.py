@@ -17,7 +17,7 @@ import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
-from torch_npu.contrib.optimized_lib.module import ChannelShuffle
+from torch_npu.contrib.module import ChannelShuffle
 
 class TestChannelShuffle(TestCase):
     def cpu_channel_shuffle(self, x, groups, split_shuffle):
