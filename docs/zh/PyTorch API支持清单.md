@@ -1371,103 +1371,103 @@ torch_npu.npu.set_device()接口只支持在程序开始的位置通过set_devic
 
 ## NPU自定义算子
 
-| 序号 | 算子名称                                       |
-| ---- | ---------------------------------------------- |
-| 1    | npu_convolution_transpose                      |
-| 2    | npu_conv_transpose2d                           |
-| 3    | npu_convolution_transpose_backward             |
-| 4    | npu_conv_transpose2d_backward                  |
-| 5    | npu_conv_transpose3d_backward                  |
-| 6    | npu_convolution                                |
-| 7    | npu_convolution_backward                       |
-| 8    | npu_convolution_double_backward                |
-| 9    | npu_conv2d                                     |
-| 10   | npu_conv2d.out                                 |
-| 11   | npu_conv2d_backward                            |
-| 12   | npu_conv3d                                     |
-| 13   | npu_conv3d.out                                 |
-| 14   | npu_conv3d_backward                            |
-| 15   | one_                                           |
-| 16   | npu_sort_v2.out                                |
-| 17   | npu_sort_v2                                    |
-| 18   | npu_format_cast                                |
-| 19   | npu_format_cast_.acl_format                    |
-| 20   | npu_format_cast_.src                           |
-| 21   | npu_transpose_to_contiguous                    |
-| 22   | npu_transpose                                  |
-| 23   | npu_transpose.out                              |
-| 24   | npu_broadcast                                  |
-| 25   | npu_broadcast.out                              |
-| 26   | npu_dtype_cast                                 |
-| 27   | npu_dtype_cast_.Tensor                         |
-| 28   | npu_roi_alignbk                                |
-| 29   | empty_with_format                              |
-| 30   | empty_with_format.names                        |
-| 31   | copy_memory_                                   |
-| 32   | npu_one_hot                                    |
-| 33   | npu_stride_add                                 |
-| 34   | npu_softmax_cross_entropy_with_logits          |
-| 35   | npu_softmax_cross_entropy_with_logits_backward |
-| 36   | npu_ps_roi_pooling                             |
-| 37   | npu_ps_roi_pooling_backward                    |
-| 38   | npu_roi_align                                  |
-| 39   | npu_nms_v4                                     |
-| 40   | npu_lstm                                       |
-| 41   | npu_lstm_backward                              |
-| 42   | npu_iou                                        |
-| 43   | npu_ptiou                                      |
-| 44   | npu_nms_with_mask                              |
-| 45   | npu_pad                                        |
-| 46   | npu_bounding_box_encode                        |
-| 47   | npu_bounding_box_decode                        |
-| 48   | npu_gru                                        |
-| 49   | npu_gru_backward                               |
-| 50   | npu_set_.source_Storage_storage_offset_format  |
-| 51   | npu_random_choice_with_mask                    |
-| 52   | npu_batch_nms                                  |
-| 53   | npu_slice                                      |
-| 54   | npu_slice.out                                  |
-| 55   | npu_dropoutV2                                  |
-| 56   | npu_dropoutV2_backward                         |
-| 57   | _npu_dropout                                   |
-| 58   | _npu_dropout_inplace                           |
-| 59   | npu_dropout_backward                           |
-| 60   | npu_indexing                                   |
-| 61   | npu_indexing.out                               |
-| 62   | npu_ifmr                                       |
-| 63   | npu_max.dim                                    |
-| 64   | npu_max.names_dim                              |
-| 65   | npu_scatter                                    |
-| 66   | npu_max_backward                               |
-| 67   | npu_apply_adam                                 |
-| 68   | npu_layer_norm_eval                            |
-| 69   | npu_alloc_float_status                         |
-| 70   | npu_get_float_status                           |
-| 71   | npu_clear_float_status                         |
-| 72   | npu_confusion_transpose                        |
-| 73   | npu_confusion_transpose_backward               |
-| 74   | npu_bmmV2                                      |
-| 75   | fast_gelu                                      |
-| 76   | fast_gelu_backward                             |
-| 77   | npu_sub_sample                                 |
-| 78   | npu_deformable_conv2d                          |
-| 79   | npu_deformable_conv2dbk                        |
-| 80   | npu_mish                                       |
-| 81   | npu_anchor_response_flags                      |
-| 82   | npu_yolo_boxes_encode                          |
-| 83   | npu_grid_assign_positive                       |
-| 84   | npu_mish_backward                              |
-| 85   | npu_normalize_batch                            |
-| 86   | npu_masked_fill_range                          |
-| 87   | npu_linear                                     |
-| 88   | npu_linear_backward                            |
-| 89   | npu_bert_apply_adam                            |
-| 90   | npu_giou                                       |
-| 91   | npu_giou_backward                              |
+| 序号 | 算子名称                                                 |
+| ---- | -------------------------------------------------------- |
+| 1    | torch_npu.npu_convolution_transpose                      |
+| 2    | torch_npu.npu_conv_transpose2d                           |
+| 3    | torch_npu.npu_convolution_transpose_backward             |
+| 4    | torch_npu.npu_conv_transpose2d_backward                  |
+| 5    | torch_npu.npu_conv_transpose3d_backward                  |
+| 6    | torch_npu.npu_convolution                                |
+| 7    | torch_npu.npu_convolution_backward                       |
+| 8    | torch_npu.npu_convolution_double_backward                |
+| 9    | torch_npu.npu_conv2d                                     |
+| 10   | torch_npu.npu_conv2d.out                                 |
+| 11   | torch_npu.npu_conv2d_backward                            |
+| 12   | torch_npu.npu_conv3d                                     |
+| 13   | torch_npu.npu_conv3d.out                                 |
+| 14   | torch_npu.npu_conv3d_backward                            |
+| 15   | torch_npu.one_                                           |
+| 16   | torch_npu.npu_sort_v2.out                                |
+| 17   | torch_npu.npu_sort_v2                                    |
+| 18   | torch_npu.npu_format_cast                                |
+| 19   | torch_npu.npu_format_cast_.acl_format                    |
+| 20   | torch_npu.npu_format_cast_.src                           |
+| 21   | torch_npu.npu_transpose_to_contiguous                    |
+| 22   | torch_npu.npu_transpose                                  |
+| 23   | torch_npu.npu_transpose.out                              |
+| 24   | torch_npu.npu_broadcast                                  |
+| 25   | torch_npu.npu_broadcast.out                              |
+| 26   | torch_npu.npu_dtype_cast                                 |
+| 27   | torch_npu.npu_dtype_cast_.Tensor                         |
+| 28   | torch_npu.npu_roi_alignbk                                |
+| 29   | torch_npu.empty_with_format                              |
+| 30   | torch_npu.empty_with_format.names                        |
+| 31   | torch_npu.copy_memory_                                   |
+| 32   | torch_npu.npu_one_hot                                    |
+| 33   | torch_npu.npu_stride_add                                 |
+| 34   | torch_npu.npu_softmax_cross_entropy_with_logits          |
+| 35   | torch_npu.npu_softmax_cross_entropy_with_logits_backward |
+| 36   | torch_npu.npu_ps_roi_pooling                             |
+| 37   | torch_npu.npu_ps_roi_pooling_backward                    |
+| 38   | torch_npu.npu_roi_align                                  |
+| 39   | torch_npu.npu_nms_v4                                     |
+| 40   | torch_npu.npu_lstm                                       |
+| 41   | torch_npu.npu_lstm_backward                              |
+| 42   | torch_npu.npu_iou                                        |
+| 43   | torch_npu.npu_ptiou                                      |
+| 44   | torch_npu.npu_nms_with_mask                              |
+| 45   | torch_npu.npu_pad                                        |
+| 46   | torch_npu.npu_bounding_box_encode                        |
+| 47   | torch_npu.npu_bounding_box_decode                        |
+| 48   | torch_npu.npu_gru                                        |
+| 49   | torch_npu.npu_gru_backward                               |
+| 50   | torch_npu.npu_set_.source_Storage_storage_offset_format  |
+| 51   | torch_npu.npu_random_choice_with_mask                    |
+| 52   | torch_npu.npu_batch_nms                                  |
+| 53   | torch_npu.npu_slice                                      |
+| 54   | torch_npu.npu_slice.out                                  |
+| 55   | torch_npu.npu_dropoutV2                                  |
+| 56   | torch_npu.npu_dropoutV2_backward                         |
+| 57   | torch_npu._npu_dropout                                   |
+| 58   | torch_npu._npu_dropout_inplace                           |
+| 59   | torch_npu.npu_dropout_backward                           |
+| 60   | torch_npu.npu_indexing                                   |
+| 61   | torch_npu.npu_indexing.out                               |
+| 62   | torch_npu.npu_ifmr                                       |
+| 63   | torch_npu.npu_max.dim                                    |
+| 64   | torch_npu.npu_max.names_dim                              |
+| 65   | torch_npu.npu_scatter                                    |
+| 66   | torch_npu.npu_max_backward                               |
+| 67   | torch_npu.npu_apply_adam                                 |
+| 68   | torch_npu.npu_layer_norm_eval                            |
+| 69   | torch_npu.npu_alloc_float_status                         |
+| 70   | torch_npu.npu_get_float_status                           |
+| 71   | torch_npu.npu_clear_float_status                         |
+| 72   | torch_npu.npu_confusion_transpose                        |
+| 73   | torch_npu.npu_confusion_transpose_backward               |
+| 74   | torch_npu.npu_bmmV2                                      |
+| 75   | torch_npu.fast_gelu                                      |
+| 76   | torch_npu.fast_gelu_backward                             |
+| 77   | torch_npu.npu_sub_sample                                 |
+| 78   | torch_npu.npu_deformable_conv2d                          |
+| 79   | torch_npu.npu_deformable_conv2dbk                        |
+| 80   | torch_npu.npu_mish                                       |
+| 81   | torch_npu.npu_anchor_response_flags                      |
+| 82   | torch_npu.npu_yolo_boxes_encode                          |
+| 83   | torch_npu.npu_grid_assign_positive                       |
+| 84   | torch_npu.npu_mish_backward                              |
+| 85   | torch_npu.npu_normalize_batch                            |
+| 86   | torch_npu.npu_masked_fill_range                          |
+| 87   | torch_npu.npu_linear                                     |
+| 88   | torch_npu.npu_linear_backward                            |
+| 89   | torch_npu.npu_bert_apply_adam                            |
+| 90   | torch_npu.npu_giou                                       |
+| 91   | torch_npu.npu_giou_backward                              |
 
 详细算子接口说明：
 
-> npu_apply_adam(beta1_power, beta2_power, lr, beta1, beta2, epsilon, grad, use_locking, use_nesterov, out = (var, m, v))
+> torch_npu.npu_apply_adam(beta1_power, beta2_power, lr, beta1, beta2, epsilon, grad, use_locking, use_nesterov, out = (var, m, v))
 
 count adam result.
 
@@ -1493,7 +1493,7 @@ count adam result.
 
   None
 
-> npu_convolution_transpose(input, weight, bias, padding, output_padding, stride, dilation, groups) -> Tensor
+> torch_npu.npu_convolution_transpose(input, weight, bias, padding, output_padding, stride, dilation, groups) -> Tensor
 
 Applies a 2D or 3D transposed convolution operator over an input image composed of several input planes, sometimes also called “deconvolution”.
 
@@ -1515,7 +1515,7 @@ Applies a 2D or 3D transposed convolution operator over an input image composed 
 
   None
 
-> npu_conv_transpose2d(input, weight, bias, padding, output_padding, stride, dilation, groups) -> Tensor
+> torch_npu.npu_conv_transpose2d(input, weight, bias, padding, output_padding, stride, dilation, groups) -> Tensor
 
 Applies a 2D transposed convolution operator over an input image composed of several input planes, sometimes also called “deconvolution”.
 
@@ -1537,7 +1537,7 @@ Applies a 2D transposed convolution operator over an input image composed of sev
 
   None
 
-> npu_convolution(input, weight, bias, stride, padding, dilation, groups) -> Tensor
+> torch_npu.npu_convolution(input, weight, bias, stride, padding, dilation, groups) -> Tensor
 
 Applies a 2D or 3D convolution over an input image composed of several input planes.
 
@@ -1558,7 +1558,7 @@ Applies a 2D or 3D convolution over an input image composed of several input pla
 
   None
 
-> npu_conv2d(input, weight, bias, stride, padding, dilation, groups) -> Tensor
+> torch_npu.npu_conv2d(input, weight, bias, stride, padding, dilation, groups) -> Tensor
 
 Applies a 2D convolution over an input image composed of several input planes.
 
@@ -1579,7 +1579,7 @@ Applies a 2D convolution over an input image composed of several input planes.
 
   None
 
-> npu_conv3d(input, weight, bias, stride, padding, dilation, groups) -> Tensor
+> torch_npu.npu_conv3d(input, weight, bias, stride, padding, dilation, groups) -> Tensor
 
 Applies a 3D convolution over an input image composed of several input planes.
 
@@ -1600,7 +1600,7 @@ Applies a 3D convolution over an input image composed of several input planes.
 
   None
 
-> one_(self) -> Tensor
+> torch_npu.one_(self) -> Tensor
 
 Fills self tensor with ones.
 
@@ -1624,7 +1624,7 @@ Fills self tensor with ones.
           [1., 1., 1.]], device='npu:0')
   ```
 
-> npu_sort_v2(self, dim=-1, descending=False, out=None) -> Tensor
+> torch_npu.npu_sort_v2(self, dim=-1, descending=False, out=None) -> Tensor
 
 Sorts the elements of the input tensor along a given dimension in ascending order by value without indices.
 If dim is not given, the last dimension of the input is chosen.
@@ -1655,7 +1655,7 @@ If descending is True then the elements are sorted in descending order by value.
           [-2.7441,  0.1880,  0.7378,  1.3975]], device='npu:0')
   ```
 
-> npu_format_cast(self, acl_format) -> Tensor
+> torch_npu.npu_format_cast(self, acl_format) -> Tensor
 
 Change the format of a npu tensor.
 
@@ -1678,13 +1678,13 @@ Change the format of a npu tensor.
   29
   ```
 
-> npu_format_cast_
+> torch_npu.npu_format_cast_
 
->   npu_format_cast_.acl_format(self, acl_format) -> Tensor
+>   torch_npu.npu_format_cast_.acl_format(self, acl_format) -> Tensor
 
   In-place version of npu_format_cast()
 
->   npu_format_cast_.src(self, src) -> Tensor
+>   torch_npu.npu_format_cast_.src(self, src) -> Tensor
 
   In-place Change the format of self, with the same format as src.
 
@@ -1706,7 +1706,7 @@ Change the format of a npu tensor.
     29
     ```
 
-> npu_transpose(self, perm) -> Tensor
+> torch_npu.npu_transpose(self, perm) -> Tensor
 
 Returns a view of the original tensor with its dimensions permuted, and make the result contiguous.
 
@@ -1732,7 +1732,7 @@ Returns a view of the original tensor with its dimensions permuted, and make the
   torch.Size([5, 2, 3])
   ```
 
-> npu_broadcast(self, perm) -> Tensor
+> torch_npu.npu_broadcast(self, perm) -> Tensor
 
 Returns a new view of the self tensor with singleton dimensions expanded to a larger size, and make the result contiguous.
 
@@ -1758,7 +1758,7 @@ Tensor can be also expanded to a larger number of dimensions, and the new ones w
           [3, 3, 3, 3]], device='npu:0')
   ```
   
-> npu_dtype_cast(input, dtype) -> Tensor
+> torch_npu.npu_dtype_cast(input, dtype) -> Tensor
 
 Performs Tensor dtype conversion.
 
@@ -1777,7 +1777,7 @@ Performs Tensor dtype conversion.
   tensor([ 0,  0, -1], device='npu:0', dtype=torch.int32)
   ```
 
-> empty_with_format(size, dtype, layout, device, pin_memory, acl_format) -> Tensor
+> torch_npu.empty_with_format(size, dtype, layout, device, pin_memory, acl_format) -> Tensor
 
 Returns a tensor filled with uninitialized data. The shape of the tensor is defined by the variable argument size. The format of the tensor is defined by the variable argument acl_format.
 
@@ -1806,7 +1806,7 @@ Returns a tensor filled with uninitialized data. The shape of the tensor is defi
           [1., 1., 1.]], device='npu:0')
   ```
 
-> copy_memory_(dst, src, non_blocking=False) -> Tensor
+> torch_npu.copy_memory_(dst, src, non_blocking=False) -> Tensor
 
 Copies the elements from src into self tensor and returns self.
 
@@ -1830,7 +1830,7 @@ Copies the elements from src into self tensor and returns self.
   tensor([1, 1, 1], device='npu:0', dtype=torch.int32)
   ```
 
-> npu_one_hot(input, num_classes=-1, depth=1, on_value=1, off_value=0) -> Tensor
+> torch_npu.npu_one_hot(input, num_classes=-1, depth=1, on_value=1, off_value=0) -> Tensor
 
 Returns a one-hot tensor. The locations represented by index in "x" take value "on_value", while all other locations take value "off_value". 
 
@@ -1856,7 +1856,7 @@ Returns a one-hot tensor. The locations represented by index in "x" take value "
           [0., 1., 0., 0., 0.]], device='npu:0')
   ```
 
-> npu_stride_add(x1, x2, offset1, offset2, c1_len) -> Tensor
+> torch_npu.npu_stride_add(x1, x2, offset1, offset2, c1_len) -> Tensor
 
 Add the partial values of two tensors in format NC1HWC0. 
 
@@ -1894,7 +1894,7 @@ Add the partial values of two tensors in format NC1HWC0.
           [[[0.]]]]], device='npu:0')
   ```
 
-> npu_softmax_cross_entropy_with_logits(features, labels) -> Tensor
+> torch_npu.npu_softmax_cross_entropy_with_logits(features, labels) -> Tensor
 
 Computes softmax cross entropy cost.
 
@@ -1910,7 +1910,7 @@ Computes softmax cross entropy cost.
 
   None
 
-> npu_ps_roi_pooling(x, rois, spatial_scale, group_size, output_dim) -> Tensor
+> torch_npu.npu_ps_roi_pooling(x, rois, spatial_scale, group_size, output_dim) -> Tensor
 
 Performs Position Sensitive PS ROI Pooling. 
 
@@ -1945,7 +1945,7 @@ Performs Position Sensitive PS ROI Pooling.
             [0., 0.]]]], device='npu:0', dtype=torch.float16)
   ```
 
-> npu_roi_align(features, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode) -> Tensor
+> torch_npu.npu_roi_align(features, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode) -> Tensor
 
 Obtains the ROI feature matrix from the feature map. It is a customized FasterRcnn operator. 
 
@@ -1978,7 +1978,7 @@ Obtains the ROI feature matrix from the feature map. It is a customized FasterRc
             [28.5000, 30.5000, 32.5000]]]], device='npu:0')
   ```
 
-> npu_nms_v4(boxes, scores, max_output_size, iou_threshold, scores_threshold, pad_to_max_output_size=False) -> (Tensor, Tensor)
+> torch_npu.npu_nms_v4(boxes, scores, max_output_size, iou_threshold, scores_threshold, pad_to_max_output_size=False) -> (Tensor, Tensor)
 
 Greedily selects a subset of bounding boxes in descending order of score. 
 
@@ -2013,7 +2013,7 @@ Greedily selects a subset of bounding boxes in descending order of score.
           54, 92], device='npu:0', dtype=torch.int32), tensor(20, device='npu:0', dtype=torch.int32))
   ```
 
-> npu_nms_rotated(dets, scores, iou_threshold, scores_threshold=0, max_output_size=-1, mode=0) -> (Tensor, Tensor)
+> torch_npu.npu_nms_rotated(dets, scores, iou_threshold, scores_threshold=0, max_output_size=-1, mode=0) -> (Tensor, Tensor)
 
 Greedy selects a subset of the rotated bounding boxes in descending fractional order.
 
@@ -2049,7 +2049,7 @@ Greedy selects a subset of the rotated bounding boxes in descending fractional o
   tensor([62], device='npu:0', dtype=torch.int32)
   ```
 
-> npu_lstm(x, weight, bias, seq_len, h, c, has_biases, num_layers, dropout, train, bidirectional, batch_first, flag_seq, direction)
+> torch_npu.npu_lstm(x, weight, bias, seq_len, h, c, has_biases, num_layers, dropout, train, bidirectional, batch_first, flag_seq, direction)
 
 DynamicRNN calculation. 
 
@@ -2087,8 +2087,8 @@ DynamicRNN calculation.
   
   None
 
->npu_iou(bboxes, gtboxes, mode=0) -> Tensor
->npu_ptiou(bboxes, gtboxes, mode=0) -> Tensor
+>torch_npu.npu_iou(bboxes, gtboxes, mode=0) -> Tensor
+>torch_npu.npu_ptiou(bboxes, gtboxes, mode=0) -> Tensor
 
 Computes the intersection over union (iou) or the intersection over. foreground (iof) based on the ground-truth and predicted regions.
 
@@ -2117,7 +2117,7 @@ Computes the intersection over union (iou) or the intersection over. foreground 
           [0.0000, 0.9961, 0.0000]], device='npu:0', dtype=torch.float16)
   ```
 
->npu_pad(input, paddings) -> Tensor
+>torch_npu.npu_pad(input, paddings) -> Tensor
 
 Pads a tensor
 
@@ -2141,7 +2141,7 @@ Pads a tensor
           [ 0.,  0.,  0.,  0.,  0.,  0.]], device='npu:0', dtype=torch.float16)
   ```
 
->npu_nms_with_mask(input, iou_threshold) -> (Tensor, Tensor, Tensor)
+>torch_npu.npu_nms_with_mask(input, iou_threshold) -> (Tensor, Tensor, Tensor)
 
 The value 01 is generated for the nms operator to determine the valid bit
 
@@ -2175,7 +2175,7 @@ The value 01 is generated for the nms operator to determine the valid bit
   tensor([1, 1], device='npu:0', dtype=torch.uint8)
   ```
 
->npu_bounding_box_encode(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3) -> Tensor
+>torch_npu.npu_bounding_box_encode(anchor_box, ground_truth_box, means0, means1, means2, means3, stds0, stds1, stds2, stds3) -> Tensor
 
 Computes the coordinate variations between bboxes and ground truth boxes. It is a customized FasterRcnn operator
 
@@ -2207,7 +2207,7 @@ Computes the coordinate variations between bboxes and ground truth boxes. It is 
   >>>
   ```
 
->npu_bounding_box_decode(rois, deltas, means0, means1, means2, means3, stds0, stds1, stds2, stds3, max_shape, wh_ratio_clip) -> Tensor
+>torch_npu.npu_bounding_box_decode(rois, deltas, means0, means1, means2, means3, stds0, stds1, stds2, stds3, max_shape, wh_ratio_clip) -> Tensor
 
 Generates bounding boxes based on "rois" and "deltas". It is a customized FasterRcnn operator .
 
@@ -2240,7 +2240,7 @@ Generates bounding boxes based on "rois" and "deltas". It is a customized Faster
           [9.0000, 9.0000, 9.0000, 9.0000]], device='npu:0')
   ```
 
->npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+>torch_npu.npu_gru(input, hx, weight_input, weight_hidden, bias_input, bias_hidden, seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
 
 DynamicGRUV2 calculation.
 
@@ -2276,7 +2276,7 @@ DynamicGRUV2 calculation.
   
   None
 
->npu_random_choice_with_mask(x, count=256, seed=0, seed2=0) -> (Tensor, Tensor)
+>torch_npu.npu_random_choice_with_mask(x, count=256, seed=0, seed2=0) -> (Tensor, Tensor)
 
 Shuffle index of no-zero element
 
@@ -2307,7 +2307,7 @@ Shuffle index of no-zero element
   tensor([True, True], device='npu:0')
   ```
 
->npu_batch_nms(self, scores, score_threshold, iou_threshold, max_size_per_class, max_total_size, change_coordinate_frame=False, transpose_box=False) -> (Tensor, Tensor, Tensor, Tensor)
+>torch_npu.npu_batch_nms(self, scores, score_threshold, iou_threshold, max_size_per_class, max_total_size, change_coordinate_frame=False, transpose_box=False) -> (Tensor, Tensor, Tensor, Tensor)
 
 Computes nms for input boxes and score, support multiple batch and classes. will do clip to window, score filter, top_k, and nms
 
@@ -2344,7 +2344,7 @@ Computes nms for input boxes and score, support multiple batch and classes. will
   >>> nmsed_num
   ```
 
->npu_slice(self, offsets, size) -> Tensor
+>torch_npu.npu_slice(self, offsets, size) -> Tensor
 
 Extracts a slice from a tensor
 
@@ -2369,7 +2369,7 @@ Extracts a slice from a tensor
           [6., 7.]], device='npu:0', dtype=torch.float16)
   ```
   
->npu_dropoutV2(self, seed, p) -> (Tensor, Tensor, Tensor(a!))
+>torch_npu.npu_dropoutV2(self, seed, p) -> (Tensor, Tensor, Tensor(a!))
 
 count dropout result with seed
 
@@ -2413,7 +2413,7 @@ count dropout result with seed
           0.0000, 0.0000, 0.0000, 0.0000, 0.0000], device='npu:0')
   ```
 
->_npu_dropout(self, p) -> (Tensor, Tensor)
+>torch_npu._npu_dropout(self, p) -> (Tensor, Tensor)
 
 count dropout result without seed
 
@@ -2441,7 +2441,7 @@ count dropout result without seed
         253, 255], device='npu:0', dtype=torch.uint8)
   ```
 
->_npu_dropout_inplace(result, p) -> (Tensor(a!), Tensor)
+>torch_npu._npu_dropout_inplace(result, p) -> (Tensor(a!), Tensor)
 
 count dropout result inplace.
 
@@ -2471,7 +2471,7 @@ count dropout result inplace.
         253, 255], device='npu:0', dtype=torch.uint8)
   ```
 
->npu_indexing(self, begin, end, strides, begin_mask=0, end_mask=0, ellipsis_mask=0, new_axis_mask=0, shrink_axis_mask=0) -> Tensor
+>torch_npu.npu_indexing(self, begin, end, strides, begin_mask=0, end_mask=0, ellipsis_mask=0, new_axis_mask=0, shrink_axis_mask=0) -> Tensor
 
 count indexing result by begin,end,strides array.
 
@@ -2507,7 +2507,7 @@ count indexing result by begin,end,strides array.
         [5, 6]], device='npu:0', dtype=torch.int32)
   ```
 
->npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
+>torch_npu.npu_ifmr(Tensor data, Tensor data_min, Tensor data_max, Tensor cumsum, float min_percentile, float max_percentile, float search_start, float search_end, float search_step, bool with_offset) -> (Tensor, Tensor)
 
 count ifmr result by begin,end,strides array, Input Feature Map Reconstruction
 
@@ -2597,7 +2597,7 @@ count ifmr result by begin,end,strides array, Input Feature Map Reconstruction
     tensor(0., device='npu:0')
   ```
 
->npu_max.dim(self, dim, keepdim=False) -> (Tensor, Tensor)
+>torch_npu.npu_max.dim(self, dim, keepdim=False) -> (Tensor, Tensor)
 
 count max result with dim.
 
@@ -2648,7 +2648,7 @@ count max result with dim.
           [0, 0]]], device='npu:0', dtype=torch.int32)
   ```
 
->npu_min.dim(self, dim, keepdim=False) -> (Tensor, Tensor)
+>torch_npu.npu_min.dim(self, dim, keepdim=False) -> (Tensor, Tensor)
 
 count min result with dim.
 
@@ -2698,7 +2698,7 @@ count min result with dim.
           [0, 1]]], device='npu:0', dtype=torch.int32)
   ```
 
->npu_scatter(self, indices, updates, dim) -> Tensor
+>torch_npu.npu_scatter(self, indices, updates, dim) -> Tensor
 
 count scatter result with dim.
 
@@ -2734,7 +2734,7 @@ count scatter result with dim.
           [ 0.9041, -1.5247]], device='npu:0')
   ```
 
->npu_layer_norm_eval(input, normalized_shape, weight=None, bias=None, eps=1e-05) -> Tensor
+>torch_npu.npu_layer_norm_eval(input, normalized_shape, weight=None, bias=None, eps=1e-05) -> Tensor
 
 count layer norm result.
 
@@ -2780,7 +2780,7 @@ count layer norm result.
           [        nan, -6.2792e-42,  1.7902e-20,  2.1050e-40]], device='npu:0')
   ```
 
->npu_alloc_float_status(self) -> Tensor
+>torch_npu.npu_alloc_float_status(self) -> Tensor
 
 Produces eight numbers with a value of zero
 
@@ -2804,7 +2804,7 @@ Produces eight numbers with a value of zero
   tensor([0., 0., 0., 0., 0., 0., 0., 0.], device='npu:0')
   ```
 
-> npu_get_float_status(self) -> Tensor
+> torch_npu.npu_get_float_status(self) -> Tensor
 
 Computes NPU get float status operator function.
 
@@ -2824,7 +2824,7 @@ Computes NPU get float status operator function.
   tensor([0., 0., 0., 0., 0., 0., 0., 0.], device='npu:0')
   ```
 
-> npu_clear_float_status(self) -> Tensor
+> torch_npu.npu_clear_float_status(self) -> Tensor
 
 Set the value of address 0x40000 to 0 in each core.
 
@@ -2844,7 +2844,7 @@ Set the value of address 0x40000 to 0 in each core.
   tensor([0., 0., 0., 0., 0., 0., 0., 0.], device='npu:0')
   ```
 
-> npu_confusion_transpose(self, perm, shape, transpose_first) -> Tensor
+> torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first) -> Tensor
 
 Confuse reshape and transpose.
 
@@ -2873,7 +2873,7 @@ Confuse reshape and transpose.
   torch.Size([2, 6, 12])
   ```
 
-> npu_bmmV2(self, mat2, output_sizes) -> Tensor
+> torch_npu.npu_bmmV2(self, mat2, output_sizes) -> Tensor
 
 Multiplies matrix "a" by matrix "b", producing "a * b" . 
 
@@ -2896,7 +2896,7 @@ Multiplies matrix "a" by matrix "b", producing "a * b" .
   torch.Size([10, 3, 5])
   ```
 
-> fast_gelu(self) -> Tensor
+> torch_npu.fast_gelu(self) -> Tensor
 
 Computes the gradient for the fast_gelu of "x" . 
 
@@ -2918,7 +2918,7 @@ Computes the gradient for the fast_gelu of "x" .
   tensor([0.4403, 0.2733], device='npu:0')
   ```
 
-> npu_sub_sample(self, per_images, positive_fraction) -> Tensor
+> torch_npu.npu_sub_sample(self, per_images, positive_fraction) -> Tensor
 
 Randomly sample a subset of positive and negative examples,and overwrite the label vector to the ignore value (-1) for all elements that are not included in the sample.
 
@@ -2944,7 +2944,7 @@ Randomly sample a subset of positive and negative examples,and overwrite the lab
         dtype=torch.int32)
   ```
 
-> npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
+> torch_npu.npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
 
 Computes the deformed convolution output with the expected input. 
 
@@ -2977,7 +2977,7 @@ Computes the deformed convolution output with the expected input.
   torch.Size([16, 32, 32, 32])
   ```
   
-> npu_mish(self) -> Tensor
+> torch_npu.npu_mish(self) -> Tensor
 
 Computes hyperbolic tangent of "x" element-wise.
 
@@ -2998,7 +2998,7 @@ Computes hyperbolic tangent of "x" element-wise.
   torch.Size([10, 30, 10])
   ```
   
-> npu_anchor_response_flags(self, featmap_size, stride, num_base_anchors) -> Tensor
+> torch_npu.npu_anchor_response_flags(self, featmap_size, stride, num_base_anchors) -> Tensor
 
 Generate the responsible flags of anchor in a single feature map. 
 
@@ -3021,7 +3021,7 @@ Generate the responsible flags of anchor in a single feature map.
   torch.Size([32400])
   ```
   
-> npu_yolo_boxes_encode(self, gt_bboxes, stride, performance_mode=False) -> Tensor
+> torch_npu.npu_yolo_boxes_encode(self, gt_bboxes, stride, performance_mode=False) -> Tensor
 
 Generates bounding boxes based on yolo's "anchor" and "ground-truth" boxes. It is a customized mmdetection operator. 
 
@@ -3046,7 +3046,7 @@ Generates bounding boxes based on yolo's "anchor" and "ground-truth" boxes. It i
   torch.Size([2, 4])
   ```
   
-> npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps, argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all) -> Tensor
+> torch_npu.npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps, argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all) -> Tensor
 
 Performs Position Sensitive PS ROI Pooling Grad. 
 
@@ -3082,7 +3082,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
   torch.Size([4])
   ```
 
-> npu_normalize_batch(self, seq_len, normalize_type=0) -> Tensor
+> torch_npu.npu_normalize_batch(self, seq_len, normalize_type=0) -> Tensor
 
  Performs batch normalization . 
 
@@ -3114,7 +3114,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
         device='npu:0')
   ```
 
-> npu_masked_fill_range(self, start, end, value, axis=-1) -> Tensor
+> torch_npu.npu_masked_fill_range(self, start, end, value, axis=-1) -> Tensor
 
 masked fill tensor along with one axis by range.boxes. It is a customized masked fill range operator .
 
@@ -3149,7 +3149,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
           [0.0366, 0.9738, 0.4689, 0.0979]], device='npu:0')
   ```
 
-> npu_linear(input, weight, bias=None) -> Tensor
+> torch_npu.npu_linear(input, weight, bias=None) -> Tensor
 
   Multiplies matrix "a" by matrix "b", producing "a * b" . 
 
@@ -3174,7 +3174,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
           [5.3273, 6.3089, 3.9601, 3.2410]], device='npu:0')
   ```
 
-> npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+> torch_npu.npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
 
    count adam result. 
 
@@ -3215,7 +3215,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
         device='npu:0')
   ```
 
-> npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0, *, out=（var,m,v）)
+> torch_npu.npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0, *, out=（var,m,v）)
 
    count adam result. 
 
@@ -3260,7 +3260,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
         device='npu:0')
   ```
 
-> npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0) -> Tensor
+> torch_npu.npu_giou(self, gtboxes, trans=False, is_cross=False, mode=0) -> Tensor
 
 First calculate the minimum closure area of the two boxes, IoU, the proportion of the closed area that does not belong to the two boxes in the closure area, and finally subtract this proportion from IoU to get GIoU .
 
@@ -3296,7 +3296,7 @@ First calculate the minimum closure area of the two boxes, IoU, the proportion o
           [1.]], device='npu:0', dtype=torch.float16)
   ```
 
-> npu_silu(self) -> Tensor
+> torch_npu.npu_silu(self) -> Tensor
 
 Computes the for the Swish of "x" .
 
@@ -3318,7 +3318,7 @@ tensor([[0.4397, 0.7178, 0.5190, 0.2654, 0.2230, 0.2674, 0.6051, 0.3522],
        device='npu:0')
 ```
 
-> npu_reshape(self, shape, bool can_refresh=False) -> Tensor
+> torch_npu.npu_reshape(self, shape, bool can_refresh=False) -> Tensor
 
 Reshapes a tensor. Only the tensor shape is changed, without changing the data. 
 
@@ -3343,7 +3343,7 @@ Reshapes a tensor. Only the tensor shape is changed, without changing the data.
           [0.1009, 0.7133, 0.8118, 0.6193]], device='npu:0')
   ```
 
-> npu_rotated_overlaps(self, query_boxes, trans=False) -> Tensor
+> torch_npu.npu_rotated_overlaps(self, query_boxes, trans=False) -> Tensor
 
 Calculate the overlapping area of the rotated box.
 
@@ -3370,7 +3370,7 @@ Calculate the overlapping area of the rotated box.
           [0.0000, 0.0611, 0.0000]]], device='npu:0', dtype=torch.float16)
   ```
 
-> npu_rotated_iou(self, query_boxes, trans=False, mode=0, is_cross=True) -> Tensor
+> torch_npu.npu_rotated_iou(self, query_boxes, trans=False, mode=0, is_cross=True) -> Tensor
 
 Calculate the IOU of the rotated box.
 
@@ -3401,7 +3401,7 @@ Calculate the IOU of the rotated box.
           [0.0000e+00, 5.9605e-08]]], device='npu:0', dtype=torch.float16)
   ```
 
-> npu_rotated_box_encode(anchor_box, gt_bboxes, weight) -> Tensor
+> torch_npu.npu_rotated_box_encode(anchor_box, gt_bboxes, weight) -> Tensor
 
 Rotate Bounding Box Encoding.
 
@@ -3430,7 +3430,7 @@ Rotate Bounding Box Encoding.
               [ 1.1328]]], device='npu:0', dtype=torch.float16)
   ```
 
-  >   npu_rotated_box_decode(anchor_boxes, deltas, weight) -> Tensor
+  >   torch_npu.npu_rotated_box_decode(anchor_boxes, deltas, weight) -> Tensor
 
   Rotate Bounding Box Encoding
 
