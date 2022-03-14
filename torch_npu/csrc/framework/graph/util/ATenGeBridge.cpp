@@ -58,7 +58,7 @@ at::Tensor ConstructCpuTenosr(
 
 template <>
 void ATenGeBridge::SetGeOpAttr<std::pair<std::string, std::string>>
-    (const c10::any& attr_val, ge::OperatorPtr ge_op) {
+    (const c10::Any& attr_val, ge::OperatorPtr ge_op) {
   auto attr = TryToGetAnyValue<std::pair<std::string, std::string>>(attr_val);
   ge_op->SetAttr(attr.first.c_str(), ge::AscendString(attr.second.c_str()));
 }
@@ -142,7 +142,7 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
 
 template <typename ConstType>
 void ATenGeBridge::SetGeOpConstInput(
-    const c10::any& const_input,
+    const c10::Any& const_input,
     ge::OperatorPtr ge_op) {
   auto const_input_tuple =
       ATenGeBridge::TryToGetAnyValue<ConstType>(const_input);
@@ -162,7 +162,7 @@ void ATenGeBridge::SetGeOpConstInput(
 }
 
 void ATenGeBridge::SetSensitiveFormat(
-    const c10::any& sensitive_format,
+    const c10::Any& sensitive_format,
     ge::OperatorPtr ge_op,
     NodeExtInfoType ext_type) {
   auto sensitive_format_pair =
@@ -183,7 +183,7 @@ void ATenGeBridge::SetSensitiveFormat(
 }
 
 void ATenGeBridge::AddNodeExtInfoIntoGeOp(
-    c10::ArrayRef<std::pair<NodeExtInfoType, c10::any>> ext_info,
+    c10::ArrayRef<std::pair<NodeExtInfoType, c10::Any>> ext_info,
     ge::OperatorPtr ge_op) {
   for (const auto& info : ext_info) {
     switch (info.first) {
@@ -238,7 +238,7 @@ void ATenGeBridge::PorcessDynamicInputReg(
   auto it = std::find_if(
       ext_info.begin(),
       ext_info.end(),
-      [](const std::pair<NodeExtInfoType, c10::any>& item) {
+      [](const std::pair<NodeExtInfoType, c10::Any>& item) {
         return item.first == NodeExtInfoType::DYNAMIC_INPUT_FUNC;
       });
   if (it != ext_info.end()) {
