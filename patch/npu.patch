@@ -1996,383 +1996,149 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUAny.h patch/c10/npu/NPUAny.h
 --- pytorch-v1.8.1/c10/npu/NPUAny.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUAny.h	2022-03-07 18:32:02.224337802 +0800
-@@ -0,0 +1,375 @@
-+/**
-+ * Port of boost::any for C++11 compilers.
-+ * See http://www.boost.org/libs/any for Documentation.
-+ *
-+ * See also:
-+ *   + http://en.cppreference.com/w/cpp/any
-+ *   + http://en.cppreference.com/w/cpp/experimental/any
-+ *   + http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4562.html#any
-+ *   + https://cplusplus.github.io/LWG/lwg-active.html#2509
-+ *
-+ * Copyright Kevlin Henney, 2000, 2001, 2002. All rights reserved.
-+ * Copyright Claudio Fantacci, 2018. All rights reserved.
-+ * Copyright (c) 2021 Huawei Technologies Co., Ltd
-+ *
-+ * what:  variant type boost::any
-+ * who:   contributed by Kevlin Henney,
-+ *        with features contributed and bugs found by Antony Polukhin, Ed Brey, Mark Rodgers, Peter Dimov and James Curran,
-+ *        with C++11 compiler port by Claudio Fantacci
-+ * when:  July 2001, April 2013 - May 2013, September 2018
-+ *
-+ * Distributed under the Boost Software License, Version 1.0.
-+ * (See accompanying file LICENSE.md or copy at http://www.boost.org/LICENSE_1_0.txt)
-+ */
-+
-+#ifndef ANY_H
-+#define ANY_H
++++ patch/c10/npu/NPUAny.h	2022-03-15 14:32:58.520136235 +0800
+@@ -0,0 +1,141 @@
++#pragma once
 +
 +#include <algorithm>
++#include <exception>
 +#include <memory>
-+#include <stdexcept>
-+#include <typeinfo>
 +#include <type_traits>
++#include <typeinfo>
 +
++namespace c10 {
 +
-+namespace c10
-+{
-+
-+/**
-+ * The class any describes a type-safe container for single values of any type.
-+ * An object of class any stores an instance of any type that satisfies the
-+ * constructor requirements or is empty, and this is referred to as the state
-+ * of the class any object. The stored instance is called the contained object.
-+ * Two states are equivalent if they are either both empty or if both are not
-+ * empty and if the contained objects are equivalent.
-+ * The non-member any_cast functions provide type-safe access to the contained object.
-+ */
-+class any final
-+{
-+public:
-+  /**
-+   * Constructs an empty object.
-+   */
-+  any() noexcept :
-+      content(nullptr)
-+  { }
-+
-+
-+  /**
-+   * Copies content of other into a new instance, so that any content is equivalent
-+   * in both type and value to those of other prior to the constructor call,
-+   * or empty if other is empty.
-+   */
-+  any(const any& other) :
-+      content(other.content ? other.content->clone() : nullptr)
-+  { }
-+
-+
-+  /**
-+   * Moves content of other into a new instance, so that any content is equivalent
-+   * in both type and value to those of other prior to the constructor call,
-+   * or empty if other is empty.
-+   */
-+  any(any&& other) noexcept :
-+      content(other.content)
-+  {
-+    other.content = nullptr;
-+  }
-+
-+
-+  /**
-+   * Constructs an object with initial content an object of type std::decay_t<ValueType>,
-+   * direct-initialized from std::forward<ValueType>(value). If
-+   * std::is_copy_constructible<std::decay_t<ValueType>>::value is false, the program is ill-formed.
-+   */
-+  template<typename ValueType>
-+  any(const ValueType& value) :
-+      content(new holder<typename std::remove_cv<typename std::decay<const ValueType>::type>::type>(value))
-+  { }
-+
-+
-+  /**
-+   * Constructs an object with initial content an object of type std::decay_t<ValueType>,
-+   * direct-initialized from std::forward<ValueType>(value). If
-+   * std::is_copy_constructible<std::decay_t<ValueType>>::value is false, the program is ill-formed.
-+   */
-+  template<typename ValueType>
-+  any(ValueType&& value, typename std::enable_if<!std::is_same<any&, ValueType>::value>::type* = nullptr, typename std::enable_if<!std::is_const<ValueType>::value>::type* = nullptr) :
-+      content(new holder<typename std::decay<ValueType>::type>(static_cast<ValueType&&>(value)))
-+  { }
-+
-+
-+  /**
-+   * Destruct the object.
-+   */
-+  ~any() noexcept
-+  {
-+    delete content;
-+  }
-+
-+
-+  /**
-+   * Assigns contents to the contained value.
-+   * Assigns by copying the state of rhs, as if by any(rhs).swap(*this).
-+   *
-+   * @param rhs object whose contained value to assign
-+   */
-+  any& operator=(const any& rhs)
-+  {
-+    any(rhs).swap(*this);
-+    return *this;
-+  }
-+
-+
-+  /**
-+   * Assigns contents to the contained value.
-+   * Assigns by moving the state of rhs, as if by any(std::move(rhs)).swap(*this).
-+   * rhs is left in a valid but unspecified state after the assignment.
-+   *
-+   * @param rhs object whose contained value to assign
-+   */
-+  any& operator=(any&& rhs) noexcept
-+  {
-+    rhs.swap(*this);
-+    any().swap(rhs);
-+    return *this;
-+  }
-+
-+
-+  /**
-+   * Assigns contents to the contained value.
-+   * Assigns the type and value of rhs, as if by any(std::forward<ValueType>(rhs)).swap(*this).
-+   * This overload only participates in overload resolution if std::decay_t<ValueType> is not
-+   * the same type as any and std::is_copy_constructible_v<std::decay_t<ValueType>> is true.
-+   *
-+   * @param rhs object whose contained value to assign
-+   */
-+  template <class ValueType>
-+  any& operator=(ValueType&& rhs)
-+  {
-+    any(static_cast<ValueType&&>(rhs)).swap(*this);
-+    return *this;
-+  }
-+
-+
-+  /**
-+   * If not empty, destroys the contained object.
-+   */
-+  void reset() noexcept
-+  {
-+    any().swap(*this);
-+  }
-+
-+
-+  /**
-+   * Swaps the content of two any objects.
-+   *
-+   * @param other object to swap with
-+   */
-+  any& swap(any& rhs) noexcept
-+  {
-+    std::swap(content, rhs.content);
-+    return *this;
-+  }
-+
-+  /**
-+   * Checks whether the object contains a value.
-+   *
-+   * @return true if instance contains a value, otherwise false.
-+   */
-+  bool has_value() const noexcept
-+  {
-+    return content;
-+  }
-+
-+
-+  /**
-+   * Queries the contained type.
-+   *
-+   * The typeid of the contained value if instance is non-empty, otherwise typeid(void).
-+   */
-+  const std::type_info& type() const noexcept
-+  {
-+    return content ? content->type() : typeid(void);
-+  }
-+
-+
-+private:
-+  class placeholder
-+  {
-+  public:
-+    virtual ~placeholder()
-+    { }
-+
-+  public:
-+    virtual const std::type_info& type() const noexcept = 0;
-+
-+    virtual placeholder* clone() const = 0;
-+
-+  };
-+
-+
-+  template<typename ValueType>
-+  class holder : public placeholder
-+  {
-+  public:
-+    holder(const ValueType& value) :
-+        held(value)
-+    { }
-+
-+
-+    holder(ValueType&& value) :
-+        held(static_cast<ValueType&&>(value))
-+    { }
-+
-+    ~holder() = default;
-+
-+    virtual const std::type_info& type() const noexcept
-+    {
-+      return typeid(ValueType);
-+    }
-+
-+
-+    virtual placeholder* clone() const
-+    {
-+      return new holder(held);
-+    }
-+
-+
-+    ValueType held;
-+
-+  private:
-+    holder& operator=(const holder &);
-+  };
-+
-+
-+private:
-+  template<typename ValueType>
-+  friend ValueType* any_cast(any*) noexcept;
-+
-+  placeholder* content;
-+};
-+
-+
-+/**
-+ * Overloads the std::swap algorithm for std::any. Swaps the content of two any objects by calling lhs.swap(rhs).
-+ *
-+ * @param lhs objects to swap
-+ * @param rhs objects to swap
-+ */
-+inline void swap(any& lhs, any& rhs) noexcept
-+{
-+  lhs.swap(rhs);
-+}
-+
-+
-+/**
-+ * Defines a type of object to be thrown by the value-returning forms of libanyboost::any_cast on failure.
-+ */
-+class bad_any_cast : public std::bad_cast
-+{
-+public:
-+  /**
-+   * Returns the explanatory string.
-+   *
-+   * Pointer to a null-terminated string with explanatory information. The pointer is guaranteed to be
-+   * valid at least until the exception object from which it is obtained is destroyed, or until a
-+   * non-const member function on the exception object is called.
-+   */
-+  virtual const char* what() const noexcept override
-+  {
-+    return "bad any_cast";
++class AnyCastException : public std::exception {
++ public:
++  const char* what() const throw() {
++    return "c10:Any Type Cast ERROR";
 +  }
 +};
 +
++class Any final {
++  struct HolderBase {
++    HolderBase() = default;
++    virtual ~HolderBase() = default;
++    virtual std::unique_ptr<HolderBase> Clone() const = 0;
++    virtual const std::type_info& TypeInfo() const = 0;
++  };
 +
-+/**
-+ * Performs type-safe access to the contained object.
-+ *
-+ * Throws libanyboost::bad_any_cast if the typeid of the requested
-+ * ValueType does not match that of the contents of operand.
-+ *
-+ * @param operand target any object
-+ */
-+template<typename ValueType>
-+ValueType* any_cast(any* operand) noexcept
-+{
-+  return operand && operand->type() == typeid(ValueType) ? std::addressof(static_cast<any::holder<typename std::remove_cv<ValueType>::type>*>(operand->content)->held) : nullptr;
++  template <typename T>
++  struct Holder : public HolderBase {
++    explicit Holder(const T& val) : value(val) {}
++    explicit Holder(T&& val) : value(std::move(val)) {}
++
++    Holder(const Holder& other) = delete;
++    Holder& operator=(const Holder& other) = delete;
++
++    std::unique_ptr<HolderBase> Clone() const override {
++      return std::make_unique<Holder>(value);
++    }
++
++    const std::type_info& TypeInfo() const override {
++      return typeid(T);
++    }
++
++    T value;
++  };
++
++ public:
++  Any() = default;
++  ~Any() = default;
++
++  Any(const Any& other) {
++    if (other.any_type_value_ != nullptr) {
++      any_type_value_ = other.any_type_value_->Clone();
++    }
++  }
++
++  // make a tmp Any object to call operator = of unique ptr
++  Any& operator=(Any other) {
++    any_type_value_ = std::move(other.any_type_value_);
++    return *this;
++  }
++
++  Any(Any&& other) : any_type_value_(std::move(other.any_type_value_)) {}
++  Any& operator=(Any&& other) = delete;
++
++  template<typename T>
++  Any(const T& value)
++      : any_type_value_(std::make_unique<Holder<std::decay_t<T>>>(value)) {}
++
++  template <typename T>
++  Any(T&& value,
++      typename std::enable_if<!std::is_same<Any&, T>::value>::type* = nullptr,
++      typename std::enable_if<!std::is_const<T>::value>::type* = nullptr)
++      : any_type_value_(std::make_unique<Holder<std::decay_t<T>>>(value)) {}
++
++ private:
++  // should be used in try catch otherwise no error will be reported
++  template <typename T>
++  friend T CastAs(Any& val);
++
++  template <typename T>
++  friend T CastAs(const Any& val);
++
++  template <typename T>
++  friend T CastAs(Any&& val);
++
++  template <typename T>
++  friend T* CastAs(Any* val_address);
++
++  template <typename T>
++  friend const T* CastAs(const Any* val_address);
++
++  std::unique_ptr<HolderBase> any_type_value_ = nullptr;
++};
++
++template <typename T>
++T CastAs(Any& val) {
++  // for Pytorch C++ standard is 14
++  // so remove_cv_t and remove_reference_t is available
++  // if C++ standard is 11, should changed as below:
++  // using remover_cvref_t = typename
++  // std::remove_cv<std::remove_reference<T>::type>::type;
++
++  using remover_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
++  return static_cast<T>(*CastAs<remover_cvref_t>(&val));
 +}
 +
-+
-+/**
-+ * Performs type-safe access to the contained object.
-+ *
-+ * Throws libanyboost::bad_any_cast if the typeid of the requested
-+ * ValueType does not match that of the contents of operand.
-+ *
-+ * @param operand target any object
-+ */
-+template<typename ValueType>
-+inline const ValueType* any_cast(const any* operand) noexcept
-+{
-+  return any_cast<ValueType>(const_cast<any*>(operand));
++template <typename T>
++T CastAs(const Any& val) {
++  using remover_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
++  return static_cast<T>(*CastAs<remover_cvref_t>(&val));
 +}
 +
-+
-+/**
-+ * Performs type-safe access to the contained object.
-+ *
-+ * Throws libanyboost::bad_any_cast if the typeid of the requested
-+ * ValueType does not match that of the contents of operand.
-+ *
-+ * @param operand target any object
-+ */
-+template<typename ValueType>
-+ValueType any_cast(any& operand)
-+{
-+  typedef typename std::remove_reference<ValueType>::type nonref;
-+
-+  nonref* result = any_cast<nonref>(std::addressof(operand));
-+  if(!result)
-+    throw bad_any_cast();
-+
-+  typedef typename std::conditional<std::is_reference<ValueType>::value, ValueType, typename std::add_lvalue_reference<ValueType>::type>::type ref_type;
-+
-+  return static_cast<ref_type>(*result);
++template <typename T>
++T CastAs(Any&& val) {
++  using remover_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
++  return static_cast<T>(std::move(*CastAs<remover_cvref_t>(&val)));
 +}
 +
-+
-+/**
-+ * Performs type-safe access to the contained object.
-+ *
-+ * Throws libanyboost::bad_any_cast if the typeid of the requested
-+ * ValueType does not match that of the contents of operand.
-+ *
-+ * @param operand target any object
-+ */
-+template<typename ValueType>
-+inline ValueType any_cast(const any& operand)
-+{
-+  typedef typename std::remove_reference<ValueType>::type nonref;
-+  return any_cast<const nonref&>(const_cast<any&>(operand));
++template <typename T>
++T* CastAs(Any* val_address) {
++  if (val_address == nullptr ||
++      val_address->any_type_value_->TypeInfo() != typeid(T)) {
++    throw AnyCastException();
++  }
++  return &static_cast<Any::Holder<std::decay_t<T>>&>(
++      *(val_address->any_type_value_.get()))
++      .value;
 +}
 +
-+
-+/**
-+ * Performs type-safe access to the contained object.
-+ *
-+ * Throws libanyboost::bad_any_cast if the typeid of the requested
-+ * ValueType does not match that of the contents of operand.
-+ *
-+ * @param operand target any object
-+ */
-+template<typename ValueType>
-+inline ValueType any_cast(any&& operand)
-+{
-+  static_assert(std::is_rvalue_reference<ValueType&&>::value || std::is_const< typename std::remove_reference<ValueType>::type >::value,
-+                "any_cast shall not be used for getting nonconst references to temporary objects");
-+
-+  return any_cast<ValueType>(operand);
++template <typename T>
++const T* CastAs(const Any* val_address) {
++  using remover_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
++  if (val_address == nullptr ||
++      val_address->any_type_value_->TypeInfo() != typeid(T)) {
++    throw AnyCastException();
++  }
++  return &static_cast<Any::Holder<remover_cvref_t>&>(
++      *(val_address->any_type_value_.get()))
++      .value;
 +}
 +
-+}
-+
-+
-+#endif /* ANY_H */
++} // namespace c10
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUEvent.h patch/c10/npu/NPUEvent.h
 --- pytorch-v1.8.1/c10/npu/NPUEvent.h	1970-01-01 08:00:00.000000000 +0800
@@ -2940,7 +2706,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=build.sh' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraph.h patch/c10/npu/NPUGraph.h
 --- pytorch-v1.8.1/c10/npu/NPUGraph.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraph.h	2022-03-07 18:32:02.224337802 +0800
++++ patch/c10/npu/NPUGraph.h	2022-03-15 14:32:58.520136235 +0800
 @@ -0,0 +1,208 @@
 +#pragma once
 +
@@ -3130,11 +2896,11 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    return inputs_;
 +  }
 +
-+void AddExtInfo(NodeExtInfoType ext_info_type, any any_attr) {
++  void AddExtInfo(NodeExtInfoType ext_info_type, c10::Any any_attr) {
 +    ext_info_.emplace_back(ext_info_type, std::move(any_attr));
 +  }
 +
-+  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum>&
++  SmallVector<std::pair<NodeExtInfoType, c10::Any>, kDefaultMaxInputNum>&
 +  GetExtInfo() {
 +    return ext_info_;
 +  }
@@ -3144,7 +2910,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  std::shared_ptr<ge::Operator> ge_op_ = nullptr;
 +  hash_t node_hash_ = hash_utils::hash_seed;
 +  SmallVector<NodeInput, kDefaultMaxInputNum> inputs_;
-+  SmallVector<std::pair<NodeExtInfoType, any>, kDefaultMaxInputNum> ext_info_;
++  SmallVector<std::pair<NodeExtInfoType, c10::Any>, kDefaultMaxInputNum> ext_info_;
 +};
 +
 +} // namespace graph
