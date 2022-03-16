@@ -148,6 +148,7 @@ import argparse
 import os
 import time
 import torch
+import torch_npu
 import torch.nn.parallel
 import torch.optim
 import torch.utils.data
@@ -220,7 +221,7 @@ def main():
         args.npu = 0
     global CALCULATE_DEVICE
     CALCULATE_DEVICE = "npu:{}".format(args.npu)
-    torch.npu.set_device(CALCULATE_DEVICE)
+    torch_npu.npu.set_device(CALCULATE_DEVICE)
     print("use ", CALCULATE_DEVICE)
     main_worker(args.npu, args)
 
@@ -423,10 +424,11 @@ The following uses the ResNet-50 model as an example to describe how to perform 
     Set environment variables (for how to set them, see [Environment Variable Configuration](#environment-variable-configurationmd)) and then run the following command:
 
     ```
-    python3 pytorch-resnet50-apex.py --data /data/imagenet \
-                                     --npu 7 \
-                                     --epochs 90 \
-                                     --resume ./checkpoint.pth.tar    # ./checkpoint.pth.tar is the path of the sample pre-trained model file.
+    python3 resnet50_infer_for_pytorch.py \
+        --data /data/imagenet \
+        --npu 7 \
+        --epochs 90 \
+        --resume ./checkpoint.pth.tar    # ./checkpoint.pth.tar is the path of the sample pre-trained model file.
     ```
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
