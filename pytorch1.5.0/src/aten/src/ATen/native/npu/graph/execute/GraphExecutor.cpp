@@ -15,6 +15,7 @@
 
 #include "GraphExecutor.h"
 
+#include <Python.h>
 #include <aten/src/ATen/Utils.h>
 #include <aten/src/ATen/native/npu/graph/util/ATenGeBridge.h>
 #include <aten/src/ATen/native/npu/graph/util/GraphUtils.h>
@@ -101,7 +102,15 @@ void GraphExecutor::ConstructAndExecuteGraph() {
     cur_graph_id = cached_graph_id.value();
   }
 
-  RunGraph(cur_graph_id, inputs, outputs);
+  // Release GIL to avoid deadlocks.
+  if (PyGILState_Check()) {
+    Py_BEGIN_ALLOW_THREADS
+    RunGraph(cur_graph_id, inputs, outputs);
+    Py_END_ALLOW_THREADS
+  } else {
+    RunGraph(cur_graph_id, inputs, outputs);
+  }
+
   ScalarMemContext::GetContext().Reset();  
   ResetGraphOutputs();
   if (!cached_graph_id.has_value()) {

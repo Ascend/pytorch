@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/OpTemplate.h"
 
@@ -37,6 +38,8 @@ Tensor get_float_status_npu(const Tensor& self) {
 }
 
 Tensor clear_float_status_npu(const Tensor& self) {
+  GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
+
   // construct the output tensor of the NPU
   Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, self.options());
 

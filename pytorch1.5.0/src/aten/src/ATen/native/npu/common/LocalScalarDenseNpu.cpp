@@ -16,7 +16,6 @@
 
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
-#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <c10/npu/NPUStream.h>
 #include <third_party/acl/inc/acl/acl_base.h>

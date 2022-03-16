@@ -15,7 +15,6 @@
 
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/frame/StorageDescHelper.h>
-#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include "ATen/native/npu/common/InnerNpuNativeFunction.h"
 #include "ATen/native/npu/utils/OpTemplate.h"
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
