@@ -41,7 +41,6 @@ export HCCL_WHITELIST_DISABLE=1
 export TASK_QUEUE_ENABLE=0 # 使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1
 #export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选 开启设置为1
 #export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
-#export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1
 #export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
 #export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下有不同的性能表现。可选
 #export BMMV2_ENABLE=1 # matmul选择npu内部实现，高维Tensor矩阵乘有针对优化。可选，开启设置为1

@@ -18,9 +18,9 @@ import os
 import torch._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
-__all__ = ["set_option", "set_dump", "init_dump", "finalize_dump", "global_step_inc", "set_start_fuzz_compile_step", 
-           "prof_init", "prof_start", "prof_stop", "prof_finalize", "iteration_start", "iteration_end", "profile",
-           "profileConfig"]
+__all__ = ["set_option", "set_dump", "set_aoe", "init_dump", "finalize_dump", "global_step_inc",
+            "set_start_fuzz_compile_step", "prof_init", "prof_start", "prof_stop", "prof_finalize",
+            "iteration_start", "iteration_end", "profile", "profileConfig"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -47,6 +47,16 @@ def set_dump(cfg_file):
 def finalize_dump():
     option = {"mdldumpswitch": "disable"}
     torch._C._npu_setOption(option)
+
+def set_aoe(dump_path):
+    if os.path.exists(dump_path):
+        option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
+        torch._C._npu_setOption(option)
+    else:
+        try:
+            os.makedirs(dump_path)
+        except Exception:
+            raise ValueError("the path of '%s' is invaild."%(dump_path))
 
 _GLOBAL_STEP = 0
 _START_FUZZ_COMPILE_STEP = 1
@@ -130,6 +140,11 @@ class profile(object):
         self.use_e2e_profiler = use_e2e_profiler
         self.config = config
         self.entered = False
+        if not os.path.exists(self.result_path):
+            try:
+                os.makedirs(self.result_path)
+            except Exception:
+                raise ValueError("the path of '%s' is invaild."%(self.result_path))   
 
     def __enter__(self):
         if self.entered:
