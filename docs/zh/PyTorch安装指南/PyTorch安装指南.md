@@ -197,11 +197,10 @@
     ```
     export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1（PyTorch1.8.1不支持该环境变量）
     export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
-    export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1
     export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
     export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下有不同的性能表现。可选
     ```
-
+    
 4.  （可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。
 
     ```
@@ -296,11 +295,6 @@
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1。</p>
 </td>
 </tr>
-<tr id="row17630155212342"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p66309527341"><a name="p66309527341"></a><a name="p66309527341"></a>RI_COMBINED_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p19630185220345"><a name="p19630185220345"></a><a name="p19630185220345"></a>（可选）非连续三个算子组合类场景优化，开启设置为1。</p>
-</td>
-</tr>
 <tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1。</p>
@@ -318,6 +312,7 @@
 </tr>
 </tbody>
 </table>
+
 
 
 <h3 id="安装混合精度模块md">安装混合精度模块</h3>
