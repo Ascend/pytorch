@@ -27,15 +27,15 @@ at::Tensor NPUNativeFunctions::kl_div_backward(
     const at::Tensor& target,
     int64_t reduction,
     bool log_target) {
-  TORCH_CHECK(reduction != at::Reduction::None,
-      "Reduction of None has not been supported at present.");
   auto outputSize = input_same_output_size(self);
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor grad_input = OpPreparation::ApplyTensor(outputSize, self.options(), self);
   string reductionStr;
   if (reduction == at::Reduction::Mean) {
     reductionStr = "batchmean";
   } else if (reduction == at::Reduction::Sum) {
     reductionStr = "sum";
+  } else if (reduction == at::Reduction::None) {
+    reductionStr = "none";
   }
   OpCommand cmd;
   cmd.Name("KlDivLossGrad")

@@ -21,21 +21,21 @@ namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeFunctions::kl_div(
-    const at::Tensor& self, 
-    const at::Tensor& target, 
+    const at::Tensor& self,
+    const at::Tensor& target,
     int64_t reduction,
     bool log_target) {
-  TORCH_CHECK(reduction != at::Reduction::None,
-      "Reduction of None has not been supported at present.");
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      {}, 
-      self.options(), 
-      CalcuOpUtil::get_tensor_npu_format(self));
+  at::Tensor result =
+      reduction == at::Reduction::None ?
+      OpPreparation::ApplyTensor(self) :
+      OpPreparation::ApplyTensor({}, self.options(), self);
   string reductionStr;
   if (reduction == at::Reduction::Mean) {
     reductionStr = "batchmean";
   } else if (reduction == at::Reduction::Sum) {
     reductionStr = "sum";
+  } else if (reduction == at::Reduction::None) {
+    reductionStr = "none";
   }
   OpCommand cmd;
   cmd.Name("KLDiv")
