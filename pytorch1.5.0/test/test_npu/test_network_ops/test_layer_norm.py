@@ -77,7 +77,7 @@ class TestLayerNorm(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
-    def _test_layer_norm_float16_format(self, device):
+    def test_layer_norm_float16_format(self, device):
         shape_format = [
                 [np.float16, 0, (64, 10)],
                 [np.float16, 0, (256, 2048, 7, 7)],

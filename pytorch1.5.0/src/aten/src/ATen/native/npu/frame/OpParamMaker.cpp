@@ -61,6 +61,11 @@ void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<float> v
   aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
 }
 
+void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value) {
+  auto vec = value.vec();
+  aclopSetAttrListBool(attr, name.c_str(), vec.size(), vec.data());
+}
+
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, Scalar value) {
   float val = CalcuOpUtil::get_scalar_float_value(value);
   aclopSetAttrFloat(attr, name.c_str(), val);
@@ -128,6 +133,15 @@ void AttrInfoMaker::Add(
   attrInfo += "-";
 }
 
+void AttrInfoMaker::Add(
+    at::ArrayRef<uint8_t> value,
+    string& attrInfo) {
+  auto vec = value.vec();
+  for (unsigned i = 0; i < vec.size(); i++)
+    attrInfo += to_string(vec.at(i)) + ",";
+  attrInfo += "-";
+}
+
 void AttrInfoMaker::Add(Scalar value, string& attrInfo) {
   float val = CalcuOpUtil::get_scalar_float_value(value);
   attrInfo += to_string(val) + "-";
@@ -177,7 +191,8 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   aclError ret;
   int index = 0;
   do {
-    if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
+      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
+          at::native::npu::aoe::aoe_manager().IsInWhiltelist(name)) {
       ret = at::native::npu::AclGenGraphAndDumpForOp(
           name.c_str(),
           inputSize,
@@ -228,7 +243,8 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
       reset_flag = true;
     }
     {
-      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled()) {
+      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
+          at::native::npu::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
         ret = at::native::npu::AclGenGraphAndDumpForOp(
             (cur_paras->opType).c_str(),
             cur_paras->paras.input_num,

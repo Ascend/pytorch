@@ -18,17 +18,17 @@ from common_device_type import instantiate_device_type_tests
 
 class TesBatchNms(TestCase):
     def test_batch_nms_shape_format_fp32(self, device):
-        boxes = torch.randn(8, 2, 4, 4, dtype = torch.float32).to("npu")
-        scores = torch.randn(3, 2, 4, dtype = torch.float32).to("npu")
-        nmsed_boxes, nmsed_scores, nmsed_classes, nmsed_num = torch.npu_batch_nms(boxes, scores, 0.3, 0.5, 3, 4)
-        expedt_nmsed_classes = torch.tensor([[0.0000, 2.1250, 0.0000, 1.8750],
+        boxes = torch.randn(8, 4, 1, 4).npu()
+        scores = torch.randn(8, 4, 1).npu()
+        nmsed_boxes, nmsed_scores, nmsed_classes, nmsed_num = torch.npu_batch_nms(boxes, scores, 0.3, 0.5, 4, 4)
+        expedt_nmsed_classes = torch.tensor([[0.0000, 0.0000, 0.0000, 0.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 1.8750, 0.0000, 2.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 2.0000, 0.0000, 2.1250],
-                                             [0.0000, 2.1250, 0.0000, 1.8750],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype = torch.float16)
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype = torch.float32)
         self.assertRtolEqual(expedt_nmsed_classes, nmsed_classes.cpu())
 
 instantiate_device_type_tests(TesBatchNms, globals(), except_for="cpu")

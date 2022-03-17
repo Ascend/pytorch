@@ -91,6 +91,11 @@ graphStatus GNode::SetAttr(
 }
 graphStatus GNode::SetAttr(
     const AscendString& name,
+    std::vector<bool>& attr_value) const {
+  return 0;
+}
+graphStatus GNode::SetAttr(
+    const AscendString& name,
     std::vector<std::vector<int64_t>>& attr_value) const {
   return 0;
 }

@@ -82,6 +82,21 @@ public:
 
   static void SetAttr(
       const string& attr_name,
+      const ArrayRef<uint8_t>& value,
+      NodePtr node) {
+    vector<bool> val;
+    val.reserve(value.size());
+    for (auto item : value) {
+      val.push_back(item != 0);
+    }
+    node->AddExtInfo(
+        NodeExtInfoType::ATTR_TYPE_LIST_BOOL,
+        std::make_pair(attr_name, std::move(val)));
+    node->UpdateNodeHash(value);
+  }
+  
+  static void SetAttr(
+      const string& attr_name,
       const Scalar& value,
       NodePtr node) {
     float val = CalcuOpUtil::get_scalar_float_value(value);

@@ -30,16 +30,16 @@ std::tuple<Tensor, Tensor, Tensor, Tensor> batch_nms_npu(
   // construct the output tensor of the NPU
   Tensor nmsed_boxes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size, 4},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
   Tensor nmsed_scores = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
 
   Tensor nmsed_classes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
 
   Tensor nmsed_num = OpPreparation::ApplyTensor(

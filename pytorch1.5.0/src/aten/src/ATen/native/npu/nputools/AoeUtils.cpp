@@ -48,6 +48,14 @@ bool AoeDumpGraphManager::IsAoeEnabled() const {
     return aoe_enable;
 }
 
+bool AoeDumpGraphManager::IsInWhiltelist(const std::string &opName) const {
+    if (whilte_list_.find(opName) != whilte_list_.end())
+    {
+        return true;
+    }
+    return false;
+}
+
 AoeDumpGraphManager& aoe_manager() {
     static AoeDumpGraphManager instance;
     return instance;

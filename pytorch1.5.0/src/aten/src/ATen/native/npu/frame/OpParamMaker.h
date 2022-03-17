@@ -37,6 +37,7 @@ class OpAttrMaker {
   static void Set(aclopAttr* attr, const string& name, string& value);
   static void Set(aclopAttr* attr, const string& name, IntArrayRef value);
   static void Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value);
+  static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
   static void Set(aclopAttr* attr, const string& name, Scalar value);
   static void Set(
       aclopAttr* attr,
@@ -52,6 +53,7 @@ class AttrInfoMaker {
   static void Add(string value, string& attrInfo);
   static void Add(IntArrayRef value, string& attrInfo);
   static void Add(at::ArrayRef<float> value,string& attrInfo);
+  static void Add(at::ArrayRef<uint8_t> value, string& attrInfo);
   static void Add(Scalar value, string& attrInfo);
   static void Add(at::ArrayRef<IntArrayRef> value, string& attrInfo);
 };
