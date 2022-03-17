@@ -47,8 +47,8 @@ bool AoeDumpGraphManager::IsAoeEnabled() const {
     return aoe_enable;
 }
 
-bool AoeDumpGraphManager::IsInBlacklist(const std::string &opName) const {
-    if (black_list_.find(opName) != black_list_.end())
+bool AoeDumpGraphManager::IsInWhiltelist(const std::string &opName) const {
+    if (whilte_list_.find(opName) != whilte_list_.end())
     {
         return true;
     }
