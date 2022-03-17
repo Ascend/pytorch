@@ -21,6 +21,33 @@
 namespace at_npu {
 namespace native {
 
+at::Tensor& range_out_nocheck(
+    at::Scalar start,
+    at::Scalar end,
+    at::Scalar step,
+    at::Tensor& result) {
+  // generate x assistant tensor
+  int value = result.size(0);
+  vector<int> tmp_vector = {};
+  for (int i = 0; i < value; i++) {
+    tmp_vector.emplace_back(i);
+  }
+  at::Tensor assistDimInfo = at::from_blob(tmp_vector.data(), {value}, at::kInt);
+  at::Tensor assistTensor = CalcuOpUtil::copy_tensor_host_to_device(assistDimInfo);
+  assistTensor = NPUNativeFunctions::npu_dtype_cast(assistTensor, result.scalar_type());
+
+  OpCommand cmd;
+  cmd.Name("RangeD")
+     .Input(assistTensor)
+     .Output(result)
+     .Attr("start", start)
+     .Attr("limit", end)
+     .Attr("delta", step)
+     .Run();
+
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::range(
     at::Scalar start,
     at::Scalar end,
@@ -62,34 +89,7 @@ at::Tensor NPUNativeFunctions::range(
 
   auto outputSize = range_npu_output_size(start_value, end_value, step_value);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, option, ACL_FORMAT_NCHW);
-  return range_out(start, end, step, result);
-}
-
-at::Tensor& range_out_nocheck(
-    at::Scalar start,
-    at::Scalar end,
-    at::Scalar step,
-    at::Tensor& result) {
-  // generate x assistant tensor
-  int value = result.size(0);
-  vector<int> tmp_vector = {};
-  for (int i = 0; i < value; i++) {
-    tmp_vector.emplace_back(i);
-  }
-  at::Tensor assistDimInfo = at::from_blob(tmp_vector.data(), {value}, at::kInt);
-  at::Tensor assistTensor = CalcuOpUtil::copy_tensor_host_to_device(assistDimInfo);
-  assistTensor = NPUNativeFunctions::npu_dtype_cast(assistTensor, result.scalar_type());
-
-  OpCommand cmd;
-  cmd.Name("RangeD")
-     .Input(assistTensor)
-     .Output(result)
-     .Attr("start", start)
-     .Attr("limit", end)
-     .Attr("delta", step)
-     .Run();
-
-  return result;
+  return range_out_nocheck(start, end, step, result);
 }
 
 at::Tensor& NPUNativeFunctions::range_out(
@@ -97,13 +97,19 @@ at::Tensor& NPUNativeFunctions::range_out(
     at::Scalar end,
     at::Scalar step,
     at::Tensor& result) {
-  double size_arange = std::ceil(static_cast<double>(end.toDouble() - start.toDouble()) / step.toDouble()+1);
-  int64_t size_value = static_cast<int64_t>(size_arange);
-  c10::SmallVector<int64_t, SIZE> outputSize = {size_value};
+  float start_value = CalcuOpUtil::get_scalar_float_value(start);
+  float end_value = CalcuOpUtil::get_scalar_float_value(end);
+  float step_value = CalcuOpUtil::get_scalar_float_value(step);
+
+  TORCH_CHECK(step_value > 0 || step_value < 0, "step must be nonzero");
+  TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
+      "upper bound and larger bound inconsistent with step sign");
+
+  auto outputSize = range_npu_output_size(start_value, end_value, step_value);
   OpPreparation::CheckOut(
       { },
       result,
-      ACL_FORMAT_ND,
+      ACL_FORMAT_NCHW,
       result.scalar_type(),
       outputSize);
 
