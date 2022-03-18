@@ -49,9 +49,8 @@ class TestTopK(TestCase):
             cpu_output, cpu_indices = self.cpu_op_exec(cpu_input, 5)
             npu_output, npu_indices = self.npu_op_exec_new(npu_input, 5)
             cpu_output = cpu_output.astype(npu_output.dtype)
-            #  目前只支持fp16,fp32降低阈值判断
+            # 目前只支持fp16,fp32降低阈值判断
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
-            #self.assertRtolEqual(cpu_indices, npu_indices)
     
     def topk_large_result(self, shape_format):
         for item in shape_format:
@@ -64,7 +63,6 @@ class TestTopK(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
 
             self.assertRtolEqual(cpu_output, npu_output)
-            #self.assertRtolEqual(cpu_indices, npu_indices)
 
     def test_topk_out_result_fp32(self, device):
         shape_format = [
@@ -81,7 +79,7 @@ class TestTopK(TestCase):
             cpu_output, cpu_indices = self.cpu_op_exec(cpu_input1, 5)
             npu_output, npu_indices = self.npu_op_exec_out(npu_input1, 5, npu_input2, npu_input3.to(torch.int64))
             cpu_output = cpu_output.astype(npu_output.dtype)
-            #目前fp32降低阈值判断
+            # 目前fp32降低阈值判断
             self.assertRtolEqual(cpu_output, npu_output, prec=1.e-1)
 
     def test_topk_out_result_fp16(self, device):

@@ -21,7 +21,19 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
+
 class TestSortWithoutIndices(TestCase):
+    def cpu_dim_op_exec(self, input1, dim, descending):
+        output, _ = torch.sort(input1, dim=dim, descending=descending)
+        output = output.to(torch.float16).numpy()
+        return output
+    
+    def npu_dim_op_exec(self, input1, dim, descending):
+        output = torch.npu_sort_v2(input1, dim=dim, descending=descending)
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
+
     def cpu_default_op_exec(self, input1):
         output, _ = torch.sort(input1)
         output = output.to(torch.float16).numpy()
@@ -43,6 +55,25 @@ class TestSortWithoutIndices(TestCase):
         output = output.to("cpu")
         output = output.numpy()
         return output
+
+    def test_sort_v2_dim_shape_format(self, device):
+        shape_format = [
+                [[np.float16, 0, (1, 5000)], 0, True],
+                [[np.float16, 0, (1, 2, 50000)], 1, False],
+                [[np.float16, 0, (1, 289600)], 0, False],
+                [[np.float16, 0, (1, 409600)], -1, True],
+                [[np.float16, 0, (8, 4, 3, 9)], 2, False],
+                [[np.float16, 0, (9, 3, 4, 8)], 1, False],
+                [[np.float16, 0, (9, 3, 4, 8)], 0, False],
+                [[np.float16, 0, (1, 6, 5)], 1, False],
+        ]
+
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
+            cpu_output = self.cpu_dim_op_exec(cpu_input1.to(torch.float), item[1], item[2])
+            npu_output = self.npu_dim_op_exec(npu_input1, item[1], item[2])
+
+            self.assertRtolEqual(cpu_output, npu_output)
     
     def test_sort_v2_shape_format(self, device):
         shape_format = [
