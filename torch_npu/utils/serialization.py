@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import pickle
+import argparse
 import torch
 import torch_npu
 import torch.nn as nn
@@ -37,8 +38,9 @@ def to_cpu(data):
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 to_cpu(value)
             
-            elif hasattr(value, "cpu"):
+            elif isinstance(value, torch.Tensor):
                 data[i] = value.cpu()
+
 
     if isinstance(data, container_abcs.Mapping):
         for key, value in data.items():
@@ -50,7 +52,7 @@ def to_cpu(data):
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 to_cpu(value)
 
-            elif hasattr(value, "cpu"):
+            elif isinstance(value, torch.Tensor):
                 data[key] = value.cpu()
 
 
@@ -86,6 +88,12 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     
     elif isinstance(obj, nn.Module):
         obj = obj.cpu()
+        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    
+    elif isinstance(obj, argparse.Namespace):
+        dict_obj = vars(obj)
+        to_cpu(dict_obj)
+        obj = argparse.Namespace(**dict_obj)
         se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
         
     else:
