@@ -144,8 +144,7 @@ at::Tensor NPUNativeFunctions::to(
     TORCH_WARN_ONCE("Unsupport Double dtype now, replace with float.");
   }
   dtype = (at::ScalarType::Double == dtype) ? at::ScalarType::Float : dtype;
-  return to_impl_npu(self,
-      self.options().dtype(dtype).memory_format(optional_memory_format), non_blocking, copy);
+  return NPUNativeFunctions::npu_dtype_cast(self, dtype);
 }
 
 at::Tensor NPUNativeFunctions::to(
