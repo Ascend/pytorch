@@ -171,7 +171,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_input = torch.tensor([1.0]).to(item[0])
             npu_input = cpu_input.npu().npu_format_cast(item[1])
 
-            match_case = (item[1] == 2)
+            match_case = (item[1] == 2 or item[1] == 29)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input[0].clone()
             if match_case:

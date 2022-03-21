@@ -14,6 +14,8 @@
 
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include <torch/csrc/autograd/record_function.h>
+#include "ATen/native/npu/common/InnerNpuNativeFunction.h"
+#include "ATen/native/npu/frame/StorageDescHelper.h"
 
 namespace at {
 namespace native {
@@ -25,6 +27,11 @@ Tensor& stride_copy_out_npu_nocheck(
     IntArrayRef shape,
     IntArrayRef stride,
     Scalar storage_offset) {
+  if ((result.nbytes() < 32) && (!StorageDescHelper::MetaDataAreMatch(&result))) {
+    // [算子限制] 对于1. 小于一个block的数据搬运 2.result不match，Astrided暂不支持。
+    copy_kernel_npu(result, self, false);
+    return result;
+  }
   RECORD_HOST_FUNCTION("npuAsStrided", std::vector<c10::IValue>({self}));
   OpCommand cmd;
   cmd.Name("AsStrided")

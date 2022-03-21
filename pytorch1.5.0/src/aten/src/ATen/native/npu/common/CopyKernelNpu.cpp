@@ -19,6 +19,7 @@
 #include "ATen/native/npu/utils/OpTemplate.h"
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "c10/npu/NPUStream.h"
+#include <torch/csrc/autograd/record_function.h>
 
 namespace at {
 namespace native {
@@ -49,6 +50,7 @@ void copy_kernel_npu(
     Tensor& self,
     const Tensor& src,
     bool non_blocking) {
+  RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
   // In single op mode, PTcopy will be replaced by ViewCopy in the future
   if (c10::npu::NpuRunMode::IsGraphMode()) {
     auto self_size = self.sizes();

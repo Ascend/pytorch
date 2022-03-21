@@ -33,8 +33,8 @@ ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
   SmallVector<int64_t, MAX_DIM> src_storage_size_inferred = src_base_info.storage_sizes_;
   if (src.dim() == 0) {
     // torch.tensor([x]).[0] create a tensor with 0 dim.
-    TORCH_WARN_ONCE(
-        "You have sliced a Tensor of single element, we recommend not performing such operation to avoid data copying!");
+    // You have sliced a Tensor of single element,
+    // we recommend not performing such operation to avoid data copying!
     src_size_inferred = {1};
     src_stride_inferred = {1};
     if (src_storage_size_inferred.size() == 0) {
@@ -42,7 +42,7 @@ ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
     }
   } else {
     src_size_inferred = array_to_small_vector(src.sizes());
-    src_stride_inferred = array_to_small_vector(src.strides());  
+    src_stride_inferred = array_to_small_vector(src.strides());
   }
   ContiguousTensorDesc src_desc = {
       src.is_contiguous(),

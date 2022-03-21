@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from enum import IntEnum, unique
 import torch
 import torch.distributed as c10d
 import torch.distributed as dist
 from torch.testing._internal.common_utils import TestCase, load_tests, run_tests
+from torch.testing._internal.common_distributed import MultiProcessTestCase
 
 if not c10d.is_available():
     print('c10d not available, skipping tests')
@@ -87,6 +89,68 @@ class ComputeBucketAssignmentTest(TestCase):
         ]
         result = dist._compute_bucket_assignment_by_size(tensors, [200, 400])
         self.assertEqual([[0], [1], [2, 4], [3, 5], [6, 8], [7, 9]], result)
+
+class CommTest(MultiProcessTestCase):
+    def setUp(self):
+        super(CommTest, self).setUp()
+        self._fork_processes()
+
+    def tearDown(self):
+        super(CommTest, self).tearDown()
+        try:
+            os.remove(self.file_name)
+        except OSError:
+            pass
+
+    @property
+    def op_timeout_sec(self):
+        return 1
+
+    @property
+    def world_size(self):
+        return 2
+
+    def _test_broadcast_coalesced(self, process_group, device):
+
+        target = torch.arange(60, dtype=torch.float32).chunk(5)
+        for i in range(10):
+            target += torch.arange(60, dtype=torch.float32).chunk(5)
+            target += torch.arange(60, dtype=torch.float32).chunk(5)
+
+        # The tensors to pass to broadcast are idential to the target
+        # only on the process that is the root of the broadcast.
+        if self.rank == 0:
+            tensors = list(tensor.clone() for tensor in target)
+            torch.npu.set_device(device)
+            npu_tensors = []
+            for tensor in tensors:
+                npu_tensor = tensor.to(device)
+                npu_tensors.append(npu_tensor)
+
+        else:
+            tensors = list(torch.empty_like(tensor) for tensor in target)
+            torch.npu.set_device(device)
+            npu_tensors = []
+            for tensor in tensors:
+                npu_tensor = tensor.to(device)
+                npu_tensors.append(npu_tensor)
+
+        c10d._broadcast_coalesced(
+            process_group,
+            npu_tensors,
+            buffer_size=2048)
+
+        tensors = []
+        for tensor in npu_tensors:
+            cpu_tensor = tensor.to("cpu")
+            tensors.append(cpu_tensor)
+        self.assertEqual(tensors, target)
+
+    def test_broadcast_coalesced_hccl(self):
+        store = c10d.FileStore(self.file_name, self.world_size)
+        process_group = c10d.ProcessGroupHCCL(store, self.rank, self.world_size)
+        device = torch.device('npu:%d' % self.rank)
+        self._test_broadcast_coalesced(process_group, device)
 
 if __name__ == '__main__':
     assert not torch.npu._initialized, "test_distributed must not have initialized NPU context on main process"

@@ -64,7 +64,6 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
   copy_kernel_npu(self, src, non_blocking);
 }
 
@@ -87,6 +86,7 @@ void copy_d2d_dtype_baseformat(
       return;
     } else {
       // General trans-contiguous method
+      // Note: AsStrided do not support unmatched tensor input
       at::npu_stride_copy_out(self, src, src.sizes(), src.strides(), src.storage_offset());
       return;
     } 
@@ -108,6 +108,7 @@ void copy_d2d_dtype_baseformat(
       return copy_d2d_by_memcpy(self, src, numel);
     }
   }
+  // such as discontiguous tensor copy to unmatched tensor
   copy_d2d_last_method(self, src, true, non_blocking);
 }
 
