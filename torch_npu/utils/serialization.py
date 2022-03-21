@@ -31,16 +31,12 @@ def to_cpu(data):
                 list_value = list(value)
                 to_cpu(list_value)
                 data[i] = tuple(list_value)
-
             elif isinstance(value, string_classes):
                 continue
-
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 to_cpu(value)
-            
-            elif isinstance(value, torch.Tensor):
+            elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
                 data[i] = value.cpu()
-
 
     if isinstance(data, container_abcs.Mapping):
         for key, value in data.items():
@@ -48,13 +44,10 @@ def to_cpu(data):
                 list_value = list(value)
                 to_cpu(list_value)
                 data[key] = tuple(list_value)
-
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 to_cpu(value)
-
-            elif isinstance(value, torch.Tensor):
+            elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
                 data[key] = value.cpu()
-
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=False):
     """Saves the input data into a file.

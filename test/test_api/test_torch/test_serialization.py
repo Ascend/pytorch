@@ -56,13 +56,14 @@ class TestSerialization(TestCase):
 
     def test_save_tuple(self):
         x = torch.randn(5).npu()
+        model = NpuMNIST().npu()
         number = 3
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
-            torch.save((x, number), path)
-            x_loaded, number_loaded = torch.load(path)
-            x_loaded = x_loaded.npu()
-            self.assertRtolEqual(x.cpu(), x_loaded.cpu())
+            torch.save((x, model, number), path)
+            x_loaded, model_loaded, number_loaded = torch.load(path)
+            self.assertRtolEqual(x.cpu(), x_loaded)
+            self.assertExpectedInline(str(model), str(model_loaded))
             self.assertTrue(number, number_loaded)
     
     def test_save_value(self):
