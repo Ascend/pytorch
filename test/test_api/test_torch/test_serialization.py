@@ -14,6 +14,7 @@
 
 import os
 import tempfile
+import argparse
 import torch
 import torch_npu
 import torch.nn as nn
@@ -44,7 +45,7 @@ class TestSerialization(TestCase):
     The saved data is transferred to PyTorch CPU device before being saved, so a
     following `torch.load()` will load CPU data.
     '''
-    def test_save(self, device="npu"):
+    def test_save(self):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -53,7 +54,7 @@ class TestSerialization(TestCase):
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
 
-    def test_save_tuple(self, device="npu"):
+    def test_save_tuple(self):
         x = torch.randn(5).npu()
         number = 3
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -64,7 +65,7 @@ class TestSerialization(TestCase):
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertTrue(number, number_loaded)
     
-    def test_save_value(self, device="npu"):
+    def test_save_value(self):
         x = 44
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
@@ -72,7 +73,19 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path)
             self.assertTrue(x, x_loaded)
 
-    def test_serialization_model(self, device="npu"):
+    def test_save_argparse_namespace(self):
+        args = argparse.Namespace()
+        args.foo = 1
+        args.bar = [1, 2, 3]
+        args.baz = 'yippee'
+        args.tensor = torch.tensor([1., 2., 3.]).npu()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(args, path)
+            args_loaded = torch.load(path)
+            self.assertTrue(args, args_loaded)
+
+    def test_serialization_model(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()
@@ -80,7 +93,7 @@ class TestSerialization(TestCase):
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
 
-    def test_serialization_state_dict(self, device="npu"):
+    def test_serialization_state_dict(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()

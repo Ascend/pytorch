@@ -83,7 +83,7 @@ class TestLayerNorm(TestCase):
             self.assertRtolEqual(cpu_grad_output, npu_grad_output)
             # TODO(ascend): Insufficient precision
             #npu_grad_weight精度未满足要求
-            self.assertRtolEqual(cpu_grad_weight, npu_grad_weight, 1)
+            self.assertRtolEqual(cpu_grad_weight, npu_grad_weight)
             self.assertRtolEqual(cpu_grad_bias, npu_grad_bias)
 
 

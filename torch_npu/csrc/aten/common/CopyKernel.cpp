@@ -85,8 +85,9 @@ void copy_d2d_dtype_baseformat(
     if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src)) {
       // Optimized trans-contiguous method
       return;
-    } else {
+    } else if (StorageDescHelper::MetaDataAreMatch(&self)) {
       // General trans-contiguous method
+      // Note: AsStrided do not support unmatched tensor input
       NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }
@@ -99,6 +100,7 @@ void copy_d2d_dtype_baseformat(
       return copy_d2d_by_memcpy(self, src, numel);
     }
   }
+  // such as discontiguous tensor copy to unmatched tensor
   copy_d2d_last_method(self, src, true, non_blocking);
 }
 

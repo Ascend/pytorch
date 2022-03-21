@@ -310,11 +310,11 @@ namespace at_npu
     {
 
       c10::TensorOptions options;
-      options.dtype(dtype_opt);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
 
       return at_npu::native::empty_like_npu(self, options, optional_memory_format);
     }
@@ -420,11 +420,11 @@ namespace at_npu
     {
       caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       c10::TensorOptions options;
-      options.dtype(dtype);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, dst_format);
       if (names.has_value())
       {
@@ -515,11 +515,11 @@ namespace at_npu
     {
 
       c10::TensorOptions options;
-      options.dtype(dtype_opt);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
 
       window_function_checks("blackman_window", options, window_length);
       if (window_length == 0)
@@ -559,11 +559,11 @@ namespace at_npu
     {
 
       c10::TensorOptions options;
-      options.dtype(dtype_opt);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
 
       window_function_checks("bartlett_window", options, window_length);
       if (window_length == 0)
@@ -605,11 +605,11 @@ namespace at_npu
     {
 
       c10::TensorOptions options;
-      options.dtype(dtype_opt);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
 
       window_function_checks("hann_window", options, window_length);
       return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
@@ -637,11 +637,11 @@ namespace at_npu
     {
 
       c10::TensorOptions options;
-      options.dtype(dtype_opt);
-      auto device = c10::device_or_default(device_opt);
-      options.device(device);
-      options.layout(layout_opt);
-      options.pinned_memory(pin_memory_opt);
+      auto device = device_or_default(device_opt);
+      options = options.dtype(dtype_opt)
+                       .device(device)
+                       .layout(layout_opt)
+                       .pinned_memory(pin_memory_opt);
 
       window_function_checks("hamming_window", options, window_length);
       if (window_length == 0)

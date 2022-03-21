@@ -96,6 +96,14 @@ class TestRange(TestCase):
             npu_output = self.npu_op_out_exec(item[0], item[1], item[2], item[3], npu_output)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_range_shape(self):
+        a = torch.tensor([[-100, 100]])
+        step = 3
+        cout = torch.range(a[0][0], a[0][1], step, dtype=torch.float, device="cpu")
+        nout = torch.range(a.npu()[0][0], a[0][1], step, dtype=torch.float, device="npu")
+        print("cout.shape:", cout.shape)
+        print("nout.shape:", nout.shape)
+
 
 if __name__ == "__main__":
     run_tests()

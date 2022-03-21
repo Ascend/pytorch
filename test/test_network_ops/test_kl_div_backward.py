@@ -24,14 +24,14 @@ class TestKlDivBackward(TestCase):
     def cpu_op_exec(self, input1, input2, reduction):
         input1.requires_grad = True
         output = torch.kl_div(input1, input2, reduction=reduction)
-        output.backward()
+        output.backward(torch.ones_like(output))
         output = output.detach().numpy()
         return output, input1.grad
 
     def npu_op_exec(self, input1, input2, reduction):
         input1.requires_grad = True
         output = torch.kl_div(input1, input2, reduction=reduction)
-        output.backward()
+        output.backward(torch.ones_like(output))
         output = output.cpu()
         output = output.detach().numpy()
         return output, input1.grad
@@ -41,8 +41,8 @@ class TestKlDivBackward(TestCase):
             [[torch.float16, 0, (192, 8)], [torch.float16, 0, (192, 8)], 1],
             [[torch.float16, 0, (192, 50000)], [torch.float16, 0, (192, 50000)], 1],
             [[torch.float16, 0, (2, 2)], [torch.float16, 0, (2, 2)], 2],
-            [[torch.float16, 0, (3, 5)], [torch.float16, 0, (3, 5)], 2],
-            [[torch.float16, 0, (2, 4, 3)], [torch.float16, 0, (2, 4, 3)], 2],
+            [[torch.float16, 0, (3, 5)], [torch.float16, 0, (3, 5)], 0],
+            [[torch.float16, 0, (2, 4, 3)], [torch.float16, 0, (2, 4, 3)], 0],
         ]
         for item in shape_format:
             x = torch.randn(item[0][2])
@@ -62,8 +62,8 @@ class TestKlDivBackward(TestCase):
             [[torch.float16, 0, (112, 8)], [torch.float16, 0, (112, 8)], 1],
             [[torch.float16, 0, (112, 50000)], [torch.float16, 0, (112, 50000)], 1],
             [[torch.float16, 0, (2, 3)], [torch.float16, 0, (2, 3)], 2],
-            [[torch.float16, 0, (3, 6)], [torch.float16, 0, (3, 6)], 2],
-            [[torch.float16, 0, (2, 3, 3)], [torch.float16, 0, (2, 3, 3)], 2],
+            [[torch.float16, 0, (3, 6)], [torch.float16, 0, (3, 6)], 0],
+            [[torch.float16, 0, (2, 3, 3)], [torch.float16, 0, (2, 3, 3)], 0],
         ]
         for item in shape_format:
             x = torch.randn(item[0][2])

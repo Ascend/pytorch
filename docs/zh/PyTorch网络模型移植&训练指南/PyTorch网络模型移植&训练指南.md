@@ -149,7 +149,7 @@
 
 模型是否可以迁移成功主要取决于模型算子是否支持昇腾AI处理器。故需要对模型算子对昇腾AI处理器的支持性进行评估，一般有两种方式评估算子支持性
 
-- 模型迁移前，使用dump op方法获取算子信息，与《PyTorch适配算子清单》算子进行比较，确定是否支持。
+- 模型迁移前，使用dump op方法获取算子信息，与《PyTorch API 支持清单》中自定义算子进行比较，确定是否支持。
 - 模型迁移后，在昇腾设备上进行运行训练脚本，若存在不支持昇腾AI设备的算子，会提示报错信息。
 
 若存在不支持算子，可以采用修该模型用等价支持的算子替换或者参考《PyTorch算子开发指南》进行算子开发。
@@ -724,7 +724,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 <h3 id="工具迁移md">工具迁移</h3>
 
-Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见《MindStudio 用户指南》。
+Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://www.hiascend.com/document/detail/zh/mindstudio/304/msug)。
 
 <h4 id="功能介绍md">功能介绍</h4>
 
@@ -738,299 +738,17 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 >-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换后的执行逻辑与转换前保持一致。
 >-   此脚本转换工具当前仅支持PyTorch训练脚本转换。
 
-**表 1**  模型支持列表
+##### 模型支持
 
-<a name="zh-cn_topic_0000001133095885_table4705239194613"></a>
-<table><thead align="left"><tr id="zh-cn_topic_0000001133095885_row1270543910462"><th class="cellrowborder" valign="top" width="27.41%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001133095885_p670613914465"><a name="zh-cn_topic_0000001133095885_p670613914465"></a><a name="zh-cn_topic_0000001133095885_p670613914465"></a>序号</p>
-</th>
-<th class="cellrowborder" valign="top" width="72.59%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001133095885_p57061739124611"><a name="zh-cn_topic_0000001133095885_p57061739124611"></a><a name="zh-cn_topic_0000001133095885_p57061739124611"></a>模型名称</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001133095885_row11706239134617"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18706163918464"><a name="zh-cn_topic_0000001133095885_p18706163918464"></a><a name="zh-cn_topic_0000001133095885_p18706163918464"></a>1</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3573354194212"><a name="zh-cn_topic_0000001133095885_p3573354194212"></a><a name="zh-cn_topic_0000001133095885_p3573354194212"></a>3D AttentionNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67061939194612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17706143917468"><a name="zh-cn_topic_0000001133095885_p17706143917468"></a><a name="zh-cn_topic_0000001133095885_p17706143917468"></a>2</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1957314543423"><a name="zh-cn_topic_0000001133095885_p1957314543423"></a><a name="zh-cn_topic_0000001133095885_p1957314543423"></a>3D Nested_UNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row197069395460"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p207061639194612"><a name="zh-cn_topic_0000001133095885_p207061639194612"></a><a name="zh-cn_topic_0000001133095885_p207061639194612"></a>3</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15573155434213"><a name="zh-cn_topic_0000001133095885_p15573155434213"></a><a name="zh-cn_topic_0000001133095885_p15573155434213"></a>Advanced East</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1706103914467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2706163911464"><a name="zh-cn_topic_0000001133095885_p2706163911464"></a><a name="zh-cn_topic_0000001133095885_p2706163911464"></a>4</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731454144217"><a name="zh-cn_topic_0000001133095885_p125731454144217"></a><a name="zh-cn_topic_0000001133095885_p125731454144217"></a>AlexNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row9706739124610"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5706739114611"><a name="zh-cn_topic_0000001133095885_p5706739114611"></a><a name="zh-cn_topic_0000001133095885_p5706739114611"></a>5</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1357319544426"><a name="zh-cn_topic_0000001133095885_p1357319544426"></a><a name="zh-cn_topic_0000001133095885_p1357319544426"></a>DeeplabV3+(Xception-JFT)</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row177079399465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p147072039184612"><a name="zh-cn_topic_0000001133095885_p147072039184612"></a><a name="zh-cn_topic_0000001133095885_p147072039184612"></a>6</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657315454213"><a name="zh-cn_topic_0000001133095885_p657315454213"></a><a name="zh-cn_topic_0000001133095885_p657315454213"></a>DeepMar</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row15707173954611"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13707103984614"><a name="zh-cn_topic_0000001133095885_p13707103984614"></a><a name="zh-cn_topic_0000001133095885_p13707103984614"></a>7</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1057345444220"><a name="zh-cn_topic_0000001133095885_p1057345444220"></a><a name="zh-cn_topic_0000001133095885_p1057345444220"></a>Densenet121</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row2707739124612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707839114617"><a name="zh-cn_topic_0000001133095885_p18707839114617"></a><a name="zh-cn_topic_0000001133095885_p18707839114617"></a>8</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p175731454114210"><a name="zh-cn_topic_0000001133095885_p175731454114210"></a><a name="zh-cn_topic_0000001133095885_p175731454114210"></a>DenseNet161</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1270714392464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p197072397468"><a name="zh-cn_topic_0000001133095885_p197072397468"></a><a name="zh-cn_topic_0000001133095885_p197072397468"></a>9</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05731654204218"><a name="zh-cn_topic_0000001133095885_p05731654204218"></a><a name="zh-cn_topic_0000001133095885_p05731654204218"></a>DenseNet169</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row17707113914468"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707339144611"><a name="zh-cn_topic_0000001133095885_p18707339144611"></a><a name="zh-cn_topic_0000001133095885_p18707339144611"></a>10</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731254154212"><a name="zh-cn_topic_0000001133095885_p125731254154212"></a><a name="zh-cn_topic_0000001133095885_p125731254154212"></a>DenseNet201</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1707439204614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2707153974611"><a name="zh-cn_topic_0000001133095885_p2707153974611"></a><a name="zh-cn_topic_0000001133095885_p2707153974611"></a>11</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p12573354164210"><a name="zh-cn_topic_0000001133095885_p12573354164210"></a><a name="zh-cn_topic_0000001133095885_p12573354164210"></a>EAST</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67083391464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1070883911466"><a name="zh-cn_topic_0000001133095885_p1070883911466"></a><a name="zh-cn_topic_0000001133095885_p1070883911466"></a>12</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1157312542426"><a name="zh-cn_topic_0000001133095885_p1157312542426"></a><a name="zh-cn_topic_0000001133095885_p1157312542426"></a>FCN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row127085393465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p4708133911464"><a name="zh-cn_topic_0000001133095885_p4708133911464"></a><a name="zh-cn_topic_0000001133095885_p4708133911464"></a>13</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857395417429"><a name="zh-cn_topic_0000001133095885_p857395417429"></a><a name="zh-cn_topic_0000001133095885_p857395417429"></a>FD-GAN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row570863914618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17708143904620"><a name="zh-cn_topic_0000001133095885_p17708143904620"></a><a name="zh-cn_topic_0000001133095885_p17708143904620"></a>14</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p14573185411425"><a name="zh-cn_topic_0000001133095885_p14573185411425"></a><a name="zh-cn_topic_0000001133095885_p14573185411425"></a>FOTS</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row11708839174619"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1670883917466"><a name="zh-cn_topic_0000001133095885_p1670883917466"></a><a name="zh-cn_topic_0000001133095885_p1670883917466"></a>15</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157355416428"><a name="zh-cn_topic_0000001133095885_p157355416428"></a><a name="zh-cn_topic_0000001133095885_p157355416428"></a>GENet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row87085397467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p16708439164618"><a name="zh-cn_topic_0000001133095885_p16708439164618"></a><a name="zh-cn_topic_0000001133095885_p16708439164618"></a>16</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p4574254164219"><a name="zh-cn_topic_0000001133095885_p4574254164219"></a><a name="zh-cn_topic_0000001133095885_p4574254164219"></a>GoogleNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row5708839174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11708113914462"><a name="zh-cn_topic_0000001133095885_p11708113914462"></a><a name="zh-cn_topic_0000001133095885_p11708113914462"></a>17</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105743542421"><a name="zh-cn_topic_0000001133095885_p105743542421"></a><a name="zh-cn_topic_0000001133095885_p105743542421"></a>GRU</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row170933914612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1170963974615"><a name="zh-cn_topic_0000001133095885_p1170963974615"></a><a name="zh-cn_topic_0000001133095885_p1170963974615"></a>18</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574054104214"><a name="zh-cn_topic_0000001133095885_p20574054104214"></a><a name="zh-cn_topic_0000001133095885_p20574054104214"></a>Inception V4</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row670913934612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p270993924620"><a name="zh-cn_topic_0000001133095885_p270993924620"></a><a name="zh-cn_topic_0000001133095885_p270993924620"></a>19</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11574135411427"><a name="zh-cn_topic_0000001133095885_p11574135411427"></a><a name="zh-cn_topic_0000001133095885_p11574135411427"></a>InceptionV2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row15709939174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2709133914614"><a name="zh-cn_topic_0000001133095885_p2709133914614"></a><a name="zh-cn_topic_0000001133095885_p2709133914614"></a>20</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105741754124219"><a name="zh-cn_topic_0000001133095885_p105741754124219"></a><a name="zh-cn_topic_0000001133095885_p105741754124219"></a>LPRNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row3709143917462"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p0709193913461"><a name="zh-cn_topic_0000001133095885_p0709193913461"></a><a name="zh-cn_topic_0000001133095885_p0709193913461"></a>21</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25745540427"><a name="zh-cn_topic_0000001133095885_p25745540427"></a><a name="zh-cn_topic_0000001133095885_p25745540427"></a>LSTM</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row177091639184618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p157091239164617"><a name="zh-cn_topic_0000001133095885_p157091239164617"></a><a name="zh-cn_topic_0000001133095885_p157091239164617"></a>22</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157485414422"><a name="zh-cn_topic_0000001133095885_p157485414422"></a><a name="zh-cn_topic_0000001133095885_p157485414422"></a>MNASNet0_5</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row18709173944613"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p177091739124615"><a name="zh-cn_topic_0000001133095885_p177091739124615"></a><a name="zh-cn_topic_0000001133095885_p177091739124615"></a>23</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p9574205454219"><a name="zh-cn_topic_0000001133095885_p9574205454219"></a><a name="zh-cn_topic_0000001133095885_p9574205454219"></a>MNASNet0_75</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row187101039144614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1371023914612"><a name="zh-cn_topic_0000001133095885_p1371023914612"></a><a name="zh-cn_topic_0000001133095885_p1371023914612"></a>24</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p357475415426"><a name="zh-cn_topic_0000001133095885_p357475415426"></a><a name="zh-cn_topic_0000001133095885_p357475415426"></a>MNASNet1_0</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1471033917465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3710939164613"><a name="zh-cn_topic_0000001133095885_p3710939164613"></a><a name="zh-cn_topic_0000001133095885_p3710939164613"></a>25</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15741754144213"><a name="zh-cn_topic_0000001133095885_p15741754144213"></a><a name="zh-cn_topic_0000001133095885_p15741754144213"></a>MNASNet1_3</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row8710163924614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p8710143914614"><a name="zh-cn_topic_0000001133095885_p8710143914614"></a><a name="zh-cn_topic_0000001133095885_p8710143914614"></a>26</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574135464217"><a name="zh-cn_topic_0000001133095885_p2574135464217"></a><a name="zh-cn_topic_0000001133095885_p2574135464217"></a>MobileNetV1</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1471063944618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11710203910465"><a name="zh-cn_topic_0000001133095885_p11710203910465"></a><a name="zh-cn_topic_0000001133095885_p11710203910465"></a>27</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574254104215"><a name="zh-cn_topic_0000001133095885_p20574254104215"></a><a name="zh-cn_topic_0000001133095885_p20574254104215"></a>MobileNetV2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row171010393463"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p47101339154613"><a name="zh-cn_topic_0000001133095885_p47101339154613"></a><a name="zh-cn_topic_0000001133095885_p47101339154613"></a>28</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557415444214"><a name="zh-cn_topic_0000001133095885_p1557415444214"></a><a name="zh-cn_topic_0000001133095885_p1557415444214"></a>PNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row7611556191918"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p12611156171919"><a name="zh-cn_topic_0000001133095885_p12611156171919"></a><a name="zh-cn_topic_0000001133095885_p12611156171919"></a>29</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757435454213"><a name="zh-cn_topic_0000001133095885_p1757435454213"></a><a name="zh-cn_topic_0000001133095885_p1757435454213"></a>PSENet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row5477004202"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1847770182017"><a name="zh-cn_topic_0000001133095885_p1847770182017"></a><a name="zh-cn_topic_0000001133095885_p1847770182017"></a>30</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p165741254194213"><a name="zh-cn_topic_0000001133095885_p165741254194213"></a><a name="zh-cn_topic_0000001133095885_p165741254194213"></a>RAFT</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67255202017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9725728202"><a name="zh-cn_topic_0000001133095885_p9725728202"></a><a name="zh-cn_topic_0000001133095885_p9725728202"></a>31</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757465464214"><a name="zh-cn_topic_0000001133095885_p1757465464214"></a><a name="zh-cn_topic_0000001133095885_p1757465464214"></a>RecVAE</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row83941035161019"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p173949354104"><a name="zh-cn_topic_0000001133095885_p173949354104"></a><a name="zh-cn_topic_0000001133095885_p173949354104"></a>32</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057435444220"><a name="zh-cn_topic_0000001133095885_p2057435444220"></a><a name="zh-cn_topic_0000001133095885_p2057435444220"></a>ResNet101</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row14021731181017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13402231171018"><a name="zh-cn_topic_0000001133095885_p13402231171018"></a><a name="zh-cn_topic_0000001133095885_p13402231171018"></a>33</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05741554194217"><a name="zh-cn_topic_0000001133095885_p05741554194217"></a><a name="zh-cn_topic_0000001133095885_p05741554194217"></a>ResNet152</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row106426081116"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p06426017111"><a name="zh-cn_topic_0000001133095885_p06426017111"></a><a name="zh-cn_topic_0000001133095885_p06426017111"></a>34</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p19574145464214"><a name="zh-cn_topic_0000001133095885_p19574145464214"></a><a name="zh-cn_topic_0000001133095885_p19574145464214"></a>ResNet18</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row13947174191112"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p894715491110"><a name="zh-cn_topic_0000001133095885_p894715491110"></a><a name="zh-cn_topic_0000001133095885_p894715491110"></a>35</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25741754204213"><a name="zh-cn_topic_0000001133095885_p25741754204213"></a><a name="zh-cn_topic_0000001133095885_p25741754204213"></a>ResNet34</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1359519811113"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p059516861111"><a name="zh-cn_topic_0000001133095885_p059516861111"></a><a name="zh-cn_topic_0000001133095885_p059516861111"></a>36</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957475454218"><a name="zh-cn_topic_0000001133095885_p957475454218"></a><a name="zh-cn_topic_0000001133095885_p957475454218"></a>ResNet50</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row10740141321119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p27401713131114"><a name="zh-cn_topic_0000001133095885_p27401713131114"></a><a name="zh-cn_topic_0000001133095885_p27401713131114"></a>37</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574125415422"><a name="zh-cn_topic_0000001133095885_p2574125415422"></a><a name="zh-cn_topic_0000001133095885_p2574125415422"></a>Resnext101_32x8d</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row667112181118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p146715124119"><a name="zh-cn_topic_0000001133095885_p146715124119"></a><a name="zh-cn_topic_0000001133095885_p146715124119"></a>38</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15574135484218"><a name="zh-cn_topic_0000001133095885_p15574135484218"></a><a name="zh-cn_topic_0000001133095885_p15574135484218"></a>Resnext50</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row4738182913104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p107383299102"><a name="zh-cn_topic_0000001133095885_p107383299102"></a><a name="zh-cn_topic_0000001133095885_p107383299102"></a>39</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857445444218"><a name="zh-cn_topic_0000001133095885_p857445444218"></a><a name="zh-cn_topic_0000001133095885_p857445444218"></a>RNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row328451021115"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p928461019117"><a name="zh-cn_topic_0000001133095885_p928461019117"></a><a name="zh-cn_topic_0000001133095885_p928461019117"></a>40</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p6574175464211"><a name="zh-cn_topic_0000001133095885_p6574175464211"></a><a name="zh-cn_topic_0000001133095885_p6574175464211"></a>Shufflenetv2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row128999641118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p198995621117"><a name="zh-cn_topic_0000001133095885_p198995621117"></a><a name="zh-cn_topic_0000001133095885_p198995621117"></a>41</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p13575125419422"><a name="zh-cn_topic_0000001133095885_p13575125419422"></a><a name="zh-cn_topic_0000001133095885_p13575125419422"></a>SqueezeNet1_0</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row136314218119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p53631028119"><a name="zh-cn_topic_0000001133095885_p53631028119"></a><a name="zh-cn_topic_0000001133095885_p53631028119"></a>42</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p757535410428"><a name="zh-cn_topic_0000001133095885_p757535410428"></a><a name="zh-cn_topic_0000001133095885_p757535410428"></a>SqueezeNet1_1</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row156190549108"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p106191454141012"><a name="zh-cn_topic_0000001133095885_p106191454141012"></a><a name="zh-cn_topic_0000001133095885_p106191454141012"></a>43</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657545410427"><a name="zh-cn_topic_0000001133095885_p657545410427"></a><a name="zh-cn_topic_0000001133095885_p657545410427"></a>U-Net</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row9370164720106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9370144741015"><a name="zh-cn_topic_0000001133095885_p9370144741015"></a><a name="zh-cn_topic_0000001133095885_p9370144741015"></a>44</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957585415426"><a name="zh-cn_topic_0000001133095885_p957585415426"></a><a name="zh-cn_topic_0000001133095885_p957585415426"></a>VAE+GAN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row453116573102"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p95311557151018"><a name="zh-cn_topic_0000001133095885_p95311557151018"></a><a name="zh-cn_topic_0000001133095885_p95311557151018"></a>45</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957525454210"><a name="zh-cn_topic_0000001133095885_p957525454210"></a><a name="zh-cn_topic_0000001133095885_p957525454210"></a>VGG11</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1478625141010"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3786195151010"><a name="zh-cn_topic_0000001133095885_p3786195151010"></a><a name="zh-cn_topic_0000001133095885_p3786195151010"></a>46</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557565434218"><a name="zh-cn_topic_0000001133095885_p1557565434218"></a><a name="zh-cn_topic_0000001133095885_p1557565434218"></a>VGG11_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row129701341121014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p199701641141016"><a name="zh-cn_topic_0000001133095885_p199701641141016"></a><a name="zh-cn_topic_0000001133095885_p199701641141016"></a>47</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957517542420"><a name="zh-cn_topic_0000001133095885_p957517542420"></a><a name="zh-cn_topic_0000001133095885_p957517542420"></a>VGG13</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1286634916106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5866124917105"><a name="zh-cn_topic_0000001133095885_p5866124917105"></a><a name="zh-cn_topic_0000001133095885_p5866124917105"></a>48</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p10575115416421"><a name="zh-cn_topic_0000001133095885_p10575115416421"></a><a name="zh-cn_topic_0000001133095885_p10575115416421"></a>VGG13_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row269355152015"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p469385122011"><a name="zh-cn_topic_0000001133095885_p469385122011"></a><a name="zh-cn_topic_0000001133095885_p469385122011"></a>49</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557519545422"><a name="zh-cn_topic_0000001133095885_p557519545422"></a><a name="zh-cn_topic_0000001133095885_p557519545422"></a>VGG16</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1874673971014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p674693981017"><a name="zh-cn_topic_0000001133095885_p674693981017"></a><a name="zh-cn_topic_0000001133095885_p674693981017"></a>50</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11575454114215"><a name="zh-cn_topic_0000001133095885_p11575454114215"></a><a name="zh-cn_topic_0000001133095885_p11575454114215"></a>VGG16_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row149883820103"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9982038151018"><a name="zh-cn_topic_0000001133095885_p9982038151018"></a><a name="zh-cn_topic_0000001133095885_p9982038151018"></a>51</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657585417429"><a name="zh-cn_topic_0000001133095885_p657585417429"></a><a name="zh-cn_topic_0000001133095885_p657585417429"></a>VGG19</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row154671633171013"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p114677333101"><a name="zh-cn_topic_0000001133095885_p114677333101"></a><a name="zh-cn_topic_0000001133095885_p114677333101"></a>52</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557535415426"><a name="zh-cn_topic_0000001133095885_p557535415426"></a><a name="zh-cn_topic_0000001133095885_p557535415426"></a>VGG19_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row054412715104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p954482714105"><a name="zh-cn_topic_0000001133095885_p954482714105"></a><a name="zh-cn_topic_0000001133095885_p954482714105"></a>53</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p95752543424"><a name="zh-cn_topic_0000001133095885_p95752543424"></a><a name="zh-cn_topic_0000001133095885_p95752543424"></a>VIT-base</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row53891311191318"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1438911115138"><a name="zh-cn_topic_0000001133095885_p1438911115138"></a><a name="zh-cn_topic_0000001133095885_p1438911115138"></a>54</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3575654184213"><a name="zh-cn_topic_0000001133095885_p3575654184213"></a><a name="zh-cn_topic_0000001133095885_p3575654184213"></a>Wide_ResNet101_2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1928912911311"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p182893901310"><a name="zh-cn_topic_0000001133095885_p182893901310"></a><a name="zh-cn_topic_0000001133095885_p182893901310"></a>55</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057525424213"><a name="zh-cn_topic_0000001133095885_p2057525424213"></a><a name="zh-cn_topic_0000001133095885_p2057525424213"></a>Wide_ResNet50_2</p>
-</td>
-</tr>
-</tbody>
-</table>
+目前支持模型请参考[《昇腾Modelzoo社区》](https://www.hiascend.com/software/modelzoo) ，筛选类型分类：“训练”、框架分类：“Pytorch”的Pytorch训练模型。
+
 **系统要求**<a name="zh-cn_topic_0000001133095885_section1055723118446"></a>
 
 脚本转换工具支持Ubuntu 18.04、CentOS 7.6或EulerOS 2.8。
 
 **环境准备**<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
 
-详情请参考《CANN 软件安装指南》安装开发环境。
+详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/504/envdeployment/instg) 安装开发环境。
 
 <h4 id="操作指南md">操作指南</h4>
 
@@ -1749,7 +1467,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
   2.  解析性能数据文件。
 
-      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
+      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
 
 
   3. 高级用法
@@ -2243,6 +1961,8 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
 
 <h3 id="前提条件-2md">前提条件</h3>
+
+目前pytorch1.8.1暂不支持。
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 

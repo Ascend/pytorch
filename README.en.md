@@ -80,7 +80,6 @@ The following are optional environment variables that may affect running models:
 ```
 export DYNAMIC_COMPILE_ENABLE=1  # Dynamic shape feature. This environment variable is optional for shape change scenarios. To enable it, set its value to 1.
 export COMBINED_ENABLE=1 # Optimization of scenarios where two inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to 1.
-export TRI_COMBINED_ENABLE=1 # Optimization of scenarios where three inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to 1.
 export ACL_DUMP_DATA=1 # Operator data dump function, which is used for debugging. This environment variable is optional. To enable it, set its value to 1.
 export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. This environment variable is optional.
 ```
