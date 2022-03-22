@@ -19,42 +19,40 @@
 namespace at_npu {
 namespace native {
 
-c10::SmallVector<NPUTensorDesc, N> take_npu_input(
-    const c10::SmallVector<at::Tensor, N>& inputTensor) {
-  at::Tensor contiguousTensor;
-  c10::SmallVector<NPUTensorDesc, N> inputs;
-    
-  for (int i = 0; i < inputTensor.size(); i++) {
-    if (i == 0) {
-      int64_t input_size = 1;
-      at::Tensor input_tensor = inputTensor[i].reshape(-1);
-      contiguousTensor = NpuUtils::format_contiguous(input_tensor);
-    } else {
-       contiguousTensor = NpuUtils::format_contiguous(inputTensor[i]);
-    }
-    inputs.emplace_back(NPUTensorDesc(contiguousTensor));
-  }
-  return inputs;
-}
+at::Tensor& take_out_nocheck(const at::Tensor& self, const at::Tensor& index, at::Tensor& result) {
+  at::Tensor input_tensor = self.reshape(-1);
+  at::Tensor contiguousSelf = NpuUtils::format_contiguous(input_tensor);
+  at::Tensor contiguousIndex = NpuUtils::format_contiguous(index);
 
-c10::SmallVector<NPUTensorDesc, N> take_npu_output(const c10::SmallVector<at::Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-c10::SmallVector<NPUAttrDesc, N> take_npu_attr(const at::Tensor& self) {
-  NPUAttrDesc npuAttrValidateIndices = NPUAttrDesc("validate_indices", false);
-  c10::SmallVector<NPUAttrDesc, N> attrs = {npuAttrValidateIndices};
-  return attrs;
+  OpCommand cmd;
+  cmd.Name("Gather")
+      .Input(contiguousSelf)
+      .Input(contiguousIndex)
+      .Output(result)
+      .Attr("validate_indices", false)
+      .Run();
+  
+  return result;
 }
 
 at::Tensor& NPUNativeFunctions::take_out(const at::Tensor& self, const at::Tensor& index, at::Tensor& result) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = take_npu_input({self,index});
-  auto outputs = take_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = take_npu_attr(self);
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Gather", inputs, outputs, attrs);
+  // calculate the output size
+  auto outputSize = input_same_output_size(index);
+
+  OpPreparation::CheckOut(
+      {self, index},
+      result,
+      self,
+      outputSize);
+
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    take_out_nocheck(self, index, contiguousResult);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    take_out_nocheck(self, index, result);
+  }
+
   return result;
 }
 
@@ -67,7 +65,8 @@ at::Tensor NPUNativeFunctions::take(const at::Tensor& self, const at::Tensor& in
       outputSize,
       self.options());
 
-  NPUNativeFunctions::take_out(self, index, result);
+  take_out_nocheck(self, index, result);
+  
   return result;
 }
 } // namespace native
