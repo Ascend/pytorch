@@ -249,7 +249,7 @@ void copy_d2h_baseformat(at::Tensor& dst, const at::Tensor& src, bool non_blocki
 
 void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (!FormatHelper::IsBaseFormatType(self)) {
-    at::Tensor dst = OpPreparation::ApplyTensor(self);
+    at::Tensor dst = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options());
     copy_h2d_baseformat(dst, src, non_blocking, true);
     NPUNativeFunctions::npu_format_cast_(self, dst);
     return;
