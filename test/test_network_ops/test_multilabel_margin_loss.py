@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -69,7 +69,8 @@ class TestMultilabelMarginLoss(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_multilabel_margin_loss_3(self, device="npu"):
-        data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1], [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
+        data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1],
+                            [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
         target = torch.Tensor([[3, 0, 7, 8, 1, -1, 1, 2, 2], [4, 5, -1, 1, 1, 1, 1, 2, 2]]).to(torch.int64)
 
         for reduction in ["mean", "none", "sum"]:
@@ -113,7 +114,8 @@ class TestMultilabelMarginLoss(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
     
     def test_multilabel_margin_loss_float16_2(self, device="npu"):
-        data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1], [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
+        data = torch.Tensor([[0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1],
+                            [0.1, 0.2, 0.4, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1]]).to(torch.float32)
         target = torch.Tensor([[3, 0, 7, 8, 1, -1, 1, 2, 2], [4, 5, -1, 1, 1, 1, 1, 2, 2]]).to(torch.int64)
         
         for reduction in ["mean", "none", "sum"]:
