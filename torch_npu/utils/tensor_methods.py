@@ -52,6 +52,10 @@ def one_(self):
     warnings.warn(warning_str.format("one_"))
     return torch_npu.one_(self)
 
+def npu_confusion_transpose(self, perm, shape, transpose_first):
+    warnings.warn(warning_str.format("npu_confusion_transpose"))
+    return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
+
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
@@ -60,3 +64,4 @@ def add_tensor_methods():
     torch.Tensor.npu_dtype_cast_ = npu_dtype_cast_
     torch.Tensor.copy_memory_ = copy_memory_
     torch.Tensor.one_ = one_
+    torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
