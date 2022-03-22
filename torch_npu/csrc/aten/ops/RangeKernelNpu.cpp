@@ -55,12 +55,10 @@ at::Tensor NPUNativeFunctions::range(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  auto device = device_or_default(device_opt);
-  c10::TensorOptions option;
-  option = option.dtype(dtype_opt)
-                 .device(device)
-                 .layout(layout_opt)
-                 .pinned_memory(pin_memory_opt);
+  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+                                          .device(device_opt)
+                                          .layout(layout_opt)
+                                          .pinned_memory(pin_memory_opt);
   return at::range(start, end, 1, option);
 }
 
@@ -72,12 +70,10 @@ at::Tensor NPUNativeFunctions::range(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  auto device = device_or_default(device_opt);
-  c10::TensorOptions option;
-  option = option.dtype(dtype_opt)
-                 .device(device)
-                 .layout(layout_opt)
-                 .pinned_memory(pin_memory_opt);
+  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+                                          .device(device_opt)
+                                          .layout(layout_opt)
+                                          .pinned_memory(pin_memory_opt);
 
   float start_value = CalcuOpUtil::get_scalar_float_value(start);
   float end_value = CalcuOpUtil::get_scalar_float_value(end);

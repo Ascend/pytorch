@@ -37,12 +37,10 @@ at::Tensor NPUNativeFunctions::full(
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  c10::TensorOptions option;
-  auto device = device_or_default(device_opt);
-  option = option.dtype(dtype_opt)
-                 .device(device)
-                 .layout(layout_opt)
-                 .pinned_memory(pin_memory_opt);
+  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+                                          .device(device_opt)
+                                          .layout(layout_opt)
+                                          .pinned_memory(pin_memory_opt);
   at::Tensor result = OpPreparation::ApplyTensorWithSizes(size, option);
   return result.fill_(fill_value);
 }
