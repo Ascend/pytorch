@@ -16,8 +16,8 @@
 
 import copy
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -37,7 +37,9 @@ class TestBinaryCrossEntropyBackward(TestCase):
             if weight is not None:
                 weight = weight.to(torch.float32)
         input1.requires_grad_(True)
-        cpu_output = torch.nn.functional.binary_cross_entropy(input1, target, weight=weight, size_average=None, reduce=None, reduction=reduction)
+        cpu_output = torch.nn.functional.binary_cross_entropy(input1, target,
+                                                             weight=weight, size_average=None,
+                                                             reduce=None, reduction=reduction)
         input_cpu = cpu_output.detach().numpy()
         if reduction == 'none':
             w = torch.ones_like(input1)
@@ -57,7 +59,9 @@ class TestBinaryCrossEntropyBackward(TestCase):
         if weight is not None:
             weight = weight.npu()
         input1.requires_grad_(True)
-        npu_output = torch.nn.functional.binary_cross_entropy(input1, target, weight=weight, size_average=None, reduce=None, reduction=reduction)
+        npu_output = torch.nn.functional.binary_cross_entropy(input1, target, 
+                                                             weight=weight, size_average=None, 
+                                                             reduce=None, reduction=reduction)
         npu_input = npu_output.cpu()
         npu_input =  npu_input.detach().numpy()
         if reduction == 'none':

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -88,14 +88,18 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
             else:
                 cuda_output = self.expect_cuda_out_fp32()
 
-            npu_outputfp16 = self.npu_op_exec(npu_input1fp16, npu_mean, npu_invstd, npu_running_mean, npu_running_invstd, item[-4], item[-3], npu_counts)
+            npu_outputfp16 = self.npu_op_exec(npu_input1fp16, npu_mean, npu_invstd,
+                                             npu_running_mean, npu_running_invstd,
+                                             item[-4], item[-3], npu_counts)
             self.assertRtolEqual(npu_outputfp16[0], cuda_output[0])
             self.assertRtolEqual(npu_outputfp16[1], cuda_output[1])
             self.assertRtolEqual(npu_running_mean.cpu().numpy(), cuda_output[2])
             self.assertRtolEqual(npu_running_invstd.cpu().numpy(), cuda_output[3])
 
             if item[1][0] == np.float32:
-                npu_outputfp32 = self.npu_op_exec(npu_input1fp32, npu_mean, npu_invstd, npu_running_mean, npu_running_invstd, item[-4], item[-3], npu_counts)
+                npu_outputfp32 = self.npu_op_exec(npu_input1fp32, npu_mean, npu_invstd,
+                                                 npu_running_mean, npu_running_invstd,
+                                                 item[-4], item[-3], npu_counts)
                 self.assertRtolEqual(npu_outputfp32[0], cuda_output[0])
                 self.assertRtolEqual(npu_outputfp32[1], cuda_output[1])
 

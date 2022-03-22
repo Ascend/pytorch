@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -160,8 +160,10 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
                 weight = self.generate_one_input(0, 2, weight_shape, np.float32)
             if pos_weight_shape is not None:
                 pos_weight = self.generate_one_input(0, 2, pos_weight_shape, np.float32)
-            cpu_output = self.cpu_op_func_exec(input1, target, weight=weight, pos_weight=pos_weight, reduction=reduction)
-            npu_output = self.npu_op_func_exec(input1, target, weight=weight, pos_weight=pos_weight, reduction=reduction)
+            cpu_output = self.cpu_op_func_exec(input1, target, weight=weight,
+                                             pos_weight=pos_weight, reduction=reduction)
+            npu_output = self.npu_op_func_exec(input1, target, weight=weight,
+                                             pos_weight=pos_weight, reduction=reduction)
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_binary_cross_with_logits_function_float16(self, device="npu"):
@@ -195,9 +197,10 @@ class TestBinaryCrossEntropyWithLogits(TestCase):
                 pos_weight = self.generate_one_input(0, 2, pos_weight_shape, np.float16)
                 pos_weight_32 = pos_weight.type(torch.float32)
                 
-            npu_output = self.npu_op_func_exec(input1, target, weight=weight, pos_weight=pos_weight, reduction=reduction)
-            cpu_output = self.cpu_op_func_exec(input_32, target_32, weight=weight_32, pos_weight=pos_weight_32,
-                                               reduction=reduction)
+            npu_output = self.npu_op_func_exec(input1, target, weight=weight,
+                                             pos_weight=pos_weight, reduction=reduction)
+            cpu_output = self.cpu_op_func_exec(input_32, target_32, weight=weight_32,
+                                             pos_weight=pos_weight_32, reduction=reduction)
 
             cpu_output = cpu_output.astype(np.float16)                                
             self.assertRtolEqual(cpu_output, npu_output)
