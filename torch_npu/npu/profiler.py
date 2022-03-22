@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import stat
 import itertools
 from typing import Any
 from collections import defaultdict, namedtuple
@@ -48,6 +50,9 @@ __all__ = ["profile", "record_function", ]
 
 if not torch_npu._C._profiler_init():
     raise RuntimeError("proflier initialization failed")
+
+file_flags = os.O_WRONLY | os.O_CREAT
+file_modes = stat.S_IWUSR | stat.S_IRUSR
 
 class DeviceType(Enum):
     CPU = 0,
@@ -240,8 +245,7 @@ class EventList(list):
         Args:
             path (str): Path where the trace will be written.
         """
-        import os
-        with open(path, 'w') as f:
+        with os.fdopen(os.open(path, file_flags, file_modes), 'w') as f:
             chrome_events = []
             next_id = 0
             # Use file IO over using json.dump since JSON dumping is very slow and
@@ -265,39 +269,8 @@ class EventList(list):
                         evt.thread
                         if not evt.is_remote
                         else f'" node_id:{evt.node_id}, thread_id:{evt.thread} "',
-                    )
-                )
-                if self._use_cuda:
-                    for k in evt.kernels:
-                        # 's' and 'f' draw Flow arrows from
-                        # the CPU launch to the GPU kernel
-                        f.write('{"name": "%s", '
-                                '"ph": "s", '
-                                '"ts": %s, '
-                                '"tid": %s, '
-                                '"pid": "CPU functions", '
-                                '"id": %s, '
-                                '"cat": "cpu_to_cuda", '
-                                '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
-                                                evt.thread, next_id))
-                        f.write('{"name": "%s", '
-                                '"ph": "f", '
-                                '"ts": %s, '
-                                '"tid": %s, '
-                                '"pid": "CUDA functions", '
-                                '"id": %s, '
-                                '"cat": "cpu_to_cuda", '
-                                '"args": {}}, ' % (k.name, k.interval.start, k.device, next_id))
-                        f.write('{"name": "%s", '
-                                '"ph": "X", '
-                                '"ts": %s, '
-                                '"dur": %s, '
-                                '"tid": %s, '
-                                '"pid": "CUDA functions", '
-                                '"args": {}}, ' % (k.name, k.interval.start,
-                                                k.interval.elapsed_us(), k.device))
-                        next_id += 1
-                elif self._use_npu:
+                    ))
+                if self._use_npu:
                     for k in evt.kernels:
                         # 's' and 'f' draw Flow arrows from
                         # the CPU launch to the GPU kernel
@@ -342,7 +315,7 @@ class EventList(list):
         if metric not in self.supported_export_stacks_metrics():
             raise ValueError("metric should be one of: " + str(self.supported_export_stacks_metrics()))
         translate_table = str.maketrans(" ;\t\n", "____")
-        with open(path, 'w') as f:
+        with os.fdopen(os.open(path, file_flags, file_modes), 'w') as f:
             for evt in self:
                 if evt.stack and len(evt.stack) > 0:
                     metric_value = getattr(evt, metric)
@@ -536,7 +509,7 @@ class profile(object):
 
     def __enter__(self):
         if not self.enabled:
-            return
+            raise RuntimeError("profiler is not enable")
         if self.entered:
             raise RuntimeError("profiler context manager is not reentrant")
         self.entered = True
@@ -550,7 +523,7 @@ class profile(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self.enabled:
-            return
+            raise RuntimeError("profiler is not enable")
         records = torch_npu._C._profiler._disable_profiler_legacy()
         parsed_results = parse_legacy_records(records)
         self.function_events = EventList(
@@ -588,7 +561,7 @@ class profile(object):
     def export_chrome_trace(self, path):
         self._check_finish()
         if self.kineto_results is not None:
-            self.kineto_results.save(path)
+            raise RuntimeError("not support for kineto.")
         else:
             assert self.function_events is not None
             return self.function_events.export_chrome_trace(path)
@@ -963,7 +936,8 @@ class FunctionEvent(FormattedTimesMixin):
         return (
             '<FunctionEvent id={} name={} device_type={} node_id={} cpu_time={} start_us={} end_us={} '
             'cpu_children={} cuda_time={} npu_time={} name={} thread={} input_shapes={} '
-            'cpu_memory_usage={} cuda_memory_usage={} npu_memory_usage={} is_async={} is_remote={} seq_nr={} is_legacy={}>'.format(
+            'cpu_memory_usage={} cuda_memory_usage={} npu_memory_usage={} is_async={} \
+            is_remote={} seq_nr={} is_legacy={}>'.format(
                 self.id,
                 self.name,
                 self.device_type,
@@ -1142,115 +1116,6 @@ def rewrite_name(name, with_wildcard=False):
             name = "ProfilerStep*"
     return name
 
-# Parsing of kineto profiler events
-def parse_kineto_results(result):
-    # result.events() has most of the events - PyTorch op-level and device-level events
-    # result.legacy_events() has events not yet ported to kineto
-    # (e.g. start/stop marks, tensor memory allocator events)
-
-    # First, find __start_profile mark to get the absolute time of the start of the trace;
-    # save memory allocation records
-    start_record = None
-    mem_records = []
-    for record in itertools.chain(*result.legacy_events()):
-        if record.kind() == 'mark' and record.name() == '__start_profile':
-            assert start_record is None
-            start_record = record
-        if record.kind() == 'memory_alloc':
-            mem_records.append([record, False])
-    assert start_record is not None, "Invalid profiler output, __start_profile is missing"
-
-    # Create and return FunctionEvent list
-    function_events = []
-    cuda_corr_map: Dict[int, List[FunctionEvent]] = {}
-    for kineto_event in result.events():
-        if filter_name(kineto_event.name()):
-            continue
-        rel_start_us = kineto_event.start_us() - start_record.start_us()
-        rel_end_us = rel_start_us + kineto_event.duration_us()
-        abs_end_us = kineto_event.start_us() + kineto_event.duration_us()
-
-        cpu_memory_usage = 0
-        cuda_memory_usage = 0
-        if kineto_event.device_type() == DeviceType.CPU:
-            # find the corresponding memory allocation events
-            for mem_record in mem_records:
-                if (mem_record[0].start_us() >= kineto_event.start_us() and
-                        mem_record[0].start_us() <= abs_end_us):
-                    cpu_memory_usage += mem_record[0].cpu_memory_usage()
-                    cuda_memory_usage += mem_record[0].cuda_memory_usage()
-                    mem_record[1] = True
-
-        is_async = kineto_event.start_thread_id() != kineto_event.end_thread_id()
-        fe = FunctionEvent(
-            id_event=kineto_event.correlation_id(),
-            name=rewrite_name(name=kineto_event.name(), with_wildcard=True),
-            trace_name=rewrite_name(name=kineto_event.name(), with_wildcard=False),
-            thread=kineto_event.start_thread_id(),
-            start_us=rel_start_us,
-            end_us=rel_end_us,
-            fwd_thread=kineto_event.fwd_thread_id(),
-            input_shapes=kineto_event.shapes(),
-            stack=[entry for entry in kineto_event.stack() if filter_stack_entry(entry)],
-            scope=kineto_event.scope(),
-            cpu_memory_usage=cpu_memory_usage,
-            cuda_memory_usage=cuda_memory_usage,
-            is_async=is_async,
-            sequence_nr=kineto_event.sequence_nr(),
-            device_type=kineto_event.device_type(),
-            device_index=kineto_event.device_index(),
-            flops=kineto_event.flops(),
-        )
-        function_events.append(fe)
-        corr_id = kineto_event.linked_correlation_id()
-        if corr_id > 0:
-            if corr_id not in cuda_corr_map:
-                cuda_corr_map[corr_id] = []
-            cuda_corr_map[corr_id].append(fe)
-
-    # associate CUDA kernels and CUDA runtime (CPU) with CPU events
-    for fe in function_events:
-        if (fe.device_type == DeviceType.CPU and not fe.is_async and
-                fe.id in cuda_corr_map):
-            for f_evt in cuda_corr_map[fe.id]:
-                if f_evt.device_type == DeviceType.CUDA:
-                    fe.append_kernel(
-                        f_evt.name,
-                        f_evt.device_index,
-                        f_evt.time_range.start,
-                        f_evt.time_range.end)
-                elif f_evt.device_type == DeviceType.CPU:
-                    # make sure that 'thread' of a CPU Kineto (e.g. CUDA Runtime) event is associated
-                    # with the 'thread' of the corresponding linked PyTorch event to properly track
-                    # parents and children
-                    f_evt.thread = fe.thread
-
-
-    # output top-level memory events
-    for mem_record in mem_records:
-        if not mem_record[1]:
-            fe = FunctionEvent(
-                id_event=mem_record[0].handle(),
-                name="[memory]",
-                trace_name=None,  # not outputting in the trace
-                thread=mem_record[0].thread_id(),
-                start_us=mem_record[0].start_us(),
-                end_us=mem_record[0].start_us(),  # no duration
-                fwd_thread=mem_record[0].fwd_thread_id(),
-                input_shapes=[],
-                stack=[],
-                scope=mem_record[0].scope(),
-                cpu_memory_usage=mem_record[0].cpu_memory_usage(),
-                cuda_memory_usage=mem_record[0].cuda_memory_usage(),
-                is_async=False,
-                sequence_nr=-1,
-                device_type=DeviceType.CPU,
-                device_index=0,
-            )
-            function_events.append(fe)
-
-    function_events.sort(key=lambda evt: [evt.time_range.start, -evt.time_range.end])
-    return function_events
 
 # Parsing of legacy profiler events
 def parse_legacy_records(thread_records):
@@ -1277,25 +1142,17 @@ def parse_legacy_records(thread_records):
     def adjusted_time(device_record, device_records_map):
         assert device_record.device() != -1
         assert start_record is not None
-        if device_record.has_cuda():
-            cuda_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
-            return cuda_time_0.cuda_elapsed_us(device_record) + start_record.cpu_elapsed_us(cuda_time_0)
-        elif device_record.has_npu():
+        if device_record.has_npu():
             npu_time_0 = device_records_map[(device_record.node_id(), device_record.device())]
-            return npu_time_0.npu_elapsed_us(device_record) + start_record.cpu_elapsed_us(npu_time_0) 
+            return npu_time_0.npu_elapsed_us(device_record) + start_record.cpu_elapsed_us(npu_time_0)
+        else:
+            raise RuntimeError("device_record only support for npu")
 
     # '__start_profile' is not guaranteed to be first, so we must find it here
     for record in itertools.chain(*thread_records):
         name = record.name()
         if start_record is None and name == '__start_profile':
             start_record = record
-        elif '__cuda_start_event' in name:
-            # N.B.: Each CUDA device has its own __cuda_start_event.
-            assert record.device() != -1
-            # key for cuda_records is (node_id, device) in case of multiple nodes
-            # having the same device
-            cuda_records[(record.node_id(), record.device())] = record
-            profiler_type = DeviceType.CUDA
         elif '__npu_start_event' in name:
             # N.B.: Each NPU device has its own __npu_start_event.
             assert record.device() != -1
@@ -1315,122 +1172,120 @@ def parse_legacy_records(thread_records):
         range_starts = {}
 
         filtered_handles = set()
-        prev_record = None
-        for record in thread_record_list:
-            record_key = get_record_key(record)
-            if (filter_name(record.name()) or
-                    record_key in filtered_handles):
-                filtered_handles.add(record_key)
-                continue
+        def process_record(functions):
+            prev_record = None
+            for record in thread_record_list:
+                record_key = get_record_key(record)
+                if (filter_name(record.name()) or
+                        record_key in filtered_handles):
+                    filtered_handles.add(record_key)
+                    continue
+                if record.kind() == 'push':
+                    def process_push_record(prev_record):
+                        # workaround to reduce double logging from operator
+                        # wrappers and redispatch
+                        if prev_record is not None:
+                            duplicate = (
+                                prev_record.name() == record.name()
+                                and prev_record.kind() == record.kind()
+                                and prev_record.node_id() == record.node_id()
+                            )
+                            if duplicate:
+                                filtered_handles.add(record_key)
+                                return
 
-            if record.kind() == 'push':
-                # workaround to reduce double logging from operator
-                # wrappers and redispatch
-                if prev_record is not None:
-                    duplicate = (
-                        prev_record.name() == record.name()
-                        and prev_record.kind() == record.kind()
-                        and prev_record.node_id() == record.node_id()
-                    )
-                    if duplicate:
-                        filtered_handles.add(record_key)
-                        continue
+                        range_starts[record_key] = record
+                        cpu_memory_allocs[record_key] = 0
+                        cuda_memory_allocs[record_key] = 0
+                        npu_memory_allocs[record_key] = 0
+                    process_push_record(prev_record)
+                elif record.kind() == 'pop':
+                    def process_op_record():
+                        assert (
+                            record_key in range_starts
+                        ), """Expected record with key {} to exist in range_starts.
+                            This means that the pop event did not have a corresponding push.""".format(
+                            record_key
+                        )
 
-                range_starts[record_key] = record
-                cpu_memory_allocs[record_key] = 0
-                cuda_memory_allocs[record_key] = 0
-                npu_memory_allocs[record_key] = 0
-            elif record.kind() == 'pop':
-                assert (
-                    record_key in range_starts
-                ), """Expected record with key {} to exist in range_starts.
-                    This means that the pop event did not have a corresponding push.""".format(
-                    record_key
-                )
+                        start = range_starts[record_key]
 
-                start = range_starts[record_key]
+                        cpu_memory_usage = cpu_memory_allocs[record_key]
+                        cuda_memory_usage = cuda_memory_allocs[record_key]
+                        npu_memory_usage = npu_memory_allocs[record_key]
+                        is_async = start.thread_id() != record.thread_id()
+                        is_remote_event = record.is_remote()
+                        start_flops = start.flops()
 
-                cpu_memory_usage = cpu_memory_allocs[record_key]
-                cuda_memory_usage = cuda_memory_allocs[record_key]
-                npu_memory_usage = npu_memory_allocs[record_key]
-                is_async = start.thread_id() != record.thread_id()
-                is_remote_event = record.is_remote()
-                start_flops = start.flops()
-
-                fe = FunctionEvent(
-                    id_event=record.handle(),
-                    node_id=record.node_id(),
-                    name=rewrite_name(name=start.name(), with_wildcard=True),
-                    trace_name=rewrite_name(name=start.name(), with_wildcard=False),
-                    thread=start.thread_id(),
-                    start_us=start_record.cpu_elapsed_us(start),
-                    end_us=start_record.cpu_elapsed_us(record),
-                    fwd_thread=start.fwd_thread_id(),
-                    input_shapes=start.shapes(),
-                    stack=[entry for entry in start.stack() if filter_stack_entry(entry)],
-                    scope=start.scope(),
-                    cpu_memory_usage=cpu_memory_usage,
-                    cuda_memory_usage=cuda_memory_usage,
-                    npu_memory_usage=npu_memory_usage,
-                    is_async=is_async,
-                    is_remote=is_remote_event,
-                    sequence_nr=start.sequence_nr(),
-                    device_type=DeviceType.CPU,
-                    is_legacy=True,
-                    flops=start_flops,
-                )
-                # note: async events have only cpu total time
-                if not is_async and start.has_cuda():
-                    cuda_start = adjusted_time(start, cuda_records)
-                    cuda_end = adjusted_time(record, cuda_records)
-                    if (cuda_end - cuda_start) > 0:
-                        fe.append_kernel(
-                            start.name(),
-                            start.device(),
-                            cuda_start,
-                            cuda_end)
-                elif not is_async and start.has_npu():
-                    npu_start = adjusted_time(start, npu_records)
-                    npu_end = adjusted_time(record, npu_records)
-                    if (npu_end - npu_start) > 0:
-                        fe.append_kernel(
-                            start.name(),
-                            start.device(),
-                            npu_start,
-                            npu_end)
-                functions.append(fe)
-                del range_starts[record_key]
-                del cpu_memory_allocs[record_key]
-                del cuda_memory_allocs[record_key]
-                del npu_memory_allocs[record_key]
-            elif record.kind() == 'memory_alloc':
-                num_open_handles_cpu = len(cpu_memory_allocs)
-                num_open_handles_cuda = len(cuda_memory_allocs)
-                assert num_open_handles_cpu == num_open_handles_cuda
-                for handle in cpu_memory_allocs.keys():
-                    cpu_memory_allocs[handle] += record.cpu_memory_usage()
-                for handle in cuda_memory_allocs.keys():
-                    cuda_memory_allocs[handle] += record.cuda_memory_usage()
-                for handle in npu_memory_allocs.keys():
-                    npu_memory_allocs[handle] += record.npu_memory_usage()
-                if num_open_handles_cpu == 0:
-                    # output event as a top-level memory event
-                    fe = FunctionEvent(
-                        id_event=0,
-                        name="[memory]",
-                        trace_name=None,
-                        thread=0,
-                        start_us=0,
-                        end_us=0,
-                        stack=[],
-                        cpu_memory_usage=record.cpu_memory_usage(),
-                        cuda_memory_usage=record.cuda_memory_usage(),
-                        npu_memory_usage=record.npu_memory_usage(),
-                        is_legacy=True,
-                    )
-                    functions.append(fe)
-            prev_record = record
-
+                        fe = FunctionEvent(
+                            id_event=record.handle(),
+                            node_id=record.node_id(),
+                            name=rewrite_name(name=start.name(), with_wildcard=True),
+                            trace_name=rewrite_name(name=start.name(), with_wildcard=False),
+                            thread=start.thread_id(),
+                            start_us=start_record.cpu_elapsed_us(start),
+                            end_us=start_record.cpu_elapsed_us(record),
+                            fwd_thread=start.fwd_thread_id(),
+                            input_shapes=start.shapes(),
+                            stack=[entry for entry in start.stack() if filter_stack_entry(entry)],
+                            scope=start.scope(),
+                            cpu_memory_usage=cpu_memory_usage,
+                            cuda_memory_usage=cuda_memory_usage,
+                            npu_memory_usage=npu_memory_usage,
+                            is_async=is_async,
+                            is_remote=is_remote_event,
+                            sequence_nr=start.sequence_nr(),
+                            device_type=DeviceType.CPU,
+                            is_legacy=True,
+                            flops=start_flops,
+                        )
+                        # note: async events have only cpu total time
+                        if not is_async and start.has_npu():
+                            npu_start = adjusted_time(start, npu_records)
+                            npu_end = adjusted_time(record, npu_records)
+                            if (npu_end - npu_start) > 0:
+                                fe.append_kernel(
+                                    start.name(),
+                                    start.device(),
+                                    npu_start,
+                                    npu_end)
+                        functions.append(fe)
+                        del range_starts[record_key]
+                        del cpu_memory_allocs[record_key]
+                        del cuda_memory_allocs[record_key]
+                        del npu_memory_allocs[record_key]
+                    process_op_record()
+                elif record.kind() == 'memory_alloc':
+                    def process_memory_alloc_record():
+                        num_open_handles_cpu = len(cpu_memory_allocs)
+                        num_open_handles_cuda = len(cuda_memory_allocs)
+                        assert num_open_handles_cpu == num_open_handles_cuda
+                        for handle in cpu_memory_allocs.keys():
+                            cpu_memory_allocs[handle] += record.cpu_memory_usage()
+                        for handle in cuda_memory_allocs.keys():
+                            cuda_memory_allocs[handle] += record.cuda_memory_usage()
+                        for handle in npu_memory_allocs.keys():
+                            npu_memory_allocs[handle] += record.npu_memory_usage()
+                        if num_open_handles_cpu == 0:
+                            # output event as a top-level memory event
+                            fe = FunctionEvent(
+                                id_event=0,
+                                name="[memory]",
+                                trace_name=None,
+                                thread=0,
+                                start_us=0,
+                                end_us=0,
+                                stack=[],
+                                cpu_memory_usage=record.cpu_memory_usage(),
+                                cuda_memory_usage=record.cuda_memory_usage(),
+                                npu_memory_usage=record.npu_memory_usage(),
+                                is_legacy=True,
+                            )
+                            functions.append(fe)
+                    process_memory_alloc_record()
+                prev_record = record
+            return functions
+        functions = process_record(functions)
     # Sort functions by start time then by end time ascending.
     # This ensures that--in the case of nested events which
     # have the same start time (which may happen due to the
@@ -1477,9 +1332,9 @@ def build_table(
     """Prints a summary of events (which can be a list of FunctionEvent or FunctionEventAvg)."""
     if len(events) == 0:
         return ""
-
-    has_cuda_time = any([event.self_cuda_time_total > 0 for event in events]) and use_cuda
-    has_cuda_mem = any([event.self_cuda_memory_usage > 0 for event in events]) and use_cuda
+    if use_cuda:
+        raise RuntimeError("not support for CUDA.")
+    has_cuda_time = False
     has_npu_time = any([event.self_npu_time_total > 0 for event in events]) and use_npu
     has_npu_mem = any([event.self_npu_memory_usage > 0 for event in events]) and use_npu
     has_input_shapes = any(
@@ -1489,72 +1344,52 @@ def build_table(
         events = EventList(sorted(
             events, key=lambda evt: getattr(evt, sort_by), reverse=True
         ), use_cuda=has_cuda_time, use_npu=has_npu_time, profile_memory=profile_memory, with_flops=with_flops)
+    def get_column_width():
+        MAX_NAME_COLUMN_WIDTH = 55
+        name_column_width = max([len(evt.key) for evt in events]) + 4
+        name_column_width = min(name_column_width, MAX_NAME_COLUMN_WIDTH)
 
-    MAX_NAME_COLUMN_WIDTH = 55
-    name_column_width = max([len(evt.key) for evt in events]) + 4
-    name_column_width = min(name_column_width, MAX_NAME_COLUMN_WIDTH)
-
-    DEFAULT_COLUMN_WIDTH = 12
-    shapes_column_width = max([len(str(evt.input_shapes)) for evt in events]) + 4
-    shapes_column_width = min(shapes_column_width, 45)
-
-    flops_column_width = DEFAULT_COLUMN_WIDTH
+        DEFAULT_COLUMN_WIDTH = 12
+        shapes_column_width = max([len(str(evt.input_shapes)) for evt in events]) + 4
+        shapes_column_width = min(shapes_column_width, 45)
+    MAX_NAME_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH, name_column_width, shapes_column_width = get_column_width()
 
     src_column_width = None
-    stacks = []
-    for evt in events:
-        if evt.stack is not None and len(evt.stack) > 0:
-            stacks.append(evt.stack)
-    has_stack = len(stacks) > 0
-    if has_stack:
-        src_column_width = max([max([len(entry) for entry in stack]) for stack in stacks]) + 4
-        src_column_width = min(src_column_width, max_src_column_width)
-
-    headers = [
-        'Name',
-        'Self CPU %',
-        'Self CPU',
-        'CPU total %',
-        'CPU total',
-        'CPU time avg',
-    ]
-    if has_cuda_time:
-        headers.extend([
-            'Self CUDA',
-            'Self CUDA %',
-            'CUDA total',
-            'CUDA time avg',
-        ])
-    if has_npu_time:
-        headers.extend([
-            'Self NPU',
-            'Self NPU %',
-            'NPU total',
-            'NPU time avg',
-        ])
-    if profile_memory:
-        headers.extend([
-            'CPU Mem',
-            'Self CPU Mem',
-        ])
-        if has_cuda_mem:
+    def get_headers():
+        headers = [
+            'Name',
+            'Self CPU %',
+            'Self CPU',
+            'CPU total %',
+            'CPU total',
+            'CPU time avg',
+        ]
+        if has_npu_time:
             headers.extend([
-                'CUDA Mem',
-                'Self CUDA Mem',
+                'Self NPU',
+                'Self NPU %',
+                'NPU total',
+                'NPU time avg',
             ])
-        if has_npu_mem:
+        if profile_memory:
             headers.extend([
-                'NPU Mem',
-                'Self NPU Mem',
+                'CPU Mem',
+                'Self CPU Mem',
             ])
-    headers.append(
-        '# of Calls'
-    )
-    # Only append Node ID if any event has a valid (>= 0) Node ID
-    append_node_id = any([evt.node_id != -1 for evt in events])
-    if append_node_id:
-        headers.append('Node ID')
-
+            if has_npu_mem:
+                headers.extend([
+                    'NPU Mem',
+                    'Self NPU Mem',
+                ])
+        headers.append(
+            '# of Calls'
+        )
+        # Only append Node ID if any event has a valid (>= 0) Node ID
+        append_node_id = any([evt.node_id != -1 for evt in events])
+        if append_node_id:
+            headers.append('Node ID')
+        return headers, append_node_id
+    headers, append_node_id = get_headers()
     # Have to use a list because nonlocal is Py3 only...
     SPACING_SIZE = 2
     row_format_lst = [""]
@@ -1589,28 +1424,6 @@ def build_table(
         headers.append('Input Shapes')
         add_column(shapes_column_width)
 
-    if has_stack:
-        headers.append('Source Location')
-        add_column(src_column_width, text_dir='<')
-
-    if with_flops:
-        # Auto-scaling of flops header
-        US_IN_SECOND = 1000.0 * 1000.0  # cpu_time_total is in us
-        raw_flops = []
-        for evt in events:
-            if evt.flops > 0:
-                if evt.cuda_time_total != 0:
-                    evt.flops = float(evt.flops) / evt.cuda_time_total * US_IN_SECOND
-                else:
-                    evt.flops = float(evt.flops) / evt.cpu_time_total * US_IN_SECOND
-                raw_flops.append(evt.flops)
-        if len(raw_flops) != 0:
-            (flops_scale, flops_header) = auto_scale_flops(min(raw_flops))
-            headers.append(flops_header)
-            add_column(flops_column_width)
-        else:
-            with_flops = False  # can't find any valid flops
-
     row_format = row_format_lst[0]
     header_sep = header_sep_lst[0]
     line_length = line_length_lst[0]
@@ -1622,22 +1435,23 @@ def build_table(
     def append(s):
         result.append(s)
         result.append('\n')  # Yes, newline after the end as well
-
-    sum_self_cpu_time_total = sum([event.self_cpu_time_total for event in events])
-    sum_self_cuda_time_total = 0
-    sum_self_npu_time_total = 0
-    for evt in events:
-        if evt.device_type == DeviceType.CPU:
-            # in legacy profiler, kernel info is stored in cpu events
-            if evt.is_legacy:
-                sum_self_cuda_time_total += evt.self_cuda_time_total
+    def get_time_total():
+        sum_self_cpu_time_total = sum([event.self_cpu_time_total for event in events])
+        sum_self_cuda_time_total = 0
+        sum_self_npu_time_total = 0
+        for evt in events:
+            if evt.device_type == DeviceType.CPU:
+                # in legacy profiler, kernel info is stored in cpu events
+                if evt.is_legacy:
+                    sum_self_cuda_time_total += evt.self_cuda_time_total
+                    sum_self_npu_time_total += evt.self_npu_time_total
+            elif evt.device_type == DeviceType.NPU:
+                # in kineto profiler, there're events with the correct device type (e.g. CUDA)
                 sum_self_npu_time_total += evt.self_npu_time_total
-        elif evt.device_type == DeviceType.CUDA:
-            # in kineto profiler, there're events with the correct device type (e.g. CUDA)
-            sum_self_cuda_time_total += evt.self_cuda_time_total
-        elif evt.device_type == DeviceType.NPU:
-            # in kineto profiler, there're events with the correct device type (e.g. CUDA)
-            sum_self_npu_time_total += evt.self_npu_time_total
+            else:
+                raise RuntimeError("only support for NPU or CPU")
+        return sum_self_cpu_time_total, sum_self_npu_time_total
+    sum_self_cpu_time_total, sum_self_npu_time_total = get_time_total()
 
     # Actual printing
     if header is not None:
@@ -1651,104 +1465,62 @@ def build_table(
 
     append(header_sep)
 
-    def trim_path(path, src_column_width):
-        if len(path) > src_column_width:
-            offset = len(path) - src_column_width
-            path = path[offset:]
-            if len(path) > 3:
-                path = "..." + path[3:]
-        return path
-
     event_limit = 0
-    for evt in events:
-        if event_limit == row_limit:
-            break
-        if top_level_events_only and evt.cpu_parent is not None:
-            continue
-        else:
-            event_limit += 1
-        name = evt.key
-        if len(name) >= MAX_NAME_COLUMN_WIDTH - 3:
-            name = name[:(MAX_NAME_COLUMN_WIDTH - 3)] + "..."
-        row_values = [
-            name,
-            # Self CPU total %, 0 for async events.
-            format_time_share(evt.self_cpu_time_total,
-                              sum_self_cpu_time_total),
-            evt.self_cpu_time_total_str,  # Self CPU total
-            # CPU total %, 0 for async events.
-            format_time_share(evt.cpu_time_total, sum_self_cpu_time_total) if not evt.is_async else 0,
-            evt.cpu_time_total_str,  # CPU total
-            evt.cpu_time_str,  # CPU time avg
-        ]
-        if has_cuda_time:
-            row_values.extend([
-                evt.self_cuda_time_total_str,
-                # CUDA time total %
-                format_time_share(evt.self_cuda_time_total, sum_self_cuda_time_total),
-                evt.cuda_time_total_str,
-                evt.cuda_time_str,  # Cuda time avg
-            ])
-        if has_npu_time:
-            row_values.extend([
-                evt.self_npu_time_total_str,
-                # NPU time total %
-                format_time_share(evt.self_npu_time_total, sum_self_npu_time_total),
-                evt.npu_time_total_str,
-                evt.npu_time_str,  # Npu time avg
-            ])
-        if profile_memory:
-            row_values.extend([
-                # CPU Mem Total
-                format_memory(evt.cpu_memory_usage),
-                # Self CPU Mem Total
-                format_memory(evt.self_cpu_memory_usage),
-            ])
-            if has_cuda_mem:
-                row_values.extend([
-                    # CUDA Mem Total
-                    format_memory(evt.cuda_memory_usage),
-                    # Self CUDA Mem Total
-                    format_memory(evt.self_cuda_memory_usage),
-                ])
-            if has_npu_mem:
-                row_values.extend([
-                    # NPU Mem Total
-                    format_memory(evt.npu_memory_usage),
-                    # Self NPU Mem Total
-                    format_memory(evt.self_npu_memory_usage),
-                ])
-        row_values.append(
-            evt.count,  # Number of calls
-        )
-
-        if append_node_id:
-            row_values.append(evt.node_id)
-        if has_input_shapes:
-            row_values.append(str(evt.input_shapes)[:shapes_column_width])
-        if with_flops:
-            if evt.flops <= 0.0:
-                row_values.append("--")
+    def get_result():
+        for evt in events:
+            if event_limit == row_limit:
+                break
+            if top_level_events_only and evt.cpu_parent is not None:
+                continue
             else:
-                row_values.append('{0:8.3f}'.format(evt.flops * flops_scale))
-        if has_stack:
-            src_field = ""
-            if len(evt.stack) > 0:
-                src_field = trim_path(evt.stack[0], src_column_width)
-            row_values.append(src_field)
-        append(row_format.format(*row_values))
+                event_limit += 1
+            name = evt.key
+            if len(name) >= MAX_NAME_COLUMN_WIDTH - 3:
+                name = name[:(MAX_NAME_COLUMN_WIDTH - 3)] + "..."
+            row_values = [
+                name,
+                # Self CPU total %, 0 for async events.
+                format_time_share(evt.self_cpu_time_total,
+                                sum_self_cpu_time_total),
+                evt.self_cpu_time_total_str,  # Self CPU total
+                # CPU total %, 0 for async events.
+                format_time_share(evt.cpu_time_total, sum_self_cpu_time_total) if not evt.is_async else 0,
+                evt.cpu_time_total_str,  # CPU total
+                evt.cpu_time_str,  # CPU time avg
+            ]
+            if has_npu_time:
+                row_values.extend([
+                    evt.self_npu_time_total_str,
+                    # NPU time total %
+                    format_time_share(evt.self_npu_time_total, sum_self_npu_time_total),
+                    evt.npu_time_total_str,
+                    evt.npu_time_str,  # Npu time avg
+                ])
+            if profile_memory:
+                row_values.extend([
+                    # CPU Mem Total
+                    format_memory(evt.cpu_memory_usage),
+                    # Self CPU Mem Total
+                    format_memory(evt.self_cpu_memory_usage),
+                ])
+                if has_npu_mem:
+                    row_values.extend([
+                        # NPU Mem Total
+                        format_memory(evt.npu_memory_usage),
+                        # Self NPU Mem Total
+                        format_memory(evt.self_npu_memory_usage),
+                    ])
+            row_values.append(
+                evt.count,  # Number of calls
+            )
 
-        if has_stack:
-            empty_headers = [""] * (len(headers) - 1)
-            for entry in evt.stack[1:MAX_STACK_ENTRY]:
-                append(row_format.format(*(empty_headers + [trim_path(entry, src_column_width)])))
-            empty_headers.append("")
-            append(row_format.format(*empty_headers))
-
+            if append_node_id:
+                row_values.append(evt.node_id)
+            if has_input_shapes:
+                row_values.append(str(evt.input_shapes)[:shapes_column_width])
+    get_result()
     append(header_sep)
     append("Self CPU time total: {}".format(format_time(sum_self_cpu_time_total)))
-    if has_cuda_time:
-        append("Self CUDA time total: {}".format(format_time(sum_self_cuda_time_total)))
     if has_npu_time:
         append("Self NPU time total: {}".format(format_time(sum_self_npu_time_total)))
     return ''.join(result)
