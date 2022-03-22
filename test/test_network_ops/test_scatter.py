@@ -51,7 +51,7 @@ class TestScatter(TestCase):
         input1 = input1.cpu()
         return input1.numpy()
 
-    def test_scatter_shape_format(self, device="npu"):
+    def test_scatter_shape_format(self):
         shape_format = [
                 [0, [3, 5], [np.float32, 0, [2, 5]]],
                 [0, [3, 5], [np.float32, 3, [2, 5]]],
@@ -86,6 +86,20 @@ class TestScatter(TestCase):
             npu_output = self.npu_op_exec_inplace(item[1], item[0], index, 1.23, False)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_scatter_debug(self):
+        a = np.random.uniform(-2,2,(31, 43, 41, 97)).astype(np.float16)
+        b = np.random.uniform(0,30,(31, 43, 41, 97)).astype(np.int32)
+        c = np.random.uniform(-2,2,(31, 43, 41, 97)).astype(np.float16)
+        ca = torch.from_numpy(a)
+        cb = torch.from_numpy(b).long()
+        cc = torch.from_numpy(c)
+        na = ca.npu()
+        nb = cb.npu()
+        nc = cc.npu()
+        dim = 0
+        cpu_output = torch.scatter(ca, dim, cb, cc)
+        npu_output = torch.scatter(na, dim, nb, nc)
+        self.assertRtolEqual(cpu_output, npu_output.cpu())
 
 if __name__ == "__main__":
     run_tests()
