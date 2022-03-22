@@ -49,10 +49,9 @@ Tensor _s_where_npu(
     const Tensor& self,
     const Tensor& other) {
   Tensor result = OpPreparation::ApplyTensor(self);
-  // maskrcnn need dynamicshape function of op "SelectV2"
-  string opName = c10::npu::OptionsManager::CheckDynamicEnable() ? "SelectV2" : "Select";
+
   OpCommand cmd;
-  cmd.Name(opName)
+  cmd.Name("Select")
     .Input(condition)
     .Input(self)
     .Input(other)

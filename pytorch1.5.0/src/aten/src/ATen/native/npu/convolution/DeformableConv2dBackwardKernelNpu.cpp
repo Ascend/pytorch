@@ -45,9 +45,9 @@ tuple<Tensor, Tensor, Tensor, Tensor> deformable_conv2d_backward_npu(
       offset_out, grad_output, weight, conv2dStride, conv2dPadding, conv2dDilation, groups, {true, true, true});
 
   // DeformableOffsetsGrad's input 'grad' is the output[0] of conv2d_backward
-  Tensor deformableOffsetsBackwardInput = get<0>(conv2dBackwardOutput);
-  Tensor grad_weight = get<1>(conv2dBackwardOutput);
-  Tensor grad_bias = get<2>(conv2dBackwardOutput);
+  Tensor deformableOffsetsBackwardInput = std::get<0>(conv2dBackwardOutput);
+  Tensor grad_weight = std::get<1>(conv2dBackwardOutput);
+  Tensor grad_bias = std::get<2>(conv2dBackwardOutput);
 
   string dataFormat = "NCHW";
   // calculate the output result of the NPU

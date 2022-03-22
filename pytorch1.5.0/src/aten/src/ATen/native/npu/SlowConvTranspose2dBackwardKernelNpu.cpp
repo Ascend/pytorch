@@ -70,33 +70,19 @@ Tensor slow_conv_transpose2d_backward_weight_out_npu(
   int64_t groups = 1;
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   // executing the NPU operator
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilter")
-        .Input(grad_output)
-        .Input(dimList, at::kInt)
-        .Input(self)
-        .Output(grad_weight)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilterD")
-        .Input(grad_output)
-        .Input(self)
-        .Output(grad_weight)
-        .Attr("filter_size", dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
+
+  OpCommand cmd;
+  cmd.Name("Conv2DBackpropFilter")
+      .Input(grad_output)
+      .Input(dimList, at::kInt)
+      .Input(self)
+      .Output(grad_weight)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
 
   return grad_weight;
 }

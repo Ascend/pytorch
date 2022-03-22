@@ -349,10 +349,6 @@ class OpCommandImpl {
     params.paras.inputFormats = inputFormatsArr;
     params.paras.outputFormats = outputFormatsArr;
     params.paras.hasAttr = execParam.hasAttr;
-
-    params.constParams.constNum = constNum;
-    params.constParams.constList = constListArr;
-    params.constParams.constIdx = constIdxArr;
     params.hostMemory = execParam.hostMem;
     if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
       params.isFuzzy = true;

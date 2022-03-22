@@ -32,31 +32,17 @@ Tensor conv3d_backward_inputmask(Tensor &gradInput, const Tensor &input,
   Tensor weightCast = weight.to(grad.dtype());
   
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    cmd.Name("Conv3DBackpropInput")
-      .Input(inputSize, at::kInt)
-      .Input(weightCast)
-      .Input(grad)
-      .Output(gradInput)
-      .Attr("strides", stridesSize)
-      .Attr("pads", paddings)
-      .Attr("dilations", dilations)
-      .Attr("groups", groups)
-      .Attr("data_format", (string) "NCDHW")
-      .Run(); 
-  } else {
-    cmd.Name("Conv3DBackpropInputD")
-      .Input(weightCast)
-      .Input(grad)
-      .Output(gradInput)
-      .Attr("input_size", inputSize)
-      .Attr("strides", stridesSize)
-      .Attr("pads", paddings)
-      .Attr("dilations", dilations)
-      .Attr("groups", groups)
-      .Attr("data_format", (string) "NCDHW")
-      .Run();
-  }
+  cmd.Name("Conv3DBackpropInput")
+    .Input(inputSize, at::kInt)
+    .Input(weightCast)
+    .Input(grad)
+    .Output(gradInput)
+    .Attr("strides", stridesSize)
+    .Attr("pads", paddings)
+    .Attr("dilations", dilations)
+    .Attr("groups", groups)
+    .Attr("data_format", (string) "NCDHW")
+    .Run();
   return gradInput;
 }
 
@@ -71,7 +57,6 @@ Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
   IntArrayRef inputSize = weight.sizes();
 
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     cmd.Name("Conv3DBackpropFilter")
       .Input(input)
       .Input(inputSize, at::kInt)
@@ -83,19 +68,6 @@ Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
       .Attr("groups", groups)
       .Attr("data_format", (string) "NCDHW")
       .Run();
-  } else {
-    cmd.Name("Conv3DBackpropFilterD")
-      .Input(input)
-      .Input(grad)
-      .Output(gradWeight)
-      .Attr("filter_size", inputSize)
-      .Attr("strides", stridesSize)
-      .Attr("pads", paddings)
-      .Attr("dilations", dilations)
-      .Attr("groups", groups)
-      .Attr("data_format", (string) "NCDHW")
-      .Run();
-  }
 
   return gradWeight;
 }

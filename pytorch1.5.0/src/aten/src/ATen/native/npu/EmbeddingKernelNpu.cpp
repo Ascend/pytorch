@@ -30,30 +30,13 @@ Tensor& embedding_out_npu(
     bool scale_grad_by_freq,
     bool sparse) {
   SmallVector<int64_t, N> dimVec = {0};
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("GatherV2")
-        .Input(weight)
-        .Input(indices)
-        .Input(dimVec, at::kInt)
-        .Output(result)    
-        .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("GatherV2D")
-        .Input(weight)
-        .Input(indices)
-        .Output(result)
-        .Attr("axis", (int64_t)0);
-    Tensor dimTensor_cpu = from_blob((void*)dimVec.data(), {1}, at::kLong).to(at::kInt);
-    Tensor dimTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(dimTensor_cpu);
-    cmd.DynamicName("GatherV2")
-        .DynamicInput(weight)
-        .DynamicInput(indices)
-        .DynamicInput(dimTensor_npu, "axis")
-        .DynamicOutput(result)
-        .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("GatherV2")
+    .Input(weight)
+    .Input(indices)
+    .Input(dimVec, at::kInt)
+    .Output(result)
+    .Run();
   return result;
 }
 

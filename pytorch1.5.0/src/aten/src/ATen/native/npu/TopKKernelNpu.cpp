@@ -31,38 +31,17 @@ tuple<Tensor&, Tensor&> topk_out_npu_no_transpose(
     bool sorted) {
   SmallVector<int64_t, N> kVec = {k};
   Tensor kCpuTensor = from_blob((void*)kVec.data(), {1}, at::kLong).to(at::kInt);
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    OpCommand cmd;
-    cmd.Name("TopKV2")
-      .Input(self)
-      .Input(kCpuTensor, kVec, "k")
-      .Output(values)
-      .Output(indices)
-      .Attr("dim", dim)
-      .Attr("largest", largest)
-      .Attr("sorted", sorted)
-      .Run();
-  } else{
-    OpDynamicCommand cmd;
-    // Although the value is fixed to false, only the value of sorted can be true.
-    cmd.Name("TopKV2")
-      .Input(self)
-      .Input(kCpuTensor, kVec, "k")
-      .Output(values)
-      .Output(indices)
-      .Attr("dim", dim)
-      .Attr("largest", largest)
-      .Attr("sorted", sorted);
-    cmd.DynamicName("TopKV2")
-        .DynamicInput(self)
-        .DynamicInput(kVec, at::kLong, at::kInt, "k")
-        .DynamicOutput(values)
-        .DynamicOutput(indices)
-        .DynamicAttr("dim", dim)
-        .DynamicAttr("largest", largest)
-        .DynamicAttr("sorted", sorted)
-        .DynamicOpRun();
-  }
+
+  OpCommand cmd;
+  cmd.Name("TopKV2")
+    .Input(self)
+    .Input(kCpuTensor, kVec, "k")
+    .Output(values)
+    .Output(indices)
+    .Attr("dim", dim)
+    .Attr("largest", largest)
+    .Attr("sorted", sorted)
+    .Run();
   return tuple<Tensor&, Tensor&>(values, indices);
 }
 

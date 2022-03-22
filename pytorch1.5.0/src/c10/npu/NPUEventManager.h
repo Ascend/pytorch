@@ -17,9 +17,11 @@
 #pragma once
 
 #include <c10/npu/NPUException.h>
+#include <c10/core/thread_pool.h>
 #include <third_party/acl/inc/acl/acl.h>
 #include <deque>
 #include <mutex>
+
 namespace c10 {
 namespace npu {
 class TORCH_NPU_API NPUEventManager {
@@ -31,9 +33,13 @@ public:
   ~NPUEventManager(){}
 
 private:
+  void run(aclrtEvent event);
+
+private:
   std::mutex event_queue_mutex_;
   NPUEventManager();
   std::deque<aclrtEvent> npu_events_;
+  std::shared_ptr<TaskThreadPool> thread_pool_;
 };
 } // namespace NPU
 } // namespace c10

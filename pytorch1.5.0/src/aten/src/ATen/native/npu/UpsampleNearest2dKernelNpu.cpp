@@ -43,35 +43,16 @@ Tensor& upsample_nearest2d_out_npu(
   if (!result.sizes().equals(outputSize)){
     result.resize_(outputSize);
   }
+
   SmallVector<int64_t,N> outputSizeVec = array_to_small_vector(output_size);
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("ResizeNearestNeighborV2")
-      .Input(self)
-      .Input(outputSizeVec, at::kInt)
-      .Output(result)
-      .Attr("align_corners", false)
-      .Attr("half_pixel_centers", false)
-      .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("ResizeNearestNeighborV2D")
-      .Input(self)
-      .Output(result)
-      .Attr("align_corners", false)
-      .Attr("size", output_size)
-      .Attr("half_pixel_centers", false);
-    
-    Tensor outputSizeTensorCpu = from_blob((void*)outputSizeVec.data(), {outputSizeVec.size()}, at::kLong).to(at::kInt);
-    Tensor outputSizeTensorNpu = CalcuOpUtil::copy_tensor_host_to_device(outputSizeTensorCpu);
-    cmd.DynamicName("ResizeNearestNeighborV2")
-        .DynamicInput(self)
-        .DynamicInput(outputSizeTensorNpu, "size")
-        .DynamicOutput(result)
-        .DynamicAttr("align_corners", false)
-        .DynamicAttr("half_pixel_centers", false)
-        .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("ResizeNearestNeighborV2")
+    .Input(self)
+    .Input(outputSizeVec, at::kInt)
+    .Output(result)
+    .Attr("align_corners", false)
+    .Attr("half_pixel_centers", false)
+    .Run();
   return result;
 }
 

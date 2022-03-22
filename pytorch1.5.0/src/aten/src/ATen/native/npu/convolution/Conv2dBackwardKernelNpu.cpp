@@ -73,7 +73,6 @@ Tensor conv2d_backward_input_out_npu(
   string sizeName = "input_size";
 
   // executing the NPU operator
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     OpCommand cmd;
     cmd.Name("Conv2DBackpropInput")
         .Input(dimList, at::kInt)
@@ -87,21 +86,6 @@ Tensor conv2d_backward_input_out_npu(
         .Attr("data_format", dataFormat)
         .Run();
 
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropInputD")
-        .Input(weight)
-        .Input(grad)
-        .Output(gradInput)
-        .Attr(sizeName, dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
-  
   return gradInput;
 }
 
@@ -141,7 +125,6 @@ Tensor conv2d_backward_weight_out_npu(
   string sizeName = "filter_size";
   
   // executing the NPU operator
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     OpCommand cmd;
     cmd.Name("Conv2DBackpropFilter")
         .Input(input, "x", ACL_FORMAT_NCHW)
@@ -155,21 +138,6 @@ Tensor conv2d_backward_weight_out_npu(
         .Attr("data_format", dataFormat)
         .Run();
 
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilterD")
-        .Input(input)
-        .Input(grad)
-        .Output(gradWeight)
-        .Attr(sizeName, dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
-  
   return gradWeight;
 }
 

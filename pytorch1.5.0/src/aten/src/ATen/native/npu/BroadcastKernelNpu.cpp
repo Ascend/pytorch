@@ -34,25 +34,12 @@ Tensor& broadcast_out_npu(
   }
   Tensor shapeCpuTensor = from_blob((void*)tmp_vector.data(), {value}, at::kInt);
   Tensor shapeNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(shapeCpuTensor);
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    OpCommand cmd;
-    cmd.Name("BroadcastTo")
-        .Input(self)
-        .InputPair(shapeNpuTensor, shapeCpuTensor)
-        .Output(result)
-        .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("BroadcastTo")
-        .Input(self)
-        .InputPair(shapeNpuTensor, shapeCpuTensor)
-        .Output(result);
-    cmd.DynamicName("BroadcastTo")
-        .DynamicInput(self)
-        .DynamicInput(shapeNpuTensor, "shape")
-        .DynamicOutput(result)
-        .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("BroadcastTo")
+      .Input(self)
+      .InputPair(shapeNpuTensor, shapeCpuTensor)
+      .Output(result)
+      .Run();
   return result;
 }
 

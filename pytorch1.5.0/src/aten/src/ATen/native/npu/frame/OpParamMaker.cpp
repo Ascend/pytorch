@@ -22,7 +22,6 @@
 #include "c10/npu/NPUEventManager.h"
 #include "c10/npu/NPUQueue.h"
 #include <torch/csrc/autograd/record_function.h>
-#include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "ATen/native/npu/interface/EnvVariables.h"
@@ -191,8 +190,9 @@ aclError OpCommandImpl::InnerRun(string name, AclExecParam& params) {
   aclError ret;
   int index = 0;
   do {
-      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
-          at::native::npu::aoe::aoe_manager().IsInWhiltelist(name)) {
+    if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
+        at::native::npu::aoe::aoe_manager().IsInWhiltelist(name)) {
+
       ret = at::native::npu::AclGenGraphAndDumpForOp(
           name.c_str(),
           inputSize,
@@ -236,34 +236,17 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
   NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
   aclError ret;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    bool reset_flag = false;
-    if (!cur_paras->isFuzzy) {
-      AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
-      reset_flag = true;
-    }
-    {
-      if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
-          at::native::npu::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
-        ret = at::native::npu::AclGenGraphAndDumpForOp(
-            (cur_paras->opType).c_str(),
-            cur_paras->paras.input_num,
-            cur_paras->paras.input_desc,
-            cur_paras->paras.input_data_buf,
-            cur_paras->paras.output_num,
-            cur_paras->paras.output_desc,
-            cur_paras->paras.output_data_buf,
-            cur_paras->attr,
-            ACL_ENGINE_SYS,
-            at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
-            nullptr);
-        if (ret != ACL_ERROR_NONE) {
-          C10_NPU_SHOW_ERR_MSG();
-          TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
-        }
-      }
-      RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
-      ret = aclopCompileAndExecute(
+
+  bool reset_flag = false;
+  if (!cur_paras->isFuzzy) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+    reset_flag = true;
+  }
+
+  {
+    if (at::native::npu::aoe::aoe_manager().IsAoeEnabled() &&
+        at::native::npu::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
+      ret = at::native::npu::AclGenGraphAndDumpForOp(
           (cur_paras->opType).c_str(),
           cur_paras->paras.input_num,
           cur_paras->paras.input_desc,
@@ -273,18 +256,36 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
           cur_paras->paras.output_data_buf,
           cur_paras->attr,
           ACL_ENGINE_SYS,
-          ACL_COMPILE_SYS,
-          nullptr,
-          stream);
+          at::native::npu::aoe::aoe_manager().GetDumpGraphPath().c_str(),
+          nullptr);
+      if (ret != ACL_ERROR_NONE) {
+        C10_NPU_SHOW_ERR_MSG();
+        TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
+      }
     }
-    if (reset_flag) {
-      AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
-    }
-    if (ret != ACL_ERROR_NONE) {
-      C10_NPU_SHOW_ERR_MSG();
-    }
-  } else {
-    ret = DynamicRun(*cur_paras, stream);
+
+    RECORD_HOST_FUNCTION("aclopCompileAndExecute: " + cur_paras->opType, std::vector<c10::IValue>({}));
+    ret = aclopCompileAndExecute(
+        (cur_paras->opType).c_str(),
+        cur_paras->paras.input_num,
+        cur_paras->paras.input_desc,
+        cur_paras->paras.input_data_buf,
+        cur_paras->paras.output_num,
+        cur_paras->paras.output_desc,
+        cur_paras->paras.output_data_buf,
+        cur_paras->attr,
+        ACL_ENGINE_SYS,
+        ACL_COMPILE_SYS,
+        nullptr,
+        stream);
+  }
+
+  if (reset_flag) {
+    AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+  }
+
+  if (ret != ACL_ERROR_NONE) {
+    C10_NPU_SHOW_ERR_MSG();
   }
 
   if (ret != 0) {
@@ -431,10 +432,6 @@ void  ReleaseParamFunc(void* ptr) {
   auto type = queueParam->paramType;
   if (type == COMPILE_AND_EXECUTE) {
     auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
-    if (!cur_paras->opDynamicType.empty()) {
-      cur_paras->DynamicRelease();
-      cur_paras->opDynamicType = "";
-    }
     cur_paras->Release();
   }
 }

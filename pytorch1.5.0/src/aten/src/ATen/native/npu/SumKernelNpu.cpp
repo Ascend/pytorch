@@ -34,26 +34,14 @@ Tensor& sum_out_npu_no_dtype(
     dimList = SmallVector<int64_t, N>(dim);
   }
 
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("ReduceSum")
-        .Input(self)
-        .Input(dimList, at::kLong)
-        .Output(result)
-        .Attr("keep_dims", keepdim)
-        .Run();
-    return result;
-  } else {
-    Tensor dimCpuTensor = from_blob((void*)dimList.data(), {dimList.size()}, at::kLong).to(at::kInt); 
-    OpCommand cmd;
-    cmd.Name("ReduceSum")
-        .Input(self, "x")
-        .Input(dimCpuTensor, dimList, "axes")
-        .Output(result)
-        .Attr("keep_dims", keepdim)
-        .Run();
-    return result;
-  }
+  OpCommand cmd;
+  cmd.Name("ReduceSum")
+      .Input(self)
+      .Input(dimList, at::kLong)
+      .Output(result)
+      .Attr("keep_dims", keepdim)
+      .Run();
+  return result;
 }
 
 Tensor& sum_out_npu_int_dtype(

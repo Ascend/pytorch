@@ -153,11 +153,6 @@ def current_device():
     _lazy_init()
     return torch._C._npu_getDevice()
 
-
-def increase_step():
-    return torch._C._npu_increaseStep()
-
-
 def is_available():
     if (not hasattr(torch._C, '_npu_setDevice')):
         return False

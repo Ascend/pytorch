@@ -39,6 +39,23 @@ Tensor dropout_do_mask(
   return result;
 }
 
+std::tuple<Tensor, Tensor> dropout_do_mask_impl(
+    const Tensor& self,
+    const Tensor& mask,
+    double p) {
+  Scalar prob = Scalar(1. - p);
+  Tensor result = OpPreparation::ApplyTensor(self);
+  OpCommand cmd;
+  cmd.Name("DropOutDoMask")
+      .Input(self)
+      .Input(mask)
+      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Output(result)
+      .Run();
+
+  return std::tie(result, mask);
+}
+
 Tensor dropout_gen_mask(const Tensor& self, Scalar prob) {
   bool isFuzzyCompile = env::CheckFuzzyEnable();
   int64_t numels;
@@ -61,6 +78,28 @@ Tensor dropout_gen_mask(const Tensor& self, Scalar prob) {
   cmd.Name("DropOutGenMask")
       .Input(selfShape)
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Output(mask)
+      .Attr("seed", seed)
+      .Attr("seed2", seed2)
+      .Run();
+  return mask;
+}
+
+Tensor dropout_gen_mask_impl(IntArrayRef size, double p, const TensorOptions& options) {
+  Scalar prob = Scalar(1. - p);
+  int64_t numels = prod_intlist(size);
+
+  uint32_t length = (numels + 128 - 1) / 128 * 128;
+  Tensor mask = OpPreparation::ApplyTensorWithFormat(IntArrayRef{length / 8}, options.dtype(at::kByte), ACL_FORMAT_ND);
+
+  OpCommand cmd;
+  // If either seed or seed2 are set to be non-zero, the random number generator
+  // is seeded by the given seed. Otherwise, it is seeded by a random seed.
+  int64_t seed = 0;
+  int64_t seed2 = 0;
+  cmd.Name("DropOutGenMask")
+      .Input(size)
+      .Input(prob, c10::typeMetaToScalarType(options.dtype()), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(mask)
       .Attr("seed", seed)
       .Attr("seed2", seed2)

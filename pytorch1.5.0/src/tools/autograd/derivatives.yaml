@@ -1718,3 +1718,6 @@
 - name: npu_multi_head_attention(Tensor query, Tensor key, Tensor value, Tensor query_weight, Tensor key_weight, Tensor value_weight, Tensor attn_mask, Tensor out_proj_weight, Tensor? query_bias, Tensor? key_bias, Tensor? value_bias, Tensor? out_proj_bias, Tensor? dropout_mask, int attn_head_num, int attn_dim_per_head, int src_len, int tgt_len, float dropout_prob, bool softmax_use_float) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
   output_differentiability: [True, False, False, False, False, False, False, False]
   query_weight, key_weight, value_weight, out_proj_weight, query, key, value, query_bias, key_bias, value_bias, out_proj_bias: npu_multi_head_attention_backward(query, key, value, query_weight, key_weight, value_weight, out_proj_weight, query_bias, key_bias, value_bias, out_proj_bias, result2, result3, result4, result5, result6, result7, grad, result1, attn_head_num, attn_dim_per_head, src_len, tgt_len, dropout_prob, softmax_use_float)
+
+- name: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
+  self: npu_dropout_backward(grad, result1, p)

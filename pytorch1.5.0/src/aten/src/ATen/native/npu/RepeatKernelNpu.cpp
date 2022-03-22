@@ -31,30 +31,13 @@ Tensor& repeat_out_npu(
   for (int i = 0; i < value; i++){
     tmp_vector.emplace_back(repeats[i]);
   }
-  
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Tile")
-      .Input(self)
-      .Input(repeats)
-      .Output(result)
-      .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("TileD")
-      .Input(self)
-      .Output(result)
-      .Attr("multiples", repeats);
-    SmallVector<int64_t, N> repeatsVec = array_to_small_vector(repeats);
-    Tensor repeatsCpuTensor = from_blob((void*)repeats.data(), {repeats.size()}, at::kLong).to(at::kInt);
-    Tensor repeatsNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(repeatsCpuTensor);
-    cmd.DynamicName("Tile")
-        .DynamicInput(self)
-        .DynamicInput(repeatsNpuTensor, "multiples")
-        .DynamicOutput(result)
-        .DynamicOpRun();
 
-  }
+  OpCommand cmd;
+  cmd.Name("Tile")
+    .Input(self)
+    .Input(repeats)
+    .Output(result)
+    .Run();
   return result;
 }
 

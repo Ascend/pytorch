@@ -43,28 +43,13 @@ Tensor& mean_out_npu_no_dtype_nocheck(
     dimVec = array_to_small_vector(dim);
   }
 
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("ReduceMean")
-      .Input(self)
-      .Input(dimVec, at::kLong)
-      .Output(result)      
-      .Attr("keep_dims",keepdim)
-      .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("ReduceMeanD")
-      .Input(self)
-      .Output(result)
-      .Attr("axes",dim)
-      .Attr("keep_dims",keepdim);
-    cmd.DynamicName("ReduceMean")
-      .DynamicInput(self)
-      .DynamicInput(dimVec, at::kLong, at::kInt, "axes")
-      .DynamicOutput(result)
-      .DynamicAttr("keep_dims", keepdim)
-      .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("ReduceMean")
+    .Input(self)
+    .Input(dimVec, at::kLong)
+    .Output(result)
+    .Attr("keep_dims",keepdim)
+    .Run();
   return result;
 }
 

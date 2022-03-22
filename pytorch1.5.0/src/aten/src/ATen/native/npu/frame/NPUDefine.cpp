@@ -21,31 +21,13 @@ namespace native {
 namespace npu {
 
 void ExecuteParas::Release() {
-  // if useDynamicCompile, this attr will be freed in dynamic compile. 
   if (!isCompiling) {
     aclopDestroyAttr(attr);
     attr = nullptr;
   }
-  DestroyConstParams(constParams);
   NPUStatus ret = DestroyAclParams(paras);
   if (ret != SUCCESS) {
     NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
-  }
-  return;
-}
-
-void ExecuteParas::DynamicRelease() {
-  // if useDynamicCompile, this attr will be freed in dynamic compile. 
-  if (!isCompiling) {
-    if (dynamicCompileAttr != nullptr) {
-      aclopDestroyAttr(dynamicCompileAttr);
-      dynamicCompileAttr = nullptr;
-    }
-
-    NPUStatus ret = DestroyDynamicAclParams(dynamicParam);
-    if (ret != SUCCESS) {
-      NPU_LOGE("DestroyAclParams fail, ret: %s", ret.c_str());
-    }
   }
   return;
 }
@@ -55,13 +37,6 @@ void ExecuteParas::Copy(ExecuteParas& other) {
   this->attrInfo = other.attrInfo;
   this->paras = other.paras;
   this->attr = other.attr;
-  this->constParams = other.constParams;
-  if (other.opDynamicType != "") {
-    this->opDynamicType = other.opDynamicType;
-    this->dynamicCompileAttr = other.dynamicCompileAttr;
-    this->dynamicRunAttr = other.dynamicRunAttr;
-    this->dynamicParam = other.dynamicParam;
-  }
   this->hostMemory = other.hostMemory;
   this->isFuzzy = other.isFuzzy;
   this->isCompiling = other.isCompiling;
@@ -71,13 +46,7 @@ void ExecuteParas::CopyEx(ExecuteParas& other)
 {
   this->paras = other.paras;
   this->attr = other.attr;
-  this->constParams = other.constParams;
   this->isCompiling = other.isCompiling;
-  if (other.opDynamicType != "") {
-    this->dynamicCompileAttr = other.dynamicCompileAttr;
-    this->dynamicRunAttr = other.dynamicRunAttr;
-    this->dynamicParam = other.dynamicParam;
-  }
 }
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {
@@ -117,79 +86,6 @@ NPUStatus DestroyAclParams(ACL_PARAMS& params) {
   params.outputFormats = nullptr;
   params.output_data_buf = nullptr;
   return SUCCESS;
-}
-
-NPUStatus DestroyDynamicAclParams(ACL_DYNAMIC_PARAMS& params) {
-  if (params.input_num != 0) {
-    if (params.input_desc != nullptr) {
-      for (int i = 0; i < params.input_num; ++i) {
-        aclDestroyTensorDesc(params.input_desc[i]);
-      }
-      delete[] params.input_desc;
-      params.input_desc = nullptr;
-    }
-
-    if (params.compile_input_desc != nullptr) {
-      for (int i = 0; i < params.input_num; ++i) {
-        aclDestroyTensorDesc(params.compile_input_desc[i]);
-      }
-      delete[] params.compile_input_desc;
-      params.compile_input_desc = nullptr;
-    }
-
-    if (params.inputDims != nullptr) {
-      delete[] params.inputDims;
-      params.inputDims = nullptr;
-    }
-    
-    if (params.inputFormats != nullptr) {
-      delete[] params.inputFormats;
-      params.inputFormats = nullptr;
-    }
-
-    params.input_num = 0;
-  }
-  if (params.output_num != 0) {
-    if (params.output_desc != nullptr) {
-      for (int i = 0; i < params.output_num; ++i) {
-        aclDestroyTensorDesc(params.output_desc[i]);
-      }
-      delete[] params.output_desc;
-      params.output_desc = nullptr;
-    }
-
-    if (params.compile_output_desc != nullptr) {
-      for (int i = 0; i < params.output_num; ++i) {
-        aclDestroyTensorDesc(params.compile_output_desc[i]);
-      }
-      delete[] params.compile_output_desc;
-      params.compile_output_desc = nullptr;
-    }
-
-    if (params.outputDims != nullptr) {
-      delete[] params.outputDims;
-      params.outputDims = nullptr;
-    }
-    if (params.outputFormats != nullptr) {
-      delete[] params.outputFormats;
-      params.outputFormats = nullptr;
-    }
-
-    params.output_num = 0;
-  }
-  return SUCCESS;
-}
-
-void DestroyConstParams(CONST_PARAMS& params) {
-  if (params.constList != nullptr) {
-    for (int i = 0; i < params.constNum; ++i) {
-      if (params.constList[i] != nullptr) {
-        delete[] params.constList[i];
-      }
-    }
-  }
-  params.constList = nullptr;
-  params.constIdx = nullptr;
 }
 
 } // namespace npu

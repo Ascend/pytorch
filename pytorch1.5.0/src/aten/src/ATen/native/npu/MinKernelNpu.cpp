@@ -165,21 +165,12 @@ Tensor& min_out_npu_nocheck(
     IntArrayRef dims,
     bool keepdim) {
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    cmd.Name("ReduceMin")
-      .Input(self)
-      .Input(dims)
-      .Output(result)
-      .Attr("keep_dims", keepdim)
-      .Run();
-  } else {
-    cmd.Name("ReduceMinD")
-      .Input(self)
-      .Output(result)
-      .Attr("axes", dims)
-      .Attr("keep_dims", keepdim)
-      .Run();
-  }
+  cmd.Name("ReduceMin")
+    .Input(self)
+    .Input(dims)
+    .Output(result)
+    .Attr("keep_dims", keepdim)
+    .Run();
   return result;
 }
 

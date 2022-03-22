@@ -51,83 +51,28 @@ struct ACL_PARAMS {
   bool hasAttr;
 };
 
-struct ACL_DYNAMIC_PARAMS {
-  ACL_DYNAMIC_PARAMS() {
-    input_num = 0;
-    input_desc = nullptr;
-    input_data_buf = nullptr;
-    output_num = 0;
-    output_desc = nullptr;
-    output_data_buf = nullptr;
-    inputDims = nullptr;
-    outputDims = nullptr;
-    inputFormats = nullptr;
-    outputFormats = nullptr;
-    compile_input_desc = nullptr;
-    compile_output_desc = nullptr;
-    dynamicKey = "";
-    hasAttr = false;
-  }
-
-  int input_num;
-  const aclTensorDesc** input_desc;
-  const aclDataBuffer** input_data_buf;
-  int output_num;
-  const aclTensorDesc** output_desc;
-  aclDataBuffer** output_data_buf;
-  int64_t* inputDims;
-  int64_t* outputDims;
-  aclFormat* inputFormats;
-  aclFormat* outputFormats;
-  const aclTensorDesc** compile_input_desc;
-  const aclTensorDesc** compile_output_desc;
-  bool hasAttr;
-  std::string dynamicKey;
-};
-
-struct CONST_PARAMS {
-  int constNum = 0;
-  const int64_t** constList = nullptr;
-  const int64_t* constIdx = nullptr;
-  CONST_PARAMS() = default;
-};
-
 struct ExecuteParas {
   std::string opType;
-  std::string opDynamicType;
   std::string attrInfo;
   bool isCompiling = false;
   bool isFuzzy = false;
   ACL_PARAMS paras;
-  ACL_DYNAMIC_PARAMS dynamicParam;
-  CONST_PARAMS constParams;
   const aclopAttr* attr = nullptr;
-  const aclopAttr* dynamicCompileAttr = nullptr;
-  const aclopAttr* dynamicRunAttr = nullptr;
-  int64_t constIdx = -1;
   SmallVector<Storage, N> hostMemory;
   ExecuteParas(
       std::string opName,
-      std::string opDynamicName,
       aclopAttr* acl_attr,
-      aclopAttr* acl_compile_attr,
-      aclopAttr* acl_run_attr,
       const ACL_PARAMS& aclPars)
       : opType(opName),
         paras(aclPars),
-        attr(acl_attr),
-        dynamicCompileAttr(acl_compile_attr),
-        dynamicRunAttr(acl_run_attr) {}
+        attr(acl_attr) {}
   ExecuteParas() = default;
   void Release();
-  void DynamicRelease();
   void Copy(ExecuteParas& other);
   void CopyEx(ExecuteParas& other);
 };
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params);
-NPUStatus DestroyDynamicAclParams(ACL_DYNAMIC_PARAMS& params);
-void DestroyConstParams(CONST_PARAMS& params);
 
 } // namespace npu
 } // namespace native

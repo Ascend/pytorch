@@ -193,13 +193,6 @@ PyObject * THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObjec
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_increaseStep_wrap(PyObject* self, PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  at::native::npu::DynamicIncreaseSteps();
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
 PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
 {
   HANDLE_TH_ERRORS
@@ -494,7 +487,6 @@ static struct PyMethodDef _THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
-    {"_npu_increaseStep", (PyCFunction)THNPModule_increaseStep_wrap,METH_NOARGS,nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},

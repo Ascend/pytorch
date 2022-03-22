@@ -18,9 +18,9 @@
 
 #include "ATen/native/npu/frame/OpCmdHelper.h"
 #include "ATen/native/npu/frame/OpParamMaker.h"
+#include "ATen/native/npu/frame/FormatHelper.h"
 #include "ATen/native/npu/graph/construct/GraphConstructor.h"
 #include "ATen/native/npu/mirror/NPUTensorIterator.h"
-#include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
 #include "THNPU/THNPUCachingHostAllocator.h"
 #include "c10/npu/NPURunMode.h"
@@ -238,13 +238,6 @@ class OpCommandBase {
       c10::npu::enCurrentNPUStream(&params, needClearVec);
       aclCmd->releaseSource(false);
       needClearVec.clear();
-    } else if (c10::npu::OptionsManager::CheckDynamicEnable()) {
-      ExecuteParas runParams;
-      aclCmd->ExportParams(runParams);
-      auto stream = c10::npu::getCurrentNPUStream();
-      DynamicRun(runParams, stream);
-      runParams.Release();
-      aclCmd->releaseSource(false);
     } else {
       aclCmd->Run();
       aclCmd->releaseSource();

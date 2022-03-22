@@ -45,28 +45,12 @@ bool OptionsManager::CheckTriCombinedOptimizerEnable() {
   return (tri_combined_optimize == 1);
 }
 
-bool OptionsManager::CheckDynamicEnable() {
-  static int dynamicCompileEnable = -1;
-  if (dynamicCompileEnable == -1) {
-    dynamicCompileEnable = GetBoolTypeOption("DYNAMIC_COMPILE_ENABLE");
-  }
-  return (dynamicCompileEnable == 1);
-}
-
 bool OptionsManager::CheckAclDumpDateEnable() {
   static int aclDumpDataEnable = -1;
   if (aclDumpDataEnable == -1) {
     aclDumpDataEnable = GetBoolTypeOption("ACL_DUMP_DATA");
   }
   return (aclDumpDataEnable == 1);
-}
-
-bool OptionsManager::CheckDynamicLogEnable() {
-  static int dynamicLogEnable = -1;
-  if (dynamicLogEnable == -1) {
-    dynamicLogEnable = GetBoolTypeOption("DYNAMIC_LOG_ENABLE");
-  }
-  return (dynamicLogEnable == 1);
 }
 
 bool OptionsManager::CheckSwitchMMOutputEnable() {
@@ -99,15 +83,6 @@ bool OptionsManager::CheckUseNpuLogEnable() {
   }
 
   return (useNpuLog == 1);
-}
-
-bool OptionsManager::CheckDynamicOnly() {
-  static int dynamicOnly = -1;
-  if (dynamicOnly == -1) {
-    dynamicOnly = GetBoolTypeOption("NPU_DYNAMIC_ONLY");
-  }
-
-  return (dynamicOnly == 1);
 }
 
 bool OptionsManager::CheckDynamicOptimizer(const char* op) {

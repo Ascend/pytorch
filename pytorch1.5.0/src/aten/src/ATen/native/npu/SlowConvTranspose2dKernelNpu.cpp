@@ -163,41 +163,24 @@ Tensor& slow_conv_transpose2d_out_npu(
   string dataFormat = "NCHW";
   int64_t groups = 1;
   SmallVector<int64_t, N> sizeVec = array_to_small_vector(out.sizes());
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Conv2DTranspose")
-        .Input(sizeVec, at::kInt)
-        .Input(self)
-        .Input(weight);
-    if (bias.defined()){
-      cmd.Input(bias);
-    }
-    cmd.Output(out)
-        .Attr("pads", paddings)
-        .Attr("output_padding", outputpadding)
-        .Attr("strides", stridesSize)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DTransposeD")
-        .Input(self)
-        .Input(weight);
-    if (bias.defined()){
-      cmd.Input(bias);
-    }
-    cmd.Output(out)
-        .Attr("input_size", sizeVec)
-        .Attr("pads", paddings)
-        .Attr("output_padding", outputpadding)
-        .Attr("strides", stridesSize)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
+
+  OpCommand cmd;
+  cmd.Name("Conv2DTranspose")
+      .Input(sizeVec, at::kInt)
+      .Input(self)
+      .Input(weight);
+  if (bias.defined()){
+    cmd.Input(bias);
   }
+
+  cmd.Output(out)
+      .Attr("pads", paddings)
+      .Attr("output_padding", outputpadding)
+      .Attr("strides", stridesSize)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
 
   return out;
 }

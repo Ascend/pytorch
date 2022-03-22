@@ -289,7 +289,7 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
   // Inverse reshape procedure using for recovering original shape of self.
   if (!train && self.dim() == 5) {
     // NCHW -> NDCHW -> NCDHW
-    swap(self_shape[1], self_shape[2]);
+    std::swap(self_shape[1], self_shape[2]);
     result = result.view(self_shape);
     result = NpuUtils::format_contiguous(result);
     result = result.permute({0, 2, 1, 3, 4}).clone();

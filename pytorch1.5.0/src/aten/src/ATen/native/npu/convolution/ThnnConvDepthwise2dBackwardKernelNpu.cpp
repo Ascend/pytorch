@@ -34,8 +34,7 @@ void thnn_conv_depthwise2d_backward_input_out_npu(
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   auto inputSize = self.sizes();
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    cmd.Name("DepthwiseConv2DBackpropInput")
+  cmd.Name("DepthwiseConv2DBackpropInput")
       .Input(inputSize, at::kInt)
       .Input(weight)
       .Input(grad_output)
@@ -45,18 +44,6 @@ void thnn_conv_depthwise2d_backward_input_out_npu(
       .Attr("dilations", dilations)
       .Attr("data_format", (string)"NCHW")
       .Run();
-  } else {
-    cmd.Name("DepthwiseConv2DBackpropInputD")
-      .Input(weight)
-      .Input(grad_output)
-      .Output(grad_input)
-      .Attr("strides", stridesSize)
-      .Attr("input_size", inputSize)
-      .Attr("pads", paddings)
-      .Attr("dilations", dilations)
-      .Attr("data_format", (string)"NCHW")
-      .Run();
-  }
 }
 
 void thnn_conv_depthwise2d_backward_weight_out_npu(
@@ -73,29 +60,16 @@ void thnn_conv_depthwise2d_backward_weight_out_npu(
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   auto inputSize = weight.sizes();
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    cmd.Name("DepthwiseConv2DBackpropFilter")
-        .Input(self)
-        .Input(inputSize, at::kInt)
-        .Input(grad_output)
-        .Output(grad_weight)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("data_format", (string)"NCHW")
-        .Run();
-  } else {
-    cmd.Name("DepthwiseConv2DBackpropFilterD")
-      .Input(self)
-      .Input(grad_output)
-      .Output(grad_weight)
-      .Attr("strides", stridesSize)
-      .Attr("filter_size", inputSize)
-      .Attr("pads", paddings)
-      .Attr("dilations", dilations)
-      .Attr("data_format", (string)"NCHW")
-      .Run();
-  }
+  cmd.Name("DepthwiseConv2DBackpropFilter")
+     .Input(self)
+     .Input(inputSize, at::kInt)
+     .Input(grad_output)
+     .Output(grad_weight)
+     .Attr("strides", stridesSize)
+     .Attr("pads", paddings)
+     .Attr("dilations", dilations)
+     .Attr("data_format", (string)"NCHW")
+     .Run();
 }
 
 tuple<Tensor&, Tensor&> thnn_conv_depthwise2d_backward_out_npu(

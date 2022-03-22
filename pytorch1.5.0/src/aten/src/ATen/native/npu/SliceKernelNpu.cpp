@@ -29,35 +29,14 @@ Tensor& slice_out_npu(
 
   SmallVector<int64_t, N> offsetVec = array_to_small_vector(offsets);
   SmallVector<int64_t, N> sizeVec = array_to_small_vector(size);
-  
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Slice")
-        .Input(self)
-        .Input(offsetVec)
-        .Input(sizeVec)
-        .Output(result)
-        .Run();
-  } else {
-    SmallVector<int64_t, N> offsetsList = array_to_small_vector(offsets);
-    SmallVector<int64_t, N> sizeList = array_to_small_vector(size);
-    OpDynamicCommand cmd;
-    cmd.Name("SliceD")
-        .Input(self)
-        .Output(result)
-        .Attr("offsets", offsets)
-        .Attr("size", size);
-    Tensor offsetCpuTensor = from_blob((void*)offsetVec.data(), {offsetVec.size()}, at::kLong).to(at::kInt);
-    Tensor offsetNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(offsetCpuTensor);
-    Tensor sizeCpuTensor = from_blob((void*)sizeVec.data(), {sizeVec.size()}, at::kLong);
-    Tensor sizeNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(sizeCpuTensor);
-    cmd.DynamicName("Slice")
-        .DynamicInput(self)
-        .DynamicInput(offsetsList, at::kLong, at::kInt, "offsets", true, FIXED_CONST_VALUE)
-        .DynamicInput(sizeList, at::kLong, at::kInt, "size", true, FIXED_CONST_VALUE)
-        .DynamicOutput(result)
-        .DynamicOpRun();
-  }
+
+  OpCommand cmd;
+  cmd.Name("Slice")
+      .Input(self)
+      .Input(offsetVec)
+      .Input(sizeVec)
+      .Output(result)
+      .Run();
   return result;
 }
 

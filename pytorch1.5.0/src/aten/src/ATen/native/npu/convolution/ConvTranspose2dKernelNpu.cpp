@@ -39,8 +39,7 @@ Tensor& conv_transpose2d_out_npu(
   string sizeName = "input_size";
 
   SmallVector<int64_t, N> sizeVec = array_to_small_vector(result.sizes());
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
+  OpCommand cmd;
     cmd.Name("Conv2DTranspose")
         .Input(sizeVec, at::kInt)
         .Input(input)
@@ -56,25 +55,7 @@ Tensor& conv_transpose2d_out_npu(
         .Attr("groups", groups)
         .Attr("data_format", dataFormat)
         .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DTransposeD")
-        .Input(input)
-        .Input(weight);
-    if (bias.defined()){
-      cmd.Input(bias);
-    }
-    cmd.Output(result)
-        .Attr(sizeName, sizeVec)
-        .Attr("pads", paddings)
-        .Attr("output_padding", outputpadding)
-        .Attr("strides", stridesSize)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
-    
+
   return result;
 }
 

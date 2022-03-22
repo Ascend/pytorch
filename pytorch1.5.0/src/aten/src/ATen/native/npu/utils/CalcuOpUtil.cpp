@@ -23,7 +23,6 @@
 #include <torch/csrc/autograd/record_function.h>
 #include "ATen/native/npu/frame/InferFormat.h"
 #include "ATen/native/npu/mirror/NPUMemoryOverlap.h"
-#include "ATen/native/npu/utils/DynamicShapeUtil.h"
 #include "NpuUtils.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/OptionsManager.h"
@@ -724,8 +723,8 @@ void CalcuOpUtil::execute_npu_operate(
     SmallVector<NPUTensorDesc, N>& inputs,
     SmallVector<NPUTensorDesc, N>& outputs,
     const SmallVector<NPUAttrDesc, N>& attrs) {
-  if (c10::npu::OptionsManager::CheckQueueEnable() ||
-      c10::npu::OptionsManager::CheckDynamicEnable()) {
+
+  if (c10::npu::OptionsManager::CheckQueueEnable()) {
     ExecuteParas cur_paras;
     cur_paras.opType = opName;
     cur_paras.paras.hasAttr = attrs.size() == 0 ? false : true;
@@ -734,19 +733,16 @@ void CalcuOpUtil::execute_npu_operate(
     auto attrRes = CalcuOpUtil::CreateNpuAttrDesc(attrs);
     cur_paras.attr = std::get<0>(attrRes);
     cur_paras.attrInfo = std::get<1>(attrRes);
-    if (c10::npu::OptionsManager::CheckQueueEnable()) {
-      if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
-        cur_paras.isFuzzy = true;
-      }
-      c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
-      SmallVector<Storage, N> needClearVec;
-      c10::npu::enCurrentNPUStream(&params, needClearVec);
-      needClearVec.clear();
-    } else {
-      auto stream = c10::npu::getCurrentNPUStream();
-      DynamicRun(cur_paras, stream);
-      cur_paras.Release();
+
+    if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
+      cur_paras.isFuzzy = true;
     }
+
+    c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+    SmallVector<Storage, N> needClearVec;
+    c10::npu::enCurrentNPUStream(&params, needClearVec);
+    needClearVec.clear();
+
     return;
   }
 

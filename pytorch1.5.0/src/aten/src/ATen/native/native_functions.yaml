@@ -8801,3 +8801,11 @@
   variants: function
   npu_dispatch_only:
     NPU: lstm_cell_npu
+
+- func: npu_dropout_gen_mask(int[] size, float p, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
+  npu_dispatch_only:
+    NPU: dropout_gen_mask_impl
+
+- func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
+  npu_dispatch_only:
+    NPU: dropout_do_mask_impl

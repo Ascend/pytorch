@@ -22,27 +22,18 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& fill_out_npu(Tensor& result, Tensor& self, const Tensor& other) {
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    SmallVector<int64_t, N> dims;
-    if (self.dim() != 0){
-      dims = array_to_small_vector(self.sizes());
-    } else {
-      dims = {1};
-    }
-    OpCommand cmd;
-    cmd.Name("Fill")
-        .Input(dims, at::kLong)
-        .Input(other)
-        .Output(result)
-        .Run();
+  SmallVector<int64_t, N> dims;
+  if (self.dim() != 0){
+    dims = array_to_small_vector(self.sizes());
   } else {
-    OpCommand cmd;
-    cmd.Name("FillD")
+    dims = {1};
+  }
+  OpCommand cmd;
+  cmd.Name("Fill")
+      .Input(dims, at::kLong)
       .Input(other)
       .Output(result)
-      .Attr("dims", self.sizes())
       .Run();
-  }
   return result;
 }
 

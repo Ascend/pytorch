@@ -29,14 +29,12 @@ class OptionsManager {
   static bool CheckQueueEnable();
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
-  static bool CheckDynamicEnable();
   static bool CheckAclDumpDateEnable();
   static bool CheckSwitchMMOutputEnable();
-  static bool CheckDynamicLogEnable();
   static bool CheckDynamicOptimizer(const char* op);
   static bool CheckScalarToHostMemEnable();
   static bool CheckUseNpuLogEnable();
-  static bool CheckDynamicOnly();
+
   static std::string CheckDisableDynamicPath();
  private:
   static int GetBoolTypeOption(const char* env_str);

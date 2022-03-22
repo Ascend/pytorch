@@ -20,28 +20,19 @@ using namespace at::native::npu;
 
 Tensor& _cumsum_out_npu(Tensor& result, const Tensor& self, int64_t dim) {
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    // if dim = 0, performance in Aicpu is better than Aicore
-    // if dim > INT32_MAX, we should use long to store dim for ensuring function correctness.
-    // use host memory instead of scalar to improve delivery performance
-    Scalar dimScalar(dim);
-    cmd.Name("Cumsum")
-      .Input(self);
-    if (dim == 0 || dim > INT32_MAX) {
-      cmd.Input(dimScalar, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
-    } else {
-      cmd.Input(dimScalar, at::kInt, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
-    }
-    cmd.Output(result)
-      .Run();
+  // if dim = 0, performance in Aicpu is better than Aicore
+  // if dim > INT32_MAX, we should use long to store dim for ensuring function correctness.
+  // use host memory instead of scalar to improve delivery performance
+  Scalar dimScalar(dim);
+  cmd.Name("Cumsum")
+    .Input(self);
+  if (dim == 0 || dim > INT32_MAX) {
+    cmd.Input(dimScalar, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
   } else {
-    cmd.Name("CumsumD")
-      .Input(self)
-      .Output(result)
-      .Attr("axis", dim)
-      .Run();
+    cmd.Input(dimScalar, at::kInt, CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
   }
-
+  cmd.Output(result)
+    .Run();
   return result;
 }
 

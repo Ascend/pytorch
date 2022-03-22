@@ -27,32 +27,14 @@ inline Tensor all_out_npu_nocheck(
     const Tensor& self,
     SmallVector<int64_t, N> dimList,
     bool keepdim) {
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    OpCommand cmd;
-    cmd.Name("ReduceAll")
-      .Input(self)
-      .Input(dimList, at::kLong)
-      .Output(result) 
-      .Attr("keep_dims", keepdim)
-      .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("ReduceAllD")
-      .Input(self)
-      .Output(result)
-      .Attr("axes", dimList)
-      .Attr("keep_dims", keepdim);
-    //  DYNAMIC
-    Tensor dimTensor_cpu = from_blob((void*)dimList.data(), {dimList.size()}, at::kLong).to(at::kInt);
-    Tensor dimTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(dimTensor_cpu);
-    cmd.DynamicName("ReduceAll")
-       .DynamicInput(self)
-       .DynamicInput(dimTensor_npu)
-       .DynamicOutput(result, "", FIXED_NONE, false)
-       .DynamicAttr("keep_dims", keepdim)
-       .DynamicOpRun();
 
-  }
+  OpCommand cmd;
+  cmd.Name("ReduceAll")
+    .Input(self)
+    .Input(dimList, at::kLong)
+    .Output(result)
+    .Attr("keep_dims", keepdim)
+    .Run();
   return result;
 }
 

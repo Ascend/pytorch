@@ -26,26 +26,12 @@ Tensor& transpose_out_npu(
     Tensor& result,
     const Tensor& self,
     IntArrayRef perm) {
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    OpCommand cmd;
-    cmd.Name("Transpose")
-        .Input(self)
-        .Input(perm)
-        .Output(result)
-        .Run();
-  } else {
-    SmallVector<int64_t, N> permVec = array_to_small_vector(perm);
-    OpDynamicCommand cmd;
-    cmd.Name("TransposeD")
-       .Input(self)
-       .Output(result)
-       .Attr("perm", perm);
-    cmd.DynamicName("Transpose")
-        .DynamicInput(self)
-        .DynamicInput(permVec, at::kLong, at::kInt, "perm")
-        .DynamicOutput(result)
-        .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("Transpose")
+    .Input(self)
+    .Input(perm)
+    .Output(result)
+    .Run();
   return result;
 }
 

@@ -32,31 +32,13 @@ Tensor& index_select_out_npu_nocheck(
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
   }
   SmallVector<int64_t, N> dimVec = {dim};
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()){
-    OpCommand cmd;
-    cmd.Name("GatherV2")
-        .Input(self)
-        .Input(index)
-        .Input(dimVec, at::kInt)
-        .Output(result)    
-        .Run();
-  } else {
-    OpDynamicCommand cmd;
-    cmd.Name("GatherV2D")
-        .Input(self)
-        .Input(index)
-        .Output(result)
-        .Attr("axis", dim);
-    // DYNAMIC
-    Tensor dimTensor_cpu = from_blob((void*)dimVec.data(), {1}, at::kLong).to(at::kInt);
-    Tensor dimTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(dimTensor_cpu);
-    cmd.DynamicName("GatherV2")
-       .DynamicInput(self)
-       .DynamicInput(index)
-       .DynamicInput(dimTensor_npu, "axis")
-       .DynamicOutput(result)
-       .DynamicOpRun();
-  }
+  OpCommand cmd;
+  cmd.Name("GatherV2")
+      .Input(self)
+      .Input(index)
+      .Input(dimVec, at::kInt)
+      .Output(result)
+      .Run();
 
   return result;
 }

@@ -164,22 +164,14 @@ Tensor& max_out_npu_nocheck(
     const Tensor& self,
     IntArrayRef dims,
     bool keepdim) {
+
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    cmd.Name("ReduceMax")
-      .Input(self)
-      .Input(dims)
-      .Output(result)
-      .Attr("keep_dims", keepdim)
-      .Run();
-  } else {
-    cmd.Name("ReduceMaxD")
-      .Input(self)
-      .Output(result)
-      .Attr("axes", dims)
-      .Attr("keep_dims", keepdim)
-      .Run();
-  }
+  cmd.Name("ReduceMax")
+    .Input(self)
+    .Input(dims)
+    .Output(result)
+    .Attr("keep_dims", keepdim)
+    .Run();
     return result;
 }
 

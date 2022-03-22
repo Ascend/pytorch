@@ -22,25 +22,12 @@ using namespace at::native::npu;
 Tensor flip_npu(const Tensor& self, IntArrayRef dims){
     Tensor result = OpPreparation::ApplyTensor(self);
     SmallVector<int64_t,N> dimVec = array_to_small_vector(dims);
-    if (!c10::npu::OptionsManager::CheckDynamicEnable()) {  
-      OpCommand cmd;
-      cmd.Name("ReverseV2") 
-        .Input(self) 
-        .Input(dimVec, at::kLong) 
-        .Output(result) 
-        .Run();
-    } else {
-      OpDynamicCommand cmd;
-      cmd.Name("ReverseV2D")
-        .Input(self)
-        .Output(result)
-        .Attr("axis", dims);
-      cmd.DynamicName("ReverseV2")
-        .DynamicInput(self)
-        .DynamicInput(dimVec, at::kLong, at::kInt, "axis")
-        .DynamicOutput(result)
-        .DynamicOpRun();
-    }
+    OpCommand cmd;
+    cmd.Name("ReverseV2")
+      .Input(self)
+      .Input(dimVec, at::kLong)
+      .Output(result)
+      .Run();
     return result;
 }
 

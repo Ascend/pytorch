@@ -33,33 +33,18 @@ Tensor slow_conv_dilated2d_backward_input_out_npu(
   string dataFormat = "NCHW";
   int64_t groups = 1;
   SmallVector<int64_t, N> dimList = array_to_small_vector(self.sizes());
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropInput")
-        .Input(dimList, at::kInt)
-        .Input(weight)
-        .Input(grad_output)
-        .Output(grad_input)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropInputD")
-        .Input(weight)
-        .Input(grad_output)
-        .Output(grad_input)
-        .Attr("input_size", dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
+  OpCommand cmd;
+  cmd.Name("Conv2DBackpropInput")
+    .Input(dimList, at::kInt)
+    .Input(weight)
+    .Input(grad_output)
+    .Output(grad_input)
+    .Attr("strides", stridesSize)
+    .Attr("pads", paddings)
+    .Attr("dilations", dilations)
+    .Attr("groups", groups)
+    .Attr("data_format", dataFormat)
+    .Run();
 
   return grad_input;
 }
@@ -81,34 +66,17 @@ Tensor slow_conv_dilated2d_backward_weight_out_npu(
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   // executing the NPU operator
   OpCommand cmd;
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilter")
-        .Input(self)
-        .Input(dimList, at::kInt)
-        .Input(grad_output)
-        .Output(grad_weight)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilterD")
-        .Input(self)
-        .Input(grad_output)
-        .Output(grad_weight)
-        .Attr("filter_size", dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
-
+  cmd.Name("Conv2DBackpropFilter")
+      .Input(self)
+      .Input(dimList, at::kInt)
+      .Input(grad_output)
+      .Output(grad_weight)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
   return grad_weight;
 }
 

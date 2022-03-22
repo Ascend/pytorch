@@ -17,7 +17,6 @@
 
 #ifdef USE_NPU
 
-#include <ATen/native/npu/utils/DynamicShapeUtil.h>
 #include <ATen/native/npu/nputools/E2eProfiler.h>
 #include <ATen/native/npu/nputools/NpuProfiling.h>
 #endif

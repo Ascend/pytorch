@@ -33,23 +33,13 @@ Tensor& upsample_bilinear2d_out_npu_nocheck(
   int64_t H = output_size[0];
   int64_t W = output_size[1];
   SmallVector<int64_t, N> attr_size = {H, W};
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
-    cmd.Name("ResizeBilinearV2")
-      .Input(self)
-      .Input(attr_size, at::kInt)
-      .Output(result)
-      .Attr("align_corners", align_corners)
-      .Attr("half_pixel_centers", half_pixel_centers)
-      .Run();
-  } else {
-    cmd.Name("ResizeBilinearV2D")
-      .Input(self)
-      .Output(result)
-      .Attr("size", attr_size)
-      .Attr("align_corners", align_corners)
-      .Attr("half_pixel_centers", half_pixel_centers)
-      .Run();
-  }
+  cmd.Name("ResizeBilinearV2")
+    .Input(self)
+    .Input(attr_size, at::kInt)
+    .Output(result)
+    .Attr("align_corners", align_corners)
+    .Attr("half_pixel_centers", half_pixel_centers)
+    .Run();
   return result;
 }
 

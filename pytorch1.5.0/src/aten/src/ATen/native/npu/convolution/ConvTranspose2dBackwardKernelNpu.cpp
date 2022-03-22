@@ -71,7 +71,6 @@ Tensor conv_transpose2d_backward_weight_out_npu(
   string dataFormat = "NCHW";
 
   // executing the NPU operator
-  if (!c10::npu::OptionsManager::CheckDynamicEnable()) {
     OpCommand cmd;
     cmd.Name("Conv2DBackpropFilter")
         .Input(grad_output)
@@ -84,21 +83,6 @@ Tensor conv_transpose2d_backward_weight_out_npu(
         .Attr("groups", groups)
         .Attr("data_format", dataFormat)
         .Run();
-
-  } else {
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilterD")
-        .Input(grad_output)
-        .Input(input)
-        .Output(gradWeight)
-        .Attr(sizeName, dimList)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
-  }
 
   return gradWeight;
 }
