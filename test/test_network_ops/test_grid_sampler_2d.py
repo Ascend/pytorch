@@ -65,11 +65,10 @@ class TestGridSampler2D(TestCase):
                 ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
-            cpu_grid, npu_grid = create_common_tensor(item[1], -1, 1)
+            cpu_grid, npu_grid = create_common_tensor(item[1], -3, 3)
             cpu_output = self.cpu_op_fp16_exec(cpu_input, cpu_grid)
             npu_output = self.npu_op_exec(npu_input, npu_grid)
             self.assertRtolEqual(cpu_output, npu_output)
-
 
 if __name__ == "__main__":
     run_tests()
