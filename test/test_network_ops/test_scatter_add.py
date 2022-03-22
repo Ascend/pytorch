@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -45,13 +45,13 @@ class TestScatterAdd(TestCase):
 
     def test_scatter_add_common_shape_format(self, device="npu"):
         shape_format = [
-                [0,     [np.int64, 0, [10, 20]],       [np.float32, 0, [10, 20]],         [np.float32, 0, [10, 20]]],
-                [1,     [np.int64, 0, [10, 20]],       [np.float32, 0, [10, 20]],         [np.float32, 0, [10, 20]]],
-                [0,     [np.int64, 0, [2, 6]],         [np.float32, 0, [2, 6]],           [np.float32, 0, [2, 6]]],
-                [1,     [np.int64, 0, [2, 6]],         [np.float32, 0, [2, 6]],           [np.float32, 0, [2, 6]]],
-                [0,     [np.int64, 0, [10, 20, 30]],   [np.float32, 0, [10, 20, 30]],     [np.float32, 0, [10, 20, 30]]],
-                [1,     [np.int64, 0, [10, 20, 30]],   [np.float32, 0, [10, 20, 30]],     [np.float32, 0, [10, 20, 30]]],
-                [2,     [np.int64, 0, [10, 20, 30]],   [np.float32, 0, [10, 20, 30]],     [np.float32, 0, [10, 20, 30]]],
+                [0, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
+                [1, [np.int64, 0, [10, 20]], [np.float32, 0, [10, 20]], [np.float32, 0, [10, 20]]],
+                [0, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
+                [1, [np.int64, 0, [2, 6]], [np.float32, 0, [2, 6]], [np.float32, 0, [2, 6]]],
+                [0, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
+                [1, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
+                [2, [np.int64, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]], [np.float32, 0, [10, 20, 30]]],
         ]
 
         for item in shape_format:
