@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 import torch.nn as nn
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -27,5 +27,4 @@ class TestSparseLayers(TestCase):
 
 
 if __name__ == "__main__":
-    torch.npu.set_device(0)
     run_tests()

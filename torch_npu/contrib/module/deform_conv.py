@@ -14,10 +14,10 @@
 
 import math
 import torch
-import torch_npu
 import torch.nn as nn
 from torch.autograd import Function
 from torch.nn.modules.utils import _pair, _single
+import torch_npu
 
 
 class ModulatedDeformConv2dFunction(Function):
@@ -86,7 +86,61 @@ class ModulatedDeformConv2dFunction(Function):
 
 
 class ModulatedDeformConv(nn.Module):
+    r"""Applies an NPU based Modulated Deformable 2D convolution operation.
 
+    Paper link:
+    [Deformable ConvNets v2: More Deformable, Better Results](https://arxiv.org/abs/1811.11168)
+
+    Reference implementation link:
+    https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/modulated_deform_conv.py
+
+    The implementation of this ModulatedDeformConv is mainly based
+    on the implementation of mmcv for design and reconstruction.
+
+    In ModulatedDeformConvFunction, the forward and backward are customized,
+    and the input tensor is reconstructed ito match the NPU based function.
+
+    It is worth mentioning that DeformConv(DCNv1) is also implemented
+    by setting modulated==False. Due to the difference between input
+    and initialization, there is no additional implementation here.
+
+    .. note::
+        ModulatedDeformConv only implements operations under fp32 data types.
+        Notice, weight and bias in conv_offset must be initialized to 0.
+
+    Args:
+        in_channels (int): Number of channels in the input image.
+        out_channels (int): Number of channels produced by the convolution.
+        kernel_size(int, tuple): Size of the convolving kernel.
+        stride(int, tuple): Stride of the convolution. Default: 1.
+        padding (int or tuple): Zero-padding added to both sides of the input.
+            Default: 0.
+        dilation (int or tuple): Spacing between kernel elements. Default: 1.
+        groups (int): Number of blocked connections from input.
+            channels to output channels. Default: 1.
+        deform_groups (int): Number of deformable group partitions.
+        bias (bool): If True, adds a learnable bias to the output. Default: False.
+        pack (bool): If True, conv_offset and mask will be included in this module. Default: True.
+
+    Examples::
+        >>> m = ModulatedDeformConv(32, 32, 1)
+        >>> input_tensor = torch.randn(2, 32, 5, 5)
+        >>> output = m(input_tensor)
+
+
+        >>> x = torch.randn(2, 32, 7, 7)
+        >>> model = ModulatedDeformConv(32, 32, 3, 2, 1)
+
+        >>> torch.npu.set_device(0)
+        >>> x = x.npu()
+        >>> model = model.npu()
+
+        >>> o = model(x)
+        >>> l = o.sum()
+        >>> l.backward()
+        >>> print(l)
+    """
+    
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -99,64 +153,7 @@ class ModulatedDeformConv(nn.Module):
                  bias=True,
                  pack=True,
                  ):
-
-        r"""Applies an NPU based Modulated Deformable 2D convolution operation.
-
-        Paper link:
-        [Deformable ConvNets v2: More Deformable, Better Results](https://arxiv.org/abs/1811.11168)
-
-        Reference implementation link:
-        https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/modulated_deform_conv.py
-
-        The implementation of this ModulatedDeformConv is mainly based
-        on the implementation of mmcv for design and reconstruction.
-
-        In ModulatedDeformConvFunction, the forward and backward are customized,
-        and the input tensor is reconstructed ito match the NPU based function.
-
-        It is worth mentioning that DeformConv(DCNv1) is also implemented
-        by setting modulated==False. Due to the difference between input
-        and initialization, there is no additional implementation here.
-
-        .. note::
-            ModulatedDeformConv only implements operations under fp32 data types.
-            Notice, weight and bias in conv_offset must be initialized to 0.
-
-        Args:
-            in_channels (int): Number of channels in the input image.
-            out_channels (int): Number of channels produced by the convolution.
-            kernel_size(int, tuple): Size of the convolving kernel.
-            stride(int, tuple): Stride of the convolution. Default: 1.
-            padding (int or tuple): Zero-padding added to both sides of the input.
-                Default: 0.
-            dilation (int or tuple): Spacing between kernel elements. Default: 1.
-            groups (int): Number of blocked connections from input.
-                channels to output channels. Default: 1.
-            deform_groups (int): Number of deformable group partitions.
-            bias (bool): If True, adds a learnable bias to the output. Default: False.
-            pack (bool): If True, conv_offset and mask will be included in this module. Default: True.
-
-        Examples::
-            >>> m = ModulatedDeformConv(32, 32, 1)
-            >>> input_tensor = torch.randn(2, 32, 5, 5)
-            >>> output = m(input_tensor)
-
-
-            >>> x = torch.randn(2, 32, 7, 7)
-            >>> model = ModulatedDeformConv(32, 32, 3, 2, 1)
-
-            >>> torch.npu.set_device(0)
-            >>> x = x.npu()
-            >>> model = model.npu()
-
-            >>> o = model(x)
-            >>> l = o.sum()
-            >>> l.backward()
-            >>> print(l)
-        """
-
         super(ModulatedDeformConv, self).__init__()
-
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = _pair(kernel_size)
@@ -167,14 +164,12 @@ class ModulatedDeformConv(nn.Module):
         self.deformable_groups = deformable_groups
         self.with_bias = bias
         self.pack = pack
-
         self.weight = nn.Parameter(
             torch.Tensor(out_channels, in_channels // groups, *self.kernel_size))
         if bias:
             self.bias = nn.Parameter(torch.Tensor(out_channels))
         else:
             self.bias = torch.zeros(self.weight.shape[0])
-
         if self.pack:
             self.conv_offset = nn.Conv2d(
                 self.in_channels,
@@ -184,7 +179,6 @@ class ModulatedDeformConv(nn.Module):
                 stride=_pair(self.stride),
                 padding=_pair(self.padding),
                 bias=True)
-
         self.split_num = self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1]
         sort_index_for_npu = list(range(self.split_num))
         sort_index_for_npu_fp = sort_index_for_npu[1::2] + sort_index_for_npu[::2]
@@ -193,7 +187,6 @@ class ModulatedDeformConv(nn.Module):
         self.sort_index_for_npu_fp = torch.IntTensor(sort_index_for_npu_fp)
         self.sort_index_for_npu_bp = torch.IntTensor(sort_index_for_npu_bp)
         self.sort_index_for_npu_todevice = False
-
         self.init_param()
 
     def init_param(self):

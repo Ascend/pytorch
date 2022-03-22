@@ -18,6 +18,7 @@ import torch_npu
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
+    return box
 
 
 def npu_iou(boxes1,

@@ -15,9 +15,9 @@
 from collections import OrderedDict
 
 import torch
-import torch_npu
 import torch.nn as nn
 from torch.nn.utils import prune
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 

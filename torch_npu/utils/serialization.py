@@ -17,10 +17,10 @@
 import pickle
 import argparse
 import torch
-import torch_npu
 import torch.nn as nn
 import torch.serialization as se
 from torch._six import container_abcs, string_classes
+import torch_npu
 
 DEFAULT_PROTOCOL = 2
 
