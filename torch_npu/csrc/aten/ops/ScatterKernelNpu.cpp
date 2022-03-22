@@ -41,7 +41,7 @@ at::Tensor& scatter_npu_src_impl(
     at::Tensor& self,
     int64_t dim,
     const at::Tensor& index_ex,
-    const at::Tensor& src) {
+    const at::Tensor& src_ex) {
   at::ScalarType selfType = self.scalar_type();
   if (selfType == at::ScalarType::Half) {
     self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
@@ -50,6 +50,11 @@ at::Tensor& scatter_npu_src_impl(
   at::Tensor index(index_ex);
   if (index.scalar_type() == at::ScalarType::Half) {
     index = NPUNativeFunctions::npu_dtype_cast(index, at::ScalarType::Float);
+  }
+
+  at::Tensor src(src_ex);
+  if (src.scalar_type() != self.scalar_type()) {
+    src = NPUNativeFunctions::npu_dtype_cast(src, self.scalar_type());
   }
 
   if (!NpuUtils::check_match(&self)) {
@@ -64,7 +69,6 @@ at::Tensor& scatter_npu_src_impl(
   if(self.scalar_type() != selfType){
     self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Half);
   }
-
   return self;
 }
 
@@ -74,10 +78,6 @@ at::Tensor& NPUNativeFunctions::scatter_(
     const at::Tensor& index_ex,
     const at::Tensor& src_ex) {
   at::Tensor src(src_ex);
-  if (src.scalar_type() != self.scalar_type()) {
-    src = NPUNativeFunctions::npu_dtype_cast(src, self.scalar_type());
-  }
-
   scatter_npu_src_impl(self, dim, index_ex, src);
   return self;
 }
@@ -90,11 +90,6 @@ at::Tensor& NPUNativeFunctions::scatter_(
   at::Tensor srcTensor = scalar_to_tensor(src).to(at::ScalarType::Float);
   srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
   at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index_ex.sizes()));
-
-  if (srcTensor_broadcast.scalar_type() != self.scalar_type()) {
-    srcTensor_broadcast = NPUNativeFunctions::npu_dtype_cast(srcTensor_broadcast, self.scalar_type());
-  }
-
   scatter_npu_src_impl(self, dim, index_ex, srcTensor_broadcast);
   return self;
 }
