@@ -15,8 +15,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -40,7 +40,6 @@ class TestAvgPool3D(TestCase):
         return output_data
 
     def test_avg_pool_3d_fp32(self, device="npu"):
-        # shape_format:[[dtype, (input_shape)], kernel_size, stride]
         shape_format = [
                         [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
                         [[np.float32, -1, (2, 1, 4, 4, 4)], 3, 2],
@@ -55,7 +54,6 @@ class TestAvgPool3D(TestCase):
             self.assertRtolEqual(cpu_output, npu_output.cpu(), 1.e-3)
 
     def test_avg_pool_3d_fp16(self, device="npu"):
-        # shape_format:[[dtype, (input_shape)], kernel_size, stride]
         shape_format = [
                         [[np.float16, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
                         [[np.float16, -1, (2, 1, 4, 4, 4)], 3, 2],
