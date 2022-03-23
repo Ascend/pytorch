@@ -18,11 +18,13 @@ import torch_npu
 def box_dtype_check(box):
     if box not in [torch.float, torch.half]:
         return box.float()
+    return box
 
 
 def stride_dtype_check(stride):
     if stride not in [torch.int]:
         return stride.int()
+    return stride
 
 
 def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):

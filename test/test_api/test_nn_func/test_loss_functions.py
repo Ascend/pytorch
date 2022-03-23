@@ -14,8 +14,8 @@
 import copy
 
 import torch
-import torch_npu
 import torch.nn.functional as F
+import torch_npu
 
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -69,20 +69,20 @@ class TestLossFunctions(TestCase):
         self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
 
     def test_ctc_loss(self):
-        log_probs = torch.randn(50, 16, 20).log_softmax(2).detach().requires_grad_()
-        targets = torch.randint(1, 20, (16, 30), dtype=torch.long)
-        input_lengths = torch.full((16,), 50, dtype=torch.long)
-        target_lengths = torch.randint(10,30,(16,), dtype=torch.long)
+        log_probs = torch.randn(50, 16, 20).npu().log_softmax(2)
+        targets = torch.randint(1, 20, (16, 30), dtype=torch.int32).npu()
+        input_lengths = torch.full((16,), 50, dtype=torch.int32).npu()
+        target_lengths = torch.randint(10,30,(16,), dtype=torch.int32).npu()
 
-        npu_log_probs = copy.deepcopy(log_probs).npu()
-        npu_targets = copy.deepcopy(targets).npu().int()
-        npu_input_lengths = copy.deepcopy(input_lengths).npu().int()
-        npu_target_lengths = copy.deepcopy(target_lengths).npu().int()
+        cpu_log_probs = copy.deepcopy(log_probs).cpu()
+        cpu_targets = copy.deepcopy(targets).cpu().long()
+        cpu_input_lengths = copy.deepcopy(input_lengths).cpu().long()
+        cpu_target_lengths = copy.deepcopy(target_lengths).cpu().long()
         
-        cpu_output = F.ctc_loss(log_probs, targets, input_lengths, target_lengths)
-        npu_output = F.ctc_loss(npu_log_probs, npu_targets, npu_input_lengths, npu_target_lengths)
+        npu_output = F.ctc_loss(log_probs, targets, input_lengths, target_lengths)
+        cpu_output = F.ctc_loss(cpu_log_probs, cpu_targets, cpu_input_lengths, cpu_target_lengths)
 
-        self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().cpu().numpy())
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
 
     def test_hinge_embedding_loss(self):
         input1 = torch.randn(5, 3)
@@ -210,5 +210,4 @@ class TestLossFunctions(TestCase):
 
 
 if __name__ == "__main__":
-    torch.npu.set_device(0)
     run_tests()
