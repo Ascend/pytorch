@@ -74,102 +74,80 @@
     pip3 install wheel
     ```
 
-3.  获取PyTorch源代码。
+3. 获取PyTorch源代码。
 
-    1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码，并切换到所需的分支。
+   1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码，并切换到所需的分支。
 
-        ```
-        git clone https://gitee.com/ascend/pytorch.git
-        # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
-        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
-        ```
+       ```
+       git clone https://gitee.com/ascend/pytorch.git
+       # 默认是master分支，master分支时pytorch1.8.1版本，若需要其他分支请使用git checkout 命令切换
+       # git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
+       ```
 
-        下载的源码主要目录结构如下所示：
+   3.  在当前仓根目录“/pytorch”下获得原生Pytorch源代码并重命名为pytorch_v1.8.1。
 
-        ```
-        ├── patch                            # 昇腾AI处理器适配补丁目录
-        │   ├── pytorch1.5.0_npu.patch      # pytorch1.5.0版本补丁
-        │   └── pytorch1.8.1_npu.patch      # pytorch1.8.1版本补丁
-        ├── pytorch1.5.0                     # pytorch1.5.0源码及测试目录
-        │   ├── access_control_test.py
-        │   ├── src                         # 源码目录
-        │   └── test                        # 测试用例存放目录
-        ├── pytorch1.8.1                     # pytorch1.8.1源码及测试目录
-        │   ├── access_control_test.py
-        │   ├── src                         # 源码目录
-        │   └── test                        # 测试用例存放目录
-        └── scripts                          # 编译构建目录
-        ```
+       ```
+       //1.8.1版本
+       
+       cd  pytorch  #插件根目录
+       
+       git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
+       ```
+       
+   3. 运行如下命令，进入原生pytorch代码目录“pytorch_v1.8.1“，并获取PyTorch被动依赖代码。
 
-    2.  在当前仓根目录“/pytorch“下获取原生PyTorch源代码。
-        -   若安装pytorch1.5.0版本，执行如下命令。
+      ```
+      cd  pytorch_v1.8.1
+      git submodule sync
+      git submodule update --init --recursive
+      cd ..
+      ```
 
-            ```
-            git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-            ```
-
-        -   若安装pytorch1.8.1版本，执行如下命令。
-
-            ```
-            git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
-            ```
-
-    3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
-
-        ```
-        cd  pytorch
-        git submodule sync
-        git submodule update --init --recursive
-        ```
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
 
 4.  编译生成适配昇腾AI处理器的PyTorch安装包。
-    1.  进入“pytorch/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
+    1. 将patch打入Pytorch源码并编译。
 
+       ```
+       cd patch
+       bash apply_patch.sh ../pytorch_v1.8.1
+       cd ../pytorch_v1.8.1
+       bash build.sh
+       ```
+    
+       安装当前dist目录（pytorch/pytorch_v1.8.1/dist）下生成的torch包。
+    
+       ```
+       cd dist
+       pip3 install --upgrade torch-1.8.1+ascend.rc1-cp37-cp37m-linux_{arch}.whl  #**\{arch\}**表示架构信息，为aarch64或x86\_64。
+       ```
+    
+    3.  编译生成pytorch插件的二进制安装包。
+    
         ```
-        cd ../scripts
-        # 若安装1.5.0版本
-        bash gen.sh
-        # 若安装1.8.1版本
-        bash gen.sh -v 1.8.1
-        ```
-
-        将在"pytorch/pytorch"目录中生成适配昇腾AI处理器的全量代码。
-
-    2.  进入到“pytorch/pytorch/“目录，依赖库安装。
-
-        ```
-        cd ../pytorch
-        pip3 install -r requirements.txt
-        ```
-
-    3.  编译生成pytorch的二进制安装包。
-
-        ```
+        cd ../../ci    #进入插件根目录
         bash build.sh --python=3.7
         或
         bash build.sh --python=3.8
         或
-        bash build.sh --python=3.9    #torch1.5不支持使用python3.9编译安装
+        bash build.sh --python=3.9
         ```
         
-        请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/pytorch/dist”文件夹目录下。
+        请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/dist”文件夹目录下。
     
-5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch。
+5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch插件。
 
-    进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
+    进入“pytorch/dist“文件夹目录，执行如下命令安装torch_npu包。
 
     ```
-    pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+    cd dist
+    pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
     ```
-
-    **\{arch\}**表示架构信息，为aarch64或x86\_64。
-
+    
     >![](public_sys-resources/icon-note.gif) **说明：** 
-    >若对环境中的PyTorch进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[5. 安装PyTorch。](#zh-cn_topic_0000001152776301_li49671667141)可以通过执行如下命令查询环境上是否已安装PyTorch。
-    >**pip3 list | grep torch**
+    >若对环境中的PyTorch插件进行升级时，需要先卸载环境中已安装的PyTorch插件软件包再执行[5. 安装PyTorch插件。](#zh-cn_topic_0000001152776301_li49671667141)可以通过执行如下命令查询环境上是否已安装PyTorch插件。
+    >**pip3 list | grep torch-npu**
 
 
 <h3 id="配置环境变量md">配置环境变量</h3>
@@ -399,11 +377,12 @@
     进入“apex/apex/dist“文件夹目录，执行如下命令安装。
 
     ```
+    cd dist
     pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
     ```
-
+    
     **\{arch\}**表示架构信息，为aarch64或x86\_64。
-
+    
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >若对环境中的Apex进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[4. 安装apex。](#zh-cn_topic_0000001106176190_li425495374416)可以通过执行如下命令查询环境上是否已安装PyTorch。
     >**pip3 list | grep apex**
