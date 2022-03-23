@@ -15,9 +15,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn.functional as F
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -26,8 +26,9 @@ from torch_npu.testing.common_utils import create_common_tensor
 class TestMaxPool2dWithIndicesBackward(TestCase):
     def cpu_op_exec(self, inputCpu, kernel_size, stride, padding, dilation, ceil_mode):
         inputCpu.requires_grad = True
-        dataCpu, argMaxCpu = F.max_pool2d_with_indices(inputCpu, kernel_size = kernel_size, stride = stride, padding = padding, dilation = dilation,
-                            ceil_mode = ceil_mode, return_indices=True)
+        dataCpu, argMaxCpu = F.max_pool2d_with_indices(inputCpu, kernel_size = kernel_size,
+                             stride = stride, padding = padding, dilation = dilation,
+                             ceil_mode = ceil_mode, return_indices=True)
         z1 = torch.sum(dataCpu)
         z1.backward()
         cpu_grad = inputCpu.grad
@@ -36,8 +37,9 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
 
     def npu_op_exec(self, inputNpu, kernel_size, stride, padding, dilation, ceil_mode):
         inputNpu.requires_grad = True
-        dataNpu, argMaxNpu = F.max_pool2d_with_indices(inputNpu, kernel_size = kernel_size, stride = stride, padding = padding, dilation = dilation,
-                            ceil_mode = ceil_mode, return_indices=True)
+        dataNpu, argMaxNpu = F.max_pool2d_with_indices(inputNpu, kernel_size = kernel_size,
+                             stride = stride, padding = padding, dilation = dilation,
+                             ceil_mode = ceil_mode, return_indices=True)
         z2 = torch.sum(dataNpu)
         z2.backward()
         npu_grad = inputNpu.grad

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import torch_npu
-import numpy as np
 import unittest
+import torch
+import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
@@ -122,7 +122,8 @@ class TestDiv(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
-            cpu_output, npu_output = self.get_outputs_chk([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.float)
+            cpu_output, npu_output = self.get_outputs_chk([cpu_input1, cpu_input2],
+                                                         [npu_input1, npu_input2], torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
 
