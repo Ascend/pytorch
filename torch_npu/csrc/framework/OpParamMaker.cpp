@@ -405,7 +405,7 @@ namespace at_npu
       free(ptr);
     }
 
-    typedef int (*Func)(c10::npu::queue::QueueParas*, aclrtStream);
+    using Func = int(*)(c10::npu::queue::QueueParas*, aclrtStream);
     using AsyncFuncMap = std::map<c10::npu::queue::QueueParamType, Func>;
     AsyncFuncMap funcMap = {
       {c10::npu::queue::COMPILE_AND_EXECUTE, ExecFunc},

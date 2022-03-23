@@ -539,7 +539,7 @@ namespace at_npu
                                                    c10::optional<c10::Device> device_opt,
                                                    c10::optional<bool> pin_memory_opt)
     {
-      return blackman_window(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+      return blackman_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -661,7 +661,7 @@ namespace at_npu
         c10::optional<c10::Device> device_opt,
         c10::optional<bool> pin_memory_opt)
     {
-      return hamming_window(window_length, periodic, alpha, /*beta=*/0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+      return hamming_window(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
     at::Tensor NPUNativeFunctions::hamming_window(
@@ -672,7 +672,7 @@ namespace at_npu
         c10::optional<c10::Device> device_opt,
         c10::optional<bool> pin_memory_opt)
     {
-      return hamming_window(window_length, periodic, /*alpha=*/0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+      return hamming_window(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
     at::Tensor NPUNativeFunctions::hamming_window(int64_t window_length,
@@ -681,7 +681,7 @@ namespace at_npu
                                                   c10::optional<c10::Device> device_opt,
                                                   c10::optional<bool> pin_memory_opt)
     {
-      return hamming_window(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+      return hamming_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ tensor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

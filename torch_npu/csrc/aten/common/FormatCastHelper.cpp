@@ -58,13 +58,6 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
       format_cast_as_base_format(src, FormatHelper::GetBaseFormat(dst)); // prepare: covert src to dst base format
       format_cast_inside_group(dst, src); // src base format (src format) -> dst base format
 
-      // NB
-      // In Graph Mode
-      // a = torch.empty([2,3]).npu()
-      // a.npu_format_cast(nc1hwc0);
-      // a.npu_format_cast(nz);
-      // torch.npu.launch_graph()
-
       // a base format change: ND-> NCHW -> ND
       // when we run graph,
       // FE get task : ND/ND -> NCHW/NC1HWC0, which will be failed
