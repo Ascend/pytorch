@@ -1,1 +1,0 @@
-INSTALL(DIRECTORY inc/ DESTINATION include/third_party/acl/inc FILES_MATCHING PATTERN "*.h")
