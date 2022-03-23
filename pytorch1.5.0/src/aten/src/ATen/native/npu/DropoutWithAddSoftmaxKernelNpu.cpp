@@ -64,7 +64,7 @@ std::tuple<Tensor, Tensor, Tensor> dropout_with_add_softmax_npu(
   c10::npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
 
   OpCommand cmd;
-  cmd.Name("AxpyWithSoftmaxAndDropoutdomask")
+  cmd.Name("AxpyWithSoftmaxAndDropOutDoMask")
      .Input(x1)
      .Input(self)
      .Input(mask)
