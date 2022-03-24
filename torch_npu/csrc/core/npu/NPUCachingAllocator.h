@@ -41,7 +41,7 @@ C10_DECLARE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
   C10_REGISTER_CLASS(FreeNPUMemoryCallbacksRegistry, name, __VA_ARGS__);
 
 
-// TODO: Turn this into an honest to goodness class. I briefly attempted to do
+// (Ascend): Turn this into an honest to goodness class. I briefly attempted to do
 // this, but it was a bit irritating to figure out how to also correctly
 // apply pimpl pattern so I didn't have to leak any internal implementation
 // details in the header (NPUCachingAllocator could be made a pimpl, but
