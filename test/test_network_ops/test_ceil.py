@@ -14,17 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestCeil(TestCase):
-    @Dtypes(torch.float)
-    def test_ceil(self, device, dtype):
-        cpu_input = torch.randn(10, 10, dtype=torch.float, device="cpu").to(dtype=dtype)
+    def test_ceil(self):
+        cpu_input = torch.randn(10, 10)
         npu_input = cpu_input.to("npu")
         cpu_output = torch.ceil_(cpu_input)
         npu_output = torch.ceil_(npu_input)
