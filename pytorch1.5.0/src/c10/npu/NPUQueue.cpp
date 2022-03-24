@@ -271,8 +271,7 @@ bool Repository::WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearV
   manager().Copy(datas, write_idx.idx, cur_paras, needClearVec, queueLen);
   __sync_synchronize();
 
-  write_idx.idx++;
-  write_idx.idx %= kQueueCapacity;
+  write_idx.idx = (write_idx.idx + 1) % kQueueCapacity;
   return true;
 }
 
@@ -293,8 +292,7 @@ bool Repository::ReadQueue() {
               << ", read_idx=" << read_idx.idx << ", status=" << GetStatus()
               << ", ret = " << ret << std::endl;
       manager().Release(datas, read_idx.idx, releaseQueue);
-      read_idx.idx++;
-      read_idx.idx %= kQueueCapacity;
+      read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
     }
     ReleaseResource();
     std::stringstream msg;
@@ -305,8 +303,7 @@ bool Repository::ReadQueue() {
   manager().Release(datas, read_idx.idx, releaseQueue);
   __sync_synchronize();
 
-  read_idx.idx++;
-  read_idx.idx %= kQueueCapacity;
+  read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
   QUEUE_DEBUG("read success, now read of repo is %d", read_idx.idx);
 
   return true;
@@ -529,8 +526,7 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
   releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 
   __sync_synchronize();
-  write_idx.idx++;
-  write_idx.idx %= kReleaseQueueCapacity;
+  write_idx.idx = (write_idx.idx + 1) % kReleaseQueueCapacity;
   return true;
 }
 
@@ -558,8 +554,7 @@ bool ReleaseQueue::ReadFromReleaseQueue() {
   releaseManager().ReleaseParam(datas, read_idx.idx);
 
   __sync_synchronize();
-  read_idx.idx++;
-  read_idx.idx %= kReleaseQueueCapacity;
+  read_idx.idx = (read_idx.idx + 1) % kReleaseQueueCapacity;
 
   return true;
 }
