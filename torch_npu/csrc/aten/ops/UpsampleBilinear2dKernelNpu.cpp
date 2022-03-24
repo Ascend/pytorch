@@ -13,8 +13,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -89,6 +91,31 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d(
 
   upsample_bilinear2d_out_npu_nocheck(
       result, self, output_size, align_corners, scales_h, scales_w);
+  if (result.dtype() != self_ex.dtype()) {
+    result = NPUNativeFunctions::npu_dtype_cast(result, self_ex.scalar_type());
+  }
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::upsample_bilinear2d(
+    const at::Tensor& self_ex,
+    c10::optional<at::IntArrayRef> output_size,
+    bool align_corners,
+    c10::optional<at::ArrayRef<double>> scale_factors) {
+  at::Tensor self = self_ex;
+  auto osize = CalcuOpUtil::compute_output_size(self_ex.sizes(), output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+
+  if (self.scalar_type() != at::ScalarType::Float) {
+    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
+  }
+  auto outputSize = upsample_bilinear2d_npu_output_size(
+      self, osize, align_corners, scales_h, scales_w);
+  at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options(), self);
+
+  upsample_bilinear2d_out_npu_nocheck(
+      result, self, osize, align_corners, scales_h, scales_w);
   if (result.dtype() != self_ex.dtype()) {
     result = NPUNativeFunctions::npu_dtype_cast(result, self_ex.scalar_type());
   }
