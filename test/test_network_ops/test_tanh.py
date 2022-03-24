@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -83,7 +84,8 @@ class TestTanh(TestCase):
             [[np.float16, -1, (4, 44, 44)], 3450,34020],
             [[np.float16, -1, (65500, 3, 3)], -214748,-214746],
             [[np.float16, -1, (64, 4, 4)], -9.313225746154785e-10,9.313225746154785e-10],
-            [[np.float16, -1, (128, 3, 5)], -0.000000000000000000000000000000000000011754943508,0.000000000000000000000000000000000000011754943508],
+            [[np.float16, -1, (128, 3, 5)],
+             -0.000000000000000000000000000000000000011754943508,0.000000000000000000000000000000000000011754943508],
             [[np.float16, -1, (1, 1, 1)], 0.9283381566708346 , 16],
             [[np.float16, -1, (6, 3, 10)], 0.03133650248813469 , 37],
             [[np.float16, -1, (65500, 1, 1)], 95, 100 ],
