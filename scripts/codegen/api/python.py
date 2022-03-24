@@ -616,15 +616,35 @@ def has_tensor_options(f: NativeFunction) -> bool:
 # different from the python schema type, e.g.: doesn't have '?' suffix
 # for optional Tensor/TensorList; doesn't have '[size]' suffix for list type.
 def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
+    def list_type_str(t, simple_type):
+        size = t.size if not simple_type else None
+        list_dict = {
+            'int': f'IntArrayRef[{size}]' if size is not None else 'IntArrayRef',
+            'Tensor': f'TensorList[{size}]' if size is not None else 'TensorList',
+            'Scalar': f'ScalarList[{size}]' if size is not None else 'ScalarList',
+            'Dimname': f'DimnameList[{size}]' if size is not None else 'DimnameList'
+        }
+        if str(t.elem) == 'bool':
+            assert t.size is not None
+            return f'::std::array<bool,{t.size}>'
+        elif str(t.elem) in list_dict:
+            return list_dict[str(t.elem)]
+        elif str(t.elem) == 'Tensor?':
+            if simple_type:
+                return 'c10::List<c10::optional<Tensor>>'
+            else:
+                return 'const c10::List<c10::optional<Tensor>> &'
+        return None
+
     if isinstance(t, BaseType):
-        if t.name == BaseTy.Tensor:
-            return 'Tensor'
-        elif t.name == BaseTy.int:
-            return 'int64_t'
-        elif t.name == BaseTy.float:
-            return 'double'
-        elif t.name == BaseTy.str:
-            return 'c10::string_view'
+        base_dict = {
+            BaseTy.Tensor: 'Tensor',
+            BaseTy.int: 'int64_t',
+            BaseTy.float: 'double',
+            BaseTy.str: 'c10::string_view'
+        }
+        if t.name in base_dict:
+            return base_dict[t.name]
         elif t.name in [BaseTy.bool, BaseTy.QScheme, BaseTy.Scalar,
                         BaseTy.ScalarType, BaseTy.Generator, BaseTy.Storage,
                         BaseTy.Layout, BaseTy.Device, BaseTy.MemoryFormat,
@@ -637,30 +657,12 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
             # Is it desired to keep '?' for simple_type with new style dispatcher?
             return 'Tensor?'
         elem = argument_type_str(t.elem, simple_type=simple_type)
-        if elem == 'Layout':
-            # TODO: fix this special case in PythonArgParser?
-            return 'Layout'
-        else:
-            return f'{elem}?'
+        return 'Layout' if elem == 'Layout' else f'{elem}?'
 
     elif isinstance(t, ListType):
-        size = t.size if not simple_type else None
-        if str(t.elem) == 'bool':
-            assert t.size is not None
-            return f'::std::array<bool,{t.size}>'
-        elif str(t.elem) == 'int':
-            return f'IntArrayRef[{size}]' if size is not None else 'IntArrayRef'
-        elif str(t.elem) == 'Tensor':
-            return f'TensorList[{size}]' if size is not None else 'TensorList'
-        elif str(t.elem) == 'Scalar':
-            return f'ScalarList[{size}]' if size is not None else 'ScalarList'
-        elif str(t.elem) == 'Tensor?':
-            if simple_type:
-                return 'c10::List<c10::optional<Tensor>>'
-            else:
-                return 'const c10::List<c10::optional<Tensor>> &'
-        elif str(t.elem) == 'Dimname':
-            return f'DimnameList[{size}]' if size is not None else 'DimnameList'
+        ret = list_type_str(t, simple_type)
+        if ret is not None:
+            return ret
         elem = argument_type_str(t.elem, simple_type=simple_type)
         return f'ArrayRef<{elem}>'
 
@@ -685,26 +687,29 @@ def argument(a: Argument) -> PythonArgument:
 
 # Generates a PythonSignature that can be used for either .pyi or PythonArgParser codegen
 def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> PythonSignature:
-    args: List[Argument] = []
-    args.extend(f.func.arguments.pre_self_positional)
-    # Skip SelfArgument if this is method.
-    if not method and f.func.arguments.self_arg is not None:
-        args.append(f.func.arguments.self_arg.argument)
-    args.extend(f.func.arguments.post_self_positional)
-    args.extend(f.func.arguments.pre_tensor_options_kwarg_only)
-    # Skip TensorOptionsArguments. Python side TensorOptions
-    # arguments are created based on different rules - see below.
-    args.extend(f.func.arguments.post_tensor_options_kwarg_only)
-    args.extend(f.func.arguments.out)
+    def get_args(f, method):
+        args: List[Argument] = []
+        args.extend(f.func.arguments.pre_self_positional)
+        # Skip SelfArgument if this is method.
+        if not method and f.func.arguments.self_arg is not None:
+            args.append(f.func.arguments.self_arg.argument)
+        args.extend(f.func.arguments.post_self_positional)
+        args.extend(f.func.arguments.pre_tensor_options_kwarg_only)
+        # Skip TensorOptionsArguments. Python side TensorOptions
+        # arguments are created based on different rules - see below.
+        args.extend(f.func.arguments.post_tensor_options_kwarg_only)
+        args.extend(f.func.arguments.out)
 
-    input_arg_set = set(a.name for a in f.func.arguments.flat_positional)
-    kwarg_only_set = set(a.name for a in f.func.arguments.flat_kwarg_only)
-    out_arg_set = set(a.name for a in f.func.arguments.out)
+        input_arg_set = set(a.name for a in f.func.arguments.flat_positional)
+        kwarg_only_set = set(a.name for a in f.func.arguments.flat_kwarg_only)
+        out_arg_set = set(a.name for a in f.func.arguments.out)
 
-    input_args = tuple(map(argument, filter(lambda a: a.name in input_arg_set, args)))
-    input_kwargs = tuple(map(argument, filter(lambda a: a.name in kwarg_only_set, args)))
-    outputs = tuple(map(argument, filter(lambda a: a.name in out_arg_set, args)))
-
+        _input_args = tuple(map(argument, filter(lambda a: a.name in input_arg_set, args)))
+        _input_kwargs = tuple(map(argument, filter(lambda a: a.name in kwarg_only_set, args)))
+        _outputs = tuple(map(argument, filter(lambda a: a.name in out_arg_set, args)))
+        return _input_args, _input_kwargs, _outputs
+    
+    input_args, input_kwargs, outputs = get_args(f, method)
     # Reintroduce the scattered fields of TensorOptions for Python.
     # Compared to the cpp counterpart, the python arguments have new property
     # (default_init) and a new argument 'requires_grad', which require some
@@ -723,27 +728,27 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
 
     name: str = cpp.name(f.func)
     is_factory_function = f.category_override == 'factory' or (has_tensor_return and not has_tensor_input_arg)
-    is_like_or_new_function = f.category_override in ('new', 'like') or name.startswith('new_') or name.endswith('_like')
+    is_like_or_new_func = f.category_override in ('new', 'like') or name.startswith('new_') or name.endswith('_like')
 
     tensor_options_args: List[PythonArgument] = []
-    if is_factory_function or is_like_or_new_function:
+    if is_factory_function or is_like_or_new_func:
         tensor_options_args.append(PythonArgument(
             name='dtype',
             type=BaseType(BaseTy.ScalarType),
             default='None' if pyi else _dtype_default_type_hack(name),
-            default_init='self.scalar_type()' if is_like_or_new_function else None,
+            default_init='self.scalar_type()' if is_like_or_new_func else None,
         ))
         tensor_options_args.append(PythonArgument(
             name='layout',
             type=OptionalType(BaseType(BaseTy.Layout)),
             default='strided' if pyi else 'torch.strided',
-            default_init='self.layout()' if is_like_or_new_function else None,
+            default_init='self.layout()' if is_like_or_new_func else None,
         ))
         tensor_options_args.append(PythonArgument(
             name='device',
             type=BaseType(BaseTy.Device),
             default='None',
-            default_init='self.device()' if is_like_or_new_function else None,
+            default_init='self.device()' if is_like_or_new_func else None,
         ))
         tensor_options_args.append(PythonArgument(
             name='pin_memory',
@@ -761,13 +766,10 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
     returns = PythonReturns(returns=f.func.returns)
 
     return PythonSignature(
-        name=str(f.func.name.name),
-        input_args=input_args,
-        input_kwargs=input_kwargs,
+        name=str(f.func.name.name), input_args=input_args, input_kwargs=input_kwargs,
         output_args=PythonOutArgument.from_outputs(outputs),
         tensor_options_args=tuple(tensor_options_args),
-        returns=returns,
-        method=method,
+        returns=returns, method=method,
     )
 
 # TODO blowtorch
@@ -809,28 +811,21 @@ def argument_type_str_pyi(t: Type) -> str:
         add_optional = True
 
     if isinstance(t, BaseType):
-        if t.name == BaseTy.int:
-            ret = '_int'
-        elif t.name == BaseTy.float:
-            ret = '_float'
-        elif t.name == BaseTy.str:
-            ret = 'str'
-        elif t.name == BaseTy.Scalar:
-            ret = 'Number'
-        elif t.name == BaseTy.ScalarType:
-            ret = '_dtype'
-        elif t.name == BaseTy.bool:
-            ret = '_bool'
-        elif t.name == BaseTy.QScheme:
-            ret = '_qscheme'
-        elif t.name == BaseTy.Layout:
-            ret = '_layout'
-        elif t.name == BaseTy.Device:
-            ret = 'Union[_device, str, None]'
-        elif t.name == BaseTy.MemoryFormat:
-            ret = 'memory_format'
-        elif t.name == BaseTy.Dimname:
-            ret = 'Union[str, ellipsis, None]'
+        base_dict = {
+            BaseTy.int: '_int',
+            BaseTy.float: '_float',
+            BaseTy.str: 'str',
+            BaseTy.Scalar: 'Number',
+            BaseTy.ScalarType: '_dtype',
+            BaseTy.bool: '_bool',
+            BaseTy.QScheme: '_qscheme',
+            BaseTy.Layout: '_layout',
+            BaseTy.Device: 'Union[_device, str, None]',
+            BaseTy.MemoryFormat: 'memory_format',
+            BaseTy.Dimname: 'Union[str, ellipsis, None]'
+        }
+        if t.name in base_dict:
+            ret = base_dict[t.name]
         elif t.name in [BaseTy.Tensor, BaseTy.Generator,
                         BaseTy.Storage, BaseTy.Stream]:
             # These python schema type names line up with their function schema names
@@ -856,8 +851,6 @@ def argument_type_str_pyi(t: Type) -> str:
     if add_optional:
         ret = 'Optional[' + ret + ']'
     return ret
-
-    raise RuntimeError(f'unrecognized type {repr(t)}')
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -1040,41 +1033,39 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
         raise RuntimeError(f'type \'{t}\' does not supported unpacking with default')
 
     if isinstance(t, BaseType):
+        base_dict = {
+            BaseTy.ScalarType: 'scalartypeWithDefault' if has_default else 'scalartype',
+            BaseTy.Device: 'deviceWithDefault' if has_default else 'device',
+            BaseTy.int: 'toInt64',
+            BaseTy.bool: 'toBool',
+            BaseTy.float: 'toDouble',
+            BaseTy.str: 'stringView'
+        }
         if t.name in [BaseTy.Tensor, BaseTy.Stream, BaseTy.Storage,
                       BaseTy.Scalar, BaseTy.Dimname]:
             # These unpack methods line up with their schema names
             return t.name.name.lower()
-        elif t.name == BaseTy.ScalarType:
-            return 'scalartypeWithDefault' if has_default else 'scalartype'
-        elif t.name == BaseTy.Device:
-            return 'deviceWithDefault' if has_default else 'device'
-        elif t.name == BaseTy.int:
-            return 'toInt64'
-        elif t.name == BaseTy.bool:
-            return 'toBool'
-        elif t.name == BaseTy.float:
-            return 'toDouble'
-        elif t.name == BaseTy.str:
-            return 'stringView'
+        elif t.name in base_dict:
+            return base_dict[t.name]
 
     elif isinstance(t, OptionalType):
         if str(t.elem) == 'Tensor':
             return 'optionalTensor'
 
         elif isinstance(t.elem, BaseType):
+            opt_dict = {
+                BaseTy.MemoryFormat: 'memoryformatOptional',
+                BaseTy.Generator: 'generator',
+                BaseTy.Layout: 'layoutWithDefault' if has_default else 'layoutOptional',
+                BaseTy.Device: 'deviceWithDefault' if has_default else 'deviceOptional'
+            }
             if t.elem.name in [BaseTy.ScalarType, BaseTy.Scalar,
                                BaseTy.int, BaseTy.bool,
                                BaseTy.float, BaseTy.str]:
                 # Regular cases: append 'Optional' to elem's unpacking method
                 return arg_parser_unpack_method(t.elem, False) + 'Optional'
-            elif t.elem.name == BaseTy.MemoryFormat:
-                return 'memoryformatOptional'
-            elif t.elem.name == BaseTy.Generator:
-                return 'generator'
-            elif t.elem.name == BaseTy.Layout:
-                return 'layoutWithDefault' if has_default else 'layoutOptional'
-            elif t.elem.name == BaseTy.Device:
-                return 'deviceWithDefault' if has_default else 'deviceOptional'
+            elif t.elem.name in opt_dict:
+                return opt_dict[t.elem.name]
 
         elif isinstance(t.elem, ListType):
             if str(t.elem.elem) == 'int':
@@ -1086,24 +1077,22 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
                 return 'toDimnameListOptional'
 
     elif isinstance(t, ListType):
+        list_dict = {
+            'Tensor?': 'list_of_optional_tensors',
+            'Dimname': 'dimnamelist',
+            'int': 'intlist',
+            'float[]': 'doublelist',
+            'Scalar[]': 'scalarlist'
+        }
         if str(t.elem) == 'Tensor':
             # accept and use definite size
             if t.size is not None:
                 return f'tensorlist_n<{t.size}>'
             else:
                 return 'tensorlist'
-        elif str(t.elem) == 'Tensor?':
-            return 'list_of_optional_tensors'
-        elif str(t.elem) == 'Dimname':
-            # accept definite size
-            return 'dimnamelist'
-        elif str(t.elem) == 'int':
-            # accept definite size
-            return 'intlist'
-        elif str(t) == 'float[]':
-            return 'doublelist'
-        elif str(t) == 'Scalar[]':
-            return 'scalarlist'
+        elif str(t.elem) in list_dict:
+            return list_dict[str(t.elem)]
+
     raise RuntimeError(f'type \'{t}\' is not supported by PythonArgParser')
 
 # Return RHS expression for python argument using PythonArgParser output.
@@ -1178,7 +1167,8 @@ def dispatch_lambda_exprs(
             # optional<ArrayRef<T>>. One needs to unwrap the optional and rewrap.
             inits.extend([
                 f'auto __{name} = {arg_parser_expr};',
-                f'c10::optional<DimnameList> {name} = __{name} ? c10::make_optional(DimnameList(__{name}.value())) : c10::nullopt;',
+                (f'c10::optional<DimnameList> {name} = __{name} ?'
+                 + f' c10::make_optional(DimnameList(__{name}.value())) : c10::nullopt;'),
             ])
             lambda_args_exprs[name] = name
         else:
@@ -1236,7 +1226,8 @@ check_out_type_matches({arg_parser_outputs['out'].expr}, {arg_parser_outputs['dt
         # we'll set requires_grad on outgoing tensor
         if 'requires_grad' not in tensor_options_args_names:
             raise RuntimeError(
-                f'{f.func}: expected "requires_grad" in tensor_options_args absent, but found [{tensor_options_args_names}]')
+                f'{f.func}: expected "requires_grad" in tensor_options_args absent,'
+                + f' but found [{tensor_options_args_names}]')
 
     return DispatchLambdaArgumentExprs(
         exprs=tuple(map(lambda a: lambda_args_exprs[a.name], lambda_args)),

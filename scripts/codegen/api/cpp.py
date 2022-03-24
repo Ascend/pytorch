@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional, Sequence, Union, List, Set
 
 from codegen.model import (Argument, Arguments, BaseTy, BaseType,
                            FunctionSchema, ListType, NativeFunction,
@@ -24,7 +25,6 @@ from codegen.api.types import (ArgName, BaseCType, Binding, ConstRefCType, Named
                                tensorListT, dimnameListT, tensorT, voidT,
                                BaseTypeToCppMapping, intArrayRefT, tensorOptionsT)
 from codegen import local
-from typing import Optional, Sequence, Union, List, Set
 
 # This file describes the translation of JIT schema to the public C++
 # API, which is what people use when they call functions like at::add.
@@ -107,16 +107,15 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
         return NamedCType(binds, OptionalCType(elem.type))
     elif isinstance(t, ListType):
         # TODO: remove these special cases, ArrayRef fallthrough works fine
-        if str(t.elem) == 'int':
-            return NamedCType(binds, BaseCType(intArrayRefT))
-        elif str(t.elem) == 'Tensor':
-            return NamedCType(binds, BaseCType(tensorListT))
-        elif str(t.elem) == 'Scalar':
-            return NamedCType(binds, ArrayRefCType(BaseCType(scalarT)))
-        elif str(t.elem) == 'Dimname':
-            return NamedCType(binds, BaseCType(dimnameListT))
-        elif str(t.elem) == 'Tensor?':
-            return NamedCType(binds, ConstRefCType(ListCType(OptionalCType(BaseCType(tensorT)))))
+        type_dict = {
+            "int": BaseCType(intArrayRefT),
+            "Tensor": BaseCType(tensorListT),
+            "Scalar": ArrayRefCType(BaseCType(scalarT)),
+            "Dimname": BaseCType(dimnameListT),
+            "Tensor?": ConstRefCType(ListCType(OptionalCType(BaseCType(tensorT))))
+        }
+        if str(t.elem) in type_dict:
+            return NamedCType(binds, type_dict[str(t.elem)])
         elem = argumenttype_type(t.elem, mutable=mutable, binds=binds)
         return NamedCType(binds, ArrayRefCType(elem.type))
     else:
@@ -213,28 +212,31 @@ JIT_TO_CPP_DEFAULT = {
 
 # Convert a JIT default into C++ expression representing the default
 def default_expr(d: str, t: Type) -> str:
+    def deal_str_basetype(d):
+        s = ''
+        i = 1
+        while i + 1 < len(d):
+            if d[i] != '\\':
+                if d[i] == '"':
+                    s += '\\"'
+                else:
+                    s += d[i]
+                i += 1
+            else:
+                if d[i + 1] == "'":
+                    s += "'"
+                else:
+                    s += d[i:i + 2]
+                i += 2
+
+        return f'"{s}"'
+
     if d == 'None' and str(t) == 'Tensor?':
         return '{}'
     if isinstance(t, BaseType) and t.name is BaseTy.str:
         # Schema allows single quotes but C++ needs double
         if len(d) >= 2 and d[0] == "'" and d[-1] == "'":
-            s = ''
-            i = 1
-            while i + 1 < len(d):
-                if d[i] != '\\':
-                    if d[i] == '"':
-                        s += '\\"'
-                    else:
-                        s += d[i]
-                    i += 1
-                else:
-                    if d[i + 1] == "'":
-                        s += "'"
-                    else:
-                        s += d[i:i + 2]
-                    i += 2
-
-            return f'"{s}"'
+            return deal_str_basetype(d)
 
     if isinstance(t, OptionalType):
         if d == 'None':

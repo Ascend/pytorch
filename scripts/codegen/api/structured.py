@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Union, List
 
 from codegen.model import (Argument, BaseTy, BaseType, ListType,
                            NativeFunctionsGroup, OptionalType,
@@ -25,8 +26,6 @@ from codegen.api.types import (ArgName, BaseCType, Binding, ArrayRefCType,
                                optionalTensorRefT, optionalScalarRefT)
 
 from codegen.api import cpp
-
-from typing import Union, List
 
 # This file describes the translation of JIT schema to the structured functions API.
 # This is similar to native API, but a number of historical problems with native
