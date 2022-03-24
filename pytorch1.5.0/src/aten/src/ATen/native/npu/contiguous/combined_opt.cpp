@@ -24,7 +24,7 @@ namespace at {
 namespace native {
 namespace npu {
 
-constexpr int MaxCombinedCasesNum = 3;
+constexpr int MaxCombinedCasesNum = 2;
 constexpr int ViewAndBaseInfoStackNum =2;
 // Stacks used for storing inferred infos about shape, stride, offset
 // "shape_stride_stacks": [[[shape1],[stride1];[[shape2],[stride2]];...]
@@ -42,11 +42,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
       const ContiguousTensorDesc& src_desc) override {
     // Maximum combined operators suggested: combined_cases_num = 2
     // NOTE: n-cmobined(n>2) can also be supported
-    // Setting for 3-combined cases: "TRI_COMBINED_ENABLE=1".
-    int combined_cases_num = 2;
-    if (c10::npu::OptionsManager::CheckTriCombinedOptimizerEnable()) {
-      combined_cases_num = MaxCombinedCasesNum;
-    }
+    int combined_cases_num = MaxCombinedCasesNum;
 
     ShapeStrideStack shape_stride_stacks;
     OffsetStack offset_stack;
@@ -360,13 +356,11 @@ class CombinedContiguousOpt : public ContiguousOpt {
               combined_cases_num,
               local_src_desc)) {
         return true;
-      } else if (shape_stride_stacks.size() >= combined_cases_num) {
-        return false;
       }
-      // However, n-combined ops(n>2), also could be processed
-      return can_use_combined(shape_stride_stacks, offset_stacks, local_src_desc, combined_cases_num);
+      // If the second pattern is not inferred successfully, retrun false
+      return false;
     }
-    // Constructed two inferred tensors can be optimized at the same time or not
+    // If the first pattern is not inferred successfully, retrun false
     return false;
   }
 

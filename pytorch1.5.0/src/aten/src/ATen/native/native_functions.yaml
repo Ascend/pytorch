@@ -8802,6 +8802,11 @@
   npu_dispatch_only:
     NPU: lstm_cell_npu
 
+- func: npu_lstm_cell_backward(Tensor? grady, Tensor? gradh, Tensor? gradc, Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor y_output, Tensor h_output, Tensor c_output, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+  variants: function
+  npu_dispatch_only:
+    NPU: lstm_cell_backward_npu
+
 - func: npu_dropout_gen_mask(int[] size, float p, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   npu_dispatch_only:
     NPU: dropout_gen_mask_impl

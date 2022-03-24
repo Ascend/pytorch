@@ -61,6 +61,10 @@ public:
     return instance;
   }
 
+  void SetVerbose(bool verbose) {
+    verbose_ = verbose;
+  }
+
   void Finalize();
 
  private:
@@ -111,6 +115,8 @@ public:
   static uint32_t graph_id;
 
   DeviceIndex init_device_id_ = -1;
+
+  bool verbose_ = false;
 
   std::unique_ptr<ge::Session> session_ = nullptr;
 

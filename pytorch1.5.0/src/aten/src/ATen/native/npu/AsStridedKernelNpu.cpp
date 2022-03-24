@@ -38,7 +38,7 @@ Tensor& stride_copy_out_npu_nocheck(
       .InputWithoutContiguous(self)
       .Input(shape)
       .Input(stride)
-      .Input(storage_offset, at::kLong)
+      .Input(storage_offset, at::kLong, CompileType::MEMORY_DEVICE_COMPILE, false)
       .Output(result)
       .Run();
   return result;

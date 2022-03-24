@@ -1721,3 +1721,7 @@
 
 - name: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
   self: npu_dropout_backward(grad, result1, p)
+
+- name: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor bias, Tensor h, Tensor c) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+  output_differentiability: [True, True, True, False, False, False, False, False]
+  input, w_ih, w_hh, bias, h, c: npu_lstm_cell_backward(grads[0], grads[1], grads[2], input, w_ih, w_hh, h, c, result0, result1, result2, result3, result4, result5, result6, result7)

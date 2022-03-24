@@ -263,8 +263,8 @@ def default_stream(device=None):
         _get_device_index(device, optional=True)))
 
 
-def enable_graph_mode():
-    torch._C._npu_enable_graph_mode()
+def enable_graph_mode(verbose=False):
+    torch._C._npu_enable_graph_mode(verbose)
 
 
 def disable_graph_mode():

@@ -188,9 +188,13 @@ class OpCommandBase {
   Derived& Input(
       const Scalar& input,
       const ScalarType type,
-      CompileType compileType = CompileType::MEMORY_DEVICE_COMPILE) {
+      CompileType compileType = CompileType::MEMORY_DEVICE_COMPILE,
+      bool flag = true) {
+    // If scalar input of op as_strided is set MEMORY_HOST_COMPILE_INDEPENDENT,
+    // failed to execute op. Therefore, scalar input of op as_strided is set
+    // MEMORY_DEVICE_COMPILE by setting parameter flag to false.
     if ((compileType == MEMORY_DEVICE_COMPILE) &&
-      (c10::npu::OptionsManager::CheckScalarToHostMemEnable())) {
+      (c10::npu::OptionsManager::CheckScalarToHostMemEnable()) && flag) {
       compileType = MEMORY_HOST_COMPILE_INDEPENDENT;
     }
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
