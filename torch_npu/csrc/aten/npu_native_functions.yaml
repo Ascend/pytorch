@@ -1685,6 +1685,7 @@ supported:
   - upsample_linear1d_backward
   - upsample_bilinear2d.out
   - upsample_bilinear2d
+  - upsample_bilinear2d.vec
   - upsample_bilinear2d_backward.grad_input
   - upsample_bilinear2d_backward
   - upsample_bicubic2d.out
