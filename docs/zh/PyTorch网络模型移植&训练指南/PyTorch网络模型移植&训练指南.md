@@ -1949,7 +1949,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
 #### AOE调优工具介绍
 
-对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，Auto Tune工具则实现了这样的调优功能，可以用于提升模型的性能。
+对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，AOE工具则实现了这样的调优功能，可以用于提升模型的性能。
 
 #### AOE调优工具使用
 
@@ -1981,14 +1981,13 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
    - 调优结果：
 
-     调优完成后，结果会保存在TUNK_BANK_PATH设置的路径中，若不设置则默认保存在home目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/${soc_version}。
+     调优完成后，结果会保存在TUNK_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/${HOME}/ascend/latest/data/aoe/custom/op/${soc_version}目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/${soc_version}。
 
 #### 注意事项
 
 1. 目前仅支持静态算子，动态算子暂不支持。
 2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
 3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
-4. 目前仅支持部分算子调优。
 
 #### 性能验证
 
