@@ -120,5 +120,21 @@ at::Tensor NPUNativeFunctions::upsample_bicubic2d_backward(
   return upsample_bicubic2d_backward_out_nocheck(grad_output, output_size, input_size, align_corners, scales_h, scales_w, result);
 }
 
+at::Tensor NPUNativeFunctions::upsample_bicubic2d_backward(
+    const at::Tensor& grad_output, 
+    c10::optional<at::IntArrayRef> output_size, 
+    at::IntArrayRef input_size, 
+    bool align_corners, 
+    c10::optional<at::ArrayRef<double>> scale_factors) {
+  auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+  // construct the output tensor of the NPU
+  auto outputSize = upsample_bicubic2d_backward_npu_output_size(input_size);
+  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, grad_output.options());
+  // calculate the output result of the NPU
+  return upsample_bicubic2d_backward_out_nocheck(grad_output, osize, input_size, align_corners, scales_h, scales_w, result);
+}
+
 } // namespace native
 } // namespace at_npu

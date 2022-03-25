@@ -35,6 +35,17 @@ class TestUpsampleLinear1D(TestCase):
         output = output.to("cpu")
         out_result = out_result.to("cpu")
         return output.numpy(), out_result.numpy()
+
+    def cpu_op_scale_exec(self, input1, size):
+        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear")
+        output = output.numpy()
+        return output
+
+    def npu_op_scale_exec(self, input1, size):
+        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear")
+        output = output.to("cpu")
+        output = output.numpy()
+        return output
         
     def creat_shape_format1(self, device="npu"):
         test_cases = [
@@ -104,6 +115,28 @@ class TestUpsampleLinear1D(TestCase):
 
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_out_result, npu_out_result)
+
+    def test_upsample_scale_linear1d(self, device="npu"):
+        for item in self.creat_shape_format1(device):
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
+
+            if cpu_input.dtype == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
+
+            if cpu_input.dim() == 4:
+                cpu_input = cpu_input.squeeze(2)
+
+            if npu_input.dim() == 4:
+                npu_input = npu_input.squeeze(2)
+
+            size = item[1]
+
+            npu_output = self.npu_op_scale_exec(npu_input, size)
+            cpu_output = self.cpu_op_scale_exec(cpu_input, size)
+
+            cpu_output = cpu_output.astype(npu_output.dtype)
+
+            self.assertRtolEqual(cpu_output, npu_output)
             
 
 if __name__ == "__main__":
