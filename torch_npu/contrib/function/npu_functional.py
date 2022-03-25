@@ -16,6 +16,8 @@
 
 r"""Functional interface"""
 
+__all__ = ["dropout_with_byte_mask"]
+
 import torch
 import torch_npu as _VF
 
