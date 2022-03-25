@@ -27,7 +27,7 @@ __all__ = [
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize", "profileConfig"
+    "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork"
 ]
 
 import torch
@@ -36,7 +36,7 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device,
                     _get_device_index, is_available, device, device_of,
                     stream, current_stream, default_stream, init_dump,
-                    finalize_dump, set_dump)
+                    finalize_dump, set_dump, _in_bad_fork)
 from .random import manual_seed, manual_seed_all, seed, seed_all, initial_seed
 from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete,
                      empty_cache, memory_stats, memory_stats_as_nested_dict,

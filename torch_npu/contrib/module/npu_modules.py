@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = ["DropoutWithByteMask"]
+
+
 from torch.nn import Module
 from ..function import npu_functional as F
 
