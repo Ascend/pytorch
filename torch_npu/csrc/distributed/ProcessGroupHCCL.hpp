@@ -55,6 +55,19 @@ constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
 // Also note that WorkHCCL::finishedGPUExecution() is a helper function only
 // provided by ProcessGroupHCCL to check if the HCCL operation of WorkHCCL has
 // finished execution on the NPU (not just scheduled).
+//
+// Example on using the HCCL process group
+//
+//   ProcessGroupHCCL pg(store, rank, size);
+//   std::shared_ptr<WorkNCCL> work = pg.allreduce(tensors);
+//
+//   // At this point, HCCL kernel has already by queued successfully
+//   // Now, let current stream wait for the HCCL to finish, this function is
+//   // async operation as well
+//
+//   work->wait()
+//
+//   // Now continue on other work in the current stream.
 
 class ProcessGroupHCCL : public c10d::ProcessGroup {
 public:
@@ -344,6 +357,12 @@ protected:
   // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
 
 private:
+  // Helper that encapsulates work shared across all collective communication
+  // primitives.  The callbacks have the following signatures:
+
+  //    HcclResult fn(at::Tensor& input, at::Tensor& output,
+  //                    ncclComm_t, at::cuda::CUDAStream&);
+  //    void {pre,post}(std::vector<at::cuda::CUDAStream&>);
   template <typename Fn>
   c10::intrusive_ptr<c10d::ProcessGroup::Work> collective(
       std::vector<at::Tensor>& input,
