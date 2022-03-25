@@ -95,9 +95,8 @@ def empty_cache():
     if is_initialized():
         torch_npu._C._npu_emptyCache()
 
-
 def memory_stats(device=None):
-    r"""Returns a dictionary of NPU memory allocator statistics for a
+    """Returns a dictionary of NPU memory allocator statistics for a
     given device.
     The return value of this function is a dictionary of statistics, each of
     which is a non-negative integer.
