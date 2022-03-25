@@ -141,5 +141,41 @@ at::Tensor NPUNativeFunctions::upsample_bilinear2d_backward(
   return grad_input;
 }
 
+at::Tensor NPUNativeFunctions::upsample_bilinear2d_backward(
+    const at::Tensor& grad_output_ex,
+    c10::optional<at::IntArrayRef> output_size,
+    at::IntArrayRef input_size,
+    bool align_corners,
+    c10::optional<at::ArrayRef<double>> scale_factors) {
+  auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
+  auto scales_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
+
+  at::Tensor grad_output = grad_output_ex;
+  bool isAicore = upsample_bilinear2d_backward_check_is_aicore(grad_output);
+  if (!isAicore) {
+    if (grad_output.scalar_type() != at::ScalarType::Float) {
+      grad_output = NPUNativeFunctions::npu_dtype_cast(grad_output, at::ScalarType::Float);
+    }
+  }
+  auto outputSize = upsample_bilinear2d_backward_npu_output_size(
+      grad_output, osize, input_size, align_corners, scales_h, scales_w);
+  aclFormat format = isAicore ? ACL_FORMAT_NC1HWC0 : (aclFormat)CalcuOpUtil::get_tensor_npu_format(grad_output);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(grad_output, outputSize, format);
+
+  upsample_bilinear2d_backward_out_npu_nocheck(
+      grad_input,
+      grad_output,
+      osize,
+      input_size,
+      align_corners,
+      scales_h,
+      scales_w);
+  if (grad_input.dtype() != grad_output_ex.dtype()) {
+    grad_input = grad_input.to(grad_output_ex.dtype());
+  }
+  return grad_input;
+}
+
 } // namespace native
 } // namespace at_npu
