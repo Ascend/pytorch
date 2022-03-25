@@ -262,14 +262,8 @@ class EventList(list):
                     '"tid": %s, '
                     '"pid": "CPU functions", '
                     '"args": {}}, '
-                    % (
-                        evt.trace_name,
-                        evt.time_range.start,
-                        evt.time_range.elapsed_us(),
-                        evt.thread
-                        if not evt.is_remote
-                        else f'" node_id:{evt.node_id}, thread_id:{evt.thread} "',
-                    ))
+                    % (evt.trace_name, evt.time_range.start, evt.time_range.elapsed_us(),
+                       evt.thread if not evt.is_remote else f'" node_id:{evt.node_id}, thread_id:{evt.thread} "',))
                 if self._use_npu:
                     for k in evt.kernels:
                         # 's' and 'f' draw Flow arrows from
@@ -281,8 +275,7 @@ class EventList(list):
                                 '"pid": "CPU functions", '
                                 '"id": %s, '
                                 '"cat": "cpu_to_npu", '
-                                '"args": {}}, ' % (evt.trace_name, evt.time_range.start,
-                                                evt.thread, next_id))
+                                '"args": {}}, ' % (evt.trace_name, evt.time_range.start, evt.thread, next_id))
                         f.write('{"name": "%s", '
                                 '"ph": "f", '
                                 '"ts": %s, '
@@ -297,8 +290,7 @@ class EventList(list):
                                 '"dur": %s, '
                                 '"tid": %s, '
                                 '"pid": "NPU functions", '
-                                '"args": {}}, ' % (k.name, k.interval.start,
-                                                k.interval.elapsed_us(), k.device))
+                                '"args": {}}, ' % (k.name, k.interval.start, k.interval.elapsed_us(), k.device))
                         next_id += 1 
 
             # remove trailing whitespace and comma
@@ -1454,17 +1446,19 @@ def build_table(
     sum_self_cpu_time_total, sum_self_npu_time_total = get_time_total()
 
     # Actual printing
-    if header is not None:
-        append('=' * line_length)
-        append(header)
-    if top_level_events_only:
-        append('=' * line_length)
-        append('This report only display top-level ops statistics')
-    append(header_sep)
-    append(row_format.format(*headers))
+    def process_print():
+        if header is not None:
+            append('=' * line_length)
+            append(header)
+        if top_level_events_only:
+            append('=' * line_length)
+            append('This report only display top-level ops statistics')
+        append(header_sep)
+        append(row_format.format(*headers))
 
-    append(header_sep)
-
+        append(header_sep)
+    process_print()
+    
     event_limit = 0
     def get_result():
         for evt in events:
