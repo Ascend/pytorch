@@ -583,7 +583,7 @@ namespace at_npu
                                                    c10::optional<bool> pin_memory_opt)
     {
 
-      return bartlett_window(window_length, /*periodic=*/true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+      return bartlett_window(window_length, true, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hann_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
