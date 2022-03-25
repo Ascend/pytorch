@@ -73,8 +73,8 @@ class TestMaskedScatter(TestCase):
         maskbool = mask.ge(0.5)
         
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_source, npu_source = create_common_tensor(item, 0, 100)
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
             cpu_output2 = self.cpu_inp_op_exec(cpu_input, maskbool, cpu_source)
             npu_output2 = self.npu_inp_op_exec(npu_input, maskbool, npu_source)
             self.assertRtolEqual(cpu_output2, npu_output2)
