@@ -7722,12 +7722,16 @@
   dispatch:
     CPU: replication_pad1d_backward_out_cpu
     CUDA: replication_pad1d_backward_out_cuda
+  npu_dispatch:
+    NPU: replication_pad1d_backward_out_npu    
 
 - func: replication_pad1d_backward(Tensor grad_output, Tensor self, int[2] padding) -> Tensor
   python_module: nn
   dispatch:
     CPU: replication_pad1d_backward_cpu
     CUDA: replication_pad1d_backward_cuda
+  npu_dispatch:
+    NPU: replication_pad1d_backward_npu
 
 - func: replication_pad2d.out(Tensor self, int[4] padding, *, Tensor(a!) out) -> Tensor(a!)
   python_module: nn
