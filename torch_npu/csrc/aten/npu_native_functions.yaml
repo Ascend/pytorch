@@ -1315,6 +1315,7 @@ supported:
   - sign
   - sign_
   - sign.out
+  - sgn.out
   - signbit
   - signbit.out
   - dist
@@ -1948,7 +1949,7 @@ custom:
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
-  - func: fast_gelu(Tensor self) -> Tensor 
+  - func: fast_gelu(Tensor self) -> Tensor
   - func: npu_confusion_transpose(Tensor self, int[] perm, int[] shape, bool transpose_first) -> Tensor
     variants: function, method
   - func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
