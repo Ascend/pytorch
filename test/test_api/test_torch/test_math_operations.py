@@ -16,7 +16,7 @@ import copy
 import numpy as np
 import torch
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch.testing._internal.common_utils import freeze_rng_state
+
 import torch_npu
 
 device = 'npu:0'

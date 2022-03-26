@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from torch.random import manual_seed as torch_manual_seed, seed as torch_seed
-
 import torch_npu
 
 
