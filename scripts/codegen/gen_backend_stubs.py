@@ -17,10 +17,11 @@
 import pathlib
 import argparse
 import os
-import yaml
 import re
 from collections import namedtuple, Counter, defaultdict
 from typing import List, Dict, Union, Sequence, Optional
+import yaml
+
 from codegen.gen import FileManager, get_grouped_native_functions, LineLoader, error_check_native_functions
 from codegen.model import (BackendIndex, BackendMetadata, DispatchKey, Location,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
@@ -146,7 +147,8 @@ def parse_backend_yaml(
 
     native_functions_map: Dict[OperatorName, NativeFunction] = {
         f.func.name: f
-        for f in concat_map(lambda f: [f] if isinstance(f, NativeFunction) else list(f.functions()), grouped_native_functions)
+        for f in concat_map(lambda f: [f] if isinstance(f, NativeFunction)
+                            else list(f.functions()), grouped_native_functions)
     }
 
     with open(backend_yaml_path, 'r') as f:
@@ -164,7 +166,7 @@ def parse_backend_yaml(
     supported = yaml_values.pop('supported', [])
     if supported is None:
         supported = []  # Allow an empty list of supported ops
-    assert isinstance(supported, list), f'expected "supported" to be a list, but got: {supported} (of type {type(supported)})'
+    assert isinstance(supported, list), f'expected "supported" to be a list, but got type {type(supported)}'
 
     supported_autograd = yaml_values.pop('autograd', [])
     assert isinstance(supported_autograd, list), f'expected "autograd" to be a list, but got: {supported_autograd}'
@@ -236,7 +238,8 @@ def error_on_missing_kernels(
 
     expected_backend_op_names: List[OperatorName] = \
         list(backend_indices[backend_key].index.keys()) + list(backend_indices[autograd_key].index.keys())
-    expected_backend_native_funcs: List[NativeFunction] = [f for f in native_functions if f.func.name in expected_backend_op_names]
+    expected_backend_native_funcs: List[NativeFunction] = \
+        [f for f in native_functions if f.func.name in expected_backend_op_names]
     expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
     for native_f in expected_backend_native_funcs:
         expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)

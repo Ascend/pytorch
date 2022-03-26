@@ -1029,10 +1029,7 @@ def cpp_dispatch_exprs(f: NativeFunction, *,
 # For certain cases it is intentionally more restrictive than necessary,
 # e.g.: it doesn't accepts doublelist with definite size.
 def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
-    if has_default and str(t) not in ('ScalarType', 'Device', 'Layout?'):
-        raise RuntimeError(f'type \'{t}\' does not supported unpacking with default')
-
-    if isinstance(t, BaseType):
+    def unpack_base(t, has_default):
         base_dict = {
             BaseTy.ScalarType: 'scalartypeWithDefault' if has_default else 'scalartype',
             BaseTy.Device: 'deviceWithDefault' if has_default else 'device',
@@ -1047,6 +1044,35 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
             return t.name.name.lower()
         elif t.name in base_dict:
             return base_dict[t.name]
+        else:
+            return None
+
+    def unpack_list(t):
+        list_dict = {
+            'Tensor?': 'list_of_optional_tensors',
+            'Dimname': 'dimnamelist',
+            'int': 'intlist',
+            'float[]': 'doublelist',
+            'Scalar[]': 'scalarlist'
+        }
+        if str(t.elem) == 'Tensor':
+            # accept and use definite size
+            if t.size is not None:
+                return f'tensorlist_n<{t.size}>'
+            else:
+                return 'tensorlist'
+        elif str(t.elem) in list_dict:
+            return list_dict[str(t.elem)]
+        else:
+            return None
+
+    if has_default and str(t) not in ('ScalarType', 'Device', 'Layout?'):
+        raise RuntimeError(f'type \'{t}\' does not supported unpacking with default')
+
+    if isinstance(t, BaseType):
+        ret = unpack_base(t, has_default)
+        if ret is not None:
+            return ret
 
     elif isinstance(t, OptionalType):
         if str(t.elem) == 'Tensor':
@@ -1077,21 +1103,9 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
                 return 'toDimnameListOptional'
 
     elif isinstance(t, ListType):
-        list_dict = {
-            'Tensor?': 'list_of_optional_tensors',
-            'Dimname': 'dimnamelist',
-            'int': 'intlist',
-            'float[]': 'doublelist',
-            'Scalar[]': 'scalarlist'
-        }
-        if str(t.elem) == 'Tensor':
-            # accept and use definite size
-            if t.size is not None:
-                return f'tensorlist_n<{t.size}>'
-            else:
-                return 'tensorlist'
-        elif str(t.elem) in list_dict:
-            return list_dict[str(t.elem)]
+        ret = unpack_list(t)
+        if ret is not None:
+            return ret
 
     raise RuntimeError(f'type \'{t}\' is not supported by PythonArgParser')
 

@@ -117,12 +117,12 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
 
     f_str.seek(0)
     custom_es = yaml.load(f_str, Loader=LineLoader)
-    for e in custom_es:
-        assert isinstance(e.get('__line__'), int), e
-        loc = Location(custom_path, e['__line__'])
-        funcs = e.get('func')
+    for e_with_vars in custom_es:
+        assert isinstance(e_with_vars.get('__line__'), int), e_with_vars
+        loc = Location(custom_path, e_with_vars['__line__'])
+        funcs = e_with_vars.get('func')
         with context(lambda: f'in {loc}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e, loc)
+            func, m = NativeFunction.from_yaml(e_with_vars, loc)
             func.variants.discard(Variant.method)
             rs.append(func)
             BackendIndex.grow_index(bs, m)
@@ -481,9 +481,9 @@ def group_overloads(
                     candidates.append(overload.signature.signature_str(skip_outputs=True))
             out_sig = out.signature.signature_str()
             raise RuntimeError(
-                f'While identifying overloads, we found an out schema {out_sig} without a corresponding non-out variant. '
-                f'We expected the non-out variant to have schema: \n- {sig}\nPlease check that you spelled the schema '
-                'correctly in native_functions.yaml. We discovered the following candidate(s): \n'
+                f'While identifying overloads, we found an out schema {out_sig} without a corresponding non-out '
+                f'variant. We expected the non-out variant to have schema: \n- {sig}\nPlease check that you '
+                f'spelled the schema correctly in native_functions.yaml. We discovered the following candidate(s): \n'
                 + '\n'.join(f'- {candidate}' for candidate in candidates))
 
     grouped: List[PythonSignatureGroup] = []
