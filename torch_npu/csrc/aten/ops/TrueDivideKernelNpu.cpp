@@ -49,7 +49,6 @@ at::Tensor& NPUNativeFunctions::true_divide_out(
   at::Tensor otherTemp = other;
   if (self.scalar_type() == at::ScalarType::Int) {
     selfTemp = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
   }
 
   if (other.scalar_type() == at::ScalarType::Int||other.scalar_type() == at::ScalarType::Bool) {
@@ -82,9 +81,6 @@ at::Tensor& NPUNativeFunctions::true_divide_out(
     true_divide_Tensor_out_npu_nocheck(selfTemp, otherTemp, result);
   }
 
-  if (self.scalar_type() == at::ScalarType::Int) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Int);
-  }
   return result;
 }
 
