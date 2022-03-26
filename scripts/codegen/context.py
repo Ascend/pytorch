@@ -14,13 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
+import contextlib
+from typing import TypeVar, Union, Iterator, Callable, Dict
+
 from codegen.utils import S, T, context
 from codegen.model import (NativeFunction, NativeFunctionsGroup, BackendIndex, DispatchKey)
 import codegen.local as local
 
-import functools
-from typing import TypeVar, Union, Iterator, Callable, Dict
-import contextlib
+
 
 # Helper functions for defining generators on things in the model
 
