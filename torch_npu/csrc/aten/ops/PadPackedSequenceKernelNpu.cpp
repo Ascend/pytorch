@@ -40,7 +40,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pad_packed_sequence(
     maxSeqLength = totalLength;
   }
 
-  at::Tensor lengthsT = OpPreparation::ApplyTensorWithSizes(maxBatchSize, batchSizesT.options());
+  at::Tensor lengthsT = at::empty(maxBatchSize, batchSizesT.options().device(at::kCPU));
   int64_t * lengths = lengthsT.data_ptr<int64_t>() + maxBatchSize - 1;
   int64_t prevBatchSize = maxBatchSize;
   for (int64_t i = 0; i <= maxRealSeqLength; ++i) {
