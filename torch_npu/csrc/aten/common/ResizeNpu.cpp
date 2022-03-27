@@ -34,7 +34,7 @@ at::Tensor& NPUNativeFunctions::resize_(
     NPUNativeFunctions::npu_format_cast_(self, FormatHelper::GetBaseFormat(self));
   }
   auto* self_ = self.unsafeGetTensorImpl();
-  resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
+  resize_impl_npu_(self_, size, c10::nullopt);
   return self;
 }
 

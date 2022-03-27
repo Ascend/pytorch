@@ -15,9 +15,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn.functional as F
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -25,13 +25,15 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestMaxPool3dWithIndices(TestCase):
     def cpu_op_exec(self, inputCpu, kernel_size, stride, padding, dilation, ceil_mode):
-        dataCpu, argMaxCpu = F.max_pool3d_with_indices(inputCpu, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation,
-                            ceil_mode=ceil_mode, return_indices=True)
+        dataCpu, argMaxCpu = F.max_pool3d_with_indices(inputCpu, kernel_size=kernel_size,
+                             stride=stride, padding=padding, dilation=dilation,
+                             ceil_mode=ceil_mode, return_indices=True)
         return dataCpu,argMaxCpu
 
     def npu_op_exec(self, inputNpu, kernel_size, stride, padding, dilation, ceil_mode):
-        dataNpu, argMaxNpu = F.max_pool3d_with_indices(inputNpu, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation,
-                            ceil_mode=ceil_mode, return_indices=True)
+        dataNpu, argMaxNpu = F.max_pool3d_with_indices(inputNpu, kernel_size=kernel_size,
+                             stride=stride, padding=padding, dilation=dilation,
+                             ceil_mode=ceil_mode, return_indices=True)
         output1 = dataNpu.to("cpu").detach()
         output2 = argMaxNpu.to("cpu").detach()
         return output1, output2

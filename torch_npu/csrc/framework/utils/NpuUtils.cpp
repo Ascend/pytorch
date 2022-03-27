@@ -46,7 +46,7 @@ namespace at_npu
     // NOTE [Check Match for Npu at::Tensor]
     // check_match is used to ensure that npu tensor satisfies the
     // calculation requirements of npu operators.
-    // The rules are as follows:
+    // The rules are as follows,
     // 1、tensor should be contiguous
     // Not contiguous means the operator needs to read and write memory
     // at intervals according to strides and sizes. Npu operators has
@@ -88,7 +88,6 @@ namespace at_npu
       // (1) NC1HWC0 format in storage, NCHW format in des.
       // (2) 4d format situation, only uncontiguous in Channel size
       // (3) size and start point must be 16*, make sure the memory be contiguous
-      // std::cout<<"step in check5d5d Match."<<std::endl;
       const c10::Storage storage = tensor.storage();
       const c10::NPUStorageDesc npuDesc = storage.get_npu_desc();
 
@@ -140,58 +139,7 @@ namespace at_npu
 
       return is_offset_match && is_length_match;
     }
-    // src will be modified, can not use &
-    at::Tensor convert_continue_using_gatherv2_improve(at::Tensor &src)
-    {
-      // ref: IndexSelectKernelNpu.cpp
-      // std::cout<<"step in convert_continue_using_gatherv2."<<std::endl;
-      RECORD_FUNCTION("continue_by_gatherv2_improve", vector<c10::IValue>({src}));
-      // 1. get gatherv2 start index and end index
-      int64_t start = src.storage_offset() / (src.size(2) * src.size(3)) / 16;
-      int64_t end = start + src.size(1) / 16;
-      at::Tensor index = at::arange(start, end).to(at::kNPU);
-      int64_t dim = 1;
-
-      // 2. recovery the src tensor desc
-      const c10::NPUStorageDesc src_npuDesc = src.storage().get_npu_desc();
-      src.set_(src.storage(), 0, src_npuDesc.base_sizes_, src_npuDesc.base_strides_);
-      at::Tensor src_tmp = src.reshape({src.size(0), src.size(1) / 16, src.size(2), src.size(3) * 16});
-      src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_ = src_tmp.sizes();
-      src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_strides_ = src_tmp.strides();
-      src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_ = src_tmp.sizes();
-      // std::cout << "src_tmp storage_offset(): " << src_tmp.storage_offset() << std::endl;
-      // std::cout << "src_tmp sizes(): " << src_tmp.sizes() << std::endl;
-      // std::cout << "src_tmp strides(): " << src_tmp.strides() << std::endl;
-      // std::cout << "src_tmp data_recovery: " << src_tmp.to(at::kCPU) << std::endl;
-
-      // 3. get output size
-      auto outputSize = index_select_npu_output_size(src_tmp, dim, index);
-      int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(src_tmp);
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, src_tmp.options(), npu_format);
-      // std::cout << "npu_format: " << npu_format << std::endl;
-
-      // 4. get input and output
-      c10::SmallVector<at::Tensor, N> inputTensor = {src_tmp, index};
-      c10::SmallVector<NPUTensorDesc, N> inputs;
-      for (int i = 0; i < inputTensor.size(); i++)
-      {
-        inputs.emplace_back(
-            NPUTensorDesc(inputTensor[i]));
-        if (inputTensor[i].dim() == 0)
-        {
-          inputs[i].tensorDescType = NPUTensorDesc::TensorDescType::TENSOR_SCALAR;
-        }
-      }
-
-      auto outputs = CalcuOpUtil::create_npu_input_tensor_desc({result});
-
-      NPUAttrDesc npuAttrAxis = NPUAttrDesc("axis", dim);
-      c10::SmallVector<NPUAttrDesc, N> attrs = {npuAttrAxis};
-
-      // 5. run
-      CalcuOpUtil::execute_npu_operate("GatherV2D", inputs, outputs, attrs);
-      return result;
-    }
+    
     void NpuUtils::RefreshFormat(const at::Tensor &tensor)
     {
       auto &tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
@@ -205,30 +153,6 @@ namespace at_npu
         tensor_desc.npu_format_ = ACL_FORMAT_ND;
         tensor_desc.origin_format_ = ACL_FORMAT_ND;
       }
-    }
-
-    at::Tensor deal_with_5d_5d_match(const at::Tensor &src)
-    {
-      auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-      at::Tensor src_new = OpPreparation::ApplyTensorWithFormat(src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
-      int64_t numel = src_new.numel();
-      aclError error = c10::npu::queue::LaunchAsyncCopyTask(
-          src_new.data_ptr(),
-          numel * src_new.element_size(),
-          (uint8_t *)src.data_ptr() - src.storage_offset() * src.element_size(),
-          numel * src.element_size(),
-          ACL_MEMCPY_DEVICE_TO_DEVICE);
-      src_new.set_(src_new.storage(), src.storage_offset(), src.sizes(), src.strides());
-
-      src_new.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NCHW;
-      at::Tensor ret = convert_continue_using_gatherv2_improve(src_new);
-      // std::cout << "ret data_recovery: " << ret.to(at::kCPU) << std::endl;
-      at::Tensor ret_tmp = ret.reshape({ret.size(0), ret.size(1) * 16, ret.size(2), ret.size(3) / 16});
-      ret_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_ = ret_tmp.sizes();
-      ret_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_strides_ = ret_tmp.strides();
-      ret_tmp.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_ = ret_tmp.sizes();
-      ret_tmp.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ = ACL_FORMAT_NC1HWC0;
-      return ret_tmp;
     }
 
     at::Tensor metadata_convert_match(const at::Tensor &src)

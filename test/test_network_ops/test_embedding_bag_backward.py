@@ -1,4 +1,6 @@
-# Copyright (c) 2020, Huawei Technologies.All rights reserved.
+# Copyright (c) 2020 Huawei Technologies Co., Ltd
+# Copyright (c) 2019, Facebook CORPORATION.
+# All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,52 +16,60 @@
 import torch
 import torch_npu
 import numpy as np
-import torch.nn.functional as F
+import torch.nn as nn
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-class TestEmbeddingBackward(TestCase):
-    def cpu_op_exec(self, weight, indices):
-        weight.requires_grad_(True)
-        out = F.embedding(indices, weight, scale_grad_by_freq=True, padding_idx=37)
-        out.backward(torch.ones_like(out))
-        grad_cpu = weight.grad
-        return out.detach().numpy(), grad_cpu.detach().numpy()
+class TestEmbeddingBagBackward(TestCase):
+    def cpu_op_exec(self, input1, embedding_matrix, offsets):
+        embedding_matrix.requires_grad_()
+        m = nn.functional.embedding_bag(input1, embedding_matrix, offsets)
+        grads = torch.ones_like(m)
+        m.backward(grads)
+        output = embedding_matrix.grad.numpy()
+        
+        return output
 
-    def npu_op_exec(self, weight, indices):
-        weight.requires_grad_(True)
-        out = F.embedding(indices, weight, scale_grad_by_freq=True, padding_idx=37)
-        out.backward(torch.ones_like(out))
-        out_npu = out.to("cpu")
-        grad_npu = weight.grad
-        grad_npu = grad_npu.to("cpu")
-        return out_npu.detach().numpy(), grad_npu.detach().numpy()
+    def npu_op_exec(self, input1, embedding_matrix, offsets):
+        embedding_matrix.requires_grad_()
+        m = nn.functional.embedding_bag(input1, embedding_matrix, offsets).npu()
+        grads = torch.ones_like(m)
+        m.backward(grads)        
+        output = embedding_matrix.grad.cpu().numpy()
+        
+        return output
 
-    def test_embedding_backward_shape_format_fp32(self):
-        format_list = [0]
-        shape_list1 = [[40, 32], [40, 1024], [40000, 1024], [33712, 1024]]
-        shape_list2 = [[40], [40], [3125], [64, 7]]
-        shape_format1 = [
-            [np.float32, i, j] for i in format_list for j in shape_list1
+    def test_embedding_bag_backward_shape_format(self):
+        test_cases = [
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]), torch.tensor([0, 4]), torch.randn(10, 3),
+             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to("npu"), torch.tensor([0, 4]).to("npu"),
+             torch.randn(10, 3).to("npu")],
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]), torch.tensor([0, 4]), torch.randn(10, 3),
+             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9, 6]).to("npu"), torch.tensor([0, 4]).to("npu"),
+             torch.randn(10, 3).to("npu")],
+            [torch.tensor([0, 2, 0, 5]), torch.tensor([0, 2]), torch.randn(10, 3),
+             torch.tensor([0, 2, 0, 5]).to("npu"), torch.tensor([0, 2]).to("npu"),
+             torch.randn(10, 3).to("npu")],
+            [torch.tensor([0, 1, 2, 3]), torch.tensor([0, 3]), torch.randn(4, 3),
+             torch.tensor([0, 1, 2, 3]).to("npu"), torch.tensor([0, 3]).to("npu"),
+             torch.randn(4, 3).to("npu")],
+            [torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]), torch.tensor([0, 4]), torch.randn(10, 4),
+             torch.tensor([1, 2, 4, 5, 4, 3, 2, 9]).to("npu"), torch.tensor([0, 4]).to("npu"),
+             torch.randn(10, 4).to("npu")],
+            [torch.tensor([0, 1, 2, 3]), torch.tensor([0, 3]), torch.randn(10, 4),
+             torch.tensor([0, 1, 2, 3]).to("npu"), torch.tensor([0, 3]).to("npu"),
+             torch.randn(10, 4).to("npu")]
         ]
-        shape_format2 = [
-            [np.int64, i, j] for i in format_list for j in shape_list2
-        ]
-        shape_format = [
-            [i, j] for i in shape_format1 for j in shape_format2
-        ]
-        for item in shape_format:
-            weight_cpu, weight_npu = create_common_tensor(item[0], 1, 1)
-            indices_cpu, indices_npu = create_common_tensor(item[1], 0, min(item[0][2][0:-1]))
+        for item in test_cases:
+            cpu_input, npu_input = item[0], item[3]
+            cpu_offsets, npu_offsets = item[1], item[4]
+            cpu_embedding_matrix, npu_embedding_matrix = item[2], item[5]
 
-            cpu_out, cpu_grad = self.cpu_op_exec(weight_cpu, indices_cpu)
-            npu_out, npu_grad = self.npu_op_exec(weight_npu, indices_npu)
-
-            self.assertRtolEqual(cpu_out, npu_out)
-            self.assertRtolEqual(cpu_grad, npu_grad)
+            cpu_output = self.cpu_op_exec(cpu_input, cpu_embedding_matrix, cpu_offsets)
+            npu_output = self.npu_op_exec(npu_input, npu_embedding_matrix, npu_offsets)
+            self.assertEqual(cpu_output, npu_output)
 
 if __name__ == "__main__":
     run_tests()
-

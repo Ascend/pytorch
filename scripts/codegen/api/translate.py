@@ -113,7 +113,8 @@ def translate(
 
         if t.type == ConstRefCType(OptionalCType(BaseCType(tensorT))):
             ctx[NamedCType(t.name, BaseCType(optionalTensorRefT))] = \
-                f'(({b.expr}.has_value() && (*{b.expr}).defined()) ? at::OptionalTensorRef(*{b.expr}) : at::OptionalTensorRef())'
+                (f'(({b.expr}.has_value() && (*{b.expr}).defined()) ?'
+                 + f' at::OptionalTensorRef(*{b.expr}) : at::OptionalTensorRef())')
 
         if t.type == ConstRefCType(OptionalCType(BaseCType(scalarT))):
             ctx[NamedCType(t.name, BaseCType(optionalScalarRefT))] = \

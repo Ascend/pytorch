@@ -11,9 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -23,6 +24,7 @@ class TestWhere(TestCase):
     def cpu_op_exec(self, input1):
         output = torch.where(input1)
         output = list(output)
+
         for i in range(len(output)):
             output[i] = output[i].numpy().astype(np.int32)
         return output
@@ -30,6 +32,7 @@ class TestWhere(TestCase):
     def npu_op_exec(self, input1):
         output = torch.where(input1)
         output = list(output)
+
         for i in range(len(output)):
             output[i] = output[i].to("cpu").numpy().astype(np.int32)
         return output

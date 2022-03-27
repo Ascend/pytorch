@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn as nn
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -31,13 +31,14 @@ class TestThnnConvDepthwise2d(TestCase):
     def get_input_grad(self, grad):
         self.input_grad.append(grad.to("cpu"))
 
-    def op_exec_cpu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
+    def op_exec_cpu(self, input1, weight, in_channels,
+                    out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
         weight1 = weight
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
-        if bias != None:
+        if bias is not None:
             bias1 = True
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=group)
@@ -50,13 +51,14 @@ class TestThnnConvDepthwise2d(TestCase):
 
         return cpuOutput
 
-    def op_exec_npu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
+    def op_exec_npu(self, input1, weight, in_channels,
+                    out_channels, kernel_size, padding=0, stride=1, dilation=1, bias=True, group=2):
         weight1 = weight
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
-        if bias != None:
+        if bias is not None:
             bias1 = True
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1, groups=group)
@@ -98,7 +100,7 @@ class TestThnnConvDepthwise2d(TestCase):
                                         padding=item[2], stride=item[3], dilation=item[4], bias=item[5], group=group)
         cpu_output = cpu_output.to(npu_output.dtype)
 
-        if item[5] == True:
+        if item[5] is True:
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy(), 0.005 )
         else:
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy() )

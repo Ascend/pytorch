@@ -14,12 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 from torch import nn
-
 from torch.nn.modules.utils import _pair
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
+import torch_npu
 
 
 class _ROIAlign(Function):

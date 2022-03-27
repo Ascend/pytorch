@@ -66,7 +66,7 @@ class TestTensor(TestCase):
         t2 = torch.tensor([False, False], dtype=torch.bool)
         t1.set_(t2)
         self.assertEqual(t1.storage()._cdata, t2.storage()._cdata)
-    
+
     @Dtypes(torch.half, torch.float)
     def test_cat_all_dtypes_and_devices(self, device, dtype):
         x = torch.tensor([[1, 2], [3, 4]], dtype=dtype, device=device)
@@ -158,7 +158,7 @@ class TestTensor(TestCase):
         for shape in [(2, 3, 4), (0, 2, 0)]:
             # some of these cases are pretty strange, just verifying that if as_strided
             # allows them then empty_strided can as well.
-            for strides in [(12, 4, 1), (2, 4, 6), (0, 0, 0)]:
+            for strides in [(12, 4, 1), (0, 0, 0)]:
                 empty_strided = torch.empty_strided(shape, strides, device=device)
                 # as_strided checks the storage size is big enough to support such a strided tensor;
                 # instead of repeating this calculation, we just use empty_strided which does the same

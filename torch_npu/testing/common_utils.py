@@ -23,10 +23,11 @@ import sys
 import unittest
 import tempfile
 import torch
-import torch_npu
 import numpy as np
 
 from torch.testing._internal.common_utils import TEST_MKL
+
+import torch_npu
 
 
 IS_WINDOWS = sys.platform == "win32"
@@ -102,30 +103,6 @@ def create_common_tensor(item, minValue, maxValue, device=None):
     if npu_format != -1:
         npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
     return cpu_input, npu_input
-
-def compare_res_new(cpu_output, npu_output, testcase_name):
-    if cpu_output.shape != npu_output.shape:
-        return print("result shape error!", cpu_output.shape, npu_output.shape)
-    if cpu_output.dtype != npu_output.dtype:
-        return print("result dtype error!", cpu_output.dtype, npu_output.dtype)
-    if cpu_output.dtype == np.int32:
-        result = np.equal(cpu_output, npu_output)
-        if result is False:
-            return print('testcase_name={0}, npu datatype={1} shape={2} fails!'.format(
-                testcase_name, npu_output.dtype, npu_output.shape))
-    elif cpu_output.dtype == np.float16:
-        result = np.allclose(npu_output, cpu_output, 0.0001, 0)
-        if result is False:
-            return print('testcase_name={0}, npu datatype={1} shape={2} fails!'.format(
-                testcase_name, npu_output.dtype, npu_output.shape))
-    elif cpu_output.dtype == np.float32:
-        result = np.allclose(npu_output, cpu_output, 0.0001, 0)
-        print(npu_output, cpu_output)
-        print(result)
-        if not result:
-            return print('testcase_name={0}, npu datatype={1} shape={2} fails!'.format(
-                testcase_name, npu_output.dtype, npu_output.shape))
-    print('testcase_name={0}, datatype={1} shape={2} pass!'.format(testcase_name, cpu_output.dtype, cpu_output.shape))
 
 
 def __generate_2args_broadcast_cases(device=None):
@@ -210,118 +187,6 @@ def check_operators_in_prof(expected_operators, prof, unexpected_operators=None)
     if not expected_operators:
         return True
     return False
-
-
-# Decorator that skips a test if the given condition is true.
-# Notes:
-#   (1) Skip conditions stack.
-#   (2) Skip conditions can be bools or strings. If a string the
-#       test base must have defined the corresponding attribute to be False
-#       for the test to run. If you want to use a string argument you should
-#       probably define a new decorator instead (see below).
-#   (3) Prefer the existing decorators to defining the 'device_type' kwarg.
-class SkipIf(object):
-
-    def __init__(self, dep, reason, device_type=None):
-        self.dep = dep
-        self.reason = reason
-        self.device_type = device_type
-
-    def __call__(self, fn):
-
-        @wraps(fn)
-        def dep_fn(slf, device, *args, **kwargs):
-            if self.device_type is None or self.device_type == slf.device_type:
-                if ((isinstance(self.dep, str) and getattr(slf, self.dep, True))
-                    or (isinstance(self.dep, bool) and self.dep)):
-                    raise unittest.SkipTest(self.reason)
-
-            return fn(slf, device, *args, **kwargs)
-        return dep_fn
-
-
-# Skips a test on CPU if the condition is true.
-class SkipCPUIf(SkipIf):
-
-    def __init__(self, dep, reason):
-        super(SkipCPUIf, self).__init__(dep, reason, device_type='cpu')
-
-
-class ExpectedFailure(object):
-
-    def __init__(self, device_type):
-        self.device_type = device_type
-
-    def __call__(self, fn):
-
-        @wraps(fn)
-        def efail_fn(slf, device, *args, **kwargs):
-            if self.device_type is None or self.device_type == slf.device_type:
-                try:
-                    fn(slf, device, *args, **kwargs)
-                except Exception:
-                    return
-                else:
-                    slf.fail('expected test to fail, but it passed')
-
-            return fn(slf, device, *args, **kwargs)
-        return efail_fn
-
-
-class OnlyOn(object):
-
-    def __init__(self, device_type):
-        self.device_type = device_type
-
-    def __call__(self, fn):
-
-        @wraps(fn)
-        def only_fn(slf, device, *args, **kwargs):
-            if self.device_type != slf.device_type:
-                reason = "Only runs on {0}".format(self.device_type)
-                raise unittest.SkipTest(reason)
-
-            return fn(slf, device, *args, **kwargs)
-
-        return only_fn
-
-
-# Decorator that provides all available devices of the device type to the test
-# as a list of strings instead of providing a single device string.
-# Skips the test if the number of available devices of the variant's device
-# type is less than the 'num_required_devices' arg.
-class DeviceCountAtLeast(object):
-
-    def __init__(self, num_required_devices):
-        self.num_required_devices = num_required_devices
-
-    def __call__(self, fn):
-        assert not hasattr(fn, 'num_required_devices'), "DeviceCountAtLeast redefinition for {0}".format(fn.__name__)
-        fn.num_required_devices = self.num_required_devices
-
-        @wraps(fn)
-        def multi_fn(slf, devices, *args, **kwargs):
-            if len(devices) < self.num_required_devices:
-                reason = "fewer than {0} devices detected".format(self.num_required_devices)
-                raise unittest.SkipTest(reason)
-
-            return fn(slf, devices, *args, **kwargs)
-
-        return multi_fn
-
-
-# Skips a test on CPU if LAPACK is not available.
-class SkipCPUIfNoLapack(object):
-
-    def __call__(self, fn):
-        return SkipCPUIf(not torch._C.has_lapack, "PyTorch compiled without Lapack")(fn)
-
-
-# Skips a test on CPU if MKL is not available.
-class SkipCPUIfNoMkl(object):
-
-    def __call__(fn):
-        return SkipCPUIf(not TEST_MKL, "PyTorch is built without MKL support")(fn)
 
 
 class SkipIfNoLapack(object):

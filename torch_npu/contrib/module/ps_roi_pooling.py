@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 from torch import nn
+import torch_npu
 
 class PSROIPool(nn.Module):
     def __init__(self, pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22):

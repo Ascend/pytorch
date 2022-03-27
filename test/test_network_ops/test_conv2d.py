@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn as nn
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -75,12 +75,17 @@ class TestConv2d(TestCase):
             if weight_cpu.dtype == torch.float16:
                 weight_cpu = weight_cpu.to(torch.float32)
             kernel_size = (item[1][2][2], item[1][2][3])
-            assert item[0][2][1]/item[6] == item[1][2][1], "ilegal parameters: con2d in_channels//groups must equal to weight.size[1]."
-            cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5], groups=item[6])
+            assert item[0][2][1]/item[6] == item[1][2][1], \
+            "ilegal parameters: con2d in_channels//groups must equal to weight.size[1]."
+            cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1],
+                                         item[1][2][0], kernel_size=kernel_size,
+                                         padding=item[2], stride=item[3],
+                                         dilation=item[4], bias=item[5], groups=item[6])
             weight_npu = weight_npu.to("cpu")
-            npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5], groups=item[6])
+            npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1],
+                                         item[1][2][0], kernel_size=kernel_size,
+                                         padding=item[2], stride=item[3],
+                                         dilation=item[4], bias=item[5], groups=item[6])
 
             npu_output = npu_output.to(torch.float16)
             cpu_output = cpu_output.to(torch.float16)

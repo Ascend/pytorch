@@ -24,6 +24,8 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
+from torch_npu.contrib.function import npu_functional
+from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, serialization_patches
 
 from .version import __version__ as __version__
@@ -44,7 +46,9 @@ all_monkey_patches = [
     ["autograd.profiler", torch_npu.npu.profiler],
     ["distributed", torch_npu.distributed],
     ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
-    ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group]
+    ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
+    ["nn.functional", npu_functional],
+    ["nn", npu_modules],
 ]
 
 all_monkey_patches += serialization_patches

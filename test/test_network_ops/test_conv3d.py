@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn as nn
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -73,12 +73,16 @@ class TestConv3d(TestCase):
             if weight_cpu.dtype == torch.float16:
                 weight_cpu = weight_cpu.to(torch.float32)
             kernel_size = (item[1][2][2], item[1][2][3],item[1][2][4])
-            cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5], groups=item[6])
+            cpu_output = self.op_exec_cpu(input_cpu, weight_cpu, item[0][2][1],
+                                         item[1][2][0], kernel_size=kernel_size,
+                                         padding=item[2], stride=item[3],
+                                         dilation=item[4], bias=item[5], groups=item[6])
             weight_npu = weight_npu.to("cpu")
 
-            npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1], item[1][2][0], kernel_size=kernel_size,
-                                          padding=item[2], stride=item[3], dilation=item[4], bias=item[5], groups=item[6])
+            npu_output = self.op_exec_npu(input_npu, weight_npu, item[0][2][1],
+                                         item[1][2][0], kernel_size=kernel_size,
+                                         padding=item[2], stride=item[3],
+                                         dilation=item[4], bias=item[5], groups=item[6])
 
             npu_output = npu_output.to(torch.float16)
             cpu_output = cpu_output.to(torch.float16)

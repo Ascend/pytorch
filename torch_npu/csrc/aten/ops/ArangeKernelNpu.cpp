@@ -40,9 +40,9 @@ at::Tensor& arange_out_npu_nocheck(
     at::Scalar step) {
   OpCommand cmd;
   cmd.Name("Range")
-     .Input(start, result.scalar_type())
-     .Input(end, result.scalar_type())
-     .Input(step, result.scalar_type())
+     .Input(start, result.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+     .Input(end, result.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+     .Input(step, result.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
      .Output(result)
      .Run();
 

@@ -21,7 +21,6 @@ import time
 import warnings
 
 import torch
-import torch_npu
 import torch.nn as nn
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
@@ -34,6 +33,8 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 import torch.npu
+
+import torch_npu
 
 SOURCE_DIR = os.environ.get('SOURCE_DIR')
 BATCH_SIZE = 128

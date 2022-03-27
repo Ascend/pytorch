@@ -29,16 +29,6 @@ namespace at_npu
     class OpCommand : public OpCommandBase<OpCommand>
     {
     public:
-      // Usage:
-      //  auto func = [&self]() {  //
-      //  请直接将所有都通过引用或者赋值的方式导入lambda函数中
-      //    bool pass = true; // true时，不进入acl处理
-      //    return std::tie(pass, self);
-      //  };
-      //  OpCommand cmd;
-      //  cmd.Name("xxx")
-      //   .InputWithFunc(func);
-      //   .Run();
       using FUNC_TYPE = std::function<std::tuple<bool, at::Tensor &>(void)>;
       OpCommand &InputWithFunc(const FUNC_TYPE &func);
       OpCommand &Inputs(const at::TensorList &inputs);

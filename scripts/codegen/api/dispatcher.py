@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
+from typing import Sequence, List, Union
+
 from codegen.model import (Argument, FunctionSchema, Return,
                            SelfArgument, TensorOptionsArguments, Type,
                            assert_never)
@@ -22,8 +25,6 @@ from codegen.api.types import ArgName, Binding, NamedCType, CType
 from codegen.api import cpp
 from codegen.utils import concat_map
 
-import itertools
-from typing import Sequence, List, Union
 
 # This file describes the translation of JIT schema to the dispatcher
 # API, the *unboxed* calling convention by which invocations through

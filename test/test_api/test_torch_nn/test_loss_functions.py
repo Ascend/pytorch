@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-import torch_npu
 import torch.nn as nn
 import torch.nn.functional as F
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -55,27 +55,27 @@ class TestLossFunctions(TestCase):
         S_min = 10  # Minimum target length, for demonstration purposes
 
          # Initialize random batch of input vectors, for *size = (T,N,C)
-        input1 = torch.randn(T, N, C).log_softmax(2).detach()
-        ninput = input1.npu()
+        input1 = torch.randn(T, N, C).npu().log_softmax(2).detach()
+        cinput = input1.cpu()
         input1.requires_grad_(True)
-        ninput.requires_grad_(True)
+        cinput.requires_grad_(True)
          # Initialize random batch of targets (0 = blank, 1:C = classes)
-        target = torch.randint(low=1, high=C, size=(N, S), dtype=torch.long)
+        target = torch.randint(low=1, high=C, size=(N, S), dtype=torch.int32).npu()
 
-        input_lengths = torch.full(size=(N,), fill_value=T, dtype=torch.long)
-        target_lengths = torch.randint(low=S_min, high=S, size=(N,), dtype=torch.long)
-        ctc_loss = nn.CTCLoss()
+        input_lengths = torch.full(size=(N,), fill_value=T, dtype=torch.int32).npu()
+        target_lengths = torch.randint(low=S_min, high=S, size=(N,), dtype=torch.int32).npu()
+        ctc_loss = nn.CTCLoss().npu()
         loss = ctc_loss(input1, target, input_lengths, target_lengths)
         loss.backward(torch.ones_like(loss))
 
-        ntarget = target.npu()
-        ninput_lengths = input_lengths.npu()
-        ntarget_lengths = target_lengths.npu()
-        nctc_loss = ctc_loss.npu()
-        nloss = nctc_loss(ninput, ntarget, ninput_lengths, ntarget_lengths)
-        nloss.backward(torch.ones_like(nloss))
-        self.assertRtolEqual(loss.detach().numpy(), nloss.detach().cpu().numpy())
-        self.assertRtolEqual(input1.grad.numpy(), ninput.grad.cpu().numpy())
+        ctarget = target.cpu().long()
+        cinput_lengths = input_lengths.cpu().long()
+        ctarget_lengths = target_lengths.cpu().long()
+        cctc_loss = ctc_loss.cpu()
+        closs = cctc_loss(cinput, ctarget, cinput_lengths, ctarget_lengths)
+        closs.backward(torch.ones_like(closs))
+        self.assertRtolEqual(loss.detach().cpu().numpy(), closs.detach().numpy())
+        self.assertRtolEqual(input1.grad.cpu().numpy(), cinput.grad.numpy())
 
     def test_NLLLoss(self):
         m = nn.LogSoftmax(dim=1)
@@ -211,5 +211,4 @@ class TestLossFunctions(TestCase):
 
 
 if __name__ == "__main__":
-    torch.npu.set_device(0)
     run_tests()

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import torch.nn as nn
+import torch_npu
 
 class Mish(nn.Module):
     def __init__(self):

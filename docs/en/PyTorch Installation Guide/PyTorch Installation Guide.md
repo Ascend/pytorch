@@ -194,7 +194,6 @@ After the software packages are installed, configure environment variables to us
     ```
     export DYNAMIC_COMPILE_ENABLE=1  # (Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to 1. (PyTorch 1.8.1 does not support this environment variable.)
     export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to 1.
-    export TRI_COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where three inconsecutive operators are combined. To enable this function, set the value to 1.
     export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to 1.
     export DYNAMIC_OP="ADD#MUL" #  (Optional) Operator implementation. The performance of the ADD and MUL operators varies depending on the scenarios.
     ```

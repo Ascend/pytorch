@@ -14,8 +14,8 @@
 
 import numpy as np
 import torch
-import torch_npu
 import torch.nn as nn
+import torch_npu
 
 
 class ChannelShuffle(nn.Module):

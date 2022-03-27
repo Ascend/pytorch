@@ -305,7 +305,7 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
    if __name__ == '__main__':
        ############## npu modify begin #############
        if 'npu' in CALCULATE_DEVICE:
-          torch.npu.set_device(CALCULATE_DEVICE)
+          torch_npu.npu.set_device(CALCULATE_DEVICE)
        ############## npu modify begin #############
        main()
    ```
@@ -425,7 +425,7 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
        # 代码中添加如下内容
        # 指定训练设备为昇腾AI处理器
        loc = 'npu:{}'.format(args.gpu)
-       torch.npu.set_device(loc)
+       torch_npu.npu.set_device(loc)
        # 计算用于训练的batch_size和workers
        args.batch_size = int(args.batch_size / ngpus_per_node)
        args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
@@ -972,7 +972,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 ```
     CALCULATE_DEVICE = “npu:0”   
-    torch.npu.set_device(CALCULATE_DEVICE)   
+    torch_npu.npu.set_device(CALCULATE_DEVICE)   
     # 放到device的两种方法   
     model = model.npu() # 写法1
     model = model.to(CALCULATE_DEVICE) # 写法2
@@ -993,6 +993,7 @@ PyTorch分布式训练代码示例（部分代码省略）：
 import torch
 import torch.distributed as dist
 import torch.nn.parallel
+import torch_npu
 def main():
     args = parser.parse_args()
     # 需屏蔽掉初始化方式
@@ -1011,135 +1012,136 @@ def main():
 
 <h4 id="PyTorch接口替换md">PyTorch接口替换</h4>
 
-1.  为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
+1. 为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
 
-    **表 1**  设备接口替换
+   **表 1**  设备接口替换
 
-    <a name="table1922064517344"></a>
-    <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>PyTorch原始接口</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>适配昇腾AI处理器后的接口</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="14.411441144114413%" id="mcps1.2.4.1.3"><p id="p1622118457342"><a name="p1622118457342"></a><a name="p1622118457342"></a>说明</p>
-    </th>
-    </tr>
-    </thead>
-    <tbody><tr id="row2022164516340"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p172214454341"><a name="p172214454341"></a><a name="p172214454341"></a>torch.cuda.is_available()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch.npu.is_available()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1222144553413"><a name="p1222144553413"></a><a name="p1222144553413"></a>判断当前环境上设备是否可用（不代表最后结果）。</p>
-    </td>
-    </tr>
-    <tr id="row19221245203420"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1722124593416"><a name="p1722124593416"></a><a name="p1722124593416"></a>torch.cuda.current_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch.npu.current_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p192214455345"><a name="p192214455345"></a><a name="p192214455345"></a>获取当前正在使用的device。</p>
-    </td>
-    </tr>
-    <tr id="row822114455346"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1522111454345"><a name="p1522111454345"></a><a name="p1522111454345"></a>torch.cuda.device_count()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch.npu.device_count()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p52211345183414"><a name="p52211345183414"></a><a name="p52211345183414"></a>获取当前环境上的设备数量。</p>
-    </td>
-    </tr>
-    <tr id="row422124520348"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1322134593411"><a name="p1322134593411"></a><a name="p1322134593411"></a>torch.cuda.set_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch.npu.set_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922164543419"><a name="p922164543419"></a><a name="p922164543419"></a>设置当前正在使用的device。</p>
-    </td>
-    </tr>
-    <tr id="row31815177105"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p42131523171020"><a name="p42131523171020"></a><a name="p42131523171020"></a>torch.tensor([1,2,3]).is_cuda</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p102131234108"><a name="p102131234108"></a><a name="p102131234108"></a>torch.tensor([1,2,3]).is_npu</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p132132231105"><a name="p132132231105"></a><a name="p132132231105"></a>判断某个tensor是否是cuda/npu设备上的格式。</p>
-    </td>
-    </tr>
-    <tr id="row7650141431011"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p5213122316102"><a name="p5213122316102"></a><a name="p5213122316102"></a>torch.tensor([1,2,3]).cuda()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p2213202341016"><a name="p2213202341016"></a><a name="p2213202341016"></a>torch.tensor([1,2,3]).npu()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1921312361010"><a name="p1921312361010"></a><a name="p1921312361010"></a>将某个tensor转换成cuda/npu格式。</p>
-    </td>
-    </tr>
-    <tr id="row1321915121101"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1821322314102"><a name="p1821322314102"></a><a name="p1821322314102"></a>torch.tensor([1,2,3]).to("cuda")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p142131823181018"><a name="p142131823181018"></a><a name="p142131823181018"></a>torch.tensor([1,2,3]).to('npu')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p182131423191019"><a name="p182131423191019"></a><a name="p182131423191019"></a>将某个tensor转换成cuda/npu格式。</p>
-    </td>
-    </tr>
-    <tr id="row722110451342"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1222112451349"><a name="p1222112451349"></a><a name="p1222112451349"></a>torch.cuda.synchronize()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch.npu.synchronize()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922264516347"><a name="p922264516347"></a><a name="p922264516347"></a>同步等待事件完成。</p>
-    </td>
-    </tr>
-    <tr id="row132226452341"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p152221545123413"><a name="p152221545123413"></a><a name="p152221545123413"></a>torch.cuda.device</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch.npu.device</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p16222184523412"><a name="p16222184523412"></a><a name="p16222184523412"></a>生成一个device类，可以执行device相关操作。</p>
-    </td>
-    </tr>
-    <tr id="row1222104543416"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p922284573412"><a name="p922284573412"></a><a name="p922284573412"></a>torch.cuda.Stream(device)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch.npu.Stream(device)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p8222144583419"><a name="p8222144583419"></a><a name="p8222144583419"></a>生成一个stream对象。</p>
-    </td>
-    </tr>
-    <tr id="row11579712134013"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p45791812154016"><a name="p45791812154016"></a><a name="p45791812154016"></a>torch.cuda.stream(Stream)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch.npu.stream(Stream)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1058019125401"><a name="p1058019125401"></a><a name="p1058019125401"></a>多用于作用域限定。</p>
-    </td>
-    </tr>
-    <tr id="row117072156404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p137074157405"><a name="p137074157405"></a><a name="p137074157405"></a>torch.cuda.current_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch.npu.current_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p56119267579"><a name="p56119267579"></a><a name="p56119267579"></a>获取当前stream。</p>
-    </td>
-    </tr>
-    <tr id="row13397184409"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p14339181815400"><a name="p14339181815400"></a><a name="p14339181815400"></a>torch.cuda.default_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch.npu.default_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p15339101814018"><a name="p15339101814018"></a><a name="p15339101814018"></a>获取默认stream。</p>
-    </td>
-    </tr>
-    <tr id="row16315232204019"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p53151332164015"><a name="p53151332164015"></a><a name="p53151332164015"></a>device = torch.device("cuda:0")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11315732124016"><a name="p11315732124016"></a><a name="p11315732124016"></a>device = torch.device("npu:0")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p631512321408"><a name="p631512321408"></a><a name="p631512321408"></a>指定一个设备。</p>
-    </td>
-    </tr>
-    <tr id="row11692173414015"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p91981312105112"><a name="p91981312105112"></a><a name="p91981312105112"></a>torch.autograd.profiler.profile</p>
-    <p id="p9692103434015"><a name="p9692103434015"></a><a name="p9692103434015"></a>(use_cuda=True)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p143251615120"><a name="p143251615120"></a><a name="p143251615120"></a>torch.autograd.profiler.profile</p>
-    <p id="p46924341402"><a name="p46924341402"></a><a name="p46924341402"></a>(use_npu=True)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p111818451031"><a name="p111818451031"></a><a name="p111818451031"></a>指定执行profiler过程中使用cuda/npu。</p>
-    </td>
-    </tr>
-    <tr id="row851311373404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1513737104012"><a name="p1513737104012"></a><a name="p1513737104012"></a>torch.cuda.Event()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch.npu.Event()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p14513133754017"><a name="p14513133754017"></a><a name="p14513133754017"></a>返回某个设备上的事件。</p>
-    </td>
-    </tr>
-    </tbody>
-    </table>
+   <a name="table1922064517344"></a>
+   <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>PyTorch原始接口</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>适配昇腾AI处理器后的接口</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="14.411441144114413%" id="mcps1.2.4.1.3"><p id="p1622118457342"><a name="p1622118457342"></a><a name="p1622118457342"></a>说明</p>
+   </th>
+   </tr>
+   </thead>
+   <tbody><tr id="row2022164516340"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p172214454341"><a name="p172214454341"></a><a name="p172214454341"></a>torch.cuda.is_available()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch_npu.npu.is_available()
+   </p> 
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1222144553413"><a name="p1222144553413"></a><a name="p1222144553413"></a>判断当前环境上设备是否可用（不代表最后结果）。</p>
+   </td>
+   </tr>
+   <tr id="row19221245203420"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1722124593416"><a name="p1722124593416"></a><a name="p1722124593416"></a>torch.cuda.current_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch_npu.npu.current_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p192214455345"><a name="p192214455345"></a><a name="p192214455345"></a>获取当前正在使用的device。</p>
+   </td>
+   </tr>
+   <tr id="row822114455346"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1522111454345"><a name="p1522111454345"></a><a name="p1522111454345"></a>torch.cuda.device_count()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch_npu.npu.device_count()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p52211345183414"><a name="p52211345183414"></a><a name="p52211345183414"></a>获取当前环境上的设备数量。</p>
+   </td>
+   </tr>
+   <tr id="row422124520348"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1322134593411"><a name="p1322134593411"></a><a name="p1322134593411"></a>torch.cuda.set_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch_npu.npu.set_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922164543419"><a name="p922164543419"></a><a name="p922164543419"></a>设置当前正在使用的device。</p>
+   </td>
+   </tr>
+   <tr id="row31815177105"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p42131523171020"><a name="p42131523171020"></a><a name="p42131523171020"></a>torch.tensor([1,2,3]).is_cuda</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p102131234108"><a name="p102131234108"></a><a name="p102131234108"></a>torch.tensor([1,2,3]).is_npu</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p132132231105"><a name="p132132231105"></a><a name="p132132231105"></a>判断某个tensor是否是cuda/npu设备上的格式。</p>
+   </td>
+   </tr>
+   <tr id="row7650141431011"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p5213122316102"><a name="p5213122316102"></a><a name="p5213122316102"></a>torch.tensor([1,2,3]).cuda()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p2213202341016"><a name="p2213202341016"></a><a name="p2213202341016"></a>torch.tensor([1,2,3]).npu()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1921312361010"><a name="p1921312361010"></a><a name="p1921312361010"></a>将某个tensor转换成cuda/npu格式。</p>
+   </td>
+   </tr>
+   <tr id="row1321915121101"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1821322314102"><a name="p1821322314102"></a><a name="p1821322314102"></a>torch.tensor([1,2,3]).to("cuda")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p142131823181018"><a name="p142131823181018"></a><a name="p142131823181018"></a>torch.tensor([1,2,3]).to('npu')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p182131423191019"><a name="p182131423191019"></a><a name="p182131423191019"></a>将某个tensor转换成cuda/npu格式。</p>
+   </td>
+   </tr>
+   <tr id="row722110451342"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1222112451349"><a name="p1222112451349"></a><a name="p1222112451349"></a>torch.cuda.synchronize()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch_npu.npu.synchronize()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922264516347"><a name="p922264516347"></a><a name="p922264516347"></a>同步等待事件完成。</p>
+   </td>
+   </tr>
+   <tr id="row132226452341"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p152221545123413"><a name="p152221545123413"></a><a name="p152221545123413"></a>torch.cuda.device</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch_npu.npu.device</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p16222184523412"><a name="p16222184523412"></a><a name="p16222184523412"></a>生成一个device类，可以执行device相关操作。</p>
+   </td>
+   </tr>
+   <tr id="row1222104543416"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p922284573412"><a name="p922284573412"></a><a name="p922284573412"></a>torch.cuda.Stream(device)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch_npu.npu.Stream(device)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p8222144583419"><a name="p8222144583419"></a><a name="p8222144583419"></a>生成一个stream对象。</p>
+   </td>
+   </tr>
+   <tr id="row11579712134013"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p45791812154016"><a name="p45791812154016"></a><a name="p45791812154016"></a>torch.cuda.stream(Stream)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch_npu.npu.stream(Stream)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1058019125401"><a name="p1058019125401"></a><a name="p1058019125401"></a>多用于作用域限定。</p>
+   </td>
+   </tr>
+   <tr id="row117072156404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p137074157405"><a name="p137074157405"></a><a name="p137074157405"></a>torch.cuda.current_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch_npu.npu.current_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p56119267579"><a name="p56119267579"></a><a name="p56119267579"></a>获取当前stream。</p>
+   </td>
+   </tr>
+   <tr id="row13397184409"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p14339181815400"><a name="p14339181815400"></a><a name="p14339181815400"></a>torch.cuda.default_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch_npu.npu.default_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p15339101814018"><a name="p15339101814018"></a><a name="p15339101814018"></a>获取默认stream。</p>
+   </td>
+   </tr>
+   <tr id="row16315232204019"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p53151332164015"><a name="p53151332164015"></a><a name="p53151332164015"></a>device = torch.device("cuda:0")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11315732124016"><a name="p11315732124016"></a><a name="p11315732124016"></a>device = torch.device("npu:0")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p631512321408"><a name="p631512321408"></a><a name="p631512321408"></a>指定一个设备。</p>
+   </td>
+   </tr>
+   <tr id="row11692173414015"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p91981312105112"><a name="p91981312105112"></a><a name="p91981312105112"></a>torch.autograd.profiler.profile</p>
+   <p id="p9692103434015"><a name="p9692103434015"></a><a name="p9692103434015"></a>(use_cuda=True)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p143251615120"><a name="p143251615120"></a><a name="p143251615120"></a>torch.autograd.profiler.profile</p>
+   <p id="p46924341402"><a name="p46924341402"></a><a name="p46924341402"></a>(use_npu=True)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p111818451031"><a name="p111818451031"></a><a name="p111818451031"></a>指定执行profiler过程中使用cuda/npu。</p>
+   </td>
+   </tr>
+   <tr id="row851311373404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1513737104012"><a name="p1513737104012"></a><a name="p1513737104012"></a>torch.cuda.Event()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch_npu.npu.Event()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p14513133754017"><a name="p14513133754017"></a><a name="p14513133754017"></a>返回某个设备上的事件。</p>
+   </td>
+   </tr>
+   </tbody>
+   </table>
 
 2.  用户在构建网络或进行网络迁移时，需要创建指定数据类型的tensor，在昇腾AI处理器上创建的tensor如下。
 
@@ -1319,7 +1321,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h4 id="NPU上AMP的使用方法md">NPU上AMP的使用方法</h4>
 
-1. 模型从GPU适配到NPU时，需要修改代码torch.cuda.amp修改为torch.npu.amp。
+1. 模型从GPU适配到NPU时，需要将代码torch.cuda.amp修改为torch.npu.amp。
 2. 当前Pytroch1.8.1 AMP工具中GradScaler增加了dynamic选项（默认为True）,设置为False时，AMP能支持静态Loss Scale。
 
 <h4 id="注意事项md">注意事项</h4>
@@ -1791,21 +1793,23 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 **框架瓶颈优化**<a name="section1391981014420"></a>
 
-1.  获取训练过程中算子信息OP\_INFO，参见[获取算子信息OP\_INFO](#采集训练过程相关数据md)。
-2.  分析OP\_INFO中算子的规格和调用关系，定位是否插入了多余的算子，重点关注transdata是否合理。
-3.  优化方案：通过指定部分算子初始化格式，对多余的格式转换算子进行消除。
-4.  在pytorch/torch/nn/modules/module.py中，在cast\_weight中指定算子初始化格式，如下图。
+1. 获取训练过程中算子信息OP\_INFO，参见[获取算子信息OP\_INFO](#采集训练过程相关数据md)。
+
+2. 分析OP\_INFO中算子的规格和调用关系，定位是否插入了多余的算子，重点关注transdata是否合理。
+
+3. 优化方案：通过指定部分算子初始化格式，对多余的格式转换算子进行消除。
+
+4. 在pytorch/torch_npu/utils/module.py中，在cast\_weight中指定算子初始化格式，如下图。
 
     ![](figures/指定算子初始化方式.png)
 
-    格式设置原则可参考如下规则：
+ 格式设置原则可参考如下规则：
 
-    -   Conv2D相关：Weight 可设置为FZ格式，如第424行。
-    -   Linear相关的参数，可设置为NZ格式，如第409行。
+- Conv2D相关：Weight 可设置为FZ格式，如第**106**行。
+- Linear相关的参数，可设置为NZ格式，如第**89**行。
 
 **编译瓶颈优化**<a name="section148361506506"></a>
 
-1.  获取训练过程中算子信息OP\_INFO，参见[获取算子信息OP\_INFO](#采集训练过程相关数据md)。
 2.  查看INFO日志，观察第一个step以后的aclopCompile::aclOp关键字，如果后续接了Match op inputs/type failed或To compile op则说明该算子存在动态编译，需要优化。
 3.  需参照以下两种方案解决。
     -   规避方案：在理解模型语义和相关API基础上，使用固定Shape的方式代替动态Shape。
@@ -1925,28 +1929,28 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 </thead>
 <tbody><tr id="row1449163011112"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p138051838121113"><a name="p138051838121113"></a><a name="p138051838121113"></a>pairwise_iou</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p1080514386118"><a name="p1080514386118"></a><a name="p1080514386118"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p1080514386118"><a name="p1080514386118"></a><a name="p1080514386118"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p1480593811116"><a name="p1480593811116"></a><a name="p1480593811116"></a>计算两个目标框的IOU。</p>
 </td>
 </tr>
 <tr id="row174933013118"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p1280513819113"><a name="p1280513819113"></a><a name="p1280513819113"></a>fast_rcnn_inference_single_image</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p198057389119"><a name="p198057389119"></a><a name="p198057389119"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p198057389119"><a name="p198057389119"></a><a name="p198057389119"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p118053381118"><a name="p118053381118"></a><a name="p118053381118"></a>Maskrcnn和Fasterrcnn模型的推理接口。</p>
 </td>
 </tr>
 <tr id="row349530141119"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p2806538181110"><a name="p2806538181110"></a><a name="p2806538181110"></a>ChannelShuffle</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p48069388115"><a name="p48069388115"></a><a name="p48069388115"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p48069388115"><a name="p48069388115"></a><a name="p48069388115"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p5806123817112"><a name="p5806123817112"></a><a name="p5806123817112"></a>提供NPU亲和的channelshuffle操作，适用于shufflenetv2等模型。</p>
 </td>
 </tr>
 <tr id="row849203018111"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p188062384116"><a name="p188062384116"></a><a name="p188062384116"></a>PreLoader</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p6806938111113"><a name="p6806938111113"></a><a name="p6806938111113"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p6806938111113"><a name="p6806938111113"></a><a name="p6806938111113"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p14806103861118"><a name="p14806103861118"></a><a name="p14806103861118"></a>提供针对昇腾AI处理器加速的数据加载方法。</p>
 </td>
@@ -1954,8 +1958,58 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 </tbody>
 </table>
 
+
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
+
+### AOE调优工具使用说明
+
+#### AOE调优工具介绍
+
+对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，Auto Tune工具则实现了这样的调优功能，可以用于提升模型的性能。
+
+#### AOE调优工具使用
+
+1. dump算子信息至本地。
+
+   在模型脚本中添加使能代码，将算子信息dump至本地。
+
+   ```
+   def train_model():
+      torch.npu.set_aoe(dump_path) #使能接口,dump_path为设置保存dump出算子信息的路径，为必须项，不能为空；当设置的路径不存在时，会尝试创建，且支持多级目录创建。
+      train_model_one_step()       #模型训练过程样例，一般仅需执行一个step即可，请根据代码实际情况修改。
+   ```
+   
+2. 算子调优
+
+   - 设置环境变量：
+
+     ```
+     source /usr/local/Ascend/ascend-toolkit/set_env.sh  #该环境变量默认不设置TUNE_BANK_PATH
+     ```
+
+   - 调优：
+
+     ```
+     aoe --job_type=2 --model_path ./dump_path
+     ```
+
+     调优过程中，目前仅支持部分算子调优，因此会出现算子调优失败或AI Core error，属于已知问题。
+
+   - 调优结果：
+
+     调优完成后，结果会保存在TUNK_BANK_PATH设置的路径中，若不设置则默认保存在home目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/${soc_version}。
+
+#### 注意事项
+
+1. 目前仅支持静态算子，动态算子暂不支持。
+2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
+3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
+4. 目前仅支持部分算子调优。
+
+#### 性能验证
+
+调优完成后，还原代码修改，运行模型，验证模型/算子性能是否提高。
 
 <h2 id="精度调测md">精度调测</h2>
 
@@ -2441,10 +2495,11 @@ if __name__ == "__main__":
 .pth.tar在导出ONNX模型时需要先确定保存时的信息，有时保存的节点名称和模型定义中的节点会有差异，例如会多出前缀和后缀。在进行转换的时候，可以对节点名称进行修改。转换代码样例如下。
 
 ```
-import torch
-import torch.onnx
 from collections import OrderedDict
 import mobilenet
+import torch
+import torch.onnx
+
 
 # 本样例中的pth.tar文件保存时节点名加了前缀module，通过遍历删除
 def proc_nodes_module(checkpoint, AttrName):
@@ -3038,55 +3093,59 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法md)。
 
-1.  单算子测试用例构建，直接调用该算子即可复现错误场景。
+1. 单算子测试用例构建，直接调用该算子即可复现错误场景。
 
-    例如构建max算子的单算子样例如下：
+   例如构建max算子的单算子样例如下：
 
-    ```
-    import torch
-    import copy
-    from torch.testing._internal.common_utils import TestCase, run_tests 
-    class TestMax(TestCase):    
-        def cpu_op_exec(self, input1):
-            # 调用算子 
-            output = torch.max(input1)
-            output = output.to('cpu')
-            output = output.numpy()
-            return output
-    
-        def npu_op_exec(self, input1):
-            # 调用对应npu算子 
-            output = torch.max(input1)
-            return output
-    
-        def test_max(self):
-            input = torch.randn(10,20))
-            input = input.to(torch.int64)   # 数据dtype转换
-            input_cpu = copy.deepcopy(input)
-            input_npu = copy.deepcopy(input).npu()
-    
-            output_cpu = self.cpu_op_exec(input_cpu)
-            output_npu = self.npu_op_exec(input_npu)
-    
-            # 比较cpu和npu的计算结果，prec为允许误差
-            self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
-    
-    if __name__ == '__main__':
-        run_tests()
-    ```
+   ```
+      import copy
+      import torch
+      import torch_npu
+      
+      from torch.testing._internal.common_utils import TestCase, run_tests 
+      class TestMax(TestCase):
+             def cpu_op_exec(self, input1):
+              # 调用算子 
+              output = torch.max(input1)
+              output = output.to('cpu')
+              output = output.numpy()
+              return output
+      
+          def npu_op_exec(self, input1):
+              # 调用对应npu算子 
+              output = torch.max(input1)
+              return output
+      
+          def test_max(self):
+              input = torch.randn(10,20))
+              input = input.to(torch.int64)   # 数据dtype转换
+              input_cpu = copy.deepcopy(input)
+              input_npu = copy.deepcopy(input).npu()
+      
+              output_cpu = self.cpu_op_exec(input_cpu)
+              output_npu = self.npu_op_exec(input_npu)
+      
+              # 比较cpu和npu的计算结果，prec为允许误差
+              self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
+      
+      if __name__ == '__main__':
+          run_tests()
+   
+   ```
 
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >-   运行上述代码，如果发现报错信息与模型中的max算子报错信息相同，则说明单算子测试用例构建成功。
-    >-   假设注释掉输入数据dtype转换代码，发现测试用例无报错，则可以说明在输入参数为torch.int64时，max算子在npu上报错。
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >-   运行上述代码，如果发现报错信息与模型中的max算子报错信息相同，则说明单算子测试用例构建成功。
+   >-   假设注释掉输入数据dtype转换代码，发现测试用例无报错，则可以说明在输入参数为torch.int64时，max算子在npu上报错。
 
 2.  基于上下文的单算子测试用例构建。
 
     这里虽然是单算子样例，但有时候不仅仅为一个操作，而是带有上下文的场景，还有时候是一个带参数Module，Module的方式是更通用的方法。此处构建一个包含两个OP的Module，构建样例如下：
 
     ```
-    import torch
     import copy
+    import torch
     from torch.testing._internal.common_utils import TestCase, run_tests 
+    import torch_npu
     
     class Model(nn.Module):
         def __init__(self, in_channels=1, hooks=False):
@@ -3115,7 +3174,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
             cpuout = out
     
             # 3 to NPU 运行，将model和input_tensor放到NPU运行
-            torch.npu.set_device("npu:0") # 一般先set_device设定运行卡
+            torch_npu.npu.set_device("npu:0") # 一般先set_device设定运行卡
             model_npu = Model(in_channels=16).npu()
             input_tensor_npu= copy.deepcopy(input_tensor).npu()
             out = model_npu(input_tensor_npu)
@@ -3138,7 +3197,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 ```
 import torch
-torch.npu.set_device("npu:0")
+torch_npu.npu.set_device("npu:0")
 torch.npu.init_dump()
 torch.npu.set_dump("/home/HwHiAiUser/dump.json")   # "/home/HwHiAiUser/dump.json"为配置文件路径，用户自行配置
 a = torch.tensor([2, 2]).to("npu:0")
@@ -3586,7 +3645,7 @@ def test_npu():
 
 if __name__ == "__main__":
     test_cpu()
-    torch.npu.set_device(f"{npu}:1")
+    torch_npu.npu.set_device(f"{npu}:1")
     test_npu()
 ```
 

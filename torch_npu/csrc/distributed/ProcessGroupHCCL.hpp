@@ -68,6 +68,7 @@ constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
 //   work->wait()
 //
 //   // Now continue on other work in the current stream.
+
 class ProcessGroupHCCL : public c10d::ProcessGroup {
 public:
   class WorkHCCL : public c10d::ProcessGroup::Work {
@@ -353,8 +354,7 @@ protected:
   // Timeout for operations. This is only used when blockingWait_ is enabled.
   std::chrono::milliseconds opTimeout_;
 
-  // Temporarily not implemented
-  // std::unordered_set<std::string> abortedComms_;
+  // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
 
 private:
   // Helper that encapsulates work shared across all collective communication

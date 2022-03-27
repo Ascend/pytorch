@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -39,6 +39,10 @@ at::Tensor& NPUNativeFunctions::sign_out(const at::Tensor& self, at::Tensor& res
   sign_out_npu_nocheck(result, self);
 
   return result;
+}
+
+at::Tensor& NPUNativeFunctions::sgn_out(const at::Tensor& self, at::Tensor& result) {
+  return NPUNativeFunctions::sign_out(self, result);
 }
 
 at::Tensor NPUNativeFunctions::sign(const at::Tensor& self) {
