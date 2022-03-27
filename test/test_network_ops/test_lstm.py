@@ -13,11 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import torch
 import torch_npu
 import numpy as np
-import copy
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -305,7 +304,7 @@ class TestLstm(TestCase):
             rnn.weight_ih_l1.data = iwt1
             rnn.weight_hh_l1.data = hwt1
             
-            if item == True:
+            if item is True:
                 iwr0 = rnn.weight_ih_l0_reverse.split(hidden_size)
                 hwr0 = rnn.weight_hh_l0_reverse.split(hidden_size)
                 iwr1 = rnn.weight_ih_l1_reverse.split(hidden_size)
