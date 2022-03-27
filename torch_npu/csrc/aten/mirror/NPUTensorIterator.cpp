@@ -120,7 +120,7 @@ namespace at_npu
       iter.add_input(a);
       iter.promote_npu_output_dtypes_ = true;
       iter.is_reduction_ = true;
-      // TODO: This is only really necessary for arg{min,max}
+      // (Ascend): This is only really necessary for arg{min,max}
       iter.compute_common_dtype_only_for_inputs();
       iter.compute_types();
       auto common_type = iter.common_dtype();

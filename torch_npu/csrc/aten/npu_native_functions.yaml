@@ -1315,6 +1315,7 @@ supported:
   - sign
   - sign_
   - sign.out
+  - sgn.out
   - signbit
   - signbit.out
   - dist
@@ -1681,16 +1682,22 @@ supported:
   - upsample_nearest3d_backward.vec
   - upsample_linear1d.out
   - upsample_linear1d
+  - upsample_linear1d.vec
   - upsample_linear1d_backward.grad_input
   - upsample_linear1d_backward
+  - upsample_linear1d_backward.vec
   - upsample_bilinear2d.out
   - upsample_bilinear2d
+  - upsample_bilinear2d.vec
   - upsample_bilinear2d_backward.grad_input
   - upsample_bilinear2d_backward
+  - upsample_bilinear2d_backward.vec
   - upsample_bicubic2d.out
   - upsample_bicubic2d
+  - upsample_bicubic2d.vec
   - upsample_bicubic2d_backward.grad_input
   - upsample_bicubic2d_backward
+  - upsample_bicubic2d_backward.vec
   - upsample_trilinear3d.out
   - upsample_trilinear3d
   - upsample_trilinear3d_backward.grad_input
@@ -1871,8 +1878,8 @@ custom:
     variants: method, function
   - func: fast_gelu_backward(Tensor grad, Tensor self) -> Tensor
     variants: function, method
-  - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay) -> (Tensor var, Tensor m, Tensor v)
-  - func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
+  - func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   - func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_convolution_backward(Tensor input, Tensor grad_output, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
@@ -1945,11 +1952,15 @@ custom:
   - func: npu_normalize_batch(Tensor self, Tensor seq_len, int normalize_type=0) -> Tensor
   - func: npu_ptiou(Tensor bboxes, Tensor gtboxes, int mode=0) -> Tensor
   - func: npu_lstm_backward(Tensor? grady, Tensor? gradh, Tensor? gradc, Tensor input, Tensor weight, Tensor bias, Tensor hx, Tensor cx, Tensor y_output, Tensor h_output, Tensor c_output, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc) -> (Tensor, Tensor, Tensor, Tensor, Tensor)
+  - func: _dropout_with_byte_mask_backward(Tensor grad_output, Tensor mask, float p) -> Tensor
+  - func: dropout_with_byte_mask(Tensor self, float p, bool train) -> Tensor
+  - func: npu_dropout_with_add_softmax_backward(Tensor grad, Tensor mask, Tensor softmax_out, Scalar alpha, float prob, int dim) -> (Tensor, Tensor)
+    variants: function, method
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
-  - func: fast_gelu(Tensor self) -> Tensor 
+  - func: fast_gelu(Tensor self) -> Tensor
   - func: npu_confusion_transpose(Tensor self, int[] perm, int[] shape, bool transpose_first) -> Tensor
     variants: function, method
   - func: npu_ps_roi_pooling(Tensor self, Tensor rois, float spatial_scale, int group_size, int output_dim) -> Tensor
@@ -1976,3 +1987,6 @@ custom_autograd:
   - func: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   - func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> Tensor[]
     variants: function
+  - func: _dropout_with_byte_mask(Tensor self, float p) -> (Tensor, Tensor)
+  - func: npu_dropout_with_add_softmax(Tensor self, Tensor x1, Scalar alpha, float prob, int dim) -> (Tensor, Tensor, Tensor)
+    variants: function, method

@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from codegen.model import Argument, SelfArgument, TensorOptionsArguments, BaseTy
 from dataclasses import dataclass
 from typing import Optional, Union, TypeVar, List, Dict
 from enum import Enum
+
+from codegen.model import Argument, SelfArgument, TensorOptionsArguments, BaseTy
 
 _T = TypeVar('_T')
 

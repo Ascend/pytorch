@@ -13,10 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from codegen.model import FunctionSchema, NativeFunction, BackendIndex
 from dataclasses import dataclass
 from typing import Optional, Union, Sequence, List, Set
+
+from codegen.model import FunctionSchema, NativeFunction, BackendIndex
 from codegen.api.types import Binding, CType, Expr
 from codegen.api import cpp, dispatcher, native, translate
 
@@ -226,7 +226,7 @@ class NativeSignature:
 # Helper functions
 
 def kernel_signature(
-        f: NativeFunction, backend_index: BackendIndex, *, prefix: str = '') -> Union['NativeSignature', 'DispatcherSignature']:
+        f: NativeFunction, backend_index: BackendIndex, *, prefix: str = ''):
     # Note [External Backends Follow Dispatcher API]
     # Kernel signatures for in-tree backends follow the "native" API,
     # while kernels for out-of-tree backends follow the dispatcher API.

@@ -14,8 +14,8 @@
 
 import copy
 import torch
-import torch_npu
 import torch.nn.functional as F
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
@@ -54,5 +54,4 @@ class TestDropoutFunctions(TestCase):
         self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
 
 if __name__ == "__main__":
-    torch.npu.set_device(0)
     run_tests()

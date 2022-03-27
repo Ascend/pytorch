@@ -39,15 +39,6 @@ bool OptionsManager::CheckCombinedOptimizerEnable() {
   return (combined_optimize == 1);
 }
 
-bool OptionsManager::CheckTriCombinedOptimizerEnable() {
-  static int32_t tri_combined_optimize = -1;
-  if (tri_combined_optimize == -1) {
-    tri_combined_optimize = GetBoolTypeOption("TRI_COMBINED_ENABLE");
-  }
-  return (tri_combined_optimize == 1);
-}
-
-
 bool OptionsManager::CheckAclDumpDateEnable() {
   static int aclDumpDataEnable = -1;
   if (aclDumpDataEnable == -1) {

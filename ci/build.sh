@@ -17,7 +17,7 @@
 # limitations under the License.
 
 CUR_DIR=$(dirname $(readlink -f $0))
-SUPPORTED_PY_VERSION=(3.7 3.8)
+SUPPORTED_PY_VERSION=(3.7 3.8 3.9)
 PY_VERSION='3.7'                     # Default supported python version is 3.7
 DEFAULT_SCRIPT_ARGS_NUM=1            # Default supported input parameters
 
@@ -90,6 +90,32 @@ function check_python_version() {
 
 function main()
 {
+    if ! parse_script_args "$@"; then
+        echo "Failed to parse script args. Please check your inputs."
+        exit 1
+    fi
+    check_python_version
+
+    # Find matched dependent Python libraries to current Python version in HCCL compiling
+    hccl_file1=${CUR_DIR}/cmake/public/npu.cmake
+    hccl_file2=${CUR_DIR}/third_party/acl/libs/build_stub.sh
+    if [[ ${PY_VERSION} = '3.7' ]]; then
+        dst_py_ver='3.7m'
+    else
+        dst_py_ver=${PY_VERSION}
+    fi
+    for src_py_ver in ${SUPPORTED_PY_VERSION[*]}; do
+        if [[ ${src_py_ver} = '3.7' ]]; then
+            src_py_ver='3.7m'
+        fi
+        if [[ $(grep -c "${src_py_ver}" ${hccl_file1}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
+            sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${hccl_file1}
+        fi
+        if [[ $(grep -c "${src_py_ver}" ${hccl_file2}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
+            sed -i "s/libpython${src_py_ver}/libpython${dst_py_ver}/g" ${hccl_file2}
+        fi
+    done
+
     cd ${CUR_DIR}/../third_party/acl/libs
     # stub
     dos2unix build_stub.sh
@@ -98,11 +124,6 @@ function main()
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean
-    if ! parse_script_args "$@"; then
-        echo "Failed to parse script args. Please check your inputs."
-        exit 1
-    fi
-    check_python_version
 
     python"${PY_VERSION}" setup.py build bdist_wheel
     if [ $? != 0 ]; then

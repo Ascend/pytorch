@@ -281,12 +281,7 @@ def match_differentiability_info(
         # i.e mul() for mul_() or mul_out()
         return functional_info_by_signature.get(f.func.signature(strip_default=True)), False
 
-    result: List[NativeFunctionWithDifferentiabilityInfo] = []
-    for f in native_functions:
-        info, is_exact_match = find_info(f)
-
-        # Currently, the '.strides()' to 'strides_or_error' replacement does not support
-        # 'self' derivatives of an inplace function, so we must check for this case.
+    def assert_strides_or_error(f, info):
         if f.func.kind() == SchemaKind.inplace and (info is not None):
             for derivative in info.derivatives:
                 if 'self' in derivative.var_names:
@@ -295,10 +290,15 @@ def match_differentiability_info(
                             "Calling '.strides()' in the 'self' derivative formula of an "
                             f"in-place function is not supported: {f.func}")
 
+    result: List[NativeFunctionWithDifferentiabilityInfo] = []
+    for f in native_functions:
+        info, is_exact_match = find_info(f)
+        # Currently, the '.strides()' to 'strides_or_error' replacement does not support
+        # 'self' derivatives of an inplace function, so we must check for this case.
+        assert_strides_or_error(f, info)
         # For functions that have a single def for out-of-place and inplace (like abs())
         if info and info.forward_derivatives:
             forward_derivatives = info.forward_derivatives
-
             if f.func.kind() == SchemaKind.inplace:
                 # For inplace functions there is a little bit of work to do:
                 #  1) Validate the formula and make sure the input that is modified in not used:
@@ -332,8 +332,8 @@ def match_differentiability_info(
                     if is_exact_match:
                         # For manually defined formulas, don't allow the original value to be used
                         raise RuntimeError(f'The formula for "{f.func.name}" is using the original value of self '
-                                           'that is being modified inplace. This would lead to wrong forward gradients. '
-                                           'Please use "result" in the formula only.')
+                                           'that is being modified inplace. This would lead to wrong forward '
+                                           'gradients. Please use "result" in the formula only.')
                     else:
                         # When the original formula is out of place, we save a clone of the primal
                         # value to be able to access this value if needed
@@ -392,7 +392,7 @@ def gen_differentiable_outputs(fn: NativeFunctionWithDifferentiabilityInfo) -> L
                                f"does not match the number of outputs ({len(outputs)}).")
         differentiable_outputs: List[DifferentiableOutput] = []
         if False in output_differentiability and f.func.kind() == SchemaKind.inplace:
-            raise RuntimeError("output_differentiability=False for inplace operation (version_counter won't get updated)")
+            raise RuntimeError("output_differentiability=False for inplace operation.")
         for differentiable, output in zip(output_differentiability, outputs):
             if differentiable:
                 differentiable_outputs.append(output)

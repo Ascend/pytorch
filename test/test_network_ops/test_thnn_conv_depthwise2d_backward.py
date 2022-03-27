@@ -15,9 +15,9 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
 import torch.nn as nn
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -41,7 +41,7 @@ class TestThnnConvDepthwise2d(TestCase):
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
-        if bias != None:
+        if bias is not None:
             bias1 = True
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1,
@@ -61,7 +61,7 @@ class TestThnnConvDepthwise2d(TestCase):
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 
         bias1 = False
-        if bias != None:
+        if bias is not None:
             bias1 = True
 
         m1 = nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, bias=bias1,

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Union, Sequence, List, Optional
+
 from codegen.model import (Argument, FunctionSchema, Return,
                            SelfArgument, TensorOptionsArguments, Type,
                            assert_never)
@@ -24,8 +26,6 @@ from codegen.api.types import (ArgName, BaseCType, Binding,
                                deviceT, boolT, scalarTypeT)
 from codegen.api import cpp
 from codegen import local
-
-from typing import Union, Sequence, List, Optional
 
 # This file describes the translation of JIT schema to the native functions API.
 # This looks a lot like the C++ API (which makes historical sense, because the

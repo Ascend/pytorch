@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
@@ -51,9 +52,10 @@ at::Tensor NPUNativeFunctions::embedding(
   auto outputSize = array_to_small_vector(indices.sizes());
   outputSize.emplace_back(weight.size(weight.dim() - 1));
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      weight.options());
+      weight.options(),
+      CalcuOpUtil::get_tensor_npu_format(weight));
 
   // calculate the output resugt of the NPU
   embedding_out_npu_nocheck(

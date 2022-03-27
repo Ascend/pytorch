@@ -16,9 +16,14 @@
 from .module import apply_module_patch
 from .tensor_methods import add_tensor_methods
 from .serialization import save, load
+from .utils import manual_seed, seed
 
 
 serialization_patches = [
     ["save", save],
-    ["load", load]
+    ["load", load],
+    ["random.seed", seed],
+    ["random.manual_seed", manual_seed],
+    ["seed", seed],
+    ["manual_seed", manual_seed]
 ]

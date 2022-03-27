@@ -14,33 +14,12 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
-c10::SmallVector<NPUTensorDesc, N> baddbmm_npu_input(
-    const at::Tensor& self,
-    const at::Tensor& other) {
-  return CalcuOpUtil::create_npu_input_tensor_desc({self, other});
-}
-
-c10::SmallVector<NPUTensorDesc, N> baddbmm_npu_output(
-    const at::Tensor& result) {
-  return CalcuOpUtil::create_npu_output_tensor_desc({result});
-}
-
-c10::SmallVector<NPUAttrDesc, N> baddbmm_npu_attr(
-    const at::Tensor& self,
-    const at::Tensor& mat2) {
-  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
-  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(mat2);
-  NPUAttrDesc npuAttrSelfTranspose = NPUAttrDesc("adj_x1", isSelfT);
-  NPUAttrDesc npuAttrMat2Transpose = NPUAttrDesc("adj_x2", isMat2T);
-  c10::SmallVector<NPUAttrDesc, N> attrs = {npuAttrSelfTranspose, npuAttrMat2Transpose};
-  return attrs;
-}
-
-at::Tensor& NPUNativeFunctions::baddbmm_out(
+at::Tensor& baddbmm_nocheck(
     const at::Tensor& self,	
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
@@ -50,16 +29,39 @@ at::Tensor& NPUNativeFunctions::baddbmm_out(
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
   at::Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
   
-  auto inputs = baddbmm_npu_input(tensor1, tensor2);
-  auto outputs = baddbmm_npu_output({BatchMatMulTensor});
-  auto attrs = baddbmm_npu_attr(tensor1, tensor2);
-  CalcuOpUtil::execute_npu_operate("BatchMatMul", inputs, outputs, attrs);
+  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(tensor1);
+  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(tensor2);
 
-  at::Tensor alphaMulTensor = at::mul(BatchMatMulTensor, alpha);
 
-  at::Tensor betaMulTensor = at::mul(self, beta);
-  
+  OpCommand cmd;
+  cmd.Name("BatchMatMul")
+     .Input(tensor1)
+     .Input(tensor2) 
+     .Output(BatchMatMulTensor)
+     .Attr("adj_x1", isSelfT)
+     .Attr("adj_x2", isMat2T)
+     .Run();
+
+  at::Tensor alphaMulTensor = NPUNativeFunctions::mul(BatchMatMulTensor, alpha);
+  at::Tensor betaMulTensor = NPUNativeFunctions::mul(self, beta);
   at::add_out(result, alphaMulTensor, betaMulTensor);
+
+  return result;
+}
+
+at::Tensor& NPUNativeFunctions::baddbmm_out(
+    const at::Tensor& self,	
+    const at::Tensor& tensor1,
+    const at::Tensor& tensor2,
+    at::Scalar beta,
+    at::Scalar alpha,
+    at::Tensor& result){
+      
+  OpPreparation::CheckOut(
+      {self, tensor1, tensor2},
+      result,
+      self);
+  baddbmm_nocheck(self, tensor1, tensor2, beta, alpha, result);
 
   return result;
 }

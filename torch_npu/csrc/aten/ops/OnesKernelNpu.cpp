@@ -22,6 +22,7 @@
 namespace at_npu {
 namespace native {
 at::Tensor& NPUNativeFunctions::ones_out(at::IntArrayRef size, at::Tensor& result) {
+  result.resize_(size);
   return NPUNativeFunctions::one_(result);
 }
 

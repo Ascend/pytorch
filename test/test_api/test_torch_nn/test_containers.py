@@ -14,10 +14,10 @@
 
 from collections import OrderedDict
 import torch
-import torch_npu
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import Parameter
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 

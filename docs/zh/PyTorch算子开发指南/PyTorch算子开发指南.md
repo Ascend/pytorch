@@ -9,7 +9,6 @@
     -   [获取PyTorch源码](#获取PyTorch源码md)
     -   [注册算子开发](#注册算子开发md)
         -   [概述](#概述md)
-        -   [PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)
         -   [PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)
     -   [算子适配插件开发](#算子适配插件开发md)
     -   [编译和安装PyTorch框架](#编译和安装PyTorch框架md)
@@ -188,13 +187,11 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h3 id="获取PyTorch源码md">获取PyTorch源码</h3>
 
-目前只支持PyTorch1.5.0和1.8.1版本，PyTorch源码获取请参见《PyTorch安装指南》中“安装PyTorch框架”章节，完成在"pytorch/pytorch"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
+针对pytorch1.8.1版本，PyTorch源码获取请参见《PyTorch安装指南》中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch_v1.8.1目录中进行PyTorch 算子适配开发。
 
 <h3 id="注册算子开发md">注册算子开发</h3>
 
 -   **[概述](#概述md)**  
-
--   **[PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)**  
 
 -   **[PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)**  
 
@@ -202,138 +199,6 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 <h4 id="概述md">概述</h4>
 
 当前制定的NPU适配派发原则是NPU算子的派发不经过框架公共函数，直接派发成NPU适配的函数，即算子执行调用栈中只包含NPU适配的函数调用，不包含框架公共函数。PyTorch框架在编译时，会根据 native\_functions.yaml 的定义，按框架中定义的类型和设备分发原则，生成相应的新算子的中间层的调用说明。对于NPU，会生成在 build/aten/src/ATen/NPUType.cpp。
-
-<h4 id="PyTorch1-5-0-注册算子开发md">PyTorch1.5.0 注册算子开发</h4>
-
-##### 注册算子开发方法<a name="section575212111125"></a>
-
-1.  打开native\_functions.yaml文件。
-
-    native\_functions.yaml 文件中，定义了所有算子函数原型，包括函数名称和参数等信息，每个算子函数支持不同硬件平台的派发信息。该文件所在路径为pytorch/aten/src/ATen/native/native\_functions.yaml。
-
-2.  确定需要派发函数。
-    -   yaml 中已存在的算子
-
-        将所有与待适配算子相关的函数进行派发。
-
-    -   yaml中未存在的自定义算子
-
-        由于yaml中没有相关算子的信息，需要手动添加相关函数，包括函数名，参数信息，返回类型信息。添加规则及方法请参见“pytorch/aten/src/ATen/native/README.md“。
-
-        ```
-        - func：适配算子名称(输入参数信息) -> 返回类型
-        ```
-
-3.  修改native\_functions.yaml文件，添加实现该算子相关函数的分发描述。
-
-    yaml 文件编写规范：
-
-    -   yaml 中原有的算子函数适配使用 “npu\_dispatch”关键字；
-
-        ```
-        npu_dispatch:
-          NPU: NPU_Adapt_Fun_Name
-        ```
-
-    -   yaml 中新增昇腾AI处理器自定义算子函数适配使用“npu\_dispatch\_only”关键字；
-
-        ```
-        npu_dispatch_only:
-          NPU: NPU_Adapt_Fun_Name
-        ```
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >NPU\_Adapt\_Fun\_Name的格式为 :
-    >-   如果原Fun\_Name无"\_"后缀，则格式：Fun\_Name + "\_" + "npu"，如：add --\> add\_npu。
-    >-   如果原Fun\_Name有"\_"后缀，则格式：Fun\_Name + "npu\_"，如：add\_ --\> add\_npu\_。
-    >该格式供参考，算子适配开发过程中的函数名需与NPU\_Adapt\_Fun\_Name保持一致。
-
-
-##### 示例<a name="section434031421219"></a>
-
-以torch.add\(\)算子为例介绍注册算子开发过程。
-
-1.  打开native\_functions.yaml文件。
-2.  确定相关函数。
-
-    在yaml中搜索add，找到与add算子相关的函数。
-
-3.  添加分发描述。
-    1.  add.Tensor 的函数分发描述。
-
-        ```
-        - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
-          use_c10_dispatcher: full
-          variants: function, method
-          dispatch:
-            CPU: add
-            CUDA: add
-            SparseCPU: add_sparse
-            SparseCUDA: add_sparse
-            MkldnnCPU: mkldnn_add
-          # 增加分发描述
-          npu_dispatch:             
-            NPU: add_npu            
-          supports_named_tensor: True
-        ```
-
-    2.  add.Scalar 的函数分发描述。
-
-        ```
-        - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
-          use_c10_dispatcher: full
-          variants: function, method
-          supports_named_tensor: True
-          # 增加分发描述
-          npu_dispatch:           
-            NPU: add_npu          
-        ```
-
-    3.  add\_.Tensor 的函数分发描述。
-
-        ```
-        - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          dispatch:
-            CPU: add_
-            CUDA: add_
-            SparseCPU: add_sparse_
-            SparseCUDA: add_sparse_
-            MkldnnCPU: mkldnn_add_
-          # 增加分发描述
-          npu_dispatch:
-            NPU: add_npu_
-          supports_named_tensor: True
-        ```
-
-    4.  add\_.Scalar 的函数分发描述。
-
-        ```
-        - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          supports_named_tensor: True
-          # 增加分发描述
-          npu_dispatch:
-            NPU: add_npu_
-        ```
-
-    5.  add.out 的函数分发描述。
-
-        ```
-        - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
-          dispatch:
-            CPU: add_out
-            CUDA: add_out
-            SparseCPU: add_out_sparse_cpu
-            SparseCUDA: add_out_sparse_cuda
-            MkldnnCPU: mkldnn_add_out
-          # 增加分发描述
-          npu_dispatch:               
-            NPU: add_out_npu         
-          supports_named_tensor: True
-        ```
-
-
 
 <h4 id="PyTorch1-8-1-注册算子开发md">PyTorch1.8.1 注册算子开发</h4>
 
@@ -429,245 +294,304 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 用户通过开发算子适配插件，实现PyTorch原生算子的输入参数、输出参数和属性的格式转换，使转换后的格式与TBE算子的输入参数、输出参数和属性的格式相同。适配昇腾AI处理器的PyTorch源代码中提供了适配关联、类型转换和判别、处理动态shape等相关的方法供用户使用。
 
+#### npu_native_functions.yaml文件介绍
+
+```
+backend: NPU     # Backend类型
+cpp_namespace: at_npu::native     # 插件中开发算子的命名空间
+supported:     # 已支持的和PyTorch Native Functions对齐的算子
+  - add.Tensor
+  - add.Scalar
+  - slow_conv3d.out
+  - slow_conv3d_forward.output
+  - slow_conv3d_forward
+  - convolution
+  - _convolution
+  - _convolution_nogroup
+  - addcdiv
+  - addcdiv_
+  - addcdiv.out
+
+autograd:       # 已支持的和PyTorch Native Functions对齐的继承自Function的具有前反向操作的算子
+  - maxpool2d
+
+custom:     # 自定义算子，需要提供算子格式定义
+  - func: npu_dtype_cast(Tensor self, ScalarType dtype) -> Tensor
+    variants: function, method
+  - func: npu_dtype_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+    variants: method
+  - func: npu_alloc_float_status(Tensor self) -> Tensor
+    variants: function, method
+  - func: npu_get_float_status(Tensor self) -> Tensor
+    variants: function, method
+ 
+custom_autograd:    # 自定义继承自Function的自定义算子
+  - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, ...) -> Tensor
+```
+
+官方提供的native_functions.yaml文件定义了PyTorch Native Functions的具体算子定义和分发细节，在NPU设备上适配官方已定义算子，我们不需要重新定义，只需要注册NPU分发即可。由于我们可以根据已支持的算子（supported，autograd）对应解析官方yaml文件得到每个函数的具体格式，所以对应的函数声明和注册分发可以自动化完成，算子迁移和开发的时候只需要关注对应的实现细节即可。对于自定义算子，由于没有具体的算子定义，我们需要在npu_native_functions.yaml文件中给出定义，以便对算子进行结构化解析从而实现自动化注册和Python接口绑定。
+
 #### 适配插件实现<a name="zh-cn_topic_0000001125315877_section1174074518456"></a>
 
-1.  创建适配插件文件。
+1.  注册算子。
 
-    NPU TBE算子适配文件保存在pytorch/aten/src/ATen/native/npu目录下，命名风格采用大驼峰，命名格式：<算子名\> + <KernelNpu\>.cpp，如：AddKernelNpu.cpp。
+    根据npu_native_functions.yaml文件介绍，添加相应算子信息。
 
-2.  引入依赖头文件。
+2. 创建适配插件文件。
 
-    适配昇腾AI处理器的PyTorch源代码在ATen/native/npu/utils中提供适配常用的工具供用户使用。
+   NPU TBE算子适配文件保存在pytorch/torch_npu/csrc/aten/ops目录下，命名风格采用大驼峰，命名格式：<算子名\> + <KernelNpu\>.cpp，如：AddKernelNpu.cpp。
 
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >工具的功能和使用方法，可查看头文件和源码获得。
+3. 引入依赖头文件。
 
-3.  定义算子适配主体函数。
+   适配昇腾AI处理器的PyTorch源代码在torch_npu/csrc/framework/utils中提供适配常用的工具供用户使用。
 
-    根据注册算子开发中的分发函数确定自定义算子适配主体函数。
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >工具的功能和使用方法，可查看头文件和源码获得。
 
-4.  分别实现适配主体函数。
+4. 定义算子适配主体函数。
 
-    实现算子适配主题函数，根据TBE算子原型构造得到对应的input、output、attr。
+   根据注册算子开发中的分发函数确定自定义算子适配主体函数。
 
-5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子开发中native\_functions.yaml文件的算子描述func。
+5. 分别实现适配主体函数。
 
-    TORCH\_LIBRARY\_IMPL是PyTorch提供的用于注册算子分发的宏，使用方法如下。
-
-    ```
-    Torch_LIBRARY_IMPL(aten, PrivateUse1, m){
-        m.impl("yaml中算子func方法名1", TORCH_FN("对应的适配主体函数名1"))
-        m.impl("yaml中算子func方法名2", TORCH_FN("对应的适配主体函数名2"))
-    }
-    ```
-
-    -   aten为命名空间，可以根据实现文件命名空间自行定义。
-    -   PrivateUse1为dispatchKey,  固定设置NPU。
-    -   m为固定字段。
+   实现算子适配主题函数，根据TBE算子原型构造得到对应的input、output、attr。
 
 
 #### 示例<a name="zh-cn_topic_0000001125315877_section18021337113012"></a>
 
 以torch.add\(\)算子为例介绍算子适配开发过程。
 
-1.  创建适配插件文件。
+1. 注册算子。
 
-    在pytorch/aten/src/ATen/native/npu目录下创建AddKernelNpu.cpp适配文件。
+   将add算子添加到npu_native_functions.yaml文件的对应位置，用于自动化声明和注册。
 
-2.  引入依赖头文件。
+   ```
+   supported:       #已支持的Pytorch Native Functions 对齐的算子
+     add.Tensor
+     add_.Tensor
+     add.out
+     add.Scaler
+     add_.Scaler
+   ```
 
-    ```
-    #include <c10/npu/OptionsManager.h>
-    #include "ATen/native/npu/utils/CalcuOpUtil.h"
-    #include "ATen/native/npu/utils/OpAdapter.h"
-    ```
+   格式参考：[《算子迁移和开发指南》](https://gitee.com/ascend/pytorch/wikis/%E7%AE%97%E5%AD%90%E8%BF%81%E7%A7%BB%E5%92%8C%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97) 
 
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >" CalcuOpUtil.h "中主要包含类型转换和判别的函数。
-    >" OpAdapter.h"文件中主要包含适配关联的头文件。
+2. 创建适配插件文件。
 
-3.  定义算子适配主体函数。
+   在pytorch/torch_npu/csrc/aten/ops目录下创建AddKernelNpu.cpp适配文件。
 
-    ```
-    Tensor add_npu(const Tensor& self, const Tensor& other, Scalar alpha) 
-    Tensor add_npu(const Tensor& self, Scalar other, Scalar alpha) 
-    Tensor& add_npu_(Tensor& self, const Tensor& other, Scalar alpha)
-    Tensor& add_npu_(Tensor& self, Scalar other, Scalar alpha)
-    Tensor& add_out_npu(Tensor& result, const Tensor& self, const Tensor& other, Scalar alpha) 
-    ```
+3. 引入依赖头文件。
 
-4.  分别实现适配主体函数。
-    1.  add\_npu实现
+   ```
+   #include <ATen/Tensor.h>
+   #include <c10/util/SmallVector.h>
+   
+   #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+   #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+   #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+   #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+   ```
 
-        ```
-        // 输入参数为Tensor和Tensor时
-        Tensor add_npu(const Tensor& self, const Tensor& other, Scalar alpha) {
-          alpha_check_npu(self.scalar_type(), alpha);
-          if ((!(self.is_contiguous() && other.is_contiguous())) &&
-              (NpuUtils::check_5d_5d_match(self) ||
-               NpuUtils::check_5d_5d_match(other)) &&
-              check_size(self, other)) {
-            int64_t c0_len = 16;
-            Tensor self_use = stride_add_tensor_get(self);
-            Scalar self_c1_offset(
-                self.storage_offset() / (self.size(2) * self.size(3) * c0_len));
-            Tensor other_use = stride_add_tensor_get(other);
-            Scalar other_c1_offset(
-                other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
-            Scalar stride_len(self.size(1) / c0_len);
-            Tensor result = at::npu_stride_add(
-                self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
-            return result;
-          }
-          // calculate the output size
-          Tensor outputTensor = add_dest_output(self, other);
-          auto outputSize = broadcast_ops_npu_output_size(self, other);
-        
-          // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
-              outputSize,
-              outputTensor.options(),
-              CalcuOpUtil::get_tensor_npu_format(outputTensor));
-        
-          // calculate the output result of the NPU
-          add_out_npu_nocheck(result, self, other, alpha);
-        
-          return result;
-        }
-        
-        // 输入参数为Tensor和Scalar时
-        Tensor add_npu(const Tensor& self, Scalar other, Scalar alpha) {
-          alpha_check_npu(self.scalar_type(), alpha);
-          // calculate the output size
-          auto outputSize = input_same_output_size(self);
-          // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
-              outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-        
-          // calculate the output result of the NPU
-          adds_out_npu_nocheck(result, self, other, alpha);
-        
-          return result;
-        }
-        
-        ```
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >" CalcuOpUtil.h "中主要包含类型转换和判别的函数。
+   >" OpAdapter.h"文件中主要包含适配关联的头文件。
 
-    2.  add\_npu\_实现（就地操作场景，返回值为self）
+4. 定义算子适配主体函数。
 
-        ```
-        // 输入参数为Tensor和Tensor时
-        Tensor& add_npu_(Tensor& self, const Tensor& other, Scalar alpha) {
-          SmallVector<Tensor, N> inputs = {self, other};
-          SmallVector<Tensor, N> outputs = {self};
-          CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-        
-          if (!NpuUtils::check_match(&self)) {
-            Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-            Tensor result = add_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
-            NpuUtils::format_fresh_view(self, result);
-          } else {
-            add_out_npu_nocheck(self, self, other, alpha);
-          }
-        
-          return self;
-        }
-        
-        // 输入参数为Tensor和Scalar时
-        Tensor& add_npu_(Tensor& self, Scalar other, Scalar alpha) {
-          if (!NpuUtils::check_match(&self)) {
-            Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-            Tensor result = adds_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
-            NpuUtils::format_fresh_view(self, result);
-          } else {
-            adds_out_npu_nocheck(self, self, other, alpha);
-          }
-        
-          return self;
-        }
-        
-        ```
+   ```
+   at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+   at::Tensor NPUNativeFunctions::add(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_out(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha,at::Tensor &result)
+   ```
 
-    3.  add\_out\_npu实现（输入参数result为返回值场景）
+   > ![](public_sys-resources/icon-note.gif) **说明：** 
+   >
+   > NPUNativeFunctions是算子定义需要添加的命名空间约束。
 
-        ```
-        Tensor& add_out_npu(
-            Tensor& result,
-            const Tensor& self,
-            const Tensor& other,
-            Scalar alpha) {
-          bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
-        
-          Tensor outputTensor;
-          if (not isSelfWrapped) {
-            outputTensor = self;
-          } else {
-            outputTensor = other;
-          }
-          auto outputSize = broadcast_ops_npu_output_size(self, other);
-          OpPreparation::CheckOut(
-              {self},
-              result,
-              CalcuOpUtil::get_tensor_npu_format(result),
-              outputTensor.scalar_type(),
-              outputSize);
-        
-          OpPipeWithDefinedOut pipe;
-          return pipe.CheckMemory({self, other}, {result})
-           .Func([&self, &other, &alpha](Tensor& result){add_out_npu_nocheck(result, self, other, alpha);})
-           .Call(result);
-        }
-        ```
+5. 分别实现适配主体函数。
 
-5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子。
+   1. add实现
 
-    ```
-    TORCH_LIBRARY_IMPL(aten, NPU, m) {  
-        m.impl("add.Tensor", TORCH_FN(add_npu));  
-        m.impl("add_.Tensor", TORCH_FN(add_npu_));  
-        m.impl("add.out", TORCH_FN(add_out_npu));}
-    ```
+      ```
+       // 输入参数为Tensor和Tensor时
+             at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+             {
+               alpha_check_npu(self.scalar_type(), alpha);
+               if ((!(self.is_contiguous() && other.is_contiguous())) &&
+                   (NpuUtils::check_5d_5d_match(self) ||
+                   NpuUtils::check_5d_5d_match(other)) &&
+                   check_size(self, other))
+               {
+                 int64_t c0_len = 16;
+                 at::Tensor self_use = stride_add_tensor_get(self);
+                 at::Scalar self_c1_offset(
+                   self.storage_offset() / (self.size(2) * self.size(3) * c0_len));
+                 at::Tensor other_use = stride_add_tensor_get(other);
+                 at::Scalar other_c1_offset(
+                   other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
+                 at::Scalar stride_len(self.size(1) / c0_len);
+                 at::Tensor result = NPUNativeFunctions::npu_stride_add(
+                   self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
+                 return result;
+               }
+               // calculate the output size
+               at::Tensor outputTensor = add_dest_output(self, other);
+               auto outputSize = broadcast_ops_npu_output_size(self, other);
+             
+               // construct the output tensor of the NPU
+               at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+                   outputSize,
+             	  outputTensor.options(),
+             	  CalcuOpUtil::get_tensor_npu_format(outputTensor));
+             
+               // calculate the output result of the NPU
+               add_out_npu_nocheck(result, self, other, alpha);
+             
+               return result;
+             }
+                 
+             // 输入参数为Tensor和Scalar时
+             at::Tensor NPUNativeFunctions::add(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+             {
+               alpha_check_npu(self.scalar_type(), alpha);
+               // calculate the output size
+               auto outputSize = input_same_output_size(self);
+               // construct the output tensor of the NPU
+               at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+                   outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+             
+               // calculate the output result of the NPU
+               adds_out_npu_nocheck(result, self, other, alpha);
+             
+               return result;
+             }
+      
+      ```
+
+   2. add\_实现（就地操作场景，返回值为self）
+
+      ```
+      // 输入参数为Tensor和Tensor时
+             at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+             {
+               c10::SmallVector<at::Tensor, N> inputs = {self, other};
+               c10::SmallVector<at::Tensor, N> outputs = {self};
+               CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+             
+               if (!NpuUtils::check_match(&self))
+               {
+                 at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+                 at::Tensor result = add_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
+                 NpuUtils::format_fresh_view(self, result);
+               }
+               else
+               {
+                 add_out_npu_nocheck(self, self, other, alpha);
+               }
+             
+               return self;
+             }
+             
+             // 输入参数为Tensor和Scalar时
+             at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+             {
+               if (!NpuUtils::check_match(&self))
+               {
+                 at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+                 at::Tensor result = adds_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
+                 NpuUtils::format_fresh_view(self, result);
+               }
+               else
+               {
+                 adds_out_npu_nocheck(self, self, other, alpha);
+               }
+             
+               return self;
+             }
+      
+      ```
+
+   3.  add\_out实现（输入参数result为返回值场景）
+
+       ```
+       at::Tensor &NPUNativeFunctions::add_out(
+               const at::Tensor &self,
+               const at::Tensor &other,
+               at::Scalar alpha,
+               at::Tensor &result)
+           {
+             bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+       
+             at::Tensor outputTensor;
+             if (not isSelfWrapped)
+             {
+               outputTensor = self;
+             }
+             else
+             {
+               outputTensor = other;
+             }
+             auto outputSize = broadcast_ops_npu_output_size(self, other);
+             OpPreparation::CheckOut(
+                 {self},
+                 result,
+                 CalcuOpUtil::get_tensor_npu_format(result),
+                 outputTensor.scalar_type(),
+                 outputSize);
+       
+             OpPipeWithDefinedOut pipe;
+             return pipe.CheckMemory({self, other}, {result})
+                 .Func([&self, &other, &alpha](at::Tensor &result)
+                       { add_out_npu_nocheck(result, self, other, alpha); })
+                 .Call(result);
+           }
+       ```
 
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->AddKernelNpu.cpp的详细实现代码请参见pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp文档。
+>AddKernelNpu.cpp的详细实现代码请参见pytorch/torch_npu/csrc/aten/ops/AddKernelNpu.cpp文档。
 
-<h3 id="编译和安装PyTorch框架md">编译和安装PyTorch框架</h3>
+<h3 id="编译和安装PyTorch插件md">编译和安装PyTorch插件</h3>
 
-#### 编译PyTorch框架<a name="zh-cn_topic_0000001125736777_section470105143317"></a>
+#### 编译PyTorch插件<a name="zh-cn_topic_0000001125736777_section470105143317"></a>
 
-1.  进入PyTorch工作目录 ：“pytorch/pytorch“。
+1.  进入PyTorch工作目录 ：“pytorch“。
 2.  依赖库安装。
 
     ```
     pip3 install -r requirements.txt
     ```
 
-3.  编译生成pytorch的二进制安装包。
+3.  编译生成pytorch插件的二进制安装包。
 
     ```
-    bash build.sh --python=3.7
+    bash ci/build.sh --python=3.7
     或
-    bash build.sh --python=3.8
+    bash ci/build.sh --python=3.8
+    或
+    bash ci/build.sh --python=3.9
     ```
+    
+     请指定环境中python版本进行编译。编译成功后，会在pytorch/dist”文件夹目录下生成二进制包 torch_npu\*.whl ，例如：torch_npu-1.8.1rc1-cp37-cp37m-linux_x86_64.whl。
 
-    请指定环境中python版本进行编译。编译成功后，会在pytorch/pytorch/dist”文件夹目录下生成二进制包 torch-\*.whl ，例如：torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl或者torch-1.8.1+ascend-cp37-cp37m-linux\_x86.whl。
 
+#### 安装PyTorch插件<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
 
-#### 安装PyTorch框架<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
-
-进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
+进入“pytorch/dist“文件夹目录，执行如下命令安装。
 
 ```
-pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 ```
 
 **\{arch\}**表示架构信息，为aarch64或x86\_64。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->若环境中已安装PyTorch时，需要先卸载环境中已安装的PyTorch软件包再执行，可以通过执行如下命令查询环境上是否已安装PyTorch。
->**pip3 list | grep torch**
+>若环境中已安装PyTorch插件时，需要先卸载环境中已安装的PyTorch插件软件包再执行，可以通过执行如下命令查询环境上是否已安装PyTorch插件。
+>**pip3 list | grep torch_npu**
 
-修改代码之后，需要重新执行“编译”和“安装”PyTorch过程。
+修改代码之后，需要重新执行“编译”和“安装”PyTorch插件过程。
 
 <h2 id="算子功能验证md">算子功能验证</h2>
 
@@ -688,7 +612,7 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
 
 进行自定义算子功能验证，通过PyTorch前端构造自定义算子的函数并运行验证。
 
-在https://gitee.com/ascend/pytorch中 "pytorch/test/test\_npu"目录下提供了测试用例及测试工具，供用户参考。
+在https://gitee.com/ascend/pytorch中 "pytorch/test/test_network_ops"目录下提供了测试用例及测试工具，供用户参考。
 
 <h3 id="实现过程md">实现过程</h3>
 
@@ -705,19 +629,16 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
     . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
     ```
 
-2.  编写测试脚本。以add算子为例，在“pytorch/test/test\_npu/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
-
-    以下示例仅为一个简单的用例实现供用户参考，具体测试用例的实现，需要根据算子定义进行完整的覆盖才能保证功能的基本正确。
+2.  编写测试脚本。以add算子为例，在“pytorch/test/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
 
     ```
     # 引入依赖库
-    import sys
-    sys.path.append('..')
     import torch
+    import torch_npu
     import numpy as np
-    from common_utils import TestCase, run_tests
-    from common_device_type import dtypes, instantiate_device_type_tests
-    from util_test import create_common_tensor
+    
+    from torch_npu.testing.testcase import TestCase, run_tests
+    from torch_npu.testing.common_utils import create_common_tensor
     
     # 定义add测试用例类
     class TestAdd(TestCase):
@@ -747,18 +668,18 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # 定义具体add场景的测试用例，用例函数需要以test_开头
-        def test_add_shape_format_fp32_2d(self, device):
+        def test_add_shape_format_fp32_2d(self):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
-    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
+    
     if __name__ == "__main__":
         run_tests()
     ```
-
+    
 3.  执行测试用例脚本
 
     进入test\_add.py所在的目录，执行：
@@ -1374,3 +1295,4 @@ TBE算子导出有两种方式。
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >详细实现代码请参见[test\_custom\_ops\_python\_module.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_python_module.py)，如无权限获取代码，请联系华为技术支持申请加入“Ascend”组织。
 
+​	

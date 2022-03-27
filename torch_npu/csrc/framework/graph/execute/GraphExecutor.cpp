@@ -144,17 +144,6 @@ void GraphExecutor::Init() {
     }
   }
 
-  // to be uncommented
-//  auto soc_name = c10::npu::acl::AclGetSocName();
-//  if (soc_name != nullptr) {
-//    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
-//  }
-
-//  if (c10::npu::acl::IsExistQueryEventRecordedStatus()) {
-//    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
-//    config.emplace(HCOM_OPTIONS.data(), "1");
-//  }
-
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
   session_ = std::make_unique<ge::Session>(config);

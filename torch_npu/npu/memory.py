@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -21,12 +21,6 @@ import warnings
 import torch_npu
 from .utils import is_initialized, _get_device_index
 
-'''
-def _host_allocator():
-    _lazy_init()
-    return torch_npu._C._npu_npuHostAllocator()
-'''
-
 @contextlib.contextmanager
 def _free_mutex():
     torch_npu._C._npu_lock_mutex()
@@ -46,7 +40,7 @@ def caching_allocator_alloc(size, device=None, stream=None):
 
     Arguments:
         size (int): number of bytes to be allocated.
-        device (torch.device or int, optional): selected device. If it is 
+        device (torch.device or int, optional): selected device. If it is
             ``None`` the default NPU device is used.
         stream (torch_npu.npu.Stream or int, optional): selected stream. If is ``None`` then
             the default stream for the selected device is used.
@@ -101,16 +95,12 @@ def empty_cache():
     if is_initialized():
         torch_npu._C._npu_emptyCache()
 
-
 def memory_stats(device=None):
-    r"""Returns a dictionary of NPU memory allocator statistics for a
+    """Returns a dictionary of NPU memory allocator statistics for a
     given device.
-
     The return value of this function is a dictionary of statistics, each of
     which is a non-negative integer.
-
     Core statistics:
-
     - ``"allocated.{all,large_pool,small_pool}.{current,peak,allocated,freed}"``:
       number of allocation requests received by the memory allocator.
     - ``"allocated_bytes.{all,large_pool,small_pool}.{current,peak,allocated,freed}"``:
@@ -127,36 +117,27 @@ def memory_stats(device=None):
       number of inactive, non-releasable memory blocks.
     - ``"inactive_split_bytes.{all,large_pool,small_pool}.{current,peak,allocated,freed}"``:
       amount of inactive, non-releasable memory.
-
     For these core statistics, values are broken down as follows.
-
     Pool type:
-
     - ``all``: combined statistics across all memory pools.
     - ``large_pool``: statistics for the large allocation pool
       (as of October 2019, for size >= 1MB allocations).
     - ``small_pool``: statistics for the small allocation pool
       (as of October 2019, for size < 1MB allocations).
-
     Metric type:
-
     - ``current``: current value of this metric.
     - ``peak``: maximum value of this metric.
     - ``allocated``: historical total increase in this metric.
     - ``freed``: historical total decrease in this metric.
-
     In addition to the core statistics, we also provide some simple event
     counters:
-
     - ``"num_alloc_retries"``: number of failed ``npuMalloc`` calls that
       result in a cache flush and retry.
     - ``"num_ooms"``: number of out-of-memory errors thrown.
-
     Arguments:
         device (torch.device or int, optional): selected device. Returns
             statistics for the current device, given by :func:`~torch_npu.npu.current_device`,
             if :attr:`device` is ``None`` (default).
-
     .. note::
         See :ref:`npu-memory-management` for more details about NPU memory
         management.
@@ -382,28 +363,7 @@ def memory_snapshot():
     """
     return torch_npu._C._npu_memorySnapshot()
 
-
-def memory_summary(device=None, abbreviated=False):
-    r"""Returns a human-readable printout of the current memory allocator
-    statistics for a given device.
-
-    This can be useful to display periodically during training, or when
-    handling out-of-memory exceptions.
-
-    Arguments:
-        device (torch.device or int, optional): selected device. Returns
-            printout for the current device, given by :func:`~torch_npu.npu.current_device`,
-            if :attr:`device` is ``None`` (default).
-        abbreviated (bool, optional): whether to return an abbreviated summary
-            (default: False).
-
-    .. note::
-        See :ref:`npu-memory-management` for more details about NPU memory
-        management.
-    """
-    device = _get_device_index(device, optional=True)
-    stats = memory_stats(device=device)
-
+def create_metrics_to_display() :
     def _format_size(sz, pref_sz):
         prefixes = ["B ", "KB", "MB", "GB", "TB", "PB"]
         prefix = prefixes[0]
@@ -444,6 +404,29 @@ def memory_summary(device=None, abbreviated=False):
     lines.append("  {_:9} NPU OOMs: {num_ooms:<13d} | {_:6} npuMalloc retries: {num_alloc_retries:<9d}  ")
     lines.append("=" * 75)
     lines.append("        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot Freed  ")
+    return metrics_to_display, lines
+
+def memory_summary(device=None, abbreviated=False):
+    r"""Returns a human-readable printout of the current memory allocator
+    statistics for a given device.
+
+    This can be useful to display periodically during training, or when
+    handling out-of-memory exceptions.
+
+    Arguments:
+        device (torch.device or int, optional): selected device. Returns
+            printout for the current device, given by :func:`~torch_npu.npu.current_device`,
+            if :attr:`device` is ``None`` (default).
+        abbreviated (bool, optional): whether to return an abbreviated summary
+            (default: False).
+
+    .. note::
+        See :ref:`npu-memory-management` for more details about NPU memory
+        management.
+    """
+    device = _get_device_index(device, optional=True)
+    stats = memory_stats(device=device)
+    metrics_to_display, lines = create_metrics_to_display()
 
     for metric_key, metric_name, formatter in metrics_to_display:
         lines.append("-" * 75)

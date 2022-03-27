@@ -289,7 +289,8 @@ class NativeFunction:
     # a constructor defined for all the fields we specify.  No need
     # to explicitly write it out.
 
-    # We parse both the NativeFunction + backend-specific information about it, which it stored in a corresponding BackendIndex.
+    # We parse both the NativeFunction + backend-specific information about it, which it stored
+    # in a corresponding BackendIndex.
     @staticmethod
     def from_yaml(
             ei: Dict[str, object],
@@ -311,7 +312,7 @@ class NativeFunction:
 
         use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
         assert use_c10_dispatcher_s != 'full', \
-            "There is no need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
+            "No need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
         if use_c10_dispatcher_s is None:
             use_c10_dispatcher = UseC10Dispatcher.full
         elif use_c10_dispatcher_s == 'hacky_wrapper_for_legacy_signatures':
@@ -355,7 +356,8 @@ class NativeFunction:
         assert isinstance(structured, bool), f'not a bool: {structured}'
 
         structured_delegate_s = e.pop('structured_delegate', None)
-        assert structured_delegate_s is None or isinstance(structured_delegate_s, str), f'not a str: {structured_delegate}'
+        assert structured_delegate_s is None or isinstance(structured_delegate_s, str), \
+            f'not a str: {structured_delegate_s}'
         structured_delegate: Optional[OperatorName] = None
         if structured_delegate_s is not None:
             structured_delegate = OperatorName.parse(structured_delegate_s)
@@ -397,12 +399,13 @@ class NativeFunction:
             # table is NOT semantics preserving
             assert structured_delegate or dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}, \
                 f"unexpected name for singleton CompositeImplicitAutograd dispatch entry: expected {cpp.name(func)} " \
-                f"but got {dispatch[DispatchKey.CompositeImplicitAutograd]}.  Rename your implementation to the expected " \
-                "name, then delete the dispatch table"
+                f"but got {dispatch[DispatchKey.CompositeImplicitAutograd]}.  Rename your implementation to the" \
+                "expected name, then delete the dispatch table"
         elif not structured and structured_delegate is None:
             dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and
+                    DispatchKey.CompositeImplicitAutograd in dispatch), \
             "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
             "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
             "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
@@ -417,7 +420,7 @@ class NativeFunction:
         has_composite_explicit_autograd_kernel = DispatchKey.CompositeExplicitAutograd in dispatch.keys()
 
         # BackendMetadata is used to store any information about a NativeFunction that is backend dependent.
-        # The most obvious information is the kernel name, which usually contains the name of the backend in it for cpu/cuda.
+        # The most obvious information is the kernel name, which usually contains the name of the backend in it.
         # Why is 'structured' included? External backends (e.g. XLA) opt into which ops are structured
         # independently of which in-tree ops are structured
         backend_metadata = {k: {func.name: BackendMetadata(
@@ -660,7 +663,8 @@ class BackendMetadata:
 @dataclass(frozen=True)
 class BackendIndex:
     dispatch_key: DispatchKey
-    # Mainly important for structured kernels, this determines which variant in the operator group is used to implement the others.
+    # Mainly important for structured kernels, this determines which variant in the operator group
+    # is used to implement the others.
     # All in-tree ops use out kernels, while XLA uses functional kernels.
     use_out_as_primary: bool
     # Whether the backend is in-tree (CPU/CUDA) or out-of-tree (XLA)

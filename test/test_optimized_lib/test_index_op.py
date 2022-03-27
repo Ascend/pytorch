@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import torch
 import torch_npu
-import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -35,7 +35,7 @@ class TestIndexOp(TestCase):
 
     def test_npu_index_op(self):
         dtype_list = [np.float16, np.float32]
-        format_list = [-1]
+        format_list = [-1, 0, 2]
         shape_list = [
             [2, 3, 7, 7],
             [1, 2, 3, 6, 6],

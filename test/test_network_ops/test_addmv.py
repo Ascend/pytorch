@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -22,7 +22,6 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestAddmv(TestCase):
     def cpu_op_exec(self, a, b, c, alpha, beta):
-        '''output = alpha * a @ b + beta * c'''
         output = torch.addmv(c, a, b, alpha=alpha, beta=beta)
         output = output.numpy()
         return output
