@@ -113,7 +113,12 @@
        cd patch
        bash apply_patch.sh ../pytorch_v1.8.1
        cd ../pytorch_v1.8.1
-       bash build.sh
+       指定python版本编包方式:
+       bash build.sh --python=3.7
+       或
+       bash build.sh --python=3.8
+       或
+       bash build.sh --python=3.9
        ```
     
        安装当前dist目录（pytorch/pytorch_v1.8.1/dist）下生成的torch包。
@@ -127,6 +132,7 @@
     
         ```
         cd ../../ci    #进入插件根目录
+        指定python版本编包方式：
         bash build.sh --python=3.7
         或
         bash build.sh --python=3.8

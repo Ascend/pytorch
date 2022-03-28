@@ -66,7 +66,12 @@ cd ..
 cd patch
 bash apply_patch.sh ../pytorch_v1.8.1
 cd ../pytorch_v1.8.1
-bash build.sh
+指定python版本编包方式：
+bash build.sh --python=3.7
+或
+bash build.sh --python=3.8
+或
+bash build.sh --python=3.9
 ```
 
 然后安装pytorch/pytorch_v1.8.1/dist下生成的torch包，接下来编译安装插件
@@ -79,6 +84,7 @@ pip3 install --upgrade torch-1.8.1+ascend.rc1-cp37-cp37m-linux_{arch}.whl
 
 ```
 cd ../../ci    #进入插件根目录
+指定python版本编包方式：
 bash build.sh --python=3.7
 或
 bash build.sh --python=3.8
