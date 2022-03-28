@@ -50,8 +50,8 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
     def test_max_pool2d_with_indices_backward_fp16(self, device="npu"):
         shape_format = [
             [[np.float16, 3, [256, 64, 112, 112]], [3, 3], [2, 2], 1, 1, False],
-            [[np.float16, 3, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 56, 112]], [3, 3], [2, 2], 1, 1, False],
+            [[np.float16, 3, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 112, 56]], [3, 3], [2, 2], 1, 1, False],
         ]
 
@@ -61,8 +61,8 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
                 cpu_input = cpu_input.to(torch.float32)
             cpu_output, cpu_grad = self.cpu_op_exec(cpu_input, item[1], item[2], item[3], item[4], item[5])
             npu_output, npu_grad = self.npu_op_exec(npu_input, item[1], item[2], item[3], item[4], item[5])
-            cpu_output = cpu_output.to(npu_output.dtype)
             cpu_grad = cpu_grad.to(npu_grad.dtype)
+            cpu_output = cpu_output.to(npu_output.dtype)
 
             self.assertRtolEqual(cpu_output.numpy(), npu_output.numpy())
             self.assertRtolEqual(cpu_grad.numpy(), npu_grad.numpy())
@@ -75,7 +75,6 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
             [[np.float16, 3, [1024, 24, 56, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 112, 56]], [3, 3], [2, 2], 1, 1, False],
         ]
-
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
             if cpu_input.dtype == torch.float16:

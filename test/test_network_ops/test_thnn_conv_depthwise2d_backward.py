@@ -34,9 +34,8 @@ class TestThnnConvDepthwise2d(TestCase):
     def get_input_grad(self, grad):
         self.input_grad.append(grad.to("cpu"))
 
-    def op_exec_cpu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1,
+    def op_exec_cpu(self, input1, weight1, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1,
                     bias=True):
-        weight1 = weight
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 
@@ -54,9 +53,8 @@ class TestThnnConvDepthwise2d(TestCase):
 
         return cpuOutput
 
-    def op_exec_npu(self, input1, weight, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1,
+    def op_exec_npu(self, input1, weight1, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1,
                     bias=True):
-        weight1 = weight
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 

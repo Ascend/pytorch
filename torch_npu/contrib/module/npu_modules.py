@@ -45,7 +45,7 @@ class DropoutWithByteMask(Module):
         >>> m = nn.DropoutWithByteMask(p=0.5)
         >>> input = torch.randn(16, 16)
         >>> output = m(input)
-        """
+    """
 
     def __init__(self, p=0.5, inplace=False,
                  max_seed=2 ** 10 - 1):
