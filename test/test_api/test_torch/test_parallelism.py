@@ -14,9 +14,7 @@
 
 import torch
 import torch_npu
-
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch.testing._internal.common_utils import freeze_rng_state
 
 device = 'npu:0'
 torch.npu.set_device(device)
