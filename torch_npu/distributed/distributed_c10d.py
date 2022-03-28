@@ -421,13 +421,8 @@ def get_backend(group=None):
     return pg_store[0]
 
 
-def init_process_group(backend,
-                       init_method=None,
-                       timeout=default_pg_timeout,
-                       world_size=-1,
-                       rank=-1,
-                       store=None,
-                       group_name=''):
+def init_process_group(backend, init_method=None, timeout=default_pg_timeout,
+                       world_size=-1, rank=-1, store=None, group_name=''):
     """
     Initializes the default distributed process group, and this will also
     initialize the distributed package.
@@ -516,14 +511,8 @@ def init_process_group(backend,
                 "are ignored since they are assigned by the "
                 "MPI runtime.".format(world_size, rank))
 
-        _update_default_pg(_new_process_group_helper(
-            -1,
-            -1,
-            [],
-            Backend.MPI,
-            None,
-            group_name=group_name,
-            timeout=timeout))
+        _update_default_pg(_new_process_group_helper(-1, -1, [], Backend.MPI, None, group_name=group_name,
+                                                     timeout=timeout))
     else:
         # backward compatible API
         if store is None:
@@ -533,14 +522,8 @@ def init_process_group(backend,
             store, rank, world_size = next(rendezvous_iterator)
             store.set_timeout(timeout)
 
-        _update_default_pg(_new_process_group_helper(
-            world_size,
-            rank,
-            [],
-            backend,
-            store,
-            group_name=group_name,
-            timeout=timeout))
+        _update_default_pg(_new_process_group_helper(world_size, rank, [], backend, store,
+                                                     group_name=group_name, timeout=timeout))
 
     _pg_group_ranks[GroupMember.WORLD] = {i: i for i in range(GroupMember.WORLD.size())}  # type: ignore
     _backend = _pg_map[GroupMember.WORLD][0]  # type: ignore
@@ -557,12 +540,8 @@ def init_process_group(backend,
         # default devices and messes up NCCL internal state.
         _store_based_barrier(rank, store, timeout)
 
-def _new_process_group_helper(world_size,
-                              rank,
-                              group_ranks,
-                              backend,
-                              store,
-                              group_name=None,
+
+def _new_process_group_helper(world_size, rank, group_ranks, backend, store, group_name=None,
                               timeout=default_pg_timeout):
     """
     Create a new distributed process group.
@@ -582,12 +561,10 @@ def _new_process_group_helper(world_size,
         _group_count += 1
 
     if group_name in _pg_names.values():
-        raise RuntimeError("The specified group name has already been "
-                           "created, please use a different group name")
+        raise RuntimeError("The specified group name has already been created, please use a different group name")
 
     if not isinstance(timeout, timedelta):
-        raise RuntimeError("Expected timeout argument to be of type"
-                           "datetime.timedelta")
+        raise RuntimeError("Expected timeout argument to be of type datetime.timedelta")
 
     # The list of group ranks is empty if we're creating the default group.
     is_default_group = (len(group_ranks) == 0)
@@ -596,10 +573,9 @@ def _new_process_group_helper(world_size,
     pg: Union[ProcessGroupGloo, ProcessGroupMPI, ProcessGroupNCCL, ProcessGroupHCCL]
     if backend == Backend.MPI:
         if not is_mpi_available():
-            raise RuntimeError(
-                "Distributed package doesn't have MPI built in."
-                " MPI is only included if you build PyTorch from"
-                " source on a host that has MPI installed.")
+            raise RuntimeError("Distributed package doesn't have MPI built in."
+                               " MPI is only included if you build PyTorch from"
+                               " source on a host that has MPI installed.")
         pg = ProcessGroupMPI.create(group_ranks)
         if not pg:
             return GroupMember.NON_GROUP_MEMBER
@@ -618,40 +594,23 @@ def _new_process_group_helper(world_size,
         prefix_store = PrefixStore(group_name, store)
 
         if backend == Backend.GLOO:
-            pg = ProcessGroupGloo(
-                prefix_store,
-                rank,
-                world_size,
-                timeout=timeout)
+            pg = ProcessGroupGloo(prefix_store, rank, world_size, timeout=timeout)
             _pg_map[pg] = (Backend.GLOO, store)
             _pg_names[pg] = group_name
         elif backend == Backend.NCCL:
             if not is_nccl_available():
-                raise RuntimeError("Distributed package doesn't have NCCL "
-                                   "built in")
-            pg = ProcessGroupNCCL(
-                prefix_store,
-                rank,
-                world_size,
-                timeout)
+                raise RuntimeError("Distributed package doesn't have NCCL built in")
+            pg = ProcessGroupNCCL(prefix_store, rank, world_size, timeout)
             _pg_map[pg] = (Backend.NCCL, store)
             _pg_names[pg] = group_name
         elif backend == Backend.HCCL:
             if not is_hccl_available():
-                raise RuntimeError("Distributed package doesn't have HCCL "
-                                   "built in")
-            pg = ProcessGroupHCCL(
-                prefix_store,
-                rank,
-                world_size)
+                raise RuntimeError("Distributed package doesn't have HCCL built in")
+            pg = ProcessGroupHCCL(prefix_store, rank, world_size)
             _pg_map[pg] = (Backend.HCCL, store)
             _pg_names[pg] = group_name
         else:
-            pg = getattr(Backend, backend.upper())(
-                prefix_store,
-                rank,
-                world_size,
-                timeout)
+            pg = getattr(Backend, backend.upper())(prefix_store, rank, world_size, timeout)
             _pg_map[pg] = (backend, store)
             _pg_names[pg] = group_name
 

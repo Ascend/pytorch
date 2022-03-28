@@ -141,65 +141,68 @@ class TestNpu(TestCase):
         assert_change(0)
         yield
 
-        tensors1 = [alloc(1), alloc(10, 20), alloc(200, 300, 2000)]
-        m1 = torch_npu.npu.memory_allocated(device)
-        assert_change(1)
-        yield
-
-        tensors2 = []
-
-        for i in range(1, int(N / 2) + 1):
-            # small ones
-            tensors2.append(alloc(i, i * 4))
+        def assert_change_by_tensor():
+            tensors1 = [alloc(1), alloc(10, 20), alloc(200, 300, 2000)]
+            m1 = torch_npu.npu.memory_allocated(device)
             assert_change(1)
             yield
 
-        for i in range(5, int(N / 2) + 5):
-            # large ones
-            tensors2.append(alloc(i, i * 7, i * 9, i * 11))
-            assert_change(1, reset_peak=(i % 2 == 0))
-            yield
+            tensors2 = []
 
-        tensors2.append(alloc(0, 0, 0))
-        assert_change(0)
-        yield
+            for i in range(1, int(N / 2) + 1):
+                # small ones
+                tensors2.append(alloc(i, i * 4))
+                assert_change(1)
+                yield
 
-        permute = []
-        for i in torch.randperm(len(tensors2)):
-            permute.append(tensors2[i])
+            for i in range(5, int(N / 2) + 5):
+                # large ones
+                tensors2.append(alloc(i, i * 7, i * 9, i * 11))
+                assert_change(1, reset_peak=(i % 2 == 0))
+                yield
+
+            tensors2.append(alloc(0, 0, 0))
             assert_change(0)
             yield
 
-        del tensors2
-        assert_change(0)
-        yield
-        tensors2 = permute
-        assert_change(0)
-        yield
-        del permute
-        assert_change(0, reset_peak=True)
-        yield
+            permute = []
+            for i in torch.randperm(len(tensors2)):
+                permute.append(tensors2[i])
+                assert_change(0)
+                yield
 
-        for i in range(int(N / 2)):
-            x = tensors2[i].numel()
-            del tensors2[i]
-            assert_change(-x)  # in case that tensors2[i] is empty
+            del tensors2
+            assert_change(0)
+            yield
+            tensors2 = permute
+            assert_change(0)
+            yield
+            del permute
+            assert_change(0, reset_peak=True)
             yield
 
-        for i in range(2, int(2 * N / 3) + 2):
-            tensors2.append(alloc(i, i * 3, i * 8))
-            assert_change(1)
-            yield
+            for i in range(int(N / 2)):
+                x = tensors2[i].numel()
+                del tensors2[i]
+                assert_change(-x)  # in case that tensors2[i] is empty
+                yield
 
-        del tensors2
-        assert_change(-1, reset_peak=True)
-        assert_change(0)
-        self.assertEqual(torch_npu.npu.memory_allocated(device), m1)
-        yield True
+            for i in range(2, int(2 * N / 3) + 2):
+                tensors2.append(alloc(i, i * 3, i * 8))
+                assert_change(1)
+                yield
 
-        del tensors1
-        assert_change(-1, reset_peak=True)
-        self.assertEqual(torch_npu.npu.memory_allocated(device), m0)
+            del tensors2
+            assert_change(-1, reset_peak=True)
+            assert_change(0)
+            self.assertEqual(torch_npu.npu.memory_allocated(device), m1)
+            yield True
+
+            del tensors1
+            assert_change(-1, reset_peak=True)
+            self.assertEqual(torch_npu.npu.memory_allocated(device), m0)
+
+        assert_change_by_tensor()
 
         # test empty_cache and reset_peak
         assert_change(0, empty_cache=True)
@@ -361,8 +364,9 @@ class TestNpu(TestCase):
         with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
             torch_npu.npu.synchronize(torch.device("cpu"))
 
-        with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
-            torch_npu.npu.synchronize("cpu")
+        with self.assertRaisesRegex(AssertionError, "Expected a npu device, but"):
+            with self.assertRaisesRegex(ValueError, "Expected a npu device, but"):
+                torch_npu.npu.synchronize("cpu")
 
     def test_streams(self):
         default_stream = torch_npu.npu.current_stream()
