@@ -48,6 +48,16 @@ class TestInverse(TestCase):
             npu_output = self.npu_op_exec(npu_input1)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_inverse_out_fp16(self, device="npu"):
+        cpu_x = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
+        cpu_out = torch.randn(5, 4, 9, 10, 10).uniform_(-2, 10).half()
+        npu_x = cpu_x.npu()
+        npu_out = cpu_out.npu()
+
+        torch.inverse(cpu_x.float(), out=cpu_out)
+        torch.inverse(npu_x, out=npu_out)
+        self.assertRtolEqual(cpu_out.half(), npu_out.cpu())
 
 if __name__ == "__main__":
     run_tests()

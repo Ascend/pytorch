@@ -24,16 +24,20 @@ at::Tensor& inverse_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self) {
   at::Tensor selfCast = self;
+  at::Tensor resultCast = result;
   if(self.scalar_type() == at::kHalf) {
     selfCast = self.to(at::kFloat);
+  }
+  if(result.scalar_type() == at::kHalf) {
+    resultCast = resultCast.to(at::kFloat);
   }
   OpCommand cmd;
   cmd.Name("MatrixInverse")
       .Input(selfCast)
-      .Output(result)
+      .Output(resultCast)
       .Attr("adjoint", false)
       .Run();
-
+  result.copy_(resultCast);
   return result;
 }
 
@@ -52,24 +56,14 @@ at::Tensor& NPUNativeFunctions::inverse_out(
     inverse_out_npu_nocheck(result, self);
   }
 
-  if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, self.scalar_type());
-  }
   return result;
 }
 
 at::Tensor NPUNativeFunctions::inverse(const at::Tensor& self) {
-  at::Tensor selfCast = self;
-  if(self.scalar_type() == at::kHalf) {
-    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::kFloat);
-  }
-  at::Tensor result = OpPreparation::ApplyTensor(selfCast);
+  at::Tensor result = OpPreparation::ApplyTensor(self);
 
-  inverse_out_npu_nocheck(result, selfCast);
+  inverse_out_npu_nocheck(result, self);
 
-  if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, self.scalar_type());
-  }
   return result;
 }
 
