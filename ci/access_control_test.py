@@ -38,14 +38,13 @@ class AccurateTest(metaclass=ABCMeta):
         ut_files = []
         cmd = "find {} -name {}".format(os.path.join(BASE_DIR, 'test'), regex)
         status, output = subprocess.getstatusoutput(cmd)
-        if status:
+        if status or not output:
             pass # 对于找不到的暂时不作处理
         else:
-            if output:
-                files = output.split('\n')
-                for ut_file in files:
-                    if ut_file.endswith(".py"):
-                        ut_files.append(ut_file)
+            files = output.split('\n')
+            for ut_file in files:
+                if ut_file.endswith(".py"):
+                    ut_files.append(ut_file)
         return ut_files
 
 
@@ -140,7 +139,7 @@ def exec_ut(ut_files):
         ut_file = os.path.basename(ut_path)
         os.chdir(ut_dir)
         cmd = "python3 {}".format(ut_file)
-        p = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen(['python3', ut_file], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
         try:
             msg = p.communicate(timeout=300)
             ret = p.poll()

@@ -159,8 +159,8 @@ class TestCase(expecttest.TestCase):
             deno = np.maximum(np.abs(x), np.abs(y))
             result_atol = np.less_equal(result, pre)
             result_rtol = np.less_equal(result / np.add(deno, minimum), pre)
-            if result_rtol.all() is False and result_atol.all() is False:
-                if np.sum(result_rtol is False) > size * pre and np.sum(result_atol is False) > size * pre:
+            if result_rtol.all() == False and result_atol.all() == False:
+                if np.sum(result_rtol == False) > size * pre and np.sum(result_atol == False) > size * pre:
                     self.fail("result error")
         threshold = 1.e-4
         threshold2 = 1.e-3
@@ -206,37 +206,37 @@ class TestCase(expecttest.TestCase):
 
             if (a.dtype == torch.bool) != (b.dtype == torch.bool):
                 raise TypeError("Was expecting both tensors to be bool type.")
-            else:
-                if a.dtype == torch.bool and b.dtype == torch.bool:
-                    # we want to respect precision but as bool doesn't support subtraction,
-                    # boolean tensor has to be converted to int
-                    a = a.to(torch.int)
-                    b = b.to(torch.int)
 
-                diff = a - b
-                if a.dtype.is_complex or a.dtype.is_floating_point:
-                    # check that NaNs are in the same locations
-                    nan_mask = torch.isnan(a)
-                    self.assertTrue(torch.equal(nan_mask, torch.isnan(b)), message)
-                    diff[nan_mask] = 0
-                    # inf check if allow_inf=True
-                    if allow_inf:
-                        inf_mask = torch.isinf(a)
-                        inf_sign = inf_mask.sign()
-                        self.assertTrue(torch.equal(inf_sign, torch.isinf(b).sign()), message)
-                        diff[inf_mask] = 0
-                # TODO: implement abs on CharTensor (int8)
-                # TODO: modify abs to return float/double for ComplexFloat/ComplexDouble
-                if diff.is_signed() and diff.dtype != torch.int8:
-                    diff = diff.abs()
-                    # if diff is complex, the imaginary component for diff will be 0
-                    # from the previous step, hence converting it to float and double is fine.
-                    if diff.dtype == torch.complex64:
-                        diff = diff.to(torch.float)
-                    elif diff.dtype == torch.complex128:
-                        diff = diff.to(torch.double)
-                max_err = diff.max()
-                self.assertLessEqual(max_err, prec, message)
+            if a.dtype == torch.bool and b.dtype == torch.bool:
+                # we want to respect precision but as bool doesn't support subtraction,
+                # boolean tensor has to be converted to int
+                a = a.to(torch.int)
+                b = b.to(torch.int)
+
+            diff = a - b
+            if a.dtype.is_complex or a.dtype.is_floating_point:
+                # check that NaNs are in the same locations
+                nan_mask = torch.isnan(a)
+                self.assertTrue(torch.equal(nan_mask, torch.isnan(b)), message)
+                diff[nan_mask] = 0
+                # inf check if allow_inf=True
+                if allow_inf:
+                    inf_mask = torch.isinf(a)
+                    inf_sign = inf_mask.sign()
+                    self.assertTrue(torch.equal(inf_sign, torch.isinf(b).sign()), message)
+                    diff[inf_mask] = 0
+            # TODO: implement abs on CharTensor (int8)
+            # TODO: modify abs to return float/double for ComplexFloat/ComplexDouble
+            if diff.is_signed() and diff.dtype != torch.int8:
+                diff = diff.abs()
+                # if diff is complex, the imaginary component for diff will be 0
+                # from the previous step, hence converting it to float and double is fine.
+                if diff.dtype == torch.complex64:
+                    diff = diff.to(torch.float)
+                elif diff.dtype == torch.complex128:
+                    diff = diff.to(torch.double)
+            max_err = diff.max()
+            self.assertLessEqual(max_err, prec, message)
 
     def _assertNumberEqual(self, x, y, prec=None, message='', allow_inf=False, exact_dtype=None):
         if isinstance(x, torch.Tensor) and isinstance(y, Number):
@@ -459,12 +459,12 @@ class TestCase(expecttest.TestCase):
             try:
                 yield
             finally:
-                if len(ws) != 0:
-                    msg = 'Caught unexpected warnings:\n'
-                    for w in ws:
-                        msg += warnings.formatwarning(
-                            w.message, w.category, w.filename, w.lineno, w.line)
-                        msg += '\n'
+                msg = 'Caught unexpected warnings:\n' if len(ws) != 0 else None
+                for w in ws:
+                    msg += warnings.formatwarning(
+                        w.message, w.category, w.filename, w.lineno, w.line)
+                    msg += '\n'
+                if msg is not None:
                     self.fail(msg)
 
     @contextmanager

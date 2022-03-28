@@ -21,6 +21,7 @@ from typing import List, Dict, Optional, Iterator, Tuple, Set, NoReturn, Sequenc
 from enum import Enum, auto
 import itertools
 
+
 # A little trick from https://github.com/python/mypy/issues/6366
 # for getting mypy to do exhaustiveness checking
 # TODO: put this somewhere else, maybe
@@ -296,12 +297,7 @@ class NativeFunction:
             ei: Dict[str, object],
             loc: 'Location'
     ) -> Tuple['NativeFunction', Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
-        """
-        Parse a NativeFunction from a dictionary as directly parsed
-        from native_functions.yaml
-        """
         e = ei.copy()
-
         funcs = e.pop('func')
         assert isinstance(funcs, str), f'not a str: {funcs}'
         func = FunctionSchema.parse(funcs)
@@ -310,31 +306,37 @@ class NativeFunction:
         assert isinstance(cpp_no_default_args_list, list)
         cpp_no_default_args = set(cpp_no_default_args_list)
 
-        use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
-        assert use_c10_dispatcher_s != 'full', \
-            "No need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
-        if use_c10_dispatcher_s is None:
-            use_c10_dispatcher = UseC10Dispatcher.full
-        elif use_c10_dispatcher_s == 'hacky_wrapper_for_legacy_signatures':
-            use_c10_dispatcher = UseC10Dispatcher.hacky_wrapper_for_legacy_signatures
-        else:
-            raise AssertionError(
-                f'use_c10_dispatcher must be full or hacky_wrapper_for_legacy_signatures, got {use_c10_dispatcher_s}')
+        def parse_use_dispatcher(e):
+            use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
+            assert use_c10_dispatcher_s != 'full', \
+                "No need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
+            if use_c10_dispatcher_s is None:
+                use_c10_dispatcher = UseC10Dispatcher.full
+            elif use_c10_dispatcher_s == 'hacky_wrapper_for_legacy_signatures':
+                use_c10_dispatcher = UseC10Dispatcher.hacky_wrapper_for_legacy_signatures
+            else:
+                raise AssertionError(f'use_c10_dispatcher must be full or hacky_wrapper_for_legacy_signatures,'
+                                     f' got {use_c10_dispatcher_s}')
+            return use_c10_dispatcher
 
+        use_c10_dispatcher = parse_use_dispatcher(e)
         use_const_ref_for_mutable_tensors = e.pop('use_const_ref_for_mutable_tensors', False)
         assert isinstance(use_const_ref_for_mutable_tensors, bool)
 
-        variants_s = e.pop('variants', 'function')
-        assert isinstance(variants_s, str)
-        variants: Set[Variant] = set()
-        for v in variants_s.split(', '):
-            if v == 'function':
-                variants.add(Variant.function)
-            elif v == 'method':
-                variants.add(Variant.method)
-            else:
-                raise AssertionError(f'illegal variant {v}')
+        def parse_variants(e):
+            variants_s = e.pop('variants', 'function')
+            assert isinstance(variants_s, str)
+            variants: Set[Variant] = set()
+            for v in variants_s.split(', '):
+                if v == 'function':
+                    variants.add(Variant.function)
+                elif v == 'method':
+                    variants.add(Variant.method)
+                else:
+                    raise AssertionError(f'illegal variant {v}')
+            return variants
 
+        variants = parse_variants(e)
         manual_kernel_registration = e.pop('manual_kernel_registration', False)
         assert isinstance(manual_kernel_registration, bool), f'not a bool: {manual_kernel_registration}'
 
@@ -344,24 +346,30 @@ class NativeFunction:
         device_guard = e.pop('device_guard', True)
         assert isinstance(device_guard, bool), f'not a bool: {device_guard}'
 
-        device_check_s = e.pop('device_check', None)
-        assert device_check_s is None or isinstance(device_check_s, str), f'not a str: {device_check_s}'
-        device_check: DeviceCheckType
-        if device_check_s is None:
-            device_check = DeviceCheckType.ExactSame
-        else:
-            device_check = DeviceCheckType[device_check_s]
+        def parse_device_check(e):
+            device_check_s = e.pop('device_check', None)
+            assert device_check_s is None or isinstance(device_check_s, str), f'not a str: {device_check_s}'
+            device_check: DeviceCheckType
+            if device_check_s is None:
+                device_check = DeviceCheckType.ExactSame
+            else:
+                device_check = DeviceCheckType[device_check_s]
+            return device_check
 
+        device_check = parse_device_check(e)
         structured = e.pop('structured', False)
         assert isinstance(structured, bool), f'not a bool: {structured}'
 
-        structured_delegate_s = e.pop('structured_delegate', None)
-        assert structured_delegate_s is None or isinstance(structured_delegate_s, str), \
-            f'not a str: {structured_delegate_s}'
-        structured_delegate: Optional[OperatorName] = None
-        if structured_delegate_s is not None:
-            structured_delegate = OperatorName.parse(structured_delegate_s)
+        def parse_structured_delegate(e):
+            structured_delegate_s = e.pop('structured_delegate', None)
+            assert structured_delegate_s is None or isinstance(structured_delegate_s, str), \
+                f'not a str: {structured_delegate_s}'
+            structured_delegate: Optional[OperatorName] = None
+            if structured_delegate_s is not None:
+                structured_delegate = OperatorName.parse(structured_delegate_s)
+            return structured_delegate
 
+        structured_delegate = parse_structured_delegate(e)
         structured_inherits = e.pop('structured_inherits', None)
         assert structured_inherits is None or isinstance(structured_inherits, str), f'not a str: {structured_inherits}'
 
@@ -377,39 +385,42 @@ class NativeFunction:
 
         from codegen.api import cpp
 
-        raw_dispatch = e.pop('dispatch', None)
-        assert raw_dispatch is None or isinstance(raw_dispatch, dict), e
-        dispatch: Dict[DispatchKey, str] = {}
-        if raw_dispatch is not None:
-            assert not manual_kernel_registration, \
-                "cannot specify both manual_kernel_registration and dispatch; with " \
-                "manual registration, dispatch has no effect!"
-            for ks, v in raw_dispatch.items():
-                if ks == '__line__':
-                    continue  # not worth tracking line numbers for dispatch entries
-                assert isinstance(ks, str), e
-                assert isinstance(v, str), e
-                for k in ks.split(","):
-                    dispatch_key = DispatchKey.parse(k.strip())
-                    dispatch[dispatch_key] = v
-            assert dispatch != {DispatchKey.CompositeImplicitAutograd: cpp.name(func)}, \
-                "unnecessary dispatch table for this function; just delete the dispatch " \
-                "key entirely"
-            # if a function is a structured delegate, deleting the dispatch
-            # table is NOT semantics preserving
-            assert structured_delegate or dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}, \
-                f"unexpected name for singleton CompositeImplicitAutograd dispatch entry: expected {cpp.name(func)} " \
-                f"but got {dispatch[DispatchKey.CompositeImplicitAutograd]}.  Rename your implementation to the" \
-                "expected name, then delete the dispatch table"
-        elif not structured and structured_delegate is None:
-            dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
+        def parse_dispatch(e, func, manual_kernel_registration, structured_delegate, structured):
+            raw_dispatch = e.pop('dispatch', None)
+            assert raw_dispatch is None or isinstance(raw_dispatch, dict), e
+            dispatch: Dict[DispatchKey, str] = {}
+            if raw_dispatch is not None:
+                assert not manual_kernel_registration, \
+                    "cannot specify both manual_kernel_registration and dispatch; with " \
+                    "manual registration, dispatch has no effect!"
+                for ks, v in raw_dispatch.items():
+                    if ks == '__line__':
+                        continue  # not worth tracking line numbers for dispatch entries
+                    assert isinstance(ks, str), e
+                    assert isinstance(v, str), e
+                    for k in ks.split(","):
+                        dispatch_key = DispatchKey.parse(k.strip())
+                        dispatch[dispatch_key] = v
+                assert dispatch != {DispatchKey.CompositeImplicitAutograd: cpp.name(func)}, \
+                    "unnecessary dispatch table for this function; just delete the dispatch " \
+                    "key entirely"
+                # if a function is a structured delegate, deleting the dispatch
+                # table is NOT semantics preserving
+                assert structured_delegate or dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}, \
+                    f"unexpected name for singleton CompositeImplicitAutograd dispatch entry:" \
+                    f" expected {cpp.name(func)} but got {dispatch[DispatchKey.CompositeImplicitAutograd]}." \
+                    f" Rename your implementation to the expected name, then delete the dispatch table"
+            elif not structured and structured_delegate is None:
+                dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and
-                    DispatchKey.CompositeImplicitAutograd in dispatch), \
-            "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
-            "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
-            "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
+            assert not (DispatchKey.CompositeExplicitAutograd in dispatch and
+                        DispatchKey.CompositeImplicitAutograd in dispatch), \
+                "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel;" \
+                " each strictly subsumes the other.  If you wanted to provide an explicit autograd " \
+                "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
+            return dispatch
 
+        dispatch = parse_dispatch(e, func, manual_kernel_registration, structured_delegate, structured)
         if structured_delegate:
             # Structured functions MUST have a dispatch table
             is_abstract = True
@@ -1348,17 +1359,11 @@ class Arguments:
 
     @staticmethod
     def parse(args: str) -> 'Arguments':
-        """
-        Input: 'int x, int y, int z'
-        """
-
         # We do this in two phases.  First we parse into three
         # main categories: positional, kwarg_only, out.
         # Then, we reparse positional and kwarg_only to separate
         # out the self argument and tensor options arguments.
-
         positional, kwarg_only, out = Arguments._preparse(args)
-
         # Split self argument
         self_ix = None
         for i, a in enumerate(positional):
@@ -1373,25 +1378,20 @@ class Arguments:
             self_arg = SelfArgument(positional[self_ix])
             post_self_positional = positional[self_ix + 1:]
         else:
-            pre_self_positional = []
-            self_arg = None
-            post_self_positional = positional
+            pre_self_positional, self_arg, post_self_positional = [], None, positional
 
         # Group tensor options arguments
         pre_tensor_options_kwarg_only: List[Argument] = []
         tensor_options: Optional[TensorOptionsArguments] = None
         post_tensor_options_kwarg_only: List[Argument] = []
         kwarg_only_acc = pre_tensor_options_kwarg_only
-
         def pred(name: str, ty: Type) -> Callable[[Argument], bool]:
             return lambda a: a.name == name and a.type in [ty, OptionalType(ty)]
-        predicates = [  # order matters
-            pred('dtype', Type.parse('ScalarType')),
-            pred('layout', Type.parse('Layout')),
-            pred('device', Type.parse('Device')),
-            pred('pin_memory', Type.parse('bool')),
-        ]
 
+        predicates = [
+            pred('dtype', Type.parse('ScalarType')), pred('layout', Type.parse('Layout')),
+            pred('device', Type.parse('Device')), pred('pin_memory', Type.parse('bool')),
+        ]
         i = 0
         while i < len(kwarg_only):
             # If there is enough space...
@@ -1411,7 +1411,6 @@ class Arguments:
                     continue
             kwarg_only_acc.append(kwarg_only[i])
             i += 1
-
         return Arguments(
             pre_self_positional=tuple(pre_self_positional),
             self_arg=self_arg,

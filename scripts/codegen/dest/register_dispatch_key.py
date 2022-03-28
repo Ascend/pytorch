@@ -14,11 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import List, Optional, Union
+
 import itertools
-from typing_extensions import Literal
-from dataclasses import dataclass
 import textwrap
+
+from dataclasses import dataclass
+from typing import List, Optional, Union
+from typing_extensions import Literal
 
 from codegen.context import method_with_native_function, native_function_manager
 from codegen.utils import Target, map_maybe
