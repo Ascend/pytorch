@@ -194,9 +194,84 @@ def ddp_forward(self, *inputs, **kwargs):
     return output
 
 
+def lstm_forward(self, input, hx=None):  # noqa: F811
+    orig_input = input
+    # xxx: isinstance check needs to be in conditional for TorchScript to compile
+    if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
+        input, batch_sizes, sorted_indices, unsorted_indices = input
+        max_batch_size = batch_sizes[0]
+        max_batch_size = int(max_batch_size)
+    else:
+        batch_sizes = None
+        max_batch_size = input.size(0) if self.batch_first else input.size(1)
+        sorted_indices = None
+        unsorted_indices = None
+
+    if hx is None:
+        num_directions = 2 if self.bidirectional else 1
+        real_hidden_size = self.proj_size if self.proj_size > 0 else self.hidden_size
+        h_zeros = torch.zeros(self.num_layers * num_directions,
+                                max_batch_size, real_hidden_size,
+                                dtype=input.dtype, device=input.device)
+        c_zeros = torch.zeros(self.num_layers * num_directions,
+                                max_batch_size, self.hidden_size,
+                                dtype=input.dtype, device=input.device)
+        hx = (h_zeros, c_zeros)
+    else:
+        # Each batch of the hidden state should match the input sequence that
+        # the user believes he/she is passing in.
+        hx = self.permute_hidden(hx, sorted_indices)
+
+    self.check_forward_args(input, hx, batch_sizes)
+    if batch_sizes is None:
+        result = torch._VF.lstm(input, hx, self._flat_weights, self.bias, self.num_layers,
+                                self.dropout, self.training, self.bidirectional, self.batch_first)
+    else:
+        if batch_sizes.device != input.device:
+            batch_sizes_npu = batch_sizes.to(input.device)
+            result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
+                                    self.num_layers, self.dropout, self.training, self.bidirectional)
+        else:
+            result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
+                                    self.num_layers, self.dropout, self.training, self.bidirectional)
+    output = result[0]
+    hidden = result[1:]
+    # xxx: isinstance check needs to be in conditional for TorchScript to compile
+    if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
+        output_packed = torch.nn.utils.rnn.PackedSequence(output, batch_sizes, sorted_indices, unsorted_indices)
+        return output_packed, self.permute_hidden(hidden, unsorted_indices)
+    else:
+        return output, self.permute_hidden(hidden, unsorted_indices)
+
+
+def pad_packed_sequence(sequence, batch_first=False, padding_value=0.0, total_length=None):
+    max_seq_length = sequence.batch_sizes.size(0)
+    if total_length is not None:
+        if total_length < max_seq_length:
+            raise ValueError("Expected total_length to be at least the length "
+                             "of the longest sequence in input, but got "
+                             "total_length={} and max sequence length being {}"
+                             .format(total_length, max_seq_length))
+        max_seq_length = total_length
+    if sequence.batch_sizes.device != sequence.data.device:
+        batch_sizes_npu = sequence.batch_sizes.to(sequence.data.device)
+        padded_output, lengths = torch._VF._pad_packed_sequence(
+            sequence.data, batch_sizes_npu, batch_first, padding_value, max_seq_length)
+    else:
+        padded_output, lengths = torch._VF._pad_packed_sequence(
+            sequence.data, sequence.batch_sizes, batch_first, padding_value, max_seq_length)
+    unsorted_indices = sequence.unsorted_indices
+    if unsorted_indices is not None:
+        batch_dim = 0 if batch_first else 1
+        return padded_output.index_select(batch_dim, unsorted_indices), lengths[unsorted_indices]
+    return padded_output, lengths
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.LayerNorm.forward = layernorm_forward
     torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
+    torch.nn.modules.rnn.LSTM.forward = lstm_forward
+    torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
