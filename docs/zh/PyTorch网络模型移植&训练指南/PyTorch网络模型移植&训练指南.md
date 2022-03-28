@@ -1827,7 +1827,7 @@ E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获�
 添加with语句使能E2E prof功能
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
