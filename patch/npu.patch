@@ -787,10 +787,10 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/build.sh patch/build.sh
 --- pytorch-v1.8.1/build.sh	1970-01-01 08:00:00.000000000 +0800
-+++ patch/build.sh	2022-03-07 18:32:02.216337752 +0800
-@@ -0,0 +1,107 @@
++++ patch/build.sh	2022-03-28 14:22:12.213032697 +0800
+@@ -0,0 +1,127 @@
 +CUR_DIR=$(dirname $(readlink -f $0))
-+SUPPORTED_PY_VERSION=(3.7 3.8)
++SUPPORTED_PY_VERSION=(3.7 3.8 3.9)
 +PY_VERSION='3.7'                     # Default supported python version is 3.7
 +DEFAULT_SCRIPT_ARGS_NUM=1            # Default supported input parameters
 +
@@ -863,6 +863,32 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +function main()
 +{
++    if ! parse_script_args "$@"; then
++        echo "Failed to parse script args. Please check your inputs."
++        exit 1
++    fi
++    check_python_version
++
++    # Find matched dependent Python libraries to current Python version in HCCL compiling
++    hccl_file1=${CUR_DIR}/cmake/public/npu.cmake
++    hccl_file2=${CUR_DIR}/third_party/acl/libs/build_stub.sh
++    if [[ ${PY_VERSION} = '3.7' ]]; then
++        dst_py_ver='3.7m'
++    else
++        dst_py_ver=${PY_VERSION}
++    fi
++    for src_py_ver in ${SUPPORTED_PY_VERSION[*]}; do
++        if [[ ${src_py_ver} = '3.7' ]]; then
++            src_py_ver='3.7m'
++        fi
++        if [[ $(grep -c "${src_py_ver}" ${hccl_file1}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
++            sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${hccl_file1}
++        fi
++        if [[ $(grep -c "${src_py_ver}" ${hccl_file2}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
++            sed -i "s/libpython${src_py_ver}/libpython${dst_py_ver}/g" ${hccl_file2}
++        fi
++    done
++
 +    cd ${CUR_DIR}/third_party/acl/libs
 +    # stub
 +    dos2unix build_stub.sh
@@ -875,12 +901,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    export TORCH_PACKAGE_NAME=torch
 +    export PYTORCH_BUILD_VERSION='1.8.1+ascend'
 +    export PYTORCH_BUILD_NUMBER=1
-+
-+    if ! parse_script_args "$@"; then
-+        echo "Failed to parse script args. Please check your inputs."
-+        exit 1
-+    fi
-+    check_python_version
 +
 +    USE_FBGEMM=0 DEBUG=0 USE_DISTRIBUTED=1 USE_QNNPACK=0 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_XNNPACK=0 python"${PY_VERSION}" setup.py build bdist_wheel
 +    if [ $? != 0 ]; then
@@ -3454,8 +3474,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#define C10_COMPILE_TIME_MAX_NPUS 16
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUQueue.cpp patch/c10/npu/NPUQueue.cpp
 --- pytorch-v1.8.1/c10/npu/NPUQueue.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUQueue.cpp	2022-03-08 15:25:36.520231820 +0800
-@@ -0,0 +1,637 @@
++++ patch/c10/npu/NPUQueue.cpp	2022-03-28 14:22:12.217032721 +0800
+@@ -0,0 +1,632 @@
 +#include "c10/npu/NPUQueue.h"
 +#include "c10/npu/NPUStream.h"
 +#include "c10/npu/npu_log.h"
@@ -3714,8 +3734,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  manager().Copy(datas, write_idx.idx, cur_paras, needClearVec, queueLen);
 +  __sync_synchronize();
 +
-+  write_idx.idx++;
-+  write_idx.idx %= kQueueCapacity;
++  write_idx.idx = (write_idx.idx + 1) % kQueueCapacity;
 +  return true;
 +}
 +
@@ -3736,8 +3755,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +              << ", read_idx=" << read_idx.idx << ", status=" << GetStatus()
 +              << ", ret = " << ret << std::endl;
 +      manager().Release(datas, read_idx.idx, releaseQueue);
-+      read_idx.idx++;
-+      read_idx.idx %= kQueueCapacity;
++      read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
 +    }
 +    ReleaseResource();
 +    std::stringstream msg;
@@ -3748,8 +3766,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  manager().Release(datas, read_idx.idx, releaseQueue);
 +  __sync_synchronize();
 +
-+  read_idx.idx++;
-+  read_idx.idx %= kQueueCapacity;
++  read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
 +  QUEUE_DEBUG("read success, now read of repo is %d", read_idx.idx);
 +
 +  return true;
@@ -3972,8 +3989,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 +
 +  __sync_synchronize();
-+  write_idx.idx++;
-+  write_idx.idx %= kReleaseQueueCapacity;
++  write_idx.idx = (write_idx.idx + 1) % kReleaseQueueCapacity;
 +  return true;
 +}
 +
@@ -4001,8 +4017,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  releaseManager().ReleaseParam(datas, read_idx.idx);
 +
 +  __sync_synchronize();
-+  read_idx.idx++;
-+  read_idx.idx %= kReleaseQueueCapacity;
++  read_idx.idx = (read_idx.idx + 1) % kReleaseQueueCapacity;
 +
 +  return true;
 +}
