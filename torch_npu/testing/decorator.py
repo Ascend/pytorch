@@ -36,6 +36,22 @@ def feed_data(func, new_name, *args, **kwargs):
 def instantiate_tests(arg=None, **kwargs):
 
     def wrapper(cls):
+        def gen_testcase(cls, func, name, key_list, func_args, value):
+            new_kwargs = dict(device="npu") if "device" in func_args else {}
+            test_name = name
+            for k, v in zip(key_list, value):
+                func_key = None
+                if k == "format":
+                    test_name += ("_" + str(v))
+                if k == "dtype":
+                    test_name += ("_" + str(v).split('.')[1])
+                for _func_key in func_args:
+                    if k in _func_key:
+                        assert func_key is None, f"Multiple matches for {k}"
+                        func_key = _func_key
+                new_kwargs[func_key] = v
+            setattr(cls, test_name, feed_data(func, test_name, **new_kwargs))
+
         for name, func in list(cls.__dict__.items()):
             data = {}
             if hasattr(func, "dtypes"):
@@ -50,20 +66,7 @@ def instantiate_tests(arg=None, **kwargs):
             func_args = inspect.getfullargspec(func).args
             value_list = [data.get(key) for key in key_list]
             for value in itertools.product(*value_list):
-                new_kwargs = dict(device="npu") if "device" in func_args else {}
-                test_name = name
-                for k, v in zip(key_list, value):
-                    func_key = None
-                    if k == "format":
-                        test_name += ("_" + str(v))
-                    if k == "dtype":
-                        test_name += ("_" + str(v).split('.')[1])
-                    for _func_key in func_args:
-                        if k in _func_key:
-                            assert func_key is None, f"Multiple matches for {k}"
-                            func_key = _func_key
-                    new_kwargs[func_key] = v
-                setattr(cls, test_name, feed_data(func, test_name, **new_kwargs))
+                gen_testcase(cls, func, name, key_list, func_args, value)
 
             delattr(cls, name)
         return cls

@@ -130,22 +130,20 @@ def CppExtension(name, sources, *args, **kwargs):
 class Clean(distutils.command.clean.clean):
 
     def run(self):
-        with open('.gitignore', 'r') as f:
-            ignores = f.read()
-            pat = re.compile(r'^#( BEGIN NOT-CLEAN-FILES )?')
-            for wildcard in filter(None, ignores.split('\n')):
-                match = pat.match(wildcard)
-                if match:
-                    if match.group(1):
-                        # Marker is found and stop reading .gitignore.
-                        break
-                    # Ignore lines which begin with '#'.
-                else:
-                    for filename in glob.glob(wildcard):
-                        try:
-                            os.remove(filename)
-                        except OSError:
-                            shutil.rmtree(filename, ignore_errors=True)
+        f_ignore = open('.gitignore', 'r')
+        ignores = f_ignore.read()
+        pat = re.compile(r'^#( BEGIN NOT-CLEAN-FILES )?')
+        for wildcard in filter(None, ignores.split('\n')):
+            match = pat.match(wildcard)
+            if match:
+                if match.group(1):
+                    # Marker is found and stop reading .gitignore.
+                    break
+                # Ignore lines which begin with '#'.
+            else:
+                for filename in glob.glob(wildcard):
+                    shutil.rmtree(filename, ignore_errors=True)
+        f_ignore.close()
 
         # It's an old-style class in Python 2.7...
         distutils.command.clean.clean.run(self)

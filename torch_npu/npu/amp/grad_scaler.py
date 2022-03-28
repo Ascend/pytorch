@@ -214,31 +214,35 @@ class GradScaler(Cuda_GradScaler):
 
         # https://stackoverflow.com/questions/5029934/defaultdict-of-defaultdict
         # Google says mypy struggles with defaultdicts type annotations.
+        def unscale(group, inv_scale, allow_fp16):
+            for param in group["params"]:
+                if param.grad is None:
+                    continue
+                if (not allow_fp16) and param.grad.dtype == torch.float16:
+                    raise ValueError("Attempting to unscale FP16 gradients.")
+                if param.grad.is_sparse:
+                    # is_coalesced() == False means the sparse grad has values with duplicate indices.
+                    # coalesce() deduplicates indices and adds all values that have the same index.
+                    # For scaled fp16 values, there's a good chance coalescing will cause overflow,
+                    # so we should check the coalesced _values().
+                    if param.grad.dtype is torch.float16:
+                        param.grad = param.grad.coalesce()
+                    to_unscale = param.grad._values()
+                else:
+                    to_unscale = param.grad
+                to_unscale.mul_(inv_scale)
+
         with torch.no_grad():
             if self._dynamic:
                 self._has_overflow = GradScaler.get_npu_overflow_flag()
             self._sync_dist_overflow_count()
             per_device_found_inf_tensor = per_device_found_inf.get(found_inf.device)
-            if not self._has_overflow:
-                for group in optimizer.param_groups:
-                    for param in group["params"]:
-                        if param.grad is None:
-                            continue
-                        if (not allow_fp16) and param.grad.dtype == torch.float16:
-                            raise ValueError("Attempting to unscale FP16 gradients.")
-                        if param.grad.is_sparse:
-                            # is_coalesced() == False means the sparse grad has values with duplicate indices.
-                            # coalesce() deduplicates indices and adds all values that have the same index.
-                            # For scaled fp16 values, there's a good chance coalescing will cause overflow,
-                            # so we should check the coalesced _values().
-                            if param.grad.dtype is torch.float16:
-                                param.grad = param.grad.coalesce()
-                            to_unscale = param.grad._values()
-                        else:
-                            to_unscale = param.grad
-                        to_unscale.mul_(inv_scale)
-            else:
+            if self._has_overflow:
                 per_device_found_inf_tensor.add_(1)
+                return per_device_found_inf._per_device_tensors
+
+            for group in optimizer.param_groups:   
+                unscale(group, inv_scale, allow_fp16)
 
         return per_device_found_inf._per_device_tensors
 

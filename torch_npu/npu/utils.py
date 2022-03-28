@@ -66,6 +66,15 @@ def init():
 
 
 def _lazy_init():
+    def _queue_call(queued_calls):
+        for queued_call, orig_traceback in queued_calls:
+            try:
+                queued_call()
+            except Exception as e:
+                msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
+                        f"NPU call was originally invoked at:\n\n{orig_traceback}")
+                raise DeferredNpuCallError(msg) from e
+
     global _initialized, _original_pid, _queued_calls
     if _initialized or hasattr(_tls, 'is_initializing'):
         return
@@ -99,13 +108,7 @@ def _lazy_init():
         # However, we must not let any *other* threads in!
         _tls.is_initializing = True
         try:
-            for queued_call, orig_traceback in _queued_calls:
-                try:
-                    queued_call()
-                except Exception as e:
-                    msg = (f"NPU call failed lazily at initialization with error: {str(e)}\n\n"
-                           f"NPU call was originally invoked at:\n\n{orig_traceback}")
-                    raise DeferredNpuCallError(msg) from e
+            _queue_call(_queued_calls)
         finally:
             delattr(_tls, 'is_initializing')
         _initialized = True

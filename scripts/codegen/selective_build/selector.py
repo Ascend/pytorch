@@ -15,9 +15,9 @@
 # limitations under the License.
 
 from typing import Dict, Set, Optional, Tuple, List
-import yaml
-
 from dataclasses import dataclass
+
+import yaml
 
 from codegen.model import NativeFunction
 from codegen.selective_build.operator import (
