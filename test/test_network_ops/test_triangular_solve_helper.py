@@ -49,6 +49,13 @@ class TestTriangularSolveHelper(TestCase):
                         self.assertRtolEqual(cpu_a, npu_a)
                         self.assertRtolEqual(cpu_s, npu_s)
 
+    def test_triangular_solve_out(self):
+        a = torch.randn(9, 252, 59, 19).npu()
+        b = torch.randn(59, 59).npu()
+        c = torch.randn(9, 252, 59, 19).npu()
+        d = torch.randn(59, 59).npu()
+        out = [c, d]
+        output = torch.triangular_solve(a, b.tril().npu(), upper=False, transpose=True, unitriangular=False, out=out)
 
 if __name__ == "__main__":
     run_tests()
