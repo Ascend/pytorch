@@ -342,7 +342,8 @@ namespace at_npu
     tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> ctc_loss_npu_output_size(
         const at::Tensor &logProbs,
         const at::Tensor &targets,
-        c10::IntArrayRef targetLengths)
+        c10::IntArrayRef targetLengths,
+        int64_t maxLength)
     {
       int64_t maxInputLength = logProbs.size(0);
       int64_t batchSize = logProbs.size(1);
@@ -350,7 +351,6 @@ namespace at_npu
 
       c10::SmallVector<int64_t, SIZE> negLogLikelihoodSize = {batchSize};
 
-      int64_t maxLength = targets.size(1);
       int64_t tSize = 2 * maxLength + 1;
       c10::SmallVector<int64_t, SIZE> logAlphaSize = {batchSize, maxInputLength, tSize};
 
