@@ -125,10 +125,8 @@ class FileManager:
         except IOError:
             old_contents = None
         if contents != old_contents:
-            fd = os.open(filename, os.O_RDWR|os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR)
-            f = os.fdopen(fd, "w")
-            f.write(contents)
-            os.close(fd)
+            with os.fdopen(os.open(filename, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
+                f.write(contents)
 
     def write_with_template(self, filename: str, template_fn: str,
                             env_callable: Callable[[], Union[str, Dict[str, Any]]]) -> None:
