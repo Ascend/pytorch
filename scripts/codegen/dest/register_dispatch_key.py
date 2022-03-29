@@ -607,7 +607,8 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                     f.func.arguments.out,
                     f.func.arguments.flat_positional
                 )
-                sig_body.append(RegisterDispatchKey.gen_device_check(f.device_check, list(device_check_args), sig.name()))
+                sig_body.append(
+                    RegisterDispatchKey.gen_device_check(f.device_check, list(device_check_args), sig.name()))
 
             if k is SchemaKind.functional:
                 sig_body.append(f"{class_name} op;")

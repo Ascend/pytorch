@@ -19,11 +19,12 @@ from collections import defaultdict
 from typing import Dict, List
 
 import torch
-import torch_npu
 import torch.distributed as dist
 from torch._six import container_abcs
 from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, _refresh_per_optimizer_state
 from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
+
+import torch_npu
 from .common import amp_definitely_not_available
 
 

@@ -194,7 +194,7 @@ def ddp_forward(self, *inputs, **kwargs):
     return output
 
 
-def lstm_forward(self, input, hx=None):  # noqa: F811
+def lstm_forward(self, input, hx=None):
     orig_input = input
     # xxx: isinstance check needs to be in conditional for TorchScript to compile
     if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
