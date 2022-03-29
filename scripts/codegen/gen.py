@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+import stat
 import functools
 import hashlib
 from typing import List, Dict, Optional, Set, Callable, Any, Union, Sequence, TypeVar, Iterable
@@ -25,7 +26,7 @@ from codegen.model import (FunctionSchema, NativeFunction,
                            NativeFunctionsGroup, OperatorName,
                            SchemaKind, assert_never)
 
-from codegen.utils import concat_map, YamlLoader
+from codegen.utils import concat_map
 
 T = TypeVar('T')
 
@@ -56,15 +57,6 @@ T = TypeVar('T')
 #                         HELPER FUNCTIONS
 #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
-# A custom loader for YAML to let us also keep track of line numbers
-# of each entry in the YAML file
-class LineLoader(YamlLoader):
-    def construct_mapping(self, node, deep=False):  # type: ignore[no-untyped-def]
-        mapping = super().construct_mapping(node, deep=deep)  # type: ignore[no-untyped-call]
-        # Add 1 so line numbering starts at 1
-        mapping['__line__'] = node.start_mark.line + 1
-        return mapping
 
 
 # Some assertions are already performed during parsing, but those are only within a single NativeFunction.
@@ -133,7 +125,7 @@ class FileManager:
         except IOError:
             old_contents = None
         if contents != old_contents:
-            with open(filename, 'w') as f:
+            with os.fdopen(os.open(filename, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
                 f.write(contents)
 
     def write_with_template(self, filename: str, template_fn: str,

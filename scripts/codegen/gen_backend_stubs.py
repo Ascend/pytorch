@@ -22,11 +22,11 @@ from collections import namedtuple, Counter, defaultdict
 from typing import List, Dict, Union, Sequence, Optional
 import yaml
 
-from codegen.gen import FileManager, get_grouped_native_functions, LineLoader, error_check_native_functions
-from codegen.model import (BackendIndex, BackendMetadata, DispatchKey, Location,
+from codegen.gen import FileManager, get_grouped_native_functions, error_check_native_functions
+from codegen.model import (BackendIndex, BackendMetadata, DispatchKey,
                            NativeFunction, NativeFunctionsGroup, OperatorName)
 from codegen.selective_build.selector import SelectiveBuilder
-from codegen.utils import Target, concat_map, context, YamlLoader
+from codegen.utils import Target, concat_map, context
 from codegen.context import native_function_manager
 import codegen.dest as dest
 import codegen.api.dispatcher as dispatcher
@@ -88,16 +88,14 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     global _GLOBAL_PARSE_NATIVE_YAML_CACHE
     if path not in _GLOBAL_PARSE_NATIVE_YAML_CACHE:
         with open(path, 'r') as f:
-            es = yaml.load(f, Loader=LineLoader)
+            es = yaml.safe_load(f)
         assert isinstance(es, list)
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
-            assert isinstance(e.get('__line__'), int), e
-            loc = Location(path, e['__line__'])
             funcs = e.get('func')
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc)
+            with context(lambda: f'in {path}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
@@ -114,13 +112,11 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
                 f_str.write(line)
 
         f_str.seek(0)
-        custom_es = yaml.load(f_str, Loader=LineLoader)
+        custom_es = yaml.safe_load(f_str)
         for e in custom_es:
-            assert isinstance(e.get('__line__'), int), e
-            loc = Location(custom_path, e['__line__'])
             funcs = e.get('func')
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc)
+            with context(lambda: f'in {custom_path}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
@@ -152,7 +148,7 @@ def parse_backend_yaml(
     }
 
     with open(backend_yaml_path, 'r') as f:
-        yaml_values = yaml.load(f, Loader=YamlLoader)
+        yaml_values = yaml.safe_load(f)
     assert isinstance(yaml_values, dict)
 
     valid_keys = ['backend', 'cpp_namespace', 'extra_headers', 'supported', 'autograd', 'custom', 'custom_autograd']

@@ -20,13 +20,6 @@ from enum import Enum
 import contextlib
 import textwrap
 
-# Safely load fast C Yaml loader/dumper if they are available
-try:
-    from yaml import CSafeLoader as Loader
-except ImportError:
-    from yaml import SafeLoader as Loader  # type: ignore[misc]
-YamlLoader = Loader
-
 try:
     from yaml import CSafeDumper as Dumper
 except ImportError:

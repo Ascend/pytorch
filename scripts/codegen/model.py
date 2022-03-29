@@ -52,15 +52,6 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
-# Represent a source location; used for better error reporting
-@dataclass(frozen=True)
-class Location:
-    file: str
-    line: int
-
-    def __str__(self) -> str:
-        return "{}:{}".format(self.file, self.line)
-
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
 
@@ -237,10 +228,6 @@ class NativeFunction:
     # so you can make use of the normal binding if you need it.
     manual_cpp_binding: bool
 
-    # The location in the YAML file were this native function entry was
-    # defined.  This is for conveniently reporting error messages!
-    loc: 'Location'
-
     # Whether or not this out functions is a "structured kernel".  Structured
     # kernels are defined a little differently from normal kernels; in
     # particular, their shape checking logic is defined separately from
@@ -293,18 +280,20 @@ class NativeFunction:
     # We parse both the NativeFunction + backend-specific information about it, which it stored
     # in a corresponding BackendIndex.
     @staticmethod
-    def from_yaml(
-            ei: Dict[str, object],
-            loc: 'Location'
-    ) -> Tuple['NativeFunction', Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
+    def from_yaml(ei: Dict[str, object]) -> Tuple['NativeFunction',
+                                                  Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
         e = ei.copy()
-        funcs = e.pop('func')
-        assert isinstance(funcs, str), f'not a str: {funcs}'
-        func = FunctionSchema.parse(funcs)
+        def parse_func(e):
+            funcs = e.pop('func')
+            assert isinstance(funcs, str), f'not a str: {funcs}'
+            func = FunctionSchema.parse(funcs)
+            return func
 
-        cpp_no_default_args_list = e.pop('cpp_no_default_args', [])
-        assert isinstance(cpp_no_default_args_list, list)
-        cpp_no_default_args = set(cpp_no_default_args_list)
+        def parse_cpp_no_default_args(e):
+            cpp_no_default_args_list = e.pop('cpp_no_default_args', [])
+            assert isinstance(cpp_no_default_args_list, list)
+            cpp_no_default_args = set(cpp_no_default_args_list)
+            return cpp_no_default_args
 
         def parse_use_dispatcher(e):
             use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
@@ -319,10 +308,6 @@ class NativeFunction:
                                      f' got {use_c10_dispatcher_s}')
             return use_c10_dispatcher
 
-        use_c10_dispatcher = parse_use_dispatcher(e)
-        use_const_ref_for_mutable_tensors = e.pop('use_const_ref_for_mutable_tensors', False)
-        assert isinstance(use_const_ref_for_mutable_tensors, bool)
-
         def parse_variants(e):
             variants_s = e.pop('variants', 'function')
             assert isinstance(variants_s, str)
@@ -336,15 +321,17 @@ class NativeFunction:
                     raise AssertionError(f'illegal variant {v}')
             return variants
 
+        func = parse_func(e)
+        cpp_no_default_args = parse_cpp_no_default_args(e)
+        use_c10_dispatcher = parse_use_dispatcher(e)        
         variants = parse_variants(e)
+
+        use_const_ref_for_mutable_tensors = e.pop('use_const_ref_for_mutable_tensors', False)
         manual_kernel_registration = e.pop('manual_kernel_registration', False)
-        assert isinstance(manual_kernel_registration, bool), f'not a bool: {manual_kernel_registration}'
-
         manual_cpp_binding = e.pop('manual_cpp_binding', False)
-        assert isinstance(manual_cpp_binding, bool), f'not a bool: {manual_cpp_binding}'
-
         device_guard = e.pop('device_guard', True)
-        assert isinstance(device_guard, bool), f'not a bool: {device_guard}'
+        assert isinstance(use_const_ref_for_mutable_tensors, bool) and isinstance(manual_kernel_registration, bool) \
+            and isinstance(manual_cpp_binding, bool) and isinstance(device_guard, bool), f'exists non-bool value.'
 
         def parse_device_check(e):
             device_check_s = e.pop('device_check', None)
@@ -379,9 +366,13 @@ class NativeFunction:
         category_override = e.pop('category_override', None)
         assert category_override is None or isinstance(category_override, str), f'not a str: {category_override}'
 
-        precomputed_dict = e.pop('precomputed', None)
-        assert precomputed_dict is None or structured is True
-        precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
+        def parse_precomputed(e, structured):
+            precomputed_dict = e.pop('precomputed', None)
+            assert precomputed_dict is None or structured is True
+            precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
+            return precomputed
+
+        precomputed = parse_precomputed(e, structured)
 
         from codegen.api import cpp
 
@@ -421,55 +412,36 @@ class NativeFunction:
             return dispatch
 
         dispatch = parse_dispatch(e, func, manual_kernel_registration, structured_delegate, structured)
-        if structured_delegate:
-            # Structured functions MUST have a dispatch table
-            is_abstract = True
-        else:
-            is_abstract = dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}
+        is_abstract = True if structured_delegate else dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}
 
         has_composite_implicit_autograd_kernel = DispatchKey.CompositeImplicitAutograd in dispatch.keys()
         has_composite_explicit_autograd_kernel = DispatchKey.CompositeExplicitAutograd in dispatch.keys()
 
-        # BackendMetadata is used to store any information about a NativeFunction that is backend dependent.
-        # The most obvious information is the kernel name, which usually contains the name of the backend in it.
-        # Why is 'structured' included? External backends (e.g. XLA) opt into which ops are structured
-        # independently of which in-tree ops are structured
         backend_metadata = {k: {func.name: BackendMetadata(
             kernel=v, structured=structured and is_structured_dispatch_key(k))} for k, v in dispatch.items()}
 
-        # don't care if it exists or not; make it easier to use this function
-        # with other yaml parsers that aren't setting __line__ in the dict
-        e.pop('__line__', None)
-        assert not e, f"leftover entries: {e}"
+        def assert_last(e, structured_delegate, dispatch):
+            # don't care if it exists or not; make it easier to use this function
+            # with other yaml parsers that aren't setting __line__ in the dict
+            e.pop('__line__', None)
+            assert not e, f"leftover entries: {e}"
 
-        # Asserts that we can't do in post_init, because they rely on backend-specific info
-        if structured_delegate is not None:
-            for key in STRUCTURED_DISPATCH_KEYS:
-                assert key not in dispatch, \
-                    f"if structured_delegate, then must not have {key} in dispatch dictionary " \
-                    "(it is delegated!)"
-
-        return NativeFunction(
-            func=func,
-            use_c10_dispatcher=use_c10_dispatcher,
+            # Asserts that we can't do in post_init, because they rely on backend-specific info
+            if structured_delegate is not None:
+                for key in STRUCTURED_DISPATCH_KEYS:
+                    assert key not in dispatch, \
+                        f"if structured_delegate, then must not have {key} in dispatch dictionary " \
+                        "(it is delegated!)"
+        assert_last(e, structured_delegate, dispatch)
+        return NativeFunction(func=func, use_c10_dispatcher=use_c10_dispatcher,
             use_const_ref_for_mutable_tensors=use_const_ref_for_mutable_tensors,
-            variants=variants,
-            structured=structured,
-            structured_delegate=structured_delegate,
-            structured_inherits=structured_inherits,
-            precomputed=precomputed,
-            manual_kernel_registration=manual_kernel_registration,
-            manual_cpp_binding=manual_cpp_binding,
-            python_module=python_module,
-            category_override=category_override,
-            device_guard=device_guard,
-            device_check=device_check,
-            loc=loc,
-            cpp_no_default_args=cpp_no_default_args,
-            is_abstract=is_abstract,
+            variants=variants, structured=structured, structured_delegate=structured_delegate,
+            structured_inherits=structured_inherits, precomputed=precomputed,
+            manual_kernel_registration=manual_kernel_registration, manual_cpp_binding=manual_cpp_binding,
+            python_module=python_module, category_override=category_override, device_guard=device_guard,
+            device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
-            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel,
-        ), backend_metadata
+            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel), backend_metadata
 
 
     def validate_unstructured(self) -> None:

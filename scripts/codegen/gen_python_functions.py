@@ -40,10 +40,10 @@ from codegen.api.python import (PythonSignature,
                                 dispatch_lambda_return_str,
                                 has_tensor_options,
                                 namedtuple_fieldnames, signature)
-from codegen.gen import cpp_string, FileManager, LineLoader, error_check_native_functions
+from codegen.gen import cpp_string, FileManager, error_check_native_functions
 from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
-                           Type, Variant, BackendIndex, Location,
+                           Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import context
 
@@ -116,13 +116,11 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.load(f_str, Loader=LineLoader)
+    custom_es = yaml.safe_load(f_str)
     for e_with_vars in custom_es:
-        assert isinstance(e_with_vars.get('__line__'), int), e_with_vars
-        loc = Location(custom_path, e_with_vars['__line__'])
         funcs = e_with_vars.get('func')
-        with context(lambda: f'in {loc}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e_with_vars, loc)
+        with context(lambda: f'in {custom_path}:\n  {funcs}'):
+            func, m = NativeFunction.from_yaml(e_with_vars)
             func.variants.discard(Variant.method)
             rs.append(func)
             BackendIndex.grow_index(bs, m)

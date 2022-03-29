@@ -159,7 +159,7 @@ class TestCase(expecttest.TestCase):
             deno = np.maximum(np.abs(x), np.abs(y))
             result_atol = np.less_equal(result, pre)
             result_rtol = np.less_equal(result / np.add(deno, minimum), pre)
-            if result_rtol.all() == False and result_atol.all() == False:
+            if not result_rtol.all() and not result_atol.all():
                 if np.sum(result_rtol == False) > size * pre and np.sum(result_atol == False) > size * pre:
                     self.fail("result error")
         threshold = 1.e-4
