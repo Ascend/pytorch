@@ -34,10 +34,18 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy_with_logits_backward(
 
   at::Tensor gradInput = OpPreparation::ApplyTensor(self);
   at::Tensor weightTensor;
-  weightTensor = at::ones(self.sizes(), self.options());
+  if (weight.defined()) {
+    weightTensor = NpuUtils::format_contiguous(weight);
+  } else {
+    weightTensor = at::ones(self.sizes(), self.options());
+  }
   
   at::Tensor posWeightTensor;
-  posWeightTensor = at::ones(self.sizes(), self.options());
+  if (pos_weight.defined()) {
+    posWeightTensor = NpuUtils::format_contiguous(pos_weight);
+  } else {
+    posWeightTensor = at::ones(self.sizes(), self.options());
+  }
  
   at::Tensor doutTensor = NPUNativeFunctions::npu_broadcast(grad_output, self.sizes());
   std::string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
