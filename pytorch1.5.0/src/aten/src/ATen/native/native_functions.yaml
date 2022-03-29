@@ -8801,7 +8801,7 @@
   npu_dispatch_only:
     NPU: multi_head_attention_backward_npu
 
-- func: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor bias, Tensor h, Tensor c) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
+- func: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor? bias=None) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
   variants: function
   npu_dispatch_only:
     NPU: lstm_cell_npu

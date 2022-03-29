@@ -24,34 +24,28 @@ Tensor& inverse_out_npu(
     Tensor& result,
     const Tensor& self) {
   Tensor selfCast = self;
+  Tensor resultCast = result;
   if(self.scalar_type() == at::kHalf) {
     selfCast = self.to(at::kFloat);
   }
-
+  if(result.scalar_type() == at::kHalf) {
+    resultCast = resultCast.to(at::kFloat);
+  }
   OpCommand cmd;
   cmd.Name("MatrixInverse")
       .Input(selfCast)
-      .Output(result)
+      .Output(resultCast)
       .Attr("adjoint", false)
       .Run();
-  if (result.scalar_type() != self.scalar_type()) {
-    result = result.to(self.scalar_type());
-  }
+  result.copy_(resultCast);
   return result;
 }
 
 Tensor inverse_npu(const Tensor& self) {
-  Tensor selfCast = self;
-  if(self.scalar_type() == at::kHalf) {
-    selfCast = self.to(at::kFloat);
-  }
-  Tensor result = OpPreparation::ApplyTensor(selfCast);
+  Tensor result = OpPreparation::ApplyTensor(self);
 
-  inverse_out_npu(result, selfCast);
+  inverse_out_npu(result, self);
 
-  if (result.scalar_type() != self.scalar_type()) {
-    result = result.to(self.scalar_type());
-  }
   return result;
 }
 

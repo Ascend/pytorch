@@ -27,10 +27,10 @@ class TestLstmCellBackward(TestCase):
         # shape_format:[[dtype, (batch_size, input_size), input_size, hidden_size]
         shape_format = [
                         [[np.float16, (32, 64)], 64, 32], 
-                        [[np.float16, (114, 24)], 64, 64],
+                        [[np.float16, (114, 24)], 24, 64],
                         [[np.float16, (36, 128)], 128, 64],
                         [[np.float32, (32, 64)], 64, 32], 
-                        [[np.float32, (114, 24)], 64, 64],
+                        [[np.float32, (114, 24)], 24, 64],
                         [[np.float32, (36, 128)], 128, 64],
         ]
         for item in shape_format: 

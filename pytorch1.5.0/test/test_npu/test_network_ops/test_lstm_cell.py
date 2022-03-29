@@ -22,7 +22,7 @@ from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
 
-class TestLstmCell(TestCase):    
+class TestLstmCell(TestCase):
     def test_lstm_cell(self, device):
         # shape_format:[[dtype, (batch_size, input_size), input_size, hidden_size]
         shape_format = [
@@ -34,15 +34,27 @@ class TestLstmCell(TestCase):
         for item in shape_format: 
             cpu_lstm = torch.nn.LSTMCell(input_size=item[1], hidden_size=item[2])
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
+            cpu_lstm2 = torch.nn.LSTMCell(input_size=item[1], hidden_size=item[2], bias=False)
+            npu_lstm2 = copy.deepcopy(cpu_lstm2).npu()
+
             input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
             cpu_input1 = torch.from_numpy(input1)
-            cpu_output_h, cpu_output_c = cpu_lstm(cpu_input1)
             npu_input1 = torch.from_numpy(input1.astype(item[0][0])).npu()
+
+            cpu_output_h, cpu_output_c = cpu_lstm(cpu_input1)
             npu_output_h, npu_output_c = npu_lstm(npu_input1)
+            cpu_output_h2, cpu_output_c2 = cpu_lstm2(cpu_input1)
+            npu_output_h2, npu_output_c2 = npu_lstm2(npu_input1)
+
             self.assertRtolEqual(cpu_output_h.detach().numpy(), 
               npu_output_h.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
             self.assertRtolEqual(cpu_output_c.detach().numpy(), 
               npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+            
+            self.assertRtolEqual(cpu_output_h2.detach().numpy(), 
+              npu_output_h2.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
+            self.assertRtolEqual(cpu_output_c2.detach().numpy(), 
+              npu_output_c2.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
 instantiate_device_type_tests(TestLstmCell, globals(), except_for='cpu')
 if __name__ == "__main__":

@@ -24,15 +24,15 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_cell_
     const Tensor &_input,
     const Tensor &w_ih,
     const Tensor &w_hh,
-    const Tensor &bias,
     const Tensor &_h,
-    const Tensor &_c) {
+    const Tensor &_c,
+    const Tensor &bias) {
   Tensor input = _input.reshape({1, _input.size(0), _input.size(1)});
   Tensor h = _h.reshape({1, _h.size(0), _h.size(1)});
   Tensor c = _c.reshape({1, _c.size(0), _c.size(1)});
   int64_t numStep = input.size(0);
   int64_t batchSize = input.size(1);
-  int64_t hiddenSize = bias.size(0) / 4;
+  int64_t hiddenSize = w_hh.size(1) / 4;
 
   SmallVector<int64_t, 8> outputSize = {numStep, batchSize, hiddenSize};
   Tensor yOutput = OpPreparation::ApplyTensor(input, outputSize);
@@ -48,9 +48,13 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_cell_
   cmd.Name("DynamicRNNV2")
       .Input(input)
       .Input(w_ih)
-      .Input(w_hh)
-      .Input(bias)
-      .Input()
+      .Input(w_hh);
+  if (bias.defined()){
+    cmd.Input(bias);
+  }else{
+    cmd.Input();
+  }
+  cmd.Input()
       .Input(h)
       .Input(c)
       .Output(yOutput)
@@ -73,7 +77,6 @@ tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_cell_
       .Attr("forget_bias", (float)0.0)
       .Attr("gate_order", (string)"ifco")
       .Run();
-
   Tensor hOut = hOutput[0];
   Tensor cOut = cOutput[0];
   return std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor>(
@@ -89,12 +92,15 @@ tuple<Tensor, Tensor> lstm_cell_npu(
     const Tensor &b_hh) {
   Tensor weight_ih = w_ih.t().to(input.dtype());
   Tensor weight_hh = w_hh.t().to(input.dtype());
-  Tensor bias = at::add(b_ih, b_hh).to(input.dtype());
   Tensor h = hx[0];
   Tensor c = hx[1];
-
-  auto results = at::npu_lstm_cell(input, weight_ih, weight_hh, bias, h, c);
+  Tensor bias;
+  if (b_ih.defined()){
+    bias = at::add(b_ih, b_hh).to(input.dtype());
+  }
+  auto results = at::npu_lstm_cell(input, weight_ih, weight_hh, h, c, bias);
   return std::tuple<Tensor, Tensor>(std::get<1>(results), std::get<2>(results));
 }
+
 } // namespace native
 } // namespace at
