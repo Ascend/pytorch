@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ddt
+import itertools
 import torch
 import torch_npu
 
@@ -49,35 +49,36 @@ class TestRandom(TestCase):
             froms = [min_val, -42, 0]
             tos = [42, max_val]
 
-        for from_ in froms:
-            for to_ in tos:
-                t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
-                if to_ > from_:
-                    if not (min_val <= from_ <= max_val) or not (min_val <= (to_ - 1) <= max_val):
-                        if not (min_val <= from_ <= max_val):
-                            self.assertWarnsRegex(
-                                lambda: t.random_(from_, to_),
-                                "from is out of bounds"
-                            )
-                        if not (min_val <= (to_ - 1) <= max_val):
-                            self.assertWarnsRegex(
-                                lambda: t.random_(from_, to_),
-                                "to - 1 is out of bounds"
-                            )
-                    else:
-                        t.random_(from_, to_)
-                        range_ = to_ - from_
-                        delta = max(1, alpha * range_)
-                        self.assertTrue(from_ <= t.to(torch.double).min() < (from_ + delta))
-                        self.assertTrue((to_ - delta) <= t.to(torch.double).max() < to_)
-                else:
-                    self.assertRaisesRegex(
-                        RuntimeError,
-                        "random_ expects 'from' to be less than 'to', but got from=" \
-                        + str(from_) + " >= to=" + str(to_),
-                        lambda: t.random_(from_, to_)
+        iter_list = itertools.product(froms, tos)
+        for from_, to_ in iter_list:
+            t = torch.empty(size, dtype=dtype, device="cpu").to("npu")
+            if to_ <= from_:
+                self.assertRaisesRegex(
+                    RuntimeError,
+                    "random_ expects 'from' to be less than 'to', but got from=" \
+                    + str(from_) + " >= to=" + str(to_),
+                    lambda: t.random_(from_, to_)
+                )
+                continue
+
+            if not (min_val <= from_ <= max_val) or not (min_val <= (to_ - 1) <= max_val):
+                if not (min_val <= from_ <= max_val):
+                    self.assertWarnsRegex(
+                        lambda: t.random_(from_, to_),
+                        "from is out of bounds"
                     )
-    
+                if not (min_val <= (to_ - 1) <= max_val):
+                    self.assertWarnsRegex(
+                        lambda: t.random_(from_, to_),
+                        "to - 1 is out of bounds"
+                    )
+            else:
+                t.random_(from_, to_)
+                range_ = to_ - from_
+                delta = max(1, alpha * range_)
+                self.assertTrue(from_ <= t.to(torch.double).min() < (from_ + delta))
+                self.assertTrue((to_ - delta) <= t.to(torch.double).max() < to_)
+
     @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
     def test_random_to(self, dtype):
         size = 2000

@@ -15,14 +15,14 @@
 # limitations under the License.
 import copy
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLstm(TestCase):    
-    def test_lstm_single_direction(self, device="npu"):
+    def test_lstm_single_direction(self):
         # shape_format:[[dtype, (num_step, batch_size, input_size)], 
         # num_layers, input_size, hidden_size, is_training, batch_first]
         shape_format = [
@@ -63,7 +63,6 @@ class TestLstm(TestCase):
                 cpu_lstm.weight_hh_l1.data = hwt1
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
-
             cpu_input1 = torch.from_numpy(input1)
             cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
 
@@ -77,22 +76,16 @@ class TestLstm(TestCase):
             self.assertRtolEqual(cpu_output_c.detach().numpy(), 
               npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
-    def test_lstm_bidirection(self, device="npu"):
+    def test_lstm_bidirection(self):
         # shape_format:[[dtype, (num_step, batch_size, input_size)], 
         # num_layers, input_size, hidden_size, is_training]
         shape_format = [
-                        [[np.float16, (16, 32, 64)], 1, 64, 32, True], 
-                        [[np.float16, (5, 32, 64)], 1, 64, 32, False],
-                        [[np.float32, (5, 32, 64)], 1,64, 64, True],
-                        [[np.float32, (5, 32, 64)], 1, 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], 1, 512, 256, False],
-                        [[np.float32, (10, 33, 128)], 1, 128, 64, False],
-                        [[np.float16, (16, 32, 64)], 2, 64, 32, True], 
-                        [[np.float16, (5, 32, 64)], 2, 64, 32, False],
-                        [[np.float32, (5, 32, 64)], 2,64, 64, True],
-                        [[np.float32, (5, 32, 64)], 2, 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], 2, 512, 256, False],
-                        [[np.float32, (10, 33, 128)], 2, 128, 64, False],
+            [[np.float16, (16, 32, 64)], 1, 64, 32, True], [[np.float16, (5, 32, 64)], 1, 64, 32, False],
+            [[np.float32, (5, 32, 64)], 1,64, 64, True], [[np.float32, (5, 32, 64)], 1, 64, 64, False],
+            [[np.float32, (26, 2560, 512)], 1, 512, 256, False], [[np.float32, (10, 33, 128)], 1, 128, 64, False],
+            [[np.float16, (16, 32, 64)], 2, 64, 32, True], [[np.float16, (5, 32, 64)], 2, 64, 32, False],
+            [[np.float32, (5, 32, 64)], 2,64, 64, True], [[np.float32, (5, 32, 64)], 2, 64, 64, False],
+            [[np.float32, (26, 2560, 512)], 2, 512, 256, False], [[np.float32, (10, 33, 128)], 2, 128, 64, False],
         ]
 
         for item in shape_format:
@@ -130,12 +123,8 @@ class TestLstm(TestCase):
                 cpu_lstm.weight_hh_l1_reverse.data = hwrt1              
 
             input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
-
-            cpu_input1 = torch.from_numpy(input1)
-            cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
-
-            npu_input1 = torch.from_numpy(input1.astype(item[0][0])).npu()
-            npu_output_y, (npu_output_h, npu_output_c) = npu_lstm(npu_input1)
+            cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(torch.from_numpy(input1))
+            npu_output_y, (npu_output_h, npu_output_c) = npu_lstm(torch.from_numpy(input1.astype(item[0][0])).npu())
 
             self.assertRtolEqual(cpu_output_y.detach().numpy(), 
               npu_output_y.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
@@ -144,7 +133,7 @@ class TestLstm(TestCase):
             self.assertRtolEqual(cpu_output_c.detach().numpy(), 
               npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
     
-    def test_lstm_sequence(self, device="npu"):    
+    def test_lstm_sequence(self):    
         max_len = 6        
         embedding_size = 2 
         hidden_size = 16   
@@ -210,7 +199,7 @@ class TestLstm(TestCase):
         self.assertRtolEqual(pade_outputs.detach().numpy(), 
             pade_outputs_npu.cpu().to(torch.float).detach().numpy(), prec=1.e-4)
 
-    def test_lstm_sequence_bidirection(self, device="npu"):    
+    def test_lstm_sequence_bidirection(self):    
         max_len = 6        
         embedding_size = 2 
         hidden_size = 16   
@@ -276,14 +265,9 @@ class TestLstm(TestCase):
         self.assertRtolEqual(pade_outputs.detach().numpy(), 
             pade_outputs_npu.cpu().detach().numpy(), prec=1.e-4)
             
-    def test_lstm_sequence_double_layer(self, device="npu"): 
-        direction = [True, False]
-       
-        for item in direction:
-            max_len = 6        
-            embedding_size = 2 
-            hidden_size = 16   
-            vocab_size = 20
+    def test_lstm_sequence_double_layer(self):
+        for item in [True, False]:
+            max_len, embedding_size, hidden_size, vocab_size = 6, 2, 16, 20
             input_seq = [[3, 5, 12, 7, 2, ], [4, 11, 14, ], [18, 7, 3, 8, 5, 4]]
             lengths = [5, 3, 6]
             
@@ -321,11 +305,6 @@ class TestLstm(TestCase):
             #Sorting from Large to Small
             input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
             lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
-            '''
-            outputs:
-            input_seq: [[18, 7, 3, 8, 5, 4], [3, 5, 12, 7, 2], [4, 11, 14]]
-            lengths : [6, 5, 3]
-            '''
             
             #The padding subscript is 0
             pad_token = 0
@@ -334,9 +313,7 @@ class TestLstm(TestCase):
                 return seq
             
             #Data after padding
-            pad_seqs = [] 
-            for i,j in zip(input_seq, lengths):
-                pad_seqs.append(pad_seq(i, j, max_len))
+            pad_seqs = [pad_seq(i, j, max_len) for i,j in zip(input_seq, lengths)]
                 
             lengths = [6,5,3]
             pad_seqs = torch.tensor(pad_seqs)
@@ -349,13 +326,11 @@ class TestLstm(TestCase):
             pade_outputs, others = torch.nn.utils.rnn.pad_packed_sequence(pade_outputs, batch_first=False)
       
             #cacl npu
-            embeded_npu = embeded.npu()
-            pack = torch.nn.utils.rnn.pack_padded_sequence(embeded_npu, lengths, batch_first=False)
+            pack = torch.nn.utils.rnn.pack_padded_sequence(embeded.npu(), lengths, batch_first=False)
             pade_outputs_npu, (hn_n, cn_n) = rnn_npu(pack)
             pade_outputs_npu, others = torch.nn.utils.rnn.pad_packed_sequence(pade_outputs_npu, batch_first=False)
             
-            self.assertRtolEqual(pade_outputs.detach().numpy(), 
-                pade_outputs_npu.cpu().detach().numpy(), prec=1.e-4)
+            self.assertRtolEqual(pade_outputs.detach().numpy(), pade_outputs_npu.cpu().detach().numpy(), prec=1.e-4)
             
 if __name__ == "__main__":
     run_tests() 

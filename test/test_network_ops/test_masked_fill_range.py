@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import torch
 import numpy as np
 import torch_npu
@@ -24,23 +25,27 @@ class TestMaskedFillRange(TestCase):
     def cpu_op_exec(self, input1, start, end, value, axis, dim):
         out = input1.clone()
         start_shape = start.shape
-        for i in range(0, start_shape[0]):
-            for j in range(0, start_shape[1]):
-                for k in range(start[i, j], end[i, j]):
-                    if dim == 1:
-                        out[k] = value[i]
-                    elif dim == 2:
-                        if axis == 0:
-                            out[k, :] = value[i]
-                        else:
-                            out[j, k] = value[i]
-                    elif dim == 3:
-                        if axis == 0:
-                            out[k, :, :] = value[i]
-                        elif axis == 1:
-                            out[:, k, :] = value[i]
-                        else:
-                            out[j, :, k] = value[i]
+        iter_list = itertools.product(list(range(start_shape[0])), list(range(start_shape[1])))
+        def fill_each_pos(i, j, k, dim, axis, out, value):
+            if dim == 1:
+                    out[k] = value[i]
+            elif dim == 2:
+                if axis == 0:
+                    out[k, :] = value[i]
+                else:
+                    out[j, k] = value[i]
+            elif dim == 3:
+                if axis == 0:
+                    out[k, :, :] = value[i]
+                elif axis == 1:
+                    out[:, k, :] = value[i]
+                else:
+                    out[j, :, k] = value[i]
+
+        for i, j in iter_list:
+            for k in range(start[i, j], end[i, j]):
+                fill_each_pos(i, j, k, dim, axis, out, value)
+
         return out
 
     def npu_op_exec(self, input1, start, end, value, axis):
@@ -48,7 +53,7 @@ class TestMaskedFillRange(TestCase):
         out = out.to("cpu")
         return out.detach().numpy()
 
-    def test_normalize_batch(self, device="npu"):
+    def test_normalize_batch(self):
         shape_format = [
             [[np.float32, -1, [32, 64, 1688]], 
                 [list(range(0, 32))],
