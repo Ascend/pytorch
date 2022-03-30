@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -27,7 +27,8 @@ __all__ = [
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork"
+    "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork",
+    "global_step_inc", "set_start_fuzz_compile_step"
 ]
 
 import torch
@@ -48,6 +49,7 @@ from .streams import Stream, Event
 from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
-            prof_start, prof_stop, prof_finalize, profileConfig)
+            prof_start, prof_stop, prof_finalize, profileConfig, global_step_inc,
+            set_start_fuzz_compile_step)
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
