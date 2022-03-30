@@ -14,13 +14,14 @@
 
 import torch
 import numpy as np
-from torch_npu.contrib.module.npu_modules import DropoutWithByteMask
-from torch.nn import Module
-from torch_npu.contrib.function import npu_functional as F
+
 import torch_npu
 
+from torch_npu.contrib.module.npu_modules import DropoutWithByteMask
+from torch_npu.contrib.function import npu_functional as F
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestDropoutWithByteMask(TestCase):
     def npu_op_exec(self, input1, prob):

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import torch
 import numpy as np
 import torch_npu
@@ -41,13 +42,12 @@ class TestTriangularSolveHelper(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
-            for upper in [True, False]:
-                for transpose in [True, False]:
-                    for unitriangular in [True, False]:
-                        cpu_s, cpu_a = self.cpu_op_exec(cpu_input1, cpu_input2, upper, transpose, unitriangular)
-                        npu_s, npu_a = self.npu_op_exec(npu_input1, npu_input2, upper, transpose, unitriangular)
-                        self.assertRtolEqual(cpu_a, npu_a)
-                        self.assertRtolEqual(cpu_s, npu_s)
+            iter_list = itertools.product([True, False], [True, False], [True, False])
+            for upper, transpose, unitriangular in iter_list:
+                cpu_s, cpu_a = self.cpu_op_exec(cpu_input1, cpu_input2, upper, transpose, unitriangular)
+                npu_s, npu_a = self.npu_op_exec(npu_input1, npu_input2, upper, transpose, unitriangular)
+                self.assertRtolEqual(cpu_a, npu_a)
+                self.assertRtolEqual(cpu_s, npu_s)
 
 
 if __name__ == "__main__":

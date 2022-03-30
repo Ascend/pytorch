@@ -53,8 +53,8 @@ class TestThnnConvDepthwise2d(TestCase):
 
         return cpuOutput
 
-    def op_exec_npu(self, input1, weight1, in_channels, out_channels, kernel_size, padding=0, stride=1, dilation=1,
-                    bias=True):
+    def op_exec_npu(self, input1, weight1, in_channels, out_channels, kernel_size, 
+                    padding=0, stride=1, dilation=1, bias=True):
         input1.requires_grad = True
         input1.register_hook(lambda grad: self.get_input_grad(grad))
 

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import math
 import torch
 import numpy as np
@@ -60,26 +61,26 @@ class TestNpuGiou(TestCase):
         area2 = w2 * h2
         giou_res = np.array([], dtype=dtype)
 
-        for i in range(n):
-            for j in range(m):
-                inter_x1 = max(b1_x1[i], b2_x1[j])
-                inter_x2 = min(b1_x2[i], b2_x2[j])
-                inter_y1 = max(b1_y1[i], b2_y1[j])
-                inter_y2 = min(b1_y2[i], b2_y2[j])
-                outer_x1 = min(b1_x1[i], b2_x1[j])
-                outer_x2 = max(b1_x2[i], b2_x2[j])
-                outer_y1 = min(b1_y1[i], b2_y1[j])
-                outer_y2 = max(b1_y2[i], b2_y2[j])
-                inter_area = max(0, (inter_x2 - inter_x1)) * max(0, (inter_y2 - inter_y1))
-                outer_area = abs(outer_x2 - outer_x1) * abs(outer_y2 - outer_y1)
-                union_area = area1[i] + area2[j] - inter_area + 1e-16
-                other_area = outer_area - union_area
-                giou_ij = inter_area / union_area - other_area / outer_area
-                if not is_cross:
-                    if i == j:
-                        giou_res = np.append(giou_res, giou_ij)
-                else:
+        iter_list = itertools.product(list(range(n)), list(range(m)))
+        for i, j in iter_list:
+            inter_x1 = max(b1_x1[i], b2_x1[j])
+            inter_x2 = min(b1_x2[i], b2_x2[j])
+            inter_y1 = max(b1_y1[i], b2_y1[j])
+            inter_y2 = min(b1_y2[i], b2_y2[j])
+            outer_x1 = min(b1_x1[i], b2_x1[j])
+            outer_x2 = max(b1_x2[i], b2_x2[j])
+            outer_y1 = min(b1_y1[i], b2_y1[j])
+            outer_y2 = max(b1_y2[i], b2_y2[j])
+            inter_area = max(0, (inter_x2 - inter_x1)) * max(0, (inter_y2 - inter_y1))
+            outer_area = abs(outer_x2 - outer_x1) * abs(outer_y2 - outer_y1)
+            union_area = area1[i] + area2[j] - inter_area + 1e-16
+            other_area = outer_area - union_area
+            giou_ij = inter_area / union_area - other_area / outer_area
+            if not is_cross:
+                if i == j:
                     giou_res = np.append(giou_res, giou_ij)
+            else:
+                giou_res = np.append(giou_res, giou_ij)
 
         if not is_cross:
             res = giou_res.reshape(1, n)
@@ -94,10 +95,10 @@ class TestNpuGiou(TestCase):
         output = output.detach().cpu().numpy()
         return output
 
-    def test_npu_giou_shape_format_fp32(self, device="npu"):
+    def test_npu_giou_shape_format_fp32(self):
         self._test_npu_giou_shape_format(np.float32)
 
-    def test_npu_giou_shape_format_fp16(self, device="npu"):
+    def test_npu_giou_shape_format_fp16(self):
         self._test_npu_giou_shape_format(np.float16)
 
     def _test_npu_giou_shape_format(self, dtype):

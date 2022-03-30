@@ -15,11 +15,11 @@
 # limitations under the License.
 import copy
 import torch
-import torch_npu
 import numpy as np
+import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestLstmBackward(TestCase):
     def test_lstm_backward(self, device="npu"):
@@ -45,9 +45,8 @@ class TestLstmBackward(TestCase):
             hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
             cpu_lstm.weight_ih_l0.data = iwt
             cpu_lstm.weight_hh_l0.data = hwt
-
+            
             input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
-
             cpu_input1 = torch.from_numpy(input1)
             cpu_input1.requires_grad_(True)
             cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
@@ -121,12 +120,12 @@ class TestLstmBackward(TestCase):
                         npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
             cpu_input1.retain_grad()
-            cpu_output_y.backward(torch.ones(cpu_output_y.size(), dtype=torch.float))
             cpu_dx = cpu_input1.grad
+            cpu_output_y.backward(torch.ones(cpu_output_y.size(), dtype=torch.float))
 
             npu_input1.retain_grad()
-            npu_output_y.backward(torch.ones(npu_output_y.size(), dtype=torch.float).npu())
             npu_dx = npu_input1.grad
+            npu_output_y.backward(torch.ones(npu_output_y.size(), dtype=torch.float).npu())
 
             self.assertRtolEqual(cpu_dx.numpy(), npu_dx.cpu().to(torch.float).numpy(), prec=1.e-3)
 
