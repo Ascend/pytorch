@@ -159,23 +159,25 @@ class EventList(list):
             current_events: List[FunctionEvent] = []
             cur_end = 0
             for event in thread_events_:
-                while len(current_events) > 0:
-                    parent = current_events[-1]
-                    if event.time_range.start >= parent.time_range.end or \
-                            event.time_range.end > parent.time_range.end:
-                        # this can't be a parent
-                        current_events.pop()
-                    else:
-                        parent.append_cpu_child(event)
-                        assert (
-                            event.cpu_parent is None
-                        ), "There is already a CPU parent event for {}".format(
-                            event.key
-                        )
-                        event.set_cpu_parent(parent)
-                        break
+                def _process_event():
+                    while len(current_events) > 0:
+                        parent = current_events[-1]
+                        if event.time_range.start >= parent.time_range.end or \
+                                event.time_range.end > parent.time_range.end:
+                            # this can't be a parent
+                            current_events.pop()
+                        else:
+                            parent.append_cpu_child(event)
+                            assert (
+                                event.cpu_parent is None
+                            ), "There is already a CPU parent event for {}".format(
+                                event.key
+                            )
+                            event.set_cpu_parent(parent)
+                            return
 
-                current_events.append(event)
+                    current_events.append(event)
+                _process_event()
 
     def _set_backward_stacktraces(self):
         def bw_parent(evt):
@@ -309,15 +311,14 @@ class EventList(list):
         translate_table = str.maketrans(" ;\t\n", "____")
         with os.fdopen(os.open(path, file_flags, file_modes), 'w') as f:
             for evt in self:
-                if evt.stack and len(evt.stack) > 0:
+                if evt.stack and len(evt.stack) > 0 and len(getattr(evt, metric)) > 0:
                     metric_value = getattr(evt, metric)
-                    if int(metric_value) > 0:
-                        stack_str = ""
-                        for entry in reversed(evt.stack):
-                            stack_str += entry.translate(translate_table)
-                            stack_str += ";"
-                        stack_str = stack_str[:-1] + " " + str(int(metric_value))
-                        f.write(stack_str + "\n")
+                    stack_str = ""
+                    for entry in reversed(evt.stack):
+                        stack_str += entry.translate(translate_table)
+                        stack_str += ";"
+                    stack_str = stack_str[:-1] + " " + str(int(metric_value))
+                    f.write(stack_str + "\n")
 
     def key_averages(self, group_by_input_shapes=False, group_by_stack_n=0):
         """Averages all function events over their keys.
