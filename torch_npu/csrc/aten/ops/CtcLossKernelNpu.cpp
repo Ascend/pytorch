@@ -43,8 +43,23 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
   auto inputLengthsTensor = at::tensor(inputLengths, targetsCast.options());
   auto targetLengthsTensor = at::tensor(targetLengths, targetsCast.options());
   
+  int64_t maxLength = 0;
+  if (targetsCast.dim() == 2) {
+    maxLength = targetsCast.size(1);  
+  } else if (targetsCast.dim() == 1) {
+    for (auto &i : targetLengths) {
+      if (i > maxLength) {
+        maxLength = i;
+      }
+    }
+  }
+  
+  auto shape = logProbs.sizes();
+  
+  auto blankNew = blank + maxLength * shape[2];
+  
   // calculate the output size
-  auto outputSizes = ctc_loss_npu_output_size(logProbs, targetsCast, targetLengths);
+  auto outputSizes = ctc_loss_npu_output_size(logProbs, targetsCast, targetLengths, maxLength);
 
   // construct the output tensor of the NPU
   at::Tensor negLogLikelihood = OpPreparation::ApplyTensorWithSizes(
@@ -57,7 +72,8 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
 
   // calculate the output result of the NPU 
   OpCommand cmd;
-  cmd.Name("CTCLossV2")
+  if (targetsCast.dim() == 2) {
+    cmd.Name("CTCLossV2")
       .Input(logProbsNeed)
       .Input(targetsCast)
       .Input(inputLengthsTensor)
@@ -67,6 +83,19 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_ctc_loss(
       .Attr("blank", blank)
       .Attr("zero_infinity", zeroInfinity)
       .Run();
+  } else if (targetsCast.dim() == 1) {
+    cmd.Name("CTCLossV2")
+      .Input(logProbsNeed)
+      .Input(targetsCast)
+      .Input(inputLengthsTensor)
+      .Input(targetLengthsTensor)
+      .Output(negLogLikelihood)
+      .Output(logAlpha)
+      .Attr("blank", blankNew)
+      .Attr("zero_infinity", zeroInfinity)
+      .Run();  
+  }
+
   
   if (logProbs.scalar_type() == at::ScalarType::Half) {
     negLogLikelihood = NPUNativeFunctions::npu_dtype_cast(negLogLikelihood, at::ScalarType::Half);
