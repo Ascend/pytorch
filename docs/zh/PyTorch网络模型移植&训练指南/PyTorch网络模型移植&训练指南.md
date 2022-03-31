@@ -1473,6 +1473,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 
   3. 高级用法
+
     pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
     ```
     option={"PROFILING_MODE":"true"}
@@ -2183,6 +2184,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 
 -   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
 -   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能，使用单P对模型进行训练，不使用分布式。
+-   使用单算子溢出检测功能时，不支持把数据集加载部分包含进去。
 
 采集溢出算子数据：<a name="section121407268191"></a>
 
@@ -2190,7 +2192,10 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
 # check_overflow为溢出检测控制开关
 # dump_path为dump文件保存路径
 with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
-    # 需要检测算子溢出的代码片段
+    # 需要检测算子溢出的代码片段(不包含数据集加载部分)
+    xxx # forward code 
+    xxx # backward code
+    
 ```
 
 运行一个step，模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
