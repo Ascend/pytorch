@@ -74,6 +74,14 @@ class TestUpsamleNearest3D(TestCase):
             npu_output = self.npu_op_scale_exec(npu_input3, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_upsample_nearest3d_fp16(self, device="npu"):
+        cpu_x = torch.randn(10, 56, 56, 96, 11).half()
+        npu_x = cpu_x.npu()
+        size = (3, 4, 2)
+        cpu_out = torch.nn.functional.interpolate(cpu_x.float(), size, mode="nearest").half()
+        npu_out = torch.nn.functional.interpolate(npu_x, size, mode="nearest")
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
 
 if __name__ == "__main__":
     run_tests()
