@@ -2371,6 +2371,7 @@ Restrictions:
 
 -   This function provides only IR-level operator overflow/underflow detection for only the AI Core (not Atomic).
 -   When using the single-operator overflow/underflow detection function, do not enable the dynamic loss scale mode of apex and the tensor fusion function at the same time.
+-   When using the single operator overflow/underflow detection function, including the loaded part of the dataset is not supported.
 
 Collecting data of overflow/underflow operators
 
@@ -2378,7 +2379,9 @@ Collecting data of overflow/underflow operators
 # check_overflow is the overflow/underflow detection control switch.
 # dump_path is the path for storing dump files.
 with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
-    # Code snippet for detecting operator overflow/underflow.
+    # Code snippet for detecting operator overflow/underflow(does not include the dataset load section).
+    xxx # forward code 
+    xxx # backward code
 ```
 
 During model running of a step, if an operator overflows/underflows, the name of the corresponding IR is printed.
