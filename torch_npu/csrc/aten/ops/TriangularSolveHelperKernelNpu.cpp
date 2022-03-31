@@ -16,6 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <ATen/native/LinearAlgebraUtils.h>
 
 namespace at_npu {
 namespace native {
@@ -25,12 +26,14 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_triangular_solve_helper(
     bool upper,
     bool transpose,
     bool unitriangular) {
-  TORCH_CHECK(self.dtype() == at::kFloat && A.dtype() == at::kFloat,
-      "_triangular_solve_helper_npu only supported Float, but get ", self.dtype(), ' ', A.dtype());
-  auto self_working_copy = OpPreparation::ApplyTensor(self);
-  auto A_working_copy = A.clone();
 
-  at::Tensor A_tensor = A;
+  at::Tensor self_broadcasted, A_broadcasted;
+  std::tie(self_broadcasted, A_broadcasted) = at::native::_linalg_broadcast_batch_dims(self, A, "triangular_solve");
+  TORCH_CHECK(self_broadcasted.dtype() == at::kFloat && A_broadcasted.dtype() == at::kFloat,
+      "_triangular_solve_helper_npu only supported Float, but get ", self_broadcasted.dtype(), ' ', A_broadcasted.dtype());
+  auto self_working_copy = OpPreparation::ApplyTensor(self_broadcasted);
+  auto A_working_copy = A_broadcasted.clone();
+  at::Tensor A_tensor = A_broadcasted;
   if (unitriangular) {
     auto diagonal_tensor = at::eye(A_tensor.size(-2), A_tensor.size(-1), A_tensor.options());
     A_tensor = A_tensor * (1 - diagonal_tensor) + diagonal_tensor;
@@ -38,11 +41,12 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_triangular_solve_helper(
   OpCommand cmd;
   cmd.Name("MatrixTriangularSolve")
     .Input(A_tensor)
-    .Input(self)
+    .Input(self_broadcasted)
     .Output(self_working_copy)
     .Attr("lower", !upper)
     .Attr("adjoint", transpose)
     .Run();
+
   return std::tuple<at::Tensor, at::Tensor>(self_working_copy, A_working_copy);
 }
 } // namespace native
