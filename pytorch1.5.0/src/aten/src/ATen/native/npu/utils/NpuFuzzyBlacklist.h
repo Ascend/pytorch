@@ -35,8 +35,7 @@ public:
   ~FuzzyCompileBlacklist() = default;
 private:
   FuzzyCompileBlacklist() {}
-  // (Ascend) Op AsStided cannot be used in fuzzy compile now.
-  std::set<std::string> black_list_ = {"AsStrided"};
+  std::set<std::string> black_list_;
 };
 
 

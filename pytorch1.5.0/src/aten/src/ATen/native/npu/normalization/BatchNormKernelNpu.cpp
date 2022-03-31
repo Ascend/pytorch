@@ -181,6 +181,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
   // BNTrainingUpdate can only support FP32 for mean and var
   auto running_mean_fp32 = running_mean;
   auto running_var_fp32 = running_var;
+  auto weight_fp32 = weight;
   
   if (train && (running_mean.scalar_type() != at::kFloat)) {
     running_mean_fp32 = running_mean.npu_dtype_cast(at::kFloat);
@@ -190,6 +191,11 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
     running_var_fp32 = running_var.npu_dtype_cast(at::kFloat);
   }
 
+  // (Ascend) change dtype for matching op requirement.
+  if (train && (weight.scalar_type() != at::kFloat)) {
+    weight_fp32 = weight.npu_dtype_cast(at::kFloat);
+  }
+
   batch_norm_training_update_nocheck(
       result,
       save_mean,
@@ -197,7 +203,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
       self,
       sum,
       square_sum,
-      weight,
+      weight_fp32,
       bias,
       running_mean_fp32,
       running_var_fp32,
