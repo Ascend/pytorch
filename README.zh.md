@@ -40,8 +40,9 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
    ```
    git clone https://gitee.com/ascend/pytorch.git
-   # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
-   # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+   # 默认是master分支，若需要其他分支请使用git checkout 命令切换
+   cd pytorch
+   git checkout -b 2.0.4.tr5 remotes/origin/2.0.4.tr5
    ```
 
 ## 获取原生PyTorch源代码和third_party代码
@@ -58,6 +59,7 @@ git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
 进入到pytorch/pytorch/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
 
 ```sh
+cd pytorch
 git submodule sync
 git submodule update --init --recursive
 ```
@@ -69,6 +71,7 @@ git submodule update --init --recursive
 进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
 
 ```sh
+cd ../scripts/
 // 默认为1.5.0版本
 bash gen.sh
 // 对于1.8.1版本，则通过-v 参数指定
@@ -83,6 +86,7 @@ bash gen.sh -v 1.8.1
 进入到pytorch/pytorch/目录，依赖库安装:
 
 ```python3
+cd ../pytorch/
 pip3 install -r requirements.txt
 ```
 
@@ -112,6 +116,7 @@ bash build.sh --python=3.8
 torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_x86_64.whl)
 
 ```shell
+cd dist/
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 ```
@@ -122,6 +127,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_aarch64.whl)
 
 ```shell
+cd dist/
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 ```
@@ -134,6 +140,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 在当前仓库根目录中执行设置环境变量脚本
 
 ```
+cd ../
 source pytorch/env.sh
 ```
 
@@ -164,9 +171,9 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 
 ```shell
 // 根据前述版本，选择对应的测试脚本，以下为1.5.0版本
-python3 pytorch1.5.0/test/test_npu/test_div.py
+python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 // 以下为1.8.1版本
-python3 pytorch1.8.1/test/test_npu/test_div.py
+python3 pytorch1.8.1/test/test_npu/test_network_ops/test_div.py
 ```
 
 # 文档
@@ -213,11 +220,11 @@ pip3 install typing_extensions
 
 开发态:
 
-cd /urs/local/ascend-toolkit/latest/fwkacllib/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
 
 用户态:
 
-cd /urs/local/nnae/latest/fwkacllib/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
