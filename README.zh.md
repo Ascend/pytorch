@@ -131,7 +131,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 
 ## 运行环境变量
 
-在pytorch/pytorch_v1.5.0/中执行设置环境变量脚本
+在pytorch/pytorch/中执行设置环境变量脚本
 
 ```
 cd ../
@@ -165,6 +165,7 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 
 ```shell
 // 根据前述版本，选择对应的测试脚本，以下为1.5.0版本
+cd ../
 python3 pytorch1.5.0/test/test_npu/test_div.py
 ```
 
