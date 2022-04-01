@@ -39,9 +39,9 @@
 
 - 需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
 
-- 需安装python版本为3.7.5、3.8、3.9。
+- 需安装python版本为3.7.5、3.8。
 
-- 需注意torch1.5版本不支持python3.9编译安装（与官方保持一致），仅torch1.8.1版本支持python版本3.9进行编译安装。
+- 需注意torch1.5版本不支持python3.9编译安装（与官方保持一致）。
 
 -   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
     -   Ubuntu系统
@@ -89,39 +89,28 @@
         ```
         ├── patch                            # 昇腾AI处理器适配补丁目录
         │   ├── pytorch1.5.0_npu.patch      # pytorch1.5.0版本补丁
-        │   └── pytorch1.8.1_npu.patch      # pytorch1.8.1版本补丁
         ├── pytorch1.5.0                     # pytorch1.5.0源码及测试目录
-        │   ├── access_control_test.py
-        │   ├── src                         # 源码目录
-        │   └── test                        # 测试用例存放目录
-        ├── pytorch1.8.1                     # pytorch1.8.1源码及测试目录
         │   ├── access_control_test.py
         │   ├── src                         # 源码目录
         │   └── test                        # 测试用例存放目录
         └── scripts                          # 编译构建目录
         ```
-
+        
     2.  在当前仓根目录“/pytorch“下获取原生PyTorch源代码。
-        -   若安装pytorch1.5.0版本，执行如下命令。
-
-            ```
-            git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-            ```
-
-        -   若安装pytorch1.8.1版本，执行如下命令。
-
-            ```
-            git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
-            ```
-
-    3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
-
+        - 若安装pytorch1.5.0版本，执行如下命令。
+    
+          ```
+      git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
+          ```
+    
+3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
+    
         ```
         cd  pytorch
-        git submodule sync
+    git submodule sync
         git submodule update --init --recursive
-        ```
-
+    ```
+    
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
 
@@ -132,10 +121,8 @@
         cd ../scripts
         # 若安装1.5.0版本
         bash gen.sh
-        # 若安装1.8.1版本
-        bash gen.sh -v 1.8.1
         ```
-
+        
         将在"pytorch/pytorch"目录中生成适配昇腾AI处理器的全量代码。
 
     2.  进入到“pytorch/pytorch/“目录，依赖库安装。
@@ -144,7 +131,7 @@
         cd ../pytorch
         pip3 install -r requirements.txt
         ```
-
+    
     3.  编译生成pytorch的二进制安装包。
 
         ```
@@ -195,7 +182,7 @@
 3.  （可选）NPU场景下配置功能或性能环境变量。默认为不开启。
 
     ```
-    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1（PyTorch1.8.1不支持该环境变量）
+    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1
     export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
     export TRI_COMBINED_ENABLE=1 # 非连续三个算子组合类场景优化，可选，开启设置为1
     export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
@@ -288,7 +275,7 @@
 </tr>
 <tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1（PyTorch1.8.1不支持该环境变量）。</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1。</p>
 </td>
 </tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
@@ -318,6 +305,7 @@
 </tr>
 </tbody>
 </table>
+
 
 
 <h3 id="安装混合精度模块md">安装混合精度模块</h3>

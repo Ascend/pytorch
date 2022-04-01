@@ -10,7 +10,6 @@
     -   [注册算子开发](#注册算子开发md)
         -   [概述](#概述md)
         -   [PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)
-        -   [PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)
     -   [算子适配插件开发](#算子适配插件开发md)
     -   [编译和安装PyTorch框架](#编译和安装PyTorch框架md)
 -   [算子功能验证](#算子功能验证md)
@@ -194,9 +193,8 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 -   **[概述](#概述md)**  
 
--   **[PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)**  
+-   **[PyTorch1.5.0 注册算子开发](#PyTorch1-5-0-注册算子开发md)**   
 
--   **[PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)**  
 
 
 <h4 id="概述md">概述</h4>
@@ -333,96 +331,6 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
           supports_named_tensor: True
         ```
 
-
-
-<h4 id="PyTorch1-8-1-注册算子开发md">PyTorch1.8.1 注册算子开发</h4>
-
-##### 注册算子开发方法<a name="section575212111125"></a>
-
-1.  打开native\_functions.yaml文件。
-
-    native\_functions.yaml 文件中，定义了所有算子函数原型，包括函数名称和参数等信息，每个算子函数支持不同硬件平台的派发信息。该文件所在路径为pytorch/aten/src/ATen/native/native\_functions.yaml。
-
-2.  确定需要派发函数。
-    -   yaml 中已存在的算子
-
-        将所有与待适配算子相关的函数进行派发。
-
-    -   yaml中未存在的自定义算子
-
-        由于yaml中没有相关算子的信息，需要手动添加相关函数，包括函数名，参数信息，返回类型信息。添加规则及方法请参见“pytorch/aten/src/ATen/native/README.md“。
-
-        ```
-        - func：适配算子名称(输入参数信息) -> 返回类型
-        ```
-
-
-
-##### 示例<a name="section434031421219"></a>
-
-以torch.add\(\)算子为例介绍注册算子开发过程。
-
-1.  打开native\_functions.yaml文件。
-2.  搜索相关函数。
-
-    在yaml中搜索add，找到与add算子相关的函数描述func。由于add是PyTorch内置算子，不需要手动添加func。若是自定义算子，需要手动添加func。
-
-3.  确定算子相关函数名称及其类型的func描述。
-    -   add.Tensor 的函数分发描述。
-
-        ```
-        - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
-          structured_delegate: add.out
-          variants: function, method
-          dispatch:
-            SparseCPU, SparseCUDA: add_sparse
-            MkldnnCPU: mkldnn_add
-        ```
-
-    -   add.Scalar 的函数分发描述。
-
-        ```
-        - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
-          variants: function, method
-          dispatch:
-            DefaultBackend: add
-        ```
-
-    -   add\_.Tensor 的函数分发描述。
-
-        ```
-        - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          structured_delegate: add.out
-          dispatch:
-            SparseCPU, SparseCUDA: add_sparse_
-            MkldnnCPU: mkldnn_add_
-        ```
-
-    -   add\_.Scalar 的函数分发描述。
-
-        ```
-        - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          dispatch:
-            DefaultBackend: add_
-        ```
-
-    -   add.out 的函数分发描述。
-
-        ```
-        - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
-          structured: True
-          structured_inherits: TensorIteratorBase
-          dispatch:
-            CPU, CUDA: add_out
-            SparseCPU: add_out_sparse_cpu
-            SparseCUDA: add_out_sparse_cuda
-            MkldnnCPU: mkldnn_add_out
-        ```
-
-
-
 <h3 id="算子适配插件开发md">算子适配插件开发</h3>
 
 #### 简介<a name="zh-cn_topic_0000001125315877_section16410139174517"></a>
@@ -446,24 +354,10 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
     根据注册算子开发中的分发函数确定自定义算子适配主体函数。
 
-4.  分别实现适配主体函数。
+4. 分别实现适配主体函数。
 
-    实现算子适配主题函数，根据TBE算子原型构造得到对应的input、output、attr。
+   实现算子适配主题函数，根据TBE算子原型构造得到对应的input、output、attr。
 
-5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子开发中native\_functions.yaml文件的算子描述func。
-
-    TORCH\_LIBRARY\_IMPL是PyTorch提供的用于注册算子分发的宏，使用方法如下。
-
-    ```
-    Torch_LIBRARY_IMPL(aten, PrivateUse1, m){
-        m.impl("yaml中算子func方法名1", TORCH_FN("对应的适配主体函数名1"))
-        m.impl("yaml中算子func方法名2", TORCH_FN("对应的适配主体函数名2"))
-    }
-    ```
-
-    -   aten为命名空间，可以根据实现文件命名空间自行定义。
-    -   PrivateUse1为dispatchKey,  固定设置NPU。
-    -   m为固定字段。
 
 
 #### 示例<a name="zh-cn_topic_0000001125315877_section18021337113012"></a>
@@ -618,14 +512,6 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
         }
         ```
 
-5.  （仅1.8.1版本需要操作该步骤）使用TORCH\_LIBRARY\_IMPL宏关联注册算子。
-
-    ```
-    TORCH_LIBRARY_IMPL(aten, NPU, m) {  
-        m.impl("add.Tensor", TORCH_FN(add_npu));  
-        m.impl("add_.Tensor", TORCH_FN(add_npu_));  
-        m.impl("add.out", TORCH_FN(add_out_npu));}
-    ```
 
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -650,7 +536,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
     bash build.sh --python=3.8
     ```
 
-    请指定环境中python版本进行编译。编译成功后，会在pytorch/pytorch/dist”文件夹目录下生成二进制包 torch-\*.whl ，例如：torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl或者torch-1.8.1+ascend-cp37-cp37m-linux\_x86.whl。
+    请指定环境中python版本进行编译。编译成功后，会在pytorch/pytorch/dist”文件夹目录下生成二进制包 torch-\*.whl ，例如：torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl。
 
 
 #### 安装PyTorch框架<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
