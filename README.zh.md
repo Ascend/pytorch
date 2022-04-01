@@ -69,7 +69,7 @@ git submodule update --init --recursive
 
 ```sh
 cd ../scripts
-bash gen.sh
+bash gen.sh ../pytorch_v1.5.0
 ```
 
 会在pytorch/pytorch_v1.5.0/目录中生成npu适配全量代码
