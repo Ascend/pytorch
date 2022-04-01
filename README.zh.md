@@ -10,7 +10,7 @@ gcc版本: 7.3.0（只在编译场景要求）
 
 cmake版本：3.12.0以上版本（只在编译场景要求）
 
-python版本：3.7.5、3.8.x、3.9.x（PyTorch1.5不支持python3.9.x）
+python版本：3.7.5、3.8.x
 
 # 系统依赖库
 
@@ -27,9 +27,10 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 | AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 |
 | :------------ | :----------- | :----------- |
-| 2.0.2 | CANN 5.0.2 | 1.5.0 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0，1.8.1(仅支持resnet50模型) |
-| 2.0.4 | CANN 5.0.4 | 1.5.0，1.8.1(仅支持resnet50模型) |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
+| 3.0.rc1 | CANN 5.0.4 | 1.5.0.post5，1.8.1.rc1 |
 
 # 使用方式 --生成全量代码并编译
 
@@ -40,23 +41,22 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
    ```
    git clone https://gitee.com/ascend/pytorch.git
    # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
-   # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+   # git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
    ```
 
 ## 获取原生PyTorch源代码和third_party代码
 
-当前支持pytorch 1.5.0和1.8.1的版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
+在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
-// 1.5.0 版本
-git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-// 1.8.1 版本
-git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
+cd pytorch
+git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git pytorch_v1.5.0
 ```
 
-进入到pytorch/pytorch/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
+进入到pytorch/pytorch_v1.5.0/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
 
 ```sh
+cd pytorch_v1.5.0
 git submodule sync
 git submodule update --init --recursive
 ```
@@ -68,27 +68,26 @@ git submodule update --init --recursive
 进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
 
 ```sh
-// 默认为1.5.0版本
+cd ../scripts
 bash gen.sh
-// 对于1.8.1版本，则通过-v 参数指定
-bash gen.sh -v 1.8.1
 ```
 
-会在pytorch/pytorch/目录中生成npu适配全量代码
+会在pytorch/pytorch_v1.5.0/目录中生成npu适配全量代码
 
 
 ## python依赖库
 
-进入到pytorch/pytorch/目录，依赖库安装:
+进入到pytorch/pytorch_v1.5.0/目录，依赖库安装:
 
 ```python3
+cd ../pytorch/pytorch_v1.5.0
 pip3 install -r requirements.txt
 ```
 
 
 ## 编译torch的二进制包
 
-进入到pytorch/pytorch/目录，执行
+在pytorch/pytorch_v1.5.0/目录，执行
 
 ```sh
 # python3.7版本
@@ -98,12 +97,9 @@ bash build.sh --python=3.7（推荐）
 
 # python3.8版本
 bash build.sh --python=3.8
-
-# python3.9版本
-bash build.sh --python=3.9
 ```
 
-生成的二进制包在pytorch/pytorch/dist/目录下
+生成的二进制包在pytorch/pytorch_v1.5.0/dist/目录下
 
 # 安装
 
@@ -114,6 +110,7 @@ bash build.sh --python=3.9
 torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_x86_64.whl)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 ```
@@ -124,6 +121,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl (实际可能附带小版本号例如torch-1.5.0.post2+ascend-cp37-cp37m-linux_aarch64.whl)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 ```
@@ -133,10 +131,11 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 
 ## 运行环境变量
 
-在当前仓库根目录中执行设置环境变量脚本
+在pytorch/pytorch_v1.5.0/中执行设置环境变量脚本
 
 ```
-source pytorch/env.sh
+cd ..
+source env.sh
 ```
 
 
@@ -167,8 +166,6 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 ```shell
 // 根据前述版本，选择对应的测试脚本，以下为1.5.0版本
 python3 pytorch1.5.0/test/test_npu/test_div.py
-// 以下为1.8.1版本
-python3 pytorch1.8.1/test/test_npu/test_div.py
 ```
 
 # 文档
@@ -198,6 +195,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
 | **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
+| **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 
 
 # FAQ
