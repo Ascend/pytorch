@@ -57,13 +57,12 @@ git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v
 cd  pytorch_v1.8.1
 git submodule sync
 git submodule update --init --recursive
-cd ..
 ```
 
 完成且没有报错之后就生成了PyTorch及其依赖的三方代码，然后将Patch打入PyTorch源码并编译。
 
 ```sh
-cd patch
+cd ../patch
 bash apply_patch.sh ../pytorch_v1.8.1
 cd ../pytorch_v1.8.1
 指定python版本编包方式：
@@ -95,7 +94,7 @@ bash build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包
 
 ```
-cd dist
+cd ../dist
 pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 ```
 
@@ -107,7 +106,8 @@ pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 在当前仓库根目录中执行设置环境变量脚本
 
 ```
-source pytorch/env.sh
+cd ../
+source env.sh
 ```
 
 
@@ -134,7 +134,8 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 验证运行, 输出结果OK
 
 ```shell
-python3 test/test_network_ops/test_div.py
+cd test/test_network_ops/
+python3 test_div.py
 ```
 
 # 文档
