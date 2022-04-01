@@ -18,16 +18,13 @@
 CUR_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=$CUR_DIR/..
 PT_DIR=$1
-Version=1.5.0
 function main()
 {
-    cd $ROOT_DIR
     # patch
-    cp $ROOT_DIR/patch/pytorch1.5.0_npu.patch $PT_DIR
     cd $PT_DIR
+    cp $ROOT_DIR/patch/pytorch1.5.0_npu.patch ./
     patch -p1 < pytorch1.5.0_npu.patch
-    cp -r $ROOT_DIR/pytorch1.5.0/src/* $PT_DIR
-    
+    cp -r $ROOT_DIR/pytorch1.5.0/src/* ./
 }
 
 main
