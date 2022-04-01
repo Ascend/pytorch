@@ -76,7 +76,8 @@ When setting up the environment for PyTorch model development and running, you c
         ```
         git clone https://gitee.com/ascend/pytorch.git
         # By default, the masterf branch is used. If other branches are required, run the git checkout command to switch to that branch.
-        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+        cd pytorch
+        git checkout -b 2.0.4.tr5 remotes/origin/2.0.4.tr5
 
         ```
 
@@ -159,6 +160,7 @@ When setting up the environment for PyTorch model development and running, you c
     Go to the  **pytorch/pytorch/dist**  directory and run the following command to install PyTorch:
 
     ```
+    cd dist
     pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
     ```
 
@@ -176,7 +178,8 @@ After the software packages are installed, configure environment variables to us
 1.  Configure the operating environment variables by running the following command in the  **root**  directory of the PyTorch source code adapted to Ascend AI Processors:
 
     ```
-    source pytorch/env.sh
+    cd ../
+    source env.sh
     ```
 
 2.  Select a proper HCCL initialization mode based on the actual scenario and configure the corresponding environment variables.
