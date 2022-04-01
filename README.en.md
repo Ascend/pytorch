@@ -39,6 +39,15 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 Currently, PyTorch 1.5.0 and 1.8.1 are supported. Obtain the native PyTorch source code from the root directory **pytorch/** in the current repository as required.
 
 ```sh
+git clone https://gitee.com/ascend/pytorch.git
+# By default, the masterf branch is used. If other branches are required, run the git checkout command to switch to that branch.
+cd pytorch
+git checkout -b 2.0.4.tr5 remotes/origin/2.0.4.tr5
+```
+
+Obtain the native PyTorch source code from the root directory  **/pytorch**  of the current repository.
+
+```sh
 // Version 1.5.0
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 // Version 1.8.1
@@ -48,6 +57,7 @@ git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
 Go to the **pytorch/pytorch/** directory and obtain the passive dependency code of PyTorch. (It takes a long time to obtain the code.)
 
 ```sh
+cd pytorch
 git submodule sync
 git submodule update --init --recursive
 ```
@@ -59,6 +69,7 @@ If no error is reported after the preceding operations are complete, the PyTorch
 Go to the **pytorch/scripts** directory and run the script based on the selected version. (Note: The downloaded native PyTorch source code must match the following version. Otherwise, an error may occur.)
 
 ```sh
+cd ../scripts
 // The default version is 1.5.0.
 bash gen.sh
 // For version 1.8.1, use the -v option to specify the version number.
@@ -73,6 +84,7 @@ The full code adapted to NPUs is generated in the **pytorch/pytorch/** directory
 Go to the **pytorch/pytorch/** directory and install the Python dependency.
 
 ```python3
+cd ../pytorch
 pip3 install -r requirements.txt
 ```
 
@@ -102,6 +114,7 @@ The generated binary package is in the **pytorch/pytorch/dist/** directory.
 **torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl** (The actual name may contain the minor version number, for example, **torch-1.5.0.post2+ascend-cp37-cp37m-linux_x86_64.whl**.)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 ```
@@ -111,6 +124,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 **torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl** (The actual name may contain the minor version number, for example, **torch-1.5.0.post2+ascend-cp37-cp37m-linux_aarch64.whl**.)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 ```
@@ -123,7 +137,8 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 Run the script for setting environment variables in the root directory of the current repository.
 
 ```
-source pytorch/env.sh
+cd ../
+source env.sh
 ```
 
 
@@ -153,9 +168,9 @@ Verify the execution. The output result is OK.
 
 ```shell
 // Select a test script that matches the preceding version. The following uses the 1.5.0 version as an example.
-python3 pytorch1.5.0/test/test_npu/test_div.py
+python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 // The following uses the 1.8.1 version as an example.
-python3 pytorch1.8.1/test/test_npu/test_div.py
+python3 pytorch1.8.1/test/test_npu/test_network_ops/test_div.py
 ```
 
 # Documentation
@@ -205,13 +220,13 @@ After the installation is successful, run **make clean** and then **bash build.s
 Development state:
 
 ```
-cd /urs/local/ascend-toolkit/latest/fwkacllib/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
 ```
 
 User state:
 
 ```
-cd /urs/local/nnae/latest/fwkacllib/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
