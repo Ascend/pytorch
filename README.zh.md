@@ -183,11 +183,11 @@ pip3 install typing_extensions
 
 开发态:
 
-cd /urs/local/ascend-toolkit/latest/fwkacllib/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
 
 用户态:
 
-cd /urs/local/nnae/latest/fwkacllib/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
