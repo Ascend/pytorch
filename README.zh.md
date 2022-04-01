@@ -69,7 +69,7 @@ git submodule update --init --recursive
 
 ```sh
 cd ../scripts/
-bash gen.sh ../pytorch_v1.5.0
+bash gen.sh
 ```
 
 会在pytorch/pytorch_v1.5.0/目录中生成npu适配全量代码
@@ -80,7 +80,7 @@ bash gen.sh ../pytorch_v1.5.0
 进入到pytorch/pytorch_v1.5.0/目录，依赖库安装:
 
 ```python3
-cd ../pytorch/pytorch_v1.5.0
+cd ../pytorch_v1.5.0
 pip3 install -r requirements.txt
 ```
 
@@ -134,7 +134,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 在pytorch/pytorch_v1.5.0/中执行设置环境变量脚本
 
 ```
-cd ..
+cd ../
 source env.sh
 ```
 
