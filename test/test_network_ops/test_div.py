@@ -18,7 +18,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor, UT_FAST_MODE
+from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor
 from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
 
@@ -59,8 +59,7 @@ class TestDiv(TestCase):
             cpu_output = np.floor_divide(cpu_input1.numpy(), cpu_input2.numpy())
 
         self.assertRtolEqual(cpu_output, npu_output)
-        
-    @unittest.skipIf(UT_FAST_MODE, "Run UT in fast mode")
+
     def test_div_shape_format_fp16(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -75,7 +74,6 @@ class TestDiv(TestCase):
             cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.half)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @unittest.skipIf(UT_FAST_MODE, "Run UT in fast mode")
     def test_div_shape_format_fp32(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7), (2, 0, 2)]
@@ -111,8 +109,7 @@ class TestDiv(TestCase):
         cpu_output = cpu_input1 / torch.tensor(0.5)
         npu_output = npu_input1 / torch.tensor(0.5).npu()
         self.assertRtolEqual(cpu_output, npu_output.cpu())
-        
-    @unittest.skipIf(UT_FAST_MODE, "Run UT in fast mode")
+
     def test_div_shape_format_fp32(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
