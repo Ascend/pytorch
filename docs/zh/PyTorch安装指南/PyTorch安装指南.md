@@ -80,8 +80,9 @@
 
         ```
         git clone https://gitee.com/ascend/pytorch.git
-        # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
-        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+        # 默认是master分支，若需要其他分支请使用git checkout 命令切换
+        cd pytorch
+        git checkout -b v1.5.0 remotes/origin/v1.5.0
         ```
 
         下载的源码主要目录结构如下所示：
@@ -97,18 +98,17 @@
         ```
         
     2.  在当前仓根目录“/pytorch“下获取原生PyTorch源代码。
-        - 若安装pytorch1.5.0版本，执行如下命令。
-    
-          ```
-      git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-          ```
+        
+        ```
+        git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
+        ```
     
 3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
     
-        ```
-        cd  pytorch
+    ```
+    cd  pytorch
     git submodule sync
-        git submodule update --init --recursive
+    git submodule update --init --recursive
     ```
     
     >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -149,7 +149,8 @@
     进入“pytorch/pytorch/dist“文件夹目录，执行如下命令安装。
 
     ```
-    pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+    cd dist/
+    pip3 install --upgrade torch-1.5.0+ascend.post5-cp37-cp37m-linux_{arch}.whl
     ```
 
     **\{arch\}**表示架构信息，为aarch64或x86\_64。
@@ -166,7 +167,8 @@
 1.  配置运行环境变量，在适配昇腾AI处理器的PyTorch源代码根目录中运行如下命令。
 
     ```
-    source pytorch/env.sh
+    cd ../
+    source env.sh
     ```
 
 2.  请依据实际场景，选择合适的HCCL初始化方式，并配置相应环境变量。
