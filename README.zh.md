@@ -50,13 +50,13 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
-git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git pytorch_v1.5.0
+git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 ```
 
-进入到pytorch/pytorch_v1.5.0/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
+进入到pytorch/pytorch/目录下, 获取PyTorch被动依赖代码(获取时间较长，请耐心等待)。
 
 ```sh
-cd pytorch_v1.5.0
+cd pytorch
 git submodule sync
 git submodule update --init --recursive
 ```
@@ -72,22 +72,22 @@ cd ../scripts/
 bash gen.sh
 ```
 
-会在pytorch/pytorch_v1.5.0/目录中生成npu适配全量代码
+会在pytorch/pytorch/目录中生成npu适配全量代码
 
 
 ## python依赖库
 
-进入到pytorch/pytorch_v1.5.0/目录，依赖库安装:
+进入到pytorch/pytorch/目录，依赖库安装:
 
 ```python3
-cd ../pytorch_v1.5.0
+cd ../pytorch
 pip3 install -r requirements.txt
 ```
 
 
 ## 编译torch的二进制包
 
-在pytorch/pytorch_v1.5.0/目录，执行
+在pytorch/pytorch/目录，执行
 
 ```sh
 # python3.7版本
@@ -99,7 +99,7 @@ bash build.sh --python=3.7（推荐）
 bash build.sh --python=3.8
 ```
 
-生成的二进制包在pytorch/pytorch_v1.5.0/dist/目录下
+生成的二进制包在pytorch/pytorch/dist/目录下
 
 # 安装
 
