@@ -166,7 +166,7 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 ```shell
 // 根据前述版本，选择对应的测试脚本，以下为1.5.0版本
 cd ../
-python3 pytorch1.5.0/test/test_npu/test_div.py
+python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 ```
 
 # 文档
@@ -214,11 +214,11 @@ pip3 install typing_extensions
 
 开发态:
 
-cd /urs/local/ascend-toolkit/latest/fwkacllib/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
 
 用户态:
 
-cd /urs/local/nnae/latest/fwkacllib/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
