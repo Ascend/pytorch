@@ -41,6 +41,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
    ```
    git clone https://gitee.com/ascend/pytorch.git
    # 当前master分支为pytorch 1.8.1版本，需要1.5.0版本请使用git checkout 命令切换到v1.5.0对应版本分支
+   cd pytorch
    git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
    ```
 
@@ -49,7 +50,6 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
-cd pytorch
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git pytorch_v1.5.0
 ```
 
@@ -68,7 +68,7 @@ git submodule update --init --recursive
 进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
 
 ```sh
-cd ../scripts
+cd ../scripts/
 bash gen.sh ../pytorch_v1.5.0
 ```
 
