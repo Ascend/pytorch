@@ -40,8 +40,8 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
    ```
    git clone https://gitee.com/ascend/pytorch.git
-   # 默认是masterf分支，若需要其他分支请使用git checkout 命令切换
-   # git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
+   # 当前master分支为pytorch 1.8.1版本，需要1.5.0版本请使用git checkout 命令切换到v1.5.0对应版本分支
+   git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
    ```
 
 ## 获取原生PyTorch源代码和third_party代码
