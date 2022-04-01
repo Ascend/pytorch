@@ -81,7 +81,8 @@
        ```
        git clone https://gitee.com/ascend/pytorch.git
        # 默认是master分支，master分支时pytorch1.8.1版本，若需要其他分支请使用git checkout 命令切换
-       # git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
+       cd pytorch
+       git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
        ```
 
    3.  在当前仓根目录“/pytorch”下获得原生Pytorch源代码并重命名为pytorch_v1.8.1。
@@ -100,7 +101,6 @@
       cd  pytorch_v1.8.1
       git submodule sync
       git submodule update --init --recursive
-      cd ..
       ```
 
    >![](public_sys-resources/icon-note.gif) **说明：** 
@@ -110,7 +110,7 @@
     1. 将patch打入Pytorch源码并编译。
 
        ```
-       cd patch
+       cd ../patch
        bash apply_patch.sh ../pytorch_v1.8.1
        cd ../pytorch_v1.8.1
        指定python版本编包方式:
@@ -147,7 +147,7 @@
     进入“pytorch/dist“文件夹目录，执行如下命令安装torch_npu包。
 
     ```
-    cd dist
+    cd ../dist
     pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
     ```
     
@@ -163,7 +163,8 @@
 1.  配置运行环境变量，在适配昇腾AI处理器的PyTorch源代码根目录中运行如下命令。
 
     ```
-    source pytorch/env.sh
+    cd ../
+    source env.sh
     ```
 
 2.  请依据实际场景，选择合适的HCCL初始化方式，并配置相应环境变量。
