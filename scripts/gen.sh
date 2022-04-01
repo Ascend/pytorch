@@ -17,7 +17,7 @@
 
 CUR_DIR=$(dirname $(readlink -f $0))
 ROOT_DIR=$CUR_DIR/..
-PT_DIR=$ROOT_DIR/pytorch
+PT_DIR=$ROOT_DIR/pytorch_v1.5.0
 Version=1.5.0
 function main()
 {
