@@ -61,46 +61,28 @@ namespace at_npu
     }
 
     at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
-    {  
-      at::Tensor selfTemp = self;
-      at::Tensor otherTemp = other;
-      if (self.scalar_type() == at::ScalarType::Int) {
-        selfTemp = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-      }
-
-      if (other.scalar_type() == at::ScalarType::Int||other.scalar_type() == at::ScalarType::Bool) {
-        otherTemp = NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Float);
-      }
+    {
       // calculate the output size
-      at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfTemp) ? otherTemp : selfTemp;
-      auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
+      at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
+      auto outputSize = broadcast_ops_npu_output_size(self, other);
       OpPreparation::CheckOut(
-          {selfTemp},
+          {self},
           result,
           CalcuOpUtil::get_tensor_npu_format(outputTensor),
-          selfTemp.scalar_type(),
+          self.scalar_type(),
           outputSize);
-      div_out_npu_nocheck(selfTemp, otherTemp, result);
+      div_out_npu_nocheck(self, other, result);
 
       return result;
     }
 
     at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &other)
     {
-      at::Tensor selfTemp = self;
-      at::Tensor otherTemp = other;
-      if (self.scalar_type() == at::ScalarType::Int) {
-        selfTemp = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-      }
-
-      if (other.scalar_type() == at::ScalarType::Int||other.scalar_type() == at::ScalarType::Bool) {
-        otherTemp = NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Float);
-      }
       // calculate the output size
-      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfTemp);
-      at::Tensor outputTensor = isSelfWrapped ? otherTemp : selfTemp;
+      bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+      at::Tensor outputTensor = isSelfWrapped ? other : self;
 
-      auto outputSize = broadcast_ops_npu_output_size(selfTemp, otherTemp);
+      auto outputSize = broadcast_ops_npu_output_size(self, other);
 
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
@@ -109,7 +91,7 @@ namespace at_npu
           CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
       // calculate the output result of the NPU
-      div_out_npu_nocheck(selfTemp, otherTemp, result);
+      div_out_npu_nocheck(self, other, result);
 
       return result;
     }

@@ -30,14 +30,14 @@ class TestDiv(TestCase):
         cpu_output = torch.div(cpu_args[0], cpu_args[1]).to(dtype).numpy()
         npu_output = torch.div(npu_args[0], npu_args[1]).to("cpu").numpy()
         return cpu_output, npu_output
-    
+
     def get_outputs_chk(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
         cpu_out = torch.randn(6).to(dtype)
         npu_out = torch.randn(6).to("npu").to(dtype)
         cpu_args = [i.float() if dtype == torch.half else i for i in cpu_args]
-        torch.div(cpu_args[0], cpu_args[1], out = cpu_out)
-        torch.div(npu_args[0], npu_args[1], out = npu_out)
+        torch.div(cpu_args[0], cpu_args[1], out=cpu_out)
+        torch.div(npu_args[0], npu_args[1], out=npu_out)
         cpu_output = cpu_out.to(dtype).numpy()
         npu_output = npu_out.to("cpu").numpy()
         return cpu_output, npu_output
@@ -49,9 +49,9 @@ class TestDiv(TestCase):
     # div not support bool
     @Dtypes(torch.float, torch.half, torch.int)
     def test_div_dtype(self, dtype):
-        cpu_input1, npu_input1 = create_dtype_tensor((2,3,4,5), dtype)
+        cpu_input1, npu_input1 = create_dtype_tensor((2, 3, 4, 5), dtype)
         # divisor can not be zero
-        cpu_input2, npu_input2 = create_dtype_tensor((2,3,4,5), dtype, no_zero=True)
+        cpu_input2, npu_input2 = create_dtype_tensor((2, 3, 4, 5), dtype, no_zero=True)
         cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], dtype)
 
         # div 在int结果为负数时采用截断而不是向下取整的方式取整，所以选用numpy比较
@@ -91,13 +91,13 @@ class TestDiv(TestCase):
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input4], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
-        
+
     def test_div_mix_dtype_2(self, device="npu"):
         npu_input1, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         npu_input3 = torch.tensor(3).int()
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input3], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
-    
+
     def test_div_scalar_dtype(self, device="npu"):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / 0.5
@@ -110,7 +110,7 @@ class TestDiv(TestCase):
         npu_output = npu_input1 / torch.tensor(0.5).npu()
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    def test_div_shape_format_fp32(self, device="npu"):
+    def test_div_shape_format_fp32_1(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
@@ -120,7 +120,7 @@ class TestDiv(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
             cpu_output, npu_output = self.get_outputs_chk([cpu_input1, cpu_input2],
-                                                         [npu_input1, npu_input2], torch.float)
+                                                          [npu_input1, npu_input2], torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
 
