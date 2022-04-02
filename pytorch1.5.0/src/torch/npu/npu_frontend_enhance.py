@@ -55,6 +55,8 @@ def set_aoe(dump_path):
     else:
         try:
             os.makedirs(dump_path)
+            option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
+            torch._C._npu_setOption(option)
         except Exception:
             raise ValueError("the path of '%s' is invaild."%(dump_path))
 
