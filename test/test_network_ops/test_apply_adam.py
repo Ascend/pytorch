@@ -30,14 +30,14 @@ class TestApplyAdam(TestCase):
         grad2 = grad1.to(torch.half)
         res1, _, v1_o = torch_npu.npu_apply_adam(1, 1, 0.2, 0.2, 0.2, 0.2, grad1, False, False, out = (var1, m1, v1))
         res2, _, v2_o = torch_npu.npu_apply_adam(1, 1, 0.2, 0.2, 0.2, 0.2, grad2, False, False, out = (var2, m2, v2))
-        expect_vo = torch.tensor([[[[1.7452, 0.1779],
-                                    [1.6296, 3.0590]],
-                                   [[1.7282, 0.0648],
-                                    [0.6864, 0.4539]]],
-                                   [[[1.5883, 2.6426],
-                                    [0.3080, 0.1884]],
-                                   [[0.3690, 1.9991],
-                                    [3.0633, 0.4669]]]], dtype = torch.float32)
+        expect_vo = torch.tensor([[[[2.2156, -0.1393],
+                                    [0.6441, 0.3087]],
+                                   [[0.9008, -0.0295],
+                                    [0.0776, 0.0773]]],
+                                   [[[0.1105, 1.0725],
+                                    [0.8731, 0.4582]],
+                                   [[0.1653, 0.3091],
+                                    [0.3175, 0.0998]]]], dtype = torch.float32)
         self.assertRtolEqual(expect_vo, v1_o.cpu())
         self.assertRtolEqual(expect_vo.to(torch.half), v2_o.cpu())
 
