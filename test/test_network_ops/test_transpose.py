@@ -28,7 +28,7 @@ class TestTransepose(TestCase):
             return output
 
         def npu_op_exec(input1, perm):
-            output = input1.npu_transpose(perm)
+            output = torch_npu.npu_transpose(input1, perm)
             output = output.to("cpu")
             output = output.numpy()
             return output
