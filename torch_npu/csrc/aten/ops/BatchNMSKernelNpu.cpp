@@ -29,15 +29,15 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::n
     bool transpose_box) {
   at::Tensor nmsed_boxes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size, 4},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
   at::Tensor nmsed_scores = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
   at::Tensor nmsed_classes = OpPreparation::ApplyTensor(
       {self.size(0), max_total_size},
-      self.options().dtype(at::kHalf),
+      self.options(),
       self);
   at::Tensor nmsed_num = OpPreparation::ApplyTensor(
       {self.size(0)},
