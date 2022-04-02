@@ -250,6 +250,7 @@ class ProcessGroupHCCL : public ProcessGroup {
 
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
+  void release_resource() override;
  protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
