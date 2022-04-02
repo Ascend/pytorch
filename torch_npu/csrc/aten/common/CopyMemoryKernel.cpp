@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <ATen/ATen.h>
-#include <ATen/npu/Exceptions.h>
+#include <c10/util/Exception.h>
 #include <c10/npu/NPUStream.h>
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -65,7 +65,7 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
 
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
-  AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
+  C10_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
       self.data_ptr(),
       dst_size * self.itemsize(),
       src.data_ptr(),
@@ -73,7 +73,7 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
       ACL_MEMCPY_DEVICE_TO_DEVICE));
   if (!non_blocking) {
     c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-    AT_NPU_CHECK(aclrtSynchronizeStream(stream));
+    C10_NPU_CHECK(aclrtSynchronizeStream(stream));
   }
   return self;
 }

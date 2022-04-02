@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include <ATen/ATen.h>
-#include <ATen/npu/Exceptions.h>
+#include <c10/util/Exception.h>
 #include <c10/npu/NPUGuard.h>
 
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -152,13 +152,13 @@ void copy_between_host_and_device(
   at::Tensor tmp = dst.is_npu() ? src : dst;
   c10::Storage tmpSt = tmp.storage();
   bool is_pinned = THNPUCachingHostAllocator_isPinndPtr(tmp.data_ptr());
-  AT_NPU_CHECK(
+  C10_NPU_CHECK(
       c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
     void* ptr = dst.is_npu() ? src_ptr : dst_ptr;
-    AT_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
+    C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);
     if (error != ACL_ERROR_NONE) {

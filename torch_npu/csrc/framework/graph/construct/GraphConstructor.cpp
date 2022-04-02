@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <c10/util/Exception.h>
 
 #include "GraphConstructor.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -72,7 +73,7 @@ void GraphCommandImpl::AddInput(
     uint32_t offset;
     ReduceScalarValue(input, type, offset);
     int deviceIndex = 0;
-    AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+    C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
     auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at::kNPU, deviceIndex).dtype(type));
     GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
     GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);

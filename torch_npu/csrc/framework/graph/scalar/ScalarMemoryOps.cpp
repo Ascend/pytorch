@@ -1,3 +1,5 @@
+#include <c10/util/Exception.h>
+
 #include "ScalarMemoryOps.h"
 
 namespace at_npu {
@@ -21,12 +23,12 @@ void ScalarMemContext::ExecuteH2D(c10::npu::NPUStream stream) {
     return;
   }
   int deviceIndex = 0;
-  AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
       at::TensorOptions().device(at::kNPU, deviceIndex).dtype(at::kByte));
   
-  AT_NPU_CHECK(
+  C10_NPU_CHECK(
       aclrtMemcpyAsync(
           npu_tensor_.data_ptr(),
           host_mem_valid_len_,
@@ -34,7 +36,7 @@ void ScalarMemContext::ExecuteH2D(c10::npu::NPUStream stream) {
           host_mem_valid_len_,
           ACL_MEMCPY_HOST_TO_DEVICE,
           stream));
-  AT_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_tensor_.data_ptr(), stream));
+  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_tensor_.data_ptr(), stream));
 
   // reset pin memory
   cpu_tensor_.reset();
@@ -51,7 +53,7 @@ void ScalarMemContext::CheckForExpand(uint32_t input_valid_len) {
       {expand_tensor_size},
       at::TensorOptions().pinned_memory(true).device(at::kCPU).dtype(at::kByte));
   
-  AT_NPU_CHECK(
+  C10_NPU_CHECK(
       aclrtMemcpy(
           cpu_tensor_.data_ptr(),
           host_mem_valid_len_,

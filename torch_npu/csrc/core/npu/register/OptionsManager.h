@@ -16,10 +16,10 @@
 #ifndef __TORCH_NPU_OPTIONSMANAGER_H__
 #define __TORCH_NPU_OPTIONSMANAGER_H__
 
-#include <ATen/npu/Exceptions.h>
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <c10/util/Exception.h>
 
 namespace torch_npu {
 namespace option {

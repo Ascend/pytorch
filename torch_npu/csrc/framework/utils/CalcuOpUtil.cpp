@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <Python.h>
+#include <c10/util/Exception.h>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -150,7 +151,7 @@ namespace at_npu
       else
       {
         NPU_LOGE("unsupport scalar type! ");
-        AT_NPU_CHECK(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
+        C10_NPU_CHECK(ACL_ERROR_UNSUPPORTED_DATA_TYPE);
       }
 
       return expScalar;
@@ -168,7 +169,7 @@ namespace at_npu
     {
       at::Tensor cpuPinMemTensor = cpu_tensor.pin_memory();
       int deviceIndex = 0;
-      AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+      C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
       return cpuPinMemTensor.to(
           c10::Device(c10::DeviceType::NPU, deviceIndex),
           cpuPinMemTensor.scalar_type(),
@@ -183,7 +184,7 @@ namespace at_npu
         size_t src_size,
         aclrtMemcpyKind kind)
     {
-      AT_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
+      C10_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
           dst, dst_size, const_cast<void *>(src), src_size, kind));
 
       return SUCCESS;

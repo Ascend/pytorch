@@ -14,10 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/NPUGeneratorImpl.h>
 #include <torch/csrc/python_headers.h>
 
 #include <ATen/ATen.h>
-#include <ATen/npu/NPUGeneratorImpl.h>
 #include <TH/TH.h>
 #include <c10/npu/NPUException.h>
 #include <c10/npu/NPUFunctions.h>
