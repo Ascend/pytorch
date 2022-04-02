@@ -20,22 +20,22 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TesBatchNms(TestCase):
     def test_batch_nms_shape_format(self):
-        boxes = torch.randn(8, 2, 4, 4, dtype = torch.float32).to("npu")
-        scores = torch.randn(3, 2, 4, dtype = torch.float32).to("npu")
-        boxes_fp16 = boxes.to(torch.half)
-        scores_fp16 = scores.to(torch.half)
-        nmsed_boxes, nmsed_scores, nmsed_classes, nmsed_num = torch_npu.npu_batch_nms(boxes, scores, 0.3, 0.5, 3, 4)
-        boxes1, scores1, classes1, num1 = torch_npu.npu_batch_nms(boxes_fp16, scores_fp16, 0.3, 0.5, 3, 4)
-        expedt_nmsed_classes = torch.tensor([[0.0000, 2.1250, 0.0000, 1.8750],
+        boxes = torch.randn(8, 4, 1, 4).npu()
+        scores = torch.randn(8, 4, 1).npu()
+        boxes_fp16 = boxes.half()
+        scores_fp16 = scores.half()
+        nmsed_boxes, nmsed_scores, nmsed_classes, nmsed_num = torch_npu.npu_batch_nms(boxes, scores, 0.3, 0.5, 4, 4)
+        boxes1, scores1, classes1, num1 = torch_npu.npu_batch_nms(boxes_fp16, scores_fp16, 0.3, 0.5, 4, 4)
+        expedt_nmsed_classes = torch.tensor([[0.0000, 0.0000, 0.0000, 0.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 1.8750, 0.0000, 2.0000],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 2.0000, 0.0000, 2.1250],
-                                             [0.0000, 2.1250, 0.0000, 1.8750],
                                              [0.0000, 0.0000, 0.0000, 0.0000],
-                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype = torch.float16)
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000],
+                                             [0.0000, 0.0000, 0.0000, 0.0000]], dtype = torch.float32)
         self.assertRtolEqual(expedt_nmsed_classes, nmsed_classes.cpu())
-        self.assertRtolEqual(expedt_nmsed_classes, classes1.cpu())
+        self.assertRtolEqual(expedt_nmsed_classes.half(), classes1.cpu())
 
 if __name__ == "__main__":
     run_tests()
