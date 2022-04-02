@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -19,8 +20,9 @@
 #include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/core/npu/SecondaryStreamGuard.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include <ATen/npu/NPUGeneratorImpl.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
+#include <ATen/NPUGeneratorImpl.h>
 
 namespace at_npu {
 namespace native {

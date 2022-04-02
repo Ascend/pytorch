@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <c10/util/Exception.h>
+
 #include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
@@ -29,7 +31,7 @@ namespace at_npu
     {
       if (input.defined() == false)
       {
-        AT_NPU_CHECK(ACL_ERROR_INVALID_PARAM);
+        C10_NPU_CHECK(ACL_ERROR_INVALID_PARAM);
       }
       return AddInputAndOutput(input, output);
     }
