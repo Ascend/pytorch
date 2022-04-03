@@ -23,6 +23,11 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeFunctions::glu_out(const at::Tensor& self, int64_t dim, at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+
   TORCH_CHECK(self.dim() > 0, "glu does not support 0-dimensional at::Tensors");
   auto wrap_dim = at::maybe_wrap_dim(dim, self.dim());
   const int64_t nIn = self.size(wrap_dim);

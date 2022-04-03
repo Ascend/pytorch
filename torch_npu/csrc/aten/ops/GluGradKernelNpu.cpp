@@ -23,6 +23,12 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeFunctions::glu_backward_out(const at::Tensor &grad_output, const at::Tensor &self, int64_t dim, at::Tensor &result) {
+  auto outputSize = input_same_output_size(self);
+  OpPreparation::CheckOut(
+      {grad_output, self},
+      result,
+      grad_output,
+      outputSize);
 
   TORCH_CHECK(self.dim() > 0, "glu does not support 0-dimensional Tensors");
   auto wrap_dim = at::maybe_wrap_dim(dim, self.dim());
