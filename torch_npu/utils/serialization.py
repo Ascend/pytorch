@@ -16,6 +16,7 @@
 
 import pickle
 import argparse
+import copy
 import torch
 import torch.nn as nn
 import torch.serialization as se
@@ -64,30 +65,31 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     path: The destination file for the data saving operation. all the writes from 
     the same host will override each other.
     """
+    deepcopy_obj = copy.deepcopy(obj)
 
-    if isinstance(obj, torch.Tensor):
-        obj = obj.cpu()
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    if isinstance(deepcopy_obj, torch.Tensor):
+        deepcopy_obj = deepcopy_obj.cpu()
+        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
-    elif isinstance(obj, tuple):
-        list_obj = list(obj)
+    elif isinstance(deepcopy_obj, tuple):
+        list_obj = list(deepcopy_obj)
         to_cpu(list_obj)
-        obj = tuple(list_obj)
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+        deepcopy_obj = tuple(list_obj)
+        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
-    elif isinstance(obj, (container_abcs.Sequence, container_abcs.Mapping)):
-        to_cpu(obj)
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(deepcopy_obj, (container_abcs.Sequence, container_abcs.Mapping)):
+        to_cpu(deepcopy_obj)
+        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
-    elif isinstance(obj, nn.Module):
-        obj = obj.cpu()
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(deepcopy_obj, nn.Module):
+        deepcopy_obj = deepcopy_obj.cpu()
+        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
-    elif isinstance(obj, argparse.Namespace):
-        dict_obj = vars(obj)
+    elif isinstance(deepcopy_obj, argparse.Namespace):
+        dict_obj = vars(deepcopy_obj)
         to_cpu(dict_obj)
-        obj = argparse.Namespace(**dict_obj)
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+        deepcopy_obj = argparse.Namespace(**dict_obj)
+        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
         
     else:
         se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
@@ -100,4 +102,4 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     Returns:
     The loaded data.
     """
-    return se.load(f, map_location, pickle_module, **pickle_load_args)
+    return se.load(f, 'cpu', pickle_module, **pickle_load_args)
