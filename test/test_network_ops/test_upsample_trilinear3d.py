@@ -19,19 +19,20 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+# 3d need input1's dim is 5
 class TestUpsamleTrilinear3D(TestCase):
-    def get_shapeFormat(self):
-        shape_format2 = [
-            [[np.float32, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
-            [[np.float32, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
-        ]
-        return shape_format2    
+    def get_format(self):
+        shape_format = [
+                        [[np.float32, -1, (5, 3, 2, 6, 4)], [10, 10, 10]],
+                        [[np.float32, -1, (2, 3, 6, 2, 4)], [10, 10, 10]],
+                        ]
+        return shape_format
 
     def cpu_op_exec(self, input1, size):
         output = torch.nn.functional.interpolate(input1, size, mode="trilinear")
         output = output.numpy()
         return output
-
+    
     def npu_op_exec(self, input1, size):
         output = torch.nn.functional.interpolate(input1, size, mode="trilinear")
         output = output.to("cpu")
@@ -49,32 +50,54 @@ class TestUpsamleTrilinear3D(TestCase):
         output = output.numpy()
         return output
 
-    def test_upsample_trilinear3d_shape_format(self, device="npu"):
-        shape_format2 = self.get_shapeFormat()
-        for item in shape_format2:
-            cpu_input2, npu_input2 = create_common_tensor(item[0], 0, 50)
-            if cpu_input2 == torch.float16:
-                cpu_input2 = cpu_input2.to(torch.float32)
+    def test_upsample_trilinear3d_shape_format(self):
+        shape_format = self.get_format()
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            if cpu_input == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]
-            cpu_output = self.cpu_op_exec(cpu_input2, size)
-            npu_output = self.npu_op_exec(npu_input2, size)
+            cpu_output = self.cpu_op_exec(cpu_input, size)
+            npu_output = self.npu_op_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_upsample_trilinear3d_shape_format_scale(self, device="npu"):
-        shape_format2 = self.get_shapeFormat()
-        for item in shape_format2:
-            cpu_input2, npu_input2 = create_common_tensor(item[0], 0, 50)
-            if cpu_input2 == torch.float16:
-                cpu_input2 = cpu_input2.to(torch.float32)
+    def test_upsample_trilinear3d_shape_format_scale(self):
+        shape_format = self.get_format()
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            if cpu_input == torch.float16:
+                cpu_input = cpu_input.to(torch.float32)
 
             size = item[1]
-            cpu_output = self.cpu_op_scale_exec(cpu_input2, size)
-            npu_output = self.npu_op_scale_exec(npu_input2, size)
+            cpu_output = self.cpu_op_scale_exec(cpu_input, size)
+            npu_output = self.npu_op_scale_exec(npu_input, size)
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
-    
+
+    def test_upsample_trilinear3d(self):
+        format_list = [-1, 2, 30, 32]
+        dtype_list = [np.float32, np.float16]
+        shape_list = [[5, 3, 2, 6, 4],[2, 3, 6, 2, 4]]
+        scalar_list = [[10, 10, 10]]
+        shape_format = [[[d, f, s], sc] for d in dtype_list for f in format_list 
+                          for s in shape_list for sc in scalar_list]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 0, 50)
+            cpu_input = cpu_input.to(torch.float32)
+
+            size = item[1]
+            cpu_output = self.cpu_op_exec(cpu_input, size)
+            npu_output = self.npu_op_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_output = self.cpu_op_scale_exec(cpu_input, size)
+            npu_output = self.npu_op_scale_exec(npu_input, size)
+            cpu_output = cpu_output.astype(npu_output.dtype)
+            self.assertRtolEqual(cpu_output, npu_output)
+
     def test_upsample_trilinear3d_fp16(self, device="npu"):
         cpu_x = torch.randn(10, 56, 56, 96, 11).half()
         npu_x = cpu_x.npu()
