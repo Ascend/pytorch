@@ -21,7 +21,7 @@ namespace native {
 
 at::Tensor celu_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::Scalar alpha) {
   OpCommand cmd;
-  cmd.Name("Celu")
+  cmd.Name("CeluV2")
         .Input(self)
         .Output(result)
         .Attr("alpha", alpha)
