@@ -25,6 +25,7 @@ class TestYoloBoxesEncode(TestCase):
         return out.detach().numpy()
         
     def test_yolo_boxes_encode(self, device="npu"):
+        torch.manual_seed(1234)
         anchor_boxes_list = [(2, 4)]
         gt_bboxes_list = [(2 ,4)]
         stride_list = [[2, 2]]

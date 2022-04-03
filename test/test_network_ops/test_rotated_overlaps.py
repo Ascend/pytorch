@@ -22,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestRotatedOverlaps(TestCase):
     def generate_rto_data(self, item):
+        np.random.seed(1234)
         min_value, max_value = 30, 60
         scope = 20
         dtype = item[0][0]
