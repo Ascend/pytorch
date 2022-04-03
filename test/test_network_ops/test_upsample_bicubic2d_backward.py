@@ -39,46 +39,23 @@ class TestUpsampleBicubic2dBackward(TestCase):
         output_grad = input1.grad
         output_grad = output_grad.to("cpu").detach().numpy()
         return output_grad
-    
-    def backward_create_shape_format32(self):
-        dtype_list2 = [np.float32]
-        format_list2 = [-1]
-        shape_list2 = [(1, 1, 1, 1), (1, 31, 149, 2), (32, 32, 32, 32)]
-        size_list2 = [(2, 2), (4, 4)]
-        align_corners_list2 = [True, False]
-        scale_h2 = [0, 0.5]
-        scale_w2 = [0, 0.5]
-
-        shape_format = [[[i, j, k], h, f, e, g] for i in dtype_list2
-                        for j in format_list2 for k in shape_list2 
-                        for h in size_list2 for f in align_corners_list2
-                        for e in scale_h2 for g in scale_w2]
-        
-        return shape_format
-
-    def backward_create_shape_format16(self):
-        dtype_list3 = [np.float16]
-        format_list3 = [-1]
-        shape_list3 = [(1, 1, 1, 1), (1, 31, 149, 2), (32, 32, 32, 32)]
-        size_list3 = [(2, 2), (4, 4)]
-        align_corners_list3 = [True, False]
-        scale_h3 = [0, 0.5]
-        scale_w3 = [0, 0.5]
-
-        shape_format1 = [[[i, j, k], h, f, e, g] for i in dtype_list3
-                        for j in format_list3 for k in shape_list3
-                        for h in size_list3 for f in align_corners_list3
-                        for e in scale_h3 for g in scale_w3]
-        
-        return shape_format1
 
     def test_upsample_bicubic2d_common_shape_format(self):
-        for item in self.backward_create_shape_format32():
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 255)
+        shape_format = [
+            [[np.float32, -1, (1, 1, 1, 1)], (1, 1), True, 0, 0, 0, 255],
+            [[np.float32, -1, (2, 65535, 2, 2)], (2, 2), True, 0, 0, 0, 255],
+            [[np.float32, -1, (10, 10, 786432, 8)], (786432, 8), False, 0, 0, 0, 255],
+            [[np.float32, -1, (1, 1, 1, 1)], (2, 2), True, 0, 0, 0, 255],
+            [[np.float32, -1, (1, 1, 2, 2)], (4, 4), True, 0, 0, 0, 255],
+            [[np.float32, -1, (1, 1, 1, 1)], (2, 2), False, 0.5, 0.5, 0, 255],
+            [[np.float32, -1, (1, 1, 2, 2)], (4, 4), False, 0.5, 0.5, 0, 255],
+            [[np.float32, -1, (32, 32, 32, 32)], (64, 64), False, 0.5, 0.5, 0, 3402823500.0]
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], item[5], item[6])
             cpu_output = self.cpu_op_exec(cpu_input1, item[1], item[2], item[3], item[4])
             npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3], item[4])
             self.assertRtolEqual(cpu_output, npu_output)
-
 
     def test_upsample_bicubic2d_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, output_size, align_corners, scale_h, scale_w):
@@ -90,9 +67,19 @@ class TestUpsampleBicubic2dBackward(TestCase):
             output_grad = output_grad.detach().numpy()
             output_grad = output_grad.astype(np.float16)
             return output_grad
-        
-        for item in self.backward_create_shape_format16():
-            cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 255)
+
+        shape_format = [
+            [[np.float16, -1, (1, 1, 1, 1)], (1, 1), True, 0, 0, 0, 255],
+            [[np.float16, -1, (2, 65535, 2, 2)], (2, 2), True, 0, 0, 0, 255],
+            [[np.float16, -1, (32, 32, 32, 32)], (32, 32), False, 0, 0, 0, 6550.0],
+            [[np.float16, -1, (1, 1, 1, 1)], (2, 2), True, 0, 0, 0, 255],
+            [[np.float16, -1, (1, 1, 1, 1)], (2, 2), False, 0.5, 0.5, 0, 255],
+            [[np.float16, -1, (1, 1, 2, 2)], (4, 4), False, 0.5, 0.5, 0, 255],
+            [[np.float16, -1, (32, 32, 32, 32)], (64, 64), False, 0.5, 0.5, 0, 6550.0]
+        ]
+
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], item[5], item[6])
             cpu_output = cpu_op_exec_fp16(cpu_input1, item[1], item[2], item[3], item[4])
             npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3], item[4])
             self.assertRtolEqual(cpu_output, npu_output)
