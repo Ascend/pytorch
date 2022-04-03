@@ -19,6 +19,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class TestDeformableConv2dBackward(TestCase):
     def create_single_npu_tensor(self, item, minvalue, maxvalue):
         dtype = item[0]
@@ -31,6 +32,7 @@ class TestDeformableConv2dBackward(TestCase):
         return npu_input
 
     def test_deformable_conv2d_backward_fp32(self):
+        np.random.seed(1234)
         input1 = self.create_single_npu_tensor([np.float32, 0, (16, 32, 32, 32)], 0, 10)
         weight = self.create_single_npu_tensor([np.float32, 0, (32, 32, 5, 5)], 0, 10)
         offset = self.create_single_npu_tensor([np.float32, 0, (16, 75, 32, 32)], 0, 10)
@@ -54,16 +56,16 @@ class TestDeformableConv2dBackward(TestCase):
         self.assertRtolEqual(expect_offset_out, offset_out_select.cpu().detach())
 
         input_grad = input1.grad.select(1, 2).select(1, 2).select(1, 3)
-        expect_input_grad = torch.tensor([1018.3082, 1080.2413, 2533.7673, 1305.1088, 3977.8022, 2363.5249,
-                                          1414.8381, 2117.0735, 1400.9083, 2064.4629, 1945.1212, 2338.8213, 
-                                          300.2924, 2646.9910, 1898.9320, 2165.8921])
+        expect_input_grad = torch.tensor([1018.5208, 1080.2323, 2533.2463, 1305.0685, 3977.8293, 2363.5681,
+                                          1414.5939, 2116.5427, 1401.0662, 2064.0400, 1945.2327, 2338.5208,
+                                          300.2462, 2646.7798, 1899.1229, 2165.7280])
         self.assertRtolEqual(expect_input_grad, input_grad.cpu())
 
         offest_grad = offset.grad.select(1, 2).select(1, 2).select(1, 3)
-        expect_offest_grad = torch.tensor([-4707.2891, -139.2936, -2391.8394, 31024.4375, 19856.1621,
-                                           -1205.9329, -24091.1953, -3947.4133, -31050.9805, 4570.9854, 
-                                           582.9227, -5515.2178, 78396.9062, -1778.6783, -14314.9893,
-                                           -2066.9614])
+        expect_offest_grad = torch.tensor([-4708.0259, -139.2554, -2387.8149, 31017.8438, 19861.9528,
+                                           -1209.2686, -24085.7285, -3950.3850, -31044.7070, 4571.3936,
+                                           582.9868, -5514.0459, 78401.6562, -1778.3700, -14311.4365,
+                                           -2065.9717])
         self.assertRtolEqual(expect_offest_grad, offest_grad.cpu())
 
         weight_grad = weight.grad.select(1, 2).select(1, 2).select(1, 3)
@@ -77,6 +79,7 @@ class TestDeformableConv2dBackward(TestCase):
         self.assertRtolEqual(expect_weight_grad, weight_grad.cpu())
 
     def test_deformable_conv2d_backward_fp16(self):
+        np.random.seed(1234)
         input_fp16 = self.create_single_npu_tensor([np.float16, 0, (16, 32, 32, 32)], 0, 10)
         weight = self.create_single_npu_tensor([np.float16, 0, (32, 32, 5, 5)], 0, 10)
         offset = self.create_single_npu_tensor([np.float16, 0, (16, 75, 32, 32)], 0, 10)

@@ -31,6 +31,7 @@ class TestDeformableConv2d(TestCase):
         return npu_input
 
     def test_deformable_conv2d_fp32(self):
+        np.random.seed(1234)
         input1 = self.create_single_npu_tensor([np.float32, 0, (16, 32, 32, 32)], 0, 10)
         weight = self.create_single_npu_tensor([np.float32, 0, (32, 32, 5, 5)], 0, 10)
         offset = self.create_single_npu_tensor([np.float32, 0, (16, 75, 32, 32)], 0, 10)
@@ -50,6 +51,7 @@ class TestDeformableConv2d(TestCase):
         self.assertRtolEqual(expect_offset_out, offset_out_select.cpu().detach())
     
     def test_deformable_conv2d_fp16(self):
+        np.random.seed(1234)
         input_fp16 = self.create_single_npu_tensor([np.float16, 0, (16, 32, 32, 32)], 0, 10)
         weight = self.create_single_npu_tensor([np.float16, 0, (32, 32, 5, 5)], 0, 10)
         offset = self.create_single_npu_tensor([np.float16, 0, (16, 75, 32, 32)], 0, 10)
