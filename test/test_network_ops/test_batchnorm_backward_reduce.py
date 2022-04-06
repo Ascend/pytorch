@@ -36,6 +36,7 @@ class TestBatchNormBackwardReduce(TestCase):
         return list2
 
     def test_batch_norm_backward_reduce_mix_precision(self, device="npu"):
+        np.random.seed(1234)
         shape_format = [
             [[np.float16, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
                                  True, True, True],
@@ -61,6 +62,7 @@ class TestBatchNormBackwardReduce(TestCase):
                 self.assertRtolEqual(out16, out32)
 
     def test_batch_norm_backward_reduce(self, device="npu"):
+        np.random.seed(1234)
         shape_format = [
             [[np.float32, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
                                  True, True, True],

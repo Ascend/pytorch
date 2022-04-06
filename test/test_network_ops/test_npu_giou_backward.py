@@ -53,6 +53,7 @@ class TestNpuGiouBackward(TestCase):
         return output, box1_grad, box2_grad
 
     def test_npu_giou_backward_shape_format(self):
+        np.random.seed(1234)
         shape_list1 = [
             [1, 1]
         ]

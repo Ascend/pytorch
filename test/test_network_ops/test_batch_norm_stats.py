@@ -37,6 +37,7 @@ class TestBatchNormStats(TestCase):
         return out_mean, out_invstd
 
     def test_batch_norm_stats(self, device="npu"):
+        np.random.seed(1234)
         shape_format = [
             [[np.float16, -1, [2, 3, 12, 12]], 1e-5],
         ]
