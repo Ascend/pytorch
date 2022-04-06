@@ -149,6 +149,27 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
       momentum,
       eps);
 
+  // BNTrainingUpdate can only support FP32 for mean, var and scale
+  at::Tensor running_mean_fp32 = running_mean;
+  at::Tensor running_var_fp32 = running_var;
+  at::Tensor weight_fp32 = weight;
+
+  if (train) {
+    if (running_mean.scalar_type() != at::kFloat) {
+      running_mean_fp32 =
+          NPUNativeFunctions::npu_dtype_cast(running_mean, at::kFloat);
+    }
+
+    if (running_var.scalar_type() != at::kFloat) {
+      running_var_fp32 =
+          NPUNativeFunctions::npu_dtype_cast(running_var, at::kFloat);
+    }
+
+    if (weight.scalar_type() != at::kFloat) {
+      weight_fp32 = NPUNativeFunctions::npu_dtype_cast(weight, at::kFloat);
+    }
+  }
+
   batch_norm_training_update_nocheck(
       result,
       save_mean,
@@ -156,10 +177,10 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
       self,
       sum,
       square_sum,
-      weight,
+      weight_fp32,
       bias,
-      running_mean,
-      running_var,
+      running_mean_fp32,
+      running_var_fp32,
       train,
       momentum,
       eps);
