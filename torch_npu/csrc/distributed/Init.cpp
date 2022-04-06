@@ -120,17 +120,7 @@ void broadcast_coalesced(
       in_flight.front().finish();
       in_flight.pop_front();
     }
-    int split_num = (bucket.size() / 30) + 1;
-    int split_size = bucket.size() / split_num;
-
-    for (int i=0; i<split_num; i++) {
-      std::vector<at::Tensor> split_bucket;
-      split_bucket.reserve((i+1)*split_size > bucket.size() ? bucket.size() - i * split_size : split_size);
-      auto start_itr = std::next(bucket.begin(), i*split_size);
-      auto end_itr = (i+1)*split_size > bucket.size() ? bucket.end() : std::next(bucket.begin(), (i+1)*split_size);
-      std::for_each(start_itr, end_itr, [&tensors, &split_bucket](size_t index) { split_bucket.push_back(tensors[index]); });
-      in_flight.emplace_back(process_group, split_bucket, rank);
-    }
+    in_flight.emplace_back(process_group, c10::fmap(bucket, lookup));
   }
 
   while (!in_flight.empty()) {
