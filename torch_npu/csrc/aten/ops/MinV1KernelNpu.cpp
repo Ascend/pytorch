@@ -93,12 +93,11 @@ public:
     ctx->saved_data["dim"] = dim;
     ctx->saved_data["keepdim"] = keepdim;
     ctx->saved_data["size"] = self.sizes();
-
-    auto result = min_v1_npu(self, dim, keepdim);
-    auto result1 = std::get<1>(result);
-    ctx->saved_data["indices"] = result1;
     at::AutoNonVariableTypeMode g;
-    tensor_list result_list = {std::get<0>(result), result1};
+    auto result = min_v1_npu(self, dim, keepdim);
+    auto indices = std::get<1>(result);
+    ctx->save_for_backward({indices});
+    tensor_list result_list = {std::get<0>(result), indices};
     return result_list;
   }
 
@@ -107,8 +106,8 @@ public:
     auto dim = ctx->saved_data["dim"].toInt();
     auto keepdim = ctx->saved_data["keepdim"].toBool();
     auto size = ctx->saved_data["size"].toIntVector();
-    auto indices = ctx->saved_data["indices"].toTensor();
-
+    auto saved = ctx->get_saved_variables();
+    auto indices = saved[0];
     at::Tensor result = NPUNativeFunctions::npu_min_backward(
         grad_outputs[0], dim, indices, size, keepdim);
     tensor_list output = {result, at::Tensor(), at::Tensor()};

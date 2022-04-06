@@ -213,34 +213,32 @@ public:
     auto result = gru_npu(input, hx, weight_input, weight_hidden,
         bias_input, bias_hidden, seq_length, has_biases, num_layers, dropout, train, bidirectional, batch_first);
     auto result0 = result[0];
-    ctx->saved_data["result0"] = result0;
     auto result1 = result[1];
-    ctx->saved_data["result1"] = result1;
     auto result2 = result[2];
-    ctx->saved_data["result2"] = result2;
     auto result3 = result[3];
-    ctx->saved_data["result3"] = result3;
     auto result4 = result[4];
-    ctx->saved_data["result4"] = result4;
     auto result5 = result[5];
-    ctx->saved_data["result5"] = result5;
-    ctx->saved_data["seq_length"] = seq_length;
 
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({weight_input, weight_hidden, input, bias_input, bias_hidden, hx});
+    ctx->save_for_backward({weight_input, 
+        weight_hidden, 
+        input, 
+        bias_input, 
+        bias_hidden, 
+        hx,
+        result0,
+        result1,
+        result2,
+        result3,
+        result4,
+        result5,
+        seq_length
+        });
     return result;
   }
 
   static tensor_list backward(AutogradContext *ctx,
     tensor_list grad_outputs) {
-    auto result0 = ctx->saved_data["result0"].toTensor();
-    auto result1 = ctx->saved_data["result1"].toTensor();
-    auto result2 = ctx->saved_data["result2"].toTensor();
-    auto result3 = ctx->saved_data["result3"].toTensor();
-    auto result4 = ctx->saved_data["result4"].toTensor();
-    auto result5 = ctx->saved_data["result5"].toTensor();
-    auto seq_length = ctx->saved_data["seq_length"].toTensor();
-
     auto saved = ctx->get_saved_variables();
     auto weight_input = saved[0];
     auto weight_hidden = saved[1];
@@ -248,6 +246,13 @@ public:
     auto bias_input = saved[3];
     auto bias_hidden = saved[4];
     auto hx = saved[5];
+    auto result0 = saved[6];
+    auto result1 = saved[7];
+    auto result2 = saved[8];
+    auto result3 = saved[9];
+    auto result4 = saved[10];
+    auto result5 = saved[11];
+    auto seq_length = saved[12];
     
     tensor_list result = NPUNativeFunctions::npu_gru_backward(
         grad_outputs[0],

@@ -144,10 +144,9 @@ public:
     double p) {
     ctx->saved_data["p"] = p;
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({self});
     auto result = _dropout_with_byte_mask_new(self, p);
     auto result1 = std::get<1>(result);
-    ctx->saved_data["output"] = result1;
+    ctx->save_for_backward({result1});
     tensor_list result_list = {std::get<0>(result), result1};
     return result_list;
   }
@@ -155,9 +154,8 @@ public:
   static tensor_list backward(AutogradContext *ctx,
     tensor_list grad_outputs) {
     auto p = ctx->saved_data["p"].toDouble();
-    auto mask = ctx->saved_data["output"].toTensor();
     auto saved = ctx->get_saved_variables();
-
+    auto mask = saved[0];
     at::Tensor result = NPUNativeFunctions::_dropout_with_byte_mask_backward(grad_outputs[0], mask, p);
     tensor_list output = {result, at::Tensor()};
     return output;

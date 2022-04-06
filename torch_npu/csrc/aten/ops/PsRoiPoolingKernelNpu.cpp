@@ -122,12 +122,11 @@ public:
     ctx->saved_data["spatial_scale"] = spatial_scale;
     ctx->saved_data["group_size"] = group_size;
     ctx->saved_data["output_dim"] = output_dim;
-    ctx->saved_data["rois"] = rois;
     c10::SmallVector<int64_t, N> input_size_vec = {self.size(2), self.size(3)};
     at::IntArrayRef input_size(input_size_vec);
     ctx->saved_data["input_size"] = input_size;
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({self});
+    ctx->save_for_backward({self, rois});
     return ps_roi_pooling(self, rois, spatial_scale, group_size, output_dim);
   }
 
@@ -137,9 +136,10 @@ public:
     auto group_size = ctx->saved_data["group_size"].toInt();
     auto output_dim = ctx->saved_data["output_dim"].toInt();
     auto input_size = ctx->saved_data["input_size"].toIntVector();
-    auto rois = ctx->saved_data["rois"].toTensor();
     auto saved = ctx->get_saved_variables();
     auto self = saved[0];
+    auto rois = saved[1];
+
 
     at::Tensor result = NPUNativeFunctions::npu_ps_roi_pooling_backward(grad_outputs[0],
         rois,
