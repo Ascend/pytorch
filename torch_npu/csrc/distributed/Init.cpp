@@ -299,7 +299,12 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
            py::arg("rank"),
            py::arg("size"),
            py::arg("timeout") = std::chrono::milliseconds(
-               ::c10d_npu::ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis));
+               ::c10d_npu::ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis))
+      .def("release_resource",
+           [](::c10d_npu::ProcessGroupHCCL& pg) {
+             pg.release_resource();
+           },
+           py::call_guard<py::gil_scoped_release>());
 
   intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL::Options>(
       processGroupHCCL, "Options")
