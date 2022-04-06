@@ -222,7 +222,11 @@ NPUStatus Repository::MakeSureQueueEmpty() {
           s = eventfd_read(efd_empty, &u);
         }
         if (s != 0) {
-          NPU_LOGE("eventfd_read failed !!");
+          if (errno == EINTR) {
+            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
+            continue;
+          }
+          NPU_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
           return INTERNEL_ERROR;
         }
         QUEUE_DEBUG("waiting ok, queue is empty now");
@@ -337,7 +341,11 @@ void Repository::Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec)
           s = eventfd_read(efd_write, &u);
         }
         if (s != 0) {
-          NPU_LOGE("waiting queue not full failed !!");
+          if (errno == EINTR) {
+            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
+            continue;
+          }
+          NPU_LOGE("waiting queue not full failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         DisableInterrupt(RepoRole::WRITER);
@@ -346,13 +354,18 @@ void Repository::Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec)
       continue;
     }
     __sync_synchronize();
-    if (NeedNotify(RepoRole::READER)) {
+    while (NeedNotify(RepoRole::READER)) {
       QUEUE_DEBUG("need notify consumer");
       s = eventfd_write(efd_read, u);
       if (s != 0) {
-        NPU_LOGE("notify consumer failed !!");
+        if (errno == EINTR) {
+          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
+          continue;
+        }
+        NPU_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
         return;
       }
+      break;
     }
   }
   EnableInterrupt(RepoRole::WRITER);
@@ -382,7 +395,11 @@ void Repository::Dequeue() {
       if (IsEmptyQueue()) {
         s = eventfd_read(efd_read, &u);
         if (s != 0) {
-          NPU_LOGE("waiting queue not empty failed !!");
+          if (errno == EINTR) {
+            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
+            continue;
+          }
+          NPU_LOGE("waiting queue not empty failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         DisableInterrupt(RepoRole::READER);
@@ -393,22 +410,32 @@ void Repository::Dequeue() {
     __sync_synchronize();
     notify_empty = need_empty &&
         IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
-    if (notify_empty) {
+    while (notify_empty) {
       QUEUE_DEBUG("need notify make_sure");
       s = eventfd_write(efd_empty, u);
       if (s != 0) {
-        NPU_LOGE("notify make_sure failed !!");
+        if (errno == EINTR) {
+          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
+          continue;
+        }
+        NPU_LOGE("notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
+      break;
     }
     __sync_synchronize();
-    if (NeedNotify(RepoRole::WRITER)) {
+    while (NeedNotify(RepoRole::WRITER)) {
       QUEUE_DEBUG("need notify producer");
       s = eventfd_write(efd_write, u);
       if (s != 0) {
-        NPU_LOGE("notify producer failed !!");
+        if (errno == EINTR) {
+          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
+          continue;
+        }
+        NPU_LOGE("notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
         return;
       }
+      break;
     }
   }
   EnableInterrupt(RepoRole::READER);
