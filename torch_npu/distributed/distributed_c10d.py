@@ -1828,6 +1828,8 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None):
 
     return pg
 
+
 def release_process_group():
+    _default_pg = _get_default_group()
     if _default_pg is not None and is_hccl_available():
         _default_pg.release_resource()
