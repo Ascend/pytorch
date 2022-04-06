@@ -3415,8 +3415,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +#define C10_COMPILE_TIME_MAX_NPUS 16
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUQueue.cpp patch/c10/npu/NPUQueue.cpp
 --- pytorch-v1.8.1/c10/npu/NPUQueue.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUQueue.cpp	2022-03-28 14:22:12.217032721 +0800
-@@ -0,0 +1,632 @@
++++ patch/c10/npu/NPUQueue.cpp	2022-04-06 22:55:25.877661658 +0800
+@@ -0,0 +1,659 @@
 +#include "c10/npu/NPUQueue.h"
 +#include "c10/npu/NPUStream.h"
 +#include "c10/npu/npu_log.h"
@@ -3626,7 +3626,11 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +          s = eventfd_read(efd_empty, &u);
 +        }
 +        if (s != 0) {
-+          NPU_LOGE("eventfd_read failed !!");
++          if (errno == EINTR) {
++            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
++            continue;
++          }
++          NPU_LOGE("eventfd_read failed. s=%zd, errno=%s.", s, strerror(errno));
 +          return INTERNEL_ERROR;
 +        }
 +        QUEUE_DEBUG("waiting ok, queue is empty now");
@@ -3741,7 +3745,11 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +          s = eventfd_read(efd_write, &u);
 +        }
 +        if (s != 0) {
-+          NPU_LOGE("waiting queue not full failed !!");
++          if (errno == EINTR) {
++            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
++            continue;
++          }
++          NPU_LOGE("waiting queue not full failed. s=%zd, errno=%s.", s, strerror(errno));
 +          return;
 +        }
 +        DisableInterrupt(RepoRole::WRITER);
@@ -3750,13 +3758,18 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +      continue;
 +    }
 +    __sync_synchronize();
-+    if (NeedNotify(RepoRole::READER)) {
++    while (NeedNotify(RepoRole::READER)) {
 +      QUEUE_DEBUG("need notify consumer");
 +      s = eventfd_write(efd_read, u);
 +      if (s != 0) {
-+        NPU_LOGE("notify consumer failed !!");
++        if (errno == EINTR) {
++          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
++          continue;
++        }
++        NPU_LOGE("notify consumer failed!! s=%zd, errno=%s", s, strerror(errno));
 +        return;
 +      }
++      break;
 +    }
 +  }
 +  EnableInterrupt(RepoRole::WRITER);
@@ -3786,7 +3799,11 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +      if (IsEmptyQueue()) {
 +        s = eventfd_read(efd_read, &u);
 +        if (s != 0) {
-+          NPU_LOGE("waiting queue not empty failed !!");
++          if (errno == EINTR) {
++            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
++            continue;
++          }
++          NPU_LOGE("waiting queue not empty failed. s=%zd, errno=%s.", s, strerror(errno));
 +          return;
 +        }
 +        DisableInterrupt(RepoRole::READER);
@@ -3797,22 +3814,32 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    __sync_synchronize();
 +    notify_empty = need_empty &&
 +        IsEmptyQueue(); // need_empty && (ret == false || IsEmptyQueue());
-+    if (notify_empty) {
++    while (notify_empty) {
 +      QUEUE_DEBUG("need notify make_sure");
 +      s = eventfd_write(efd_empty, u);
 +      if (s != 0) {
-+        NPU_LOGE("notify make_sure failed !!");
++        if (errno == EINTR) {
++          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
++          continue;
++        }
++        NPU_LOGE("notify make_sure failed. s=%zd, errno=%s.", s, strerror(errno));
 +        return;
 +      }
++      break;
 +    }
 +    __sync_synchronize();
-+    if (NeedNotify(RepoRole::WRITER)) {
++    while (NeedNotify(RepoRole::WRITER)) {
 +      QUEUE_DEBUG("need notify producer");
 +      s = eventfd_write(efd_write, u);
 +      if (s != 0) {
-+        NPU_LOGE("notify producer failed !!");
++        if (errno == EINTR) {
++          QUEUE_DEBUG("EINTR occurs on the eventfd_write");
++          continue;
++        }
++        NPU_LOGE("notify producer failed. s=%zd, errno=%s.", s, strerror(errno));
 +        return;
 +      }
++      break;
 +    }
 +  }
 +  EnableInterrupt(RepoRole::READER);
