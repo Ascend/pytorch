@@ -44,7 +44,7 @@ at::Tensor& baddbmm_nocheck(
 
   at::Tensor alphaMulTensor = NPUNativeFunctions::mul(BatchMatMulTensor, alpha);
   at::Tensor betaMulTensor = NPUNativeFunctions::mul(self, beta);
-  at::add_out(result, alphaMulTensor, betaMulTensor);
+  NPUNativeFunctions::add_out(alphaMulTensor, betaMulTensor, 1, result);
 
   return result;
 }
