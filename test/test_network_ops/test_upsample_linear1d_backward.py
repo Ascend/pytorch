@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import math
 import torch
 import numpy as np
 import torch_npu
@@ -26,15 +25,15 @@ class TestUpsampleLinear1DBackward(TestCase):
         format_list = [0]
         align_list = [True, False]
         dtype_list = [np.float16, np.float32]
-        shape_list = [(17, 13, 1, 15), (38, 7, 1, 7), (61, 41, 1, 1), 
+        shape_list = [(17, 13, 1, 15), (38, 7, 1, 7), (61, 41, 1, 1),
                       (78, 73, 1, 1), (627, 2, 1, 3), (1008, 3, 1, 2)]
-        size = [[1, ], [2, ], [3, ], [4, ], [7, ], [8, ], [15, ], [16, ], [17, ], [32, ], [48, ]]
+        size = [[4, ], [7, ], [8, ], [15, ], [16, ], [17, ], [32, ]]
 
-        shape_format = [[i, j, k, h, f] for i in dtype_list 
+        shape_format = [[i, j, k, h, f] for i in dtype_list
                         for j in format_list for k in shape_list for h in size for f in align_list]
 
         return shape_format
-    
+
     def cpu_op_exec(self, input1, grads, size, align_corners):
         input1.requires_grad_(True)
         output = torch._C._nn.upsample_linear1d(input1, size, align_corners=align_corners)
@@ -46,22 +45,22 @@ class TestUpsampleLinear1DBackward(TestCase):
         input1.requires_grad_(True)
         output = torch._C._nn.upsample_linear1d(input1, size, align_corners=align_corners)
         output = output.to("npu")
-        output.backward(grads)  
+        output.backward(grads)
         gradnpu = input1.grad
         gradnpu = gradnpu.to("cpu")
         output = output.to("cpu")
         return output.detach().numpy(), gradnpu.detach().numpy()
 
-    def cpu_op_scale_exec(self, input1, grads, size):
+    def cpu_op_scale_exec(self, input1, grads, size, align_corners):
         input1.requires_grad_(True)
-        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear")
+        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear", align_corners=align_corners)
         output.backward(grads)
         gradcpu = input1.grad
         return output.detach().numpy(), gradcpu.detach().numpy()
 
-    def npu_op_scale_exec(self, input1, grads, size):
+    def npu_op_scale_exec(self, input1, grads, size, align_corners):
         input1.requires_grad_(True)
-        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear")
+        output = torch.nn.functional.interpolate(input1, scale_factor=size, mode="linear", align_corners=align_corners)
         output = output.to("npu")
         output.backward(grads)
         gradnpu = input1.grad
@@ -113,23 +112,16 @@ class TestUpsampleLinear1DBackward(TestCase):
             self.assertRtolEqual(cpu_grad, npu_grad)
 
     def test_upsample_linear1d_backward_scale(self):
-        test_cases = [
-            [[np.float32, 3, (2, 2, 3)], 0.4],
-            [[np.float32, 0, (2, 1, 1)], 4],
-            [[np.float32, 0, (4, 1, 1)], 2],
-            [[np.float32, 0, (1, 1, 1)], 1],
-        ]
 
-        for item in test_cases:
-            cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
+        for item in self.creat_shape_format():
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
 
-            size = list(item[0][2])
-            size[2] = item[1] * item[0][2][2]
-            size[2] = math.floor(size[2])
+            size = list(item[2])
+            size[3] = item[3][0] * item[2][3]
 
             grad_item = []
-            grad_item.append(item[0][0])
-            grad_item.append(item[0][1])
+            grad_item.append(item[0])
+            grad_item.append(item[1])
             grad_item.append(size)
             cpu_grads, npu_grads = create_common_tensor(grad_item, 0, 100)
 
@@ -151,8 +143,10 @@ class TestUpsampleLinear1DBackward(TestCase):
             if npu_grads.dim() == 4:
                 npu_grads = npu_grads.squeeze(2)
 
-            cpu_output, cpu_grad = self.cpu_op_scale_exec(cpu_input, cpu_grads, item[1])
-            npu_output, npu_grad = self.npu_op_scale_exec(npu_input, npu_grads, item[1])
+            size = item[3]
+            align_corners = item[4]
+            cpu_output, cpu_grad = self.cpu_op_scale_exec(cpu_input, cpu_grads, size, align_corners)
+            npu_output, npu_grad = self.npu_op_scale_exec(npu_input, npu_grads, size, align_corners)
 
             cpu_output = cpu_output.astype(npu_output.dtype)
             cpu_grad = cpu_grad.astype(npu_grad.dtype)

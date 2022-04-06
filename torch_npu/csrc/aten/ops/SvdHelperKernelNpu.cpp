@@ -97,12 +97,10 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_svd_helper(c
     if (!compute_uv) {
       VT_working_copy.zero_();
       U_working_copy.zero_();
-      S_working_copy.zero_();
     }
   } else {
     U_working_copy.zero_();
     VT_working_copy.zero_();
-    S_working_copy.zero_();
   }
 
   return std::make_tuple(U_working_copy, S_working_copy, VT_working_copy);
