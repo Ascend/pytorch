@@ -97,8 +97,7 @@ function main()
     check_python_version
 
     # Find matched dependent Python libraries to current Python version in HCCL compiling
-    hccl_file1=${CUR_DIR}/cmake/public/npu.cmake
-    hccl_file2=${CUR_DIR}/third_party/acl/libs/build_stub.sh
+    hccl_file=${CUR_DIR}/../third_party/acl/libs/build_stub.sh
     if [[ ${PY_VERSION} = '3.7' ]]; then
         dst_py_ver='3.7m'
     else
@@ -108,11 +107,8 @@ function main()
         if [[ ${src_py_ver} = '3.7' ]]; then
             src_py_ver='3.7m'
         fi
-        if [[ $(grep -c "${src_py_ver}" ${hccl_file1}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
-            sed -i "s/python${src_py_ver}/python${dst_py_ver}/g" ${hccl_file1}
-        fi
-        if [[ $(grep -c "${src_py_ver}" ${hccl_file2}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
-            sed -i "s/libpython${src_py_ver}/libpython${dst_py_ver}/g" ${hccl_file2}
+        if [[ $(grep -c "${src_py_ver}" ${hccl_file}) -ne 0 && ${src_py_ver} != ${dst_py_ver} ]]; then
+            sed -i "s/libpython${src_py_ver}/libpython${dst_py_ver}/g" ${hccl_file}
         fi
     done
 

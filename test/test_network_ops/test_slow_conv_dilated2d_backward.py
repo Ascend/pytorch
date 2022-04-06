@@ -65,7 +65,7 @@ class TestSlowConvDilated2dBackward(TestCase):
         self._test_slow_conv_dilated2d_backward_shape_format(device, np.float32)
 
     def _test_slow_conv_dilated2d_backward_shape_format(self, device, dtype):
-
+        np.random.seed(1234)
         weight_grad = []
         input_grad = []
 

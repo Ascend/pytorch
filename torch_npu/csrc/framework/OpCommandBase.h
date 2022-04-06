@@ -15,7 +15,7 @@
 #ifndef __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 #define __PULGIN_NATIVE_UTILS_COMMAND_BASE__
 
-#include <ATen/npu/Exceptions.h>
+#include <c10/util/Exception.h>
 
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
@@ -312,7 +312,7 @@ protected:
   at::Tensor CopyHostToDevice(const at::Tensor &cpuTensor) {
     at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
     int deviceIndex = 0;
-    AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+    C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
     auto tensor = cpuPinMemTensor.to(
         c10::Device(c10::DeviceType::NPU, deviceIndex),
         cpuPinMemTensor.scalar_type(),

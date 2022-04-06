@@ -72,7 +72,7 @@ __all__ = [
     "isend", "irecv", "send", "recv", "P2POp", "batch_isend_irecv", "broadcast", "all_reduce",
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
-    "_get_default_group"
+    "_get_default_group", "release_process_group"
 ]
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
@@ -1827,3 +1827,9 @@ def new_group(ranks=None, timeout=default_pg_timeout, backend=None):
         _store_based_barrier(global_rank, default_store, timeout)
 
     return pg
+
+
+def release_process_group():
+    _default_pg = _get_default_group()
+    if _default_pg is not None and is_hccl_available():
+        _default_pg.release_resource()

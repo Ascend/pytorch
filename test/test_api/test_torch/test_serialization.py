@@ -21,7 +21,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-
+torch_npu.npu.set_device("npu:0")
 
 class NpuMNIST(nn.Module):
 
@@ -50,7 +50,8 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
-            x_loaded = torch.load(path)
+            self.assertExpectedInline(str(x.device), '''npu:0''')
+            x_loaded = torch.load(path, map_location="npu:0")
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
 

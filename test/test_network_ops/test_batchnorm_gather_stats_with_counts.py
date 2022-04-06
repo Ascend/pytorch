@@ -62,6 +62,7 @@ class TestBatchNormGatherStatsWithCounts(TestCase):
         return npu_counts
 
     def test_batch_norm_gather_stats_with_counts(self, device="npu"):
+        np.random.seed(1234)
         shape_format = [
             [[np.float16, -1, [2, 3, 12, 12]], [np.float32, -1, [4, 3]], [np.float32, -1, [4, 3]], \
                     [np.float32, -1, [3]], [np.float32, -1, [3]], 1e-3, 1e-5, [np.float32, -1, [4]], 0],

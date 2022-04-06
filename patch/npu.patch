@@ -1,45 +1,3 @@
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/CMakeLists.txt patch/aten/CMakeLists.txt
---- pytorch-v1.8.1/aten/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/CMakeLists.txt	2022-03-07 18:32:02.076336866 +0800
-@@ -22,9 +22,11 @@
- set(ATen_CPU_INCLUDE)
- set(ATen_THIRD_PARTY_INCLUDE)
- set(ATen_CUDA_SRCS)
-+set(ATen_NPU_SRCS)
- set(ATen_CUDA_SRCS_W_SORT_BY_KEY)
- set(ATen_CUDA_TEST_SRCS)
- set(ATen_CUDA_INCLUDE)
-+set(ATen_NPU_INCLUDE)
- set(ATen_NVRTC_STUB_SRCS)
- set(ATen_HIP_SRCS)
- set(ATen_HIP_SRCS_W_SORT_BY_KEY)
-@@ -44,6 +46,10 @@
-   list(APPEND ATen_CUDA_INCLUDE ${CUDA_INCLUDE_DIRS})
- endif()
- 
-+if(USE_NPU)
-+  list(APPEND ATen_NPU_INCLUDE ${NPU_INCLUDE_DIRS})
-+endif()
-+
- set(TH_LINK_STYLE STATIC)
- add_subdirectory(src/TH)
- set(TH_CPU_INCLUDE
-@@ -110,6 +116,7 @@
- # Pass source, includes, and libs to parent
- set(ATen_CPU_SRCS ${ATen_CPU_SRCS} PARENT_SCOPE)
- set(ATen_CUDA_SRCS ${ATen_CUDA_SRCS} PARENT_SCOPE)
-+set(ATen_NPU_SRCS ${ATen_NPU_SRCS} PARENT_SCOPE)
- set(ATen_CUDA_SRCS_W_SORT_BY_KEY ${ATen_CUDA_SRCS_W_SORT_BY_KEY} PARENT_SCOPE)
- set(ATen_HIP_SRCS ${ATen_HIP_SRCS} PARENT_SCOPE)
- set(ATen_HIP_SRCS_W_SORT_BY_KEY ${ATen_HIP_SRCS_W_SORT_BY_KEY} PARENT_SCOPE)
-@@ -123,6 +130,7 @@
- set(ATen_VEC256_TEST_SRCS ${ATen_VEC256_TEST_SRCS} PARENT_SCOPE)
- set(ATen_CPU_INCLUDE ${ATen_CPU_INCLUDE} PARENT_SCOPE)
- set(ATen_CUDA_INCLUDE ${ATen_CUDA_INCLUDE} PARENT_SCOPE)
-+set(ATen_NPU_INCLUDE ${ATen_NPU_INCLUDE} PARENT_SCOPE)
- set(ATen_HIP_INCLUDE ${ATen_HIP_INCLUDE} PARENT_SCOPE)
- set(ATen_THIRD_PARTY_INCLUDE ${ATen_THIRD_PARTY_INCLUDE} PARENT_SCOPE)
- set(ATen_CPU_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/autocast_mode.h patch/aten/src/ATen/autocast_mode.h
 --- pytorch-v1.8.1/aten/src/ATen/autocast_mode.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/aten/src/ATen/autocast_mode.h	2022-03-07 18:32:02.084336916 +0800
@@ -52,48 +10,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
    }
  } // namespace
  
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt patch/aten/src/ATen/CMakeLists.txt
---- pytorch-v1.8.1/aten/src/ATen/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/CMakeLists.txt	2022-03-07 18:32:02.076336866 +0800
-@@ -85,6 +85,9 @@
- file(GLOB native_quantized_h "native/quantized/*.h" "native/quantized/cpu/*.h")
- file(GLOB native_cpu_h "native/cpu/*.h")
- 
-+file(GLOB npu_h "npu/*.h" "npu/detail/*.h")
-+file(GLOB npu_cpp "npu/*.cpp" "npu/detail/*.cpp")
-+
- file(GLOB native_cuda_cu_sp "native/cuda/Unique.cu" "native/cuda/TensorFactories.cu")
- file(GLOB native_cuda_cu "native/cuda/*.cu")
- exclude(native_cuda_cu "${native_cuda_cu}" ${native_cuda_cu_sp})
-@@ -388,6 +391,11 @@
-   list(APPEND ATen_CUDA_DEPENDENCY_LIBS ATEN_CUDA_FILES_GEN_LIB)
- endif()
- 
-+# Treat npu sources directly as cpu
-+if(USE_NPU)
-+  set(ATen_NPU_SRCS ${ATen_NPU_SRCS} ${npu_cpp})
-+endif()
-+
- if(USE_ROCM)
-   set(ATen_HIP_SRCS ${all_hip_cpp})
-   # caffe2_nvrtc's stubs to driver APIs are useful for HIP.
-@@ -405,7 +413,7 @@
- 
- set(INSTALL_HEADERS ${base_h} ${ATen_CORE_HEADERS})
- if(NOT INTERN_BUILD_MOBILE)
--  list(APPEND INSTALL_HEADERS ${native_h} ${native_cpu_h} ${native_quantized_h} ${cuda_h} ${native_cuda_h} ${native_hip_h} ${cudnn_h} ${hip_h} ${miopen_h})
-+  list(APPEND INSTALL_HEADERS ${native_h} ${native_cpu_h} ${native_quantized_h} ${cuda_h} ${native_cuda_h} ${native_hip_h} ${cudnn_h} ${hip_h} ${miopen_h} ${npu_h})
- else()
-   if(USE_PYTORCH_METAL)
-     if(IOS)
-@@ -456,6 +464,7 @@
- set(ATen_CORE_SRCS ${ATen_CORE_SRCS} PARENT_SCOPE)
- set(ATen_CPU_SRCS ${ATen_CPU_SRCS} PARENT_SCOPE)
- set(ATen_CUDA_SRCS ${ATen_CUDA_SRCS} PARENT_SCOPE)
-+set(ATen_NPU_SRCS ${ATen_NPU_SRCS} PARENT_SCOPE)
- set(ATen_CUDA_SRCS_W_SORT_BY_KEY ${ATen_CUDA_SRCS_W_SORT_BY_KEY} PARENT_SCOPE)
- set(ATen_NVRTC_STUB_SRCS ${ATen_NVRTC_STUB_SRCS} PARENT_SCOPE)
- set(ATen_HIP_SRCS ${ATen_HIP_SRCS} PARENT_SCOPE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/core/dispatch/Dispatcher.h patch/aten/src/ATen/core/dispatch/Dispatcher.h
 --- pytorch-v1.8.1/aten/src/ATen/core/dispatch/Dispatcher.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/aten/src/ATen/core/dispatch/Dispatcher.h	2022-03-07 18:32:02.088336941 +0800
@@ -152,22 +68,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +}
 +
  }
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/Exceptions.h patch/aten/src/ATen/npu/Exceptions.h
---- pytorch-v1.8.1/aten/src/ATen/npu/Exceptions.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/Exceptions.h	2022-03-07 18:32:02.192337599 +0800
-@@ -0,0 +1,3 @@
-+#include <c10/util/Exception.h>
-+
-+#define AT_NPU_CHECK(EXPR) C10_NPU_CHECK(EXPR)
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.cpp patch/aten/src/ATen/npu/NPUGeneratorImpl.cpp
---- pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/NPUGeneratorImpl.cpp	2022-03-07 18:32:02.192337599 +0800
-@@ -0,0 +1,336 @@
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/NPUGeneratorImpl.cpp patch/aten/src/ATen/NPUGeneratorImpl.cpp
+--- pytorch-v1.8.1/aten/src/ATen/NPUGeneratorImpl.cpp	1970-01-01 08:00:00.000000000 +0800
++++ patch/aten/src/ATen/NPUGeneratorImpl.cpp	2022-04-02 16:30:53.433581347 +0800
+@@ -0,0 +1,335 @@
 +#include <ATen/Utils.h>
-+#include <ATen/npu/NPUGeneratorImpl.h>
++#include <ATen/NPUGeneratorImpl.h>
 +#include <c10/core/StreamGuard.h>
 +#include <c10/npu/NPUFunctions.h>
-+#include <ATen/Utils.h>
 +
 +namespace at {
 +namespace npu {
@@ -499,9 +407,9 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +}
 +
 +} // namespace at
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.h patch/aten/src/ATen/npu/NPUGeneratorImpl.h
---- pytorch-v1.8.1/aten/src/ATen/npu/NPUGeneratorImpl.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/aten/src/ATen/npu/NPUGeneratorImpl.h	2022-03-07 18:32:02.192337599 +0800
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/NPUGeneratorImpl.h patch/aten/src/ATen/NPUGeneratorImpl.h
+--- pytorch-v1.8.1/aten/src/ATen/NPUGeneratorImpl.h	1970-01-01 08:00:00.000000000 +0800
++++ patch/aten/src/ATen/NPUGeneratorImpl.h	2022-04-02 16:30:53.433581347 +0800
 @@ -0,0 +1,162 @@
 +#pragma once
 +
@@ -1849,11 +1757,11 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.cpp patch/c10/npu/interface/AsyncTaskQueueInterface.cpp
 --- pytorch-v1.8.1/c10/npu/interface/AsyncTaskQueueInterface.cpp	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/interface/AsyncTaskQueueInterface.cpp	2022-03-08 15:25:36.520231820 +0800
-@@ -0,0 +1,196 @@
++++ patch/c10/npu/interface/AsyncTaskQueueInterface.cpp	2022-04-02 16:30:53.433581347 +0800
+@@ -0,0 +1,229 @@
 +#include "AsyncTaskQueueInterface.h"
-+#include "c10/npu/OptionsManager.h"
 +#include "c10/npu/NPUEventManager.h"
++#include "c10/npu/OptionsManager.h"
 +namespace c10 {
 +namespace npu {
 +namespace queue {
@@ -1874,31 +1782,51 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +}
 +
 +class AsyncCopyTask {
-+public:
-+  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
-+  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Storage& st);
++ public:
++  AsyncCopyTask(
++      void* dst,
++      size_t dstLen,
++      void* src,
++      size_t srcLen,
++      aclrtMemcpyKind kind);
++  AsyncCopyTask(
++      void* dst,
++      size_t dstLen,
++      void* src,
++      size_t srcLen,
++      aclrtMemcpyKind kind,
++      Storage& st);
 +  ~AsyncCopyTask() = default;
 +  void LaunchCopyTask();
 +  void LaunchCopyTask(bool isPinnedMem);
 +
-+private:
++ private:
 +  CopyParas copyParam_;
 +};
 +
 +class EventTask {
-+public:
-+  explicit EventTask(aclrtEvent event, EventAllocatorType allocatorType = RESERVED) :
-+      eventParam_(event, allocatorType) {};
++ public:
++  explicit EventTask(
++      aclrtEvent event,
++      EventAllocatorType allocatorType = RESERVED)
++      : eventParam_(event, allocatorType){};
 +  ~EventTask() = default;
-+  void LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec);
++  void LaunchRecordTask(
++      at::npu::NPUStream npuStream,
++      SmallVector<Storage, N>& needClearVec);
 +  void LaunchWaitTask(at::npu::NPUStream npuStream);
 +  void LaunchLazyDestroyTask();
-+private:
++
++ private:
 +  EventParas eventParam_;
 +};
 +
-+AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
-+{
++AsyncCopyTask::AsyncCopyTask(
++    void* dst,
++    size_t dstLen,
++    void* src,
++    size_t srcLen,
++    aclrtMemcpyKind kind) {
 +  copyParam_.dst = dst;
 +  copyParam_.dstLen = dstLen;
 +  copyParam_.src = src;
@@ -1906,9 +1834,13 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  copyParam_.kind = kind;
 +}
 +
-+AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-+    Storage& st)
-+{
++AsyncCopyTask::AsyncCopyTask(
++    void* dst,
++    size_t dstLen,
++    void* src,
++    size_t srcLen,
++    aclrtMemcpyKind kind,
++    Storage& st) {
 +  copyParam_.dst = dst;
 +  copyParam_.dstLen = dstLen;
 +  copyParam_.src = src;
@@ -1917,8 +1849,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  copyParam_.pinMem.emplace_back(st);
 +}
 +
-+void AsyncCopyTask::LaunchCopyTask()
-+{
++void AsyncCopyTask::LaunchCopyTask() {
 +  if (c10::npu::OptionsManager::CheckQueueEnable()) {
 +    QueueParas params(ASYNC_MEMCPY, sizeof(CopyParas), &copyParam_);
 +    SmallVector<Storage, N> needClearVec;
@@ -1927,7 +1858,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    needClearVec.clear();
 +  } else {
 +    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-+    AT_NPU_CHECK(aclrtMemcpyAsync(
++    C10_NPU_CHECK(aclrtMemcpyAsync(
 +        copyParam_.dst,
 +        copyParam_.dstLen,
 +        copyParam_.src,
@@ -1937,8 +1868,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  }
 +}
 +
-+void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem)
-+{
++void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem) {
 +  if (c10::npu::OptionsManager::CheckQueueEnable() && isPinnedMem) {
 +    QueueParas params(ASYNC_MEMCPY_EX, sizeof(CopyParas), &copyParam_);
 +    SmallVector<Storage, N> needClearVec;
@@ -1947,7 +1877,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    needClearVec.clear();
 +  } else {
 +    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-+    AT_NPU_CHECK(aclrtMemcpyAsync(
++    C10_NPU_CHECK(aclrtMemcpyAsync(
 +        copyParam_.dst,
 +        copyParam_.dstLen,
 +        copyParam_.src,
@@ -1957,23 +1887,33 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  }
 +}
 +
-+aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind)
-+{
++aclError LaunchAsyncCopyTask(
++    void* dst,
++    size_t dstLen,
++    void* src,
++    size_t srcLen,
++    aclrtMemcpyKind kind) {
 +  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind);
 +  copyTask.LaunchCopyTask();
 +  return ACL_ERROR_NONE;
 +}
 +
-+aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-+    Storage& st, bool isPinMem)
-+{
++aclError LaunchAsyncCopyTask(
++    void* dst,
++    size_t dstLen,
++    void* src,
++    size_t srcLen,
++    aclrtMemcpyKind kind,
++    Storage& st,
++    bool isPinMem) {
 +  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, st);
 +  copyTask.LaunchCopyTask(isPinMem);
 +  return ACL_ERROR_NONE;
 +}
 +
-+void EventTask::LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec)
-+{
++void EventTask::LaunchRecordTask(
++    at::npu::NPUStream npuStream,
++    SmallVector<Storage, N>& needClearVec) {
 +  if (c10::npu::OptionsManager::CheckQueueEnable()) {
 +    at::npu::NPUStream currentStream = c10::npu::getCurrentNPUStream();
 +    c10::npu::setCurrentNPUStream(npuStream);
@@ -1981,22 +1921,22 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    c10::npu::enCurrentNPUStream(&params, needClearVec);
 +    c10::npu::setCurrentNPUStream(currentStream);
 +  } else {
-+    AT_NPU_CHECK(aclrtRecordEvent(
-+        eventParam_.event,
-+        npuStream));
++    C10_NPU_CHECK(aclrtRecordEvent(eventParam_.event, npuStream));
 +  }
 +}
 +
-+aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
-+                                            at::npu::NPUStream npuStream,
-+                                            SmallVector<Storage, N>& needClearVec) {
++aclError HostAllocatorLaunchRecordEventTask(
++    aclrtEvent event,
++    at::npu::NPUStream npuStream,
++    SmallVector<Storage, N>& needClearVec) {
 +  EventTask recordTask(event, HOST_ALLOCATOR_EVENT);
 +  recordTask.LaunchRecordTask(npuStream, needClearVec);
 +  return ACL_ERROR_NONE;
 +}
 +
-+aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
-+                                           at::npu::NPUStream npuStream) {
++aclError NpuAllocatorLaunchRecordEventTask(
++    aclrtEvent event,
++    at::npu::NPUStream npuStream) {
 +  EventTask recordTask(event, NPU_ALLOCATOR_EVENT);
 +  SmallVector<Storage, N> needClearVec;
 +  recordTask.LaunchRecordTask(npuStream, needClearVec);
@@ -2019,7 +1959,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    c10::npu::enCurrentNPUStream(&params, needClearVec);
 +    c10::npu::setCurrentNPUStream(currentStream);
 +  } else {
-+    AT_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
++    C10_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
 +  }
 +}
 +
@@ -2035,7 +1975,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +    SmallVector<Storage, N> needClearVec;
 +    c10::npu::enCurrentNPUStream(&params, needClearVec);
 +  } else {
-+    AT_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().LazyDestroy(eventParam_.event));
++    C10_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().LazyDestroy(
++        eventParam_.event));
 +  }
 +}
 +
@@ -4919,12 +4860,12 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/OptionsManager.h patch/c10/npu/OptionsManager.h
 --- pytorch-v1.8.1/c10/npu/OptionsManager.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/OptionsManager.h	2022-03-07 18:32:02.224337802 +0800
++++ patch/c10/npu/OptionsManager.h	2022-04-02 16:30:53.433581347 +0800
 @@ -0,0 +1,30 @@
 +#ifndef __C10_NPU_OPTIONSMANAGER_H__
 +#define __C10_NPU_OPTIONSMANAGER_H__
 +
-+#include <ATen/npu/Exceptions.h>
++#include <c10/util/Exception.h>
 +#include <map>
 +#include <string>
 +#include <unordered_map>
@@ -5623,118 +5564,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 +
 +#endif
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/caffe2/CMakeLists.txt patch/caffe2/CMakeLists.txt
---- pytorch-v1.8.1/caffe2/CMakeLists.txt	2022-03-05 10:10:10.000000000 +0800
-+++ patch/caffe2/CMakeLists.txt	2022-03-07 18:32:02.232337853 +0800
-@@ -76,6 +76,7 @@
-   # Add source, includes, and libs to lists
-   list(APPEND Caffe2_CPU_SRCS ${ATen_CPU_SRCS})
-   list(APPEND Caffe2_GPU_SRCS ${ATen_CUDA_SRCS})
-+  list(APPEND Caffe2_NPU_SRCS ${ATen_NPU_SRCS})
-   list(APPEND Caffe2_GPU_SRCS_W_SORT_BY_KEY ${ATen_CUDA_SRCS_W_SORT_BY_KEY})
-   list(APPEND Caffe2_HIP_SRCS ${ATen_HIP_SRCS})
-   list(APPEND Caffe2_HIP_SRCS ${ATen_HIP_SRCS_W_SORT_BY_KEY})
-@@ -86,6 +87,7 @@
-   list(APPEND Caffe2_VULKAN_TEST_SRCS ${ATen_VULKAN_TEST_SRCS})
-   list(APPEND Caffe2_CPU_INCLUDE ${ATen_CPU_INCLUDE})
-   list(APPEND Caffe2_GPU_INCLUDE ${ATen_CUDA_INCLUDE})
-+  list(APPEND Caffe2_NPU_INCLUDE ${ATen_NPU_INCLUDE})
-   list(APPEND Caffe2_HIP_INCLUDE ${ATen_HIP_INCLUDE})
-   list(APPEND Caffe2_VULKAN_INCLUDE ${ATen_VULKAN_INCLUDE})
-   list(APPEND Caffe2_DEPENDENCY_LIBS ${ATen_CPU_DEPENDENCY_LIBS})
-@@ -770,6 +772,14 @@
-     target_link_libraries(torch_hip PRIVATE __caffe2_nccl)
-     target_compile_definitions(torch_hip PRIVATE USE_NCCL)
-   endif()
-+elseif(USE_NPU)
-+  add_library(torch_npu ${Caffe2_NPU_SRCS})
-+  torch_compile_options(torch_npu)
-+  if (USE_HCCL)
-+    #target_link_libraries(torch_npu PRIVATE __caffe2_hccl)
-+    target_compile_definitions(torch_npu PRIVATE USE_HCCL)
-+  endif()
-+  
- elseif(USE_CUDA)
-   set(CUDA_LINK_LIBRARIES_KEYWORD PRIVATE)
-   if(CUDA_SEPARABLE_COMPILATION)
-@@ -904,7 +914,12 @@
-     ${CMAKE_CURRENT_BINARY_DIR}/../aten/src/ATen
-     ${CMAKE_BINARY_DIR}/aten/src)
- 
--if(USE_TBB)
-+  if(USE_NPU)
-+    # TODO(ascend): support TH/THGeneral.h
-+    list(APPEND ATen_NPU_INCLUDE ${TH_CPU_INCLUDE})
-+  endif()
-+
-+IF (USE_TBB)
-   list(APPEND ATen_CPU_INCLUDE ${TBB_ROOT_DIR}/include)
-   target_link_libraries(torch_cpu PUBLIC tbb)
- endif()
-@@ -1139,6 +1154,10 @@
- # Set standard properties on the target
- torch_set_target_props(torch_cpu)
- 
-+if(USE_NPU)
-+  target_link_libraries(
-+      torch_npu PRIVATE ${Caffe2_NPU_DEPENDENCY_LIBS})
-+endif()
- 
- target_compile_options(torch_cpu PRIVATE "-DCAFFE2_BUILD_MAIN_LIB")
- if(BUILD_SPLIT_CUDA)
-@@ -1156,6 +1175,9 @@
- elseif(USE_ROCM)
-   target_compile_options(torch_hip PRIVATE "-DTORCH_HIP_BUILD_MAIN_LIB")
-   target_compile_definitions(torch_hip PRIVATE "-DTORCH_HIP_BUILD_MAIN_LIB")
-+elseif(USE_NPU)
-+  target_compile_options(torch_npu PRIVATE "-DTORCH_NPU_BUILD_MAIN_LIB")
-+  target_compile_definitions(torch_npu PRIVATE "-DTORCH_NPU_BUILD_MAIN_LIB")
- endif()
- 
- set(EXPERIMENTAL_SINGLE_THREAD_POOL "0" CACHE STRING
-@@ -1249,6 +1271,8 @@
-   endif()
- elseif(USE_ROCM)
-   caffe2_interface_library(torch_hip torch_hip_library)
-+elseif (USE_NPU)
-+  caffe2_interface_library(torch_npu torch_npu_library)
- endif()
- 
- caffe2_interface_library(torch torch_library)
-@@ -1263,6 +1287,8 @@
-   endif()
- elseif(USE_ROCM)
-   install(TARGETS torch_hip torch_hip_library EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
-+elseif (USE_NPU)
-+  install(TARGETS torch_npu torch_npu_library EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
- endif()
- install(TARGETS torch torch_library EXPORT Caffe2Targets DESTINATION "${TORCH_INSTALL_LIB_DIR}")
- 
-@@ -1288,6 +1314,8 @@
-     install(FILES $<TARGET_PDB_FILE:torch_cuda> DESTINATION "${TORCH_INSTALL_LIB_DIR}" OPTIONAL)
-   elseif(USE_ROCM)
-     install(FILES $<TARGET_PDB_FILE:torch_hip> DESTINATION "${TORCH_INSTALL_LIB_DIR}" OPTIONAL)
-+  elseif(USE_NPU)
-+    install(FILES $<TARGET_PDB_FILE:torch_npu> DESTINATION "${TORCH_INSTALL_LIB_DIR}" OPTIONAL)
-   endif()
- endif()
- 
-@@ -1377,6 +1405,15 @@
-   install(TARGETS torch_global_deps DESTINATION "${TORCH_INSTALL_LIB_DIR}")
- endif()
- 
-+# ---[ NPU library
-+if(USE_NPU)
-+  target_link_libraries(torch_npu PUBLIC c10_npu)
-+  target_include_directories(
-+    torch_npu PRIVATE ${ATen_NPU_INCLUDE})
-+  # TODO(ascend): npu code and cpu code is tight coupling, for details: search USE_NPU in function_wrapper.py
-+  target_link_libraries(torch_cpu PUBLIC torch_npu)
-+endif()
-+
- # ---[ Caffe2 HIP sources.
- if(USE_ROCM)
-   # Call again since Caffe2_HIP_INCLUDE is extended with ATen include dirs.
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/cmake/BuildVariables.cmake patch/cmake/BuildVariables.cmake
 --- pytorch-v1.8.1/cmake/BuildVariables.cmake	2022-03-05 10:10:10.000000000 +0800
 +++ patch/cmake/BuildVariables.cmake	2022-03-07 18:32:02.340338536 +0800
@@ -6360,13 +6189,13 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      return it->second;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/Generator.cpp patch/torch/csrc/Generator.cpp
 --- pytorch-v1.8.1/torch/csrc/Generator.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/Generator.cpp	2022-03-07 18:32:03.088343269 +0800
++++ patch/torch/csrc/Generator.cpp	2022-04-02 16:30:53.433581347 +0800
 @@ -18,6 +18,10 @@
  #include <ATen/CUDAGeneratorImpl.h>
  #endif
  
 +#ifdef USE_NPU
-+#include <ATen/npu/NPUGeneratorImpl.h>
++#include <ATen/NPUGeneratorImpl.h>
 +#endif
 +
  using namespace at;

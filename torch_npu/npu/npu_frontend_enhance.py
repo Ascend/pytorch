@@ -65,14 +65,13 @@ def set_start_fuzz_compile_step(step):
     torch_npu._C._npu_setOption(option)
 
 def set_aoe(dump_path):
-    if os.path.exists(dump_path):
-        option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
-        torch_npu._C._npu_setOption(option)
-    else:
+    if not os.path.exists(dump_path):
         try:
             os.makedirs(dump_path)
         except Exception:
             raise ValueError("the path of '%s' is invaild."%(dump_path))
+    option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
+    torch_npu._C._npu_setOption(option)
 
 class npuEvent(object):
     def __init__(self):    

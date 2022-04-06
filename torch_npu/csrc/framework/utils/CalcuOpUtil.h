@@ -21,8 +21,8 @@
 #include <vector>
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
-#include <ATen/npu/Exceptions.h>
 #include <c10/npu/npu_log.h>
+#include <c10/util/Exception.h>
 #include <c10/npu/interface/AclInterface.h>
 #include <stdint.h>
 

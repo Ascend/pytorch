@@ -1981,6 +1981,28 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
       train_model_one_step()       #模型训练过程样例，一般仅需执行一个step即可，请根据代码实际情况修改。
    ```
    
+   以resnet50模型为实际样例，修改如下。
+   
+   ```
+   #line 427~437
+   model.train()
+   optimizer.zero_grad()
+   end = time.time()
+   torch.npu.set_aoe(dump_path)    #使能接口
+   for i, (images, target) in enumerate(train_loader):
+       if i > 0:             #仅需要运行一个step
+           exit()
+       if i > 100:
+           pass
+       # measure data loading time
+       data_time.update(time.time() - end)
+   
+       if args.gpu is not None:
+           images = images.cuda(args.gpu, non_blocking=True)
+   ```
+   
+   参考链接：https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/cv/classification/ResNet50_for_PyTorch/pytorch_resnet50_apex.py
+   
 2. 算子调优
 
    - 设置环境变量：
@@ -1992,14 +2014,14 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True�
    - 调优：
 
      ```
-     aoe --job_type=2 --model_path ./dump_path
+     aoe --job_type=2 --model_path=./dump_path
      ```
 
      调优过程中，目前仅支持部分算子调优，因此会出现算子调优失败或AI Core error，属于已知问题。
 
    - 调优结果：
 
-     调优完成后，结果会保存在TUNK_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/${HOME}/ascend/latest/data/aoe/custom/op/${soc_version}目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/${soc_version}。
+     调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
 
 #### 注意事项
 

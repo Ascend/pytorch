@@ -24,6 +24,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestRotatedIou(TestCase):
     def generate_rto_data(self, item):
+        np.random.seed(1234)
         minValue, maxValue = 20, 60
         scope = 20
         dtype = item[0][0]

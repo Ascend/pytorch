@@ -98,6 +98,11 @@ apply_class_patches()
 
 # NPU exit, need to synchronize devices
 def _npu_shutdown():
+    if torch_npu.npu.is_available() and \
+            torch_npu.npu.is_initialized() and \
+            torch_npu.distributed.is_available() and \
+            torch_npu.distributed.is_initialized():
+        torch_npu.distributed.release_process_group()
     torch_npu._C._npu_shutdown()
 
 
