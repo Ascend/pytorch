@@ -97,13 +97,7 @@ REGISTER_OPTION_HOOK(ACL_OPTYPELIST_FOR_IMPLMODE, [](const std::string &val)
 REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val)
                       { FuzzyCompileBlacklist::GetInstance().RegisterBlacklist(val); })
 
-REGISTER_OPTION_INIT_BY_ENV(PROFILING_MODE)
-REGISTER_OPTION_BOOL_FUNCTION(CheckProfilingEnable, PROFILING_MODE, "false", "true");
-
 REGISTER_OPTION_HOOK(deliverswitch, [](const std::string &val) {
-  TORCH_CHECK(CheckProfilingEnable(),
-      "before you prepare to deliver op, ",
-      "you should be enture profiling mode is on correctly!");
   if (val == "enable") {
     torch_npu::profiler::NpuProfilingDispatch::Instance().start();
   } else {
