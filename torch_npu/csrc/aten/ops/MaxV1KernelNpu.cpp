@@ -88,10 +88,9 @@ public:
     ctx->saved_data["shape"] = self.sizes();
     ctx->saved_data["keepdim"] = keepdim;
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({self});
     auto result = npu_max_npu(self, dim, keepdim);
     auto indices = std::get<1>(result);
-    ctx->saved_data["indices"] = indices;
+    ctx->save_for_backward({indices});
     tensor_list result_list = {std::get<0>(result), indices};
     return result_list;
   }
@@ -101,8 +100,8 @@ public:
     auto dim = ctx->saved_data["dim"].toInt();
     auto sizes = ctx->saved_data["shape"].toIntVector();
     auto keepdim = ctx->saved_data["keepdim"].toBool();
-    auto indices = ctx->saved_data["indices"].toTensor();
     auto saved = ctx->get_saved_variables();
+    auto indices = saved[0];
     at::Tensor result = NPUNativeFunctions::npu_max_backward(grad_outputs[0], dim, indices, sizes, keepdim);
 
     tensor_list output = {result,

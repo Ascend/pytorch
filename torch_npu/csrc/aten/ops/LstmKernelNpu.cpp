@@ -755,15 +755,15 @@ public:
         weight,
         bias,
         h,
-        c});
-    ctx->saved_data["res0"] = result0;
-    ctx->saved_data["res1"] = result1;
-    ctx->saved_data["res2"] = result2;
-    ctx->saved_data["res3"] = result3;
-    ctx->saved_data["res4"] = result4;
-    ctx->saved_data["res5"] = result5;
-    ctx->saved_data["res6"] = result6;
-    ctx->saved_data["res7"] = result7;
+        c,
+        result0,
+        result1,
+        result2,
+        result3,
+        result4,
+        result5,
+        result6,
+        result7});
     return result;
   }
 
@@ -775,14 +775,14 @@ public:
     auto bias = saved[2];
     auto h = saved[3];
     auto c = saved[4];
-    auto result0 = ctx->saved_data["res0"].toTensor();
-    auto result1 = ctx->saved_data["res1"].toTensor();
-    auto result2 = ctx->saved_data["res2"].toTensor();
-    auto result3 = ctx->saved_data["res3"].toTensor();
-    auto result4 = ctx->saved_data["res4"].toTensor();
-    auto result5 = ctx->saved_data["res5"].toTensor();
-    auto result6 = ctx->saved_data["res6"].toTensor();
-    auto result7 = ctx->saved_data["res7"].toTensor();
+    auto result0 = saved[5];
+    auto result1 = saved[6];
+    auto result2 = saved[7];
+    auto result3 = saved[8];
+    auto result4 = saved[9];
+    auto result5 = saved[10];
+    auto result6 = saved[11];
+    auto result7 = saved[12];
 
     std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> result = NPUNativeFunctions::npu_lstm_backward(
         grad_outputs[0],

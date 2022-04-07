@@ -73,23 +73,21 @@ public:
   static at::Tensor forward(AutogradContext *ctx,
     const at::Tensor& self,
     const at::Tensor& labels) {
-    ctx->saved_data["labels"] = labels;
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({self});
+    ctx->save_for_backward({self, labels});
     return softmax_cross_entropy_with_logits_npu(self, labels);
   }
 
   static tensor_list backward(AutogradContext *ctx,
     tensor_list grad_outputs) {
-    auto labels = ctx->saved_data["labels"].toTensor();
     auto saved = ctx->get_saved_variables();
     auto self = saved[0];
+    auto labels = saved[1];
 
     at::Tensor result = NPUNativeFunctions::npu_softmax_cross_entropy_with_logits_backward(grad_outputs[0],
         self,
         labels);
-    tensor_list output = {result,
-        at::Tensor()};
+    tensor_list output = {result, at::Tensor()};
     return output;
   }
 };

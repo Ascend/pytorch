@@ -140,11 +140,10 @@ public:
     ctx->saved_data["bias_has_value"] = (bias_opt.has_value() == true) ? bias_opt.value().requires_grad() : false;
 
     at::AutoNonVariableTypeMode g;
-    ctx->save_for_backward({input, weight, offset});
     auto result = deformable_conv2d_npu(
         input, weight, offset, bias_opt, kernel_size, stride, padding, dilation, groups, deformable_groups, modulated);
     auto result1 = std::get<1>(result);
-    ctx->saved_data["offset_out"] = result1;
+    ctx->save_for_backward({input, weight, offset, result1});
     tensor_list result_list = {std::get<0>(result), result1};
     return result_list;
   }
@@ -159,12 +158,13 @@ public:
     auto deformable_groups = ctx->saved_data["deformable_groups"].toInt();
     auto modulated = ctx->saved_data["modulated"].toBool();
     auto bias_has_value = ctx->saved_data["bias_has_value"].toBool();
-    auto offset_out = ctx->saved_data["offset_out"].toTensor();
 
     auto saved = ctx->get_saved_variables();
     auto input = saved[0];
     auto weight = saved[1];
     auto offset = saved[2];
+    auto offset_out = saved[3];
+
     tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> result = NPUNativeFunctions::npu_deformable_conv2dbk(
         input, grad_outputs[0], offset_out, weight, offset, kernel_size,
         stride, padding, dilation, groups, deformable_groups, modulated);
