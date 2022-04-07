@@ -217,9 +217,10 @@ if re.match(r'clang', os.getenv('CC', '')):
 
 if DEBUG:
     extra_compile_args += ['-O0', '-g']
-    extra_link_args += ['-O0', '-g']
+    extra_link_args += ['-O0', '-g', '-Wl,-z,now']
 else:
     extra_compile_args += ['-DNDEBUG']
+    extra_link_args += ['-Wl,-z,now,-s']
 
 setup(
         name=os.environ.get('TORCH_NPU_PACKAGE_NAME', 'torch_npu'),
@@ -235,7 +236,7 @@ setup(
                 'torch_npu._C',
                 torch_npu_sources,
                 include_dirs=include_directories,
-                extra_compile_args=extra_compile_args,
+                extra_compile_args=extra_compile_args + ['-fstack-protector-all'],
                 library_dirs=library_dirs,
                 extra_link_args=extra_link_args + \
                         ['-Wl,-rpath,$ORIGIN/torch_npu/lib'],
