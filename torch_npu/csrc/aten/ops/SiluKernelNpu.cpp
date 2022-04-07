@@ -118,5 +118,19 @@ at::Tensor NPUNativeFunctions::npu_silu(const at::Tensor& self) {
   return NPUSiluFunction::apply(self);
 }
 
+at::Tensor& NPUNativeFunctions::silu_out(const at::Tensor& self, at::Tensor& result) {
+  silu_out_npu(self, result);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::silu(const at::Tensor& self) {
+  return NPUSiluFunction::apply(self);
+}
+
+at::Tensor& NPUNativeFunctions::silu_(at::Tensor& self) {
+  silu_out_npu(self, self);
+  return self;
+}
+
 } // namespace native
 } // namespace at_npu

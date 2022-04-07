@@ -15,6 +15,7 @@
 import torch
 import numpy as np
 import torch_npu
+import torch.nn.functional as F
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -37,7 +38,7 @@ class TestSiluBackward(TestCase):
             input1 = input1.as_strided([2,2], [1,2], 1)
         input1.requires_grad = True
         input1.register_hook(input_grad_hook)
-        output = input1 * torch.sigmoid(input1)
+        output = F.silu(input1)
         z = output.sum()
         z.backward()
 
@@ -47,7 +48,7 @@ class TestSiluBackward(TestCase):
         input1.requires_grad = True
         input1.register_hook(npu_input_grad_hook)
 
-        output = torch_npu.npu_silu(input1)
+        output = F.silu(input1)
         z = output.sum()
         z.backward()
         input1 = input1.cpu()
