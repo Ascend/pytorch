@@ -33,9 +33,6 @@
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
-#include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/InferFormat.h"
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace c10d_npu {
 namespace {
@@ -1581,10 +1578,7 @@ std::vector<std::vector<size_t>> compute_bucket_assignment_by_size(
     auto key = BucketKey(tensor.scalar_type(), tensor.device());
     auto& bucket = buckets[key];
     bucket.indices.push_back(tensor_index);
-    aclFormat format = at_npu::native::InferFormat::GuessStorageFormat(
-        tensor.sizes(), (aclFormat)at_npu::native::CalcuOpUtil::get_tensor_npu_format(tensor));
-    int64_t nelements = at_npu::native::StorageDescHelper::GetMemorySize(tensor.sizes(), format);
-    bucket.size += nelements * tensor.element_size();
+    bucket.size += physical_numel(tensor) * tensor.element_size();
 
     // Initialize bucket size limit iterator if necessary.
     if (bucket_size_limit_iterators.count(key) == 0) {
