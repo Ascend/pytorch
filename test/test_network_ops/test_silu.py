@@ -15,6 +15,7 @@
 import torch
 import numpy as np
 import torch_npu
+import torch.nn.functional as F
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -22,12 +23,12 @@ from torch_npu.testing.common_utils import create_common_tensor
 class TestSilu(TestCase):
 
     def cpu_op_exec(self, input1):
-        output = input1 * torch.sigmoid(input1)
+        output = F.silu(input1)
         output = output.numpy()
         return output
 
     def npu_op_exec(self, input1):
-        output = torch_npu.npu_silu(input1)
+        output = F.silu(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
