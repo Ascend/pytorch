@@ -24,6 +24,7 @@ class TestGridAssignPositive(TestCase):
         return out.detach().numpy()
         
     def test_grid_assign_positive(self, device="npu"):
+        torch.manual_seed(1234)
         assigned_gt_inds = torch.rand((4,), dtype=torch.float32).to("npu")
         overlaps = torch.rand((2,4), dtype=torch.float32).to("npu")
         box_responsible_flags = torch.tensor([1,1,1,0], dtype=torch.uint8).to("npu")
