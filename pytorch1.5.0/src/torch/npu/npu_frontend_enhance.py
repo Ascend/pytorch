@@ -95,7 +95,7 @@ class npuEvent(object):
     def update(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True,
                 ACL_PROF_AICORE_METRICS=True, ACL_PROF_AICPU=True,
                 ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
-                ACL_PROF_TRAINING_TRACE=True):
+                ACL_PROF_TRAINING_TRACE=False):
         if not ACL_PROF_ACL_API:
             self.ACL_PROF_ACL_API = 0x00
         if not ACL_PROF_TASK_TIME:
@@ -128,7 +128,7 @@ class aiCoreMetrics(object):
 class profileConfig(object):
     def __init__(self, ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,
                 ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, ACL_PROF_HCCL_TRACE=True,
-                ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+                ACL_PROF_TRAINING_TRACE=False, aiCoreMetricsType=0):                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
         self.NpuEventConfig = npuEvent().update(ACL_PROF_ACL_API, ACL_PROF_TASK_TIME, ACL_PROF_AICORE_METRICS,
                                                 ACL_PROF_AICPU, ACL_PROF_L2CACHE, ACL_PROF_HCCL_TRACE,
                                                 ACL_PROF_TRAINING_TRACE)
