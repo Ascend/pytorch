@@ -56,12 +56,10 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
 
   if (ignore_index >= 0) {
     at::Tensor zero = at::zeros(1, self.options());
-    void* ignore_ptr = reinterpret_cast<uint8_t*>(weight_tensor.data_ptr()) +
-        ignore_index * weight_tensor.itemsize();
     CalcuOpUtil::AclrtMemcpyAsync(
-        ignore_ptr,
+        {weight_tensor, ignore_index},
         weight_tensor.itemsize(),
-        reinterpret_cast<void*>(zero.data_ptr()),
+        {zero, 0},
         weight_tensor.itemsize(),
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
@@ -75,6 +73,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
       .Input(target)
       .Input(weight_tensor)
       .Attr("reduction", reductionStr)
+      .Attr("ignore_index", ignore_index)
       .Output(result)
       .Output(total_weight)
       .Run();
@@ -88,12 +87,19 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
     const c10::optional<at::Tensor>& weight_opt,
     int64_t reduction,
     int64_t ignore_index) {
+  // Check Target Dtype
+  auto scalar_type = target.scalar_type();
+  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
+      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+      " for argument 'target'  in call to nll_loss2d_forward");
+  at::Tensor targetCast = target.to(at::kInt);
+
   auto self_input = self.contiguous();
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = target.contiguous();
-  target_input = target.reshape({-1});
+  auto target_input = targetCast.contiguous();
+  target_input = targetCast.reshape({-1});
 
   // calculate the output size
   auto outputSizes =
