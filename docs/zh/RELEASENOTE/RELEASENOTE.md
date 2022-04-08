@@ -1,5 +1,12 @@
-# FrameworkPTAdapter 2.0.4 版本说明书
--   [FrameworkPTAdapter 2.0.4](#FrameworkPTAdapter-2-0-3md)
+# FrameworkPTAdapter 3.0.RC1 版本说明书
+-   [FrameworkPTAdapter 3.0.RC1](#FrameworkPTAdapter-3-0-RC1md)
+    -   [用户须知](#用户须知md)
+    -   [新增特性](#新增特性md)
+    -   [特性修改](#特性修改md)
+    -   [已修复问题](#已修复问题md)
+    -   [已知问题](#已知问题md)
+    -   [兼容性](#兼容性md)
+-   [FrameworkPTAdapter 2.0.4](#FrameworkPTAdapter-2-0-4md)
     -   [用户须知](#用户须知md)
     -   [新增特性](#新增特性md)
     -   [特性修改](#特性修改md)
@@ -21,7 +28,125 @@
     -   [已知问题](#已知问题-4md)
     -   [兼容性](#兼容性-5md)
 
-<h2 id="FrameworkPTAdapter-2-0-3md">FrameworkPTAdapter 2.0.4</h2>
+-   -   ](#兼容性-5md)
+
+<h2 id="FrameworkPTAdapter-3-0-RC1md">FrameworkPTAdapter 3.0.RC1</h2>
+
+
+<h3 id="用户须知md">用户须知</h3>
+
+本框架基于Facebook主导的开源PyTorch1.5.0和1.8.1版本进行修改，延续原生的PyTorch特性，使用NPU进行动态图训练；以算子粒度进行模型适配，代码重用性好，支持现有的网络只修改设备类型或数据类型，即可迁移到NPU上使用。
+
+PyTorch1.8.1版本采用插件化适配方式，延续PyTorch1.5.0特性，功能基本保持一致，对后端算子适配提供较好开发体验。
+支持AOE调优工具。
+
+<h3 id="新增特性md">新增特性</h3>
+
+**表 1** PyTorch支持的版本特性列表
+
+<a name="t76c34275cbb74753970f7c5a9eb594fa"></a>
+
+<table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.459999999999999%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>一级特性</p>
+</th>
+<th class="cellrowborder" valign="top" width="26.27%" id="mcps1.2.4.1.2"><p id="a4581ffde4a5f455faadfba144243a9d4"><a name="a4581ffde4a5f455faadfba144243a9d4"></a><a name="a4581ffde4a5f455faadfba144243a9d4"></a>二级特性</p>
+</th>
+<th class="cellrowborder" valign="top" width="63.27%" id="mcps1.2.4.1.3"><p id="a2a1562364b09433a83133fa10b3cf2b3"><a name="a2a1562364b09433a83133fa10b3cf2b3"></a><a name="a2a1562364b09433a83133fa10b3cf2b3"></a>说明</p>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr id="row7979351559"><td class="cellrowborder" rowspan="2" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>适配NPU的PyTorch1.5.0特性</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>支持AOE调优工具</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>支持AOE自动调优工具，提升模型性能。</p>
+</td>
+</tr>
+<tr id="row13971435754"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p79831331353"><a name="p79831331353"></a><a name="p79831331353"></a>框架基础功能</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a> 新增适配算子开发（详见API清单）。</p>
+</td>
+</tr>
+<tr id="row7979351559"><td class="cellrowborder" rowspan="3" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>适配NPU的PyTorch1.8.1特性</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>插件化解耦</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>将NPU适配代码解耦迁移至torch_npu插件，实现昇腾适配代码与PyTorch原生代码解耦。</p>
+</td>
+<tr>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>支持AOE调优工具</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>支持AOE自动调优工具，提升模型性能。</p>
+</td>
+</tr>
+<tr id="row109719353511"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p18983183315515"><a name="p18983183315515"></a><a name="p18983183315515"></a>框架API满足度提升</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p836221112812"><a name="p836221112812"></a><a name="p836221112812"></a>支持昇腾PyTorch1.5.0版本已适配API（详情见API清单）。</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+<h3 id="特性修改md">特性修改</h3>
+
+不涉及
+
+<h3 id="已修复问题md">已修复问题</h3>
+
+不涉及
+
+<h3 id="已知问题md">已知问题</h3>
+
+<a name="table1969972073016"></a>
+
+<table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>已知问题</p>
+</th>
+<th class="cellrowborder" valign="top" width="81.78%" id="mcps1.1.3.1.2"><p id="p269919203308"><a name="p269919203308"></a><a name="p269919203308"></a>问题描述</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>数据类型支持</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPU不支持float16类型的inf/nan数据输入输出。</p>
+</td>
+</tr>
+<tr id="row146991520153016"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p156997200308"><a name="p156997200308"></a><a name="p156997200308"></a>数据Format</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p10699182020308"><a name="p10699182020308"></a><a name="p10699182020308"></a>出现4D以上的format时不能降维。</p>
+</td>
+</tr>
+<tr id="row11121205610549"><td class="cellrowborder" rowspan="3" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1647216219558"><a name="p1647216219558"></a><a name="p1647216219558"></a>集合通信约束</p>
+<p id="p0465121912402"><a name="p0465121912402"></a><a name="p0465121912402"></a></p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p3116115695415"><a name="p3116115695415"></a><a name="p3116115695415"></a>要求一次训练任务中不同device上执行的图相同。</p>
+</td>
+</tr>
+<tr id="row51211656105411"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p1311616560541"><a name="p1311616560541"></a><a name="p1311616560541"></a>当前只支持1/2/4/8P粒度的分配。</p>
+</td>
+</tr>
+<tr id="row8647195765419"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p2064225716544"><a name="p2064225716544"></a><a name="p2064225716544"></a>只支持int8，int32，float16和float32数据类型。</p>
+</td>
+</tr>
+<tr id="row4646195719548"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p4642195718541"><a name="p4642195718541"></a><a name="p4642195718541"></a>Apex功能支持</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p864205725412"><a name="p864205725412"></a><a name="p864205725412"></a>Apex当前版本的实现方式主要为python实现，不支持APEX中的自定义优化CUDA Kernel。</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+
+
+<h3 id="兼容性md">兼容性</h3>
+
+A800-9010：CentOS 7.6/Ubuntu 18.04, 2.04/BC-Linux 7.6/Debian 9.9/Debian 10/OpenEuler 20.03 LTS
+
+A800-9000：CentOS 7.6/Ubuntu 18.04, 2.04/Euler 2.8, 2.10/Kylin v10/BC-Linux 7.6/OpenEuler 20.03 LTS/UOS 20 1020e
+
+<h2 id="FrameworkPTAdapter-2-0-4md">FrameworkPTAdapter 2.0.4</h2>
 
 
 <h3 id="用户须知md">用户须知</h3>
