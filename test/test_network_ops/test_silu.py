@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import torch
+import torch.nn.functional as F
 import numpy as np
 import torch_npu
-import torch.nn.functional as F
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
