@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 import torch
 import torch_npu
 
@@ -83,6 +83,20 @@ class TestNllloss2d(TestCase):
         npu_output = self.npu_op_exec(data_npu, target_npu, "sum")
 
         self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_nll_loss2d_case_in_ssdresnet34(self, device="npu"):
+        cpu_plabel = torch.rand(32, 81, 8732).uniform_(-2.3, 2)
+        cpu_glabel = torch.rand(32, 8732).random_(0, 79).long()
+        npu_plabel = cpu_plabel.npu()
+        npu_glabel = cpu_glabel.npu()
+
+        cpu_con_loss = torch.nn.CrossEntropyLoss(reduce=False)
+        npu_con_loss = copy.deepcopy(cpu_con_loss).npu()
+
+        cpu_con = cpu_con_loss(cpu_plabel, cpu_glabel)
+        npu_con = npu_con_loss(npu_plabel, npu_glabel)
+
+        self.assertRtolEqual(cpu_con, npu_con.cpu())
 
 
 if __name__ == "__main__":

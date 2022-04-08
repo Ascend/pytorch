@@ -18,6 +18,7 @@
 #include <c10/util/Exception.h>
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -178,14 +179,19 @@ namespace at_npu
     }
 
     NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
-        void *dst,
+        const std::pair<at::Tensor, int64_t>& dst,
         size_t dst_size,
-        const void *src,
+        const std::pair<at::Tensor, int64_t>& src,
         size_t src_size,
         aclrtMemcpyKind kind)
     {
+      GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
+      void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
+            dst.second * dst.first.itemsize();
+      void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
+            src.second * src.first.itemsize();
       C10_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
-          dst, dst_size, const_cast<void *>(src), src_size, kind));
+          dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
       return SUCCESS;
     }

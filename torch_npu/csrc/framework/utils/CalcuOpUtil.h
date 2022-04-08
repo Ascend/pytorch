@@ -221,9 +221,9 @@ namespace at_npu
           at::ScalarType scalar_data_type);
       static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
       static NPUStatus AclrtMemcpyAsync(
-          void *dst,
+          const std::pair<at::Tensor, int64_t>& dst,
           size_t dst_size,
-          const void *src,
+          const std::pair<at::Tensor, int64_t>& src,
           size_t src_size,
           aclrtMemcpyKind kind);
       static void check_memory_over_laps(
