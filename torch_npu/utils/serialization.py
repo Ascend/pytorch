@@ -27,28 +27,33 @@ DEFAULT_PROTOCOL = 2
 
 def to_cpu(data):
     if isinstance(data, container_abcs.Sequence):
+        copy_data = type(data)([None] * len(data))
         for i, value in enumerate(data):
             if isinstance(value, tuple):
                 list_value = list(value)
-                to_cpu(list_value)
-                data[i] = tuple(list_value)
+                cpu_list_value = to_cpu(list_value)
+                copy_data[i] = tuple(cpu_list_value)
             elif isinstance(value, string_classes):
                 continue
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
-                to_cpu(value)
+                copy_data[i] = to_cpu(value)
             elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
-                data[i] = value.cpu()
+                copy_data[i] = value.cpu()
+        return copy_data
 
     if isinstance(data, container_abcs.Mapping):
+        copy_data = type(data)()
         for key, value in data.items():
             if isinstance(value, tuple):
                 list_value = list(value)
-                to_cpu(list_value)
-                data[key] = tuple(list_value)
+                cpu_list_value = to_cpu(list_value)
+                copy_data[key] = tuple(cpu_list_value)
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
-                to_cpu(value)
+                copy_data[key] = to_cpu(value)
             elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
-                data[key] = value.cpu()
+                copy_data[key] = value.cpu()
+        return copy_data
+    return data.cpu() if isinstance(value, (torch.Tensor, nn.Module)) else data
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=False):
     """Saves the input data into a file.
@@ -65,31 +70,27 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     path: The destination file for the data saving operation. all the writes from 
     the same host will override each other.
     """
-    deepcopy_obj = copy.deepcopy(obj)
 
-    if isinstance(deepcopy_obj, torch.Tensor):
-        deepcopy_obj = deepcopy_obj.cpu()
-        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    if isinstance(obj, torch.Tensor):
+        cpu_obj = obj.cpu()
+        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
-    elif isinstance(deepcopy_obj, tuple):
-        list_obj = list(deepcopy_obj)
-        to_cpu(list_obj)
-        deepcopy_obj = tuple(list_obj)
-        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(obj, tuple):
+        list_obj = list(obj)
+        cpu_obj = tuple(to_cpu(list_obj))
+        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
-    elif isinstance(deepcopy_obj, (container_abcs.Sequence, container_abcs.Mapping)):
-        to_cpu(deepcopy_obj)
-        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(obj, (container_abcs.Sequence, container_abcs.Mapping)):
+        cpu_obj = to_cpu(obj)
+        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
-    elif isinstance(deepcopy_obj, nn.Module):
-        deepcopy_obj = deepcopy_obj.cpu()
-        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(obj, nn.Module):
+        se.save(obj.cpu(), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
-    elif isinstance(deepcopy_obj, argparse.Namespace):
-        dict_obj = vars(deepcopy_obj)
-        to_cpu(dict_obj)
-        deepcopy_obj = argparse.Namespace(**dict_obj)
-        se.save(deepcopy_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    elif isinstance(obj, argparse.Namespace):
+        dict_obj = vars(obj)
+        cpu_obj = argparse.Namespace(**to_cpu(dict_obj))
+        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
         
     else:
         se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
