@@ -1560,10 +1560,6 @@ supported:
   - soft_margin_loss
   - soft_margin_loss_backward.grad_input
   - soft_margin_loss_backward
-  - elu.out
-  - elu
-  - elu_backward
-  - elu_
   - glu.out
   - glu
   - glu_backward.grad_input
@@ -1856,6 +1852,11 @@ supported:
   - _test_string_default
   - _test_ambiguous_defaults.a
   - _test_ambiguous_defaults.b
+
+autograd:
+  - elu.out
+  - elu
+  - elu_
 
 custom:
   - func: npu_transpose_to_contiguous(Tensor self) -> Tensor
