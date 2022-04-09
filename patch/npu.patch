@@ -2779,8 +2779,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 \ No newline at end of file
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/NPUGraph.h patch/c10/npu/NPUGraph.h
 --- pytorch-v1.8.1/c10/npu/NPUGraph.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/NPUGraph.h	2022-03-15 14:32:58.520136235 +0800
-@@ -0,0 +1,208 @@
++++ patch/c10/npu/NPUGraph.h	2022-04-09 15:16:12.367675710 +0800
+@@ -0,0 +1,209 @@
 +#pragma once
 +
 +#include <c10/npu/NPUAny.h>
@@ -2907,6 +2907,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  ATTR_TYPE_STRING,
 +  ATTR_TYPE_LIST_LONG,
 +  ATTR_TYPE_LIST_FLOAT,
++  ATTR_TYPE_LIST_BOOL,
 +  INPUT_TYPE_SCALAR,
 +  INPUT_TYPE_LIST_LONG,
 +  SENSITIVE_FORMAT_OF_INPUT,
