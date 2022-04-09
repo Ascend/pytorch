@@ -1476,8 +1476,6 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
     pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
     ```
-    option={"PROFILING_MODE":"true"}
-    torch.npu.set_option(option)
     for i in range(steps):
         if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
             if i == 10:  ## 在第10个step时，开始使能该功能
@@ -1874,33 +1872,30 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
-with torch.npu.profile
-(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, 
-ACL_PROF_TASK_TIME=True, 
-ACL_PROF_AICORE_METRICS=True,
-ACL_PROF_AICPU=True, 
-ACL_PROF_L2CACHE=False, 
-ACL_PROF_HCCL_TRACE=True, 
-ACL_PROF_TRAINING_TRACE=False, 
-aiCoreMetricsType=0)):
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
 ```
 
--   ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
+- ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
 
 
 - ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
 
 
-- ·ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
+- ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
 
 
--  ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
+- ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
 
-- · ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
+- ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
 
--   ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
+- ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
 
--   ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
+- ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
 
 其中，aiCoreMetricsType的取值和定义如下，默认为0：
 
