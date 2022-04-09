@@ -196,6 +196,9 @@ void ATenGeBridge::AddNodeExtInfoIntoGeOp(
       case NodeExtInfoType::ATTR_TYPE_FLOAT:
         SetGeOpAttr<std::pair<std::string, float>>(info.second, ge_op);
         break;
+      case NodeExtInfoType::ATTR_TYPE_LIST_BOOL:
+        SetGeOpAttr<std::pair<string, vector<bool>>>(info.second, ge_op);
+        break;
       case NodeExtInfoType::ATTR_TYPE_STRING:
         SetGeOpAttr<std::pair<std::string, std::string>>(info.second, ge_op);
         break;

@@ -22,7 +22,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-   
+
 namespace at_npu {
 namespace native {
 using torch::autograd::AutogradContext;
