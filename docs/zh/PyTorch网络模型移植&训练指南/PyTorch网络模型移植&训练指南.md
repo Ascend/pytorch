@@ -1706,21 +1706,39 @@ def main():
   1.  获取性能数据文件。
 
       ```
-      profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，需提前手动创建，请根据实际指定。
-      with torch.npu.profile(profiler_result_path):
+      profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，请根据实际指定。
+      with torch.npu.profile(profiler_result_path, config):  # 一般只需要执行1个step即可，config可默认
           out = model(input_tensor)
           loss=loss_func(out,target)
           loss.backward()
           optimizer.zero_grad()
           optimizer.step()
       ```
-
+      其中config参数用于配置需要获取CANN的性能数据种类，设置方法见[E2E prof高级设置](#E2E prof高级设置)中的config参数说明。
       >![](public_sys-resources/icon-note.gif) **说明：** 
       >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
   2.  解析性能数据文件。
 
-      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南（训练）”章节。
+      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
+
+
+  3. 高级用法
+
+    pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
+    ```
+    for i in range(steps):
+        if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
+            if i == 10:  ## 在第10个step时，开始使能该功能
+                torch.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
+                torch.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
+            torch.npu.iteration_start()  ## 进入每个step时打上开始标记
+            train_one_step()
+            torch.npu.iteration_end()    ## 每个step结束时打上开始标记
+            if i == 110:   ## 在第100个step时，关闭该功能
+                torch.npu.prof_stop()
+                torch.npu.prof_finalize()
+    ```
 
 
 
@@ -2105,32 +2123,30 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, 
-ACL_PROF_TASK_TIME=True, 
-ACL_PROF_AICORE_METRICS=True,
-ACL_PROF_AICPU=True, 
-ACL_PROF_L2CACHE=False, 
-ACL_PROF_HCCL_TRACE=True, 
-ACL_PROF_TRAINING_TRACE=False, 
-aiCoreMetricsType=0)):
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
 ```
 
--   ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
+- ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
 
 
 - ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
 
 
-- ·ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
+- ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
 
 
--  ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
+- ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
 
-- · ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
+- ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
 
--   ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
+- ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
 
--   ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
+- ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
 
 其中，aiCoreMetricsType的取值和定义如下，默认为0：
 
