@@ -34,7 +34,7 @@
 | 30   | torch.full_like               |                   是                   |
 | 31   | torch.quantize_per_tensor     |                   是                   |
 | 32   | torch.quantize_per_channel    |                   是                   |
-| 33   | torch.dequantize              |                   是                   |
+| 33   | torch.dequantize              |                   否                   |
 | 34   | torch.complex                 |                   否                   |
 | 35   | torch.polar                   |                   否                   |
 | 36   | torch.heaviside               |                   否                   |
@@ -96,15 +96,16 @@
 | 15   | torch.randn                   | 是       |
 | 16   | torch.randn_like              | 是       |
 | 17   | torch.randperm                | 是       |
-| 18   | torch.Tensor.bernoulli_()     | 是       |
-| 19   | torch.Tensor.cauchy_()        | 是       |
-| 20   | torch.Tensor.exponential_()   | 否       |
-| 21   | torch.Tensor.geometric_()     | 否       |
-| 22   | torch.Tensor.log_normal_()    | 否       |
-| 23   | torch.Tensor.normal_()        | 是       |
-| 24   | torch.Tensor.random_()        | 是       |
-| 25   | torch.Tensor.uniform_()       | 是       |
-| 26   | torch.quasirandom.SobolEngine | 是       |
+| 18   | torch.Tensor.bernoulli        | 是       |
+| 19   | torch.Tensor.bernoulli_       | 是       |
+| 20   | torch.Tensor.cauchy_          | 是       |
+| 21   | torch.Tensor.exponential_     | 否       |
+| 22   | torch.Tensor.geometric_       | 否       |
+| 23   | torch.Tensor.log_normal_      | 否       |
+| 24   | torch.Tensor.normal_          | 是       |
+| 25   | torch.Tensor.random_          | 是       |
+| 26   | torch.Tensor.uniform_         | 是       |
+| 27   | torch.quasirandom.SobolEngine | 是       |
 
 ## Serialization
 
@@ -1373,99 +1374,65 @@ torch_npu.npu.set_device()接口只支持在程序开始的位置通过set_devic
 
 ## NPU自定义算子
 
-| 序号 | 算子名称                                                 |
-| ---- | -------------------------------------------------------- |
-| 1    | torch_npu.npu_convolution_transpose                      |
-| 2    | torch_npu.npu_conv_transpose2d                           |
-| 3    | torch_npu.npu_convolution_transpose_backward             |
-| 4    | torch_npu.npu_conv_transpose2d_backward                  |
-| 5    | torch_npu.npu_conv_transpose3d_backward                  |
-| 6    | torch_npu.npu_convolution                                |
-| 7    | torch_npu.npu_convolution_backward                       |
-| 8    | torch_npu.npu_convolution_double_backward                |
-| 9    | torch_npu.npu_conv2d                                     |
-| 10   | torch_npu.npu_conv2d.out                                 |
-| 11   | torch_npu.npu_conv2d_backward                            |
-| 12   | torch_npu.npu_conv3d                                     |
-| 13   | torch_npu.npu_conv3d.out                                 |
-| 14   | torch_npu.npu_conv3d_backward                            |
-| 15   | torch_npu.one_                                           |
-| 16   | torch_npu.npu_sort_v2.out                                |
-| 17   | torch_npu.npu_sort_v2                                    |
-| 18   | torch_npu.npu_format_cast                                |
-| 19   | torch_npu.npu_format_cast_.acl_format                    |
-| 20   | torch_npu.npu_format_cast_.src                           |
-| 21   | torch_npu.npu_transpose_to_contiguous                    |
-| 22   | torch_npu.npu_transpose                                  |
-| 23   | torch_npu.npu_transpose.out                              |
-| 24   | torch_npu.npu_broadcast                                  |
-| 25   | torch_npu.npu_broadcast.out                              |
-| 26   | torch_npu.npu_dtype_cast                                 |
-| 27   | torch_npu.npu_dtype_cast_.Tensor                         |
-| 28   | torch_npu.npu_roi_alignbk                                |
-| 29   | torch_npu.empty_with_format                              |
-| 30   | torch_npu.empty_with_format.names                        |
-| 31   | torch_npu.copy_memory_                                   |
-| 32   | torch_npu.npu_one_hot                                    |
-| 33   | torch_npu.npu_stride_add                                 |
-| 34   | torch_npu.npu_softmax_cross_entropy_with_logits          |
-| 35   | torch_npu.npu_softmax_cross_entropy_with_logits_backward |
-| 36   | torch_npu.npu_ps_roi_pooling                             |
-| 37   | torch_npu.npu_ps_roi_pooling_backward                    |
-| 38   | torch_npu.npu_roi_align                                  |
-| 39   | torch_npu.npu_nms_v4                                     |
-| 40   | torch_npu.npu_lstm                                       |
-| 41   | torch_npu.npu_lstm_backward                              |
-| 42   | torch_npu.npu_iou                                        |
-| 43   | torch_npu.npu_ptiou                                      |
-| 44   | torch_npu.npu_nms_with_mask                              |
-| 45   | torch_npu.npu_pad                                        |
-| 46   | torch_npu.npu_bounding_box_encode                        |
-| 47   | torch_npu.npu_bounding_box_decode                        |
-| 48   | torch_npu.npu_gru                                        |
-| 49   | torch_npu.npu_gru_backward                               |
-| 50   | torch_npu.npu_set_.source_Storage_storage_offset_format  |
-| 51   | torch_npu.npu_random_choice_with_mask                    |
-| 52   | torch_npu.npu_batch_nms                                  |
-| 53   | torch_npu.npu_slice                                      |
-| 54   | torch_npu.npu_slice.out                                  |
-| 55   | torch_npu.npu_dropoutV2                                  |
-| 56   | torch_npu.npu_dropoutV2_backward                         |
-| 57   | torch_npu._npu_dropout                                   |
-| 58   | torch_npu._npu_dropout_inplace                           |
-| 59   | torch_npu.npu_dropout_backward                           |
-| 60   | torch_npu.npu_indexing                                   |
-| 61   | torch_npu.npu_indexing.out                               |
-| 62   | torch_npu.npu_ifmr                                       |
-| 63   | torch_npu.npu_max.dim                                    |
-| 64   | torch_npu.npu_max.names_dim                              |
-| 65   | torch_npu.npu_scatter                                    |
-| 66   | torch_npu.npu_max_backward                               |
-| 67   | torch_npu.npu_apply_adam                                 |
-| 68   | torch_npu.npu_layer_norm_eval                            |
-| 69   | torch_npu.npu_alloc_float_status                         |
-| 70   | torch_npu.npu_get_float_status                           |
-| 71   | torch_npu.npu_clear_float_status                         |
-| 72   | torch_npu.npu_confusion_transpose                        |
-| 73   | torch_npu.npu_confusion_transpose_backward               |
-| 74   | torch_npu.npu_bmmV2                                      |
-| 75   | torch_npu.fast_gelu                                      |
-| 76   | torch_npu.fast_gelu_backward                             |
-| 77   | torch_npu.npu_sub_sample                                 |
-| 78   | torch_npu.npu_deformable_conv2d                          |
-| 79   | torch_npu.npu_deformable_conv2dbk                        |
-| 80   | torch_npu.npu_mish                                       |
-| 81   | torch_npu.npu_anchor_response_flags                      |
-| 82   | torch_npu.npu_yolo_boxes_encode                          |
-| 83   | torch_npu.npu_grid_assign_positive                       |
-| 84   | torch_npu.npu_mish_backward                              |
-| 85   | torch_npu.npu_normalize_batch                            |
-| 86   | torch_npu.npu_masked_fill_range                          |
-| 87   | torch_npu.npu_linear                                     |
-| 88   | torch_npu.npu_linear_backward                            |
-| 89   | torch_npu.npu_bert_apply_adam                            |
-| 90   | torch_npu.npu_giou                                       |
-| 91   | torch_npu.npu_giou_backward                              |
+| 序号 | 算子名称                                        |
+| ---- | ----------------------------------------------- |
+| 1    | torch_npu.npu_convolution_transpose             |
+| 2    | torch_npu.npu_conv_transpose2d                  |
+| 3    | torch_npu.npu_convolution                       |
+| 4    | torch_npu.npu_conv2d                            |
+| 5    | torch_npu.npu_conv3d                            |
+| 6    | torch_npu.one_                                  |
+| 7    | torch_npu.npu_sort_v2                           |
+| 8    | torch_npu.npu_format_cast                       |
+| 9    | torch_npu.npu_format_cast_.src                  |
+| 10   | torch_npu.npu_transpose                         |
+| 11   | torch_npu.npu_broadcast                         |
+| 12   | torch_npu.npu_dtype_cast                        |
+| 13   | torch_npu.empty_with_format                     |
+| 14   | torch_npu.copy_memory_                          |
+| 15   | torch_npu.npu_one_hot                           |
+| 16   | torch_npu.npu_stride_add                        |
+| 17   | torch_npu.npu_softmax_cross_entropy_with_logits |
+| 18   | torch_npu.npu_ps_roi_pooling                    |
+| 19   | torch_npu.npu_roi_align                         |
+| 20   | torch_npu.npu_nms_v4                            |
+| 21   | torch_npu.npu_lstm                              |
+| 22   | torch_npu.npu_iou                               |
+| 23   | torch_npu.npu_ptiou                             |
+| 24   | torch_npu.npu_nms_with_mask                     |
+| 25   | torch_npu.npu_pad                               |
+| 26   | torch_npu.npu_bounding_box_encode               |
+| 27   | torch_npu.npu_bounding_box_decode               |
+| 28   | torch_npu.npu_gru                               |
+| 29   | torch_npu.npu_random_choice_with_mask           |
+| 30   | torch_npu.npu_batch_nms                         |
+| 31   | torch_npu.npu_slice                             |
+| 32   | torch_npu.npu_dropoutV2                         |
+| 33   | torch_npu._npu_dropout                          |
+| 34   | torch_npu._npu_dropout_inplace                  |
+| 35   | torch_npu.npu_indexing                          |
+| 36   | torch_npu.npu_ifmr                              |
+| 37   | torch_npu.npu_max.dim                           |
+| 38   | torch_npu.npu_scatter                           |
+| 39   | torch_npu.npu_apply_adam                        |
+| 40   | torch_npu.npu_layer_norm_eval                   |
+| 41   | torch_npu.npu_alloc_float_status                |
+| 42   | torch_npu.npu_get_float_status                  |
+| 43   | torch_npu.npu_clear_float_status                |
+| 44   | torch_npu.npu_confusion_transpose               |
+| 45   | torch_npu.npu_bmmV2                             |
+| 46   | torch_npu.fast_gelu                             |
+| 47   | torch_npu.npu_sub_sample                        |
+| 48   | torch_npu.npu_deformable_conv2d                 |
+| 49   | torch_npu.npu_mish                              |
+| 50   | torch_npu.npu_anchor_response_flags             |
+| 51   | torch_npu.npu_yolo_boxes_encode                 |
+| 52   | torch_npu.npu_grid_assign_positive              |
+| 53   | torch_npu.npu_normalize_batch                   |
+| 54   | torch_npu.npu_masked_fill_range                 |
+| 55   | torch_npu.npu_linear                            |
+| 56   | torch_npu.npu_bert_apply_adam                   |
+| 57   | torch_npu.npu_giou                              |
 
 详细算子接口说明：
 
@@ -1636,8 +1603,7 @@ If descending is True then the elements are sorted in descending order by value.
   - **self** (Tensor) - the input tensor
   - **dim** (int, optional) - the dimension to sort along
   - **descending** (bool, optional) - controls the sorting order (ascending or descending)
-  - **out** (Tensor, optional) - the output that can be optionally given to be used as output buffers
-
+  
 - constraints：
 
   At present only support the last dim(-1).
@@ -1681,10 +1647,6 @@ Change the format of a npu tensor.
   ```
 
 > torch_npu.npu_format_cast_
-
->   torch_npu.npu_format_cast_.acl_format(self, acl_format) -> Tensor
-
-  In-place version of npu_format_cast()
 
 >   torch_npu.npu_format_cast_.src(self, src) -> Tensor
 
@@ -1838,7 +1800,7 @@ Returns a one-hot tensor. The locations represented by index in "x" take value "
 
 - Parameters：
   - **input** (Tensor) - class values of any shape.
-  - **num_classes** (Tensor) - The axis to fill. Defaults to "-1". 
+  - **num_classes** (int) - The axis to fill. Defaults to "-1". 
   - **depth** (Number) - The depth of the one hot dimension. 
   - **on_value** (Number) - The value to fill in output when indices[j] = i.
   - **off_value** (Number) - The value to fill in output when indices[j] != i.
@@ -2946,7 +2908,7 @@ Randomly sample a subset of positive and negative examples,and overwrite the lab
         dtype=torch.int32)
   ```
 
-> torch_npu.npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
+> torch_npu.npu_deformable_conv2d(self, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
 
 Computes the deformed convolution output with the expected input. 
 
@@ -3060,7 +3022,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
   - **argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=0). 
   - **gt_max_overlaps** (Tensor) -  A Tensor. Datatype is same as assigned_gt_inds. overlaps.max(axis=1). 
   - **gt_argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=1). 
-  - **num_gts** (Number) -  A Tensor. Support int32. real k. shape (1, ) 
+  - **num_gts** (Tensor) -  A Tensor. Support int32. real k. shape (1, ) 
   - **pos_iou_thr** (Float) -  loat. IOU threshold for positive bboxes. 
   - **min_pos_iou** (Float) -  float. minimum iou for a bbox to be considered as a positive bbox 
   - **gt_max_assign_all** (bool) -  bool. whether to assign all bboxes with the same highest overlap with some gt to that gt. 

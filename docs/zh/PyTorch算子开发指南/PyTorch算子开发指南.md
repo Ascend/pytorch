@@ -135,7 +135,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 -   需安装3.12.0及以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
 -   需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参见《CANN 软件安装指南》中的“安装7.3.0版本gcc”章节。
 -   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下:
-    -   Ubuntu系统
+    -   Ubuntu、EulerOS系统
 
         ```
         apt-get install patch
@@ -164,8 +164,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 -   当前昇腾AI处理器中支持的算子以及对应的算子约束可以通过以下两种方式查询。
     -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)》进行离线查询。
     -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南》中的“算子&模型速查”章节。
-
--   当前PyTorch适配的算子列表可以参见《PyTorch适配算子清单》。
+-   当前PyTorch适配的算子列表可以参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
 <h2 id="算子适配开发md">算子适配开发</h2>
 
@@ -187,7 +186,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h3 id="获取PyTorch源码md">获取PyTorch源码</h3>
 
-针对pytorch1.8.1版本，PyTorch源码获取请参见《PyTorch安装指南》中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch_v1.8.1目录中进行PyTorch 算子适配开发。
+针对pytorch1.8.1版本，PyTorch源码获取请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
 
 <h3 id="注册算子开发md">注册算子开发</h3>
 
@@ -588,7 +587,9 @@ pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 **\{arch\}**表示架构信息，为aarch64或x86\_64。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->若环境中已安装PyTorch插件时，需要先卸载环境中已安装的PyTorch插件软件包再执行，可以通过执行如下命令查询环境上是否已安装PyTorch插件。
+>--upgrade:卸载环境中已安装的PyTorch插件软件包再执行更新安装。
+>
+>可以通过执行如下命令查询环境上是否已安装PyTorch插件。
 >**pip3 list | grep torch_npu**
 
 修改代码之后，需要重新执行“编译”和“安装”PyTorch插件过程。
@@ -612,7 +613,7 @@ pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 
 进行自定义算子功能验证，通过PyTorch前端构造自定义算子的函数并运行验证。
 
-在https://gitee.com/ascend/pytorch中 "pytorch/test/test_network_ops"目录下提供了测试用例及测试工具，供用户参考。
+在https://gitee.com/ascend/pytorch 中 "pytorch/test/test_network_ops"目录下提供了测试用例及测试工具，供用户参考。
 
 <h3 id="实现过程md">实现过程</h3>
 
@@ -622,12 +623,14 @@ pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 
 #### 操作步骤<a name="zh-cn_topic_0000001164276377_section02504494109"></a>
 
-1.  设置环境变量。
+1. 设置环境变量。
 
-    ```
-    # 进行环境变量设置。具体如下（以HwHiAiUser用户安装，安装路径为默认路径为例）：
-    . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
-    ```
+   ```
+   # 进行环境变量设置。具体如下（以root用户安装，安装路径为默认路径为例）：
+   usr/local/Ascend/ascend-toolkit/set_env.sh
+   # 进行环境变量设置。具体如下（以非root用户安装，安装路径为默认路径为例）：
+   ${HOME}/Ascend/ascend-toolkit/set_env.sh
+   ```
 
 2.  编写测试脚本。以add算子为例，在“pytorch/test/test\_network\_ops“路径下编写测试脚本文件： test\_add.py。
 
@@ -723,7 +726,8 @@ pillow==5.3.0安装失败。
 执行以下命令安装所需依赖。
 
 ```
-apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel
+apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel  #Ubunntu、Euler0S
+yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel      #centOS
 ```
 
 <h3 id="pip3-7-install-torchvision安装失败md">pip3.7 install torchvision安装失败</h3>
@@ -768,14 +772,17 @@ pip3.7 install torchvision --no-deps
 
 设置日志输出到屏幕，重定向到指定文本文件
 
-1.  设置环境变量，将当前用户的日志到屏幕。
+1. 设置环境变量，将当前用户的日志到屏幕。
 
-    ```
-    export SLOG_PRINT_TO_STDOUT=1
-    ```
-
-    设置完成后，直接运行测试用例，就可以将相关的日志输出到屏幕，为了方便查看和回溯，建议根据需要使用[2](#zh-cn_topic_0000001125315889_li168732325719)运行。
-
+   ```
+   #打印log
+   export SLOG_PRINT_TO_STDOUT=1
+   export ASCEND_GLOBAL_LOG_LEVEL=1
+   #0：debug级别;1：info;2：warning;3：error
+   ```
+   
+   设置完成后，直接运行测试用例，就可以将相关的日志输出到屏幕，为了方便查看和回溯，建议根据需要使用[2](#zh-cn_topic_0000001125315889_li168732325719)运行。
+   
 2.  <a name="zh-cn_topic_0000001125315889_li168732325719"></a>运行测试用例时，将日志重定向到指定文件。
 
     ```
