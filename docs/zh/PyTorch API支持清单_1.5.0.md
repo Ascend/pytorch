@@ -84,14 +84,14 @@
 | 15   | torch.randn                                | 是       |
 | 16   | torch.randn_like                           | 是       |
 | 17   | torch.randperm                             | 是       |
-| 18   | torch.Tensor.bernoulli_()                  | 是       |
-| 19   | torch.Tensor.bernoulli_()                  | 是       |
-| 20   | torch.Tensor.exponential_()                | 否       |
-| 21   | torch.Tensor.geometric_()                  | 否       |
-| 22   | torch.Tensor.log_normal_()                 | 否       |
-| 23   | torch.Tensor.normal_()                     | 是       |
-| 24   | torch.Tensor.random_()                     | 是       |
-| 25   | torch.Tensor.uniform_()                    | 是       |
+| 18   | torch.Tensor.bernoulli                     | 是       |
+| 19   | torch.Tensor.bernoulli_                    | 是       |
+| 20   | torch.Tensor.exponential_                  | 否       |
+| 21   | torch.Tensor.geometric_                    | 否       |
+| 22   | torch.Tensor.log_normal_                   | 否       |
+| 23   | torch.Tensor.normal_                       | 是       |
+| 24   | torch.Tensor.random_                       | 是       |
+| 25   | torch.Tensor.uniform_                      | 是       |
 | 26   | torch.quasirandom.SobolEngine              | 是       |
 | 27   | torch.quasirandom.SobolEngine.draw         | 是       |
 | 28   | torch.quasirandom.SobolEngine.fast_forward | 是       |
@@ -1193,99 +1193,65 @@ torch.npu.set_device()接口只支持在程序开始的位置通过set_device进
 
 ## NPU自定义算子
 
-| 序号 | 算子名称                                       |
-| ---- | ---------------------------------------------- |
-| 1    | npu_convolution_transpose                      |
-| 2    | npu_conv_transpose2d                           |
-| 3    | npu_convolution_transpose_backward             |
-| 4    | npu_conv_transpose2d_backward                  |
-| 5    | npu_conv_transpose3d_backward                  |
-| 6    | npu_convolution                                |
-| 7    | npu_convolution_backward                       |
-| 8    | npu_convolution_double_backward                |
-| 9    | npu_conv2d                                     |
-| 10   | npu_conv2d.out                                 |
-| 11   | npu_conv2d_backward                            |
-| 12   | npu_conv3d                                     |
-| 13   | npu_conv3d.out                                 |
-| 14   | npu_conv3d_backward                            |
-| 15   | one_                                           |
-| 16   | npu_sort_v2.out                                |
-| 17   | npu_sort_v2                                    |
-| 18   | npu_format_cast                                |
-| 19   | npu_format_cast_.acl_format                    |
-| 20   | npu_format_cast_.src                           |
-| 21   | npu_transpose_to_contiguous                    |
-| 22   | npu_transpose                                  |
-| 23   | npu_transpose.out                              |
-| 24   | npu_broadcast                                  |
-| 25   | npu_broadcast.out                              |
-| 26   | npu_dtype_cast                                 |
-| 27   | npu_dtype_cast_.Tensor                         |
-| 28   | npu_roi_alignbk                                |
-| 29   | empty_with_format                              |
-| 30   | empty_with_format.names                        |
-| 31   | copy_memory_                                   |
-| 32   | npu_one_hot                                    |
-| 33   | npu_stride_add                                 |
-| 34   | npu_softmax_cross_entropy_with_logits          |
-| 35   | npu_softmax_cross_entropy_with_logits_backward |
-| 36   | npu_ps_roi_pooling                             |
-| 37   | npu_ps_roi_pooling_backward                    |
-| 38   | npu_roi_align                                  |
-| 39   | npu_nms_v4                                     |
-| 40   | npu_lstm                                       |
-| 41   | npu_lstm_backward                              |
-| 42   | npu_iou                                        |
-| 43   | npu_ptiou                                      |
-| 44   | npu_nms_with_mask                              |
-| 45   | npu_pad                                        |
-| 46   | npu_bounding_box_encode                        |
-| 47   | npu_bounding_box_decode                        |
-| 48   | npu_gru                                        |
-| 49   | npu_gru_backward                               |
-| 50   | npu_set_.source_Storage_storage_offset_format  |
-| 51   | npu_random_choice_with_mask                    |
-| 52   | npu_batch_nms                                  |
-| 53   | npu_slice                                      |
-| 54   | npu_slice.out                                  |
-| 55   | npu_dropoutV2                                  |
-| 56   | npu_dropoutV2_backward                         |
-| 57   | _npu_dropout                                   |
-| 58   | _npu_dropout_inplace                           |
-| 59   | npu_dropout_backward                           |
-| 60   | npu_indexing                                   |
-| 61   | npu_indexing.out                               |
-| 62   | npu_ifmr                                       |
-| 63   | npu_max.dim                                    |
-| 64   | npu_max.names_dim                              |
-| 65   | npu_scatter                                    |
-| 66   | npu_max_backward                               |
-| 67   | npu_apply_adam                                 |
-| 68   | npu_layer_norm_eval                            |
-| 69   | npu_alloc_float_status                         |
-| 70   | npu_get_float_status                           |
-| 71   | npu_clear_float_status                         |
-| 72   | npu_confusion_transpose                        |
-| 73   | npu_confusion_transpose_backward               |
-| 74   | npu_bmmV2                                      |
-| 75   | fast_gelu                                      |
-| 76   | fast_gelu_backward                             |
-| 77   | npu_sub_sample                                 |
-| 78   | npu_deformable_conv2d                          |
-| 79   | npu_deformable_conv2dbk                        |
-| 80   | npu_mish                                       |
-| 81   | npu_anchor_response_flags                      |
-| 82   | npu_yolo_boxes_encode                          |
-| 83   | npu_grid_assign_positive                       |
-| 84   | npu_mish_backward                              |
-| 85   | npu_normalize_batch                            |
-| 86   | npu_masked_fill_range                          |
-| 87   | npu_linear                                     |
-| 88   | npu_linear_backward                            |
-| 89   | npu_bert_apply_adam                            |
-| 90   | npu_giou                                       |
-| 91   | npu_giou_backward                              |
+| 序号 | 算子名称                              |
+| ---- | ------------------------------------- |
+| 1    | npu_convolution_transpose             |
+| 2    | npu_conv_transpose2d                  |
+| 3    | npu_convolution                       |
+| 4    | npu_conv2d                            |
+| 5    | npu_conv3d                            |
+| 6    | one_                                  |
+| 7    | npu_sort_v2                           |
+| 8    | npu_format_cast                       |
+| 9    | npu_format_cast_.src                  |
+| 10   | npu_transpose                         |
+| 11   | npu_broadcast                         |
+| 12   | npu_dtype_cast                        |
+| 13   | empty_with_format                     |
+| 14   | copy_memory_                          |
+| 15   | npu_one_hot                           |
+| 16   | npu_stride_add                        |
+| 17   | npu_softmax_cross_entropy_with_logits |
+| 18   | npu_ps_roi_pooling                    |
+| 19   | npu_roi_align                         |
+| 20   | npu_nms_v4                            |
+| 21   | npu_lstm                              |
+| 22   | npu_iou                               |
+| 23   | npu_ptiou                             |
+| 24   | npu_nms_with_mask                     |
+| 25   | npu_pad                               |
+| 26   | npu_bounding_box_encode               |
+| 27   | npu_bounding_box_decode               |
+| 28   | npu_gru                               |
+| 29   | npu_random_choice_with_mask           |
+| 30   | npu_batch_nms                         |
+| 31   | npu_slice                             |
+| 32   | npu_dropoutV2                         |
+| 33   | _npu_dropout                          |
+| 34   | _npu_dropout_inplace                  |
+| 35   | npu_indexing                          |
+| 36   | npu_ifmr                              |
+| 37   | npu_max.dim                           |
+| 38   | npu_scatter                           |
+| 39   | npu_apply_adam                        |
+| 40   | npu_layer_norm_eval                   |
+| 41   | npu_alloc_float_status                |
+| 42   | npu_get_float_status                  |
+| 43   | npu_clear_float_status                |
+| 44   | npu_confusion_transpose               |
+| 45   | npu_bmmV2                             |
+| 46   | fast_gelu                             |
+| 47   | npu_sub_sample                        |
+| 48   | npu_deformable_conv2d                 |
+| 49   | npu_mish                              |
+| 50   | npu_anchor_response_flags             |
+| 51   | npu_yolo_boxes_encode                 |
+| 52   | npu_grid_assign_positive              |
+| 53   | npu_normalize_batch                   |
+| 54   | npu_masked_fill_range                 |
+| 55   | npu_linear                            |
+| 56   | npu_bert_apply_adam                   |
+| 57   | npu_giou                              |
 
 详细算子接口说明：
 
@@ -1456,8 +1422,7 @@ If descending is True then the elements are sorted in descending order by value.
   - **self** (Tensor) - the input tensor
   - **dim** (int, optional) - the dimension to sort along
   - **descending** (bool, optional) - controls the sorting order (ascending or descending)
-  - **out** (Tensor, optional) - the output that can be optionally given to be used as output buffers
-
+  
 - constraints：
 
   At present only support the last dim(-1).
@@ -1501,10 +1466,6 @@ Change the format of a npu tensor.
   ```
 
 > npu_format_cast_
-
->   npu_format_cast_.acl_format(self, acl_format) -> Tensor
-
-  In-place version of npu_format_cast()
 
 >   npu_format_cast_.src(self, src) -> Tensor
 
@@ -1658,7 +1619,7 @@ Returns a one-hot tensor. The locations represented by index in "x" take value "
 
 - Parameters：
   - **input** (Tensor) - class values of any shape.
-  - **num_classes** (Tensor) - The axis to fill. Defaults to "-1". 
+  - **num_classes** (int) - The axis to fill. Defaults to "-1". 
   - **depth** (Number) - The depth of the one hot dimension. 
   - **on_value** (Number) - The value to fill in output when indices[j] = i.
   - **off_value** (Number) - The value to fill in output when indices[j] != i.
@@ -2766,7 +2727,7 @@ Randomly sample a subset of positive and negative examples,and overwrite the lab
         dtype=torch.int32)
   ```
 
-> npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
+> npu_deformable_conv2d(self, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
 
 Computes the deformed convolution output with the expected input. 
 
@@ -2880,7 +2841,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
   - **argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=0). 
   - **gt_max_overlaps** (Tensor) -  A Tensor. Datatype is same as assigned_gt_inds. overlaps.max(axis=1). 
   - **gt_argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=1). 
-  - **num_gts** (Number) -  A Tensor. Support int32. real k. shape (1, ) 
+  - **num_gts** (Tensor) -  A Tensor. Support int32. real k. shape (1, ) 
   - **pos_iou_thr** (Float) -  loat. IOU threshold for positive bboxes. 
   - **min_pos_iou** (Float) -  float. minimum iou for a bbox to be considered as a positive bbox 
   - **gt_max_assign_all** (bool) -  bool. whether to assign all bboxes with the same highest overlap with some gt to that gt. 
