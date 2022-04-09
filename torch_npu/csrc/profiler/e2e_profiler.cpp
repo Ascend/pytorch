@@ -89,24 +89,26 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
 }
 
 void pushStartTime(at::RecordFunction& fn) {
-  fn.local_stamp_ = at_npu::native::AclprofCreateStamp();
-  if (fn.local_stamp_  == nullptr) {
+  auto local_stamp_ = at_npu::native::AclprofCreateStamp();
+  if (local_stamp_  == nullptr) {
     NPU_LOGE("In npu e2e profiling, aclprofCreateStamp failed, created stamp is nullptr.");
     return;
   }
   auto ret = at_npu::native::AclprofSetStampTraceMessage(
-      fn.local_stamp_, fn.name().str(), strlen(fn.name().str()));
+      local_stamp_, fn.name().str(), strlen(fn.name().str()));
   checkProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
-
-  ret = at_npu::native::AclprofRangeStart(fn.local_stamp_, &fn.local_rangeId_);
+  uint32_t range_id_ = 0;
+  ret = at_npu::native::AclprofRangeStart(local_stamp_, &range_id_);
   checkProfilerRet(ret, "In npu e2e profiling, AclprofRangeStart failed.");
+  fn.setHandle((uint64_t)range_id_);
+  fn.setForwardThreadId((uint64_t)local_stamp_);
 }
 
-void popEndTime(at::RecordFunction& fn) {
-  auto ret = at_npu::native::AclprofRangeStop(fn.local_rangeId_);
+void popEndTime(const at::RecordFunction& fn) {
+  auto ret = at_npu::native::AclprofRangeStop((uint32_t)fn.handle());
   checkProfilerRet(ret, "In npu e2e profiling, AclprofRangeStop failed.");
 
-  at_npu::native::AclprofDestroyStamp(fn.local_stamp_);
+  at_npu::native::AclprofDestroyStamp((void*)fn.forwardThreadId());
 }
 
 void init_e2e_profiler(const std::string dump_path, uint64_t npu_event,
@@ -114,11 +116,11 @@ void init_e2e_profiler(const std::string dump_path, uint64_t npu_event,
 
   initMsPorf(dump_path, npu_event, aicore_metrics);
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
-      [](at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
-        torch_npu::profiler::pushStartTime(fn);
+      [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
+        torch_npu::profiler::pushStartTime(const_cast<at::RecordFunction&>(fn));
         return nullptr;
       },
-      [](at::RecordFunction& fn, at::ObserverContext*) {
+      [](const at::RecordFunction& fn, at::ObserverContext*) {
         torch_npu::profiler::popEndTime(fn);
       }));
 }

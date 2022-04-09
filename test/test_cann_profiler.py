@@ -96,13 +96,13 @@ class TestCannProfiler(TestCase):
 
     def _test_cann_ops(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)
-        torch.npu.prof_start(config.NpuEventConfig, config.AiCoreMetricsConfig)
+        torch.npu.prof_start(config)
         run_ops()
         torch.npu.prof_stop()
 
     def _test_cann_model(self, *args, **kwargs):
         config = torch.npu.profileConfig(**kwargs)
-        torch.npu.prof_start(config.NpuEventConfig, config.AiCoreMetricsConfig)
+        torch.npu.prof_start(config)
         run_small_model()
         torch.npu.prof_stop()
 
