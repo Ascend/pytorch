@@ -12,12 +12,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <ATen/record_function.h>
 #include <c10/npu/NPUStream.h>
-
-#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
+
+#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -46,6 +47,7 @@ void copy_kernel_npu(
     at::Tensor& self,
     const at::Tensor& src,
     bool non_blocking) {
+  RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
   const int64_t HEAD_FLAG = 0x6461656800000000;
   const int64_t FIXED_LEN =
       9; // head, len, version, two tensors' numel, offset and strides lens
