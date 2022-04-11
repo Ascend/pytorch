@@ -101,7 +101,8 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Conv2d):
             if module.groups > 1:
                 return
-            if hasattr(module, "weight") and module.weight is not None:
+            if hasattr(module, "weight") and module.weight is not None and \
+                "weight" in dict(module.named_parameters()):
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 4)  # ACL_FORMAT_FRACTAL_Z
         if issubclass(class_name, torch.nn.Conv3d):
