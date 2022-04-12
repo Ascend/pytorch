@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "c10/npu/npu_log.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "c10/npu/npu_log.h"
 
 namespace at {
 namespace native {
@@ -31,31 +32,12 @@ SmallVector<int64_t, SIZE> logdet_npu_output_size(const Tensor& self) {
   return dimVec;
 }
 
-SmallVector<NPUTensorDesc, N> logdet_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> logdet_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> logdet_npu_attr(const Tensor& self) {
-  SmallVector<NPUAttrDesc, N> attrs = {};
-  return attrs;
-}
-
 Tensor& logdet_out_npu(Tensor& result, const Tensor& self) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = logdet_npu_input({self});
-  auto outputs = logdet_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = logdet_npu_attr(self);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("LogDet", inputs, outputs, attrs);
+  OpCommand cmd;
+  cmd.Name("LogDet")
+     .Input(self)
+     .Output(result)
+     .Run();
 
   return result;
 }
@@ -65,8 +47,7 @@ Tensor logdet_npu(const Tensor& self) {
   auto outputSize = logdet_npu_output_size(self);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
   // calculate the output result of the NPU
   logdet_out_npu(result, self);
   return result;

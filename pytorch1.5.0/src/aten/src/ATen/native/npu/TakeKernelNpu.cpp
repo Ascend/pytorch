@@ -12,63 +12,51 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> take_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  Tensor contiguousTensor;
-  SmallVector<NPUTensorDesc, N> inputs;
-    
-  for (int i = 0; i < inputTensor.size(); i++) {
-    if (i == 0) {
-      int64_t input_size = 1;
-      Tensor input_tensor = inputTensor[i].reshape(-1);
-      contiguousTensor = NpuUtils::format_contiguous(input_tensor);
-    } else {
-       contiguousTensor = NpuUtils::format_contiguous(inputTensor[i]);
-    }
-    inputs.emplace_back(NPUTensorDesc(contiguousTensor));
-  }
-  return inputs;
-}
-
-SmallVector<NPUTensorDesc, N> take_npu_output(const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> take_npu_attr(const Tensor& self) {
-  NPUAttrDesc npuAttrValidateIndices = NPUAttrDesc("validate_indices", false);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrValidateIndices};
-  return attrs;
+Tensor& take_out_nocheck(const Tensor& self, const Tensor& index, Tensor& result) {
+  Tensor input_tensor = self.reshape(-1);
+  Tensor contiguousSelf = NpuUtils::format_contiguous(input_tensor);
+  Tensor contiguousIndex = NpuUtils::format_contiguous(index);
+  OpCommand cmd;
+  cmd.Name("Gather")
+      .Input(contiguousSelf)
+      .Input(contiguousIndex)
+      .Output(result)
+      .Attr("validate_indices", false)
+      .Run();
+  return result;
 }
 
 Tensor& take_out_npu(Tensor& result, const Tensor& self, const Tensor& index) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = take_npu_input({self,index});
-  auto outputs = take_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = take_npu_attr(self);
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Gather", inputs, outputs, attrs);
+  OpPreparation::CheckOut(
+      {self, index},
+      result,
+      self,
+      index.sizes());
+
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    take_out_nocheck(self, index, contiguousResult);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    take_out_nocheck(self, index, result);
+  }
   return result;
 }
 
 Tensor take_npu(const Tensor& self, const Tensor& index) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(index);
-
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
+  auto outputSize = index.sizes();
+  Tensor result = OpPreparation::ApplyTensorWithSizes(
       outputSize,
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
-  take_out_npu(result, self, index);
+      self.options());
+  take_out_nocheck(self, index, result);
   return result;
 }
 } // namespace native

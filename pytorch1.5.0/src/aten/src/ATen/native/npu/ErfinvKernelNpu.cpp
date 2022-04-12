@@ -12,65 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/CalcuOpUtil.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor erfinv_npu(const Tensor &self) {
-  auto output_size = self.sizes();
-  auto output_t = at::empty_with_format(output_size, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  auto inputs = CalcuOpUtil::create_npu_input_tensor_desc({self});
-  auto outputs = CalcuOpUtil::create_npu_output_tensor_desc({output_t});
-  SmallVector<NPUAttrDesc, N> attrs = {};
-  CalcuOpUtil::execute_npu_operate("Erfinv", inputs, outputs, attrs);
-  return output_t;
-}
-
-SmallVector<NPUTensorDesc, N> erfinv_npu_input(const SmallVector<Tensor, N>& inputTensor)
-{
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> erfinv_npu_output(const SmallVector<Tensor, N>& outputTensor)
-{
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> erfinv_npu_attr(const Tensor& self)
-{
-  SmallVector<NPUAttrDesc, N> attrs = { };
-  return attrs;
-}
-
-Tensor& erfinv_out_npu(Tensor& result, const Tensor& self)
-{
-  // constructs the input and output NPUTensorDesc
-  auto inputs = erfinv_npu_input({self});
-  auto outputs = erfinv_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = erfinv_npu_attr(self);
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Erfinv", inputs, outputs, attrs);
+Tensor& erfinv_out_npu_nocheck(const Tensor& self, Tensor& result) {
+  OpCommand cmd;
+  cmd.Name("Erfinv")
+      .Input(self)
+      .Output(result)
+      .Run();
   return result;
 }
 
-Tensor& erfinv_npu_(Tensor& self)
-{
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-  if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = erfinv_out_npu(contiguousSelf, contiguousSelf);
-    NpuUtils::format_fresh_view(self, result);
+Tensor& erfinv_out_npu(Tensor& result, const Tensor& self) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    erfinv_out_npu_nocheck(self, contiguousResult);
+    NpuUtils::format_fresh_view(result, contiguousResult);
   } else {
-    erfinv_out_npu(self, self);
+    erfinv_out_npu_nocheck(self, result);
   }
+  return result;
+}
+
+Tensor erfinv_npu(const Tensor &self) {
+  auto result = OpPreparation::ApplyTensor(self);
+  erfinv_out_npu_nocheck(self, result);
+  return result;
+}
+
+Tensor& erfinv_npu_(Tensor& self) {
+  erfinv_out_npu(self, self);
   return self;
 }
 

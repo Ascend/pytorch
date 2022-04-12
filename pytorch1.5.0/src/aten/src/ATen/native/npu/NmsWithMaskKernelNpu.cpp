@@ -14,32 +14,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
-SmallVector<NPUTensorDesc, N> nms_with_mask_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> nms_with_mask_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> nms_with_mask_npu_attr(Scalar iou_threshold) {
-  float iouThresholdValue = CalcuOpUtil::get_scalar_float_value(iou_threshold);
-  NPUAttrDesc npuAttrIouThreshold =
-      NPUAttrDesc("iou_threshold", iouThresholdValue);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrIouThreshold};
-
-  return attrs;
-}
 
 tuple<Tensor&, Tensor&, Tensor&> nms_with_mask_out_npu(
     Tensor& boxes,
@@ -47,15 +29,15 @@ tuple<Tensor&, Tensor&, Tensor&> nms_with_mask_out_npu(
     Tensor& mask,
     const Tensor& input,
     Scalar iou_threshold) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = nms_with_mask_npu_input({input});
-  auto outputs = nms_with_mask_npu_output({boxes, idx, mask});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = nms_with_mask_npu_attr(iou_threshold);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("NMSWithMask", inputs, outputs, attrs);
+  float iouThresholdValue = CalcuOpUtil::get_scalar_float_value(iou_threshold);
+  OpCommand cmd;
+  cmd.Name("NMSWithMask")
+      .Input(input)
+      .Output(boxes)
+      .Output(idx)
+      .Output(mask)
+      .Attr("iou_threshold", iouThresholdValue)
+      .Run();
 
   return std::tuple<Tensor&, Tensor&, Tensor&>(boxes, idx, mask);
 }
@@ -67,20 +49,17 @@ tuple<Tensor, Tensor, Tensor> nms_with_mask_npu(
   auto outputSizes = nms_with_mask_npu_output_size(input);
 
   // construct the output tensor of the NPU
-  Tensor boxes = at::empty_with_format(
+  Tensor boxes = OpPreparation::ApplyTensorWithSizes(
       std::get<0>(outputSizes),
-      input.options(),
-      CalcuOpUtil::get_tensor_npu_format(input));
+      input.options());
 
-  Tensor idx = at::empty_with_format(
+  Tensor idx = OpPreparation::ApplyTensorWithSizes(
       std::get<1>(outputSizes),
-      input.options().dtype(at::kInt),
-      CalcuOpUtil::get_tensor_npu_format(input));
+      input.options().dtype(at::kInt));
 
-  Tensor mask = at::empty_with_format(
+  Tensor mask = OpPreparation::ApplyTensorWithSizes(
       std::get<2>(outputSizes),
-      input.options().dtype(at::kByte),
-      CalcuOpUtil::get_tensor_npu_format(input));
+      input.options().dtype(at::kByte));
 
   nms_with_mask_out_npu(boxes, idx, mask, input, iou_threshold);
 

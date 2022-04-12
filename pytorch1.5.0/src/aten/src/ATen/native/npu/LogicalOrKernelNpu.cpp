@@ -12,55 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/OpTemplate.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpTemplate.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> logical_or_npu_input(
-    const Tensor& self,
-    const Tensor& other){
-  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
-  bool isOtherWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(other);
-  auto inputs = CalcuOpUtil::create_npu_input_tensor_desc({self, other});
-
-  // 't + 2' to work with any type of tensor, not just LongTensor (which is what
-  // integersin Python represent).
-  if (isSelfWrapped && (!isOtherWrapped)) {
-    inputs[0].scalarType = other.scalar_type();
-  } else if (isOtherWrapped && (!isSelfWrapped)) {
-    inputs[1].scalarType = self.scalar_type();
-  }
-
-  return inputs;
-}
-
-SmallVector<NPUTensorDesc, N> logical_or_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> logical_or_npu_attr(const Tensor& self) {
-  SmallVector<NPUAttrDesc, N> attrs = {};
-  return attrs;
-}
-
 Tensor& logical_or_out_npu_nocheck(   
     Tensor& result, 
     const Tensor& self, 
     const Tensor& other) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = logical_or_npu_input(self, other);
-  auto outputs = logical_or_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = logical_or_npu_attr(self);
+  Tensor selfTemp = self;
+  Tensor otherTemp = other;
   
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("LogicalOr", inputs, outputs, attrs);
+  bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(selfTemp); 
+  bool isOtherWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(otherTemp); 
+  
+  // 't + 2' to work with any type of tensor, not just LongTensor (which is what
+  // integersin Python represent).  
+  if (isSelfWrapped && (!isOtherWrapped)) {
+    selfTemp = selfTemp.npu_dtype_cast(otherTemp.scalar_type());
+  } else if (isOtherWrapped && (!isSelfWrapped)) {
+    otherTemp = otherTemp.npu_dtype_cast(selfTemp.scalar_type());
+  }
+  
+  OpCommand cmd;
+  cmd.Name("LogicalOr")
+    .Input(selfTemp)
+    .Input(otherTemp)
+    .Output(result)
+    .Run();    
   
   return result;
 }
@@ -83,16 +68,12 @@ Tensor logical_or_npu(const Tensor& self, const Tensor& other) {
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  Tensor result = at::empty_with_format(
-      outputSize,
-      self.options(), // .dtype(kBool)
-      CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
 
   logical_or_out_npu_nocheck(result, self, other);
 
   return result.toType(kBool);
 }
-
 
 Tensor& logical_or_npu_(Tensor& self, const Tensor& other) {
   SmallVector<Tensor, N> inputs = {self, other};

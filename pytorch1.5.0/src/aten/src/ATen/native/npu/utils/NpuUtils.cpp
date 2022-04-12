@@ -143,37 +143,22 @@ Tensor convert_continue_using_gatherv2_improve(Tensor& src){
   src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_ = src_tmp.sizes();
   src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.base_strides_ = src_tmp.strides();
   src_tmp.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_ = src_tmp.sizes();
-  // std::cout << "src_tmp storage_offset(): " << src_tmp.storage_offset() << std::endl;
-  // std::cout << "src_tmp sizes(): " << src_tmp.sizes() << std::endl;
-  // std::cout << "src_tmp strides(): " << src_tmp.strides() << std::endl;
-  // std::cout << "src_tmp data_recovery: " << src_tmp.to(at::kCPU) << std::endl;
 
   // 3. get output size
   auto outputSize = index_select_npu_output_size(src_tmp, dim, index);
-  int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(src_tmp);
-  Tensor result = at::empty_with_format(outputSize, src_tmp.options(), npu_format);
-  // std::cout << "npu_format: " << npu_format << std::endl;
+  Tensor result = OpPreparation::ApplyTensor(src_tmp, outputSize);
 
-  // 4. get input and output
-  SmallVector<Tensor, N> inputTensor = {src_tmp, index};
-  SmallVector<NPUTensorDesc, N> inputs;
-  for (int i = 0; i < inputTensor.size(); i++) {
-    inputs.emplace_back(
-        NPUTensorDesc(inputTensor[i]));
-    if (inputTensor[i].dim() == 0) {
-      inputs[i].tensorDescType = NPUTensorDesc::TensorDescType::TENSOR_SCALAR;
-    }
-  }
-
-  auto outputs = CalcuOpUtil::create_npu_input_tensor_desc({result});
-
-  NPUAttrDesc npuAttrAxis = NPUAttrDesc("axis", dim);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrAxis};
-
-  // 5. run
-  CalcuOpUtil::execute_npu_operate("GatherV2D", inputs, outputs, attrs);
+  // 4. run
+  OpCommand cmd;
+  cmd.Name("GatherV2D")
+      .Input(src_tmp)
+      .Input(index)
+      .Output(result)
+      .Attr("axis", dim)
+      .Run();
   return result;
 }
+
 void NpuUtils::RefreshFormat(const Tensor& tensor) {
   auto& tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
   if (tensor_desc.storage_sizes_.size() == 4 && tensor_desc.npu_format_ == ACL_FORMAT_ND) {

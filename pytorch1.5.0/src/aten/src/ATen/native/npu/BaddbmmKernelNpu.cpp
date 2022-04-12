@@ -14,31 +14,37 @@
 
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/OpAdapter.h"
+#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> baddbmm_npu_input(
-    const Tensor& self,
-    const Tensor& other) {
-  return CalcuOpUtil::create_npu_input_tensor_desc({self, other});
-}
+Tensor& baddbmm_nocheck(
+    const Tensor& self,	
+    const Tensor& tensor1,
+    const Tensor& tensor2,
+    Scalar beta,
+    Scalar alpha,
+    Tensor& result) {
+  auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
+  Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
+  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(tensor1);
+  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(tensor2);
 
-SmallVector<NPUTensorDesc, N> baddbmm_npu_output(
-    const Tensor& result) {
-  return CalcuOpUtil::create_npu_output_tensor_desc({result});
-}
+  OpCommand cmd;
+  cmd.Name("BatchMatMul")
+     .Input(tensor1)
+     .Input(tensor2) 
+     .Output(BatchMatMulTensor)
+     .Attr("adj_x1", isSelfT)
+     .Attr("adj_x2", isMat2T)
+     .Run();
 
-SmallVector<NPUAttrDesc, N> baddbmm_npu_attr(
-    const Tensor& self,
-    const Tensor& mat2) {
-  bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
-  bool isMat2T = CalcuOpUtil::is_transpose_last_two_dims(mat2);
-  NPUAttrDesc npuAttrSelfTranspose = NPUAttrDesc("adj_x1", isSelfT);
-  NPUAttrDesc npuAttrMat2Transpose = NPUAttrDesc("adj_x2", isMat2T);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrSelfTranspose, npuAttrMat2Transpose};
-  return attrs;
+  Tensor alphaMulTensor = at::mul(BatchMatMulTensor, alpha);
+  Tensor betaMulTensor = at::mul(self, beta);
+  at::add_out(result, alphaMulTensor, betaMulTensor, 1);
+  return result;
 }
 
 Tensor& baddbmm_out_npu(
@@ -47,21 +53,13 @@ Tensor& baddbmm_out_npu(
     const Tensor& tensor1,
     const Tensor& tensor2,
     Scalar beta,
-    Scalar alpha) {
-  auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
-  Tensor BatchMatMulTensor = OpPreparation::ApplyTensor(self, outputSize);
-  
-  auto inputs = baddbmm_npu_input(tensor1, tensor2);
-  auto outputs = baddbmm_npu_output({BatchMatMulTensor});
-  auto attrs = baddbmm_npu_attr(tensor1, tensor2);
-  CalcuOpUtil::execute_npu_operate("BatchMatMul", inputs, outputs, attrs);
-
-  Tensor alphaMulTensor = at::mul(BatchMatMulTensor, alpha);
-
-  Tensor betaMulTensor = at::mul(self, beta);
-  
-  at::add_out(result, alphaMulTensor, betaMulTensor);
-
+    Scalar alpha){
+      
+  OpPreparation::CheckOut(
+      {self, tensor1, tensor2},
+      result,
+      self);
+  baddbmm_nocheck(self, tensor1, tensor2, beta, alpha, result);
   return result;
 }
 
@@ -73,10 +71,9 @@ Tensor baddbmm_npu(
     Scalar alpha) {
   Tensor outputTensor = self;
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
-  Tensor result = at::empty_with_format(
-      outputSize,
-      outputTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(outputTensor));
+  Tensor result = OpPreparation::ApplyTensor(
+      outputTensor,
+      outputSize);
   baddbmm_out_npu(result, self, tensor1, tensor2, beta, alpha);
   return result;
 }
