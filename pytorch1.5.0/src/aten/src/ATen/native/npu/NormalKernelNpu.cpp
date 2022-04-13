@@ -38,7 +38,7 @@ Tensor& normal_out_npu(
   OpCommand cmd;
   cmd.Name("Normal")
     .Input(dtypeCastOfMean)
-    .Input(std, ScalarType::Float)
+    .Input(Scalar(std), ScalarType::Float)
     .Output(resultCopy)
     .Run();
 
@@ -61,7 +61,7 @@ Tensor& normal_out_npu(
 
   OpCommand cmd;
   cmd.Name("Normal")
-    .Input(mean, ScalarType::Float)
+    .Input(Scalar(mean), ScalarType::Float)
     .Input(dtypeCastOfStd)
     .Output(resultCopy)
     .Run();
@@ -117,7 +117,7 @@ Tensor& normal_out_npu(
   OpCommand cmd;
   cmd.Name("Normal")
     .Input(meanTensor)
-    .Input(std, ScalarType::Float)
+    .Input(Scalar(std), ScalarType::Float)
     .Output(formatCastOfResult)
     .Run();
 

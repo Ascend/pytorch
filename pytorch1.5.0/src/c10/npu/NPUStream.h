@@ -129,7 +129,6 @@ CAFFE2_API void npuSynchronizeDevice();
 
 CAFFE2_API void enCurrentNPUStream(
     void* cur_paras,
-    SmallVector<Storage, N>& needClearVec,
     DeviceIndex device_index = -1);
 
 CAFFE2_API void setCurrentNPUStream(NPUStream stream);

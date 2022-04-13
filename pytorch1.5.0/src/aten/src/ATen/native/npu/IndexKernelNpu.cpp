@@ -13,29 +13,50 @@
 // limitations under the License.
 
 #include <ATen/native/IndexingUtils.h>
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
+SmallVector<NPUTensorDesc, N> index_npu_input(
+    const Tensor& self,
+    const Tensor& masksTensor,
+    const TensorList& allDefinedIndices) {
+  SmallVector<Tensor, N> inputs = {self, masksTensor};
+  for (int i = 0; i < allDefinedIndices.size(); i++) {
+    inputs.emplace_back(allDefinedIndices[i]);
+  }
+  return CalcuOpUtil::create_npu_input_tensor_desc(inputs);
+}
+
+SmallVector<NPUTensorDesc, N> index_npu_output(
+    const SmallVector<Tensor, N>& outputTensor) {
+  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
+}
+
+SmallVector<NPUAttrDesc, N> index_npu_attr(const Tensor& self) {
+  SmallVector<NPUAttrDesc, N> attrs = { };
+  return attrs;
+}
+
 Tensor& index_out_npu(
     Tensor& result,
     const Tensor& self,
     const Tensor& masksTensor,
-    TensorList allDefinedIndices) {  
-  OpCommand cmd;
-  cmd.Name("Index")
-      .Input(self)
-      .Input(masksTensor);    
-  for (int i = 0; i < allDefinedIndices.size(); i++) {
-    cmd.Input(allDefinedIndices[i]);
-  }
-  cmd.Output(result)
-      .Run();
+    TensorList allDefinedIndices) {
+  // constructs the input and output NPUTensorDesc
+  auto inputs = index_npu_input(self, masksTensor, allDefinedIndices);
+  auto outputs = index_npu_output({result});
+
+  // constructs the attr of the NPUAttrDesc
+  auto attrs = index_npu_attr(self);
+
+  // executing the NPU operator
+  CalcuOpUtil::execute_npu_operate("Index", inputs, outputs, attrs);
+
   return result;
 }
 
@@ -47,7 +68,7 @@ Tensor index_npu(const Tensor& self, TensorList indices) {
   auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensorWithFormat(
+  Tensor result = at::empty_with_format(
       outputSize, formatCastOfSelf.options(), ACL_FORMAT_ND);
 
   // masks corresponds to indices. 0 indicates undefined tensor.
@@ -70,6 +91,5 @@ Tensor index_npu(const Tensor& self, TensorList indices) {
 
   return result;
 }
-
 } // namespace native
 } // namespace at

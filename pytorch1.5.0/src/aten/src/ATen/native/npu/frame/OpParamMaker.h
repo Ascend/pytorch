@@ -22,6 +22,7 @@
 #include "ATen/native/npu/frame/NPUDefine.h"
 #include "ATen/native/npu/utils/NpuFuzzyBlacklist.h"
 #include "c10/npu/NPUStream.h"
+#include "c10/npu/OptionsManager.h"
 
 namespace at {
 namespace native {
@@ -44,19 +45,6 @@ class OpAttrMaker {
       const string& name,
       at::ArrayRef<IntArrayRef> value);
 }; // class OpAttrMaker
-
-class AttrInfoMaker {
- public:
-  static void Add(bool value, string& attrInfo);
-  static void Add(int64_t value, string& attrInfo);
-  static void Add(float value, string& attrInfo);
-  static void Add(string value, string& attrInfo);
-  static void Add(IntArrayRef value, string& attrInfo);
-  static void Add(at::ArrayRef<float> value,string& attrInfo);
-  static void Add(at::ArrayRef<uint8_t> value, string& attrInfo);
-  static void Add(Scalar value, string& attrInfo);
-  static void Add(at::ArrayRef<IntArrayRef> value, string& attrInfo);
-};
 
 //
 class AclTensorDescMaker {
@@ -189,110 +177,59 @@ class OpCommandImpl {
 
   void AddInput(
       const aclTensorDesc* desc,
-      const aclDataBuffer* buffer,
-      int64_t dim,
-      aclFormat format) {
-    inputCounter += 1;
+      const aclDataBuffer* buffer) {
     execParam.inDesc.emplace_back(std::move(desc));
     execParam.inBuffer.emplace_back(std::move(buffer));
-    execParam.inDims.emplace_back(dim);
-    execParam.inFormats.emplace_back(format);
   }
 
   void AddInput(
       const aclTensorDesc* desc,
       const aclDataBuffer* buffer,
-      int64_t dim,
-      aclFormat format,
       const Tensor& hostTensor) {
-    AddInput(desc, buffer, dim, format);
-    execParam.hostMem.emplace_back(hostTensor.storage());
-  }
-
-  void AddConst(SmallVector<int64_t, N> dimList) {
-    int64_t dimNum = dimList.size();
-    int64_t* constList = new int64_t[dimNum];
-    for (int i = 0; i < dimNum; ++i) {
-      constList[i] = dimList[i];
-    }
-
-    execParam.constIdxs.emplace_back(inputCounter);
-    execParam.constLists.emplace_back(constList);
+    AddInput(desc, buffer);
+    execParam.hostMem.emplace_back(hostTensor);
   }
 
   void AddOutput(
       const aclTensorDesc* desc,
-      aclDataBuffer* buffer,
-      int64_t dim,
-      aclFormat format) {
+      aclDataBuffer* buffer) {
     execParam.outDesc.emplace_back(std::move(desc));
     execParam.outBuffer.emplace_back(std::move(buffer));
-    execParam.outDims.emplace_back(dim);
-    execParam.outFormats.emplace_back(format);
   }
 
   template <typename dataType>
   void AddAttr(const string& attrName, dataType value) {
     InitAttr();
-    AttrInfoMaker::Add(value, attrInfo);
     OpAttrMaker::Set(execParam.attr, attrName, value);
-    execParam.hasAttr = true;
   }
 
   // export op execute params
   void ExportParams(ExecuteParas& params) {
-    InitAttr();
     params.opType = opName;
-    params.attrInfo = attrInfo;
     params.attr = execParam.attr;
 
     // make params
     int inputNum = execParam.inDesc.size();
     int outputNum = execParam.outDesc.size();
-    int constNum = execParam.constLists.size();
 
     size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
     size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
-    size_t inputDimsArrLen       = inputNum * sizeof(int64_t);
-    size_t inputFormatsArrLen    = inputNum * sizeof(aclFormat);
 
     size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
     size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
-    size_t outputDimsArrLen       = outputNum * sizeof(int64_t);
-    size_t outputFormatsArrLen    = outputNum * sizeof(aclFormat);
 
-    size_t constListArrLen = constNum * sizeof(uintptr_t);
-    size_t constIdxArrLen  = constNum * sizeof(int64_t);
-
-    size_t totalMemLen =
-      inputTensorDescArrLen + inputDataBuffArrLen +
-      inputDimsArrLen + inputFormatsArrLen +
-      outputTensorDescArrLen + outputDataBuffArrLen +
-      outputDimsArrLen + outputFormatsArrLen +
-      constListArrLen + constIdxArrLen;
+    size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen +
+        outputTensorDescArrLen + outputDataBuffArrLen;
     char* basePtr = static_cast<char* >(malloc(totalMemLen));
     AT_ASSERT(basePtr != nullptr);
     const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
     basePtr += inputTensorDescArrLen;
     const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
     basePtr += inputDataBuffArrLen;
-    int64_t* inputDimsArr = reinterpret_cast<int64_t*>(basePtr);
-    basePtr += inputDimsArrLen;
-    aclFormat* inputFormatsArr = reinterpret_cast<aclFormat*>(basePtr);
-    basePtr += inputFormatsArrLen;
 
     const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
     basePtr += outputTensorDescArrLen;
     aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
-    basePtr += outputDataBuffArrLen;
-    int64_t* outputDimsArr = reinterpret_cast<int64_t* >(basePtr);
-    basePtr += outputDimsArrLen;
-    aclFormat* outputFormatsArr = reinterpret_cast<aclFormat* >(basePtr);
-    basePtr += outputFormatsArrLen;
-
-    const int64_t** constListArr = reinterpret_cast<const int64_t** >(basePtr);
-    basePtr += constListArrLen;
-    int64_t* constIdxArr = reinterpret_cast<int64_t* >(basePtr);
 
     std::copy(
         execParam.inDesc.begin(),
@@ -311,44 +248,12 @@ class OpCommandImpl {
         execParam.outBuffer.end(),
         aclDataOutputBuffArr);
 
-    std::copy(
-        execParam.inDims.begin(),
-        execParam.inDims.end(),
-        inputDimsArr);
-    std::copy(
-        execParam.outDims.begin(),
-        execParam.outDims.end(),
-        outputDimsArr);
-    std::copy(
-        execParam.inFormats.begin(),
-        execParam.inFormats.end(),
-        inputFormatsArr);
-    std::copy(
-        execParam.outFormats.begin(),
-        execParam.outFormats.end(),
-        outputFormatsArr);
-
-    std::copy(
-        execParam.constLists.begin(),
-        execParam.constLists.end(),
-        constListArr);
-    std::copy(
-        execParam.constIdxs.begin(),
-        execParam.constIdxs.end(),
-        constIdxArr);
-
     params.paras.input_num = inputNum;
     params.paras.output_num = outputNum;
     params.paras.input_desc = aclTensorInputDescArr;
     params.paras.input_data_buf = aclDataInputBuffArr;
     params.paras.output_desc = aclTensorOutputDescArr;
     params.paras.output_data_buf = aclDataOutputBuffArr;
-
-    params.paras.inputDims = inputDimsArr;
-    params.paras.outputDims = outputDimsArr;
-    params.paras.inputFormats = inputFormatsArr;
-    params.paras.outputFormats = outputFormatsArr;
-    params.paras.hasAttr = execParam.hasAttr;
     params.hostMemory = execParam.hostMem;
     if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
       params.isFuzzy = true;
@@ -375,10 +280,6 @@ class OpCommandImpl {
           execParam.outBuffer.begin(),
           execParam.outBuffer.end(),
           aclDestroyDataBuffer);
-      std::for_each(
-          execParam.constLists.begin(),
-          execParam.constLists.end(),
-          [](const int64_t* constList) { delete[] constList; });
       if (execParam.attr != nullptr) {
         aclopDestroyAttr(execParam.attr);
         execParam.attr = nullptr;
@@ -387,24 +288,14 @@ class OpCommandImpl {
 
     execParam.inDesc.clear();
     execParam.inBuffer.clear();
-    execParam.inDims.clear();
-    execParam.inFormats.clear();
 
     execParam.outDesc.clear();
     execParam.outBuffer.clear();
-    execParam.outDims.clear();
-    execParam.outFormats.clear();
-
-    execParam.constIdxs.clear();
-    execParam.constLists.clear();
     execParam.hostMem.clear();
 
     // recover
-    execParam.hasAttr = false;
     execParam.attr = nullptr;
     opName = "";
-    attrInfo = "attrs:";
-    inputCounter = 0;
   }
 
  private:
@@ -413,15 +304,8 @@ class OpCommandImpl {
     SmallVector<const aclDataBuffer*, N> inBuffer; // owned
     SmallVector<const aclTensorDesc*, N> outDesc; // owned
     SmallVector<aclDataBuffer*, N> outBuffer; // owned
-    SmallVector<int64_t, N> inDims;
-    SmallVector<int64_t, N> outDims;
-    SmallVector<aclFormat, N> inFormats;
-    SmallVector<aclFormat, N> outFormats;
-    SmallVector<const int64_t*, N> constLists;
-    SmallVector<int64_t, N> constIdxs;
-    SmallVector<Storage, N> hostMem;
+    SmallVector<Tensor, N> hostMem;
     aclopAttr* attr = nullptr;
-    bool hasAttr = false;
   };
 
   void InitAttr() {
@@ -433,9 +317,7 @@ class OpCommandImpl {
   aclError InnerRun(string name, AclExecParam& params);
 
  private:
-  int64_t inputCounter = 0;
   string opName;
-  string attrInfo = "attrs:";
   AclExecParam execParam;
 }; // class OpCommandImpl
 

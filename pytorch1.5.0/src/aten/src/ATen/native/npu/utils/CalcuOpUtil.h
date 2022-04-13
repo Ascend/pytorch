@@ -269,8 +269,7 @@ class CalcuOpUtil {
       ScalarType scalar_type);
   static SmallVector<NPUTensorDesc, N> create_npu_output_tensor_desc(
       const SmallVector<Tensor, N>& outputTensor);
-  static std::tuple<aclopAttr*, string> CreateNpuAttrDesc(
-      const SmallVector<NPUAttrDesc, N>& attrs);
+  static aclopAttr* CreateNpuAttrDesc(const SmallVector<NPUAttrDesc, N>& attrs);
   static NPUStatus CreateAclTensorDescInfo(
       SmallVector<NPUTensorDesc, N>& input,
       SmallVector<NPUTensorDesc, N>& output,

@@ -238,7 +238,7 @@ Tensor empty_with_format_npu(
   // 'unpacked'  // TODO: remove this when Variable and Tensor are merged
   TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
   check_size_nonnegative(size);
-  c10::Allocator* allocator = at::npu::NPUCachingAllocator::get();
+  static c10::Allocator* allocator = at::npu::NPUCachingAllocator::get();
   // when the shape and format are not match, fix format here.
   aclFormat format = InferFormat::GuessStorageFormat(size, (aclFormat)dst_format);
   int64_t nelements = StorageDescHelper::GetMemorySize(size, format);

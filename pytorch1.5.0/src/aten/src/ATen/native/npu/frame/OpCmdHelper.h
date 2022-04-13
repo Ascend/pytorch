@@ -28,30 +28,30 @@ namespace npu {
 // covert pytorch tensor to acl tensor.
 class OpCmdHelper {
 public:
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertTensorToAclInput(
       const Tensor& tensor,
       const c10::optional<Tensor>& cpu_tensor,
       const string& descName,
       const string& forceDataType = "");
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertTensorWithZeroDimToAclInput(const Tensor& tensor, ScalarType type);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertNPUTensorWithZeroDimToAclInput(const Tensor& tensor, const string& descName);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertScalarToAclInput(const Tensor& tensor, ScalarType type);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
-  CovertToAclOutput(const Tensor* tensorPtr, const string& forceDataType);
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
+  CovertToAclOutput(const Tensor& tensor, const string& forceDataType);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertTransDataTensorToAcl(
       const Tensor& tensor);
 
-  static std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat>
+  static std::tuple<aclTensorDesc*, aclDataBuffer*>
   CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type, CompileType compileType);
 }; // class OpCommandImpl
 

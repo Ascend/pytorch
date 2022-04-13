@@ -25,9 +25,6 @@ void CopyParas::Copy(CopyParas& other) {
   this->src = other.src;
   this->srcLen = other.srcLen;
   this->kind = other.kind;
-  if (!other.pinMem.empty()) {
-    this->pinMem = other.pinMem;
-  }
 }
 
 void EventParas::Copy(EventParas& other) {
@@ -38,10 +35,8 @@ void EventParas::Copy(EventParas& other) {
 class AsyncCopyTask {
 public:
   AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
-  AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind, Storage& st);
   ~AsyncCopyTask() = default;
   void LaunchCopyTask();
-  void LaunchCopyTask(bool isPinnedMem);
 
 private:
   CopyParas copyParam_;
@@ -52,7 +47,7 @@ public:
   explicit EventTask(aclrtEvent event, EventAllocatorType allocatorType = RESERVED) :
       eventParam_(event, allocatorType) {};
   ~EventTask() = default;
-  void LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec);
+  void LaunchRecordTask(at::npu::NPUStream npuStream);
   void LaunchWaitTask(at::npu::NPUStream npuStream);
   void LaunchLazyDestroyTask();
 private:
@@ -68,48 +63,14 @@ AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
   copyParam_.kind = kind;
 }
 
-AsyncCopyTask::AsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-    Storage& st)
-{
-  copyParam_.dst = dst;
-  copyParam_.dstLen = dstLen;
-  copyParam_.src = src;
-  copyParam_.srcLen = srcLen;
-  copyParam_.kind = kind;
-  copyParam_.pinMem.emplace_back(st);
-}
-
 void AsyncCopyTask::LaunchCopyTask()
 {
   if (c10::npu::OptionsManager::CheckQueueEnable()) {
     QueueParas params(ASYNC_MEMCPY, sizeof(CopyParas), &copyParam_);
-    SmallVector<Storage, N> needClearVec;
-    c10::npu::enCurrentNPUStream(&params, needClearVec);
-    // free pin memory
-    needClearVec.clear();
+    c10::npu::enCurrentNPUStream(&params);
   } else {
     c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-    AT_NPU_CHECK(aclrtMemcpyAsync(
-        copyParam_.dst,
-        copyParam_.dstLen,
-        copyParam_.src,
-        copyParam_.srcLen,
-        copyParam_.kind,
-        stream));
-  }
-}
-
-void AsyncCopyTask::LaunchCopyTask(bool isPinnedMem)
-{
-  if (c10::npu::OptionsManager::CheckQueueEnable() && isPinnedMem) {
-    QueueParas params(ASYNC_MEMCPY_EX, sizeof(CopyParas), &copyParam_);
-    SmallVector<Storage, N> needClearVec;
-    c10::npu::enCurrentNPUStream(&params, needClearVec);
-    // free pin memory
-    needClearVec.clear();
-  } else {
-    c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
-    AT_NPU_CHECK(aclrtMemcpyAsync(
+    C10_NPU_CHECK(aclrtMemcpyAsync(
         copyParam_.dst,
         copyParam_.dstLen,
         copyParam_.src,
@@ -126,55 +87,38 @@ aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen,
   return ACL_ERROR_NONE;
 }
 
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-    Storage& st, bool isPinMem)
-{
-  AsyncCopyTask copyTask(dst, dstLen, src, srcLen, kind, st);
-  copyTask.LaunchCopyTask(isPinMem);
-  return ACL_ERROR_NONE;
-}
-
-void EventTask::LaunchRecordTask(at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec)
+void EventTask::LaunchRecordTask(at::npu::NPUStream npuStream)
 {
   if (c10::npu::OptionsManager::CheckQueueEnable()) {
     at::npu::NPUStream currentStream = c10::npu::getCurrentNPUStream();
     c10::npu::setCurrentNPUStream(npuStream);
     QueueParas params(RECORD_EVENT, sizeof(EventParas), &eventParam_);
-    c10::npu::enCurrentNPUStream(&params, needClearVec);
+    c10::npu::enCurrentNPUStream(&params);
     c10::npu::setCurrentNPUStream(currentStream);
   } else {
-    AT_NPU_CHECK(aclrtRecordEvent(
+    C10_NPU_CHECK(aclrtRecordEvent(
         eventParam_.event,
         npuStream));
   }
 }
-aclError LaunchRecordEventTask(aclrtEvent event, at::npu::NPUStream npuStream, SmallVector<Storage, N>& needClearVec)
-{
-  EventTask recordTask(event);
-  recordTask.LaunchRecordTask(npuStream, needClearVec);
-  return ACL_ERROR_NONE;
-}
 
 aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
-                                            at::npu::NPUStream npuStream,
-                                            SmallVector<Storage, N>& needClearVec) {
+                                            at::npu::NPUStream npuStream) {
   EventTask recordTask(event, HOST_ALLOCATOR_EVENT);
-  recordTask.LaunchRecordTask(npuStream, needClearVec);
+  recordTask.LaunchRecordTask(npuStream);
   return ACL_ERROR_NONE;
 }
 
 aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
                                            at::npu::NPUStream npuStream) {
   EventTask recordTask(event, NPU_ALLOCATOR_EVENT);
-  SmallVector<Storage, N> needClearVec;
-  recordTask.LaunchRecordTask(npuStream, needClearVec);
+  recordTask.LaunchRecordTask(npuStream);
   return ACL_ERROR_NONE;
 }
 
 aclError LaunchRecordEventTask(aclrtEvent event, at::npu::NPUStream npuStream) {
   EventTask recordTask(event);
-  SmallVector<Storage, N> needClearVec;
-  recordTask.LaunchRecordTask(npuStream, needClearVec);
+  recordTask.LaunchRecordTask(npuStream);
   return ACL_ERROR_NONE;
 }
 
@@ -183,11 +127,10 @@ void EventTask::LaunchWaitTask(at::npu::NPUStream npuStream) {
     at::npu::NPUStream currentStream = c10::npu::getCurrentNPUStream();
     c10::npu::setCurrentNPUStream(npuStream);
     QueueParas params(WAIT_EVENT, sizeof(EventParas), &eventParam_);
-    SmallVector<Storage, N> needClearVec;
-    c10::npu::enCurrentNPUStream(&params, needClearVec);
+    c10::npu::enCurrentNPUStream(&params);
     c10::npu::setCurrentNPUStream(currentStream);
   } else {
-    AT_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
+    C10_NPU_CHECK(aclrtStreamWaitEvent(npuStream, eventParam_.event));
   }
 }
 
@@ -200,10 +143,9 @@ aclError LaunchWaitEventTask(aclrtEvent event, at::npu::NPUStream npuStream) {
 void EventTask::LaunchLazyDestroyTask() {
   if (c10::npu::OptionsManager::CheckQueueEnable()) {
     QueueParas params(LAZY_DESTROY_EVENT, sizeof(EventParas), &eventParam_);
-    SmallVector<Storage, N> needClearVec;
-    c10::npu::enCurrentNPUStream(&params, needClearVec);
+    c10::npu::enCurrentNPUStream(&params);
   } else {
-    AT_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().LazyDestroy(eventParam_.event));
+    C10_NPU_CHECK(c10::npu::NPUEventManager::GetInstance().LazyDestroy(eventParam_.event));
   }
 }
 

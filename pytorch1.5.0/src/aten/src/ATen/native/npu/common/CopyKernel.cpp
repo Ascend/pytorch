@@ -22,7 +22,6 @@
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include <ATen/native/npu/utils/OpTemplate.h>
 #include <ATen/npu/Exceptions.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include <THNPU/THNPUCachingHostAllocator.h>
 #include <c10/npu/NPUGuard.h>
 #include <c10/npu/OptionsManager.h>

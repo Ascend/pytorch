@@ -14,15 +14,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
+// 将要废弃，当前仅针对strid_add特殊算子使用该逻辑
 SmallVector<int64_t, SIZE> deprecated_broadcast_ops_npu_output_size(
     IntArrayRef shape1_,
     IntArrayRef shape2_) {
@@ -54,6 +54,26 @@ SmallVector<int64_t, SIZE> deprecated_broadcast_ops_npu_output_size(
   return output_shape;
 }
 
+SmallVector<NPUTensorDesc, N> stride_add_npu_input(
+    const SmallVector<Tensor, N>& inputTensor) {
+  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
+}
+
+SmallVector<NPUTensorDesc, N> stride_add_npu_output(const Tensor& result) {
+  return CalcuOpUtil::create_npu_output_tensor_desc({result});
+}
+
+SmallVector<NPUAttrDesc, N> stride_add_npu_attr(
+    Scalar offset1,
+    Scalar offset2,
+    Scalar c1_len) {
+  NPUAttrDesc npuAttrX1 = NPUAttrDesc("x1_c1_offset", (int64_t)offset1.toInt());
+  NPUAttrDesc npuAttrX2 = NPUAttrDesc("x2_c1_offset", (int64_t)offset2.toInt());
+  NPUAttrDesc npuAttrC1 = NPUAttrDesc("c1_len", (int64_t)c1_len.toInt());
+  SmallVector<NPUAttrDesc, N> attrs = {npuAttrX1, npuAttrX2, npuAttrC1};
+  return attrs;
+}
+
 Tensor& stride_add_out_npu(
     Tensor& result,
     const Tensor& self,
@@ -61,16 +81,15 @@ Tensor& stride_add_out_npu(
     Scalar offset1,
     Scalar offset2,
     Scalar c1_len) {
-    
-  OpCommand cmd;
-  cmd.Name("StrideAdd")
-      .Input(self)
-      .Input(other)
-      .Output(result)
-      .Attr("x1_c1_offset", (int64_t)offset1.toInt())
-      .Attr("x2_c1_offset", (int64_t)offset2.toInt())
-      .Attr("c1_len", (int64_t)c1_len.toInt())
-      .Run();     
+  // constructs the input and output NPUTensorDesc
+  auto inputs = stride_add_npu_input({self, other});
+  auto outputs = stride_add_npu_output({result});
+
+  // constructs the attr of the NPUAttrDesc
+  auto attrs = stride_add_npu_attr(offset1, offset2, c1_len);
+
+  // executing the NPU operator
+  CalcuOpUtil::execute_npu_operate("StrideAdd", inputs, outputs, attrs);
 
   return result;
 }
@@ -86,8 +105,8 @@ Tensor stride_add_npu(
   outputSize[1] = c1_len.toInt() * 16;
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize, self.options());
+  Tensor result = at::empty_with_format(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
   stride_add_out_npu(result, self, other, offset1, offset2, c1_len);

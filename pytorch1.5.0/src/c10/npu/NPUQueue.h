@@ -21,10 +21,8 @@
 #include <mutex>
 #include <atomic>
 
-#include "c10/core/Storage.h"
 #include "c10/core/Device.h"
 #include "c10/npu/npu_log.h"
-#include "c10/util/SmallVector.h"
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10 {
@@ -46,9 +44,6 @@ enum RepoStatus {
   NEED_EXIT = 2,
   CAN_EXIT = 3,
 };
-
-// smallvector max size
-const int N = 32;
 
 class ReleaseQueue {
  public:
@@ -84,7 +79,7 @@ class NPUQueueBase {
   virtual RepoStatus GetStatus() const = 0;
   virtual void SetStatus(RepoStatus desired) = 0;
   virtual void ChangeStatus(RepoStatus expected, RepoStatus desired) = 0;
-  virtual void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) = 0;
+  virtual void Enqueue(void* cur_paras) = 0;
   virtual void Dequeue() = 0;
   virtual NPUStatus MakeSureQueueEmpty() = 0;
   virtual void InitRepo(DeviceIndex device_id) = 0;
@@ -104,7 +99,7 @@ class Repository : public NPUQueueBase {
   RepoStatus GetStatus() const override;
   void SetStatus(RepoStatus desired) override;
   void ChangeStatus(RepoStatus expected, RepoStatus desired) override;
-  void Enqueue(void* cur_paras, SmallVector<Storage, N>& needClearVec) override;
+  void Enqueue(void* cur_paras) override;
   void Dequeue() override;
   NPUStatus MakeSureQueueEmpty() override;
   void InitRepo(DeviceIndex device_id) override;
@@ -117,7 +112,7 @@ class Repository : public NPUQueueBase {
   void EnableInterrupt(RepoRole role);
   void DisableInterrupt(RepoRole role);
   bool NeedNotify(RepoRole role) const;
-  bool WriteQueue(void* cur_paras, SmallVector<Storage, N>& needClearVec);
+  bool WriteQueue(void* cur_paras);
   bool ReadQueue();
 
  private:
@@ -143,7 +138,7 @@ class Repository : public NPUQueueBase {
 };
 
 using ACL_EXEC_FUNC     = std::function<int(void*, uint32_t)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*, SmallVector<Storage, N>&, uint32_t)>;
+using ACL_COPY_FUNC     = std::function<void(void*, void*, uint32_t)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;

@@ -29,7 +29,7 @@ Tensor& bincount_npu_nocheck(
   OpCommand cmd;
   cmd.Name("Bincount")
       .Input(self)
-      .Input(sizes, ScalarType::Int)
+      .Input(Scalar(sizes), ScalarType::Int)
       .Input(weights)
       .Output(result)
       .Run();

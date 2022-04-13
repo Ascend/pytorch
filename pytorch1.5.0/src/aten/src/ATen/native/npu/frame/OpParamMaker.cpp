@@ -15,7 +15,6 @@
 
 #include "OpParamMaker.h"
 #include <Python.h>
-#include <c10/npu/OptionsManager.h>
 #include "c10/npu/NPUQueue.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
@@ -34,6 +33,10 @@ using namespace c10::npu::queue;
 namespace at {
 namespace native {
 namespace npu {
+constexpr size_t MAX_VAL_SIZE = (sizeof(ExecuteParas) > sizeof(CopyParas)) ?
+    ((sizeof(ExecuteParas) >  sizeof(EventParas)) ? sizeof(ExecuteParas) : sizeof(EventParas)) :
+    ((sizeof(CopyParas) > sizeof(EventParas)) ? sizeof(CopyParas) : sizeof(EventParas));
+
 void OpAttrMaker::Set(aclopAttr* attr, const string& name, bool value) {
   aclopSetAttrBool(attr, name.c_str(), value);
 }
@@ -99,72 +102,7 @@ void OpAttrMaker::Set(
       attrValue.data());
 }
 
-
-void AttrInfoMaker::Add(bool value, string& attrInfo) {
-  attrInfo += to_string(value) + "-";
-}
-
-void AttrInfoMaker::Add(int64_t value, string& attrInfo) {
-  attrInfo += to_string(value) + "-";
-}
-
-void AttrInfoMaker::Add(float value, string& attrInfo) {
-  attrInfo += to_string(value) + "-";
-}
-
-void AttrInfoMaker::Add(string value, string& attrInfo) {
-  attrInfo += value + "-";
-}
-
-void AttrInfoMaker::Add(IntArrayRef value, string& attrInfo) {
-  auto vec = value.vec();
-  for (unsigned i = 0; i < vec.size(); i++)
-    attrInfo += to_string(vec.at(i)) + ",";
-  attrInfo += "-";
-}
-
-void AttrInfoMaker::Add(
-    at::ArrayRef<float> value,
-    string& attrInfo) {
-  auto vec = value.vec();
-  for (unsigned i = 0; i < vec.size(); i++)
-    attrInfo += to_string(vec.at(i)) + ",";
-  attrInfo += "-";
-}
-
-void AttrInfoMaker::Add(
-    at::ArrayRef<uint8_t> value,
-    string& attrInfo) {
-  auto vec = value.vec();
-  for (unsigned i = 0; i < vec.size(); i++)
-    attrInfo += to_string(vec.at(i)) + ",";
-  attrInfo += "-";
-}
-
-void AttrInfoMaker::Add(Scalar value, string& attrInfo) {
-  float val = CalcuOpUtil::get_scalar_float_value(value);
-  attrInfo += to_string(val) + "-";
-}
-
-void AttrInfoMaker::Add(
-    at::ArrayRef<IntArrayRef> value,
-    string& attrInfo) {
-  // Pointer to values of each listInt.
-  SmallVector<int64_t*, N> attrValue;
-  // Pointer to number of each listInt.
-  SmallVector<int, N> eachListIntNum;
-  // Value of each listInt.
-  SmallVector<SmallVector<int64_t, N>, N> eachListIntVal;
-  for (int i = 0; i < value.size(); i++) {
-    int64_t valueSize = value[i].size();
-    attrInfo += to_string(valueSize) + ",";
-  }
-  attrInfo += "-";
-}
-
-
 void OpCommandImpl::Run() {
-  InitAttr();
   NPU_LOGD("Op %s Run.", opName.c_str());
   RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
   E2E_RECORD_FUNCTION(opName);
@@ -344,35 +282,22 @@ int LazyDestroyEventFunc(QueueParas* in, aclrtStream stream) {
   return ret;
 }
 
-size_t GetMaxLen(size_t x, size_t y, size_t z)
-{
-  return x > y ? (x > z ? x : z) : (y > z ? y : z);
-}
-
-void CopyFunc(void* dst, void* src, SmallVector<Storage, N>& needClearVec, uint32_t queueLen) {
+void CopyFunc(void* dst, void* src, uint32_t queueLen) {
   RECORD_HOST_FUNCTION("Enqueue queue_len: " + to_string(queueLen), std::vector<c10::IValue>({}));
   auto dstPtr = static_cast<QueueParas* >(dst);
   auto srcPtr = static_cast<QueueParas* >(src);
   dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(QueueParas);
-  // pin memory free will add aclrtRecordEvent to queue
-  // in order to avoid deadlock, pin memory free operation is moved out of the enqueue operation
   if (dstPtr->paramType == COMPILE_AND_EXECUTE) {
-    needClearVec.swap((static_cast<ExecuteParas* >(dstPtr->paramVal))->hostMemory);
     // string or smallvector of struct is used, deconstructor need be called before memset
     (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
-  } else if (dstPtr->paramType == ASYNC_MEMCPY_EX) {
-    needClearVec.swap((static_cast<CopyParas* >(dstPtr->paramVal))->pinMem);
-    // string or smallvector of struct is used, deconstructor need be called before memset
-    (static_cast<CopyParas* >(dstPtr->paramVal))->~CopyParas();
   }
   dstPtr->paramStream = srcPtr->paramStream;
   dstPtr->paramType = srcPtr->paramType;
   dstPtr->paramLen = srcPtr->paramLen;
-  size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(CopyParas), sizeof(EventParas));
-  memset(dstPtr->paramVal, 0, maxSize);
+  memset(dstPtr->paramVal, 0, MAX_VAL_SIZE);
   if (srcPtr->paramType == COMPILE_AND_EXECUTE) {
     (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
-  } else if ((srcPtr->paramType == ASYNC_MEMCPY) || (srcPtr->paramType == ASYNC_MEMCPY_EX)) {
+  } else if (srcPtr->paramType == ASYNC_MEMCPY) {
     (static_cast<CopyParas* >(dstPtr->paramVal))->Copy(*(static_cast<CopyParas* >(srcPtr->paramVal)));
   } else {
     (static_cast<EventParas* >(dstPtr->paramVal))->Copy(*(static_cast<EventParas* >(srcPtr->paramVal)));
@@ -384,8 +309,7 @@ void ReleaseFunc(void* ptr, c10::npu::ReleaseQueue& releaseQueue) {
 }
 
 void* NewFunc(int caption, int& size) {
-  size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(CopyParas), sizeof(EventParas));
-  size = sizeof(QueueParas) + maxSize;
+  size = sizeof(QueueParas) + MAX_VAL_SIZE;
   void *ptr = malloc(size * caption);
   TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
   memset(ptr, 0, size * caption);
@@ -396,12 +320,11 @@ void DeleteFunc(void* ptr) {
   free(ptr);
 }
 
-typedef int (*Func)(QueueParas*, aclrtStream);
+using Func = int (*)(QueueParas*, aclrtStream);
 using AsyncFuncMap = std::map<QueueParamType, Func>;
 AsyncFuncMap funcMap = {
   {COMPILE_AND_EXECUTE, ExecFunc},
   {ASYNC_MEMCPY, MemcopyAsyncFunc},
-  {ASYNC_MEMCPY_EX, MemcopyAsyncFunc},
   {RECORD_EVENT, RecordEventFunc},
   {WAIT_EVENT, WaitEventFunc},
   {LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
@@ -424,6 +347,7 @@ void CopyReleaseParamFunc(void* dst, void* src)
   dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(QueueParas);
   if (srcPtr->paramType == COMPILE_AND_EXECUTE) {
     (static_cast<ExecuteParas* >(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
+    (static_cast<ExecuteParas* >(srcPtr->paramVal))->hostMemory.clear();
   }
 }
 

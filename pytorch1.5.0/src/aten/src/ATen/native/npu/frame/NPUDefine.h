@@ -31,11 +31,6 @@ struct ACL_PARAMS {
     output_num = 0;
     output_desc = nullptr;
     output_data_buf = nullptr;
-    inputDims = nullptr;
-    outputDims = nullptr;
-    inputFormats = nullptr;
-    outputFormats = nullptr;
-    hasAttr = false;
   }
 
   int input_num;
@@ -44,21 +39,14 @@ struct ACL_PARAMS {
   int output_num;
   const aclTensorDesc** output_desc;
   aclDataBuffer** output_data_buf;
-  int64_t* inputDims;
-  int64_t* outputDims;
-  aclFormat* inputFormats;
-  aclFormat* outputFormats;
-  bool hasAttr;
 };
 
 struct ExecuteParas {
   std::string opType;
-  std::string attrInfo;
-  bool isCompiling = false;
   bool isFuzzy = false;
   ACL_PARAMS paras;
   const aclopAttr* attr = nullptr;
-  SmallVector<Storage, N> hostMemory;
+  SmallVector<Tensor, N> hostMemory;
   ExecuteParas(
       std::string opName,
       aclopAttr* acl_attr,

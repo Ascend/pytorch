@@ -21,7 +21,7 @@ namespace native {
 namespace npu {
 
 void ExecuteParas::Release() {
-  if (!isCompiling) {
+  if (attr != nullptr) {
     aclopDestroyAttr(attr);
     attr = nullptr;
   }
@@ -34,19 +34,16 @@ void ExecuteParas::Release() {
 
 void ExecuteParas::Copy(ExecuteParas& other) {
   this->opType = other.opType;
-  this->attrInfo = other.attrInfo;
   this->paras = other.paras;
   this->attr = other.attr;
   this->hostMemory = other.hostMemory;
   this->isFuzzy = other.isFuzzy;
-  this->isCompiling = other.isCompiling;
 }
 
 void ExecuteParas::CopyEx(ExecuteParas& other)
 {
   this->paras = other.paras;
   this->attr = other.attr;
-  this->isCompiling = other.isCompiling;
 }
 
 NPUStatus DestroyAclParams(ACL_PARAMS& params) {
@@ -78,12 +75,8 @@ NPUStatus DestroyAclParams(ACL_PARAMS& params) {
   }
   free(params.input_desc);
   params.input_desc = nullptr;
-  params.inputDims = nullptr;
-  params.inputFormats = nullptr;
   params.input_data_buf = nullptr;
   params.output_desc = nullptr;
-  params.outputDims = nullptr;
-  params.outputFormats = nullptr;
   params.output_data_buf = nullptr;
   return SUCCESS;
 }

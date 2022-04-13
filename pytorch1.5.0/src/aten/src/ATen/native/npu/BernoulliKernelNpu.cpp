@@ -30,7 +30,7 @@ Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, double p) {
       OpCommand cmd;
       cmd.Name("Bernoulli")
         .Input(self_)
-        .Input(p, ScalarType::Float)
+        .Input(Scalar(p), ScalarType::Float)
         .Output(result)
         .Run();
   }

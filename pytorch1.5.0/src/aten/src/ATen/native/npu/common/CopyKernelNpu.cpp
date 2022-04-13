@@ -62,11 +62,11 @@ void copy_kernel_npu(
         .InputWithoutContiguous(self)
         .Input(self_size)
         .Input(self_stride)
-        .Input(self.storage_offset(), at::kLong)
+        .Input(Scalar(self.storage_offset()), at::kLong)
         .InputWithoutContiguous(src)
         .Input(src_size)
         .Input(src_stride)
-        .Input(src.storage_offset(), at::kLong)
+        .Input(Scalar(src.storage_offset()), at::kLong)
         .Output(self)
         .Run();
     return;

@@ -377,7 +377,6 @@ void npuSynchronizeDevice() {
 
 void enCurrentNPUStream(
     void* cur_paras,
-    SmallVector<Storage, N>& needClearVec,
     DeviceIndex device_index) {
   initNPUStreamsOnce();
   if (device_index == -1) {
@@ -386,7 +385,7 @@ void enCurrentNPUStream(
   check_npu(device_index);
   c10::npu::queue::QueueParas* queueParam = static_cast<c10::npu::queue::QueueParas* >(cur_paras);
   queueParam->paramStream = current_streams[device_index]->stream;
-  default_streams[device_index].repo->Enqueue(cur_paras, needClearVec);
+  default_streams[device_index].repo->Enqueue(cur_paras);
   if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
     default_streams[device_index].repo->MakeSureQueueEmpty();
     default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);

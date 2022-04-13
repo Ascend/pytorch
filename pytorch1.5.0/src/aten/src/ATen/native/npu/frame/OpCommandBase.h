@@ -154,26 +154,11 @@ class OpCommandBase {
         graphCmd.AddInput(dimList, cpuTensor.scalar_type());
         )
     Tensor npuTensor = CopyHostToDevice(cpuTensor);
-    aclCmd->AddConst(dimList);
     return AddTensorInput(
         npuTensor, ScalarType::Undefined, descName, "", cpuTensor);
   }
 
-  Derived& Input(
-      SmallVector<int64_t, N>& dimList,
-      ScalarType toType = at::kLong) {
-    IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-        graphCmd.AddInput(dimList, toType);
-        )
-    Tensor& cpuTensor = CreateHostTensor(
-        (void*)dimList.data(),
-        dimList.size(),
-        TensorOptions(kCPU).dtype(at::kLong),
-        toType);
-    return AddHostTensorInput(cpuTensor);
-  }
-
-  Derived& Input(IntArrayRef& dimListRef, ScalarType toType = at::kLong) {
+  Derived& Input(const IntArrayRef& dimListRef, ScalarType toType = at::kLong) {
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
         graphCmd.AddInput(dimListRef, toType);
         )
@@ -238,10 +223,8 @@ class OpCommandBase {
           c10::npu::queue::COMPILE_AND_EXECUTE,
           sizeof(ExecuteParas),
           &execParams);
-      SmallVector<Storage, N> needClearVec;
-      c10::npu::enCurrentNPUStream(&params, needClearVec);
+      c10::npu::enCurrentNPUStream(&params);
       aclCmd->releaseSource(false);
-      needClearVec.clear();
     } else {
       aclCmd->Run();
       aclCmd->releaseSource();
@@ -256,7 +239,7 @@ class OpCommandBase {
       const string& descName = "",
       const string& realData = "",
       c10::optional<Tensor> cpu_tensor = c10::nullopt) {
-    std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> res;
+    std::tuple<aclTensorDesc*, aclDataBuffer*> res;
     if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
       tensor = tensor.npu_dtype_cast(commonType.value());
     }
@@ -273,29 +256,26 @@ class OpCommandBase {
       res = OpCmdHelper::CovertTensorToAclInput(
           tensor, cpu_tensor, descName, realData);
     }
-    aclCmd->AddInput(
-        std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
+    aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
     return static_cast<Derived&>(*this);
   }
+
   Derived& AddHostTensorInput(const Tensor& tensor,
     CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT) {
-    std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> res;
+    std::tuple<aclTensorDesc*, aclDataBuffer*> res;
     res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
-    aclCmd->AddInput(
-        std::get<0>(res),
-        std::get<1>(res),
-        std::get<2>(res),
-        std::get<3>(res),
-        tensor);
+    aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
     return static_cast<Derived&>(*this);
   }
+
   Derived& AddNoneTensor() {
     AclTensorDescMaker desc;
     auto aclDesc = desc.Create(ACL_DT_UNDEFINED, ACL_FORMAT_UNDEFINED).Get();
     AclTensorBufferMaker buffer(nullptr, 0);
-    aclCmd->AddInput(aclDesc, buffer.Get(), 0, ACL_FORMAT_UNDEFINED);
+    aclCmd->AddInput(aclDesc, buffer.Get());
     return static_cast<Derived&>(*this);
   }
+
   Derived& AddScalarInput(const Scalar& input, ScalarType type) {
     ScalarType type_bk = type;
     if (commonType.has_value()) {
@@ -303,19 +283,17 @@ class OpCommandBase {
     }
     Tensor aclInput = CopyHostToDevice(input, type_bk);
     auto res = OpCmdHelper::CovertScalarToAclInput(aclInput, type_bk);
-    aclCmd->AddInput(
-        std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
+    aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
     return static_cast<Derived&>(*this);
   }
+
   Derived& AddOutput(Tensor& output, const string& realType = "") {
     if (resultTypeDefined == false && commonType.has_value() &&
         commonType.value() != output.scalar_type()) {
       output = output.npu_dtype_cast(commonType.value());
     }
-    const Tensor* tensor = &output;
-    auto res = OpCmdHelper::CovertToAclOutput(tensor, realType);
-    aclCmd->AddOutput(
-        std::get<0>(res), std::get<1>(res), std::get<2>(res), std::get<3>(res));
+    auto res = OpCmdHelper::CovertToAclOutput(output, realType);
+    aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));
     return static_cast<Derived&>(*this);
   }
 
@@ -365,7 +343,7 @@ class OpCommandBase {
     if (commonType.has_value()) {
       type = commonType.value();
     }
-    storage.emplace_back(scalar_to_tensor(scalar).to(type));
+    storage.emplace_back(at::scalar_tensor(scalar, at::device(at::kCPU).dtype(type)));
     return storage.back();
   }
   SmallVector<Tensor, N> storage; // tensor's life cycle should maintain when Run() is called

@@ -23,7 +23,7 @@ namespace at {
 namespace native {
 namespace npu {
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertTensorToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertTensorToAclInput(
     const Tensor& tensor,
     const c10::optional<Tensor>& cpu_tensor,
     const string& descName,
@@ -44,11 +44,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
   int64_t numel = prod_intlist(storageDims);
   AclTensorBufferMaker buffer(tensor, numel);
   auto aclBuff = buffer.Get();
-  int64_t storageDim = storageDims.size();
-  return std::tie(aclDesc, aclBuff, storageDim, npuDesc.npu_format_);
+  return std::tie(aclDesc, aclBuff);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertTensorWithZeroDimToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertTensorWithZeroDimToAclInput(
     const Tensor& tensor,
     ScalarType type) {
   // 针对在host侧的tensor，需要做大量处理
@@ -66,12 +65,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
   auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
   AclTensorBufferMaker buffer(aclInput);
   auto aclBuff = buffer.Get();
-  int64_t storageDim = 0;
-  aclFormat stroageFormate = ACL_FORMAT_ND;
-  return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
+  return std::tie(aclDesc, aclBuff);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertNPUTensorWithZeroDimToAclInput(
     const Tensor& tensor,
     const string& descName) {
   aclDataType aclDataType =
@@ -81,12 +78,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
       desc.Create(aclDataType, ACL_FORMAT_ND).SetName(descName).Get();
   AclTensorBufferMaker buffer(tensor);
   auto aclBuff = buffer.Get();
-  int64_t storageDim = 0;
-  aclFormat stroageFormate = ACL_FORMAT_ND;
-  return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
+  return std::tie(aclDesc, aclBuff);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertScalarToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertScalarToAclInput(
     const Tensor& aclInput,
     ScalarType type) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
@@ -95,12 +90,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
   auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
   AclTensorBufferMaker aclBuffer(aclInput);
   auto aclBuff = aclBuffer.Get();
-  int64_t storageDim = 0;
-  aclFormat stroageFormate = ACL_FORMAT_ND;
-  return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
+  return std::tie(aclDesc, aclBuff);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertHostTensorToAclInput(
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertHostTensorToAclInput(
     const Tensor& tensor,
     ScalarType type,
     CompileType compileType) {
@@ -115,18 +108,17 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
   int64_t numel = prod_intlist(dims);
   AclTensorBufferMaker buffer(tensor, numel);
   auto aclBuff = buffer.Get();
-  int64_t dim = dims.size();
 
-  return std::tie(aclDesc, aclBuff, dim, format);
+  return std::tie(aclDesc, aclBuff);
 }
 
-std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::CovertToAclOutput(
-    const Tensor* tensorPtr,
+std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertToAclOutput(
+    const Tensor& tensor,
     const string& forceDataType) {
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
-      tensorPtr->scalar_type(), forceDataType);
-  const auto& npuDesc = tensorPtr->storage().get_npu_desc();
-  const auto& dims = tensorPtr->sizes();
+      tensor.scalar_type(), forceDataType);
+  const auto& npuDesc = tensor.storage().get_npu_desc();
+  const auto& dims = tensor.sizes();
   auto& storageDims = npuDesc.storage_sizes_;
   AclTensorDescMaker desc;
   auto aclDesc = desc.Create(aclDataType, dims, npuDesc.origin_format_)
@@ -134,10 +126,9 @@ std::tuple<aclTensorDesc*, aclDataBuffer*, int64_t, aclFormat> OpCmdHelper::Cove
                       .SetShape(storageDims)
                       .Get();
   auto numel = prod_intlist(storageDims);
-  AclTensorBufferMaker aclBuffer(tensorPtr, numel);
+  AclTensorBufferMaker aclBuffer(tensor, numel);
   auto aclBuff = aclBuffer.Get();
-  int64_t storageDim = storageDims.size();
-  return std::tie(aclDesc, aclBuff, storageDim, npuDesc.npu_format_);
+  return std::tie(aclDesc, aclBuff);
 }
 
 } // npu

@@ -41,7 +41,8 @@ aclError NPUEventManager::QueryAndDestroyEvent() {
     aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
     aclError err = acl::AclQueryEventStatus(event, &waitStatus, &recordStatus);
     if (err != ACL_ERROR_NONE) {
-        return err;
+      C10_NPU_SHOW_ERR_MSG();
+      return err;
     }
     if ((waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) &&
       (recordStatus != ACL_EVENT_STATUS_COMPLETE)) {
