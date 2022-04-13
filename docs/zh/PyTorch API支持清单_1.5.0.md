@@ -1252,6 +1252,13 @@ torch.npu.set_device()接口只支持在程序开始的位置通过set_device进
 | 55   | npu_linear                            |
 | 56   | npu_bert_apply_adam                   |
 | 57   | npu_giou                              |
+| 58   | npu_min.dim                           |
+| 59   | npu_nms_rotated                       |
+| 60   | npu_silu                              |
+| 61   | npu_reshape                           |
+| 62   | npu_rotated_iou                       |
+| 63   | npu_rotated_box_encode                |
+| 64   | npu_rotated_box_decode                |
 
 详细算子接口说明：
 
@@ -1464,8 +1471,6 @@ Change the format of a npu tensor.
   >>> x1.storage().npu_format()
   29
   ```
-
-> npu_format_cast_
 
 >   npu_format_cast_.src(self, src) -> Tensor
 
@@ -2955,47 +2960,6 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   >>> output
   tensor([[3.6335, 4.3713, 2.4440, 2.0081],
           [5.3273, 6.3089, 3.9601, 3.2410]], device='npu:0')
-  ```
-
-> npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
-
-   count adam result. 
-
-- Parameters：
-
-  - **var** (Tensor) - A Tensor. Support float16/float32.
-  - **m**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **v**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **lr** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **beta1** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **beta2** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **epsilon** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **grad**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **max_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **global_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **weight_decay** (Number) - A Tensor. Datatype is same as exp_avg.
-
-- constraints：
-
-  None
-
-- Examples：
-  ```python
-  >>> var_in = torch.rand(321538).uniform_(-32., 21.).npu()
-  >>> m_in = torch.zeros(321538).npu()
-  >>> v_in = torch.zeros(321538).npu()
-  >>> grad = torch.rand(321538).uniform_(-0.05, 0.03).npu()
-  >>> max_grad_norm = -1.
-  >>> beta1 = 0.9
-  >>> beta2 = 0.99
-  >>> weight_decay = 0.
-  >>> lr = 0.
-  >>> epsilon = 1e-06
-  >>> global_grad_norm = 0.
-  >>> var_out, m_out, v_out = torch.npu_bert_apply_adam(var_in, m_in, v_in, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay)
-  >>> var_out
-  tensor([ 14.7733, -30.1218,  -1.3647,  ..., -16.6840,   7.1518,   8.4872],
-        device='npu:0')
   ```
 
 > npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0, *, out=（var,m,v）)
