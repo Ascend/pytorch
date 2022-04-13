@@ -40,6 +40,7 @@ namespace at_npu
       static void Set(aclopAttr *attr, const string &name, string value);
       static void Set(aclopAttr *attr, const string &name, c10::IntArrayRef value);
       static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
+      static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
       static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
       static void Set(
           aclopAttr *attr,
@@ -56,6 +57,7 @@ namespace at_npu
       static void Add(string value, string &attrInfo);
       static void Add(c10::IntArrayRef value, string &attrInfo);
       static void Add(at::ArrayRef<float> value, string &attrInfo);
+      static void Add(at::ArrayRef<uint8_t> value, string& attrInfo);
       static void Add(c10::Scalar value, string &attrInfo);
       static void Add(at::ArrayRef<c10::IntArrayRef> value, string &attrInfo);
     };

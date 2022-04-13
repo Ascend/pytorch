@@ -64,6 +64,12 @@ namespace at_npu
       aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
     }
 
+    void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value)
+    {
+      auto vec = value.vec();
+      aclopSetAttrListBool(attr, name.c_str(), vec.size(), vec.data());
+    }
+
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, c10::Scalar value)
     {
       float val = CalcuOpUtil::get_scalar_float_value(value);
@@ -131,6 +137,16 @@ namespace at_npu
     void AttrInfoMaker::Add(
         at::ArrayRef<float> value,
         string &attrInfo)
+    {
+      auto vec = value.vec();
+      for (unsigned i = 0; i < vec.size(); i++)
+        attrInfo += std::to_string(vec.at(i)) + ",";
+      attrInfo += "-";
+    }
+
+    void AttrInfoMaker::Add(
+        at::ArrayRef<uint8_t> value,
+        string& attrInfo)
     {
       auto vec = value.vec();
       for (unsigned i = 0; i < vec.size(); i++)

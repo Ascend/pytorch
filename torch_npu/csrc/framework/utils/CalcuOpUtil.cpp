@@ -30,6 +30,7 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 
 namespace at_npu
 {
@@ -198,7 +199,7 @@ namespace at_npu
 
     int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor)
     {
-      if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor))
+      if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor) || CanUseMemcpyForOtherFormat(tensor))
       {
         auto tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
         return tensor_desc.npu_format_;

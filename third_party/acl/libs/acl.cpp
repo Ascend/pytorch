@@ -63,6 +63,7 @@ aclError aclopSetAttrFloat(aclopAttr *attr, const char *attrName, float attrValu
 aclError aclopSetAttrString(aclopAttr *attr, const char *attrName, const char *attrValue){return 0;}
 aclError aclopSetAttrListInt(aclopAttr *attr, const char *attrName, int numValues, const int64_t *values){return 0;}
 aclError aclopSetAttrListFloat(aclopAttr *attr, const char *attrName, int numValues, const float *values){return 0;}
+aclError aclopSetAttrListBool(aclopAttr *attr, const char *attrName, int numValues, const uint8_t *values){return 0;}
 // Tensor相关
 aclTensorDesc *aclCreateTensorDesc(aclDataType dataType, int numDims, const int64_t *dims, aclFormat format){return NULL;}
 void aclDestroyTensorDesc(const aclTensorDesc *desc){return;}
