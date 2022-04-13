@@ -1,0 +1,6 @@
+FILE(GLOB _NPU_SRCS *.cpp)
+
+LIST(APPEND NPU_SRCS ${_NPU_SRCS})
+
+# Pass to parent
+set(NPU_SRCS ${NPU_SRCS} PARENT_SCOPE)
