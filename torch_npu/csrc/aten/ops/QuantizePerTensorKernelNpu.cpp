@@ -59,17 +59,20 @@ at::Tensor NPUNativeFunctions::quantize_per_tensor(
   } else if (dtype == at::ScalarType::QInt32) {
     outputDtype = at::kInt;
   }
-  at::Tensor scaleTensor = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor scaleTensor = OpPreparation::ApplyTensorWithFormat(
       {1},
-      self.options().dtype(at::kFloat));
+      self.options().dtype(at::kFloat),
+      CalcuOpUtil::get_tensor_npu_format(self));
   scaleTensor[0] = scaleFloat;
-  at::Tensor zpTensor = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor zpTensor = OpPreparation::ApplyTensorWithFormat(
       {1},
-      self.options().dtype(at::kInt));
+      self.options().dtype(at::kInt),
+      CalcuOpUtil::get_tensor_npu_format(self));
   zpTensor[0] = zero_point;
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options().dtype(outputDtype));
+      self.options().dtype(outputDtype),
+      CalcuOpUtil::get_tensor_npu_format(self));
   quantize_per_tensor_out_nocheck(result, self, scaleTensor, zpTensor, dtype);
   return result;
 }

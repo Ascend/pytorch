@@ -68,9 +68,10 @@ at::Tensor& renorm_out_nocheck(
   }
   dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
   auto outputSize = renorm_npu_output_size(self, dim);
-  at::Tensor result_bak = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor result_bak = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options().dtype(at::kFloat));
+      self.options().dtype(at::kFloat),
+      CalcuOpUtil::get_tensor_npu_format(self));
   if(ori_type == c10::ScalarType::Half) {
     at::Tensor self_no_name = self.rename(c10::nullopt);
     at::Tensor result_no_name = result.rename(c10::nullopt);
@@ -131,9 +132,7 @@ at::Tensor& NPUNativeFunctions::renorm_out(
 at::Tensor NPUNativeFunctions::renorm(const at::Tensor& self, at::Scalar p, int64_t dim, at::Scalar maxnorm) {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      self.options());
+  at::Tensor result = OpPreparation::ApplyTensor(self);
 
   return renorm_out_nocheck(result, self, p, dim, maxnorm);
 }

@@ -48,9 +48,7 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
   }
 
   auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeats, realDim);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      selfTensor.options());
+  at::Tensor result = OpPreparation::ApplyTensor(selfTensor, outputSize);
   repeat_interleave_out_npu(result, selfTensor, repeats, realDim);
 
   return result;

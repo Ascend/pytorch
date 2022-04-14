@@ -45,7 +45,7 @@ at::Tensor& NPUNativeFunctions::logsumexp_out(const at::Tensor& self, at::IntArr
 
 at::Tensor NPUNativeFunctions::logsumexp(const at::Tensor& self, at::IntArrayRef dims, bool keepdim) {
   auto outputSize = logsumexp_npu_output_size(self, dims, keepdim);
-  at::Tensor result =  OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result =  OpPreparation::ApplyTensor(self, outputSize);
   return logsumexp_out_nocheck(self, dims, keepdim, result);
 }
 
