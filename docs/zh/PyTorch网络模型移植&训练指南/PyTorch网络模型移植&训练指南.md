@@ -2200,6 +2200,73 @@ aiCoreMetricsType=0)):
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
 
+### AOE调优工具使用说明
+
+#### AOE调优工具介绍
+
+对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，AOE工具则实现了这样的调优功能，可以用于提升模型的性能。
+
+#### AOE调优工具使用
+
+1. dump算子信息至本地。
+
+   在模型脚本中添加使能代码，将算子信息dump至本地。
+
+   ```
+   def train_model():
+      torch.npu.set_aoe(dump_path) #使能接口,dump_path为设置保存dump出算子信息的路径，为必须项，不能为空；当设置的路径不存在时，会尝试创建，且支持多级目录创建。
+      train_model_one_step()       #模型训练过程样例，一般仅需执行一个step即可，请根据代码实际情况修改。
+   ```
+
+   以resnet50模型为实际样例，修改如下。
+
+   ```
+   #line 427~437
+   model.train()
+   optimizer.zero_grad()
+   end = time.time()
+   torch.npu.set_aoe(dump_path)    #使能接口
+   for i, (images, target) in enumerate(train_loader):
+       if i > 0:             #仅需要运行一个step
+           exit()
+       if i > 100:
+           pass
+       # measure data loading time
+       data_time.update(time.time() - end)
+   
+       if args.gpu is not None:
+           images = images.cuda(args.gpu, non_blocking=True)
+   ```
+
+   参考链接：https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/cv/classification/ResNet50_for_PyTorch/pytorch_resnet50_apex.py
+
+2. 算子调优
+
+   - 设置环境变量：
+
+     ```
+     source /usr/local/Ascend/ascend-toolkit/set_env.sh  #该环境变量默认不设置TUNE_BANK_PATH
+     ```
+
+   - 调优：
+
+     ```
+     aoe --job_type=2 --model_path=./dump_path
+     ```
+
+     调优过程中，目前仅支持部分算子调优，因此会出现算子调优失败或AI Core error，属于已知问题。
+
+   - 调优结果：
+
+     调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/Ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/Ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
+
+#### 注意事项
+
+1. 目前仅支持静态算子，动态算子暂不支持。
+2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
+3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
+4. 使用前需关闭profiling工具，否则会影响模型性能。
+
 <h2 id="精度调测md">精度调测</h2>
 
 
