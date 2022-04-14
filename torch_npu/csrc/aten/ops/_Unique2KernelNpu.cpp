@@ -64,9 +64,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_unique2(
   }
  
   at::Tensor y = OpPreparation::ApplyTensor(selfCopy, std::get<0>(outputSizes));
-  at::Tensor yOutputSize = OpPreparation::ApplyTensorWithSizes(std::get<1>(outputSizes), self.options().dtype(at::kLong));
-  at::Tensor yInverse = OpPreparation::ApplyTensorWithSizes(std::get<2>(outputSizes), self.options().dtype(at::kLong));
-  at::Tensor yCounts = OpPreparation::ApplyTensorWithSizes(std::get<0>(outputSizes), self.options().dtype(at::kLong));
+  at::Tensor yOutputSize = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
+  at::Tensor yInverse = OpPreparation::ApplyTensorWithFormat(std::get<2>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
+  at::Tensor yCounts = OpPreparation::ApplyTensorWithFormat(std::get<0>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
   
   _unique2_out_npu(y, yOutputSize, yInverse, yCounts, selfCopy, sorted, return_inverse, return_counts);
   

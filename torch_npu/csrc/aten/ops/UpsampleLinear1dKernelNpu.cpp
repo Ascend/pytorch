@@ -124,7 +124,8 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
       self, output_size, align_corners, scales);
   
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
   upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
@@ -144,7 +145,8 @@ at::Tensor NPUNativeFunctions::upsample_linear1d(
       self, osize, align_corners, scales_w);
   
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
   upsample_linear1d_out_nocheck(self, osize, align_corners, scales_w, result);

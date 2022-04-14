@@ -70,8 +70,8 @@ at::Tensor NPUNativeFunctions::multinomial(
   auto shape = array_to_small_vector(self.sizes());
   shape[dim-1] = num_samples;
 
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      shape, self.options().dtype(at::kLong));
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      shape, self.options().dtype(at::kLong), CalcuOpUtil::get_tensor_npu_format(self));
   multinomial_out_npu_nocheck(result, self, num_samples, replacement, gen);
   return result;
 }
