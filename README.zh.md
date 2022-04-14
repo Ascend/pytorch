@@ -201,28 +201,46 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 # FAQ
 
+## import torch 报找不到libhccl.so错误
+
+未配置环境变量，需通过env.sh脚本配置
+
+```
+source pytorch/pytorch1.5.0/src/env.sh
+```
+
+
+
 ## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
 
 pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
 
+```
 pip3 install pyyaml
 pip3 install typing_extensions
+```
 
 安装成功后，注意需要执行make clean在执行bash build.sh进行编译，否则可能因缓存出现未知编译错误。
+
+
 
 ## 运行遇到找不到te问题
 
 开发态:
 
+```
 cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+```
 
 用户态:
 
+```
 cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
 pip3 install --upgrade te-0.4.0-py3-none-any.whl
+```
 
 
 
@@ -263,6 +281,28 @@ Ubuntu环境
 ```sh
 apt install libopenblas-dev
 ```
+
+
+
+## ARM环境pip安装torchvision失败
+
+可采用源码安装（需先安装昇腾pytorch并通过env.sh配置环境变量）
+
+```
+git clone -b v0.6.0 https://github.com/pytorch/vision.git 
+cd vision
+python setup.py install
+```
+
+验证torchvision是否安装成功
+
+```
+python -c "import torchvision"
+```
+
+若不报错，则说明安装成功
+
+
 
 # 版本说明
 
