@@ -57,16 +57,8 @@ at::Tensor& NPUNativeFunctions::take_out(const at::Tensor& self, const at::Tenso
 }
 
 at::Tensor NPUNativeFunctions::take(const at::Tensor& self, const at::Tensor& index) {
-  // calculate the output size
-  auto outputSize = input_same_output_size(index);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      self.options());
-
+  at::Tensor result = OpPreparation::ApplyTensor(self, index.sizes());
   take_out_nocheck(self, index, result);
-  
   return result;
 }
 } // namespace native
