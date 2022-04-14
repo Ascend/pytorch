@@ -138,6 +138,7 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/torch_npu/csrc/aten)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/hccl/inc)
 include_directories(${PROJECT_SOURCE_DIR}/third_party/acl/inc)
+include_directories(${PROJECT_SOURCE_DIR}/patch/include)
 
 # Set installed PyTorch dir
 if(DEFINED PYTORCH_INSTALL_DIR)
