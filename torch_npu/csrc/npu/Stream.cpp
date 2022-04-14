@@ -134,7 +134,7 @@ static PyMethodDef THNPStream_methods[] = {
 
 PyTypeObject THNPStreamType = {
   PyVarObject_HEAD_INIT(nullptr, 0)
-  "torch._C._NPUStreamBase",            /* tp_name */
+  "torch_npu._C._NPUStreamBase",            /* tp_name */
   sizeof(THNPStream),                    /* tp_basicsize */
   0,                                     /* tp_itemsize */
   (destructor)THNPStream_dealloc,        /* tp_dealloc */

@@ -14,7 +14,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/NPUGeneratorImpl.h>
 #include <torch/csrc/python_headers.h>
 
 #include <ATen/ATen.h>
@@ -44,6 +43,8 @@
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -68,7 +69,7 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   auto num_npus = c10::npu::device_count();
   auto default_npu_generators = PyTuple_New(static_cast<Py_ssize_t>(num_npus));
   for(int i = 0; i < num_npus; i++) {
-    auto gen = at::npu::detail::getDefaultNPUGenerator(i);
+    auto gen = at_npu::detail::getDefaultNPUGenerator(i);
     auto cast_gen = (THPGenerator*)THPGenerator_initDefaultGenerator(gen);
     // This reference is meant to be given away, so no need to incref here.
     PyTuple_SetItem(default_npu_generators, i, (PyObject*)cast_gen);
