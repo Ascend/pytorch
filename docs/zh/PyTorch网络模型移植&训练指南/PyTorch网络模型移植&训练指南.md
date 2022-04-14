@@ -2031,6 +2031,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 1. 目前仅支持静态算子，动态算子暂不支持。
 2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
 3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
+4. 使用前需关闭profiling工具，否则会影响模型性能。
 
 #### 性能验证
 

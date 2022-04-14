@@ -924,7 +924,7 @@
 | 146  | torch.nn.LSTM                                            | 是                           |
 | 147  | torch.nn.GRU                                             | 是，DynamicGRUV2场景暂不支持 |
 | 148  | torch.nn.RNNCell                                         | 是                           |
-| 149  | torch.nn.LSTMCell                                        | 是                           |
+| 149  | torch.nn.LSTMCell                                        | 是，非16对齐场景暂不支持     |
 | 150  | torch.nn.GRUCell                                         | 是                           |
 | 151  | torch.nn.Transformer                                     | 是                           |
 | 152  | torch.nn.Transformer.forward                             | 是                           |
