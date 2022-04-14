@@ -50,7 +50,8 @@ at::Tensor NPUNativeFunctions::repeat(const at::Tensor& self, at::IntArrayRef re
   auto outputSize = repeat_npu_output_size(selfCp, repeats);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, selfCp.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, selfCp.options(), CalcuOpUtil::get_tensor_npu_format(selfCp));
 
   // calculate the output result of the NPU
   repeat_out_npu_nocheck(result, selfCp, repeats);

@@ -61,7 +61,7 @@ at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
     at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
 
     auto outputSize = transpose_npu_output_size(result, perm);
-    at::Tensor transposeResult = OpPreparation::ApplyTensorWithSizes(outputSize, result.options());
+    at::Tensor transposeResult = OpPreparation::ApplyTensor(result, outputSize);
 
     sort_without_indices_no_transpose(transposeResult, transposeSelf, lastDim, descending);
     NPUNativeFunctions::npu_transpose_out(transposeResult, perm, result);
@@ -97,7 +97,7 @@ at::Tensor NPUNativeFunctions::npu_sort_v2(
     at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
 
     auto outputSize = transpose_npu_output_size(result, perm);
-    at::Tensor transposeResult = OpPreparation::ApplyTensorWithSizes(outputSize, result.options());
+    at::Tensor transposeResult = OpPreparation::ApplyTensor(result, outputSize);
 
     sort_without_indices_no_transpose(transposeResult, transposeSelf, lastDim, descending);
     NPUNativeFunctions::npu_transpose_out(transposeResult, perm, result);
