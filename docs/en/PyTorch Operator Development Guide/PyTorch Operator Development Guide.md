@@ -10,7 +10,6 @@
     -   [Registering an Operator](#registering-an-operatormd)
         -   [Overview](#overviewmd)
         -   [Registering an Operator for PyTorch 1.5.0](#registering-an-operator-for-pytorch-1-5-0md)
-        -   [Registering an Operator for PyTorch 1.8.1](#registering-an-operator-for-pytorch-1-8-1md)
     -   [Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-pluginmd)
     -   [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-frameworkmd)
 -   [Operator Function Verification](#operator-function-verificationmd)
@@ -136,7 +135,7 @@ PyTorch operator development includes TBE operator development and operator adap
 -   CMake 3.12.0 or later has been installed. For details, see  [Installing CMake](#installing-cmakemd).
 -   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see "Installing GCC 7.3.0" in the  _CANN Software Installation Guide_.
 -   The Git tool has been installed. To install Git for Ubuntu and CentOS, run the following commands:
-    -   Ubuntu
+    -   Ubuntu, EulerOS
 
         ```
         apt-get install patch
@@ -166,7 +165,7 @@ The following describes how to query the operators supported by Ascend AI Proces
     -   For operator development on the command line, you can perform offline query. For details, see the  _CANN Operator List \(Ascend 910\)_.
     -   For operator development using  MindStudio, you can perform online query on  MindStudio. For details, see "Supported Operators and Models" in the  _MindStudio User Guide_.
 
--   For the list of operators adapted to PyTorch, see the  _PyTorch Operator Support_.
+-   For the list of operators adapted to PyTorch, see the [PyTorch 1.5.0 API Supported Operator List](https://gitee.com/ascend/pytorch/blob/v1.5.0/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95_1.5.0.md).
 
 <h2 id="operator-adaptationmd">Operator Adaptation</h2>
 
@@ -188,20 +187,19 @@ The following describes how to query the operators supported by Ascend AI Proces
 
 <h3 id="obtaining-the-pytorch-source-codemd">Obtaining the PyTorch Source Code</h3>
 
-Currently, only PyTorch 1.5.0 and 1.8.1 are supported. To obtain the PyTorch source code, perform steps described in the "Installing the PyTorch Framework" in the  _PyTorch Installation Guide_. The full code adapted to Ascend AI Processors is generated in the  **pytorch/pytorch**  directory. The PyTorch operator is also adapted and developed in this directory.
+Currently, only PyTorch 1.5.0 and 1.8.1 are supported. To obtain the PyTorch source code, perform steps described in the "Installing the PyTorch Framework" in the [PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/v1.5.0/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md). The full code adapted to Ascend AI Processors is generated in the  **pytorch/pytorch**  directory. The PyTorch operator is also adapted and developed in this directory.
 
 <h3 id="registering-an-operatormd">Registering an Operator</h3>
 
 -   **[Overview](#overviewmd)**  
 
 -   **[Registering an Operator for PyTorch 1.5.0](#registering-an-operator-for-pytorch-1-5-0md)**  
-
--   **[Registering an Operator for PyTorch 1.8.1](#registering-an-operator-for-pytorch-1-8-1md)**  
+ 
 
 
 <h4 id="overviewmd">Overview</h4>
 
-Currently, the NPU adaptation dispatch principle is as follows: The NPU operator is directly dispatched as the NPU adaptation function without being processed by the common function of the framework. That is, the operator execution call stack contains only the function call of the NPU adaptation and does not contain the common function of the framework. During compilation, the PyTorch framework generates the calling description of the middle layer of the new operator based on the definition in  **native\_functions.yaml**  and the type and device dispatch principle defined in the framework. For NPUs, the description is generated in  **build/aten/src/ATen/NPUType.cpp**.
+Currently, the NPU adaptation dispatch principle is as follows: The NPU operator is directly dispatched as the NPU adaptation function without being processed by the common function of the framework. That is, the operator execution call stack contains only the function call of the NPU adaptation and does not contain the common function of the framework. During compilation, the PyTorch framework generates the calling description of the middle layer of the new operator based on the definition in  **native\_functions.yaml**  and the type and device dispatch principle defined in the framework. For NPUs, the description is generated in  **pytorch/pytorch/build/aten/src/ATen/NPUType.cpp**.
 
 <h4 id="registering-an-operator-for-pytorch-1-5-0md">Registering an Operator for PyTorch 1.5.0</h4>
 
@@ -334,95 +332,6 @@ The following uses the torch.add\(\) operator as an example to describe how to r
         ```
 
 
-
-<h4 id="registering-an-operator-for-pytorch-1-8-1md">Registering an Operator for PyTorch 1.8.1</h4>
-
-##### Registering an Operator<a name="section575212111125"></a>
-
-1.  Open the  **native\_functions.yaml**  file.
-
-    The  **native\_functions.yaml**  file defines all operator function prototypes, including function names and parameters. Each operator function supports dispatch information of different hardware platforms. The file is in the  **pytorch/aten/src/ATen/native/native\_functions.yaml**  directory.
-
-2.  Determine the functions to be dispatched.
-    -   Existing operator in the YAML file
-
-        Dispatch all functions related to the operator to be adapted.
-
-    -   Custom operator that does not exist in the YAML file
-
-        The YAML file does not contain the operator information. Therefore, you need to manually add related functions, including the function names, parameters, and return types. For details about how to add a rule, see  **pytorch/aten/src/ATen/native/README.md**.
-
-        ```
-        - func: operator name (input parameter information) -> return type
-        ```
-
-
-
-##### Examples<a name="section434031421219"></a>
-
-The following uses the torch.add\(\) operator as an example to describe how to register an operator.
-
-1.  Open the  **native\_functions.yaml**  file.
-2.  Search for related functions.
-
-    Search for  **add**  in the YAML file and find  **func**  that describes the add operator. The add operator is a built-in operator of PyTorch. Therefore, you do not need to manually add  **func**. If the operator is a custom operator, you need to manually add  **func**.
-
-3.  Determine the function description related to operator name and type.
-    -   Dispatch description of  **add.Tensor**
-
-        ```
-        - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
-          structured_delegate: add.out
-          variants: function, method
-          dispatch:
-            SparseCPU, SparseCUDA: add_sparse
-            MkldnnCPU: mkldnn_add
-        ```
-
-    -   Dispatch description of  **add.Scalar**
-
-        ```
-        - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
-          variants: function, method
-          dispatch:
-            DefaultBackend: add
-        ```
-
-    -   Dispatch description of  **add\_.Tensor**
-
-        ```
-        - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          structured_delegate: add.out
-          dispatch:
-            SparseCPU, SparseCUDA: add_sparse_
-            MkldnnCPU: mkldnn_add_
-        ```
-
-    -   Dispatch description of  **add\_.Scalar**
-
-        ```
-        - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          dispatch:
-            DefaultBackend: add_
-        ```
-
-    -   Dispatch description of  **add.out**
-
-        ```
-        - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
-          structured: True
-          structured_inherits: TensorIteratorBase
-          dispatch:
-            CPU, CUDA: add_out
-            SparseCPU: add_out_sparse_cpu
-            SparseCUDA: add_out_sparse_cuda
-            MkldnnCPU: mkldnn_add_out
-        ```
-
-
-
 <h3 id="developing-an-operator-adaptation-pluginmd">Developing an Operator Adaptation Plugin</h3>
 
 #### Overview<a name="en-us_topic_0000001125315877_section16410139174517"></a>
@@ -433,7 +342,7 @@ You can develop an operator adaptation plugin to convert the formats of the inpu
 
 1.  Create an adaptation plugin file.
 
-    The NPU TBE operator adaptation file is stored in the  **pytorch/aten/src/ATen/native/npu**  directory and is named in the upper camel case. The file name is in the format of  _operator name_  +  **KernelNpu.cpp**, for example,  **AddKernelNpu.cpp**.
+    The NPU TBE operator adaptation file is stored in the  **pytorch/pytorch/aten/src/ATen/native/npu**  directory and is named in the upper camel case. The file name is in the format of  _operator name_  +  **KernelNpu.cpp**, for example,  **AddKernelNpu.cpp**.
 
 2.  Introduce the dependency header files.
 
@@ -449,21 +358,6 @@ You can develop an operator adaptation plugin to convert the formats of the inpu
 4.  Implement the main adaptation functions.
 
     Implement the operator's main adaptation function and construct the corresponding input, output, and attributes based on the TBE operator prototype.
-
-5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the operator description func in the  **native\_functions.yaml**  file generated during the operator registration.  
-
-    **TORCH\_LIBRARY\_IMPL**  is a macro provided by PyTorch for registered operator distribution. To use it, perform the following steps:
-
-    ```
-    Torch_LIBRARY_IMPL(aten, PrivateUse1, m){
-        m.impl("Operator func name in YAML 1", TORCH_FN("Corresponding main adaptation function 1"))
-        m.impl("Operator func name in YAML 2", TORCH_FN("Corresponding main adaptation function 2"))
-    }
-    ```
-
-    -   **aten**  is the namespace, which can be customized based on the namespace of the implementation file.
-    -   **PrivateUse1**  is  **dispatchKey**, which is used to set the NPU.
-    -   **m**  is a fixed field.
 
 
 #### Example<a name="en-us_topic_0000001125315877_section18021337113012"></a>
@@ -618,16 +512,6 @@ The following uses the torch.add\(\) operator as an example to describe how to a
         }
         ```
 
-5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the registered operator. 
-
-    ```
-    TORCH_LIBRARY_IMPL(aten, NPU, m) {  
-        m.impl("add.Tensor", TORCH_FN(add_npu));  
-        m.impl("add_.Tensor", TORCH_FN(add_npu_));  
-        m.impl("add.out", TORCH_FN(add_out_npu));}
-    ```
-
-
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >For details about the implementation code of  **AddKernelNpu.cpp**, see the  **pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp**  document.
 
@@ -650,7 +534,7 @@ The following uses the torch.add\(\) operator as an example to describe how to a
     bash build.sh --python=3.8
     ```
 
-    Specify the Python version in the environment for compilation. After the compilation is successful, the binary package  **torch-\*.whl**  is generated in the  **pytorch/pytorch/dist**  directory, for example,  **torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl**  or  **torch-1.8.1+ascend-cp37-cp37m-linux\_x86.whl**.
+    Specify the Python version in the environment for compilation. After the compilation is successful, the binary package  **torch-\*.whl**  is generated in the  **pytorch/pytorch/dist**  directory, for example,  **torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl**.
 
 
 #### Installing the PyTorch Framework<a name="en-us_topic_0000001125736777_section119821419153412"></a>
@@ -664,7 +548,7 @@ pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
 _**\{arch\}**_  indicates the architecture information. The value can be  **aarch64**  or  **x86\_64**.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->If PyTorch has been installed in the environment, uninstall the PyTorch software package first. You can run the following command to check whether PyTorch has been installed in the environment:
+>Upgrade: Uninstall the PyTorch plugin software package first and then update the installation. You can run the following command to check whether PyTorch has been installed in the environment:
 >**pip3 list | grep torch**
 
 After the code has been modified, you need to re-compile and re-install PyTorch.
@@ -688,7 +572,7 @@ Operator verification involves all deliverables generated during operator develo
 
 Use the PyTorch frontend to construct the custom operator function and run the function to verify the custom operator functions.
 
-The test cases and test tools are provided in the  **pytorch/test/test\_npu**  directory at  **https://gitee.com/ascend/pytorch**.
+The test cases and test tools are provided in the  **pytorch/pytorch1.5..0/test/test\_npu**  directory at  **https://gitee.com/ascend/pytorch**.
 
 <h3 id="implementationmd">Implementation</h3>
 
@@ -701,8 +585,10 @@ This section describes how to test the functions of a PyTorch operator.
 1.  Set environment variables.
 
     ```
-    # Set environment variables. The details are as follows (the HwHiAiUser user is used as an example and the installation path is the default path):
-    . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
+    # Set environment variables. The details are as follows (the root user is used as an example and the installation path is the default path):
+    usr/local/Ascend/ascend-toolkit/set_env.sh
+    # Set environment variables. The details are as follows (a non-root user is used as an example and the installation path is the default path):
+    ${HOME}/Ascend/ascend-toolkit/set_env.sh
     ```
 
 2.  Compile test scripts. Take the add operator as an example. Compile the test script file  **test\_add.py**  in the  **pytorch/test/test\_npu/test\_network\_ops**  directory.
@@ -802,7 +688,9 @@ Necessary dependencies are missing, such as libjpeg, python-devel, zlib-devel, a
 Run the following command to install the required dependencies:
 
 ```
-apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel
+apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel   #Ubuntu, EulerOS
+
+yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel     #CentOS
 ```
 
 <h3 id="pip3-7-install-torchvision-installation-failedmd">pip3.7 install torchvision Installation Failed</h3>
@@ -851,6 +739,9 @@ Output the logs to the screen and redirect them to a specified text file.
 
     ```
     export SLOG_PRINT_TO_STDOUT=1
+
+    export ASCEND_GLOBAL_LOG_LEVEL=1
+    #0: debug; 1: info; 2: warning; 3: error
     ```
 
     After the setting is complete, run the test case to output related logs to the screen. To facilitate viewing and backtracking, you are advised to perform  [2](#en-us_topic_0000001125315889_li168732325719)  as required.
