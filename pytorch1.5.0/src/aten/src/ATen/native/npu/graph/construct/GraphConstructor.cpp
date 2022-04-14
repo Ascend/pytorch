@@ -18,6 +18,8 @@
 #include "ATen/native/npu/graph/util/GraphUtils.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/graph/scalar/ScalarMemoryOps.h"
+#include "ATen/native/npu/frame/StorageDescHelper.h"
+#include "ATen/native/npu/interface/EnvVariables.h"
 
 namespace at {
 namespace native {
@@ -72,35 +74,49 @@ void GraphCommandImpl::AddInput(
     const Scalar& input,
     const ScalarType type,
     CompileType compile_type) {
-  if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
-    uint32_t offset;
-    ReduceScalarValue(input, type, offset);
-    int deviceIndex = 0;
-    AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
-    auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at::kNPU, deviceIndex).dtype(type));
-    GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
-    GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);
-    auto& cur_ir_value = GraphUtils::GetTensorIrValue(npu_scalar_tensor);
-    cur_ir_value.SetScalarMemOffset(offset);
-    ir_node_->AddInput(
-        input_index_++, cur_ir_value.GetCurNode(), cur_ir_value.GetValueIndex());
-    ir_node_->UpdateNodeHash(GraphUtils::GetTensorIrValueHash(npu_scalar_tensor));
+  if (env::CheckFuzzyEnable()) {
+    auto cpu_scalar_tensor = scalar_to_tensor(input).to(type);
+    AddInputForCpuTensor(cpu_scalar_tensor);
   } else {
-    ir_node_->AddExtInfo(
-        NodeExtInfoType::INPUT_TYPE_SCALAR,
-        std::make_tuple(input_index_++, input, type));
-    ir_node_->UpdateNodeHash(CalcuOpUtil::get_scalar_float_value(input), type);
+    if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
+      uint32_t offset;
+      ReduceScalarValue(input, type, offset);
+      int deviceIndex = 0;
+      AT_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+      auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at::kNPU, deviceIndex).dtype(type));
+      GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
+      GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);
+      auto &cur_ir_value = GraphUtils::GetTensorIrValue(npu_scalar_tensor);
+      cur_ir_value.SetScalarMemOffset(offset);
+      ir_node_->AddInput(
+          input_index_, cur_ir_value.GetCurNode(), cur_ir_value.GetValueIndex());
+      ir_node_->UpdateNodeHash(GraphUtils::GetTensorIrValueHash(npu_scalar_tensor));
+    } else {
+      ir_node_->AddExtInfo(
+          NodeExtInfoType::INPUT_TYPE_SCALAR,
+          std::make_tuple(input_index_, input, type));
+      ir_node_->UpdateNodeHash(CalcuOpUtil::get_scalar_float_value(input), type);
+    }
   }
+  ++input_index_;
+  return;
 }
 
 void GraphCommandImpl::AddInput(
     const IntArrayRef& dim_list,
     const ScalarType to_type) {
   vector<int64_t> val(dim_list.begin(), dim_list.end());
-  ir_node_->AddExtInfo(
-      NodeExtInfoType::INPUT_TYPE_LIST_LONG,
-      std::make_tuple(input_index_++, std::move(val), to_type));
-  ir_node_->UpdateNodeHash(dim_list, to_type);
+  if (env::CheckFuzzyEnable()) {
+    auto cpu_tensor = at::from_blob((void*)val.data(), {val.size()}, at::kLong);
+    AddInputForCpuTensor(cpu_tensor);
+  } else {
+    ir_node_->AddExtInfo(
+        NodeExtInfoType::INPUT_TYPE_LIST_LONG,
+        std::make_tuple(input_index_, std::move(val), to_type));
+    ir_node_->UpdateNodeHash(dim_list, to_type);
+  }
+  ++input_index_;
+  return;
 }
 
 void GraphCommandImpl::AddOutput(
@@ -220,6 +236,24 @@ void GraphCommandImpl::AddZeroDimInput(
       CalcuOpUtil::get_scalar_float_value(expect_scalar), dtype);
 }
 
+void GraphCommandImpl::AddInputForCpuTensor(Tensor &cpu_tensor) {
+  GraphUtils::InitGraphDescForCpuTensor(cpu_tensor);
+  GraphUtils::SetDataOp(cpu_tensor.storage().unsafeGetStorageImpl());
+  int32_t device_index = 0;
+  AT_NPU_CHECK(aclrtGetDevice(&device_index));
+  GraphUtils::RetainGraphDataTensor(cpu_tensor, device_index);
+  StorageDescHelper::SetDesc(cpu_tensor, cpu_tensor.sizes(),
+                             cpu_tensor.strides(), aclFormat::ACL_FORMAT_ND);
+  auto& cur_ir_value = GraphUtils::GetTensorIrValue(cpu_tensor);
+  ir_node_->AddInput(input_index_, cur_ir_value.GetCurNode(), cur_ir_value.GetValueIndex());
+  ir_node_->UpdateNodeHash(GraphUtils::GetTensorIrValueHash(cpu_tensor));
+}
+
+void GraphCommandImpl::Run() {
+  if (output_index_ == 0) {
+    GraphUtils::RetainNoneOutputNode(ir_node_);
+  }
+}
 } // namespace npu
 } // namespace native
 } // namespace at

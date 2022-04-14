@@ -15,7 +15,9 @@
 
 #include "GraphUtils.h"
 
+#include <aten/src/ATen/npu/Exceptions.h>
 #include <c10/npu/NPUGraphContextManager.h>
+#include <third_party/acl/inc/acl/acl_rt.h>
 
 namespace at {
 namespace native {
@@ -88,12 +90,31 @@ bool GraphUtils::IsTensorWithoutNode(const at::Tensor& tensor) {
   return IsTensorWithoutNode(tensor.storage().unsafeGetStorageImpl());
 }
 
-void GraphUtils::RetainGraphDataTensor(const at::Tensor& data_tensor) {
+void GraphUtils::RetainGraphDataTensor(const at::Tensor& data_tensor,
+                                       const c10::optional<int32_t>& device_index) {
   auto storage = data_tensor.storage().unsafeGetStorageImpl();
   auto storage_ptr = c10::intrusive_ptr<StorageImpl>::reclaim(storage);
-  c10::npu::graph::NpuGraphContextManager::GetInstance().AddInputStorage(
-      storage_ptr);
+  auto& ctx_manager =  c10::npu::graph::NpuGraphContextManager::GetInstance();
+  if (device_index.has_value()) {
+    ctx_manager.
+    AddInputStorageForCpuTensorBySpecifiedDeviceId(
+        storage_ptr,static_cast<DeviceIndex>(device_index.value()));
+  } else {
+    ctx_manager.AddInputStorage(storage_ptr);
+  }
   storage_ptr.release();
+}
+
+void GraphUtils::InitGraphDescForCpuTensor(const Tensor &cpu_tensor) {
+  auto storage = cpu_tensor.storage().unsafeGetStorageImpl();
+  TORCH_CHECK(storage->npu_graph_desc == nullptr,
+              "cur cpu tensor already has npu graph desc");
+  storage->npu_graph_desc = std::make_unique<c10::NpuGraphDesc>();
+}
+
+void GraphUtils::RetainNoneOutputNode(c10::npu::graph::NodePtr none_output_node) {
+  c10::npu::graph::NpuGraphContextManager::GetInstance().
+    AddNoneOutputNode(none_output_node);
 }
 } // namespace npu
 } // namespace native

@@ -25,3 +25,4 @@ gcc -fPIC -shared -o libge_runner.so -I../inc ge_runner.cpp ge_api.cpp
 
 gcc -fPIC -shared -o libgraph.so -I../inc graph.cpp operator_factory.cpp operator.cpp tensor.cpp
 
+gcc -fPIC -shared -o libacl_tdt_channel.so -I../inc acl_tdt.cpp

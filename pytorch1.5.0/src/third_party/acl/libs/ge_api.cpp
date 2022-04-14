@@ -34,6 +34,11 @@ Status Session::AddGraph(uint32_t graphId, const Graph& graph) {
   return ge::SUCCESS;
 }
 
+Status Session::AddGraph(uint32_t graphId, const Graph &graph,
+                         const std::map<AscendString, AscendString> &options) {
+  return ge::SUCCESS;
+}
+
 Status GEInitialize(const std::map<AscendString, AscendString>& options) {
   return ge::SUCCESS;
 }

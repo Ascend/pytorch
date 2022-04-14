@@ -148,7 +148,10 @@ public:
     OperatorAttrMaker::SetAttr(attr_name, value, ir_node_);
   }
 
+  void Run();
 private:
+  void AddInputForCpuTensor(at::Tensor& cpu_tensor);
+
   void AddZeroDimInput(const at::Tensor& input, const string& desc_name);
 
   uint32_t output_index_ = 0;

@@ -211,7 +211,9 @@ class OpCommandBase {
   }
 
   void Run() {
-    IF_GRAPH_MODE_THEN_RUN(return;)
+    IF_GRAPH_MODE_THEN_RUN(
+      graphCmd.Run();
+      return;)
     if (c10::npu::OptionsManager::CheckQueueEnable()) {
       ExecuteParas execParams;
       aclCmd->ExportParams(execParams);

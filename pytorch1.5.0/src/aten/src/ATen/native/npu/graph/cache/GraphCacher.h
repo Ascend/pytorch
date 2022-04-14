@@ -39,6 +39,11 @@ public:
       const std::vector<hash_t>& outputs_shape_hash,
       uint32_t cur_graph_id);
 
+  c10::optional<uint32_t> GetCacheGraphId(
+      const std::vector<hash_t>& inputs_topo_hash,
+      const std::vector<hash_t>& outputs_topo_hash,
+      uint32_t cur_graph_id);
+
   static hash_t GetTensorTopoHash(
       const Value& graph_value,
       const ge::TensorDesc& tensor_desc);
@@ -57,6 +62,7 @@ private:
       const std::vector<hash_t>& outputs_shape_hash);
 
   std::unordered_map<hash_t, std::unordered_map<hash_t, uint32_t>> graph_cache_;
+  std::unordered_map<hash_t, uint32_t> dynamic_graph_cache_;
 };
 } // namespace npu
 } // namespace native

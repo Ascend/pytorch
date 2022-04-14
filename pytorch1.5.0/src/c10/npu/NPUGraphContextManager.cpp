@@ -16,7 +16,7 @@
 #include "NPUGraphContextManager.h"
 
 #include <c10/core/StorageImpl.h>
-
+#include <c10/npu/NPUFunctions.h>
 namespace c10 {
 namespace npu {
 namespace graph {
@@ -74,6 +74,17 @@ void NpuGraphContextManager::AddInputStorage(
   return;
 }
 
+void NpuGraphContextManager::
+AddInputStorageForCpuTensorBySpecifiedDeviceId(
+    const c10::intrusive_ptr<StorageImpl> storage,
+    DeviceIndex device_index) {
+  auto npu_data_ctx = GetDeviceContext<InputContext>(
+      device_index, input_contexts_);
+  std::lock_guard<std::mutex> lock(npu_data_ctx->ctx_lock);
+  npu_data_ctx->AddInput(storage);
+  return;
+}
+
 void NpuGraphContextManager::EraseInputStorage(DeviceIndex device_idx) {
   auto npu_data_ctx =
       GetDeviceContext<InputContext>(device_idx, input_contexts_);
@@ -104,6 +115,28 @@ std::vector<DeviceIndex> NpuGraphContextManager::GetDevicesHasLiveTensor() {
     }
   }
   return res;
+}
+
+void NpuGraphContextManager::AddNoneOutputNode(const NodePtr none_out_node) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(c10::npu::current_device(),
+                                    output_contexts_);
+  std::lock_guard<std::mutex> lock(npu_output_ctx->ctx_lock);
+  npu_output_ctx->none_output_nodes.emplace_back(none_out_node);
+}
+
+std::vector<NodePtr> NpuGraphContextManager::GetNoneOutputNode(DeviceIndex device_idx) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(device_idx,
+                                    output_contexts_);
+  return npu_output_ctx->none_output_nodes;
+}
+
+void NpuGraphContextManager::EraseNoneOutputNode(DeviceIndex device_idx) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(device_idx,
+                                    output_contexts_);
+    npu_output_ctx->none_output_nodes.clear();
 }
 } // namespace graph
 } // namespace npu

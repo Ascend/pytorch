@@ -47,7 +47,6 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
     def test_max_pool2d_with_indices_backward_fp16(self, device):
         shape_format = [
             [[np.float16, 3, [256, 64, 112, 112]], [3, 3], [2, 2], 1, 1, False],
-            [[np.float16, 3, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 56, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 112, 56]], [3, 3], [2, 2], 1, 1, False],
         ]
@@ -68,7 +67,6 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
     def test_max_pool2d_with_indices_backward_fp32(self, device):
         shape_format = [
             [[np.float16, 3, [256, 64, 112, 112]], [3, 3], [2, 2], 1, 1, False],
-            [[np.float16, 3, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 56, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 3, [1024, 24, 112, 56]], [3, 3], [2, 2], 1, 1, False],
         ]
@@ -88,4 +86,3 @@ class TestMaxPool2dWithIndicesBackward(TestCase):
 instantiate_device_type_tests(TestMaxPool2dWithIndicesBackward, globals(), except_for='cpu')
 if __name__ == "__main__":
     run_tests()
-

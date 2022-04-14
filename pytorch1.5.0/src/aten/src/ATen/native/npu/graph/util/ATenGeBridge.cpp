@@ -90,22 +90,23 @@ ge::Shape ATenGeBridge::GetGeShape(ArrayRef<int64_t> vec) {
 }
 
 ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
-    const NPUStorageDesc& storage_desc,
-    const caffe2::TypeMeta& type_meta,
+    const c10::StorageImpl& storage,
     const c10::optional<string>& real_dtype,
     bool is_op_desc) {
   ge::TensorDesc desc;
-
+  auto npu_storage_desc = storage.get_npu_desc();
   if (real_dtype.has_value()) {
     desc.SetDataType(ATenGeBridge::GetGeDType(real_dtype.value()));
   } else {
-    desc.SetDataType(ATenGeBridge::GetGeDType(type_meta));
+    desc.SetDataType(ATenGeBridge::GetGeDType(storage.dtype()));
   }
-
-  desc.SetPlacement(ge::kPlacementDevice);
+  TORCH_CHECK(storage.device().is_npu() || storage.device().is_cpu(),
+              "Onlu support cpu and npu")
+  desc.SetPlacement(storage.device().is_cpu() ?
+                    ge::kPlacementHost : ge::kPlacementDevice);
   desc.SetOriginShape(
-      ATenGeBridge::GetGeShape(storage_desc.base_sizes_));
-  desc.SetOriginFormat(ge::Format(storage_desc.origin_format_));
+      ATenGeBridge::GetGeShape(npu_storage_desc.base_sizes_));
+  desc.SetOriginFormat(ge::Format(npu_storage_desc.origin_format_));
 
   /*
    * NB
@@ -132,11 +133,11 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
    * In aoe scene, we dump raw graph without inner format
    */
   if (is_op_desc) {
-    desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.base_sizes_));
-    desc.SetFormat(ge::Format(storage_desc.origin_format_));
+    desc.SetShape(ATenGeBridge::GetGeShape(npu_storage_desc.base_sizes_));
+    desc.SetFormat(ge::Format(npu_storage_desc.origin_format_));
   } else {
-    desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.storage_sizes_));
-    desc.SetFormat(ge::Format(storage_desc.npu_format_));
+    desc.SetShape(ATenGeBridge::GetGeShape(npu_storage_desc.storage_sizes_));
+    desc.SetFormat(ge::Format(npu_storage_desc.npu_format_));
   }
 
   return desc;
@@ -266,7 +267,9 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(NodePtr node) {
   const string op_type = node->GetOpType();
   TORCH_CHECK(
       ge::OperatorFactory::IsExistOp(op_type.c_str()),
-      "Cur op type: %s is not exit",
+      "Current operator, type: %s has no prototype definition in cann, ",
+      "and it cannot be used in graph mode.",
+      "Try to use single op mode, or add definition in cann to solve this problem.",
       op_type);
   string op_name = op_type + std::to_string(op_index++);
   ge::OperatorPtr ge_op = nullptr;

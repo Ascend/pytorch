@@ -71,6 +71,18 @@ static std::map<std::string, aclDataType>
         {"uint8", ACL_UINT8}
 };
 
+static std::map<aclDataType, at::ScalarType> ACL_SCALAR_TYPE_TO_AT_TYPE_MAP = {
+    {ACL_UINT8, at::ScalarType::Byte},
+    {ACL_INT8, at::ScalarType::Char},
+    {ACL_INT16, at::ScalarType::Short},
+    {ACL_INT32, at::ScalarType::Int},
+    {ACL_FLOAT16, at::ScalarType::Half},
+    {ACL_FLOAT, at::ScalarType::Float},
+    {ACL_BOOL, at::ScalarType::Bool},
+    {ACL_INT64, at::ScalarType::Long},
+    {ACL_DOUBLE, at::ScalarType::Double},
+};
+
 string GetAtScalarTypeName(const ScalarType data_type) {
   auto iter = AT_SCALAR_TYPE_NAME_MAP.find(data_type);
   if (iter == AT_SCALAR_TYPE_NAME_MAP.end()) {
@@ -131,6 +143,16 @@ aclDataType CalcuOpUtil::convert_to_acl_data_type(
     return STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP[realDataType];
   }
 
+  return iter->second;
+}
+
+at::ScalarType CalcuOpUtil::convert_to_at_data_type(const aclDataType acl_type) {
+  auto iter = ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.find(acl_type);
+  if (iter == ACL_SCALAR_TYPE_TO_AT_TYPE_MAP.end()) {
+    NPU_LOGE(
+        "Unsupport data type: %d.", static_cast<int32_t>(acl_type));
+    return at::ScalarType::Undefined;
+  }
   return iter->second;
 }
 
@@ -676,6 +698,13 @@ void CalcuOpUtil::execute_npu_operate(
     SmallVector<NPUTensorDesc, N>& inputs,
     SmallVector<NPUTensorDesc, N>& outputs,
     const SmallVector<NPUAttrDesc, N>& attrs) {
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    AT_ERROR(
+        "In graph mode, can not use CalcuOpUtil::execute_npu_operate to execute op.",
+        "Try to use single op mode, or fix operator ",
+        opName,
+        " with OpCommand to solve this problem.");
+  }
 
   if (c10::npu::OptionsManager::CheckQueueEnable()) {
     ExecuteParas cur_paras;

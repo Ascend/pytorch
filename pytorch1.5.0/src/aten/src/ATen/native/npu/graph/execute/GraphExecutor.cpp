@@ -17,6 +17,7 @@
 
 #include <Python.h>
 #include <aten/src/ATen/Utils.h>
+#include <ATen/native/npu/interface/EnvVariables.h>
 #include <aten/src/ATen/native/npu/graph/util/ATenGeBridge.h>
 #include <aten/src/ATen/native/npu/graph/util/GraphUtils.h>
 #include <c10/npu/interface/AclInterface.h>
@@ -35,6 +36,7 @@ namespace {
 const char* kPytorchGraphName = "PytorchGraph";
 const std::string kDataNodeType = "Data";
 const char* kDataAttrIndex = "index";
+const std::string kEnqueNodeType = "OutfeedEnqueueOp";
 
 static ge::Tensor MakeGeTensor(
     const ge::TensorDesc& tensor_desc,
@@ -51,29 +53,8 @@ static ge::Tensor MakeGeTensor(
 
 uint32_t GraphExecutor::graph_id = 0;
 
-void GraphExecutor::RunGraph(
-    uint32_t graph_id,
-    CombinedInfo& inputs,
-    CombinedInfo& outputs) {
-  RECORD_HOST_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
-  aclrtStream cal_stream =
-      const_cast<aclrtStream>(c10::npu::getCurrentNPUStream().stream());
-
-  auto start_time = std::chrono::steady_clock::now();
-  AT_NPU_CHECK(session_->RunGraphWithStreamAsync(graph_id,
-                                                 cal_stream,
-                                                 inputs.tensors,
-                                                 outputs.tensors));
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::steady_clock::now() - start_time);
-  if (verbose_) {
-    NPU_LOGI("RunGraph Time: duration = %.3f ms",static_cast<double>(duration.count()) *
-                                                 std::chrono::microseconds::period::num /
-                                                 std::chrono::milliseconds::period::den);
-  }
-}
-
 void GraphExecutor::ConstructAndExecuteGraph() {
+  TORCH_CHECK(!env::CheckFuzzyEnable(), "Graph mode does not support dynamic mode currently!")
   RECORD_HOST_FUNCTION("ConstructAndExecuteGraph", std::vector<c10::IValue>({}));
   auto ret = CheckDeviceIdAndInit();
   if (!ret) {
@@ -84,34 +65,16 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   ScalarMemContext::GetContext().ExecuteH2D(c10::npu::getCurrentNPUStream());
   CombinedInfo inputs = GetInputCombinedInfo();
   CombinedInfo outputs = GetOutputCombinedInfo();
-  if (outputs.nodes.empty()) {
+  if ((outputs.nodes.empty()) && (outputs.none_output_nodes.empty())) {
     return;
   }
 
-  uint32_t cur_graph_id = graph_id + 1;
-  auto cached_graph_id = cacher_.GetCacheGraphId(
-      inputs.hash_of_topo_and_attr,
-      inputs.hash_of_shape,
-      outputs.hash_of_topo_and_attr,
-      outputs.hash_of_shape,
-      cur_graph_id);
-
-  if (!cached_graph_id.has_value()) {
-    RECORD_HOST_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
-    ConstructOps(outputs);
-    ge::Graph graph(kPytorchGraphName);
-    graph.SetInputs(GetInputOps()).SetOutputs(GetOutputOps());
-
-    AT_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
-    graph_id = cur_graph_id;
-  } else {
-    cur_graph_id = cached_graph_id.value();
-  }
-
+  bool is_cache_hit = false;
+  auto cur_graph_id = GetGraphIdDependOnCompileTypeAndCache(inputs, outputs, is_cache_hit);
   size_t input_number = inputs.tensors.size();
   size_t output_number = outputs.tensors.size();
   if (verbose_) {
-    string is_cache = cached_graph_id.has_value() ? "true" : "false";
+    string is_cache = is_cache_hit ? "true" : "false";
     NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
              cur_graph_id, is_cache.c_str(), input_number, output_number);
   }
@@ -127,7 +90,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
 
   ScalarMemContext::GetContext().Reset();  
   ResetGraphOutputs();
-  if (!cached_graph_id.has_value()) {
+  if (!is_cache_hit) {
     // Data of new graph maybe inputs of old graphs,
     // GE will change its attr
     // so we need to refresh it
@@ -191,10 +154,26 @@ void GraphExecutor::Finalize() {
   }
 }
 
-void GraphExecutor::ConstructOps(CombinedInfo& output) {
+void GraphExecutor::ConstructOps(const CombinedInfo& output) {
   RECORD_HOST_FUNCTION("ConstructOps", std::vector<c10::IValue>({}));
+  
+  std::vector<NodePtr> out_nodes = output.nodes;
+  const std::vector<NodePtr>& none_output_nodes = output.none_output_nodes;
+
+  NodePtr front_enque = nullptr;
+  for (auto& node_ptr : none_output_nodes) {
+    if (node_ptr->GetOpType() == kEnqueNodeType) {
+      ATenGeBridge::CheckAndBuildGeOpForNode(node_ptr);
+      if (front_enque != nullptr) {
+        node_ptr->GetGeOp()->AddControlInput(*(front_enque->GetGeOp()));
+      }
+      front_enque = node_ptr;
+    }
+    out_nodes.emplace_back(node_ptr);
+  }
+
   std::set<NodePtr> searched_nodes;
-  for (const auto& output_node : output.nodes) {
+  for (const auto& output_node : out_nodes) {
     if (searched_nodes.find(output_node) != searched_nodes.end()) {
       continue;
     }
@@ -261,8 +240,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
         op_ptr = data_node.value()->GetGeOp();
       }
       auto op_desc = ATenGeBridge::InferGeTenosrDesc(
-          input_storages[index]->get_npu_desc(),
-          input_storages[index]->dtype(),
+          *input_storages[index],
           graph_desc.graph_value.GetRealDtype(),
           true);
       // x and y are the input and output names of Data IR
@@ -304,8 +282,7 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
     auto data_node = graph_desc.graph_value.GetDataNode();
     TORCH_CHECK(data_node.has_value(), "Inputs Tensor must have data node");
     ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-        input_storages[index]->get_npu_desc(),
-        input_storages[index]->dtype(),
+        *input_storages[index],
         graph_desc.graph_value.GetRealDtype());
 
     if (data_node.value()->GetOpType() == kDataNodeType) {
@@ -346,10 +323,8 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
         output_storage->get_mutable_npu_graph_desc().graph_value;
     TORCH_CHECK(graph_value.HashNode(), "output must have node!");
     output_infos.nodes.push_back(graph_value.GetCurNode());
-    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-        output_storage->get_npu_desc(),
-        output_storage->dtype(),
-        graph_value.GetRealDtype());
+    ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(*output_storage,
+                                                                 graph_value.GetRealDtype());
     auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
     output_infos.tensors.push_back(std::move(ge_tensor));
     hash_t topo_hash = GraphCache::GetTensorTopoHash(graph_value, tensor_desc);
@@ -357,6 +332,14 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
 
     hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
     output_infos.hash_of_shape.push_back(shape_hash);
+  }
+
+  std::vector<NodePtr> none_output_nodes =
+    c10::npu::graph::NpuGraphContextManager::GetInstance().
+    GetNoneOutputNode(init_device_id_);
+  for (auto& node_ptr : none_output_nodes) {
+    output_infos.none_output_nodes.emplace_back(node_ptr);
+    output_infos.hash_of_topo_and_attr.emplace_back(node_ptr->GetNodeHash());
   }
   return output_infos;
 }
@@ -398,6 +381,63 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
   return MakeGeTensor(desc, storage->data(), nbytes);
 }
 
+uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo &inputs,
+                                                              const CombinedInfo &outputs,
+                                                              bool &is_cache_hit) {
+  uint32_t cur_graph_id = graph_id + 1;
+  auto cached_graph_id = env::CheckFuzzyEnable() ?
+                         cacher_.GetCacheGraphId(inputs.hash_of_topo_and_attr,
+                                                 outputs.hash_of_topo_and_attr,
+                                                 cur_graph_id)
+                                                 :
+                         cacher_.GetCacheGraphId(inputs.hash_of_topo_and_attr,
+                                                 inputs.hash_of_shape,
+                                                 outputs.hash_of_topo_and_attr,
+                                                 outputs.hash_of_shape,
+                                                 cur_graph_id);
+  if (!cached_graph_id.has_value()) {
+    RECORD_HOST_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
+    ConstructOps(outputs);
+    ge::Graph graph(kPytorchGraphName);
+    graph.SetInputs(GetInputOps()).SetOutputs(GetOutputOps());
+    std::map<ge::AscendString, ge::AscendString> graph_options;
+    if(env::CheckFuzzyEnable()) {
+      graph_options.emplace(ge::AscendString("ge.exec.dynamicGraphExecuteMode"),
+                            ge::AscendString("dynamic_execute"));
+      graph_options.emplace(ge::AscendString("ge.shape_generalized_build_mode"),
+                            ge::AscendString("shape_generalized"));
+    }
+    AT_NPU_CHECK(session_->AddGraph(cur_graph_id, graph, graph_options));
+    graph_id = cur_graph_id;
+  } else {
+    cur_graph_id = cached_graph_id.value();
+  }
+  is_cache_hit = cached_graph_id.has_value();
+  return cur_graph_id;
+}
+
+void GraphExecutor::RunGraph(
+    uint32_t graph_id,
+    CombinedInfo& inputs,
+    CombinedInfo& outputs) {
+  RECORD_HOST_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
+  aclrtStream cal_stream =
+      const_cast<aclrtStream>(c10::npu::getCurrentNPUStream().stream());
+
+  auto start_time = std::chrono::steady_clock::now();
+  AT_NPU_CHECK(session_->RunGraphWithStreamAsync(graph_id,
+                                                 cal_stream,
+                                                 inputs.tensors,
+                                                 outputs.tensors));
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::steady_clock::now() - start_time);
+  if (verbose_) {
+    NPU_LOGI("RunGraph Time: duration = %.3f ms",static_cast<double>(duration.count()) *
+        std::chrono::microseconds::period::num /
+        std::chrono::milliseconds::period::den);
+  }
+}
+
 void GraphExecutor::ResetGraphOutputs() {
   RECORD_HOST_FUNCTION("ResetGraphOutputs", std::vector<c10::IValue>({}));
   auto output_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
@@ -409,6 +449,8 @@ void GraphExecutor::ResetGraphOutputs() {
           GraphUtils::ResetOp(x);
         }
       });
+  c10::npu::graph::NpuGraphContextManager::GetInstance().
+      EraseNoneOutputNode(init_device_id_);
 }
 
 void GraphExecutor::RefreshGraphInputs() {

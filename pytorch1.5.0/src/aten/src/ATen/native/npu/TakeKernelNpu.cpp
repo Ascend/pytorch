@@ -52,10 +52,7 @@ Tensor& take_out_npu(Tensor& result, const Tensor& self, const Tensor& index) {
 }
 
 Tensor take_npu(const Tensor& self, const Tensor& index) {
-  auto outputSize = index.sizes();
-  Tensor result = OpPreparation::ApplyTensorWithSizes(
-      outputSize,
-      self.options());
+  Tensor result = OpPreparation::ApplyTensor(self, index.sizes());
   take_out_nocheck(self, index, result);
   return result;
 }

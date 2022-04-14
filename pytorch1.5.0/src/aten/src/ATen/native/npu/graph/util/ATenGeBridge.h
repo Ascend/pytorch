@@ -42,8 +42,7 @@ public:
   static ge::Shape GetGeShape(ArrayRef<int64_t> vec);
 
   static ge::TensorDesc InferGeTenosrDesc(
-      const NPUStorageDesc& storage_desc,
-      const caffe2::TypeMeta& type_meta,
+      const c10::StorageImpl& storage,
       const c10::optional<string>& real_dtype,
       bool is_op_desc = false);
 

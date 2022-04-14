@@ -2,7 +2,12 @@
 #
 #C10 NPU is a minimal library, but it does depend on NPU.
 
-file(GLOB C10_NPU_SYS_CTRL_SRCS sys_ctrl/*.cpp *.cpp impl/*.cpp register/*.cpp interface/*.cpp)
+file(GLOB C10_NPU_SYS_CTRL_SRCS sys_ctrl/*.cpp
+                                *.cpp
+                                impl/*.cpp
+                                register/*.cpp
+                                interface/*.cpp
+                                tools/*.cpp)
 
 add_library(c10_npu ${C10_NPU_SYS_CTRL_SRCS})
 

@@ -61,10 +61,10 @@ c10::optional<uint32_t> GraphCache::GetCacheGraphId(
     uint32_t cur_graph_id) {
   hash_t topo_hash = GetGraphTopoHash(inputs_topo_hash, outputs_topo_hash);
   hash_t shape_hash = GetGraphShapeHash(inputs_shape_hash, outputs_shape_hash);
-  auto iter = graph_cache_.find(topo_hash);
+  const auto iter = graph_cache_.find(topo_hash);
   if (iter != graph_cache_.end()) {
     auto& shape_map = iter->second;
-    auto shape_iter = shape_map.find(shape_hash);
+    const auto shape_iter = shape_map.find(shape_hash);
     if (shape_iter != shape_map.end()) {
       return shape_iter->second;
     } else {
@@ -72,6 +72,21 @@ c10::optional<uint32_t> GraphCache::GetCacheGraphId(
     }
   } else {
     graph_cache_[topo_hash] = {{shape_hash, cur_graph_id}};
+  }
+  return c10::nullopt;
+}
+
+c10::optional<uint32_t> GraphCache::GetCacheGraphId(
+    const std::vector<hash_t> &inputs_topo_hash,
+    const std::vector<hash_t> &outputs_topo_hash,
+    uint32_t cur_graph_id) {
+
+  hash_t topo_hash = GetGraphTopoHash(inputs_topo_hash, outputs_topo_hash);
+  const auto iter = dynamic_graph_cache_.find(topo_hash);
+  if (iter != dynamic_graph_cache_.end()) {
+    return iter->second;
+  } else {
+    dynamic_graph_cache_[topo_hash] = cur_graph_id;
   }
   return c10::nullopt;
 }

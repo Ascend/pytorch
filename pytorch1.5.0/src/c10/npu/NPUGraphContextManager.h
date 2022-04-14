@@ -20,7 +20,7 @@
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/intrusive_ptr.h>
 #include <c10/util/order_preserving_flat_hash_map.h>
-
+#include <c10/npu/NPUGraph.h>
 #include <map>
 #include <mutex>
 namespace c10 {
@@ -37,6 +37,7 @@ struct OutputContext {
       uint64_t,
       c10::weak_intrusive_ptr<StorageImpl>>
       output_storage_impl;
+  std::vector<NodePtr> none_output_nodes;
 };
 
 // affect the life cycle of StorageImpl
@@ -89,6 +90,12 @@ public:
    */
   void AddInputStorage(const c10::intrusive_ptr<StorageImpl> storage);
 
+  // used for cpu tensor for device id of it must be 0 or -1
+  // long name is used to avoid wrong calls
+  void AddInputStorageForCpuTensorBySpecifiedDeviceId(
+      const c10::intrusive_ptr<StorageImpl> storage,
+      DeviceIndex device_index);
+
   void EraseInputStorage(DeviceIndex device_idx);
 
   std::vector<StorageImpl*> GetAllStorageOfLiveTensors(DeviceIndex device_idx);
@@ -97,6 +104,11 @@ public:
 
   std::vector<DeviceIndex> GetDevicesHasLiveTensor();
 
+  void AddNoneOutputNode(const NodePtr none_out_node);
+
+  std::vector<NodePtr> GetNoneOutputNode(DeviceIndex device_idx);
+
+  void EraseNoneOutputNode(DeviceIndex device_idx);
 private:
   NpuGraphContextManager() = default;
 

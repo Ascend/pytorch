@@ -48,7 +48,14 @@ public:
   static bool IsTensorWithoutNode(const StorageImpl* storage);
   static bool IsTensorWithoutNode(const at::Tensor& tensor);
 
-  static void RetainGraphDataTensor(const at::Tensor& data_tensor);
+  static void RetainGraphDataTensor(const at::Tensor& data_tensor,
+                                    const c10::optional<int32_t>& device_index = c10::nullopt);
+
+  // StorageImpl of cpu tensor does not have npu_graph_desc
+  // we need to init it by this func
+  static void InitGraphDescForCpuTensor(const at::Tensor& cpu_tensor);
+
+  static void RetainNoneOutputNode(c10::npu::graph::NodePtr none_output_node);
 };
 } // namespace npu
 } // namespace native

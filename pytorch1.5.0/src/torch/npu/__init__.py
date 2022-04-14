@@ -25,8 +25,8 @@ from multiprocessing.util import register_after_fork as _register_after_fork
 import torch
 from torch._six import raise_from
 import torch._C
+import torch.npu.npu_print as _npu_print
 from ._utils import _get_device_index
-
 
 _initialized = False
 _tls = threading.local()
@@ -35,6 +35,7 @@ _queued_calls = []  # don't invoke these until initialization occurs
 _in_bad_fork = False  # this global is also used in torch.manual_seed
 _original_pid = False
 
+graph_printer = _npu_print.GraphPrinter()
 
 def is_initialized():
     r"""Returns whether PyTorch's NPU state has been initialized."""

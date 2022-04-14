@@ -8818,3 +8818,7 @@
 - func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
   npu_dispatch_only:
     NPU: dropout_do_mask_impl
+
+- func: npu_enque_tensor(Tensor[] tensors, str format_string) -> ()
+  npu_dispatch_only:
+    NPU: enque_tensor_npu

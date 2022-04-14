@@ -19,6 +19,7 @@
 #include <ATen/ATen.h>
 #include <ATen/npu/NPUGenerator.h>
 #include <ATen/native/npu/graph/execute/GraphExecutor.h>
+#include <ATen/native/npu/graph/util/TdtQueForPrint.h>
 #include <TH/TH.h>
 #include <acl/acl.h>
 #include <c10/npu/NPUException.h>
@@ -32,6 +33,7 @@
 #include <torch/csrc/Generator.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
+#include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include <torch/csrc/utils/npu_lazy_init.h>
 #include <torch/csrc/utils/pybind.h>
 #include <torch/csrc/utils/python_strings.h>
@@ -143,6 +145,8 @@ PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* arg) {
   bool verbose = THPUtils_unpackBool(arg);
   c10::npu::NpuRunMode::SetNpuRunMode(c10::npu::ModeKind::GRAPH_MODE);
   at::native::npu::GraphExecutor::GetInstance().SetVerbose(verbose);
+  TORCH_CHECK(at::native::npu::TdtQueForPrint::GetInstance().Init(),
+              "Init queue for npu lazy print failed");
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -475,6 +479,41 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   END_HANDLE_TH_ERRORS
 } 
 
+PyObject* wrap_tuple_to_print(at::native::npu::TupleToPrint& tuple_to_print) {
+  std::vector<at::Tensor>& tensors = std::get<0>(tuple_to_print);
+  auto tensor_num = tensors.size();
+  if (tensor_num == 0) {
+    auto ret = THPObjectPtr{PyTuple_New(0)};
+    return ret.release();
+  }
+  auto ret = THPObjectPtr{PyTuple_New(tensor_num + 1)};
+  if (!ret) {
+    throw python_error();
+  }
+  for (size_t i = 0UL; i < tensor_num; i++) {
+    at::Tensor tensor = tensors[i];
+    PyTuple_SET_ITEM(ret.get(), i, torch::autograd::utils::wrap(tensor));
+  }
+  std::string& format_string = std::get<1>(tuple_to_print);
+  PyTuple_SET_ITEM(ret.get(), tensor_num, PYBIND11_BYTES_FROM_STRING(format_string.c_str()));
+  return ret.release();
+}
+PyObject* THNPModule_npu_deque_tensor(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  at::native::npu::TupleToPrint tuple_to_print;
+  do {
+    tuple_to_print = at::native::npu::TdtQueForPrint::GetInstance().GetTupleToPrint();
+    if (std::get<0>(tuple_to_print).size() == 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    } else {
+      break;
+    }
+  } while (true);
+  return wrap_tuple_to_print(tuple_to_print);
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef _THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -503,6 +542,7 @@ static struct PyMethodDef _THNPModule_methods[] = {
     {"_enable_e2e_profiler", (PyCFunction)THNPModule_enable_e2eProfiler, METH_VARARGS, nullptr},
     {"_prof_start", (PyCFunction)THNPModule_prof_start, METH_VARARGS, nullptr},
     {"_disable_e2e_profiler", (PyCFunction)THNPModule_disable_e2eProfiler, METH_NOARGS, nullptr},
+    {"_npu_deque_tensor", (PyCFunction)THNPModule_npu_deque_tensor, METH_VARARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_methods() {

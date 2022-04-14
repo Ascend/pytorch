@@ -44,6 +44,7 @@ struct CombinedInfo {
   std::vector<ge::Tensor> tensors;
   std::vector<hash_t> hash_of_topo_and_attr;
   std::vector<hash_t> hash_of_shape;
+  std::vector<NodePtr> none_output_nodes;
 };
 
 class TORCH_NPU_API GraphExecutor {
@@ -88,7 +89,7 @@ public:
       CombinedInfo& inputs,
       CombinedInfo& outputs);
 
-  static void ConstructOps(CombinedInfo& output);
+  static void ConstructOps(const CombinedInfo& output);
 
   std::vector<ge::Operator> GetInputOps();
 
@@ -97,6 +98,11 @@ public:
   CombinedInfo GetInputCombinedInfo();
 
   CombinedInfo GetOutputCombinedInfo();
+
+  uint32_t GetGraphIdDependOnCompileTypeAndCache(
+      const CombinedInfo& inputs,
+      const CombinedInfo& outputs,
+      bool& is_cache_hit);
 
   static ge::Tensor PrepareInputTensor(
       const c10::StorageImpl* const storage,
