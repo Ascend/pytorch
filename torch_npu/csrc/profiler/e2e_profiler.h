@@ -33,7 +33,7 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics);
 
 void pushStartTime(at::RecordFunction& fn);
-void pushStartTime(at::RecordFunction& fn);
+void popEndTime(const at::RecordFunction& fn);
 
 void init_e2e_profiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics);
 
