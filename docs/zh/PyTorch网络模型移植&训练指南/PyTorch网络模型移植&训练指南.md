@@ -2024,7 +2024,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
    - 调优结果：
 
-     调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
+     调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/Ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/Ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
 
 #### 注意事项
 
