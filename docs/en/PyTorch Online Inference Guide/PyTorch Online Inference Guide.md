@@ -543,7 +543,7 @@ Perform the following steps as the  **root**  user.
         ```
 
 4.  Build and install GCC.
-    1.  Go to the directory where the source code package  **gcc-7.3.0.tar.gz**  is located and run the following command to extract it:
+    1.  Go to the directory where the source package  **gcc-7.3.0.tar.gz**  is located and run the following command to extract it:
 
         ```
         tar -zxvf gcc-7.3.0.tar.gz

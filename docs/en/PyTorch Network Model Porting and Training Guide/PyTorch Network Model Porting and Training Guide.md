@@ -20,6 +20,7 @@
     - [Tool-Facilitated](#tool-facilitated)
       - [Introduction](#introduction-1)
         - [Overview](#overview-1)
+        - [Model Support](#model-support)
         - [System Requirement](#system-requirement)
         - [Environment Setup](#environment-setup-2)
       - [Instructions](#instructions)
@@ -35,6 +36,11 @@
       - [Overview](#overview-2)
       - [Supported Features](#supported-features)
       - [Integrating Mixed Precision Module Into the PyTorch Model](#integrating-mixed-precision-module-into-the-pytorch-model)
+    - [Usage of PyTorch 1.8.1 AMP on NPUs](#usage-of-pytorch-181-amp-on-npus)
+      - [Overview](#overview-3)
+      - [AMP Application Scenarios](#amp-application-scenarios)
+      - [Usage of AMP on NPUs](#usage-of-amp-on-npus)
+      - [Precautions](#precautions)
   - [Model Training](#model-training-1)
   - [Performance Analysis and Optimization](#performance-analysis-and-optimization)
     - [Prerequisites](#prerequisites)
@@ -44,7 +50,7 @@
         - [Profile Data Collection](#profile-data-collection)
         - [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info)
       - [Host-side Performance Optimization](#host-side-performance-optimization)
-        - [Overview](#overview-3)
+        - [Overview](#overview-4)
         - [Changing the CPU Performance Mode (x86 Server)](#changing-the-cpu-performance-mode-x86-server)
           - [Setting the Power Policy to High Performance](#setting-the-power-policy-to-high-performance)
           - [Setting the CPU Mode to Performance](#setting-the-cpu-mode-to-performance)
@@ -65,6 +71,11 @@
     - [Affinity Library](#affinity-library)
       - [Source](#source)
       - [Functions](#functions)
+    - [AOE Instructions](#aoe-instructions)
+      - [Introduction to AOE](#introduction-to-aoe)
+      - [AOE Usage](#aoe-usage)
+      - [Precautions](#precautions-1)
+      - [Performance Verification](#performance-verification)
   - [Precision Commissioning](#precision-commissioning)
     - [Prerequisites](#prerequisites-1)
     - [Commissioning Process](#commissioning-process-1)
@@ -101,7 +112,7 @@
       - [Parse the dump file of an overflow operator.](#parse-the-dump-file-of-an-overflow-operator)
     - [Common Environment Variables](#common-environment-variables)
     - [dump op Method](#dump-op-method)
-    - [Compilation Option Settings](#compilation-option-settings)
+    - [Compile Option Settings](#compile-option-settings)
     - [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730)
     - [HDF5 Compilation and Installation](#hdf5-compilation-and-installation)
   - [FAQs](#faqs)
@@ -110,6 +121,7 @@
     - [FAQs About Model Commissioning](#faqs-about-model-commissioning)
     - [FAQs About Other Operations](#faqs-about-other-operations)
     - [FAQs About Distributed Model Training](#faqs-about-distributed-model-training)
+
 
 ## Overview
 
@@ -130,7 +142,7 @@ Currently, the main reasons for selecting the online adaptation solution are as 
 2.  The GPU's usage on the PyTorch is inherited to the maximum extent, which minimizes the changes in the development mode and code reuse when a model is ported to the Ascend AI Processor for training.
 3.  The original PyTorch architecture is inherited to the maximum extent and the excellent features of the PyTorch architecture are retained, such as automatic differentiation, dynamic distribution, debugging, profiling, storage sharing mechanism, and dynamic memory management on the device side.
 4.  It has good scalability. During the streamlining process, only the development and implementation of related compute operators are involved for new network types or structures. Framework operators, reverse graph building, and implementation mechanisms can be reused.
-5.  The usage and style are the same as those of the GPU-based implementation. During online adaption, you only need to specify the device as the Ascend AI Processor in Python and device operations to develop, train, and debug the network in PyTorch using the Ascend AI Processor. You do not need to pay attention to the underlying details of the Ascend AI Processor. In this way, you can minimize the modification and complete porting with low costs.
+5.  The usage and style are the same as those of the GPU-based implementation. During online adaptation, you only need to specify the device as the Ascend AI Processor in Python and device operations to develop, train, and debug the network in PyTorch using the Ascend AI Processor. You do not need to pay attention to the underlying details of the Ascend AI Processor. In this way, you can minimize the modification and complete porting with low costs.
 
 ## Restrictions and Limitations
 
@@ -172,7 +184,7 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>Operator development</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>For details, see the <span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a><em id="en-us_topic_0000001182024971_i12125819204013"><a name="en-us_topic_0000001182024971_i12125819204013"></a><a name="en-us_topic_0000001182024971_i12125819204013"></a>PyTorch Operator Developer Guide</em></span></span>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>For details, see the <span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a><em id="en-us_topic_0000001182024971_i12125819204013"><a name="en-us_topic_0000001182024971_i12125819204013"></a><a name="en-us_topic_0000001182024971_i12125819204013"></a>PyTorch Operator Development Guide</em></span></span>.</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>Environment setup</p>
@@ -237,16 +249,16 @@ In this example, the [main.py](https://github.com/pytorch/examples/tree/master/i
 
 Whether a model can be successfully ported depends on whether its operators are supported by Ascend AI Processors. Therefore, you can evaluate whether operators of the model are supported by Ascend AI Processors using either of the following methods:
 
-- Before model porting, obtain information about the operators by dumping them, and then compare them with those in the PyTorch Operator Support to determine whether they are supported by Ascend AI Processors.
+- Before model porting, obtain information about the operators by dumping them, and then compare them with custom operators in the *PyTorch API Support* to determine whether they are supported by Ascend AI Processors.
 - After model porting, run the training script on an Ascend AI Processor. If operators not supported by Ascend AI Processors exist, an error is reported.
 
-If operators not supported by Ascend AI Processors exist, you can replace them with equivalent operators or develop other appropriate operators. For details, see the *PyTorch Operator Developer Guide*.
+If operators not supported by Ascend AI Processors exist, you can replace them with equivalent operators or develop other appropriate operators. For details, see the *PyTorch Operator Development Guide*.
 
 The operators used by the ResNet-50 model are supported by Ascend AI Processors.
 
 ### Environment Setup
 
-Install the CANN software, PyTorch framework, and mixed precision module, and set environment variables. For details, see the *PyTorch Installation Guide*.
+Install the CANN software, PyTorch framework, and mixed precision module, and set environment variables. For details, see the *[PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20Installation%20Guide/PyTorch%20Installation%20Guide.md)*.
 
 Set up the Python environment and prepare dependencies required for model running. For details, see the PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet).
 
@@ -393,7 +405,7 @@ Modify the **main.py** training script to implement single-device model training
    if __name__ == '__main__':
        ############## npu modify begin #############
        if 'npu' in CALCULATE_DEVICE:
-          torch.npu.set_device(CALCULATE_DEVICE)
+          torch_npu.npu.set_device(CALCULATE_DEVICE)
        ############## npu modify begin #############
        main()
    ```
@@ -513,7 +525,7 @@ Modify the **main.py** training script to implement single-device model training
        # Add the following content to the code.
        # Specify Ascend AI Processors as the training devices.
        loc = 'npu:{}'.format(args.gpu)
-       torch.npu.set_device(loc)
+       torch_npu.npu.set_device(loc)
        # Calculate batch_size and workers used for training.
        args.batch_size = int(args.batch_size / ngpus_per_node)
        args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
@@ -803,13 +815,13 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 ## Environment Setup
 
-Refer to the  _PyTorch Installation Guide_  to install PyTorch and the mixed precision module, and configure required environment variables.
+Refer to the  *[PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20Installation%20Guide/PyTorch%20Installation%20Guide.md)* to install PyTorch and the mixed precision module, and configure required environment variables.
 
 ## Model Porting
 
 ### Tool-Facilitated
 
-The Ascend platform provides a script conversion tool to enable you to port training scripts to Ascend AI Processors using commands. The following will provide the details. In addition to using commands, you can also use the PyTorch GPU2Ascend function integrated in MindStudio to port scripts. For details, see the  _MindStudio User Guide_.
+The Ascend platform provides a script conversion tool to enable you to port training scripts to Ascend AI Processors using commands. The following will provide the details. In addition to using commands, you can also use the PyTorch GPU2Ascend function integrated in MindStudio to port scripts. For details, see the *[MindStudio User Guide](https://www.hiascend.com/document/detail/en/mindstudio/304/msug)*.
 
 #### Introduction
 
@@ -818,296 +830,14 @@ The Ascend platform provides a script conversion tool to enable you to port trai
 Ascend NPU is an up-and-comer in the AI computing field, but most training and online inference scripts are based on GPUs. Due to the architecture differences between NPUs and GPUs, GPU-based training and online inference scripts cannot be directly used on NPUs. The script conversion tool provides an automated method for converting GPU-based scripts into NPU-based scripts, reducing the learning cost and workload of manual script migration, thereby improving the migration efficiency.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
->-   The original scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
->-   For scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
+>-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
+>-   The original scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
+>-   For scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
 >-   This script conversion tool only supports the conversion of PyTorch training scripts.
 
-**Table  2**  Supported models
+##### Model Support
 
-<table><thead align="left"><tr id="en-us_topic_0000001133095885_row1270543910462"><th class="cellrowborder" valign="top" width="27.41%" id="mcps1.2.3.1.1"><p id="en-us_topic_0000001133095885_p670613914465"><a name="en-us_topic_0000001133095885_p670613914465"></a><a name="en-us_topic_0000001133095885_p670613914465"></a>No.</p>
-</th>
-<th class="cellrowborder" valign="top" width="72.59%" id="mcps1.2.3.1.2"><p id="en-us_topic_0000001133095885_p57061739124611"><a name="en-us_topic_0000001133095885_p57061739124611"></a><a name="en-us_topic_0000001133095885_p57061739124611"></a>Model</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="en-us_topic_0000001133095885_row11706239134617"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p18706163918464"><a name="en-us_topic_0000001133095885_p18706163918464"></a><a name="en-us_topic_0000001133095885_p18706163918464"></a>1</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p3573354194212"><a name="en-us_topic_0000001133095885_p3573354194212"></a><a name="en-us_topic_0000001133095885_p3573354194212"></a>3D AttentionNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row67061939194612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p17706143917468"><a name="en-us_topic_0000001133095885_p17706143917468"></a><a name="en-us_topic_0000001133095885_p17706143917468"></a>2</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1957314543423"><a name="en-us_topic_0000001133095885_p1957314543423"></a><a name="en-us_topic_0000001133095885_p1957314543423"></a>3D Nested_UNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row197069395460"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p207061639194612"><a name="en-us_topic_0000001133095885_p207061639194612"></a><a name="en-us_topic_0000001133095885_p207061639194612"></a>3</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p15573155434213"><a name="en-us_topic_0000001133095885_p15573155434213"></a><a name="en-us_topic_0000001133095885_p15573155434213"></a>Advanced East</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1706103914467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p2706163911464"><a name="en-us_topic_0000001133095885_p2706163911464"></a><a name="en-us_topic_0000001133095885_p2706163911464"></a>4</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p125731454144217"><a name="en-us_topic_0000001133095885_p125731454144217"></a><a name="en-us_topic_0000001133095885_p125731454144217"></a>AlexNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row9706739124610"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p5706739114611"><a name="en-us_topic_0000001133095885_p5706739114611"></a><a name="en-us_topic_0000001133095885_p5706739114611"></a>5</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1357319544426"><a name="en-us_topic_0000001133095885_p1357319544426"></a><a name="en-us_topic_0000001133095885_p1357319544426"></a>DeeplabV3+(Xception-JFT)</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row177079399465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p147072039184612"><a name="en-us_topic_0000001133095885_p147072039184612"></a><a name="en-us_topic_0000001133095885_p147072039184612"></a>6</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p657315454213"><a name="en-us_topic_0000001133095885_p657315454213"></a><a name="en-us_topic_0000001133095885_p657315454213"></a>DeepMar</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row15707173954611"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p13707103984614"><a name="en-us_topic_0000001133095885_p13707103984614"></a><a name="en-us_topic_0000001133095885_p13707103984614"></a>7</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1057345444220"><a name="en-us_topic_0000001133095885_p1057345444220"></a><a name="en-us_topic_0000001133095885_p1057345444220"></a>Densenet121</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row2707739124612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p18707839114617"><a name="en-us_topic_0000001133095885_p18707839114617"></a><a name="en-us_topic_0000001133095885_p18707839114617"></a>8</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p175731454114210"><a name="en-us_topic_0000001133095885_p175731454114210"></a><a name="en-us_topic_0000001133095885_p175731454114210"></a>DenseNet161</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1270714392464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p197072397468"><a name="en-us_topic_0000001133095885_p197072397468"></a><a name="en-us_topic_0000001133095885_p197072397468"></a>9</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p05731654204218"><a name="en-us_topic_0000001133095885_p05731654204218"></a><a name="en-us_topic_0000001133095885_p05731654204218"></a>DenseNet169</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row17707113914468"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p18707339144611"><a name="en-us_topic_0000001133095885_p18707339144611"></a><a name="en-us_topic_0000001133095885_p18707339144611"></a>10</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p125731254154212"><a name="en-us_topic_0000001133095885_p125731254154212"></a><a name="en-us_topic_0000001133095885_p125731254154212"></a>DenseNet201</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1707439204614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p2707153974611"><a name="en-us_topic_0000001133095885_p2707153974611"></a><a name="en-us_topic_0000001133095885_p2707153974611"></a>11</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p12573354164210"><a name="en-us_topic_0000001133095885_p12573354164210"></a><a name="en-us_topic_0000001133095885_p12573354164210"></a>EAST</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row67083391464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1070883911466"><a name="en-us_topic_0000001133095885_p1070883911466"></a><a name="en-us_topic_0000001133095885_p1070883911466"></a>12</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1157312542426"><a name="en-us_topic_0000001133095885_p1157312542426"></a><a name="en-us_topic_0000001133095885_p1157312542426"></a>FCN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row127085393465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p4708133911464"><a name="en-us_topic_0000001133095885_p4708133911464"></a><a name="en-us_topic_0000001133095885_p4708133911464"></a>13</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p857395417429"><a name="en-us_topic_0000001133095885_p857395417429"></a><a name="en-us_topic_0000001133095885_p857395417429"></a>FD-GAN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row570863914618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p17708143904620"><a name="en-us_topic_0000001133095885_p17708143904620"></a><a name="en-us_topic_0000001133095885_p17708143904620"></a>14</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p14573185411425"><a name="en-us_topic_0000001133095885_p14573185411425"></a><a name="en-us_topic_0000001133095885_p14573185411425"></a>FOTS</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row11708839174619"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1670883917466"><a name="en-us_topic_0000001133095885_p1670883917466"></a><a name="en-us_topic_0000001133095885_p1670883917466"></a>15</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p157355416428"><a name="en-us_topic_0000001133095885_p157355416428"></a><a name="en-us_topic_0000001133095885_p157355416428"></a>GENet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row87085397467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p16708439164618"><a name="en-us_topic_0000001133095885_p16708439164618"></a><a name="en-us_topic_0000001133095885_p16708439164618"></a>16</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p4574254164219"><a name="en-us_topic_0000001133095885_p4574254164219"></a><a name="en-us_topic_0000001133095885_p4574254164219"></a>GoogleNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row5708839174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p11708113914462"><a name="en-us_topic_0000001133095885_p11708113914462"></a><a name="en-us_topic_0000001133095885_p11708113914462"></a>17</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p105743542421"><a name="en-us_topic_0000001133095885_p105743542421"></a><a name="en-us_topic_0000001133095885_p105743542421"></a>GRU</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row170933914612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1170963974615"><a name="en-us_topic_0000001133095885_p1170963974615"></a><a name="en-us_topic_0000001133095885_p1170963974615"></a>18</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p20574054104214"><a name="en-us_topic_0000001133095885_p20574054104214"></a><a name="en-us_topic_0000001133095885_p20574054104214"></a>Inception V4</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row670913934612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p270993924620"><a name="en-us_topic_0000001133095885_p270993924620"></a><a name="en-us_topic_0000001133095885_p270993924620"></a>19</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p11574135411427"><a name="en-us_topic_0000001133095885_p11574135411427"></a><a name="en-us_topic_0000001133095885_p11574135411427"></a>InceptionV2</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row15709939174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p2709133914614"><a name="en-us_topic_0000001133095885_p2709133914614"></a><a name="en-us_topic_0000001133095885_p2709133914614"></a>20</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p105741754124219"><a name="en-us_topic_0000001133095885_p105741754124219"></a><a name="en-us_topic_0000001133095885_p105741754124219"></a>LPRNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row3709143917462"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p0709193913461"><a name="en-us_topic_0000001133095885_p0709193913461"></a><a name="en-us_topic_0000001133095885_p0709193913461"></a>21</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p25745540427"><a name="en-us_topic_0000001133095885_p25745540427"></a><a name="en-us_topic_0000001133095885_p25745540427"></a>LSTM</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row177091639184618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p157091239164617"><a name="en-us_topic_0000001133095885_p157091239164617"></a><a name="en-us_topic_0000001133095885_p157091239164617"></a>22</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p157485414422"><a name="en-us_topic_0000001133095885_p157485414422"></a><a name="en-us_topic_0000001133095885_p157485414422"></a>MNASNet0_5</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row18709173944613"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p177091739124615"><a name="en-us_topic_0000001133095885_p177091739124615"></a><a name="en-us_topic_0000001133095885_p177091739124615"></a>23</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p9574205454219"><a name="en-us_topic_0000001133095885_p9574205454219"></a><a name="en-us_topic_0000001133095885_p9574205454219"></a>MNASNet0_75</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row187101039144614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1371023914612"><a name="en-us_topic_0000001133095885_p1371023914612"></a><a name="en-us_topic_0000001133095885_p1371023914612"></a>24</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p357475415426"><a name="en-us_topic_0000001133095885_p357475415426"></a><a name="en-us_topic_0000001133095885_p357475415426"></a>MNASNet1_0</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1471033917465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p3710939164613"><a name="en-us_topic_0000001133095885_p3710939164613"></a><a name="en-us_topic_0000001133095885_p3710939164613"></a>25</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p15741754144213"><a name="en-us_topic_0000001133095885_p15741754144213"></a><a name="en-us_topic_0000001133095885_p15741754144213"></a>MNASNet1_3</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row8710163924614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p8710143914614"><a name="en-us_topic_0000001133095885_p8710143914614"></a><a name="en-us_topic_0000001133095885_p8710143914614"></a>26</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p2574135464217"><a name="en-us_topic_0000001133095885_p2574135464217"></a><a name="en-us_topic_0000001133095885_p2574135464217"></a>MobileNetV1</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1471063944618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p11710203910465"><a name="en-us_topic_0000001133095885_p11710203910465"></a><a name="en-us_topic_0000001133095885_p11710203910465"></a>27</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p20574254104215"><a name="en-us_topic_0000001133095885_p20574254104215"></a><a name="en-us_topic_0000001133095885_p20574254104215"></a>MobileNetV2</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row171010393463"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p47101339154613"><a name="en-us_topic_0000001133095885_p47101339154613"></a><a name="en-us_topic_0000001133095885_p47101339154613"></a>28</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1557415444214"><a name="en-us_topic_0000001133095885_p1557415444214"></a><a name="en-us_topic_0000001133095885_p1557415444214"></a>PNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row7611556191918"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p12611156171919"><a name="en-us_topic_0000001133095885_p12611156171919"></a><a name="en-us_topic_0000001133095885_p12611156171919"></a>29</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1757435454213"><a name="en-us_topic_0000001133095885_p1757435454213"></a><a name="en-us_topic_0000001133095885_p1757435454213"></a>PSENet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row5477004202"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1847770182017"><a name="en-us_topic_0000001133095885_p1847770182017"></a><a name="en-us_topic_0000001133095885_p1847770182017"></a>30</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p165741254194213"><a name="en-us_topic_0000001133095885_p165741254194213"></a><a name="en-us_topic_0000001133095885_p165741254194213"></a>RAFT</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row67255202017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p9725728202"><a name="en-us_topic_0000001133095885_p9725728202"></a><a name="en-us_topic_0000001133095885_p9725728202"></a>31</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1757465464214"><a name="en-us_topic_0000001133095885_p1757465464214"></a><a name="en-us_topic_0000001133095885_p1757465464214"></a>RecVAE</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row83941035161019"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p173949354104"><a name="en-us_topic_0000001133095885_p173949354104"></a><a name="en-us_topic_0000001133095885_p173949354104"></a>32</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p2057435444220"><a name="en-us_topic_0000001133095885_p2057435444220"></a><a name="en-us_topic_0000001133095885_p2057435444220"></a>ResNet101</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row14021731181017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p13402231171018"><a name="en-us_topic_0000001133095885_p13402231171018"></a><a name="en-us_topic_0000001133095885_p13402231171018"></a>33</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p05741554194217"><a name="en-us_topic_0000001133095885_p05741554194217"></a><a name="en-us_topic_0000001133095885_p05741554194217"></a>ResNet152</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row106426081116"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p06426017111"><a name="en-us_topic_0000001133095885_p06426017111"></a><a name="en-us_topic_0000001133095885_p06426017111"></a>34</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p19574145464214"><a name="en-us_topic_0000001133095885_p19574145464214"></a><a name="en-us_topic_0000001133095885_p19574145464214"></a>ResNet18</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row13947174191112"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p894715491110"><a name="en-us_topic_0000001133095885_p894715491110"></a><a name="en-us_topic_0000001133095885_p894715491110"></a>35</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p25741754204213"><a name="en-us_topic_0000001133095885_p25741754204213"></a><a name="en-us_topic_0000001133095885_p25741754204213"></a>ResNet34</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1359519811113"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p059516861111"><a name="en-us_topic_0000001133095885_p059516861111"></a><a name="en-us_topic_0000001133095885_p059516861111"></a>36</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p957475454218"><a name="en-us_topic_0000001133095885_p957475454218"></a><a name="en-us_topic_0000001133095885_p957475454218"></a>ResNet50</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row10740141321119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p27401713131114"><a name="en-us_topic_0000001133095885_p27401713131114"></a><a name="en-us_topic_0000001133095885_p27401713131114"></a>37</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p2574125415422"><a name="en-us_topic_0000001133095885_p2574125415422"></a><a name="en-us_topic_0000001133095885_p2574125415422"></a>Resnext101_32x8d</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row667112181118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p146715124119"><a name="en-us_topic_0000001133095885_p146715124119"></a><a name="en-us_topic_0000001133095885_p146715124119"></a>38</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p15574135484218"><a name="en-us_topic_0000001133095885_p15574135484218"></a><a name="en-us_topic_0000001133095885_p15574135484218"></a>Resnext50</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row4738182913104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p107383299102"><a name="en-us_topic_0000001133095885_p107383299102"></a><a name="en-us_topic_0000001133095885_p107383299102"></a>39</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p857445444218"><a name="en-us_topic_0000001133095885_p857445444218"></a><a name="en-us_topic_0000001133095885_p857445444218"></a>RNet</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row328451021115"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p928461019117"><a name="en-us_topic_0000001133095885_p928461019117"></a><a name="en-us_topic_0000001133095885_p928461019117"></a>40</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p6574175464211"><a name="en-us_topic_0000001133095885_p6574175464211"></a><a name="en-us_topic_0000001133095885_p6574175464211"></a>Shufflenetv2</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row128999641118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p198995621117"><a name="en-us_topic_0000001133095885_p198995621117"></a><a name="en-us_topic_0000001133095885_p198995621117"></a>41</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p13575125419422"><a name="en-us_topic_0000001133095885_p13575125419422"></a><a name="en-us_topic_0000001133095885_p13575125419422"></a>SqueezeNet1_0</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row136314218119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p53631028119"><a name="en-us_topic_0000001133095885_p53631028119"></a><a name="en-us_topic_0000001133095885_p53631028119"></a>42</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p757535410428"><a name="en-us_topic_0000001133095885_p757535410428"></a><a name="en-us_topic_0000001133095885_p757535410428"></a>SqueezeNet1_1</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row156190549108"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p106191454141012"><a name="en-us_topic_0000001133095885_p106191454141012"></a><a name="en-us_topic_0000001133095885_p106191454141012"></a>43</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p657545410427"><a name="en-us_topic_0000001133095885_p657545410427"></a><a name="en-us_topic_0000001133095885_p657545410427"></a>U-Net</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row9370164720106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p9370144741015"><a name="en-us_topic_0000001133095885_p9370144741015"></a><a name="en-us_topic_0000001133095885_p9370144741015"></a>44</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p957585415426"><a name="en-us_topic_0000001133095885_p957585415426"></a><a name="en-us_topic_0000001133095885_p957585415426"></a>VAE+GAN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row453116573102"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p95311557151018"><a name="en-us_topic_0000001133095885_p95311557151018"></a><a name="en-us_topic_0000001133095885_p95311557151018"></a>45</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p957525454210"><a name="en-us_topic_0000001133095885_p957525454210"></a><a name="en-us_topic_0000001133095885_p957525454210"></a>VGG11</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1478625141010"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p3786195151010"><a name="en-us_topic_0000001133095885_p3786195151010"></a><a name="en-us_topic_0000001133095885_p3786195151010"></a>46</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p1557565434218"><a name="en-us_topic_0000001133095885_p1557565434218"></a><a name="en-us_topic_0000001133095885_p1557565434218"></a>VGG11_BN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row129701341121014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p199701641141016"><a name="en-us_topic_0000001133095885_p199701641141016"></a><a name="en-us_topic_0000001133095885_p199701641141016"></a>47</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p957517542420"><a name="en-us_topic_0000001133095885_p957517542420"></a><a name="en-us_topic_0000001133095885_p957517542420"></a>VGG13</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1286634916106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p5866124917105"><a name="en-us_topic_0000001133095885_p5866124917105"></a><a name="en-us_topic_0000001133095885_p5866124917105"></a>48</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p10575115416421"><a name="en-us_topic_0000001133095885_p10575115416421"></a><a name="en-us_topic_0000001133095885_p10575115416421"></a>VGG13_BN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row269355152015"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p469385122011"><a name="en-us_topic_0000001133095885_p469385122011"></a><a name="en-us_topic_0000001133095885_p469385122011"></a>49</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p557519545422"><a name="en-us_topic_0000001133095885_p557519545422"></a><a name="en-us_topic_0000001133095885_p557519545422"></a>VGG16</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1874673971014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p674693981017"><a name="en-us_topic_0000001133095885_p674693981017"></a><a name="en-us_topic_0000001133095885_p674693981017"></a>50</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p11575454114215"><a name="en-us_topic_0000001133095885_p11575454114215"></a><a name="en-us_topic_0000001133095885_p11575454114215"></a>VGG16_BN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row149883820103"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p9982038151018"><a name="en-us_topic_0000001133095885_p9982038151018"></a><a name="en-us_topic_0000001133095885_p9982038151018"></a>51</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p657585417429"><a name="en-us_topic_0000001133095885_p657585417429"></a><a name="en-us_topic_0000001133095885_p657585417429"></a>VGG19</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row154671633171013"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p114677333101"><a name="en-us_topic_0000001133095885_p114677333101"></a><a name="en-us_topic_0000001133095885_p114677333101"></a>52</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p557535415426"><a name="en-us_topic_0000001133095885_p557535415426"></a><a name="en-us_topic_0000001133095885_p557535415426"></a>VGG19_BN</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row054412715104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p954482714105"><a name="en-us_topic_0000001133095885_p954482714105"></a><a name="en-us_topic_0000001133095885_p954482714105"></a>53</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p95752543424"><a name="en-us_topic_0000001133095885_p95752543424"></a><a name="en-us_topic_0000001133095885_p95752543424"></a>VIT-base</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row53891311191318"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p1438911115138"><a name="en-us_topic_0000001133095885_p1438911115138"></a><a name="en-us_topic_0000001133095885_p1438911115138"></a>54</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p3575654184213"><a name="en-us_topic_0000001133095885_p3575654184213"></a><a name="en-us_topic_0000001133095885_p3575654184213"></a>Wide_ResNet101_2</p>
-</td>
-</tr>
-<tr id="en-us_topic_0000001133095885_row1928912911311"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001133095885_p182893901310"><a name="en-us_topic_0000001133095885_p182893901310"></a><a name="en-us_topic_0000001133095885_p182893901310"></a>55</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001133095885_p2057525424213"><a name="en-us_topic_0000001133095885_p2057525424213"></a><a name="en-us_topic_0000001133095885_p2057525424213"></a>Wide_ResNet50_2</p>
-</td>
-</tr>
-</tbody>
-</table>
+For details about supported models, visit the [Ascend Modelzoo Community](https://www.hiascend.com/en/software/modelzoo), and select **Training** for **Category** and **PyTorch** for **Framework** to filter out PyTorch training models.
 
 ##### System Requirement
 
@@ -1115,7 +845,7 @@ msFmkTransplt runs on Ubuntu 18.04, CentOS 7.6, and EulerOS 2.8 only.
 
 ##### Environment Setup
 
-Set up the development environment by referring to the  _CANN Software Installation Guide_.
+Set up the development environment by referring to the *[CANN Software Installation Guide](https://www.hiascend.com/document/detail/en/canncommercial/504/envdeployment/inst)*.
 
 #### Instructions
 
@@ -1289,7 +1019,7 @@ You can view the result files in the output path when the script is converted.
 
 #### Single-Device Training Model Porting
 
-The advantage of the online adaption is that the training on the Ascend AI Processor is consistent with the usage of the GPU. During online adaption,** you only need to specify the device as the Ascend AI Processor in Python and device operations**  to develop, train, and debug the network in PyTorch using the Ascend AI Processor. For single-device model training, main changes for porting are as follows:
+The advantage of the online adaptation is that the training on the Ascend AI Processor is consistent with the usage of the GPU. During online adaptation,** you only need to specify the device as the Ascend AI Processor in Python and device operations**  to develop, train, and debug the network in PyTorch using the Ascend AI Processor. For single-device model training, main changes for porting are as follows:
 
 GPU code before porting:
 
@@ -1308,7 +1038,7 @@ The code ported to the Ascend AI Processor is as follows:
 
 ```
     CALCULATE_DEVICE = "npu:0"   
-    torch.npu.set_device(CALCULATE_DEVICE)   
+    torch_npu.npu.set_device(CALCULATE_DEVICE)   
     # Two methods for porting the code to device  
     model = model.npu() # Method 1
     model = model.to(CALCULATE_DEVICE) # Method 2
@@ -1321,7 +1051,7 @@ For details, see  [Single-Device Training Porting](#single-device-training-porti
 
 #### Multi-Device Training Model Porting
 
-To port a multi-device training model,  you need to specify the device as the Ascend AI Processor in Python and device operations. In addition, you can perform distributed training using PyTorch  **DistributedDataParallel**, that is, run  **init\_process\_group**  during model initialization, and then initialize the model into a  **DistributedDataParallel**  model. Note that the  **backend **must be set to  **hccl **and the initialization mode must be shielded when  **init\_process\_group**  is executed.
+To port a multi-device training model,  you need to specify the device as the Ascend AI Processor in Python and device operations. In addition, you can perform distributed training using PyTorch  **DistributedDataParallel**, that is, run  **init\_process\_group**  during model initialization, and then initialize the model into a  **DistributedDataParallel**  model. Note that the  **backend** must be set to  **hccl** and the initialization mode must be shielded when **init\_process\_group** is executed.
 
 PyTorch distributed training code example \(some code is omitted\):
 
@@ -1329,6 +1059,7 @@ PyTorch distributed training code example \(some code is omitted\):
 import torch
 import torch.distributed as dist
 import torch.nn.parallel
+import torch_npu
 def main():
     args = parser.parse_args()
     # The initialization mode needs to be shielded.
@@ -1361,28 +1092,28 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
     </thead>
     <tbody><tr id="row2022164516340"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p172214454341"><a name="p172214454341"></a><a name="p172214454341"></a>torch.cuda.is_available()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch.npu.is_available()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch_npu.npu.is_available()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1222144553413"><a name="p1222144553413"></a><a name="p1222144553413"></a>Checks whether the device is available in the current environment (not the final result).</p>
     </td>
     </tr>
     <tr id="row19221245203420"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1722124593416"><a name="p1722124593416"></a><a name="p1722124593416"></a>torch.cuda.current_device()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch.npu.current_device()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch_npu.npu.current_device()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p192214455345"><a name="p192214455345"></a><a name="p192214455345"></a>Obtains the device in use.</p>
     </td>
     </tr>
     <tr id="row822114455346"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1522111454345"><a name="p1522111454345"></a><a name="p1522111454345"></a>torch.cuda.device_count()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch.npu.device_count()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch_npu.npu.device_count()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p52211345183414"><a name="p52211345183414"></a><a name="p52211345183414"></a>Obtains the number of devices in the current environment.</p>
     </td>
     </tr>
     <tr id="row422124520348"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1322134593411"><a name="p1322134593411"></a><a name="p1322134593411"></a>torch.cuda.set_device()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch.npu.set_device()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch_npu.npu.set_device()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922164543419"><a name="p922164543419"></a><a name="p922164543419"></a>Sets the device in use.</p>
     </td>
@@ -1410,42 +1141,42 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
     </tr>
     <tr id="row722110451342"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1222112451349"><a name="p1222112451349"></a><a name="p1222112451349"></a>torch.cuda.synchronize()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch.npu.synchronize()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch_npu.npu.synchronize()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922264516347"><a name="p922264516347"></a><a name="p922264516347"></a>Waits until the event is complete.</p>
     </td>
     </tr>
     <tr id="row132226452341"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p152221545123413"><a name="p152221545123413"></a><a name="p152221545123413"></a>torch.cuda.device</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch.npu.device</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch_npu.npu.device</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p16222184523412"><a name="p16222184523412"></a><a name="p16222184523412"></a>Generates a device class, which can be used to perform device-related operations.</p>
     </td>
     </tr>
     <tr id="row1222104543416"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p922284573412"><a name="p922284573412"></a><a name="p922284573412"></a>torch.cuda.Stream(device)</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch.npu.Stream(device)</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch_npu.npu.Stream(device)</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p8222144583419"><a name="p8222144583419"></a><a name="p8222144583419"></a>Generates a stream object.</p>
     </td>
     </tr>
     <tr id="row11579712134013"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p45791812154016"><a name="p45791812154016"></a><a name="p45791812154016"></a>torch.cuda.stream(Stream)</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch.npu.stream(Stream)</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch_npu.npu.stream(Stream)</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1058019125401"><a name="p1058019125401"></a><a name="p1058019125401"></a>Mainly used for scope restriction.</p>
     </td>
     </tr>
     <tr id="row117072156404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p137074157405"><a name="p137074157405"></a><a name="p137074157405"></a>torch.cuda.current_stream()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch.npu.current_stream()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch_npu.npu.current_stream()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p56119267579"><a name="p56119267579"></a><a name="p56119267579"></a>Obtains the current stream. </p>
     </td>
     </tr>
     <tr id="row13397184409"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p14339181815400"><a name="p14339181815400"></a><a name="p14339181815400"></a>torch.cuda.default_stream()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch.npu.default_stream()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch_npu.npu.default_stream()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p15339101814018"><a name="p15339101814018"></a><a name="p15339101814018"></a>Obtains the default stream.</p>
     </td>
@@ -1468,7 +1199,7 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
     </tr>
     <tr id="row851311373404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1513737104012"><a name="p1513737104012"></a><a name="p1513737104012"></a>torch.cuda.Event()</p>
     </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch.npu.Event()</p>
+    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch_npu.npu.Event()</p>
     </td>
     <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p14513133754017"><a name="p14513133754017"></a><a name="p14513133754017"></a>Returns events on a device.</p>
     </td>
@@ -1557,7 +1288,7 @@ However, the mixed precision training is limited by the precision range expresse
 In addition to the preceding advantages, the mixed precision module Apex adapted to Ascend AI Processors can improve computing performance. Details are described as follows:
 
 -   During mixed precision calculation, Apex calculates the grad of the model. You can enable combine\_grad to accelerate these operations. Set the  **combine\_grad**  parameter of the amp.initialize\(\) interface to  **True**.
--   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with  **apex.optimizers.\***  \(**\***  indicates the optimizer name, for example,  **NpuFusedSGD**\).
+-   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with  **apex.optimizers.*** (* indicates the optimizer name, for example,  **NpuFusedSGD**).
 
 #### Supported Features
 
@@ -1594,7 +1325,7 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
 </tbody>
 </table>
 
->![](public_sys-resources/icon-note.gif) **NOTE:** 
+>![](public_sys-resources/icon-note.gif) **NOTE:**
 >-   In the current version, Apex is implemented using Python and does not support AscendCL or CUDA optimization.
 >-   Ascend AI devices do not support the original FusedLayerNorm interface module of Apex. If the original model script file uses the FusedLayerNorm interface module, you need to replace the script header file  **from apex.normalization import FusedLayerNorm**  with  **from torch.nn import LayerNorm**.
 
@@ -1631,6 +1362,34 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
     optimizer.step()
     ```
 
+### Usage of PyTorch 1.8.1 AMP on NPUs
+
+#### Overview
+
+Similar to the O1 mode (dynamic loss scale) of Apex AMP, PyTorch 1.8.1 AMP converts the inputs of some operators into the FP16 type to implement mixed precision training.
+
+#### AMP Application Scenarios
+
+1. Typical scenario
+
+2. Gradient accumulation scenario
+
+3. Scenario with multiple models, losses, and optimizers
+
+4. DDP scenario (one NPU per process)
+
+
+The PyTorch 1.8.1 framework supports only the preceding four scenarios. For details about more scenarios, see the official PyTorch operation guide.
+
+#### Usage of AMP on NPUs
+
+1. When a model is adapted from GPUs to NPUs, you need to change **code torch.cuda.amp** to **torch.npu.amp**.
+2. In the PyTorch 1.8.1 AMP tool, the **dynamic** option, defaulted to **True**, is added to **GradScaler**. If this option is set to **False**, AMP supports static loss scale.
+
+#### Precautions
+
+1. In PyTorch 1.8.1, AMP is implemented by using decorators. During training and test, **with Autocast()** needs to be added to convert the arguments of the model into FP16. If **with Autocast()** is not added, the arguments are still FP32. In the case of an extreme batch size, the memory is insufficient.
+2. PyTorch 1.8.1 AMP does not support tensor fusion.
 ## Model Training
 
 After the training scripts are ported, set environment variables by following the instructions in  [Environment Variable Configuration](#en-us_topic_0000001144082004md)  and run the  **python3** _xxx_  command to train a model. For details, see  [Script Execution](#script-executionmd).
@@ -1748,8 +1507,8 @@ Select a collection mode based on the site requirements and perform the followin
     1.  Obtain the profile data file.
 
         ```
-        profiler_result_path  = "/home/profiling_data"     # folder for storing the profile data. You need to manually create the folder in advance based on the site requirements.
-        with torch.npu.profile(profiler_result_path):
+        profiler_result_path  = "/home/profiling_data"     # folder for storing the profile data. Specify it based on the site requirements.
+        with torch.npu.profile(profiler_result_path, config): Generally, only one step needs to be performed. You can retain the default config.
             out = model(input_tensor)
             loss=loss_func(out,target)
             loss.backward()
@@ -1758,11 +1517,28 @@ Select a collection mode based on the site requirements and perform the followin
         ```
 
         >![](public_sys-resources/icon-note.gif) **NOTE:** 
-        >When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
+        >The **config** parameter is used to configure the types of CANN profile data that need to be obtained. For details about the setting method, see the **config** description in [Advanced Settings](#advanced-settings).
+        When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
 
     2.  Parse the profile data file.
 
-        For details, see "Profiling Instructions \(Training\)" in the *CANN Auxiliary Development Tool User Guide*.
+        For details, see "Profiling Instructions > Advanced Features (All Profiling Modes and Items) > Data Parsing and Export" in the *CANN Auxiliary Development Tool User Guide*.
+    3.  Refer to the advanced usage.
+
+    The PyTorch framework runs in single-operator mode and cannot distinguish step information. If multiple steps are executed in the WITH statement, the data obtained through Profiling is multiple steps connected. The data of one step cannot be distinguished from the prof diagram. Therefore, to distinguish step information, advanced APIs are provided. See the following example:
+    ```
+    for i in range(steps):
+        if i >=10 && i <= 100:  ## Obtains the profile data from step 10 to step 100.
+            if i == 10:  ## Enables this function in step 10.
+                torch.npu.prof_init(profiler_result_path) ## profiler_result_path is the same as the preceding profiler_result_path.
+                torch.npu.prof_start(config) ## config is the same as the preceding config. You can retain its default value.
+            torch.npu.iteration_start()  ## Adds a start flag when entering each step.
+            train_one_step()
+            torch.npu.iteration_end()    ## Adds a start flag when each step ends.
+            if i == 110:   ## Disables this function in the step 100.
+                torch.npu.prof_stop()
+                torch.npu.prof_finalize()
+    ```
 
 ##### Obtaining Operator Information (OP_INFO)
 
@@ -1822,7 +1598,7 @@ The network model is executed as an operator (OP). The OPInfo log can be used to
     ```
 
 3.  Set the log level to  **info**. For details, see the  _CANN Log Reference_.
-4.  Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the **$HOME/ascend/log/plog**  directory. **$HOME**  indicates the root directory of the user on the host.
+4.  Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the **$HOME/ascend/log/plog** directory. **$HOME**  indicates the root directory of the user on the host.
 5.  After the host logs are parsed, obtain the operator information  **ascend_op_info_summary.txt**  in the current directory.
 
     ```
@@ -2066,24 +1842,23 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
 2.  Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
 3.  Solution: Specify the initialization format of some operators to eliminate cast operators.
-4.  In  **pytorch/torch/nn/modules/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
+4.  In  **pytorch/torch_npu/utils/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
 
     ![](figures/指定算子初始化方式.png)
 
-    The format setting principle is as follows:
+The format setting principle is as follows:
 
-    -   For the Conv2D operator, weight can be set to FZ format, for example, line 424.
-    -   For the linear operator, weight can be set to NZ format, for example, line 409.
+-   For the Conv2D operator, weight can be set to FZ format, for example, line 106.
+-   For the linear operator, weight can be set to NZ format, for example, line 89.
 
 
 ##### Compilation Bottleneck Optimization
 
-1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
-2.  View the INFO log and check the keyword  **aclopCompile::aclOp**  after the first step. If  **Match op inputs/type failed**  or  **To compile op**  is displayed, the operator is dynamically compiled and needs to be optimized.
-3.  Use either of the following methods to solve the problem:
+1.  View the INFO log and check the keyword  **aclopCompile::aclOp**  after the first step. If  **Match op inputs/type failed**  or  **To compile op**  is displayed, the operator is dynamically compiled and needs to be optimized.
+2.  Use either of the following methods to solve the problem:
     -   Workaround: Based on the understanding of model semantics and related APIs, replace dynamic shape with static shape.
     -   Solution: Reduce compilation or do not compile the operator.
-    -   For details about how to optimize the operator compilation configuration, see [Compilation Option Settings](#compilation-option-settings).
+    -   For details about how to optimize the operator compilation configuration, see [Compile Option Settings](#compile-option-settings).
 
 ### E2E Performance Tool (E2E prof) Instructions
 
@@ -2096,13 +1871,13 @@ The E2E prof tool integrates the framework-layer data obtained by the Profiling 
 Add the following with statement to enable the E2E prof function.
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=Ture):
+with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
 
-- **profiler_result_path** indicates the path for     storing the prof results. If no path is specified, the current path is     used by default.
-- **use_e2e_profiler** indicates whether to enable     the E2E prof function. The default value is **False**, indicating that only the CANN prof function is enabled.
+- **profiler_result_path** indicates the path for storing the prof results. If no path is specified, the current path is used by default.
+- **use_e2e_profiler** indicates whether to enable the E2E prof function. The default value is **False**, indicating that only the CANN prof function is enabled.
 
 (The NUP operator can be executed only after compilation. To ensure data accuracy, you are advised to run it for 10 steps first, and then perform the E2E prof operation. Generally, only one or two steps are required for profiling.)
 
@@ -2144,16 +1919,21 @@ The results obtained by using the E2E prof tool are raw data, which can be viewe
 By default, the E2E prof tool can obtain all of the preceding data. However, the process of obtaining data affects the performance. If a large amount of data is obtained, the profile data cannot be used as a reference. Therefore, the E2E prof tool provides configurable options for fine-grained control over obtaining data of specified layers.
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
 ```
 
--   **ACL_PROF_ACL_API**: collects profile data of     AscendCL APIs. The default value is **True**.
--   **ACL_PROF_TASK_TIME**: collects the execution time     of AI Core operators. The default value is **True**.
--   **ACL_PROF_AICORE_METRICS**: collects the AI Core     performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
--   **ACL_PROF_AICPU**: 0x0008, collects traces of     AI CPU tasks, including the start and end of each task. The default value     is **True**.
--   **ACL_PROF_L2CACHE**: collects L2 cache data. The     default value is **True**.
--   **ACL_PROF_HCCL_TRACE**: collects HCCL data. The     default value is **True**.
--   **ACL_PROF_TRAINING_TRACE**: collects iteration traces,     which record the forward and backward propagation steps of a model. The     default value is **True**.
+-   **ACL_PROF_ACL_API**: collects profile data of AscendCL APIs. The default value is **True**.
+-   **ACL_PROF_TASK_TIME**: collects the execution time of AI Core operators. The default value is **True**.
+-   **ACL_PROF_AICORE_METRICS**: collects the AI Core performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
+-   **ACL_PROF_AICPU**: 0x0008, collects traces of AI CPU tasks, including the start and end of each task. The default value is **True**.
+-   **ACL_PROF_L2CACHE**: collects L2 cache data. The default value is **True**.
+-   **ACL_PROF_HCCL_TRACE**: collects HCCL data. The default value is **True**.
+-   **ACL_PROF_TRAINING_TRACE**: collects iteration traces, which record the forward and backward propagation steps of a model. The default value is **False**.
 
 The values of **aiCoreMetricsType** are defined as follows. The default value is **0**.
 
@@ -2182,28 +1962,28 @@ The common network structures and functions in the public models are optimized t
 </thead>
 <tbody><tr id="row1449163011112"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p138051838121113"><a name="p138051838121113"></a><a name="p138051838121113"></a>pairwise_iou</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p1080514386118"><a name="p1080514386118"></a><a name="p1080514386118"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p1080514386118"><a name="p1080514386118"></a><a name="p1080514386118"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p1480593811116"><a name="p1480593811116"></a><a name="p1480593811116"></a>Calculates the IOUs of the two bounding boxes.</p>
 </td>
 </tr>
 <tr id="row174933013118"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p1280513819113"><a name="p1280513819113"></a><a name="p1280513819113"></a>fast_rcnn_inference_single_image</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p198057389119"><a name="p198057389119"></a><a name="p198057389119"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p198057389119"><a name="p198057389119"></a><a name="p198057389119"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p118053381118"><a name="p118053381118"></a><a name="p118053381118"></a>Provides the inference API of the Mask R-CNN and Faster R-CNN models.</p>
 </td>
 </tr>
 <tr id="row349530141119"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p2806538181110"><a name="p2806538181110"></a><a name="p2806538181110"></a>ChannelShuffle</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p48069388115"><a name="p48069388115"></a><a name="p48069388115"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p48069388115"><a name="p48069388115"></a><a name="p48069388115"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p5806123817112"><a name="p5806123817112"></a><a name="p5806123817112"></a>Provides NPU-affinity channelshuffle operations and applies to models such as shufflenetv2.</p>
 </td>
 </tr>
 <tr id="row849203018111"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p188062384116"><a name="p188062384116"></a><a name="p188062384116"></a>PreLoader</p>
 </td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p6806938111113"><a name="p6806938111113"></a><a name="p6806938111113"></a>torch.contrib.npu.optimized_lib</p>
+<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p6806938111113"><a name="p6806938111113"></a><a name="p6806938111113"></a>torch_npu.contrib</p>
 </td>
 <td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p14806103861118"><a name="p14806103861118"></a><a name="p14806103861118"></a>Provides the data loading method for accelerating Ascend AI Processors.</p>
 </td>
@@ -2214,11 +1994,83 @@ The common network structures and functions in the public models are optimized t
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >The optimization content will be enhanced and updated with the version. Use the content in the corresponding path of the actual PyTorch version.
 
+### AOE Instructions
+
+#### Introduction to AOE
+
+For an NPU device, the input parameters (such as the shape and format) of each operator affect the operator performance, which further affects the overall performance of the model. To achieve better model performance, you can dump the input parameter information of all operators in a model to your local host for analysis, run each operator on the NPU, adjust the operator runtime policy, and determine the policy with the optimal performance. This process is called tuning. The AOE tool implements this tuning function to improve the model performance.
+
+#### AOE Usage
+
+1. Dump the operator information to the local host.
+
+   Add enablement code to the model script and dump the operator information to the local host.
+
+   ```
+   def train_model():
+      torch.npu.set_aoe(dump_path) # Enablement API. dump_path is the path for saving the dumped operator information. It is mandatory and cannot be left empty. If the configured path does not exist, the system attempts to create one. Multi-level directories are supported.
+      train_model_one_step()       # Model training process example. Generally, only one step needs to be performed. Modify the code based on the site requirements.
+   ```
+   
+   The ResNet-50 model is used as an example. The modification is as follows:
+   
+   ```
+   #line 427~437
+   model.train()
+   optimizer.zero_grad()
+   end = time.time()
+   torch.npu.set_aoe(dump_path)    # Enablement API
+   for i, (images, target) in enumerate(train_loader):
+       if i > 0:             # Only one step needs to be run.
+           exit()
+       if i > 100:
+           pass
+       # measure data loading time
+       data_time.update(time.time() - end)
+   
+       if args.gpu is not None:
+           images = images.cuda(args.gpu, non_blocking=True)
+   ```
+   
+   Reference Link: https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/cv/classification/ResNet50_for_PyTorch/pytorch_resnet50_apex.py
+   
+2. Tune operators.
+
+   - Set environment variables.
+
+     ```
+     source /usr/local/Ascend/ascend-toolkit/set_env.sh  # By default, this environment variable is not set to TUNE_BANK_PATH.
+     ```
+
+   - Perform tuning.
+
+     ```
+     aoe --job_type=2 --model_path=./dump_path
+     ```
+
+     Currently, only some operators can be tuned. Therefore, operator tuning failures or AI Core errors may occur. This is a known issue.
+
+   - View the tuning result.
+
+     After the tuning is complete, the result is saved in the */<soc_version>/* directory specified by the **TUNE_BANK_PATH** environment variable. If the directory is not set, the result is saved in the **/{HOME}/Ascend/latest/data/aoe/custom/op/*<soc_version>*** directory by default. For the **root** user, the result is saved in the **/root/Ascend/latest/data/aoe/custom/op/*<soc_version>*** directory.
+     *<soc_version>* indicates the processor type, for example, Ascend 910 A.
+
+#### Precautions
+
+1. Currently, only static operators are supported.
+2. When being dumped, the operator information cannot be deduplicated and only one step needs to be performed. Otherwise, the tuning takes a long time.
+3. You are advised to use single-device scripts to dump data graphs. Dumping with multi-device scripts may cause data overwriting issues.
+4. Before using this tool, disable Profiling. Otherwise, the model performance will be affected.
+
+#### Performance Verification
+
+After the tuning is complete, restore the code, run the model, and check whether the model/operator performance is improved.
+
 ## Precision Commissioning
 
-### Prerequisites
-
-Run a certain number of epochs \(20% of the total number of epoches is recommended\) with the same semantics and hyperparameters to align the precision and loss with the corresponding level of the GPU. After the alignment is complete, align the final precision.
+### Prerequisites  
+Currently, PyTorch 1.8.1 does not support this function.  
+Run a certain number of epochs \(20% of the total number of epochs is recommended\) with the same semantics and hyperparameters to align the precision and loss with the corresponding level of the GPU. After the alignment is complete, align the final precision.
 
 ### Commissioning Process
 
@@ -2242,7 +2094,7 @@ To locate the precision problem, you need to find out the step in which the prob
 
 3.  Parameter update error
 
-    -   Locating method: Before each  **optim.step\(\)**, print the gradients of the parameters in the network one by one to determine which part is suspected. Then build a single-operator sample to narrow down the error range. This can prove that the gradient calculation by the operator is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem. The priority of this item should be lower than that of items  [1](#li17755175510322)  and  [2](#li25281726103316)  because the errors of items 1 and 2 can also cause the gradient exception.
+    -   Locating method: Before each **optim.step\(\)**, print the gradients of the parameters in the network one by one to determine which part is suspected. Then build a single-operator sample to narrow down the error range. This can prove that the gradient calculation by the operator is incorrect in the current network. You can compare the result with the CPU or GPU result to prove the problem. The priority of this item should be lower than that of items [1](#li17755175510322) and [2](#li25281726103316) because the errors of items 1 and 2 can also cause the gradient exception.
 
     -   Workaround: Use other operators with the same semantics.
 
@@ -2260,15 +2112,15 @@ General model precision problems are as follows: training loss not converge or u
 
 ##### **Environment Setup**
 
-- Install the HDF5 tool to support the operator dump function. For details about how to install the tool, see [HDF5 Compilation and Installation](#hdf5-compilation-and-installation)。
+- Install the HDF5 tool to support the operator dump function. For details about how to install the tool, see [HDF5 Compilation and Installation](#hdf5-compilation-and-installation).
 
   To use the operator precision comparison function, Install the HDF5 tool in both the NPU and GPU environments. Otherwise, install it only in the NPU environment.
 
-- Install the Ascend PyTorch framework that supports the dump function. Modify the **build.sh** script before compilation. For details about other operations, see the *PyTorch Installation Guide*.
+- Install the Ascend PyTorch framework that supports the dump function. Modify the **build.sh** script before compilation. For details about other operations, see the *[PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20Installation%20Guide/PyTorch%20Installation%20Guide.md)*.
 
   - Install PyTorch in the NPU environment.
 
-    Add the  `USE_DUMP=1` field to the **build.sh** script before compilation.
+    Add the `USE_DUMP=1` field to the **build.sh** script before compilation.
 
     ```bash
     DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=1 USE_MKLDNN=0 USE_CUDA=0 USE_NPU=1 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
@@ -2276,7 +2128,7 @@ General model precision problems are as follows: training loss not converge or u
 
   - (Optional) Install PyTorch in the GPU environment. Perform this operation only when you want to compare the precision of model operators.
 
-    Before compilation, open the **build.sh** script, add the `USE_DUMP=1 ` and `USE_NCCL=0` fields, change the values of the  `USE_HCCL` and `USE_NPU` fields to **0**, and change the value of the `USE_CUDA` field to **1**.
+    Before compilation, open the **build.sh** script, add the `USE_DUMP=1 ` and `USE_NCCL=0` fields, change the values of the `USE_HCCL` and `USE_NPU` fields to **0**, and change the value of the `USE_CUDA` field to **1**.
 
     ```bash
     DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
@@ -2292,14 +2144,14 @@ Restrictions:
 
   The input and output data of each operator is stored on drives and occupies a large space. Therefore, you are advised to set a small batch size to save the drive space.
 
-- You are advised to dump data of only one step for     precision comparison.
+- You are advised to dump data of only one step for precision comparison.
 
-- Currently, operators during O1 or O2 training can be     used for precision comparison (FP32 only).
+- Currently, operators during O1 or O2 training can be used for precision comparison (FP32 only).
 
 Comparison modes:
 
-- Assume that the input and output of the GPU are known     data. Load the input data of the GPU to the NPU to obtain the output data,     and compare the NPU-based output with the GPU-based output.
-- Assume that the input and output of the NPU are known     data. Load the input data of the NPU to the GPU to obtain the output data,     and compare the NPU-based output with the GPU-based output.
+- Assume that the input and output of the GPU are known data. Load the input data of the GPU to the NPU to obtain the output data, and compare the NPU-based output with the GPU-based output.
+- Assume that the input and output of the NPU are known data. Load the input data of the NPU to the GPU to obtain the output data, and compare the NPU-based output with the GPU-based output.
 
 Procedure:
 
@@ -2371,7 +2223,7 @@ Restrictions:
 
 -   This function provides only IR-level operator overflow/underflow detection for only the AI Core (not Atomic).
 -   When using the single-operator overflow/underflow detection function, do not enable the dynamic loss scale mode of apex and the tensor fusion function at the same time.
--   When using the single operator overflow/underflow detection function, including the loaded part of the dataset is not supported.
+-   When single-operator overflow/underflow detection is used, the dataset loading code snippet is not included.
 
 Collecting data of overflow/underflow operators
 
@@ -2379,9 +2231,9 @@ Collecting data of overflow/underflow operators
 # check_overflow is the overflow/underflow detection control switch.
 # dump_path is the path for storing dump files.
 with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
-    # Code snippet for detecting operator overflow/underflow(does not include the dataset load section).
+    # Code snippet for detecting operator overflow/underflow (excluding the dataset loading part).
     xxx # forward code 
-    xxx # backward code
+    xxx # backward code    
 ```
 
 During model running of a step, if an operator overflows/underflows, the name of the corresponding IR is printed.
@@ -2392,7 +2244,7 @@ If dump data is collected during training, an .h5 file of the dump data is gener
 
 Solution:
 
-1. Map the collected .h5 file to the TBE operators. For details, see [Mapping Between IR and TBE Operators](#Mapping Between IR and TBE Operators).
+1. Map the collected .h5 file to the TBE operators. For details, see [Mapping Between IR and TBE Operators](#mapping-between-ir-and-tbe-operators).
 
 2. Send the screenshots of operator overflow/underflow and the input and output files of the mapped TBE operators to Huawei R&D engineers as the attachment of an issue.
 
@@ -2474,7 +2326,7 @@ Procedure:
 
 ##### Mapping Between NPU and GPU Operators.
 
-For details, see "Data Preparation > [Preparing Data Files for Accuracy Comparison with PyTorch as the Original Training Network]([CANN 5.0.3 Auxiliary Development Tool User Guide 01 - Huawei](https://support.huawei.com/enterprise/en/doc/EDOC1100219270/2324edc8#ZH-CN_TOPIC_0000001162580808))" in "Model Accuracy Analyzer Instructions (Training)" in the Auxiliary Development Tool User Guide.
+For details, see "Data Preparation > [Preparing Data Files for Accuracy Comparison with PyTorch as the Original Training Network](https://support.huawei.com/enterprise/en/doc/EDOC1100219270/2324edc8#ZH-CN_TOPIC_0000001162580808)" in "Model Accuracy Analyzer Instructions (Training)" in the Auxiliary Development Tool User Guide.
 
 <h5 id="network-wide-commissioningmd">Network-wide Commissioning </h5>
 
@@ -2500,7 +2352,7 @@ You can also commission the network model precision by analyzing the entire netw
     print(compute_result)
     ```
 
-    The calculation results are slightly different because the hardware architecture of the Ascend AI Processor is different from that of the CPU. If the calculation results are close \(generally not higher than 1e-4\), then they are normal.
+    The calculation results are slightly different because the hardware architecture of the Ascend AI Processor is different from that of the CPU. If the calculation results are close (generally not higher than 1e-4), then they are normal.
 
 2.  Use the hook mechanism of PyTorch to print the inputs and outputs of the module in the forward and backward propagation for analysis.
 
@@ -2657,7 +2509,7 @@ def convert():
                       "resnet50_official.onnx", 
                       input_names = ["input"], # Construct the input name.
                       output_names = ["output"], # Construct the output name.
-                      opset_version=11, # Currently, the ATC tool supports only opset_version=11.
+                      opset_version=11, # For the current ATC tool, opset_version can be set to 9, 10, 11, 12, or 13.
                       dynamic_axes={"input":{0:"batch_size"}, "output":{0:"batch_size"}}) # Dynamic axes of the output is supported.
                       ) 
      
@@ -2675,10 +2527,10 @@ if __name__ == "__main__":
 Before exporting the ONNX model using the .pth.tar file, you need to check the saved information. Sometimes, the saved node name may be different from the node name in the model definition. For example, a prefix and suffix may be added. During the conversion, you can modify the node name. The following is an example of the conversion.
 
 ```
-import torch
-import torch.onnx
 from collections import OrderedDict
 import mobilenet
+import torch
+import torch.onnx
 
 # In this example, when the .pth.tar file is saved, the prefix module is added to the node name. Delete it by traversing.
 def proc_nodes_module(checkpoint, AttrName):
@@ -2814,10 +2666,10 @@ The forward check record table is as follows:
 
 The details are as follows:
 
--   The native  **torch.transpose\(x, 1, 2\).contiguous\(\)**  uses the view operator transpose, which produced non-contiguous tensors. For example, the copy bottleneck described in the  [copy bottleneck optimization](#training-performance-optimizationmd)  uses  **channel\_shuffle\_index\_select**  to replace the framework operator with the compute operator when the semantics is the same, reducing the time consumption.
--   ShuffleNet V2 contains a large number of chunk operations, and chunk operations are framework operators in PyTorch. As a result, a tensor is split into several non-contiguous tensors of the same length. The operation of converting non-contiguous tensors to contiguous tensors takes a long time. Therefore, the compute operator is used to eliminate non-contiguous tensors. For details, see the copy bottleneck described in the  [copy bottleneck optimization](#training-performance-optimizationmd)
+-   The native  **torch.transpose\(x, 1, 2\).contiguous\(\)**  uses the view operator transpose, which produced non-contiguous tensors. For example, the copy bottleneck described in the [Copy Bottleneck Optimization](#copy-bottleneck-optimization)  uses  **channel\_shuffle\_index\_select**  to replace the framework operator with the compute operator when the semantics is the same, reducing the time consumption.
+-   ShuffleNet V2 contains a large number of chunk operations, and chunk operations are framework operators in PyTorch. As a result, a tensor is split into several non-contiguous tensors of the same length. The operation of converting non-contiguous tensors to contiguous tensors takes a long time. Therefore, the compute operator is used to eliminate non-contiguous tensors. For details, see the copy bottleneck described in the [Copy Bottleneck Optimization](#copy-bottleneck-optimization)
 -   During operator adaptation, the output format is specified as the input format by default. However, Concat does not support the 5HD format whose C dimension is not an integral multiple of 16, so it converts the format into 4D for processing. In addition, the Concat is followed by the GatherV2 operator, which supports only the 4D format. Therefore, the data format conversion process is 5HD \> 4D \> Concat \> 5HD \> 4D \> GatherV2 \> 5HD. The solution is to modify the Concat output format. When the output format is not an integer multiple of 16, the specified output format is 4D. After the optimization, the data format conversion process is 5HD \> 4D \> Concat \> GatherV2 \> 5HD. For details about the method for ShuffleNet, see line 121 in  **pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp**.
--   Set the weight initialization format to avoid repeated transdata during calculation, for example, the framework bottleneck described in the  [copy bottleneck optimization](#training-performance-optimizationmd).
+-   Set the weight initialization format to avoid repeated transdata during calculation, for example, the framework bottleneck described in the [Copy Bottleneck Optimization](#copy-bottleneck-optimization).
 -   The output format of the DWCONV weight is rectified to avoid the unnecessary conversion from 5HD to 4D.
 
 ##### Entire Network Check
@@ -3246,55 +3098,59 @@ for group in [2, 4, 8]:
 
 When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-method).
 
-1.  Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
+1. Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
 
-    The following is an example of building a single-operator sample of the max operator:
+   The following is an example of building a single-operator sample of the max operator:
 
-    ```
-    import torch
-    import copy
-    from torch.testing._internal.common_utils import TestCase, run_tests 
-    class TestMax(TestCase):    
-        def cpu_op_exec(self, input1):
-            # Call the operator.
-            output = torch.max(input1)
-            output = output.to('cpu')
-            output = output.numpy()
-            return output
-    
-        def npu_op_exec(self, input1):
-            # Call the corresponding NPU operator.
-            output = torch.max(input1)
-            return output
-    
-        def test_max(self):
-            input = torch.randn(10,20))
-            input = input.to(torch.int64) # Convert the data type.
-            input_cpu = copy.deepcopy(input)
-            input_npu = copy.deepcopy(input).npu()
-    
-            output_cpu = self.cpu_op_exec(input_cpu)
-            output_npu = self.npu_op_exec(input_npu)
-    
-            # Compare the calculation results of the CPU and NPU. prec is the allowed error.
-            self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
-    
-    if __name__ == '__main__':
-        run_tests()
-    ```
+   ```
+      import copy
+      import torch
+      import torch_npu
+      
+      from torch.testing._internal.common_utils import TestCase, run_tests 
+      class TestMax(TestCase):
+             def cpu_op_exec(self, input1):
+              # Call the operator.
+              output = torch.max(input1)
+              output = output.to('cpu')
+              output = output.numpy()
+              return output
+      
+          def npu_op_exec(self, input1):
+              # Call the corresponding NPU operator.
+              output = torch.max(input1)
+              return output
+      
+          def test_max(self):
+              input = torch.randn(10,20))
+              input = input.to(torch.int64)   # Cast the data type.
+              input_cpu = copy.deepcopy(input)
+              input_npu = copy.deepcopy(input).npu()
+      
+              output_cpu = self.cpu_op_exec(input_cpu)
+              output_npu = self.npu_op_exec(input_npu)
+      
+              # Compare the calculation results of the CPU and NPU. prec is the allowed error.
+              self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
+      
+      if __name__ == '__main__':
+          run_tests()
+   
+   ```
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >-   Run the preceding code. If the reported error information is the same as that of the max operator in the model, the single-operator test case is successfully built.
-    >-   Assume that the data type conversion code is commented out. If no error is reported in the test case, an error of the max operator is reported on the NPU when the input parameter is  **torch.int64**.
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >-   Run the preceding code. If the reported error information is the same as that of the max operator in the model, the single-operator test case is successfully built.
+   >-   Assume that the data type conversion code is commented out. If no error is reported in the test case, an error of the max operator is reported on the NPU when the input parameter is **torch.int64**. 
 
 2.  Build a single-operator test case based on the context.
 
     Although this is a single-operator sample, sometimes it is not only an operation but also a scenario with context or a module with parameters. The module mode is a more common method. The following is an example of building a module that contains two operators:
 
     ```
-    import torch
     import copy
+    import torch
     from torch.testing._internal.common_utils import TestCase, run_tests 
+    import torch_npu
     
     class Model(nn.Module):
         def __init__(self, in_channels=1, hooks=False):
@@ -3323,7 +3179,7 @@ When a problem occurs in a model, it is costly to reproduce the problem in the e
             cpuout = out
     
             # Run the model and input tensor on the NPU.
-            torch.npu.set_device("npu:0") # Set the running device first.
+            torch_npu.npu.set_device("npu:0") # Set the running device first.
             model_npu = Model(in_channels=16).npu()
             input_tensor_npu= copy.deepcopy(input_tensor).npu()
             out = model_npu(input_tensor_npu)
@@ -3345,7 +3201,7 @@ Currently, the PyTorch adapted to Ascend AI Processors uses the init\_dump\(\), 
 
 ```
 import torch
-torch.npu.set_device("npu:0")
+torch_npu.npu.set_device("npu:0")
 torch.npu.init_dump()
 torch.npu.set_dump("/home/HwHiAiUser/dump.json") # "/home/HwHiAiUser/dump.json" is the path of the configuration file. You can configure it as required.
 a = torch.tensor([2, 2]).to("npu:0")
@@ -3498,7 +3354,7 @@ The fields in the dump data path and file are described as follows:
 
 2.  Train the reconstructed training script on the CPU. The related operator information is displayed.
 
-### Compilation Option Settings
+### Compile Option Settings
 
 Configure the attributes of an operator during compilation to improve performance, which is implemented by ACL APIs. The usage and explanation are as follows:
 
@@ -3511,7 +3367,7 @@ The key options are as follows:
 ACL_OP_SELECT_IMPL_MODE,      // Sets the operator implementation mode (high-precision or high-performance).
 ACL_OPTYPELIST_FOR_IMPLMODE,  // Lists operator types. Operators on the list are implemented in the mode specified by ACL_OP_SELECT_IMPL_MODE.
 ACL_OP_DEBUG_LEVEL,           // Enables TBE operator debug during operator compilation.
-ACL_DEBUG_DIR,                // Sets the debug directory, for saving the files generated during model conversion and network migration, including the .o, .json, and .cce files of operators. The diretory must exist.
+ACL_DEBUG_DIR,                // Sets the debug directory, for saving the files generated during model conversion and network migration, including the .o, .json, and .cce files of operators. The directory must exist.
 ACL_OP_COMPILER_CACHE_MODE,   // Sets the disk cache mode for operator compilation.
 ACL_OP_COMPILER_CACHE_DIR,    // Sets the path of the disk cache for operator compilation. The path must exist.
 
@@ -3531,12 +3387,12 @@ ACL_OP_DEBUG_LEVEL: Enables TBE operator debug during operator compilation.
 
 ACL_DEBUG_DIR: Sets the debug directory for saving the debug-related files generated during model conversion and network migration, including the .o, .json, and .cce files of operators.
 
-ACL_OP_COMPILER_CACHE_MODE: Configures the disk cache mode for operator compilation. This compilation option must be used together with ACL_OP_COMPILER_CACHE_DIR.
+ACL_OP_COMPILER_CACHE_MODE: Configures the disk cache mode for operator compilation. This compile option must be used together with ACL_OP_COMPILER_CACHE_DIR.
     enable: operator compilation cache enabled.
     disable: operator compilation cache disabled.
     force: cache forcibly refreshed. That is, the existing cache is deleted, recompiled, and then added to the cache. When the Python or dependency library of a user changes, you need to use force to clear the existing cache.
 
-ACL_OP_COMPILER_CACHE_DIR: Configures the disk cache directory for operator compilation. This compilation option must be used together with ACL_OP_COMPILER_CACHE_MODE.
+ACL_OP_COMPILER_CACHE_DIR: Configures the disk cache directory for operator compilation. This compile option must be used together with ACL_OP_COMPILER_CACHE_MODE.
 ```
 
 ### How Do I Install GCC 7.3.0?
@@ -3792,7 +3648,7 @@ def test_npu():
 
 if __name__ == "__main__":
     test_cpu()
-    torch.npu.set_device(f"{npu}:1")
+    torch_npu.npu.set_device(f"{npu}:1")
     test_npu()
 ```
 
@@ -4029,7 +3885,7 @@ Perform the following steps to locate the fault based on the actual error inform
 
 ##### Possible Causes
 
-The PyTorch operator runs on the NPU and calls the optimized operators at the bottom layer through the AcendCL API. When the error message "HelpACLExecute." is reported at the upper layer, the error information and logs are being optimized. As a result, when errors occur in some operators, the error information fails to be obtained.
+The PyTorch operator runs on the NPU and calls the optimized operators at the bottom layer through the AscendCL API. When the error message "HelpACLExecute." is reported at the upper layer, the error information and logs are being optimized. As a result, when errors occur in some operators, the error information fails to be obtained.
 
 ##### Solution
 
@@ -4039,7 +3895,7 @@ View the host log to determine the operator and location where the error is repo
 
 The error information in the log indicates that the error operator is topKD and the error cause is "The number of attrs in op desc and op store does not match." Therefore, it is determined that the error cause is that the parameters of the topKD operator do not match.
 
-Locate the topKD operator in the model code and check whether the operator can be replaced by another operator. If the operator can be replaced by another operator, use the replacement solution and report the operator error information to Huawei engineers. If the operator cannot be replaced by another operator, contact Huawei technical support.
+Locate the topKD operator in the model code and check whether the operator can be replaced by another operator. If the operator can be replaced by another operator, use the replacement solution and report the operator error information to Huawei technical support. If the operator cannot be replaced by another operator, contact Huawei technical support.
 
 <h4 id="what-do-i-do-if-the-error-message-55056-getinputconstdataout-errorno--1(failed)-is-displayed-duringmd">What Do I Do If the Error Message "55056 GetInputConstDataOut: ErrorNo: -1(failed)" Is Displayed During Model Running?</h4>
 
