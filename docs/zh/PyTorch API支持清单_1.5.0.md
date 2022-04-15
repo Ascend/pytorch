@@ -800,7 +800,7 @@
 | 133  | torch.nn.LSTM                                            | 是                           |
 | 134  | torch.nn.GRU                                             | 是，DynamicGRUV2场景暂不支持 |
 | 135  | torch.nn.RNNCell                                         | 是                           |
-| 136  | torch.nn.LSTMCell                                        | 是                           |
+| 136  | torch.nn.LSTMCell                                        | 是，非16对齐场景暂不支持     |
 | 137  | torch.nn.GRUCell                                         | 是                           |
 | 138  | torch.nn.Transformer                                     | 是                           |
 | 139  | torch.nn.Transformer.forward                             | 是                           |
