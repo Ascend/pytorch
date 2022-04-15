@@ -89,7 +89,9 @@ public:
       CombinedInfo& inputs,
       CombinedInfo& outputs);
 
-  static void ConstructOps(const CombinedInfo& output);
+  static void ConstructOpsAndAddEdge(
+      const CombinedInfo& output,
+      std::vector<ge::Operator>& const_input_ops);
 
   std::vector<ge::Operator> GetInputOps();
 

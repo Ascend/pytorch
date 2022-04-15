@@ -46,7 +46,8 @@ public:
       const c10::optional<string>& real_dtype,
       bool is_op_desc = false);
 
-  static void CheckAndBuildGeOpForNode(NodePtr node);
+  static void CheckAndBuildGeOpForNode(NodePtr node,
+                                       std::vector<ge::Operator>& const_input_ops);
 
 private:
   template <typename T>
@@ -61,7 +62,7 @@ private:
   }
 
   template <typename ConstType>
-  static void SetGeOpConstInput(
+  static ge::Operator SetAndReturnGeOpConstInput(
       const c10::Any& const_input,
       ge::OperatorPtr ge_op);
 
@@ -83,7 +84,8 @@ private:
 
   static void AddNodeExtInfoIntoGeOp(
       ArrayRef<std::pair<NodeExtInfoType, c10::Any>> ext_info,
-      ge::OperatorPtr ge_op);
+      ge::OperatorPtr ge_op,
+      std::vector<ge::Operator>& const_input_ops);
 };
 } // namespace npu
 } // namespace native

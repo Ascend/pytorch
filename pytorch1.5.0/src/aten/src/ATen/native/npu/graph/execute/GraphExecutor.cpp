@@ -154,8 +154,10 @@ void GraphExecutor::Finalize() {
   }
 }
 
-void GraphExecutor::ConstructOps(const CombinedInfo& output) {
-  RECORD_HOST_FUNCTION("ConstructOps", std::vector<c10::IValue>({}));
+void GraphExecutor::ConstructOpsAndAddEdge(
+      const CombinedInfo& output,
+      std::vector<ge::Operator>& const_input_ops) {
+  RECORD_HOST_FUNCTION("ConstructOpsAndAddEdge", std::vector<c10::IValue>({}));
   
   std::vector<NodePtr> out_nodes = output.nodes;
   const std::vector<NodePtr>& none_output_nodes = output.none_output_nodes;
@@ -163,7 +165,7 @@ void GraphExecutor::ConstructOps(const CombinedInfo& output) {
   NodePtr front_enque = nullptr;
   for (auto& node_ptr : none_output_nodes) {
     if (node_ptr->GetOpType() == kEnqueNodeType) {
-      ATenGeBridge::CheckAndBuildGeOpForNode(node_ptr);
+      ATenGeBridge::CheckAndBuildGeOpForNode(node_ptr, const_input_ops);
       if (front_enque != nullptr) {
         node_ptr->GetGeOp()->AddControlInput(*(front_enque->GetGeOp()));
       }
@@ -182,11 +184,12 @@ void GraphExecutor::ConstructOps(const CombinedInfo& output) {
     stack_node.push(output_node);
     while (!stack_node.empty()) {
       auto top_node = stack_node.top();
-      ATenGeBridge::CheckAndBuildGeOpForNode(top_node);
+      ATenGeBridge::CheckAndBuildGeOpForNode(top_node, const_input_ops);
       stack_node.pop();
       const auto& inputs = top_node->GetInputs();
       for (const auto& input : inputs) {
-        ATenGeBridge::CheckAndBuildGeOpForNode(input.peer_output_node);
+        ATenGeBridge::CheckAndBuildGeOpForNode(input.peer_output_node,
+                                               const_input_ops);
         top_node->GetGeOp()->SetInput(
             input.input_index,
             *(input.peer_output_node->GetGeOp()),
@@ -210,7 +213,8 @@ void GraphExecutor::ConstructOps(const CombinedInfo& output) {
             (!top_node->IsInplace())) {
           auto inplace_node = inplace_node_ptr.value().lock();
           if (inplace_node != nullptr) {
-            ATenGeBridge::CheckAndBuildGeOpForNode(inplace_node);
+            ATenGeBridge::CheckAndBuildGeOpForNode(inplace_node,
+                                                   const_input_ops);
             inplace_node->GetGeOp()->AddControlInput(*(top_node->GetGeOp()));
           }
         }
@@ -397,9 +401,14 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
                                                  cur_graph_id);
   if (!cached_graph_id.has_value()) {
     RECORD_HOST_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
-    ConstructOps(outputs);
+    std::vector<ge::Operator> const_input_ops;
+    ConstructOpsAndAddEdge(outputs, const_input_ops);
     ge::Graph graph(kPytorchGraphName);
-    graph.SetInputs(GetInputOps()).SetOutputs(GetOutputOps());
+    std::vector<ge::Operator> input_ops = GetInputOps();
+    input_ops.insert(input_ops.end(),
+                     const_input_ops.begin(),
+                     const_input_ops.end());
+    graph.SetInputs(input_ops).SetOutputs(GetOutputOps());
     std::map<ge::AscendString, ge::AscendString> graph_options;
     if(env::CheckFuzzyEnable()) {
       graph_options.emplace(ge::AscendString("ge.exec.dynamicGraphExecuteMode"),

@@ -144,7 +144,7 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
 }
 
 template <typename ConstType>
-void ATenGeBridge::SetGeOpConstInput(
+ge::Operator ATenGeBridge::SetAndReturnGeOpConstInput(
     const c10::Any& const_input,
     ge::OperatorPtr ge_op) {
   auto const_input_tuple =
@@ -162,6 +162,7 @@ void ATenGeBridge::SetGeOpConstInput(
   auto const_op = std::make_shared<ge::op::Const>();
   const_op->set_attr_value(ge_tenosr);
   ge_op->SetInput(std::get<0>(const_input_tuple), *const_op, 0);
+  return *const_op;
 }
 
 void ATenGeBridge::SetSensitiveFormat(
@@ -187,7 +188,8 @@ void ATenGeBridge::SetSensitiveFormat(
 
 void ATenGeBridge::AddNodeExtInfoIntoGeOp(
     ArrayRef<std::pair<NodeExtInfoType, c10::Any>> ext_info,
-    ge::OperatorPtr ge_op) {
+    ge::OperatorPtr ge_op,
+    std::vector<ge::Operator>& const_input_ops) {
   for (const auto& info : ext_info) {
     switch (info.first) {
       case NodeExtInfoType::ATTR_TYPE_BOOL:
@@ -211,14 +213,19 @@ void ATenGeBridge::AddNodeExtInfoIntoGeOp(
       case NodeExtInfoType::ATTR_TYPE_LIST_FLOAT:
         SetGeOpAttr<std::pair<string, vector<float>>>(info.second, ge_op);
         break;
-      case NodeExtInfoType::INPUT_TYPE_SCALAR:
-        SetGeOpConstInput<std::tuple<uint32_t, Scalar, ScalarType>>(
-            info.second, ge_op);
+      case NodeExtInfoType::INPUT_TYPE_SCALAR: {
+        auto const_op = SetAndReturnGeOpConstInput<
+            std::tuple<uint32_t, Scalar, ScalarType>>(info.second, ge_op);
+        const_input_ops.push_back(const_op);
         break;
-      case NodeExtInfoType::INPUT_TYPE_LIST_LONG:
-        SetGeOpConstInput<std::tuple<uint32_t, vector<int64_t>, ScalarType>>(
-            info.second, ge_op);
+      }
+      case NodeExtInfoType::INPUT_TYPE_LIST_LONG: {
+        auto const_op = SetAndReturnGeOpConstInput<
+            std::tuple<uint32_t, vector<int64_t>, ScalarType>>(
+                info.second, ge_op);
+        const_input_ops.push_back(const_op);
         break;
+      }
       case NodeExtInfoType::SENSITIVE_FORMAT_OF_INPUT:
         SetSensitiveFormat(
             info.second, ge_op, NodeExtInfoType::SENSITIVE_FORMAT_OF_INPUT);
@@ -259,7 +266,9 @@ void ATenGeBridge::PorcessDynamicInputReg(
   return;
 }
 
-void ATenGeBridge::CheckAndBuildGeOpForNode(NodePtr node) {
+void ATenGeBridge::CheckAndBuildGeOpForNode(
+    NodePtr node,
+    std::vector<ge::Operator>& const_input_ops) {
   if (node->GetGeOp() != nullptr) {
     return;
   }
@@ -278,7 +287,7 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(NodePtr node) {
     ge_op = std::make_shared<ge::Operator>(
         ge::OperatorFactory::CreateOperator(op_name.c_str(), op_type.c_str()));
   }
-  AddNodeExtInfoIntoGeOp(node->GetExtInfo(), ge_op);
+  AddNodeExtInfoIntoGeOp(node->GetExtInfo(), ge_op, const_input_ops);
   node->SetGeOp(ge_op);
   return;
 }

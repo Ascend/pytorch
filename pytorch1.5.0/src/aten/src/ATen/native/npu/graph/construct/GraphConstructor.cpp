@@ -107,7 +107,11 @@ void GraphCommandImpl::AddInput(
     const ScalarType to_type) {
   vector<int64_t> val(dim_list.begin(), dim_list.end());
   if (env::CheckFuzzyEnable()) {
-    auto cpu_tensor = at::from_blob((void*)val.data(), {val.size()}, at::kLong);
+    auto cpu_tensor =
+        at::from_blob((void*)val.data(), {val.size()}, at::kLong).clone();
+    if (to_type != at::kLong) {
+      cpu_tensor = cpu_tensor.to(to_type);
+    }
     AddInputForCpuTensor(cpu_tensor);
   } else {
     ir_node_->AddExtInfo(

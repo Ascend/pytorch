@@ -12,32 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
-
-SmallVector<NPUTensorDesc, N> nll_loss2d_backward_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> nll_loss2d_backward_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> nll_loss2d_backward_npu_attr(int64_t reduction) {
-  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
-
-  NPUAttrDesc npuAttrReduction = NPUAttrDesc("reduction", reductionStr);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrReduction};
-
-  return attrs;
-}
 
 Tensor& nll_loss2d_backward_out_npu(
     Tensor& grad_input,
@@ -54,7 +36,7 @@ Tensor& nll_loss2d_backward_out_npu(
   } else {
     weight_tensor = at::ones(self.size(1), self.options());
   }
-
+  
   if (ignore_index >= 0) {
     Tensor zero = at::zeros(1, self.options());
     CalcuOpUtil::AclrtMemcpyAsync(
@@ -64,17 +46,18 @@ Tensor& nll_loss2d_backward_out_npu(
         weight_tensor.itemsize(),
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
-
-  // constructs the input and output NPUTensorDesc
-  auto inputs = nll_loss2d_backward_npu_input(
-      {self, grad_output, target, weight_tensor, total_weight});
-  auto outputs = nll_loss2d_backward_npu_output({grad_input});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = nll_loss2d_backward_npu_attr(reduction);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("NLLLossGrad", inputs, outputs, attrs);
+  std::string reductionStr = NpuUtils::get_reduction_str(reduction);
+  
+  OpCommand cmd;
+  cmd.Name("NLLLossGrad")
+      .Input(self)
+      .Input(grad_output)
+      .Input(target)
+      .Input(weight_tensor)
+      .Input(total_weight)
+      .Output(grad_input)
+      .Attr("reduction", reductionStr)  
+      .Run();
 
   return grad_input;
 }
@@ -110,7 +93,7 @@ Tensor nll_loss2d_backward_npu(
   auto outputSize = input_same_output_size(self_input);
 
   // construct the output tensor of the NPU
-  Tensor grad_input = at::empty_with_format(
+  Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self_input.options(),
       CalcuOpUtil::get_tensor_npu_format(self_input));
