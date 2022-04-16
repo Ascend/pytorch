@@ -1,56 +1,70 @@
 # PyTorch Operator Development Guide
--   [Introduction](#introductionmd)
--   [Operator Development Process](#operator-development-processmd)
--   [Operator Development Preparations](#operator-development-preparationsmd)
-    -   [Setting Up the Environment](#setting-up-the-environmentmd)
-    -   [Looking Up Operators](#looking-up-operatorsmd)
--   [Operator Adaptation](#operator-adaptationmd)
-    -   [Prerequisites](#prerequisitesmd)
-    -   [Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-codemd)
-    -   [Registering an Operator](#registering-an-operatormd)
-        -   [Overview](#overviewmd)
-        -   [Registering an Operator for PyTorch 1.5.0](#registering-an-operator-for-pytorch-1-5-0md)
-        -   [Registering an Operator for PyTorch 1.8.1](#registering-an-operator-for-pytorch-1-8-1md)
-    -   [Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-pluginmd)
-    -   [Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-frameworkmd)
--   [Operator Function Verification](#operator-function-verificationmd)
-    -   [Overview](#overview-0md)
-    -   [Implementation](#implementationmd)
--   [FAQs](#faqsmd)
-    -   [Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failedmd)
-    -   [pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failedmd)
-    -   ["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)
-    -   [How Do I View Test Run Logs?](#how-do-i-view-test-run-logsmd)
-    -   [Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-calledmd)
-    -   [How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptationmd)
-    -   [PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayedmd)
-    -   [PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayedmd)
--   [Appendixes](#appendixesmd)
-    -   [Installing CMake](#installing-cmakemd)
-    -   [Exporting a Custom Operator](#exporting-a-custom-operatormd)
-<h2 id="introductionmd">Introduction</h2>
 
-### Overview<a name="en-us_topic_0000001125558589_section7405182695312"></a>
+- [PyTorch Operator Development Guide](#pytorch-operator-development-guide)
+    - [Overview](#overview)
+  - [Operator Development Process](#operator-development-process)
+  - [Operator Development Preparations](#operator-development-preparations)
+    - [Setting Up the Environment](#setting-up-the-environment)
+    - [Looking Up Operators](#looking-up-operators)
+  - [Operator Adaptation](#operator-adaptation)
+    - [Prerequisites](#prerequisites)
+    - [Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-code)
+    - [Registering an Operator](#registering-an-operator)
+      - [Overview](#overview-1)
+      - [Registering an Operator for PyTorch 1.8.1](#registering-an-operator-for-pytorch-181)
+        - [Registering an Operator](#registering-an-operator-1)
+        - [Examples](#examples)
+    - [Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-plugin)
+      - [Overview](#overview-2)
+      - [Introduction to the npu_native_functions.yaml File](#introduction-to-the-npu_native_functionsyaml-file)
+      - [Adaptation Plugin Implementation](#adaptation-plugin-implementation)
+      - [Examples](#examples-1)
+    - [Compiling and Installing the PyTorch Plugin](#compiling-and-installing-the-pytorch-plugin)
+      - [Compiling the PyTorch Plugin](#compiling-the-pytorch-plugin)
+      - [Installing the PyTorch Plugin](#installing-the-pytorch-plugin)
+  - [Operator Function Verification](#operator-function-verification)
+    - [Overview](#overview-3)
+      - [Introduction](#introduction)
+      - [Test Cases and Records](#test-cases-and-records)
+    - [Implementation](#implementation)
+      - [Introduction](#introduction-1)
+      - [Procedure](#procedure)
+  - [FAQs](#faqs)
+    - [Pillow==5.3.0 Installation Failed](#pillow530-installation-failed)
+    - [pip3.7 install torchvision Installation Failed](#pip37-install-torchvision-installation-failed)
+    - ["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-150xxxx-and-torchvision-do-not-match-when-torch-whl-is-installed)
+    - [How Do I View Test Run Logs?](#how-do-i-view-test-run-logs)
+    - [Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-called)
+    - [How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptation)
+    - [PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayed)
+    - [PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayed)
+  - [Appendixes](#appendixes)
+    - [Installing CMake](#installing-cmake)
+    - [Exporting a Custom Operator](#exporting-a-custom-operator)
 
-To enable the PyTorch deep learning framework to run on Ascend AI Processors, you need to use Tensor Boost Engine \(TBE\) to customize the framework operators.
 
-<h2 id="operator-development-processmd">Operator Development Process</h2>
+
+### Overview
+
+To enable the PyTorch deep learning framework to run on Ascend AI Processors, you need to use Tensor Boost Engine (TBE) to customize the framework operators.
+
+## Operator Development Process
 
 PyTorch operator development includes TBE operator development and operator adaptation to the PyTorch framework.
 
 1.  TBE operator development: If an operator on your network is incompatible with the  Ascend AI Software Stack, you need to develop a TBE operator and then adapt it to the PyTorch framework.
 
-    For details about the TBE operator development process and methods, see the  _CANN TBE Custom Operator Development Guide_.
+    For details about the TBE operator development process and methods, see the _CANN TBE Custom Operator Development Guide_.
 
-2.  Operator adaptation to the PyTorch framework: If a TBE operator has been developed and is compatible with the  Ascend AI Software Stack, you can directly adapt it to the PyTorch framework.
+2.  Operator adaptation to the PyTorch framework: If a TBE operator has been developed and is compatible with the Ascend AI Software Stack, you can directly adapt it to the PyTorch framework.
 
     The following figure shows the operator adaptation process in the PyTorch framework.
 
-    **Figure  1**  Operator adaptation process in the PyTorch framework<a name="en-us_topic_0000001105032530_fig1981905141719"></a>  
+    **Figure 1** Operator adaptation process in the PyTorch framework<a name="en-us_topic_0000001105032530_fig1981905141719"></a>  
     ![](figures/operator-adaptation-process-in-the-pytorch-framework.png "operator-adaptation-process-in-the-pytorch-framework")
 
 
-**Table  1**  Description of the operator development process
+**Table 1** Description of the operator development process
 
 <a name="en-us_topic_0000001105032530_en-us_topic_0228422310_table131083578318"></a>
 <table><thead align="left"><tr id="en-us_topic_0000001105032530_en-us_topic_0228422310_row210905703113"><th class="cellrowborder" valign="top" width="6.811326262527976%" id="mcps1.2.5.1.1"><p id="en-us_topic_0000001105032530_en-us_topic_0228422310_p41091857143113"><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p41091857143113"></a><a name="en-us_topic_0000001105032530_en-us_topic_0228422310_p41091857143113"></a>No.</p>
@@ -122,21 +136,15 @@ PyTorch operator development includes TBE operator development and operator adap
 </tbody>
 </table>
 
-<h2 id="operator-development-preparationsmd">Operator Development Preparations</h2>
+## Operator Development Preparations
+### Setting Up the Environment
 
--   **[Setting Up the Environment](#setting-up-the-environmentmd)**  
-
--   **[Looking Up Operators](#looking-up-operatorsmd)**  
-
-
-<h3 id="setting-up-the-environmentmd">Setting Up the Environment</h3>
-
--   The development or operating environment of CANN has been installed. For details, see the  _CANN Software Installation Guide_.
+-   The development or operating environment of CANN has been installed. For details, see the _CANN Software Installation Guide_.
 -   Python 3.7.5 or 3.8 has been installed.
--   CMake 3.12.0 or later has been installed. For details, see  [Installing CMake](#installing-cmakemd).
+-   CMake 3.12.0 or later has been installed. For details, see [Installing CMake](#installing-cmake).
 -   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see "Installing GCC 7.3.0" in the  _CANN Software Installation Guide_.
 -   The Git tool has been installed. To install Git for Ubuntu and CentOS, run the following commands:
-    -   Ubuntu
+    -   Ubuntu and EulerOS
 
         ```
         apt-get install patch
@@ -152,7 +160,7 @@ PyTorch operator development includes TBE operator development and operator adap
 
 
 
-<h3 id="looking-up-operatorsmd">Looking Up Operators</h3>
+### Looking Up Operators
 
 During operator development, you can query the list of operators supported by Ascend AI Processors and the list of operators adapted to PyTorch. Develop or adapt operators to PyTorch based on the query result.
 
@@ -163,53 +171,36 @@ During operator development, you can query the list of operators supported by As
 The following describes how to query the operators supported by Ascend AI Processors as well as operators adapted to PyTorch.
 
 -   You can query the operators supported by Ascend AI Processors and the corresponding operator constraints in either of the following modes:
-    -   For operator development on the command line, you can perform offline query. For details, see the  _CANN Operator List \(Ascend 910\)_.
-    -   For operator development using  MindStudio, you can perform online query on  MindStudio. For details, see "Supported Operators and Models" in the  _MindStudio User Guide_.
+    -   For operator development on the command line, you can perform offline query. For details, see the _CANN Operator List \(Ascend 910\)_.
+    -   For operator development using MindStudio, you can perform online query on MindStudio. For details, see "Supported Operators and Models" in the _MindStudio User Guide_.
 
--   For the list of operators adapted to PyTorch, see the  _PyTorch Operator Support_.
+-   For the list of operators adapted to PyTorch, see the *[PyTorch API Support](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20API%20Support.md)*.
 
-<h2 id="operator-adaptationmd">Operator Adaptation</h2>
+## Operator Adaptation
 
--   **[Prerequisites](#prerequisitesmd)**  
+### Prerequisites
 
--   **[Obtaining the PyTorch Source Code](#obtaining-the-pytorch-source-codemd)**  
+-   The development and operating environments have been set up, and related dependencies have been installed. For details, see [Setting Up the Environment](#setting-up-the-environment).
+-   TBE operators have been developed and deployed. For details, see the _CANN TBE Custom Operator Development Guide_.
 
--   **[Registering an Operator](#registering-an-operatormd)**  
+### Obtaining the PyTorch Source Code
 
--   **[Developing an Operator Adaptation Plugin](#developing-an-operator-adaptation-pluginmd)**  
+For details about how to obtain the PyTorch source code of PyTorch 1.8.1, perform steps described in "Installing the PyTorch Framework" in the *[PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20Installation%20Guide/PyTorch%20Installation%20Guide.md)*. The full code adapted to Ascend AI Processors is generated in the **pytorch/pytorch_v1.8.1** directory. The PyTorch operator is also adapted and developed in this directory.
 
--   **[Compiling and Installing the PyTorch Framework](#compiling-and-installing-the-pytorch-frameworkmd)**  
+### Registering an Operator
 
+#### Overview
 
-<h3 id="prerequisitesmd">Prerequisites</h3>
-
--   The development and operating environments have been set up, and related dependencies have been installed. For details, see  [Setting Up the Environment](#setting-up-the-environmentmd).
--   TBE operators have been developed and deployed. For details, see the  _CANN TBE Custom Operator Development Guide_.
-
-<h3 id="obtaining-the-pytorch-source-codemd">Obtaining the PyTorch Source Code</h3>
-
-Currently, only PyTorch 1.5.0 and 1.8.1 are supported. To obtain the PyTorch source code, perform steps described in the "Installing the PyTorch Framework" in the  _PyTorch Installation Guide_. The full code adapted to Ascend AI Processors is generated in the  **pytorch/pytorch**  directory. The PyTorch operator is also adapted and developed in this directory.
-
-<h3 id="registering-an-operatormd">Registering an Operator</h3>
-
--   **[Overview](#overviewmd)**  
-
--   **[Registering an Operator for PyTorch 1.5.0](#registering-an-operator-for-pytorch-1-5-0md)**  
-
--   **[Registering an Operator for PyTorch 1.8.1](#registering-an-operator-for-pytorch-1-8-1md)**  
+Currently, the NPU adaptation dispatch principle is as follows: The NPU operator is directly dispatched as the NPU adaptation function without being processed by the common function of the framework. That is, the operator execution call stack contains only the function call of the NPU adaptation and does not contain the common function of the framework. During compilation, the PyTorch framework generates the calling description of the middle layer of the new operator based on the definition in **native\_functions.yaml** and the type and device dispatch principle defined in the framework. For NPUs, the description is generated in **build/aten/src/ATen/NPUType.cpp**.
 
 
-<h4 id="overviewmd">Overview</h4>
+#### Registering an Operator for PyTorch 1.8.1
 
-Currently, the NPU adaptation dispatch principle is as follows: The NPU operator is directly dispatched as the NPU adaptation function without being processed by the common function of the framework. That is, the operator execution call stack contains only the function call of the NPU adaptation and does not contain the common function of the framework. During compilation, the PyTorch framework generates the calling description of the middle layer of the new operator based on the definition in  **native\_functions.yaml**  and the type and device dispatch principle defined in the framework. For NPUs, the description is generated in  **build/aten/src/ATen/NPUType.cpp**.
+##### Registering an Operator
 
-<h4 id="registering-an-operator-for-pytorch-1-5-0md">Registering an Operator for PyTorch 1.5.0</h4>
+1.  Open the **native\_functions.yaml** file.
 
-##### Registering an Operator<a name="section575212111125"></a>
-
-1.  Open the  **native\_functions.yaml**  file.
-
-    The  **native\_functions.yaml**  file defines all operator function prototypes, including function names and parameters. Each operator function supports dispatch information of different hardware platforms. The file is in the  **pytorch/aten/src/ATen/native/native\_functions.yaml**  directory.
+    The **native\_functions.yaml** file defines all operator function prototypes, including function names and parameters. Each operator function supports dispatch information of different hardware platforms. The file is in the **pytorch/aten/src/ATen/native/native\_functions.yaml** directory.
 
 2.  Determine the functions to be dispatched.
     -   Existing operator in the YAML file
@@ -218,139 +209,7 @@ Currently, the NPU adaptation dispatch principle is as follows: The NPU operator
 
     -   Custom operator that does not exist in the YAML file
 
-        The YAML file does not contain the operator information. Therefore, you need to manually add related functions, including the function names, parameters, and return types. For details about how to add a rule, see  **pytorch/aten/src/ATen/native/README.md**.
-
-        ```
-        - func: operator name (input parameter information) -> return type
-        ```
-
-3.  Modify the  **native\_functions.yaml**  file and add the dispatch description of the functions related to the operator.
-
-    Regulations on the YAML files:
-
-    -   The keyword  **npu\_dispatch**  is used for adapting the original operator functions in the YAML file.
-
-        ```
-        npu_dispatch:
-          NPU: NPU_Adapt_Fun_Name
-        ```
-
-    -   The keyword  **npu\_dispatch\_only**  is used for adapting custom operator functions in the YAML file.
-
-        ```
-        npu_dispatch_only:
-          NPU: NPU_Adapt_Fun_Name
-        ```
-
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >The formats of  _NPU\_Adapt\_Fun\_Name_  are as follows:
-    >-   If the original  _NPU\_Adapt\_Fun\_Name_  does not have the suffix  **\_**, the format is  _NPU\_Adapt\_Fun\_Name_  +  **\_**  +  **npu**, for example,  **add**  --\>  **add\_npu**.
-    >-   If the original  _NPU\_Adapt\_Fun\_Name_  has the suffix  **\_**, the format is  _NPU\_Adapt\_Fun\_Name_  +  **npu\_**, for example,  **add\_**  --\>  **add\_npu\_**.
-    >The formats are for reference only. The function name during operator adaptation must be the same as  **NPU\_Adapt\_Fun\_Name**.
-
-
-##### Examples<a name="section434031421219"></a>
-
-The following uses the torch.add\(\) operator as an example to describe how to register an operator.
-
-1.  Open the  **native\_functions.yaml**  file.
-2.  Determine related functions.
-
-    Search for  **add**  in the YAML file and find the functions related to the add operator.
-
-3.  Add the dispatch description.
-    1.  Dispatch description of  **add.Tensor**
-
-        ```
-        - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
-          use_c10_dispatcher: full
-          variants: function, method
-          dispatch:
-            CPU: add
-            CUDA: add
-            SparseCPU: add_sparse
-            SparseCUDA: add_sparse
-            MkldnnCPU: mkldnn_add
-          # Add the dispatch description.
-          npu_dispatch:             
-            NPU: add_npu            
-          supports_named_tensor: True
-        ```
-
-    2.  Dispatch description of  **add.Scalar**
-
-        ```
-        - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
-          use_c10_dispatcher: full
-          variants: function, method
-          supports_named_tensor: True
-          # Add the dispatch description.
-          npu_dispatch:           
-            NPU: add_npu          
-        ```
-
-    3.  Dispatch description of  **add\_.Tensor**
-
-        ```
-        - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          dispatch:
-            CPU: add_
-            CUDA: add_
-            SparseCPU: add_sparse_
-            SparseCUDA: add_sparse_
-            MkldnnCPU: mkldnn_add_
-          # Add the dispatch description.
-          npu_dispatch:
-            NPU: add_npu_
-          supports_named_tensor: True
-        ```
-
-    4.  Dispatch description of  **add\_.Scalar**
-
-        ```
-        - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
-          variants: method
-          supports_named_tensor: True
-          # Add the dispatch description.
-          npu_dispatch:
-            NPU: add_npu_
-        ```
-
-    5.  Dispatch description of  **add.out**
-
-        ```
-        - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
-          dispatch:
-            CPU: add_out
-            CUDA: add_out
-            SparseCPU: add_out_sparse_cpu
-            SparseCUDA: add_out_sparse_cuda
-            MkldnnCPU: mkldnn_add_out
-          # Add the dispatch description.
-          npu_dispatch:               
-            NPU: add_out_npu         
-          supports_named_tensor: True
-        ```
-
-
-
-<h4 id="registering-an-operator-for-pytorch-1-8-1md">Registering an Operator for PyTorch 1.8.1</h4>
-
-##### Registering an Operator<a name="section575212111125"></a>
-
-1.  Open the  **native\_functions.yaml**  file.
-
-    The  **native\_functions.yaml**  file defines all operator function prototypes, including function names and parameters. Each operator function supports dispatch information of different hardware platforms. The file is in the  **pytorch/aten/src/ATen/native/native\_functions.yaml**  directory.
-
-2.  Determine the functions to be dispatched.
-    -   Existing operator in the YAML file
-
-        Dispatch all functions related to the operator to be adapted.
-
-    -   Custom operator that does not exist in the YAML file
-
-        The YAML file does not contain the operator information. Therefore, you need to manually add related functions, including the function names, parameters, and return types. For details about how to add a rule, see  **pytorch/aten/src/ATen/native/README.md**.
+        The YAML file does not contain the operator information. Therefore, you need to manually add related functions, including the function names, parameters, and return types. For details about how to add a rule, see **pytorch/aten/src/ATen/native/README.md**.
 
         ```
         - func: operator name (input parameter information) -> return type
@@ -358,17 +217,17 @@ The following uses the torch.add\(\) operator as an example to describe how to r
 
 
 
-##### Examples<a name="section434031421219"></a>
+##### Examples
 
 The following uses the torch.add\(\) operator as an example to describe how to register an operator.
 
-1.  Open the  **native\_functions.yaml**  file.
+1.  Open the **native\_functions.yaml** file.
 2.  Search for related functions.
 
-    Search for  **add**  in the YAML file and find  **func**  that describes the add operator. The add operator is a built-in operator of PyTorch. Therefore, you do not need to manually add  **func**. If the operator is a custom operator, you need to manually add  **func**.
+    Search for **add** in the YAML file and find **func** that describes the add operator. The add operator is a built-in operator of PyTorch. Therefore, you do not need to manually add **func**. If the operator is a custom operator, you need to manually add **func**.
 
 3.  Determine the function description related to operator name and type.
-    -   Dispatch description of  **add.Tensor**
+    -   Dispatch description of **add.Tensor**
 
         ```
         - func: add.Tensor(Tensor self, Tensor other, *, Scalar alpha=1) -> Tensor
@@ -379,7 +238,7 @@ The following uses the torch.add\(\) operator as an example to describe how to r
             MkldnnCPU: mkldnn_add
         ```
 
-    -   Dispatch description of  **add.Scalar**
+    -   Dispatch description of **add.Scalar**
 
         ```
         - func: add.Scalar(Tensor self, Scalar other, Scalar alpha=1) -> Tensor
@@ -388,7 +247,7 @@ The following uses the torch.add\(\) operator as an example to describe how to r
             DefaultBackend: add
         ```
 
-    -   Dispatch description of  **add\_.Tensor**
+    -   Dispatch description of **add\_.Tensor**
 
         ```
         - func: add_.Tensor(Tensor(a!) self, Tensor other, *, Scalar alpha=1) -> Tensor(a!)
@@ -399,7 +258,7 @@ The following uses the torch.add\(\) operator as an example to describe how to r
             MkldnnCPU: mkldnn_add_
         ```
 
-    -   Dispatch description of  **add\_.Scalar**
+    -   Dispatch description of **add\_.Scalar**
 
         ```
         - func: add_.Scalar(Tensor(a!) self, Scalar other, Scalar alpha=1) -> Tensor(a!)
@@ -408,7 +267,7 @@ The following uses the torch.add\(\) operator as an example to describe how to r
             DefaultBackend: add_
         ```
 
-    -   Dispatch description of  **add.out**
+    -   Dispatch description of **add.out**
 
         ```
         - func: add.out(Tensor self, Tensor other, *, Scalar alpha=1, Tensor(a!) out) -> Tensor(a!)
@@ -423,301 +282,352 @@ The following uses the torch.add\(\) operator as an example to describe how to r
 
 
 
-<h3 id="developing-an-operator-adaptation-pluginmd">Developing an Operator Adaptation Plugin</h3>
+### Developing an Operator Adaptation Plugin
 
-#### Overview<a name="en-us_topic_0000001125315877_section16410139174517"></a>
+#### Overview
 
 You can develop an operator adaptation plugin to convert the formats of the input parameters, output parameters, and attributes of the PyTorch native operators so that the obtained formats are the same as the formats of the input parameters, output parameters, and attributes of the TBE operators. The PyTorch source code that is adapted to Ascend AI Processors provides methods related to adaptation association, type conversion and discrimination, and dynamic shape processing for users.
 
-#### Adaptation Plugin Implementation<a name="en-us_topic_0000001125315877_section1174074518456"></a>
+#### Introduction to the npu_native_functions.yaml File
 
-1.  Create an adaptation plugin file.
+```
+backend: NPU     # Backend type
+cpp_namespace: at_npu::native     # Namespace of the development operator in the plugin
+supported:     # Supported operators aligned with PyTorch Native Functions
+  - add.Tensor
+  - add.Scalar
+  - slow_conv3d.out
+  - slow_conv3d_forward.output
+  - slow_conv3d_forward
+  - convolution
+  - _convolution
+  - _convolution_nogroup
+  - addcdiv
+  - addcdiv_
+  - addcdiv.out
 
-    The NPU TBE operator adaptation file is stored in the  **pytorch/aten/src/ATen/native/npu**  directory and is named in the upper camel case. The file name is in the format of  _operator name_  +  **KernelNpu.cpp**, for example,  **AddKernelNpu.cpp**.
+autograd:       # Supported operators that are aligned with PyTorch Native Functions and inherited from Function and have forward and reverse operations
+  - maxpool2d
 
-2.  Introduce the dependency header files.
+custom:     # Custom operators. The operator format definition needs to be provided.
+  - func: npu_dtype_cast(Tensor self, ScalarType dtype) -> Tensor
+    variants: function, method
+  - func: npu_dtype_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
+    variants: method
+  - func: npu_alloc_float_status(Tensor self) -> Tensor
+    variants: function, method
+  - func: npu_get_float_status(Tensor self) -> Tensor
+    variants: function, method
+ 
+custom_autograd:    # Custom operators inherited from Function
+  - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, ...) -> Tensor
+```
 
-    The PyTorch source code that is adapted to Ascend AI Processors provides common tools in  **ATen/native/npu/utils**  for users.
+The official **native_functions.yaml** file defines the operator definitions and distribution details of PyTorch Native Functions. To adapt to the officially defined operators on the NPU devices, you only need to register the NPU distribution. The format of each function can be obtained by parsing the official .yaml file based on the supported and autograd operators. The corresponding function declaration, registration, and distribution can be automatically completed. Therefore, during operator porting and development, you only need to pay attention to the implementation details. For custom operators, no specific operator definitions are available. Therefore, you need to define the operators in the **npu_native_functions.yaml** file to perform structured parsing on the operators to implement automatic registration and Python API binding.
+
+#### Adaptation Plugin Implementation
+
+1.  Register the operators.
+
+    Add operator information based on the description in the **npu_native_functions.yaml** file.
+
+2.  Create an adaptation plugin file.
+
+    The NPU TBE operator adaptation file is stored in the  pytorch/torch_npu/csrc/aten/ops** directory and is named in the upper camel case. The file name is in the format of  _operator name_  + **KernelNpu.cpp**, for example, **AddKernelNpu.cpp**.
+
+3.  Introduce the dependency header files.
+
+    The PyTorch source code that is adapted to Ascend AI Processors provides common tools in **torch_npu/csrc/framework/utils** for users.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >For details about the functions and usage of the tools, see the header files and source code.
 
-3.  Define the main adaptation function of the operator.
+4.  Define the main adaptation function of the operator.
 
     Determine the main adaptation function for custom operators based on the dispatch function in the registered operator.
 
-4.  Implement the main adaptation functions.
+5.  Implement the main adaptation functions.
 
     Implement the operator's main adaptation function and construct the corresponding input, output, and attributes based on the TBE operator prototype.
 
-5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the operator description func in the  **native\_functions.yaml**  file generated during the operator registration.  
 
-    **TORCH\_LIBRARY\_IMPL**  is a macro provided by PyTorch for registered operator distribution. To use it, perform the following steps:
+#### Examples
 
-    ```
-    Torch_LIBRARY_IMPL(aten, PrivateUse1, m){
-        m.impl("Operator func name in YAML 1", TORCH_FN("Corresponding main adaptation function 1"))
-        m.impl("Operator func name in YAML 2", TORCH_FN("Corresponding main adaptation function 2"))
-    }
-    ```
+The following uses the torch.add() operator as an example to describe the development process of operator adaptation..
 
-    -   **aten**  is the namespace, which can be customized based on the namespace of the implementation file.
-    -   **PrivateUse1**  is  **dispatchKey**, which is used to set the NPU.
-    -   **m**  is a fixed field.
+1. Register the operator.
 
+   Add the torch.add() operator to the corresponding location in the **npu_native_functions.yaml** file for automatic declaration and registration.
 
-#### Example<a name="en-us_topic_0000001125315877_section18021337113012"></a>
+   ```
+   supported:       # Supported operators aligned with PyTorch Native Functions
+     add.Tensor
+     add_.Tensor
+     add.out
+     add.Scaler
+     add_.Scaler
+   ```
 
-The following uses the torch.add\(\) operator as an example to describe how to adapt an operator.
+   Format reference: *[Operator Porting and Development Guide](https://gitee.com/ascend/pytorch/wikis/%E7%AE%97%E5%AD%90%E8%BF%81%E7%A7%BB%E5%92%8C%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97)* 
 
-1.  Create an adaptation plugin file.
+2. Create an adaptation plugin file.
 
-    Create the  **AddKernelNpu.cpp**  adaptation file in the  **pytorch/aten/src/ATen/native/npu**  directory.
+   Create the **AddKernelNpu.cpp** adaptation file in **pytorch/torch_npu/csrc/aten/ops**.
 
-2.  Introduce the dependency header files.
+3. Introduce the dependency header files.
 
-    ```
-    #include <c10/npu/OptionsManager.h>
-    #include "ATen/native/npu/utils/CalcuOpUtil.h"
-    #include "ATen/native/npu/utils/OpAdapter.h"
-    ```
+   ```
+   #include <ATen/Tensor.h>
+   #include <c10/util/SmallVector.h>
+   
+   #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+   #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+   #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+   #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+   ```
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >**CalcuOpUtil.h**  contains type conversion and discrimination functions.
-    >**OpAdapter.h**  contains header files related to adaptation.
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >**CalcuOpUtil.h** contains functions for type conversion and discrimination. 
+   >**OpAdapter.h** contains header files associated with adaptation.
 
-3.  Define the main adaptation function of the operator.
+4. Define the operator adaptation main functions.
 
-    ```
-    Tensor add_npu(const Tensor& self, const Tensor& other, Scalar alpha) 
-    Tensor add_npu(const Tensor& self, Scalar other, Scalar alpha) 
-    Tensor& add_npu_(Tensor& self, const Tensor& other, Scalar alpha)
-    Tensor& add_npu_(Tensor& self, Scalar other, Scalar alpha)
-    Tensor& add_out_npu(Tensor& result, const Tensor& self, const Tensor& other, Scalar alpha) 
-    ```
+   ```
+   at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+   at::Tensor NPUNativeFunctions::add(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+   at::Tensor &NPUNativeFunctions::add_out(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha,at::Tensor &result)
+   ```
 
-4.  Implement the main adaptation functions.
-    1.  **add\_npu**  implementation
+   > ![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >
+   > **NPUNativeFunctions** is the namespace constraint that needs to be added for operator definitions.
 
-        ```
-        // When two tensors are input
-        Tensor add_npu(const Tensor& self, const Tensor& other, Scalar alpha) {
-          alpha_check_npu(self.scalar_type(), alpha);
-          if ((!(self.is_contiguous() && other.is_contiguous())) &&
-              (NpuUtils::check_5d_5d_match(self) ||
-               NpuUtils::check_5d_5d_match(other)) &&
-              check_size(self, other)) {
-            int64_t c0_len = 16;
-            Tensor self_use = stride_add_tensor_get(self);
-            Scalar self_c1_offset(
-                self.storage_offset() / (self.size(2) * self.size(3) * c0_len));
-            Tensor other_use = stride_add_tensor_get(other);
-            Scalar other_c1_offset(
-                other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
-            Scalar stride_len(self.size(1) / c0_len);
-            Tensor result = at::npu_stride_add(
-                self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
-            return result;
-          }
-          // calculate the output size
-          Tensor outputTensor = add_dest_output(self, other);
-          auto outputSize = broadcast_ops_npu_output_size(self, other);
-        
-          // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
-              outputSize,
-              outputTensor.options(),
-              CalcuOpUtil::get_tensor_npu_format(outputTensor));
-        
-          // calculate the output result of the NPU
-          add_out_npu_nocheck(result, self, other, alpha);
-        
-          return result;
-        }
-        
-        // When a tensor and a scalar are input
-        Tensor add_npu(const Tensor& self, Scalar other, Scalar alpha) {
-          alpha_check_npu(self.scalar_type(), alpha);
-          // calculate the output size
-          auto outputSize = input_same_output_size(self);
-          // construct the output tensor of the NPU
-          Tensor result = at::empty_with_format(
-              outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-        
-          // calculate the output result of the NPU
-          adds_out_npu_nocheck(result, self, other, alpha);
-        
-          return result;
-        }
-        
-        ```
+5. Implement the adaptation main functions.
 
-    2.  **add\_npu\_**  implementation \(in in-place operation scenarios, the return value is the class itself\)
+   1. add implementation
 
-        ```
-        // When two tensors are input
-        Tensor& add_npu_(Tensor& self, const Tensor& other, Scalar alpha) {
-          SmallVector<Tensor, N> inputs = {self, other};
-          SmallVector<Tensor, N> outputs = {self};
-          CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-        
-          if (!NpuUtils::check_match(&self)) {
-            Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-            Tensor result = add_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
-            NpuUtils::format_fresh_view(self, result);
-          } else {
-            add_out_npu_nocheck(self, self, other, alpha);
-          }
-        
-          return self;
-        }
-        
-        // When a tensor and a scalar are input
-        Tensor& add_npu_(Tensor& self, Scalar other, Scalar alpha) {
-          if (!NpuUtils::check_match(&self)) {
-            Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-            Tensor result = adds_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
-            NpuUtils::format_fresh_view(self, result);
-          } else {
-            adds_out_npu_nocheck(self, self, other, alpha);
-          }
-        
-          return self;
-        }
-        
-        ```
+      ```
+       // When the input parameters are Tensor and Tensor:
+             at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+             {
+               alpha_check_npu(self.scalar_type(), alpha);
+               if ((!(self.is_contiguous() && other.is_contiguous())) &&
+                   (NpuUtils::check_5d_5d_match(self) ||
+                   NpuUtils::check_5d_5d_match(other)) &&
+                   check_size(self, other))
+               {
+                 int64_t c0_len = 16;
+                 at::Tensor self_use = stride_add_tensor_get(self);
+                 at::Scalar self_c1_offset(
+                   self.storage_offset() / (self.size(2) * self.size(3) * c0_len));
+                 at::Tensor other_use = stride_add_tensor_get(other);
+                 at::Scalar other_c1_offset(
+                   other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
+                 at::Scalar stride_len(self.size(1) / c0_len);
+                 at::Tensor result = NPUNativeFunctions::npu_stride_add(
+                   self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
+                 return result;
+               }
+               // calculate the output size
+               at::Tensor outputTensor = add_dest_output(self, other);
+               auto outputSize = broadcast_ops_npu_output_size(self, other);
+             
+               // construct the output tensor of the NPU
+               at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+                   outputSize,
+             	  outputTensor.options(),
+             	  CalcuOpUtil::get_tensor_npu_format(outputTensor));
+             
+               // calculate the output result of the NPU
+               add_out_npu_nocheck(result, self, other, alpha);
+             
+               return result;
+             }
+                 
+             // When the input parameters are Tensor and Scalar:
+             at::Tensor NPUNativeFunctions::add(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+             {
+               alpha_check_npu(self.scalar_type(), alpha);
+               // calculate the output size
+               auto outputSize = input_same_output_size(self);
+               // construct the output tensor of the NPU
+               at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+                   outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+             
+               // calculate the output result of the NPU
+               adds_out_npu_nocheck(result, self, other, alpha);
+             
+               return result;
+             }
+      
+      ```
 
-    3.  **add\_out\_npu**  implementation \(when the return value is used as the input\)
+   2. add\_implementation (In the local operation scenario, the return value is **self**.)
 
-        ```
-        Tensor& add_out_npu(
-            Tensor& result,
-            const Tensor& self,
-            const Tensor& other,
-            Scalar alpha) {
-          bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
-        
-          Tensor outputTensor;
-          if (not isSelfWrapped) {
-            outputTensor = self;
-          } else {
-            outputTensor = other;
-          }
-          auto outputSize = broadcast_ops_npu_output_size(self, other);
-          OpPreparation::CheckOut(
-              {self},
-              result,
-              CalcuOpUtil::get_tensor_npu_format(result),
-              outputTensor.scalar_type(),
-              outputSize);
-        
-          OpPipeWithDefinedOut pipe;
-          return pipe.CheckMemory({self, other}, {result})
-           .Func([&self, &other, &alpha](Tensor& result){add_out_npu_nocheck(result, self, other, alpha);})
-           .Call(result);
-        }
-        ```
+      ```
+      // When the input parameters are Tensor and Tensor:
+             at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+             {
+               c10::SmallVector<at::Tensor, N> inputs = {self, other};
+               c10::SmallVector<at::Tensor, N> outputs = {self};
+               CalcuOpUtil::check_memory_over_laps(inputs, outputs);
+             
+               if (!NpuUtils::check_match(&self))
+               {
+                 at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+                 at::Tensor result = add_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
+                 NpuUtils::format_fresh_view(self, result);
+               }
+               else
+               {
+                 add_out_npu_nocheck(self, self, other, alpha);
+               }
+             
+               return self;
+             }
+             
+             // When the input parameters are Tensor and Scalar:
+             at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+             {
+               if (!NpuUtils::check_match(&self))
+               {
+                 at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+                 at::Tensor result = adds_out_npu_nocheck(contiguousSelf, contiguousSelf, other, alpha);
+                 NpuUtils::format_fresh_view(self, result);
+               }
+               else
+               {
+                 adds_out_npu_nocheck(self, self, other, alpha);
+               }
+             
+               return self;
+             }
+      
+      ```
 
-5.  \(Only PyTorch 1.8.1 requires this step.\) Use the  **TORCH\_LIBRARY\_IMPL**  macro to associate the registered operator. 
+   3.  add\_out implementation (scenario where the input parameter result is a return value)
 
-    ```
-    TORCH_LIBRARY_IMPL(aten, NPU, m) {  
-        m.impl("add.Tensor", TORCH_FN(add_npu));  
-        m.impl("add_.Tensor", TORCH_FN(add_npu_));  
-        m.impl("add.out", TORCH_FN(add_out_npu));}
-    ```
+       ```
+       at::Tensor &NPUNativeFunctions::add_out(
+               const at::Tensor &self,
+               const at::Tensor &other,
+               at::Scalar alpha,
+               at::Tensor &result)
+           {
+             bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
+       
+             at::Tensor outputTensor;
+             if (not isSelfWrapped)
+             {
+               outputTensor = self;
+             }
+             else
+             {
+               outputTensor = other;
+             }
+             auto outputSize = broadcast_ops_npu_output_size(self, other);
+             OpPreparation::CheckOut(
+                 {self},
+                 result,
+                 CalcuOpUtil::get_tensor_npu_format(result),
+                 outputTensor.scalar_type(),
+                 outputSize);
+       
+             OpPipeWithDefinedOut pipe;
+             return pipe.CheckMemory({self, other}, {result})
+                 .Func([&self, &other, &alpha](at::Tensor &result)
+                       { add_out_npu_nocheck(result, self, other, alpha); })
+                 .Call(result);
+           }
+       ```
 
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->For details about the implementation code of  **AddKernelNpu.cpp**, see the  **pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp**  document.
+>For details about the implementation code of **AddKernelNpu.cpp**, see the **pytorch/torch_npu/csrc/aten/ops/AddKernelNpu.cpp** document.
 
-<h3 id="compiling-and-installing-the-pytorch-frameworkmd">Compiling and Installing the PyTorch Framework</h3>
+### Compiling and Installing the PyTorch Plugin
 
-#### Compiling the PyTorch Framework<a name="en-us_topic_0000001125736777_section470105143317"></a>
+#### Compiling the PyTorch Plugin
 
-1.  Go to the PyTorch working directory  **pytorch/pytorch**.
+1.  Go to the PyTorch working directory **pytorch**.
 2.  Install the dependency.
 
     ```
     pip3 install -r requirements.txt
     ```
 
-3.  Compile and generate the binary installation package of PyTorch.
+3.  Compile and generate the binary installation package of the PyTorch plugin.
 
     ```
-    bash build.sh --python=3.7
+    bash ci/build.sh --python=3.7
     or
-    bash build.sh --python=3.8
+    bash ci/build.sh --python=3.8
+    or
+    bash ci/build.sh --python=3.9
     ```
+    Specify the Python version in the environment for compilation. After the compilation is successful, the binary package **torch_npu\*.whl** is generated in the **pytorch/dist** directory, for example, **torch_npu-1.8.1rc1-cp37-cp37m-linux_x86_64.whl**.
 
-    Specify the Python version in the environment for compilation. After the compilation is successful, the binary package  **torch-\*.whl**  is generated in the  **pytorch/pytorch/dist**  directory, for example,  **torch-1.5.0+ascend.post3-cp37-cp37m-linux\_x86.whl**  or  **torch-1.8.1+ascend-cp37-cp37m-linux\_x86.whl**.
 
+#### Installing the PyTorch Plugin
 
-#### Installing the PyTorch Framework<a name="en-us_topic_0000001125736777_section119821419153412"></a>
-
-Go to the  **pytorch/pytorch/dist**  directory and run the following command to install PyTorch:
+Go to the **pytorch/dist** directory and run the following command to install PyTorch:
 
 ```
-pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 ```
 
-_**\{arch\}**_  indicates the architecture information. The value can be  **aarch64**  or  **x86\_64**.
+_**\{arch\}**_  indicates the architecture information. The value can be **aarch64** or **x86\_64**.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->If PyTorch has been installed in the environment, uninstall the PyTorch software package first. You can run the following command to check whether PyTorch has been installed in the environment:
->**pip3 list | grep torch**
+>--upgrade: Uninstall the PyTorch plugin software package installed in the environment and then perform the update installation. You can run the following command to check whether the PyTorch plugin has been installed in the environment:
+>**pip3 list | grep torch_npu**
 
-After the code has been modified, you need to re-compile and re-install PyTorch.
+After the code has been modified, you need to re-compile and re-install the PyTorch plugin.
 
-<h2 id="operator-function-verificationmd">Operator Function Verification</h2>
+## Operator Function Verification
 
--   **[Overview](#overview-0md)**  
+### Overview
 
--   **[Implementation](#implementationmd)**  
-
-
-<h3 id="overview-0md">Overview</h3>
-
-#### Introduction<a name="en-us_topic_0000001117556616_section29881459155718"></a>
+#### Introduction
 
 After operator adaptation is complete, you can run the PyTorch operator adapted to Ascend AI Processor to verify the operator running result.
 
 Operator verification involves all deliverables generated during operator development, including the implementation files, operator prototype definitions, operator information library, and operator plugins. This section describes only the verification method.
 
-#### Test Cases and Records<a name="en-us_topic_0000001117556616_section158972351160"></a>
+#### Test Cases and Records
 
 Use the PyTorch frontend to construct the custom operator function and run the function to verify the custom operator functions.
 
-The test cases and test tools are provided in the  **pytorch/test/test\_npu**  directory at  **https://gitee.com/ascend/pytorch**.
+The test cases and test tools are provided in the **pytorch/test/test_network_ops**  directory at **https://gitee.com/ascend/pytorch**.
 
-<h3 id="implementationmd">Implementation</h3>
+### Implementation
 
-#### Introduction<a name="en-us_topic_0000001164276377_section29881459155718"></a>
+#### Introduction
 
 This section describes how to test the functions of a PyTorch operator.
 
-#### Procedure<a name="en-us_topic_0000001164276377_section02504494109"></a>
+#### Procedure
 
 1.  Set environment variables.
 
     ```
-    # Set environment variables. The details are as follows (the HwHiAiUser user is used as an example and the installation path is the default path):
-    . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
+    # Set environment variables. The details are as follows (the root user is used as an example and the installation path is the default path):
+    usr/local/Ascend/ascend-toolkit/set_env.sh 
+    # Set environment variables. The details are as follows (a non-root user is used as an example and the installation path is the default path):
+    ${HOME}/Ascend/ascend-toolkit/set_env.sh
     ```
 
-2.  Compile test scripts. Take the add operator as an example. Compile the test script file  **test\_add.py**  in the  **pytorch/test/test\_npu/test\_network\_ops**  directory.
-
-    The following is only a simple example. The implementation of a test case must be completely covered based on the operator definition to ensure that the function is basically correct.
-
+2.  Compile test scripts. Take the add operator as an example. Compile the test script file **test\_add.py** in the **pytorch/test/test\_network\_ops** directory.
     ```
     # Import the dependency library.
-    import sys
-    sys.path.append('..')
     import torch
+    import torch_npu
     import numpy as np
-    from common_utils import TestCase, run_tests
-    from common_device_type import dtypes, instantiate_device_type_tests
-    from util_test import create_common_tensor
+    
+    from torch_npu.testing.testcase import TestCase, run_tests
+    from torch_npu.testing.common_utils import create_common_tensor
     
     # Define the add test case class.
     class TestAdd(TestCase):
@@ -747,75 +657,58 @@ This section describes how to test the functions of a PyTorch operator.
                 self.assertRtolEqual(cpu_output, npu_output)
     
         # Define a test case for a specific add scenario. The test case function must start with test_.
-        def test_add_shape_format_fp32_2d(self, device):
+        def test_add_shape_format_fp32_2d(self):
             format_list = [0, 3, 29]
             shape_format = [
                 [np.float32, i, [5, 256]]  for i in format_list 
             ]
             self.add_result(shape_format)
     
-    instantiate_device_type_tests(TestAdd, globals(), except_for="cpu")
     if __name__ == "__main__":
         run_tests()
     ```
 
 3.  Execute the test case script.
 
-    Go to the directory where  **test\_add.py**  is located, and run the following command:
+    Go to the directory where **test\_add.py** is located, and run the following command:
 
     ```
     python3.7 test_add.py
     ```
 
 
-<h2 id="faqsmd">FAQs</h2>
+## FAQs
 
--   **[Pillow==5.3.0 Installation Failed](#pillow-5-3-0-installation-failedmd)**  
+### Pillow==5.3.0 Installation Failed
 
--   **[pip3.7 install torchvision Installation Failed](#pip3-7-install-torchvision-installation-failedmd)**  
+#### Symptom
 
--   **["torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed](#torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd)**  
+**Pillow==5.3.0** installation failed.
 
--   **[How Do I View Test Run Logs?](#how-do-i-view-test-run-logsmd)**  
-
--   **[Why Cannot the Custom TBE Operator Be Called?](#why-cannot-the-custom-tbe-operator-be-calledmd)**  
-
--   **[How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?](#how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptationmd)**  
-
--   **[PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed](#pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayedmd)**  
-
--   **[PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed](#pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayedmd)**  
-
-
-<h3 id="pillow-5-3-0-installation-failedmd">Pillow==5.3.0 Installation Failed</h3>
-
-#### Symptom<a name="en-us_topic_0000001125315879_en-us_topic_0175549220_section197270431505"></a>
-
-**Pillow==5.3.0**  installation failed.
-
-#### Possible Cause<a name="en-us_topic_0000001125315879_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
 Necessary dependencies are missing, such as libjpeg, python-devel, zlib-devel, and libjpeg-turbo-devel.
 
-#### Solutions<a name="en-us_topic_0000001125315879_section108142031907"></a>
+#### Solutions
 
 Run the following command to install the required dependencies:
 
 ```
-apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel
+apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel  # Ubunntu, EulerOS
+yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel      # CentOS
 ```
 
-<h3 id="pip3-7-install-torchvision-installation-failedmd">pip3.7 install torchvision Installation Failed</h3>
+### pip3.7 install torchvision Installation Failed
 
-#### Symptom<a name="en-us_topic_0000001125641109_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom
 
-**pip3.7 install torchvision**  installation failed.
+**pip3.7 install torchvision** installation failed.
 
-#### Possible Cause<a name="en-us_topic_0000001125641109_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
 The versions of PyTorch and TorchVision do not match.
 
-#### Solutions<a name="en-us_topic_0000001125641109_section108142031907"></a>
+#### Solutions
 
 Run the following command:
 
@@ -823,25 +716,25 @@ Run the following command:
 pip3.7 install torchvision --no-deps
 ```
 
-<h3 id="torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch--whl-is-installedmd">"torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed</h3>
+### "torch 1.5.0xxxx" and "torchvision" Do Not Match When torch-\*.whl Is Installed
 
-#### Symptom<a name="en-us_topic_0000001125315883_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom
 
-During the installation of  **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
+During the installation of **torch-**_\*_**.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
 
 ![](figures/en-us_image_0000001144082048.png)
 
 However, the installation is successful.
 
-#### Possible Cause<a name="en-us_topic_0000001125315883_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
-When the PyTorch is installed, the version check is automatically triggered. The version of the torchvision installed in the environment is 0.6.0. During the check, it is found that the version of the  **torch-**_\*_**.whl**  is inconsistent with the required version 1.5.0. As a result, an error message is displayed.
+When the PyTorch is installed, the version check is automatically triggered. The version of the torchvision installed in the environment is 0.6.0. During the check, it is found that the version of the **torch-**_\*_**.whl** is inconsistent with the required version 1.5.0. As a result, an error message is displayed.
 
-#### Solutions<a name="en-us_topic_0000001125315883_section108142031907"></a>
+#### Solutions
 
 This problem has no impact on the actual result, and no action is required.
 
-<h3 id="how-do-i-view-test-run-logsmd">How Do I View Test Run Logs?</h3>
+### How Do I View Test Run Logs?
 
 When an error message is displayed during the test, but the reference information is insufficient, how can we view more detailed run logs?
 
@@ -850,33 +743,35 @@ Output the logs to the screen and redirect them to a specified text file.
 1.  Set the environment variable to display the logs of the current user on the screen.
 
     ```
+    # Log printing
     export SLOG_PRINT_TO_STDOUT=1
+    export ASCEND_GLOBAL_LOG_LEVEL=1
+    #0: debug; 1: info level; 2: warning 3: error
     ```
+    After the setting is complete, run the test case to output related logs to the screen. To facilitate viewing and backtracking, you are advised to perform [2](#en-us_topic_0000001125315889_li168732325719) as required.
 
-    After the setting is complete, run the test case to output related logs to the screen. To facilitate viewing and backtracking, you are advised to perform  [2](#en-us_topic_0000001125315889_li168732325719)  as required.
-
-2.  <a name="en-us_topic_0000001125315889_li168732325719"></a>Redirect the logs to a specified file when a test case is executed.
+2.  Redirect the logs to a specified file when a test case is executed.
 
     ```
     python3.7 test_add.py > test_log.txt
     ```
 
 
-<h3 id="why-cannot-the-custom-tbe-operator-be-calledmd">Why Cannot the Custom TBE Operator Be Called?</h3>
+### Why Cannot the Custom TBE Operator Be Called?
 
-#### Symptom<a name="en-us_topic_0000001125736795_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom
 
 The custom TBE operator has been developed and adapted to PyTorch. However, the newly developed operator cannot be called during test case execution.
 
-#### Possible Cause<a name="en-us_topic_0000001125736795_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
 -   The environment variables are not set correctly.
 -   An error occurs in the YAML file. As a result, the operator is not correctly dispatched.
 -   The implementation of the custom TBE operator is incorrect. As a result, the operator cannot be called.
 
-#### Solutions<a name="en-us_topic_0000001125736795_section108142031907"></a>
+#### Solutions
 
-1.  Set the operating environment by referring to  [Verifying Operator Functions](#operator-function-verificationmd). Pay special attention to the following settings:
+1.  Set the operating environment by referring to [Operator Function Verification](#operator-function-verification). Pay special attention to the following settings:
 
     ```
     . /home/HwHiAiUser/Ascend/ascend-toolkit/set_env.sh 
@@ -884,13 +779,13 @@ The custom TBE operator has been developed and adapted to PyTorch. However, the 
 
 2.  Check whether the dispatch configuration of the corresponding operator in the YAML file is correct and complete.
 3.  Analyze and check the code implementation. The recommended methods are as follows:
-    1.  Modify the operator adaptation implementation in PyTorch so that  **test\_add.py**  can call the TBE operator in the custom operator package.
+    1.  Modify the operator adaptation implementation in PyTorch so that **test\_add.py** can call the TBE operator in the custom operator package.
 
         "pytorch/aten/src/ATen/native/npu/AddKernelNpu.cpp"
 
         ![](figures/en-us_image_0000001144082088.png)
 
-    2.  After the compilation and installation steps are complete, call  **python3.7 test\_add.py**  to perform the test.
+    2.  After the compilation and installation steps are complete, call **python3.7 test\_add.py** to perform the test.
 
         ```
         Run the cd command to go to the directory where test_add.py is stored and call
@@ -898,32 +793,32 @@ The custom TBE operator has been developed and adapted to PyTorch. However, the 
         to perform the test.
         ```
 
-        There should be no error in this step. The log added in  **add**  should be displayed. If an error occurs, check the code to ensure that no newly developed code affects the test.
+        There should be no error in this step. The log added in **add** should be displayed. If an error occurs, check the code to ensure that no newly developed code affects the test.
 
     3.  Combine the newly developed custom TBE operator into CANN. Add logs to the operator entry as the running identifier.
-    4.  After the compilation and installation of CANN are complete, call  **python3.7.5 test\_add.py**  to perform the test.
+    4.  After the compilation and installation of CANN are complete, call **python3.7.5 test\_add.py** to perform the test.
 
         >![](public_sys-resources/icon-note.gif) **NOTE:** 
         >According to the design logic of Ascend, the priority of the custom operator package is higher than that of the built-in operator package. During operator loading, the system preferentially loads the operators in the custom operator package. During the process, if the operator information file in the custom operator package fails to be parsed, the custom operator package is skipped and no operator in the custom operator package is loaded or scheduled.
-        >-   If an error occurs in this step or the log added in  **add**  is not displayed, the newly developed custom TBE operator is incorrect, which affects the loading of the custom operator package. You are advised to  **check whether the operator information definition in the newly developed custom TBE operator is correct**.
-        >-   If this step is correct,  **the operator information definition in the newly developed custom TBE operator does not affect the running**.
+        >-   If an error occurs in this step or the log added in **add** is not displayed, the newly developed custom TBE operator is incorrect, which affects the loading of the custom operator package. You are advised to **check whether the operator information library definition in the newly developed custom TBE operator is correct**.
+        >-   If this step is correct, **the operator information library definition in the newly developed custom TBE operator does not affect the running**.
 
     5.  Call  **python3.7.5** _xxx_**\_testcase.py**  to perform the test.
 
         >![](public_sys-resources/icon-note.gif) **NOTE:** 
         >-   If the logs added to the newly developed custom TBE operator are displayed on the screen, the newly developed operator is scheduled.
-        >-   If the logs added to the newly developed custom TBE operator are not displayed on the screen, the problem may occur in PyTorch adaptation. In this case, you need to check the implementation code of PyTorch adaptation. Most of the problems are due to the incorrect adaption of input and output of  _xxxx_**KernelNpu.cpp**.
+        >-   If the logs added to the newly developed custom TBE operator are not displayed on the screen, the problem may occur in PyTorch adaptation. In this case, you need to check the implementation code of PyTorch adaptation. Most of the problems are due to the incorrect adaptation of input and output of  _xxxx_**KernelNpu.cpp**.
 
 
 
-<h3 id="how-do-i-determine-whether-the-tbe-operator-is-correctly-called-for-pytorch-adaptationmd">How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?</h3>
+### How Do I Determine Whether the TBE Operator Is Correctly Called for PyTorch Adaptation?
 
 Both the custom and built-in operators are stored in the installation directory as .py source code after installation. Therefore, you can edit the source code and add logs at the API entry to print the input parameters, and determine whether the input parameters are correct.
 
 >![](public_sys-resources/icon-caution.gif) **CAUTION:** 
 >This operation may cause risks. You are advised to back up the file to be modified before performing this operation. If the files are not backed up and cannot be restored after being damaged, contact technical support.
 
-The following uses the  **zn\_2\_nchw**  operator in the built-in operator package as an example:
+The following uses the **zn\_2\_nchw** operator in the built-in operator package as an example:
 
 1.  Open the installation directory of the operator package in the user directory.
 
@@ -966,29 +861,29 @@ The following uses the  **zn\_2\_nchw**  operator in the built-in operator packa
     ![](figures/en-us_image_0000001144082072.png)
 
 
-<h3 id="pytorch-compilation-fails-and-the-message-error-ld-returned-1-exit-status-is-displayedmd">PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed</h3>
+### PyTorch Compilation Fails and the Message "error: ld returned 1 exit status" Is Displayed
 
-#### Symptom<a name="en-us_topic_0000001125315885_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom
 
 PyTorch compilation fails and the message "error: ld returned 1 exit status" is displayed.
 
 ![](figures/en-us_image_0000001190201973.png)
 
-#### Possible Cause<a name="en-us_topic_0000001125315885_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
-According to the log analysis, the possible cause is that the adaptation function implemented in  _xxxx_**KernelNpu.cpp**  does not match the dispatch implementation API parameters required by the PyTorch framework operator. In the preceding example, the function is  **binary\_cross\_entropy\_npu**. Open the corresponding  _xxxx_**KernelNpu.cpp**  file and find the adaptation function.
+According to the log analysis, the possible cause is that the adaptation function implemented in _xxxx_**KernelNpu.cpp** does not match the dispatch implementation API parameters required by the PyTorch framework operator. In the preceding example, the function is **binary\_cross\_entropy\_npu**. Open the corresponding _xxxx_**KernelNpu.cpp** file and find the adaptation function.
 
 ![](figures/en-us_image_0000001144241896.png)
 
-In the implementation, the type of the last parameter is  **int**, which does not match the required  **long**.
+In the implementation, the type of the last parameter is **int**, which does not match the required **long**.
 
-#### Solutions<a name="en-us_topic_0000001125315885_section108142031907"></a>
+#### Solutions
 
-Modify the adaptation function implemented in  _xxxx_**KernelNpu.cpp**. In the preceding example, change the type of the last parameter in the  **binary\_cross\_entropy\_npu**  function to  **int64\_t**  \(use  **int64\_t**  instead of  **long**  in the .cpp file\).
+Modify the adaptation function implemented in  _xxxx_**KernelNpu.cpp**. In the preceding example, change the type of the last parameter in the  **binary_cross_entropy_npu**  function to **int64_t** (use **int64\t** instead of **long** in the .cpp file).
 
-<h3 id="pytorch-compilation-fails-and-the-message-error-call-of-overload-is-displayedmd">PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed</h3>
+### PyTorch Compilation Fails and the Message "error: call of overload...." Is Displayed
 
-#### Symptom<a name="en-us_topic_0000001125641113_en-us_topic_0175549220_section197270431505"></a>
+#### Symptom
 
 PyTorch compilation fails and the message "error: call of overload...." is displayed.
 
@@ -996,28 +891,23 @@ PyTorch compilation fails and the message "error: call of overload...." is displ
 
 ![](figures/en-us_image_0000001190201935.png)
 
-#### Possible Cause<a name="en-us_topic_0000001125641113_en-us_topic_0175549220_section169499490501"></a>
+#### Possible Cause
 
-According to the log analysis, the error is located in line 30 in the  _xxxx_**KernelNpu.cpp**  file, indicating that the  **NPUAttrDesc**  parameter is invalid. In the preceding example, the function is  **binary\_cross\_entropy\_attr**. Open the corresponding  _xxxx_**KernelNpu.cpp**  file and find the adaptation function.
+According to the log analysis, the error is located in line 30 in the _xxxx_**KernelNpu.cpp**  file, indicating that the **NPUAttrDesc** parameter is invalid. In the preceding example, the function is **binary\_cross\_entropy\_attr**. Open the corresponding _xxxx_**KernelNpu.cpp**  file and find the adaptation function.
 
 ![](figures/en-us_image_0000001144082064.png)
 
-In the implementation, the type of the second input parameter of  **NPUAttrDesc**  is  **int**, which does not match the definition of  **NPUAttrDesc**.
+In the implementation, the type of the second input parameter of **NPUAttrDesc** is **int**, which does not match the definition of **NPUAttrDesc**.
 
-#### Solutions<a name="en-us_topic_0000001125641113_section108142031907"></a>
+#### Solutions
 
-1. Replace the incorrect code line in the  **binary\_cross\_entropy\_attr\(\)**  function with the code in the preceding comment.
+1. Replace the incorrect code line in the **binary\_cross\_entropy\_attr\(\)** function with the code in the preceding comment.
 
-2. Change the input parameter type of  **binary\_cross\_entropy\_attr\(\)**  to  **int64\_t**.
+2. Change the input parameter type of **binary\_cross\_entropy\_attr\(\)** to **int64\_t**.
 
-<h2 id="appendixesmd">Appendixes</h2>
+## Appendixes
 
--   **[Installing CMake](#installing-cmakemd)**  
-
--   **[Exporting a Custom Operator](#exporting-a-custom-operatormd)**  
-
-
-<h3 id="installing-cmakemd">Installing CMake</h3>
+### Installing CMake
 
 The following describes how to upgrade CMake to 3.12.1.
 
@@ -1056,17 +946,17 @@ The following describes how to upgrade CMake to 3.12.1.
     If the message "cmake version 3.12.1" is displayed, the installation is successful.
 
 
-<h3 id="exporting-a-custom-operatormd">Exporting a Custom Operator</h3>
+### Exporting a Custom Operator
 
-#### Overview<a name="en-us_topic_0000001136292799_section13121145561615"></a>
+#### Overview
 
 A PyTorch model contains a custom operator. You can export the custom operator as an ONNX single-operator model, which can be easily ported to other AI frameworks. Three types of custom operator export are available: NPU-adapted TBE operator export, C++ operator export, and pure Python operator export.
 
-#### Prerequisites<a name="en-us_topic_0000001136292799_section6744175713010"></a>
+#### Prerequisites
 
 You have installed the PyTorch framework.
 
-#### TBE Operator Export<a name="en-us_topic_0000001136292799_section17568113818325"></a>
+#### TBE Operator Export
 
 A TBE operator can be exported using either of the following methods:
 
@@ -1219,9 +1109,9 @@ Method 2:
 
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->For details about the implementation code, see  [test\_custom\_ops\_npu\_demo.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_npu_demo.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the  **Ascend**  organization.
+>For details about the implementation code, see [test\_custom\_ops\_npu\_demo.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_npu_demo.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the **Ascend** organization.
 
-#### C++ Operator Export<a name="en-us_topic_0000001136292799_section1465619203319"></a>
+#### C++ Operator Export
 
 1.  Customize an operator.
 
@@ -1285,9 +1175,9 @@ Method 2:
 
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->For details about the implementation code, see  [test\_custom\_ops\_demo.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_demo.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the  **Ascend**  organization.
+>For details about the implementation code, see [test\_custom\_ops\_demo.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_demo.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the **Ascend** organization.
 
-#### Pure Python Operator Export<a name="en-us_topic_0000001136292799_section98044317326"></a>
+#### Pure Python Operator Export
 
 1.  Customize an operator.
 
@@ -1372,5 +1262,5 @@ Method 2:
 
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->For details about the implementation code, see  [test\_custom\_ops\_python\_module.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_python_module.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the  **Ascend**  organization.
+>For details about the implementation code, see [test\_custom\_ops\_python\_module.py](https://gitee.com/ascend/pytorch/blob/master/test/test_npu/test_onnx/torch.onnx/custom_ops_demo/test_custom_ops_python_module.py). If you do not have the permission to obtain the code, contact Huawei technical support to join the **Ascend** organization.
 
