@@ -84,14 +84,14 @@
 | 15   | torch.randn                                | Supported             |
 | 16   | torch.randn_like                           | Supported             |
 | 17   | torch.randperm                             | Supported             |
-| 18   | torch.Tensor.bernoulli_()                  | Supported             |
-| 19   | torch.Tensor.bernoulli_()                  | Supported             |
-| 20   | torch.Tensor.exponential_()                | Unsupported           |
-| 21   | torch.Tensor.geometric_()                  | Unsupported           |
-| 22   | torch.Tensor.log_normal_()                 | Unsupported           |
-| 23   | torch.Tensor.normal_()                     | Supported             |
-| 24   | torch.Tensor.random_()                     | Supported             |
-| 25   | torch.Tensor.uniform_()                    | Supported             |
+| 18   | torch.Tensor.bernoulli                     | Supported             |
+| 19   | torch.Tensor.bernoulli                     | Supported             |
+| 20   | torch.Tensor.exponential                   | Unsupported           |
+| 21   | torch.Tensor.geometric                     | Unsupported           |
+| 22   | torch.Tensor.log_normal                    | Unsupported           |
+| 23   | torch.Tensor.normal                        | Supported             |
+| 24   | torch.Tensor.random                        | Supported             |
+| 25   | torch.Tensor.uniform                       | Supported             |
 | 26   | torch.quasirandom.SobolEngine              | Supported             |
 | 27   | torch.quasirandom.SobolEngine.draw         | Supported             |
 | 28   | torch.quasirandom.SobolEngine.fast_forward | Supported             |
@@ -106,178 +106,178 @@
 
 ## Math Operations
 
-| No.  | API                      | Supported/Unsupported |
-| ---- | ------------------------ | --------------------- |
-| 1    | torch.abs                | Supported             |
-| 2    | torch.acos               | Supported             |
-| 3    | torch.add                | Supported             |
-| 4    | torch.addcdiv            | Supported             |
-| 5    | torch.addcmul            | Supported             |
-| 6    | torch.angle              | Unsupported           |
-| 7    | torch.asin               | Supported             |
-| 8    | torch.atan               | Supported             |
-| 9    | torch.atan2              | Supported             |
-| 10   | torch.bitwise_not        | Supported             |
-| 11   | torch.bitwise_and        | Supported             |
-| 12   | torch.bitwise_or         | Supported             |
-| 13   | torch.bitwise_xor        | Supported             |
-| 14   | torch.ceil               | Supported             |
-| 15   | torch.clamp              | Supported             |
-| 16   | torch.conj               | Unsupported           |
-| 17   | torch.cos                | Supported             |
-| 18   | torch.cosh               | Supported             |
-| 19   | torch.div                | Supported             |
-| 20   | torch.digamma            | Unsupported           |
-| 21   | torch.erf                | Supported             |
-| 22   | torch.erfc               | Supported             |
-| 23   | torch.erfinv             | Supported             |
-| 24   | torch.exp                | Supported             |
-| 25   | torch.expm1              | Supported             |
-| 26   | torch.floor              | Supported             |
-| 27   | torch.floor_divide       | Supported             |
-| 28   | torch.fmod               | Supported             |
-| 29   | torch.frac               | Supported             |
-| 30   | torch.imag               | Unsupported           |
-| 31   | torch.lerp               | Supported             |
-| 32   | torch.lgamma             | Unsupported           |
-| 33   | torch.log                | Supported             |
-| 34   | torch.log10              | Supported             |
-| 35   | torch.log1p              | Supported             |
-| 36   | torch.log2               | Supported             |
-| 37   | torch.logical_and        | Supported             |
-| 38   | torch.logical_not        | Supported             |
-| 39   | torch.logical_or         | Supported             |
-| 40   | torch.logical_xor        | Supported             |
-| 41   | torch.mul                | Supported             |
-| 42   | torch.mvlgamma           | Unsupported           |
-| 43   | torch.neg                | Supported             |
-| 44   | torch.polygamma          | Unsupported           |
-| 45   | torch.pow                | Supported             |
-| 46   | torch.real               | Supported             |
-| 47   | torch.reciprocal         | Supported             |
-| 48   | torch.remainder          | Supported             |
-| 49   | torch.round              | Supported             |
-| 50   | torch.rsqrt              | Supported             |
-| 51   | torch.sigmoid            | Supported             |
-| 52   | torch.sign               | Supported             |
-| 53   | torch.sin                | Supported             |
-| 54   | torch.sinh               | Supported             |
-| 55   | torch.sqrt               | Supported             |
-| 56   | torch.square             | Supported             |
-| 57   | torch.tan                | Supported             |
-| 58   | torch.tanh               | Supported             |
-| 59   | torch.true_divide        | Supported             |
-| 60   | torch.trunc              | Supported             |
-| 61   | torch.argmax             | Supported             |
-| 62   | torch.argmin             | Supported             |
-| 63   | torch.dist               | Supported             |
-| 64   | torch.logsumexp          | Supported             |
-| 65   | torch.mean               | Supported             |
-| 66   | torch.median             | Supported             |
-| 67   | torch.mode               | Unsupported           |
-| 68   | torch.norm               | Supported             |
-| 69   | torch.prod               | Supported             |
-| 70   | torch.std                | Supported             |
-| 71   | torch.std_mean           | Supported             |
-| 72   | torch.sum                | Supported             |
-| 73   | torch.unique             | Supported             |
-| 74   | torch.unique_consecutive | Unsupported           |
-| 75   | torch.var                | Unsupported           |
-| 76   | torch.var_mean           | Unsupported           |
-| 77   | torch.allclose           | Supported             |
-| 78   | torch.argsort            | Supported             |
-| 79   | torch.eq                 | Supported             |
-| 80   | torch.equal              | Supported             |
-| 81   | torch.ge                 | Supported             |
-| 82   | torch.gt                 | Supported             |
-| 83   | torch.isfinite           | Supported             |
-| 84   | torch.isinf              | Supported             |
-| 85   | torch.isnan              | Supported             |
-| 86   | torch.kthvalue           | Supported             |
-| 87   | torch.le                 | Supported             |
-| 88   | torch.lt                 | Supported             |
-| 89   | torch.max                | Supported             |
-| 90   | torch.min                | Supported             |
-| 91   | torch.ne                 | Supported             |
-| 92   | torch.sort               | Supported             |
-| 93   | torch.topk               | Supported             |
-| 94   | torch.fft                | Unsupported           |
-| 95   | torch.ifft               | Unsupported           |
-| 96   | torch.rfft               | Unsupported           |
-| 97   | torch.irfft              | Unsupported           |
-| 98   | torch.stft               | Unsupported           |
-| 99   | torch.bartlett_window    | Supported             |
-| 100  | torch.blackman_window    | Supported             |
-| 101  | torch.hamming_window     | Supported             |
-| 102  | torch.hann_window        | Supported             |
-| 103  | torch.bincount           | Supported             |
-| 104  | torch.broadcast_tensors  | Supported             |
-| 105  | torch.cartesian_prod     | Supported             |
-| 106  | torch.cdist              | Supported             |
-| 107  | torch.combinations       | Unsupported           |
-| 108  | torch.cross              | Supported             |
-| 109  | torch.cummax             | Supported             |
-| 110  | torch.cummin             | Supported             |
-| 111  | torch.cumprod            | Supported             |
-| 112  | torch.cumsum             | Supported             |
-| 113  | torch.diag               | Supported             |
-| 114  | torch.diag_embed         | Supported             |
-| 115  | torch.diagflat           | Supported             |
-| 116  | torch.diagonal           | Supported             |
-| 117  | torch.einsum             | Supported             |
-| 118  | torch.flatten            | Supported             |
-| 119  | torch.flip               | Supported             |
-| 120  | torch.rot90              | Supported             |
-| 121  | torch.histc              | Unsupported           |
-| 122  | torch.meshgrid           | Supported             |
-| 123  | torch.renorm             | Supported             |
-| 124  | torch.repeat_interleave  | Supported             |
-| 125  | torch.roll               | Supported             |
-| 126  | torch.tensordot          | Supported             |
-| 127  | torch.trace              | Unsupported           |
-| 128  | torch.tril               | Supported             |
-| 129  | torch.tril_indices       | Supported             |
-| 130  | torch.triu               | Supported             |
-| 131  | torch.triu_indices       | Supported             |
-| 132  | torch.addbmm             | Supported             |
-| 133  | torch.addmm              | Supported             |
-| 134  | torch.addmv              | Supported             |
-| 135  | torch.addr               | Supported             |
-| 136  | torch.baddbmm            | Supported             |
-| 137  | torch.bmm                | Supported             |
-| 138  | torch.chain_matmul       | Supported             |
-| 139  | torch.cholesky           | Unsupported           |
-| 140  | torch.cholesky_inverse   | Unsupported           |
-| 141  | torch.cholesky_solve     | Unsupported           |
-| 142  | torch.dot                | Supported             |
-| 143  | torch.eig                | Unsupported           |
-| 144  | torch.geqrf              | Unsupported           |
-| 145  | torch.ger                | Supported             |
-| 146  | torch.inverse            | Supported             |
-| 147  | torch.det                | Unsupported           |
-| 148  | torch.logdet             | Unsupported           |
-| 149  | torch.slogdet            | Supported             |
-| 150  | torch.lstsq              | Unsupported           |
-| 151  | torch.lu                 | Unsupported           |
-| 152  | torch.lu_solve           | Unsupported           |
-| 153  | torch.lu_unpack          | Unsupported           |
-| 154  | torch.matmul             | Supported             |
-| 155  | torch.matrix_power       | Supported             |
-| 156  | torch.matrix_rank        | Supported             |
-| 157  | torch.mm                 | Supported             |
-| 158  | torch.mv                 | Supported             |
-| 159  | torch.orgqr              | Unsupported           |
-| 160  | torch.ormqr              | Unsupported           |
-| 161  | torch.pinverse           | Supported             |
-| 162  | torch.qr                 | Supported             |
-| 163  | torch.solve              | Unsupported           |
-| 164  | torch.svd                | Supported             |
-| 165  | torch.svd_lowrank        | Supported             |
-| 166  | torch.pca_lowrank        | Supported             |
-| 167  | torch.symeig             | Supported             |
-| 168  | torch.lobpcg             | Unsupported           |
-| 169  | torch.trapz              | Supported             |
-| 170  | torch.triangular_solve   | Supported             |
+| No.  | API                      | Supported/Unsupported           |
+| ---- | ------------------------ | ------------------------------- |
+| 1    | torch.abs                | Supported                       |
+| 2    | torch.acos               | Supported                       |
+| 3    | torch.add                | Supported                       |
+| 4    | torch.addcdiv            | Supported                       |
+| 5    | torch.addcmul            | Supported                       |
+| 6    | torch.angle              | Unsupported                     |
+| 7    | torch.asin               | Supported                       |
+| 8    | torch.atan               | Supported                       |
+| 9    | torch.atan2              | Supported                       |
+| 10   | torch.bitwise_not        | Supported                       |
+| 11   | torch.bitwise_and        | Supported                       |
+| 12   | torch.bitwise_or         | Supported                       |
+| 13   | torch.bitwise_xor        | Supported                       |
+| 14   | torch.ceil               | Supported                       |
+| 15   | torch.clamp              | Supported                       |
+| 16   | torch.conj               | Unsupported                     |
+| 17   | torch.cos                | Supported                       |
+| 18   | torch.cosh               | Supported                       |
+| 19   | torch.div                | Supported                       |
+| 20   | torch.digamma            | Unsupported                     |
+| 21   | torch.erf                | Supported                       |
+| 22   | torch.erfc               | Supported                       |
+| 23   | torch.erfinv             | Supported                       |
+| 24   | torch.exp                | Supported                       |
+| 25   | torch.expm1              | Supported                       |
+| 26   | torch.floor              | Supported                       |
+| 27   | torch.floor_divide       | Supported                       |
+| 28   | torch.fmod               | Supported                       |
+| 29   | torch.frac               | Supported                       |
+| 30   | torch.imag               | Unsupported                     |
+| 31   | torch.lerp               | Supported                       |
+| 32   | torch.lgamma             | Unsupported                     |
+| 33   | torch.log                | Supported                       |
+| 34   | torch.log10              | Supported                       |
+| 35   | torch.log1p              | Supported                       |
+| 36   | torch.log2               | Supported                       |
+| 37   | torch.logical_and        | Supported                       |
+| 38   | torch.logical_not        | Supported                       |
+| 39   | torch.logical_or         | Supported                       |
+| 40   | torch.logical_xor        | Supported                       |
+| 41   | torch.mul                | Supported                       |
+| 42   | torch.mvlgamma           | Unsupported                     |
+| 43   | torch.neg                | Supported                       |
+| 44   | torch.polygamma          | Unsupported                     |
+| 45   | torch.pow                | Supported                       |
+| 46   | torch.real               | Supported                       |
+| 47   | torch.reciprocal         | Supported                       |
+| 48   | torch.remainder          | Supported                       |
+| 49   | torch.round              | Supported                       |
+| 50   | torch.rsqrt              | Supported                       |
+| 51   | torch.sigmoid            | Supported                       |
+| 52   | torch.sign               | Supported                       |
+| 53   | torch.sin                | Supported                       |
+| 54   | torch.sinh               | Supported                       |
+| 55   | torch.sqrt               | Supported                       |
+| 56   | torch.square             | Supported                       |
+| 57   | torch.tan                | Supported                       |
+| 58   | torch.tanh               | Supported                       |
+| 59   | torch.true_divide        | Supported                       |
+| 60   | torch.trunc              | Supported                       |
+| 61   | torch.argmax             | Supported                       |
+| 62   | torch.argmin             | Supported                       |
+| 63   | torch.dist               | Supported                       |
+| 64   | torch.logsumexp          | Supported                       |
+| 65   | torch.mean               | Supported                       |
+| 66   | torch.median             | Supported                       |
+| 67   | torch.mode               | Unsupported                     |
+| 68   | torch.norm               | Supported                       |
+| 69   | torch.prod               | Supported                       |
+| 70   | torch.std                | Supported                       |
+| 71   | torch.std_mean           | Supported                       |
+| 72   | torch.sum                | Supported                       |
+| 73   | torch.unique             | Supported                       |
+| 74   | torch.unique_consecutive | Unsupported                     |
+| 75   | torch.var                | Unsupported                     |
+| 76   | torch.var_mean           | Unsupported                     |
+| 77   | torch.allclose           | Supported                       |
+| 78   | torch.argsort            | Supported                       |
+| 79   | torch.eq                 | Supported                       |
+| 80   | torch.equal              | Supported                       |
+| 81   | torch.ge                 | Supported                       |
+| 82   | torch.gt                 | Supported                       |
+| 83   | torch.isfinite           | Supported                       |
+| 84   | torch.isinf              | Supported                       |
+| 85   | torch.isnan              | Supported                       |
+| 86   | torch.kthvalue           | Supported                       |
+| 87   | torch.le                 | Supported                       |
+| 88   | torch.lt                 | Supported                       |
+| 89   | torch.max                | Supported                       |
+| 90   | torch.min                | Supported                       |
+| 91   | torch.ne                 | Supported                       |
+| 92   | torch.sort               | Supported                       |
+| 93   | torch.topk               | Supported                       |
+| 94   | torch.fft                | Unsupported                     |
+| 95   | torch.ifft               | Unsupported                     |
+| 96   | torch.rfft               | Unsupported                     |
+| 97   | torch.irfft              | Unsupported                     |
+| 98   | torch.stft               | Unsupported                     |
+| 99   | torch.bartlett_window    | Supported                       |
+| 100  | torch.blackman_window    | Supported                       |
+| 101  | torch.hamming_window     | Supported                       |
+| 102  | torch.hann_window        | Supported                       |
+| 103  | torch.bincount           | Supported                       |
+| 104  | torch.broadcast_tensors  | Supported                       |
+| 105  | torch.cartesian_prod     | Supported                       |
+| 106  | torch.cdist              | Supported                       |
+| 107  | torch.combinations       | Unsupported                     |
+| 108  | torch.cross              | Supported                       |
+| 109  | torch.cummax             | Supported                       |
+| 110  | torch.cummin             | Supported                       |
+| 111  | torch.cumprod            | Supported                       |
+| 112  | torch.cumsum             | Supported                       |
+| 113  | torch.diag               | Supported only when diagonal=0. |
+| 114  | torch.diag_embed         | Supported                       |
+| 115  | torch.diagflat           | Supported                       |
+| 116  | torch.diagonal           | Supported                       |
+| 117  | torch.einsum             | Supported                       |
+| 118  | torch.flatten            | Supported                       |
+| 119  | torch.flip               | Supported                       |
+| 120  | torch.rot90              | Supported                       |
+| 121  | torch.histc              | Unsupported                     |
+| 122  | torch.meshgrid           | Supported                       |
+| 123  | torch.renorm             | Supported                       |
+| 124  | torch.repeat_interleave  | Supported                       |
+| 125  | torch.roll               | Supported                       |
+| 126  | torch.tensordot          | Supported                       |
+| 127  | torch.trace              | Unsupported                     |
+| 128  | torch.tril               | Supported                       |
+| 129  | torch.tril_indices       | Supported                       |
+| 130  | torch.triu               | Supported                       |
+| 131  | torch.triu_indices       | Supported                       |
+| 132  | torch.addbmm             | Supported                       |
+| 133  | torch.addmm              | Supported                       |
+| 134  | torch.addmv              | Supported                       |
+| 135  | torch.addr               | Supported                       |
+| 136  | torch.baddbmm            | Supported                       |
+| 137  | torch.bmm                | Supported                       |
+| 138  | torch.chain_matmul       | Supported                       |
+| 139  | torch.cholesky           | Unsupported                     |
+| 140  | torch.cholesky_inverse   | Unsupported                     |
+| 141  | torch.cholesky_solve     | Unsupported                     |
+| 142  | torch.dot                | Supported                       |
+| 143  | torch.eig                | Unsupported                     |
+| 144  | torch.geqrf              | Unsupported                     |
+| 145  | torch.ger                | Supported                       |
+| 146  | torch.inverse            | Supported                       |
+| 147  | torch.det                | Unsupported                     |
+| 148  | torch.logdet             | Unsupported                     |
+| 149  | torch.slogdet            | Supported                       |
+| 150  | torch.lstsq              | Unsupported                     |
+| 151  | torch.lu                 | Unsupported                     |
+| 152  | torch.lu_solve           | Unsupported                     |
+| 153  | torch.lu_unpack          | Unsupported                     |
+| 154  | torch.matmul             | Supported                       |
+| 155  | torch.matrix_power       | Supported                       |
+| 156  | torch.matrix_rank        | Supported                       |
+| 157  | torch.mm                 | Supported                       |
+| 158  | torch.mv                 | Supported                       |
+| 159  | torch.orgqr              | Unsupported                     |
+| 160  | torch.ormqr              | Unsupported                     |
+| 161  | torch.pinverse           | Supported                       |
+| 162  | torch.qr                 | Supported                       |
+| 163  | torch.solve              | Unsupported                     |
+| 164  | torch.svd                | Supported                       |
+| 165  | torch.svd_lowrank        | Supported                       |
+| 166  | torch.pca_lowrank        | Supported                       |
+| 167  | torch.symeig             | Supported                       |
+| 168  | torch.lobpcg             | Unsupported                     |
+| 169  | torch.trapz              | Supported                       |
+| 170  | torch.triangular_solve   | Supported                       |
 
 ## Utilities
 
@@ -1156,7 +1156,7 @@
 | 29   | torch.cuda.comm.scatter               | torch.npu.comm.scatter               | Unsupported           |
 | 30   | torch.cuda.comm.gather                | torch.npu.comm.gather                | Unsupported           |
 | 31   | torch.cuda.Stream                     | torch.npu.Stream                     | Supported             |
-| 32   | torch.cuda.Stream.query               | torch.npu.Stream.query               | Supported             |
+| 32   | torch.cuda.Stream.query               | torch.npu.Stream.query               | Unsupported           |
 | 33   | torch.cuda.Stream.record_event        | torch.npu.Stream.record_event        | Supported             |
 | 34   | torch.cuda.Stream.synchronize         | torch.npu.Stream.synchronize         | Supported             |
 | 35   | torch.cuda.Stream.wait_event          | torch.npu.Stream.wait_event          | Supported             |
@@ -1193,99 +1193,72 @@ The **torch.npu.set_device ()** API can be used to specify the device only at th
 
 ## NPU Custom Operators
 
-| No.  | Operator                                       |
-| ---- | ---------------------------------------------- |
-| 1    | npu_convolution_transpose                      |
-| 2    | npu_conv_transpose2d                           |
-| 3    | npu_convolution_transpose_backward             |
-| 4    | npu_conv_transpose2d_backward                  |
-| 5    | npu_conv_transpose3d_backward                  |
-| 6    | npu_convolution                                |
-| 7    | npu_convolution_backward                       |
-| 8    | npu_convolution_double_backward                |
-| 9    | npu_conv2d                                     |
-| 10   | npu_conv2d.out                                 |
-| 11   | npu_conv2d_backward                            |
-| 12   | npu_conv3d                                     |
-| 13   | npu_conv3d.out                                 |
-| 14   | npu_conv3d_backward                            |
-| 15   | one_                                           |
-| 16   | npu_sort_v2.out                                |
-| 17   | npu_sort_v2                                    |
-| 18   | npu_format_cast                                |
-| 19   | npu_format_cast_.acl_format                    |
-| 20   | npu_format_cast_.src                           |
-| 21   | npu_transpose_to_contiguous                    |
-| 22   | npu_transpose                                  |
-| 23   | npu_transpose.out                              |
-| 24   | npu_broadcast                                  |
-| 25   | npu_broadcast.out                              |
-| 26   | npu_dtype_cast                                 |
-| 27   | npu_dtype_cast_.Tensor                         |
-| 28   | npu_roi_alignbk                                |
-| 29   | empty_with_format                              |
-| 30   | empty_with_format.names                        |
-| 31   | copy_memory_                                   |
-| 32   | npu_one_hot                                    |
-| 33   | npu_stride_add                                 |
-| 34   | npu_softmax_cross_entropy_with_logits          |
-| 35   | npu_softmax_cross_entropy_with_logits_backward |
-| 36   | npu_ps_roi_pooling                             |
-| 37   | npu_ps_roi_pooling_backward                    |
-| 38   | npu_roi_align                                  |
-| 39   | npu_nms_v4                                     |
-| 40   | npu_lstm                                       |
-| 41   | npu_lstm_backward                              |
-| 42   | npu_iou                                        |
-| 43   | npu_ptiou                                      |
-| 44   | npu_nms_with_mask                              |
-| 45   | npu_pad                                        |
-| 46   | npu_bounding_box_encode                        |
-| 47   | npu_bounding_box_decode                        |
-| 48   | npu_gru                                        |
-| 49   | npu_gru_backward                               |
-| 50   | npu_set_.source_Storage_storage_offset_format  |
-| 51   | npu_random_choice_with_mask                    |
-| 52   | npu_batch_nms                                  |
-| 53   | npu_slice                                      |
-| 54   | npu_slice.out                                  |
-| 55   | npu_dropoutV2                                  |
-| 56   | npu_dropoutV2_backward                         |
-| 57   | _npu_dropout                                   |
-| 58   | _npu_dropout_inplace                           |
-| 59   | npu_dropout_backward                           |
-| 60   | npu_indexing                                   |
-| 61   | npu_indexing.out                               |
-| 62   | npu_ifmr                                       |
-| 63   | npu_max.dim                                    |
-| 64   | npu_max.names_dim                              |
-| 65   | npu_scatter                                    |
-| 66   | npu_max_backward                               |
-| 67   | npu_apply_adam                                 |
-| 68   | npu_layer_norm_eval                            |
-| 69   | npu_alloc_float_status                         |
-| 70   | npu_get_float_status                           |
-| 71   | npu_clear_float_status                         |
-| 72   | npu_confusion_transpose                        |
-| 73   | npu_confusion_transpose_backward               |
-| 74   | npu_bmmV2                                      |
-| 75   | fast_gelu                                      |
-| 76   | fast_gelu_backward                             |
-| 77   | npu_sub_sample                                 |
-| 78   | npu_deformable_conv2d                          |
-| 79   | npu_deformable_conv2dbk                        |
-| 80   | npu_mish                                       |
-| 81   | npu_anchor_response_flags                      |
-| 82   | npu_yolo_boxes_encode                          |
-| 83   | npu_grid_assign_positive                       |
-| 84   | npu_mish_backward                              |
-| 85   | npu_normalize_batch                            |
-| 86   | npu_masked_fill_range                          |
-| 87   | npu_linear                                     |
-| 88   | npu_linear_backward                            |
-| 89   | npu_bert_apply_adam                            |
-| 90   | npu_giou                                       |
-| 91   | npu_giou_backward                              |
+| No.  | Operator                              |
+| ---- | ------------------------------------- |
+| 1    | npu_convolution_transpose             |
+| 2    | npu_conv_transpose2d                  |
+| 3    | npu_convolution                       |
+| 4    | npu_conv2d                            |
+| 5    | npu_conv3d                            |
+| 6    | one_                                  |
+| 7    | npu_sort_v2                           |
+| 8    | npu_format_cast                       |
+| 9    | npu_format_cast_.src                  |
+| 10   | npu_transpose                         |
+| 11   | npu_broadcast                         |
+| 12   | npu_dtype_cast                        |
+| 13   | empty_with_format                     |
+| 14   | copy_memory_                          |
+| 15   | npu_one_hot                           |
+| 16   | npu_stride_add                        |
+| 17   | npu_softmax_cross_entropy_with_logits |
+| 18   | npu_ps_roi_pooling                    |
+| 19   | npu_roi_align                         |
+| 20   | npu_nms_v4                            |
+| 21   | npu_lstm                              |
+| 22   | npu_iou                               |
+| 23   | npu_ptiou                             |
+| 24   | npu_nms_with_mask                     |
+| 25   | npu_pad                               |
+| 26   | npu_bounding_box_encode               |
+| 27   | npu_bounding_box_decode               |
+| 28   | npu_gru                               |
+| 29   | npu_random_choice_with_mask           |
+| 30   | npu_batch_nms                         |
+| 31   | npu_slice                             |
+| 32   | npu_dropoutV2                         |
+| 33   | _npu_dropout                          |
+| 34   | _npu_dropout_inplace                  |
+| 35   | npu_indexing                          |
+| 36   | npu_ifmr                              |
+| 37   | npu_max.dim                           |
+| 38   | npu_scatter                           |
+| 39   | npu_apply_adam                        |
+| 40   | npu_layer_norm_eval                   |
+| 41   | npu_alloc_float_status                |
+| 42   | npu_get_float_status                  |
+| 43   | npu_clear_float_status                |
+| 44   | npu_confusion_transpose               |
+| 45   | npu_bmmV2                             |
+| 46   | fast_gelu                             |
+| 47   | npu_sub_sample                        |
+| 48   | npu_deformable_conv2d                 |
+| 49   | npu_mish                              |
+| 50   | npu_anchor_response_flags             |
+| 51   | npu_yolo_boxes_encode                 |
+| 52   | npu_grid_assign_positive              |
+| 53   | npu_normalize_batch                   |
+| 54   | npu_masked_fill_range                 |
+| 55   | npu_linear                            |
+| 56   | npu_bert_apply_adam                   |
+| 57   | npu_giou                              |
+| 58   | npu_giou_backward                     |
+| 59   | npu_nms_rotated                       |
+| 60   | npu_silu                              |
+| 61   | npu_reshape                           |
+| 62   | npu_rotated_iou                       |
+| 63   | npu_rotated_box_encode                |
+| 64   | npu_rotated_box_decode                |
 
 Operator descriptions:
 
@@ -1294,6 +1267,7 @@ Operator descriptions:
 count adam result.
 
 - Parameters:
+
   - **beta1_power** (Number) - power of beta1.
   - **beta2_power** (Number) - power of beta2.
   - **lr** (Number) -  learning rate.
@@ -1320,6 +1294,7 @@ count adam result.
 Applies a 2D or 3D transposed convolution operator over an input image composed of several input planes, sometimes also called “deconvolution”.
 
 - Parameters:
+
   - **input** (Tensor) - input tensor of shape(minibatch, in_channels, iH, iW) or (minibatch, in_channels, iT, iH, iW)
   - **weight** (Tensor) - filters of shape(in_channels, out_channels/groups, kH, kW) or (in_channels, out_channels/groups, kT, kH, kW)
   - **bias** (Tensor, optional) - optional bias of shape(out_channels)
@@ -1342,6 +1317,7 @@ Applies a 2D or 3D transposed convolution operator over an input image composed 
 Applies a 2D transposed convolution operator over an input image composed of several input planes, sometimes also called “deconvolution”.
 
 - Parameters:
+
   - **input** (Tensor) - input tensor of shape(minibatch, in_channels, iH, iW)
   - **weight** (Tensor) - filters of shape(in_channels, out_channels/groups, kH, kW)
   - **bias** (Tensor, optional) - optional bias of shape(out_channels)
@@ -1364,6 +1340,7 @@ Applies a 2D transposed convolution operator over an input image composed of sev
 Applies a 2D or 3D convolution over an input image composed of several input planes.
 
 - Parameters:
+
   - **input** (Tensor) - input tensor of shape(minibatch, in_channels, iH, iW) or (minibatch, in_channels, iT, iH, iW)
   - **weight** (Tensor) - filters of shape(out_channels, in_channels/groups, kH, kW) or (out_channels, in_channels/groups, kT, kH, kW)
   - **bias** (Tensor, optional) - optional bias of shape(out_channels)
@@ -1385,6 +1362,7 @@ Applies a 2D or 3D convolution over an input image composed of several input pla
 Applies a 2D convolution over an input image composed of several input planes.
 
 - Parameters:
+
   - **input** (Tensor) - input tensor of shape(minibatch, in_channels, iH, iW)
   - **weight** (Tensor) - filters of shape(out_channels, in_channels/groups, kH, kW)
   - **bias** (Tensor, optional) - optional bias of shape(out_channels)
@@ -1406,6 +1384,7 @@ Applies a 2D convolution over an input image composed of several input planes.
 Applies a 3D convolution over an input image composed of several input planes.
 
 - Parameters:
+
   - **input** (Tensor) - input tensor of shape(minibatch, in_channels, iT, iH, iW)
   - **weight** (Tensor) - filters of shape(out_channels, in_channels/groups, kT, kH, kW)
   - **bias** (Tensor, optional) - optional bias of shape(out_channels)
@@ -1427,9 +1406,9 @@ Applies a 3D convolution over an input image composed of several input planes.
 Fills self tensor with ones.
 
 - Parameters:
-  
+
 - **self** (Tensor) - input tensor
-  
+
 - Constraints:
 
   None
@@ -1453,10 +1432,10 @@ If dim is not given, the last dimension of the input is chosen.
 If descending is True then the elements are sorted in descending order by value.
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor
   - **dim** (int, optional) - the dimension to sort along
   - **descending** (bool, optional) - controls the sorting order (ascending or descending)
-  - **out** (Tensor, optional) - the output that can be optionally given to be used as output buffers
 
 - Constraints:
 
@@ -1482,6 +1461,7 @@ If descending is True then the elements are sorted in descending order by value.
 Change the format of a npu tensor.
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor
   - **acl_format** (int) - the target format to transform
 
@@ -1500,17 +1480,13 @@ Change the format of a npu tensor.
   29
   ```
 
-> npu_format_cast_
-
->   npu_format_cast_.acl_format(self, acl_format) -> Tensor
-
-  In-place version of npu_format_cast()
 
 >   npu_format_cast_.src(self, src) -> Tensor
 
   In-place Change the format of self, with the same format as src.
 
   - Parameters:
+
     - **self** (Tensor) - the input tensor
     - **src** (Tensor) - the target format to transform
 
@@ -1533,6 +1509,7 @@ Change the format of a npu tensor.
 Returns a view of the original tensor with its dimensions permuted, and make the result contiguous.
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor
   - **perm** (ListInt) - The desired ordering of dimensions
 
@@ -1561,6 +1538,7 @@ Returns a new view of the self tensor with singleton dimensions expanded to a la
 Tensor can be also expanded to a larger number of dimensions, and the new ones will be appended at the front.
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor
   - **perm** (ListInt) - the desired expanded size
 
@@ -1579,12 +1557,13 @@ Tensor can be also expanded to a larger number of dimensions, and the new ones w
           [2, 2, 2, 2],
           [3, 3, 3, 3]], device='npu:0')
   ```
-  
+
 > npu_dtype_cast(input, dtype) -> Tensor
 
 Performs Tensor dtype conversion.
 
 - Parameters:
+
   - **input** (Tensor) - the input tensor.
   - **dtype** (torch.dtype) - the desired data type of returned Tensor.
 
@@ -1622,6 +1601,7 @@ Returns a tensor filled with uninitialized data. The shape of the tensor is defi
   None
 
 - Examples:
+
   ```python
   >>> torch.empty_with_format((2, 3), dtype=torch.float32, device="npu")
   tensor([[1., 1., 1.],
@@ -1633,6 +1613,7 @@ Returns a tensor filled with uninitialized data. The shape of the tensor is defi
 Copies the elements from src into self tensor and returns self.
 
 - Parameters:
+
   - **dst** (Tensor) - the source tensor to copy from.
   - **src** (Tensor) - the desired data type of returned Tensor.
   - **non_blocking** (bool) - if True and this copy is between CPU and NPU, the copy may occur asynchronously with respect to the host. For other cases, this argument has no effect.
@@ -1657,8 +1638,9 @@ Copies the elements from src into self tensor and returns self.
 Returns a one-hot tensor. The locations represented by index in "x" take value "on_value", while all other locations take value "off_value". 
 
 - Parameters:
+
   - **input** (Tensor) - class values of any shape.
-  - **num_classes** (Tensor) - The axis to fill. Defaults to "-1". 
+  - **num_classes** (int) - The axis to fill. Defaults to "-1". 
   - **depth** (Number) - The depth of the one hot dimension. 
   - **on_value** (Number) - The value to fill in output when indices[j] = i.
   - **off_value** (Number) - The value to fill in output when indices[j] != i.
@@ -1668,6 +1650,7 @@ Returns a one-hot tensor. The locations represented by index in "x" take value "
   None
 
 - Examples:
+
   ```python
   >>> a=torch.IntTensor([5, 3, 2, 1]).npu()
   >>> b=torch.npu_one_hot(a, depth=5)
@@ -1683,6 +1666,7 @@ Returns a one-hot tensor. The locations represented by index in "x" take value "
 Add the partial values of two tensors in format NC1HWC0. 
 
 - Parameters:
+
   - **x1** (Tensor) -  A Tensor in 5HD.
   - **x2** (Tensor) - A Tensor of the same type as "x1", and the same shape as "x1", except for the C1 value.  
   - **offset1** (Number) - A required int. Offset value of C1 in "x1". 
@@ -1694,6 +1678,7 @@ Add the partial values of two tensors in format NC1HWC0.
   None
 
 - Examples:
+
   ```python
   >>> a=torch.tensor([[[[[1.]]]]]).npu()
   >>> b=torch.npu_stride_add(a, a, 0, 0, 1)
@@ -1721,6 +1706,7 @@ Add the partial values of two tensors in format NC1HWC0.
 Computes softmax cross entropy cost.
 
 - Parameters:
+
   - **features** (Tensor) - A Tensor.  A "batch_size * num_classes" matrix. 
   - **labels** (Tensor) - A Tensor of the same type as "features". A "batch_size * num_classes" matrix. 
 
@@ -1737,6 +1723,7 @@ Computes softmax cross entropy cost.
 Performs Position Sensitive PS ROI Pooling. 
 
 - Parameters:
+
   - **x** (Tensor) - An NC1HWC0 tensor, describing the feature map, dimension C1 must be equal to (int(output_dim+15)/C0))*group_size*group_size. 
   - **rois** (Tensor) - A tensor with shape [batch, 5, rois_num], describing the ROIs, each ROI consists of five elements: "batch_id", "x1", "y1", "x2", and "y2", which "batch_id" indicates the index of the input feature map, "x1", "y1", "x2", or "y2" must be greater than or equal to "0.0".  
   - **spatial_scale** (Number) - A required float32, scaling factor for mapping the input coordinates to the ROI coordinates . 
@@ -1748,6 +1735,7 @@ Performs Position Sensitive PS ROI Pooling.
   None
 
 - Examples:
+
   ```python
   >>> roi = torch.tensor([[[1], [2], [3], [4], [5]],
                           [[6], [7], [8], [9], [10]]], dtype = torch.float16).npu()
@@ -1772,6 +1760,7 @@ Performs Position Sensitive PS ROI Pooling.
 Obtains the ROI feature matrix from the feature map. It is a customized FasterRcnn operator. 
 
 - Parameters:
+
   - **features** (Tensor) -  A Tensor in 5HD.
   - **rois** (Tensor) - ROI position. A 2D Tensor with shape (N, 5). "N" indicates the number of ROIs, the value "5" indicates the indexes of images where the ROIs are located, "x0", "y0", "x1", and "y1". 
   - **spatial_scale** (Number) - A required attribute of type float32, specifying the scaling ratio of "features" to the original image. 
@@ -1785,6 +1774,7 @@ Obtains the ROI feature matrix from the feature map. It is a customized FasterRc
   None
 
 - Examples:
+
   ```python
   >>> x = torch.FloatTensor([[[[1, 2, 3 , 4, 5, 6],
                               [7, 8, 9, 10, 11, 12],
@@ -1805,6 +1795,7 @@ Obtains the ROI feature matrix from the feature map. It is a customized FasterRc
 Greedily selects a subset of bounding boxes in descending order of score. 
 
 - Parameters:
+
   - **boxes** (Tensor) -  A 2-D float tensor of shape [num_boxes, 4]. 
   - **scores** (Tensor) - A 1-D float tensor of shape [num_boxes] representing a single score corresponding to each box (each row of boxes). 
   - **max_output_size** (Number) - A scalar representing the maximum number of boxes to be selected by non max suppression.
@@ -1813,6 +1804,7 @@ Greedily selects a subset of bounding boxes in descending order of score.
   - **pad_to_max_output_size** (bool) - If true, the output selected_indices is padded to be of length max_output_size. Defaults to false. 
 
 - Returns:
+
   - **selected_indices** - A 1-D integer tensor of shape [M] representing the selected indices from the boxes tensor, where M <= max_output_size. 
   - **valid_outputs** - A 0-D integer tensor representing the number of valid elements in selected_indices, with the valid elements appearing first. 
 
@@ -1821,6 +1813,7 @@ Greedily selects a subset of bounding boxes in descending order of score.
   None
 
 - Examples:
+
   ```python
   >>> boxes=torch.randn(100,4).npu()
   >>> scores=torch.randn(100).npu()
@@ -1840,6 +1833,7 @@ Greedily selects a subset of bounding boxes in descending order of score.
 Greedy selects a subset of the rotated bounding boxes in descending fractional order.
 
 - Parameters:
+
   - **dets** (Tensor) -  A 2-D float tensor of shape [num_boxes, 5]. 
   - **scores** (Tensor) - A 1-D float tensor of shape [num_boxes] representing a single score corresponding to each box (each row of boxes). 
   - **iou_threshold** (Number) - A scalar representing the threshold for deciding whether boxes overlap too much with respect to IOU.   
@@ -1848,6 +1842,7 @@ Greedy selects a subset of the rotated bounding boxes in descending fractional o
   - **mode** (Number) - This parameter specifies the layout type of the dets. The default value is 0. If mode is set to 0, the input values of dets are x, y, w, h, and angle. If mode is set to 1, the input values of dets are x1, y1, x2, y2, and angle. Defaults to "0".
 
 - Returns:
+
   - **selected_index** - A 1-D integer tensor of shape [M] representing the selected indices from the dets tensor, where M <= max_output_size. 
   - **selected_num** - A 0-D integer tensor representing the number of valid elements in selected_indices. 
 
@@ -1856,6 +1851,7 @@ Greedy selects a subset of the rotated bounding boxes in descending fractional o
   None
 
 - Examples:
+
   ```python
   >>> dets=torch.randn(100,5).npu()
   >>> scores=torch.randn(100).npu()
@@ -1876,6 +1872,7 @@ Greedy selects a subset of the rotated bounding boxes in descending fractional o
 DynamicRNN calculation. 
 
 - Parameters:
+
   - **x** (Tensor) -  A required 4D Tensor. Must be one of the following types: float16, float32. The format must be FRACTAL_NZ.  
   - **weight** (Tensor) - A required 4D Tensor. Must be one of the following types: float16, float32. The format must be FRACTAL_ZN_LSTM.  
   - **bias** (Tensor) -  A required 1D Tensor. Must be one of the following types: float16, float32. The format must be ND.
@@ -1892,6 +1889,7 @@ DynamicRNN calculation.
   - **direction** (bool) - If True, then the direction is "REDIRECTIONAL", otherwise is "UNIDIRECTIONAL".
 
 - Returns:
+
   - **y** - A 4D Tensor. Must be one of the following types: float16, float32. The format must be FRACTAL_NZ. 
   - **output_h** - A 4D Tensor. Must be one of the following types: float16, float32. The format must be FRACTAL_NZ. 
   - **output_c** - A 4D Tensor. Must be one of the following types: float16, float32. The format must be FRACTAL_NZ. 
@@ -1906,7 +1904,7 @@ DynamicRNN calculation.
   None
 
 - Examples:
-  
+
   None
 
 >npu_iou(bboxes, gtboxes, mode=0) -> Tensor
@@ -1915,6 +1913,7 @@ DynamicRNN calculation.
 Computes the intersection over union (iou) or the intersection over. foreground (iof) based on the ground-truth and predicted regions.
 
 - Parameters:
+
   - **bboxes** (Tensor) - the input tensor.
   - **gtboxes** (Tensor) - the input tensor.
   - **mode** (Number) - 0 1 corresponds to two modes iou iof.
@@ -1944,6 +1943,7 @@ Computes the intersection over union (iou) or the intersection over. foreground 
 Pads a tensor
 
 - Parameters:
+
   - **input** (Tensor) - the input tensor.
   - **paddings** (ListInt) -  type int32 or int64.
 
@@ -1968,6 +1968,7 @@ Pads a tensor
 The value 01 is generated for the nms operator to determine the valid bit
 
 - Parameters:
+
   - **input** (Tensor) - the input tensor.
   - **iou_threshold** (Number) -  Threshold. If the value exceeds this threshold, the value is 1. Otherwise, the value is 0.
 
@@ -2002,6 +2003,7 @@ The value 01 is generated for the nms operator to determine the valid bit
 Computes the coordinate variations between bboxes and ground truth boxes. It is a customized FasterRcnn operator
 
 - Parameters:
+
   - **anchor_box** (Tensor) - the input tensor.Anchor boxes. A 2D Tensor of float32 with shape (N, 4). "N" indicates the number of bounding boxes, and the value "4" refers to "x0", "x1", "y0", and "y1". 
   - **ground_truth_box** (Tensor) -  the input tensor.Ground truth boxes. A 2D Tensor of float32 with shape (N, 4). "N" indicates the number of bounding boxes, and the value "4" refers to "x0", "x1", "y0", and "y1" 
   - **means0** (Number) -  An index of type int
@@ -2034,6 +2036,7 @@ Computes the coordinate variations between bboxes and ground truth boxes. It is 
 Generates bounding boxes based on "rois" and "deltas". It is a customized FasterRcnn operator .
 
 - Parameters:
+
   - **rois** (Tensor) - Region of interests (ROIs) generated by the region proposal network (RPN). A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs, and the value "4" refers to "x0", "x1", "y0", and "y1". 
   - **deltas** (Tensor) -  Absolute variation between the ROIs generated by the RPN and ground truth boxes. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of errors, and 4 indicates "dx", "dy", "dw", and "dh" . 
   - **means0** (Number) -  An index of type int
@@ -2067,6 +2070,7 @@ Generates bounding boxes based on "rois" and "deltas". It is a customized Faster
 DynamicGRUV2 calculation.
 
 - Parameters:
+
   - **input** (Tensor) - Must be one of the following types: float16. The format must be FRACTAL_NZ. 
   - **hx** (Tensor) -  Must be one of the following types: float16, float32. The format must be FRACTAL_NZ. 
   - **weight_input** (Tensor) -  Must be one of the following types: float16. The format must be FRACTAL_Z. 
@@ -2095,7 +2099,7 @@ DynamicGRUV2 calculation.
   None
 
 - Examples:
-  
+
   None
 
 >npu_random_choice_with_mask(x, count=256, seed=0, seed2=0) -> (Tensor, Tensor)
@@ -2103,6 +2107,7 @@ DynamicGRUV2 calculation.
 Shuffle index of no-zero element
 
 - Parameters:
+
   - **x** (Tensor) - the input tensor.
   - **count** (Number) -  the count of output, if 0, out all no-zero elements.
   - **seed** (Number) -  type int32 or int64.
@@ -2134,6 +2139,7 @@ Shuffle index of no-zero element
 Computes nms for input boxes and score, support multiple batch and classes. will do clip to window, score filter, top_k, and nms
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor.
   - **scores** (Tensor) -  the input tensor.
   - **score_threshold** (Number) -  A required attribute of type float32, specifying the score filter iou iou_threshold.
@@ -2171,6 +2177,7 @@ Computes nms for input boxes and score, support multiple batch and classes. will
 Extracts a slice from a tensor
 
 - Parameters:
+
   - **self** (Tensor) - the input tensor.
   - **offsets** (ListInt) -  type int32 or int64.
   - **size** (ListInt) -  type int32 or int64.
@@ -2190,12 +2197,13 @@ Extracts a slice from a tensor
   tensor([[1., 2.],
           [6., 7.]], device='npu:0', dtype=torch.float16)
   ```
-  
+
 >npu_dropoutV2(self, seed, p) -> (Tensor, Tensor, Tensor(a!))
 
 count dropout result with seed
 
 - Parameters:
+
   - **self** (Tensor) - The input Tensor.
   - **seed** (Tensor) - The input Tensor.
   - **p** (Float) - Dropout probability.
@@ -2241,6 +2249,7 @@ count dropout result without seed
 
 - Parameters:
   Similar to `torch.dropout`, optimize implemention to npu device.
+
   - **self** (Tensor) - The input Tensor.
   - **p** (Float) - Dropout probability.
 
@@ -2269,6 +2278,7 @@ count dropout result inplace.
 
 - Parameters:
   Similar to `torch.dropout_`, optimize implemention to npu device.
+
   - **result** (Tensor) - The Tensor dropout inplace.
   - **p** (Float) - Dropout probability.
 
@@ -2298,6 +2308,7 @@ count dropout result inplace.
 count indexing result by begin,end,strides array.
 
 - Parameters:
+
   - **self** (Tensor) - A Input Tensor.
   - **begin** (ListInt) - The index of the first value to select.
   - **end** (ListInt) - The index of the last value to select.
@@ -2334,6 +2345,7 @@ count indexing result by begin,end,strides array.
 count ifmr result by begin,end,strides array, Input Feature Map Reconstruction
 
 - Parameters:
+
   - **data** (Tensor) - A Tensor of feature map.
   - **data_min** (Tensor) - A Tensor of min value of feature map.
   - **data_max** (Tensor) - A Tensor of max value of feature map.
@@ -2344,7 +2356,7 @@ count ifmr result by begin,end,strides array, Input Feature Map Reconstruction
   - **search_end** (Float) -  search end.
   - **search_step** (Float) -  step size of searching.
   - **with_offset** (bool) -  whether using offset.
-  
+
 - Returns:
 
   - **scale** - optimal scale. 
@@ -2425,11 +2437,11 @@ count max result with dim.
 
 - Parameters:
   Similar to `torch.max`, optimize implemention to npu device.
-  
+
   - **self** (Tensor) – the input tensor.
   - **dim** (Number) – the dimension to reduce.
   - **keepdim** (bool) – whether the output tensor has dim retained or not.
-  
+
 - Returns:
 
   - **values** - max values in the input tensor.
@@ -2476,6 +2488,7 @@ count min result with dim.
 
 - Parameters:
   Similar to `torch.min`, optimize implemention to npu device.
+
   - **self** (Tensor) – the input tensor.
   - **dim** (Number) – the dimension to reduce.
   - **keepdim** (bool) – whether the output tensor has dim retained or not.
@@ -2526,12 +2539,13 @@ count scatter result with dim.
 
 - Parameters:
   Similar to `torch.scatter`, optimize implemention to npu device.
-  
+
   - **self** (Tensor) - the input tensor.
   - **indices** (Tensor) – the indices of elements to scatter, can be either empty or of the same dimensionality as src. When empty, the operation returns self unchanged.
   - **updates** (Tensor) – the source element(s) to scatter.
+
 - **dim** (Number) – the axis along which to index
-  
+
 - Constraints:
 
   None
@@ -2562,6 +2576,7 @@ count layer norm result.
 
 - Parameters:
   The same as `torch.nn.functional.layer_norm`, optimize implemention to npu device.
+
   - **input** (Tensor) - The input Tensor.
   - **normalized_shape** (ListInt) – input shape from an expected input of size.
   - **weight** (Tensor) - The gamma Tensor.
@@ -2607,9 +2622,9 @@ count layer norm result.
 Produces eight numbers with a value of zero
 
 - Parameters:
-  
+
   - **self** (Tensor) - Any Tensor
-  
+
 - Constraints:
 
   None
@@ -2631,15 +2646,15 @@ Produces eight numbers with a value of zero
 Computes NPU get float status operator function.
 
 - Parameters:
-  
+
   - **self** (Tensor) -  A Tensor of data memory address. Must be float32 .
-  
+
 - Constraints:
 
   None
 
 - Examples:
-  
+
   ```python
   >>> x = torch.rand(2).npu()
   >>> torch.npu_get_float_status(x)
@@ -2651,9 +2666,9 @@ Computes NPU get float status operator function.
 Set the value of address 0x40000 to 0 in each core.
 
 - Parameters:
-  
+
   - **self** (Tensor) -  A tensor of type float32.
-  
+
 - Constraints:
 
   None
@@ -2671,12 +2686,12 @@ Set the value of address 0x40000 to 0 in each core.
 Confuse reshape and transpose.
 
 - Parameters:
-  
+
   - **self** (Tensor) -  A Tensor. Must be one of the following types: float16, float32, int8, int16, int32, int64, uint8, uint16, uint32, uint64.
   - **perm** (ListInt) -  A permutation of the dimensions of "x".
   - **shape** (ListInt) -  The shape of the input.
   - **transpose_first** (bool) -  If True, the transpose is first, otherwise the reshape is first.
-  
+
 - Constraints:
 
   None
@@ -2700,10 +2715,11 @@ Confuse reshape and transpose.
 Multiplies matrix "a" by matrix "b", producing "a * b" . 
 
 - Parameters:
+
   - **self** (Tensor) -  A matrix Tensor. Must be one of the following types: float16, float32, int32. 2D or higher. Has format [ND, NHWC, FRACTAL_NZ]. 
   - **mat2** (Tensor) -  A matrix Tensor. Must be one of the following types: float16, float32, int32. 2D or higher. Has format [ND, NHWC, FRACTAL_NZ]. 
   - **output_sizes** (ListInt) - Output's shape, used in matmul's backpropagation, default [].
-  
+
 - Constraints:
 
   None
@@ -2723,9 +2739,9 @@ Multiplies matrix "a" by matrix "b", producing "a * b" .
 Computes the gradient for the fast_gelu of "x" . 
 
 - Parameters:
-  
+
   - **self** (Tensor) -  A Tensor. Must be one of the following types: float16, float32
-  
+
 - Constraints:
 
   None
@@ -2766,7 +2782,7 @@ Randomly sample a subset of positive and negative examples,and overwrite the lab
         dtype=torch.int32)
   ```
 
-> npu_deformable_conv2d(input, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
+> npu_deformable_conv2d(self, weight, offset, bias, kernel_size, stride, padding, dilation=[1,1,1,1], groups=1, deformable_groups=1, modulated=True) -> (Tensor, Tensor)
 
 Computes the deformed convolution output with the expected input. 
 
@@ -2798,7 +2814,7 @@ Computes the deformed convolution output with the expected input.
   >>> output.shape
   torch.Size([16, 32, 32, 32])
   ```
-  
+
 > npu_mish(self) -> Tensor
 
 Computes hyperbolic tangent of "x" element-wise.
@@ -2806,7 +2822,7 @@ Computes hyperbolic tangent of "x" element-wise.
 - Parameters:
 
   - **self** (Tensor) -  A Tensor. Must be one of the following types: float16, float32.
-  
+
 - Constraints:
 
   None
@@ -2819,12 +2835,13 @@ Computes hyperbolic tangent of "x" element-wise.
   >>> y.shape
   torch.Size([10, 30, 10])
   ```
-  
+
 > npu_anchor_response_flags(self, featmap_size, stride, num_base_anchors) -> Tensor
 
 Generate the responsible flags of anchor in a single feature map. 
 
 - Parameters:
+
   - **self** (Tensor) -  Ground truth box, 2-D Tensor with shape [batch, 4].
   - **featmap_size** (ListInt) -  The size of feature maps, listint. 
   - **strides** (ListInt) -  Stride of current level, listint. 
@@ -2842,17 +2859,19 @@ Generate the responsible flags of anchor in a single feature map.
   >>> y.shape
   torch.Size([32400])
   ```
-  
+
 > npu_yolo_boxes_encode(self, gt_bboxes, stride, performance_mode=False) -> Tensor
 
 Generates bounding boxes based on yolo's "anchor" and "ground-truth" boxes. It is a customized mmdetection operator. 
 
 - Parameters:
+
   - **self** (Tensor) -  anchor boxes generated by the yolo training set. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs, "N" indicates the number of ROIs, and the value "4" refers to (tx, ty, tw, th). 
   - **gt_bboxes** (Tensor) -  target of the transformation, e.g, ground-truth boxes. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs, and 4 indicates "dx", "dy", "dw", and "dh". 
   - **strides** (Tensor) -  Scale for each box. A 1D Tensor of type int32 shape (N,). "N" indicates the number of ROIs. 
+
 - **performance_mode** (bool) - Select performance mode, "high_precision" or "high_performance". select "high_precision" when input type is float32, the output tensor precision will be smaller than 0.0001, select "high_performance" when input type is float32, the ops will be best performance, but precision will be only smaller than 0.005. 
-  
+
 - Constraints:
 
   input anchor boxes only support maximum N=20480. 
@@ -2867,12 +2886,13 @@ Generates bounding boxes based on yolo's "anchor" and "ground-truth" boxes. It i
   >>> output.shape
   torch.Size([2, 4])
   ```
-  
+
 > npu_grid_assign_positive(self, overlaps, box_responsible_flags, max_overlaps, argmax_overlaps, gt_max_overlaps, gt_argmax_overlaps, num_gts, pos_iou_thr, min_pos_iou, gt_max_assign_all) -> Tensor
 
 Performs Position Sensitive PS ROI Pooling Grad. 
 
 - Parameters:
+
   - **self** (Tensor) -  Tensor of type float16 or float32, shape (n, ) 
   - **overlaps** (Tensor) -   A Tensor. Datatype is same as assigned_gt_inds. IOU between gt_bboxes and bboxes. shape(k, n) 
   - **box_responsible_flags** (Tensor) -  A Tensor. Support uint8. Flag to indicate whether box is responsible. 
@@ -2880,7 +2900,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
   - **argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=0). 
   - **gt_max_overlaps** (Tensor) -  A Tensor. Datatype is same as assigned_gt_inds. overlaps.max(axis=1). 
   - **gt_argmax_overlaps** (Tensor) -  A Tensor. Support int32. overlaps.argmax(axis=1). 
-  - **num_gts** (Number) -  A Tensor. Support int32. real k. shape (1, ) 
+  - **num_gts** (Tensor) -  A Tensor. Support int32. real k. shape (1, ) 
   - **pos_iou_thr** (Float) -  loat. IOU threshold for positive bboxes. 
   - **min_pos_iou** (Float) -  float. minimum iou for a bbox to be considered as a positive bbox 
   - **gt_max_assign_all** (bool) -  bool. whether to assign all bboxes with the same highest overlap with some gt to that gt. 
@@ -2919,6 +2939,7 @@ Performs Position Sensitive PS ROI Pooling Grad.
   None
 
 - Examples:
+
   ```python
   >>> a=np.random.uniform(1,10,(2,3,6)).astype(np.float32)
   >>> b=np.random.uniform(3,6,(2)).astype(np.int32)
@@ -2953,6 +2974,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   None
 
 - Examples:
+
   ```python
   >>> a=torch.rand(4,4).npu()
   >>> a
@@ -2986,6 +3008,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   None
 
 - Examples:
+
   ```python
   >>> x=torch.rand(2,16).npu()
   >>> w=torch.rand(4,16).npu()
@@ -2994,47 +3017,6 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   >>> output
   tensor([[3.6335, 4.3713, 2.4440, 2.0081],
           [5.3273, 6.3089, 3.9601, 3.2410]], device='npu:0')
-  ```
-
-> npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
-
-   count adam result. 
-
-- Parameters:
-
-  - **var** (Tensor) - A Tensor. Support float16/float32.
-  - **m**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **v**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **lr** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **beta1** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **beta2** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **epsilon** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **grad**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **max_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **global_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **weight_decay** (Number) - A Tensor. Datatype is same as exp_avg.
-
-- Constraints:
-
-  None
-
-- Examples:
-  ```python
-  >>> var_in = torch.rand(321538).uniform_(-32., 21.).npu()
-  >>> m_in = torch.zeros(321538).npu()
-  >>> v_in = torch.zeros(321538).npu()
-  >>> grad = torch.rand(321538).uniform_(-0.05, 0.03).npu()
-  >>> max_grad_norm = -1.
-  >>> beta1 = 0.9
-  >>> beta2 = 0.99
-  >>> weight_decay = 0.
-  >>> lr = 0.
-  >>> epsilon = 1e-06
-  >>> global_grad_norm = 0.
-  >>> var_out, m_out, v_out = torch.npu_bert_apply_adam(var_in, m_in, v_in, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay)
-  >>> var_out
-  tensor([ 14.7733, -30.1218,  -1.3647,  ..., -16.6840,   7.1518,   8.4872],
-        device='npu:0')
   ```
 
 > npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0, *, out=(var,m,v))
@@ -3064,6 +3046,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   None
 
 - Examples:
+
   ```python
   >>> var_in = torch.rand(321538).uniform_(-32., 21.).npu()
   >>> m_in = torch.zeros(321538).npu()
@@ -3099,6 +3082,7 @@ First calculate the minimum closure area of the two boxes, IoU, the proportion o
   None
 
 - Examples:
+
   ```python
   >>> a=np.random.uniform(0,1,(4,10)).astype(np.float16)
   >>> b=np.random.uniform(0,1,(4,10)).astype(np.float16)
@@ -3131,6 +3115,7 @@ Computes the for the Swish of "x" .
   None
 
 - Examples:
+
 ```python
 >>> a=torch.rand(2,8).npu()
 >>> output = torch.npu_silu(a)
@@ -3152,9 +3137,10 @@ Reshapes a tensor. Only the tensor shape is changed, without changing the data.
 
 - Constraints:
 
-   This operator cannot be directly called by the acllopExecute API. 
+  This operator cannot be directly called by the acllopExecute API. 
 
 - Examples:
+
   ```python
   >>> a=torch.rand(2,8).npu()
   >>> out=torch.npu_reshape(a,(4,4))
@@ -3180,6 +3166,7 @@ Calculate the overlapping area of the rotated box.
   None
 
 - Examples:
+
   ```python
   >>> a=np.random.uniform(0,1,(1,3,5)).astype(np.float16)
   >>> b=np.random.uniform(0,1,(1,2,5)).astype(np.float16)
@@ -3209,6 +3196,7 @@ Calculate the IOU of the rotated box.
   None
 
 - Examples:
+
   ```python
   >>> a=np.random.uniform(0,1,(2,2,5)).astype(np.float16)
   >>> b=np.random.uniform(0,1,(2,3,5)).astype(np.float16)
