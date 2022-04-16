@@ -110,6 +110,15 @@ def generate_bindings_code(base_dir):
         sys.exit(1)
 
 
+def build_stub(base_dir):
+    build_stub_cmd = ["sh", os.path.join(base_dir, 'third_party/acl/libs/build_stub.sh')]
+    if subprocess.call(build_stub_cmd) != 0:
+        print(
+            'Failed to build stub: {}'.format(build_stub_cmd),
+            file=sys.stderr)
+        sys.exit(1)
+
+
 def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
@@ -244,6 +253,7 @@ build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
     generate_bindings_code(BASE_DIR)
+    build_stub(BASE_DIR)
 
 # Setup include directories folders.
 include_directories = [
