@@ -116,11 +116,6 @@ function main()
         fi
     done
 
-    cd ${CUR_DIR}/../third_party/acl/libs
-    # stub
-    dos2unix build_stub.sh
-    chmod +x build_stub.sh
-    ./build_stub.sh
     cd ${CUR_DIR}/..
     # if you add or delete file/files in the project, you need to remove the following comment
     # make clean
