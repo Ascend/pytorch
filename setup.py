@@ -227,9 +227,6 @@ setup(
         version=VERSION,
         description='NPU bridge for PyTorch',
         url='https://gitee.com/ascend/pytorch',
-        author='PyTorch/NPU Dev Team',
-        author_email='pytorch-npu@huawei.com',
-        # Exclude the build files.
         packages=find_packages(exclude=['build']),
         ext_modules=[
             CppExtension(
