@@ -1,44 +1,268 @@
-# FrameworkPTAdapter 2.0.3 Release Notes
--   [FrameworkPTAdapter 2.0.3](#frameworkptadapter-2-0-3md)
-    -   [Before You Start](#before-you-startmd)
-    -   [New Features](#new-featuresmd)
-    -   [Modified Features](#modified-featuresmd)
-    -   [Resolved Issues](#resolved-issuesmd)
-    -   [Known Issues](#known-issuesmd)
-    -   [Compatibility](#compatibilitymd)
--   [FrameworkPTAdapter 2.0.2](#frameworkptadapter-2-0-2md)
-    -   [Before You Start](#before-you-start-0md)
-    -   [New Features](#new-features-1md)
-    -   [Modified Features](#modified-features-2md)
-    -   [Resolved Issues](#resolved-issues-3md)
-    -   [Known Issues](#known-issues-4md)
-    -   [Compatibility](#compatibility-5md)
-<h2 id="frameworkptadapter-2-0-3md">FrameworkPTAdapter 2.0.3</h2>
+# FrameworkPTAdapter 3.0.RC1 Release Notes
 
--   **[Before You Start](#before-you-startmd)**  
+- [FrameworkPTAdapter 3.0.RC1 Release Notes](#frameworkptadapter-30rc1-release-notes)
+  - [FrameworkPTAdapter 3.0.RC1](#frameworkptadapter-30rc1)
+    - [Before You Start](#before-you-start)
+    - [New Features](#new-features)
+    - [Modified Features](#modified-features)
+    - [Resolved Issues](#resolved-issues)
+    - [Known Issues](#known-issues)
+    - [Compatibility](#compatibility)
+  - [FrameworkPTAdapter 2.0.4](#frameworkptadapter-204)
+    - [Before You Start](#before-you-start-1)
+    - [New Features](#new-features-1)
+    - [Modified Features](#modified-features-1)
+    - [Resolved Issues](#resolved-issues-1)
+    - [Known Issues](#known-issues-1)
+    - [Compatibility](#compatibility-1)
+  - [FrameworkPTAdapter 2.0.3](#frameworkptadapter-203)
+    - [Before You Start](#before-you-start-2)
+    - [New Features](#new-features-2)
+    - [Modified Features](#modified-features-2)
+    - [Resolved Issues](#resolved-issues-2)
+    - [Known Issues](#known-issues-2)
+    - [Compatibility](#compatibility-2)
+  - [FrameworkPTAdapter 2.0.2](#frameworkptadapter-202)
+    - [Before You Start](#before-you-start-3)
+    - [New Features](#new-features-3)
+    - [Modified Features](#modified-features-3)
+    - [Resolved Issues](#resolved-issues-3)
+    - [Known Issues](#known-issues-3)
+    - [Compatibility](#compatibility-3)
 
--   **[New Features](#new-featuresmd)**  
+## FrameworkPTAdapter 3.0.RC1
+### Before You Start
 
--   **[Modified Features](#modified-featuresmd)**  
+This framework is modified based on the open-source PyTorch 1.5.0 and 1.8.1 developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
--   **[Resolved Issues](#resolved-issuesmd)**  
+PyTorch 1.8.1 adopts the plugin adaptation mode and inherits the features of PyTorch 1.5.0. Their functions are basically the same, but PyTorch 1.8.1 provides better development experience for backend operator adaptation. It supports AOE-based tuning.
 
--   **[Known Issues](#known-issuesmd)**  
+### New Features
 
--   **[Compatibility](#compatibilitymd)**  
+**Table 1** Features supported by PyTorch
+
+<a name="t76c34275cbb74753970f7c5a9eb594fa"></a>
+
+<table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.459999999999999%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>Level-1 Feature</p>
+</th>
+<th class="cellrowborder" valign="top" width="26.27%" id="mcps1.2.4.1.2"><p id="a4581ffde4a5f455faadfba144243a9d4"><a name="a4581ffde4a5f455faadfba144243a9d4"></a><a name="a4581ffde4a5f455faadfba144243a9d4"></a>Level-2 Feature</p>
+</th>
+<th class="cellrowborder" valign="top" width="63.27%" id="mcps1.2.4.1.3"><p id="a2a1562364b09433a83133fa10b3cf2b3"><a name="a2a1562364b09433a83133fa10b3cf2b3"></a><a name="a2a1562364b09433a83133fa10b3cf2b3"></a>Description</p>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr id="row7979351559"><td class="cellrowborder" rowspan="2" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>PyTorch 1.5.0 features adapted to NPUs</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>AOE-based tuning</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Supported the AOE auto tuning tool to improve the model performance.</p>
+</td>
+</tr>
+<tr id="row13971435754"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p79831331353"><a name="p79831331353"></a><a name="p79831331353"></a>Basic framework functions</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a> Added the function of adapted operator development. For details, see the API list.</p>
+</td>
+</tr>
+<tr id="row7979351559"><td class="cellrowborder" rowspan="3" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>PyTorch 1.8.1 features adapted to NPUs</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>Plugin decoupling</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Decoupled the NPU-adapted code and ported it to the **torch_npu** plugin to decouple the Ascend-adapted code from the native PyTorch code.</p>
+</td>
+<tr>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>AOE-based tuning</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Supported the AOE auto tuning tool to improve the model performance.</p>
+</td>
+</tr>
+<tr id="row109719353511"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p18983183315515"><a name="p18983183315515"></a><a name="p18983183315515"></a>Improvement of framework API satisfaction</p>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p836221112812"><a name="p836221112812"></a><a name="p836221112812"></a>Supported APIs that have been adapted to Ascend PyTorch 1.5.0. For details, see the API list.</p>
+</td>
+</tr>
+</tbody>
+</table>
 
 
-<h3 id="before-you-startmd">Before You Start</h3>
+
+
+
+### Modified Features
+
+N/A
+
+### Resolved Issues
+
+N/A
+
+### Known Issues
+
+<a name="table1969972073016"></a>
+
+<table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
+</th>
+<th class="cellrowborder" valign="top" width="81.78%" id="mcps1.1.3.1.2"><p id="p269919203308"><a name="p269919203308"></a><a name="p269919203308"></a>Symptom</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type support</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPUs do not support the input or output of the inf/nan data of the float16 type.</p>
+</td>
+</tr>
+<tr id="row146991520153016"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p156997200308"><a name="p156997200308"></a><a name="p156997200308"></a>Data format</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p10699182020308"><a name="p10699182020308"></a><a name="p10699182020308"></a>Dimensions cannot be reduced when the format larger than 4D is used.</p>
+</td>
+</tr>
+<tr id="row11121205610549"><td class="cellrowborder" rowspan="3" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1647216219558"><a name="p1647216219558"></a><a name="p1647216219558"></a>Restrictions on collective communication</p>
+<p id="p0465121912402"><a name="p0465121912402"></a><a name="p0465121912402"></a></p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p3116115695415"><a name="p3116115695415"></a><a name="p3116115695415"></a>The graphs executed on different devices in a training job must be the same.</p>
+</td>
+</tr>
+<tr id="row51211656105411"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p1311616560541"><a name="p1311616560541"></a><a name="p1311616560541"></a>Allocation at only 1, 2, 4, or 8 processors is supported.</p>
+</td>
+</tr>
+<tr id="row8647195765419"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p2064225716544"><a name="p2064225716544"></a><a name="p2064225716544"></a>Only the int8, int32, float16, and float32 data types are supported.</p>
+</td>
+</tr>
+<tr id="row4646195719548"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p4642195718541"><a name="p4642195718541"></a><a name="p4642195718541"></a>Apex function</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p864205725412"><a name="p864205725412"></a><a name="p864205725412"></a>In the current version, Apex is implemented mainly using Python, and the customized optimization of CUDA kernel in Apex is not supported.</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+
+
+### Compatibility
+
+Atlas 800 (model 9010): CentOS 7.6, Ubuntu 18.04/2.04, BC-Linux 7.6, Debian 9.9, Debian 10, openEuler 20.03 LTS
+
+Atlas 800 (model 9000): CentOS 7.6, Ubuntu 18.04/2.04, EulerOS 2.8/2.10, Kylin V10, BC-Linux 7.6, openEuler 20.03 LTS, UOS 20 1020e
+
+## FrameworkPTAdapter 2.0.4
+### Before You Start
+
+This framework is modified based on the open-source PyTorch 1.5.0 and 1.8.1 developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
+
+PyTorch 1.8.1 inherits the features of PyTorch 1.5.0. Their functions are basically the same, but PyTorch 1.8.1 provides better development experience for backend operator adaptation. Currently, PyTorch 1.8.1 supports only the ResNet-50 network model.
+### New Features
+
+**Table 1** Features supported by PyTorch
+
+<table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.459999999999999%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>Level-1 Feature</p>
+</th>
+<th class="cellrowborder" valign="top" width="26.27%" id="mcps1.2.4.1.2"><p id="a4581ffde4a5f455faadfba144243a9d4"><a name="a4581ffde4a5f455faadfba144243a9d4"></a><a name="a4581ffde4a5f455faadfba144243a9d4"></a>Level-2 Feature</p>
+</th>
+<th class="cellrowborder" valign="top" width="63.27%" id="mcps1.2.4.1.3"><p id="a2a1562364b09433a83133fa10b3cf2b3"><a name="a2a1562364b09433a83133fa10b3cf2b3"></a><a name="a2a1562364b09433a83133fa10b3cf2b3"></a>Description</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="row7979351559"><td class="cellrowborder" rowspan="3" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>PyTorch 1.5.0 features adapted to NPUs</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>Optimization of Model Accuracy Analyzer</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Supported mapping between IR and TBE operators and enabled the NPU dump data to be loaded to the GPU side for comparison.</p>
+</td>
+</tr>
+<tr id="row109719353511"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p18983183315515"><a name="p18983183315515"></a><a name="p18983183315515"></a>E2E prof</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p836221112812"><a name="p836221112812"></a><a name="p836221112812"></a>Integrated the profile data obtained by the native PyTorch Profiling tool and CANN prof tool to implement end-to-end model and operator performance analysis.</p>
+</td>
+</tr>
+<tr id="row13971435754"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p79831331353"><a name="p79831331353"></a><a name="p79831331353"></a>Basic framework functions</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a>Added the function of adapted operator development. For details, see the operator list.</p>
+</td>
+</tr>
+    <tr id="row7979351559"><td class="cellrowborder" rowspan="2" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>PyTorch 1.8.1 features adapted to NPUs</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>AMP</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Supported the native training with automatic mixed precision (AMP) of PyTorch.</p>
+</td>
+</tr>
+<tr id="row109719353511"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p18983183315515"><a name="p18983183315515"></a><a name="p18983183315515"></a>Profiling</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p836221112812"><a name="p836221112812"></a><a name="p836221112812"></a>Supported the native profiling function of PyTorch.</p>
+</td>
+</tr>
+    <tr id="row7979351559"><td class="cellrowborder" rowspan="2" valign="top" width="10.459999999999999%" headers="mcps1.2.4.1.1 "><p id="p69836331553"><a name="p69836331553"></a><a name="p69836331553"></a>OS compatibility</p>
+</td>
+<td class="cellrowborder" valign="top" width="26.27%" headers="mcps1.2.4.1.2 "><p id="p149831333357"><a name="p149831333357"></a><a name="p149831333357"></a>OS compatibility</p>
+</td>
+<td class="cellrowborder" valign="top" width="63.27%" headers="mcps1.2.4.1.3 "><p id="p1398313336511"><a name="p1398313336511"></a><a name="p1398313336511"></a>Supported Ubuntu 20.04 (x86 and ARM) and EulerOS 2.10 (ARM).</p>
+</td>
+<tr id="row13971435754"><td class="cellrowborder" valign="top" headers="mcps1.2.4.1.1 "><p id="p79831331353"><a name="p79831331353"></a><a name="p79831331353"></a>Python version compatibility</p>
+</td>
+<td class="cellrowborder" valign="top" headers="mcps1.2.4.1.2 "><p id="p109832331055"><a name="p109832331055"></a><a name="p109832331055"></a>Supported compilation and use of Python 3.9 (only in PyTorch 1.8.1).</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+### Modified Features
+
+N/A
+### Resolved Issues
+
+N/A
+### Known Issues
+
+<table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
+</th>
+<th class="cellrowborder" valign="top" width="81.78%" id="mcps1.1.3.1.2"><p id="p269919203308"><a name="p269919203308"></a><a name="p269919203308"></a>Description</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="row9699142003011"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1769932017300"><a name="p1769932017300"></a><a name="p1769932017300"></a>Data type support</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p13699152010301"><a name="p13699152010301"></a><a name="p13699152010301"></a>NPUs do not support the input or output of the inf/nan data of the float16 type.</p>
+</td>
+</tr>
+<tr id="row146991520153016"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p156997200308"><a name="p156997200308"></a><a name="p156997200308"></a>Data format</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p10699182020308"><a name="p10699182020308"></a><a name="p10699182020308"></a>Dimensions cannot be reduced when the format larger than 4D is used.</p>
+</td>
+</tr>
+<tr id="row11121205610549"><td class="cellrowborder" rowspan="3" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p1647216219558"><a name="p1647216219558"></a><a name="p1647216219558"></a>Restrictions on collective communication</p>
+<p id="p0465121912402"><a name="p0465121912402"></a><a name="p0465121912402"></a></p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p3116115695415"><a name="p3116115695415"></a><a name="p3116115695415"></a>The graphs executed on different devices in a training job must be the same.</p>
+</td>
+</tr>
+<tr id="row51211656105411"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p1311616560541"><a name="p1311616560541"></a><a name="p1311616560541"></a>Allocation at only 1, 2, 4, or 8 processors is supported.</p>
+</td>
+</tr>
+<tr id="row8647195765419"><td class="cellrowborder" valign="top" headers="mcps1.1.3.1.1 "><p id="p2064225716544"><a name="p2064225716544"></a><a name="p2064225716544"></a>Only the int8, int32, float16, and float32 data types are supported.</p>
+</td>
+</tr>
+<tr id="row4646195719548"><td class="cellrowborder" valign="top" width="18.22%" headers="mcps1.1.3.1.1 "><p id="p4642195718541"><a name="p4642195718541"></a><a name="p4642195718541"></a>Apex function</p>
+</td>
+<td class="cellrowborder" valign="top" width="81.78%" headers="mcps1.1.3.1.2 "><p id="p864205725412"><a name="p864205725412"></a><a name="p864205725412"></a>In the current version, Apex is implemented mainly using Python, and the customized optimization of CUDA kernel in Apex is not supported.</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+### Compatibility
+
+Atlas 800 (model 9010): CentOS 7.6, Ubuntu 18.04/2.04, BC-Linux 7.6, Debian 9.9, Debian 10, openEuler 20.03 LTS
+
+Atlas 800 (model 9000): CentOS 7.6, Ubuntu 18.04/2.04, EulerOS 2.8/2.10, Kylin V10, BC-Linux 7.6, openEuler 20.03 LTS, UOS 20 1020e
+## FrameworkPTAdapter 2.0.3
+### Before You Start
 
 This framework is modified based on the open-source PyTorch 1.5.0 developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
 
 PyTorch 1.8.1 is supported by this version and later, and this version inherits the features of PyTorch 1.5.0 and provides the same functions, except for the Profiling tool. In addition, it optimizes the backend operator adaptation. Currently, PyTorch 1.8.1 supports only the ResNet-50 network model.
-
-<h3 id="new-featuresmd">New Features</h3>
+### New Features
 
 **Table  1**  Features supported by  PyTorch
 
-<a name="t76c34275cbb74753970f7c5a9eb594fa"></a>
 <table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.459999999999999%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>Level-1 Feature</p>
 </th>
 <th class="cellrowborder" valign="top" width="26.27%" id="mcps1.2.4.1.2"><p id="a4581ffde4a5f455faadfba144243a9d4"><a name="a4581ffde4a5f455faadfba144243a9d4"></a><a name="a4581ffde4a5f455faadfba144243a9d4"></a>Level-2 Feature</p>
@@ -209,17 +433,14 @@ PyTorch 1.8.1 is supported by this version and later, and this version inherits 
 </tbody>
 </table>
 
-<h3 id="modified-featuresmd">Modified Features</h3>
+### Modified Features
 
 N/A
-
-<h3 id="resolved-issuesmd">Resolved Issues</h3>
+### Resolved Issues
 
 N/A
+### Known Issues
 
-<h3 id="known-issuesmd">Known Issues</h3>
-
-<a name="table1969972073016"></a>
 <table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
 </th>
 <th class="cellrowborder" valign="top" width="81.78%" id="mcps1.1.3.1.2"><p id="p269919203308"><a name="p269919203308"></a><a name="p269919203308"></a>Description</p>
@@ -256,36 +477,20 @@ N/A
 </tbody>
 </table>
 
-<h3 id="compatibilitymd">Compatibility</h3>
+### Compatibility
 
-Atlas 800 \(model 9010\): CentOS 7.6, Ubuntu 18.04, BC-Linux 7.6, Debian 9.9, Debian 10, and openEuler 20.03 LTS.
+Atlas 800 (model 9010): CentOS 7.6, Ubuntu 18.04, BC-Linux 7.6, Debian 9.9, Debian 10, openEuler 20.03 LTS
 
-Atlas 800 \(model 9000\): CentOS 7.6, Euler 2.8, Kylin v10, BC-Linux 7.6, OpenEuler 20.03 LTS, and UOS 20 1020e.
+Atlas 800 (model 9000): CentOS 7.6, Euler 2.8, Kylin v10, BC-Linux 7.6, openEuler 20.03 LTS, UOS 20 1020e
 
-<h2 id="frameworkptadapter-2-0-2md">FrameworkPTAdapter 2.0.2</h2>
-
--   **[Before You Start](#before-you-start-0md)**  
-
--   **[New Features](#new-features-1md)**  
-
--   **[Modified Features](#modified-features-2md)**  
-
--   **[Resolved Issues](#resolved-issues-3md)**  
-
--   **[Known Issues](#known-issues-4md)**  
-
--   **[Compatibility](#compatibility-5md)**  
-
-
-<h3 id="before-you-start-0md">Before You Start</h3>
+## FrameworkPTAdapter 2.0.2
+### Before You Start
 
 This framework is modified based on the open-source PyTorch 1.5.0 primarily developed by Facebook, inherits native PyTorch features, and uses NPUs for dynamic image training. Models are adapted by operator granularity, code can be reused, and current networks can be ported and used on NPUs with only device types or data types modified.
-
-<h3 id="new-features-1md">New Features</h3>
+### New Features
 
 **Table  1**  Features supported by  PyTorch
 
-<a name="t76c34275cbb74753970f7c5a9eb594fa"></a>
 <table><thead align="left"><tr id="r0c10e7163bf54fe8816ab5ca2d77ccc4"><th class="cellrowborder" valign="top" width="10.489999999999998%" id="mcps1.2.4.1.1"><p id="a7888762cf8294977b7d114b1c898d1bd"><a name="a7888762cf8294977b7d114b1c898d1bd"></a><a name="a7888762cf8294977b7d114b1c898d1bd"></a>Level-1 Feature</p>
 </th>
 <th class="cellrowborder" valign="top" width="26.3%" id="mcps1.2.4.1.2"><p id="a4581ffde4a5f455faadfba144243a9d4"><a name="a4581ffde4a5f455faadfba144243a9d4"></a><a name="a4581ffde4a5f455faadfba144243a9d4"></a>Level-2 Feature</p>
@@ -356,17 +561,14 @@ This framework is modified based on the open-source PyTorch 1.5.0 primarily deve
 </tbody>
 </table>
 
-<h3 id="modified-features-2md">Modified Features</h3>
+### Modified Features
 
 N/A
-
-<h3 id="resolved-issues-3md">Resolved Issues</h3>
+### Resolved Issues
 
 N/A
+### Known Issues
 
-<h3 id="known-issues-4md">Known Issues</h3>
-
-<a name="table1969972073016"></a>
 <table><thead align="left"><tr id="row3699162017307"><th class="cellrowborder" valign="top" width="18.22%" id="mcps1.1.3.1.1"><p id="p16992020153010"><a name="p16992020153010"></a><a name="p16992020153010"></a>Known Issue</p>
 </th>
 <th class="cellrowborder" valign="top" width="81.78%" id="mcps1.1.3.1.2"><p id="p269919203308"><a name="p269919203308"></a><a name="p269919203308"></a>Description</p>
@@ -403,9 +605,9 @@ N/A
 </tbody>
 </table>
 
-<h3 id="compatibility-5md">Compatibility</h3>
+### Compatibility
 
-Atlas 800 \(model 9010\): CentOS 7.6/Ubuntu 18.04/BC-Linux 7.6/Debian 9.9/Debian 10/openEuler 20.03 LTS
+Atlas 800 (model 9010): CentOS 7.6/Ubuntu 18.04/BC-Linux 7.6/Debian 9.9/Debian 10/openEuler 20.03 LTS
 
-Atlas 800 \(model 9000\): CentOS 7.6/EulerOS 2.8/Kylin v10/BC-Linux 7.6/openEuler 20.03 LTS
+Atlas 800 (model 9000): CentOS 7.6/EulerOS 2.8/Kylin v10/BC-Linux 7.6/openEuler 20.03 LTS
 
