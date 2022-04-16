@@ -223,6 +223,7 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tbody>
 </table>
 
+
 ## Quick Start
 
 ### Introduction
@@ -798,8 +799,8 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 2. Check the operator adaptation. Before porting the original model and training script to an Ascend AI Processor, train the original model and training script on the CPU, obtain the operator information by using the dump op method, and compare the operator information with that in the  _PyTorch Operator Support_  to check whether the operator is supported. For details about the dump op method, see  [dump op Method](#dump-op-method). If an operator is not supported, develop the operator. For details, see the *PyTorch Operator Development Guide*.
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator (the first operator that is not supported) cannot run in the backend of the Ascend AI Processor. Environment Setup
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator (the first operator that is not supported) cannot run in the backend of the Ascend AI Processor. Environment Setup
 
 ## Environment Setup
 
@@ -818,6 +819,7 @@ The Ascend platform provides a script conversion tool to enable you to port trai
 Ascend NPU is an up-and-comer in the AI computing field, but most training and online inference scripts are based on GPUs. Due to the architecture differences between NPUs and GPUs, GPU-based training and online inference scripts cannot be directly used on NPUs. The script conversion tool provides an automated method for converting GPU-based scripts into NPU-based scripts, reducing the learning cost and workload of manual script migration, thereby improving the migration efficiency.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
+>
 >-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
 >-   The original scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
 >-   For scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
@@ -1109,6 +1111,7 @@ Ascend NPU is an up-and-comer in the AI computing field, but most training and o
 </tbody>
 </table>
 
+
 ##### System Requirement
 
 msFmkTransplt runs on Ubuntu 18.04, CentOS 7.6, and EulerOS 2.8 only.
@@ -1165,6 +1168,7 @@ Set up the development environment by referring to the  _CANN Software Installat
 </tr>
 </tbody>
 </table>
+
 
 ##### Customizing a Rule File
 
@@ -1258,21 +1262,22 @@ An example of a custom conversion rule is as follows:
 </tbody>
 </table>
 
+
 ##### Performing Conversion
 
-1.  Go to the directory of the script conversion tool msFmkTransplt.
+1. Go to the directory of the script conversion tool msFmkTransplt.
 
-    ```
-    cd {Ascend-CANN-Toolkit install path}/ascend-toolkit/{version}/{arch}-linux/toolkit/tools/ms_fmk_transplt
-    ```
+   ```
+   cd {Ascend-CANN-Toolkit install path}/ascend-toolkit/{version}/{arch}-linux/toolkit/tools/ms_fmk_transplt
+   ```
 
-2.  Execute msFmkTransplt.
+2. Execute msFmkTransplt.
 
-    ```
-    python3 ms_fmk_transplt.py -i original script path -o output path of the script conversion result [-r path of the JSON file for custom general conversion rules]
-    ```
+   ```
+   python3 ms_fmk_transplt.py -i original script path -o output path of the script conversion result [-r path of the JSON file for custom general conversion rules]
+   ```
 
-3.  Find the converted script in the specified output path.
+3. Find the converted script in the specified output path.
 
 #### Result Analysis
 
@@ -1347,197 +1352,197 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
 
 #### PyTorch-related API Replacement
 
-1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 5](#table1922064517344)  lists the supported device-related APIs.
+1. To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 5](#table1922064517344)  lists the supported device-related APIs.
 
-    **Table  5**  Device-related APIs
+   **Table  5**  Device-related APIs
 
-    <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>Original PyTorch API</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>API Adapted to the Ascend AI Processor</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="14.411441144114413%" id="mcps1.2.4.1.3"><p id="p1622118457342"><a name="p1622118457342"></a><a name="p1622118457342"></a>Description</p>
-    </th>
-    </tr>
-    </thead>
-    <tbody><tr id="row2022164516340"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p172214454341"><a name="p172214454341"></a><a name="p172214454341"></a>torch.cuda.is_available()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch.npu.is_available()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1222144553413"><a name="p1222144553413"></a><a name="p1222144553413"></a>Checks whether the device is available in the current environment (not the final result).</p>
-    </td>
-    </tr>
-    <tr id="row19221245203420"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1722124593416"><a name="p1722124593416"></a><a name="p1722124593416"></a>torch.cuda.current_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch.npu.current_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p192214455345"><a name="p192214455345"></a><a name="p192214455345"></a>Obtains the device in use.</p>
-    </td>
-    </tr>
-    <tr id="row822114455346"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1522111454345"><a name="p1522111454345"></a><a name="p1522111454345"></a>torch.cuda.device_count()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch.npu.device_count()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p52211345183414"><a name="p52211345183414"></a><a name="p52211345183414"></a>Obtains the number of devices in the current environment.</p>
-    </td>
-    </tr>
-    <tr id="row422124520348"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1322134593411"><a name="p1322134593411"></a><a name="p1322134593411"></a>torch.cuda.set_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch.npu.set_device()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922164543419"><a name="p922164543419"></a><a name="p922164543419"></a>Sets the device in use.</p>
-    </td>
-    </tr>
-    <tr id="row31815177105"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p42131523171020"><a name="p42131523171020"></a><a name="p42131523171020"></a>torch.tensor([1,2,3]).is_cuda</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p102131234108"><a name="p102131234108"></a><a name="p102131234108"></a>torch.tensor([1,2,3]).is_npu</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p132132231105"><a name="p132132231105"></a><a name="p132132231105"></a>Checks whether a tensor is in the format on the CUDA or NPU device.</p>
-    </td>
-    </tr>
-    <tr id="row7650141431011"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p5213122316102"><a name="p5213122316102"></a><a name="p5213122316102"></a>torch.tensor([1,2,3]).cuda()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p2213202341016"><a name="p2213202341016"></a><a name="p2213202341016"></a>torch.tensor([1,2,3]).npu()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1921312361010"><a name="p1921312361010"></a><a name="p1921312361010"></a>Converts a tensor to the format on the CUDA or NPU device.</p>
-    </td>
-    </tr>
-    <tr id="row1321915121101"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1821322314102"><a name="p1821322314102"></a><a name="p1821322314102"></a>torch.tensor([1,2,3]).to("cuda")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p142131823181018"><a name="p142131823181018"></a><a name="p142131823181018"></a>torch.tensor([1,2,3]).to('npu')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p182131423191019"><a name="p182131423191019"></a><a name="p182131423191019"></a>Converts a tensor to the format on the CUDA or NPU device.</p>
-    </td>
-    </tr>
-    <tr id="row722110451342"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1222112451349"><a name="p1222112451349"></a><a name="p1222112451349"></a>torch.cuda.synchronize()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch.npu.synchronize()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922264516347"><a name="p922264516347"></a><a name="p922264516347"></a>Waits until the event is complete.</p>
-    </td>
-    </tr>
-    <tr id="row132226452341"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p152221545123413"><a name="p152221545123413"></a><a name="p152221545123413"></a>torch.cuda.device</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch.npu.device</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p16222184523412"><a name="p16222184523412"></a><a name="p16222184523412"></a>Generates a device class, which can be used to perform device-related operations.</p>
-    </td>
-    </tr>
-    <tr id="row1222104543416"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p922284573412"><a name="p922284573412"></a><a name="p922284573412"></a>torch.cuda.Stream(device)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch.npu.Stream(device)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p8222144583419"><a name="p8222144583419"></a><a name="p8222144583419"></a>Generates a stream object.</p>
-    </td>
-    </tr>
-    <tr id="row11579712134013"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p45791812154016"><a name="p45791812154016"></a><a name="p45791812154016"></a>torch.cuda.stream(Stream)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch.npu.stream(Stream)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1058019125401"><a name="p1058019125401"></a><a name="p1058019125401"></a>Mainly used for scope restriction.</p>
-    </td>
-    </tr>
-    <tr id="row117072156404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p137074157405"><a name="p137074157405"></a><a name="p137074157405"></a>torch.cuda.current_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch.npu.current_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p56119267579"><a name="p56119267579"></a><a name="p56119267579"></a>Obtains the current stream. </p>
-    </td>
-    </tr>
-    <tr id="row13397184409"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p14339181815400"><a name="p14339181815400"></a><a name="p14339181815400"></a>torch.cuda.default_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch.npu.default_stream()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p15339101814018"><a name="p15339101814018"></a><a name="p15339101814018"></a>Obtains the default stream.</p>
-    </td>
-    </tr>
-    <tr id="row16315232204019"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p53151332164015"><a name="p53151332164015"></a><a name="p53151332164015"></a>device = torch.device("cuda:0")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11315732124016"><a name="p11315732124016"></a><a name="p11315732124016"></a>device = torch.device("npu:0")</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p631512321408"><a name="p631512321408"></a><a name="p631512321408"></a>Specifies a device.</p>
-    </td>
-    </tr>
-    <tr id="row11692173414015"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p91981312105112"><a name="p91981312105112"></a><a name="p91981312105112"></a>torch.autograd.profiler.profile</p>
-    <p id="p9692103434015"><a name="p9692103434015"></a><a name="p9692103434015"></a>(use_cuda=True)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p143251615120"><a name="p143251615120"></a><a name="p143251615120"></a>torch.autograd.profiler.profile</p>
-    <p id="p46924341402"><a name="p46924341402"></a><a name="p46924341402"></a>(use_npu=True)</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p111818451031"><a name="p111818451031"></a><a name="p111818451031"></a>Specifies that CUDA/NPU is used during profiler execution.</p>
-    </td>
-    </tr>
-    <tr id="row851311373404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1513737104012"><a name="p1513737104012"></a><a name="p1513737104012"></a>torch.cuda.Event()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch.npu.Event()</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p14513133754017"><a name="p14513133754017"></a><a name="p14513133754017"></a>Returns events on a device.</p>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    
-2.  When building or porting a network, you need to create tensors of specified data types. The following table lists the tensors created on the Ascend AI Processor.
+   <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>Original PyTorch API</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>API Adapted to the Ascend AI Processor</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="14.411441144114413%" id="mcps1.2.4.1.3"><p id="p1622118457342"><a name="p1622118457342"></a><a name="p1622118457342"></a>Description</p>
+   </th>
+   </tr>
+   </thead>
+   <tbody><tr id="row2022164516340"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p172214454341"><a name="p172214454341"></a><a name="p172214454341"></a>torch.cuda.is_available()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p1222144515342"><a name="p1222144515342"></a><a name="p1222144515342"></a>torch.npu.is_available()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1222144553413"><a name="p1222144553413"></a><a name="p1222144553413"></a>Checks whether the device is available in the current environment (not the final result).</p>
+   </td>
+   </tr>
+   <tr id="row19221245203420"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1722124593416"><a name="p1722124593416"></a><a name="p1722124593416"></a>torch.cuda.current_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p622184515348"><a name="p622184515348"></a><a name="p622184515348"></a>torch.npu.current_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p192214455345"><a name="p192214455345"></a><a name="p192214455345"></a>Obtains the device in use.</p>
+   </td>
+   </tr>
+   <tr id="row822114455346"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1522111454345"><a name="p1522111454345"></a><a name="p1522111454345"></a>torch.cuda.device_count()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p9506132713377"><a name="p9506132713377"></a><a name="p9506132713377"></a>torch.npu.device_count()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p52211345183414"><a name="p52211345183414"></a><a name="p52211345183414"></a>Obtains the number of devices in the current environment.</p>
+   </td>
+   </tr>
+   <tr id="row422124520348"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1322134593411"><a name="p1322134593411"></a><a name="p1322134593411"></a>torch.cuda.set_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7221645123417"><a name="p7221645123417"></a><a name="p7221645123417"></a>torch.npu.set_device()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922164543419"><a name="p922164543419"></a><a name="p922164543419"></a>Sets the device in use.</p>
+   </td>
+   </tr>
+   <tr id="row31815177105"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p42131523171020"><a name="p42131523171020"></a><a name="p42131523171020"></a>torch.tensor([1,2,3]).is_cuda</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p102131234108"><a name="p102131234108"></a><a name="p102131234108"></a>torch.tensor([1,2,3]).is_npu</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p132132231105"><a name="p132132231105"></a><a name="p132132231105"></a>Checks whether a tensor is in the format on the CUDA or NPU device.</p>
+   </td>
+   </tr>
+   <tr id="row7650141431011"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p5213122316102"><a name="p5213122316102"></a><a name="p5213122316102"></a>torch.tensor([1,2,3]).cuda()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p2213202341016"><a name="p2213202341016"></a><a name="p2213202341016"></a>torch.tensor([1,2,3]).npu()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1921312361010"><a name="p1921312361010"></a><a name="p1921312361010"></a>Converts a tensor to the format on the CUDA or NPU device.</p>
+   </td>
+   </tr>
+   <tr id="row1321915121101"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1821322314102"><a name="p1821322314102"></a><a name="p1821322314102"></a>torch.tensor([1,2,3]).to("cuda")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p142131823181018"><a name="p142131823181018"></a><a name="p142131823181018"></a>torch.tensor([1,2,3]).to('npu')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p182131423191019"><a name="p182131423191019"></a><a name="p182131423191019"></a>Converts a tensor to the format on the CUDA or NPU device.</p>
+   </td>
+   </tr>
+   <tr id="row722110451342"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1222112451349"><a name="p1222112451349"></a><a name="p1222112451349"></a>torch.cuda.synchronize()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124503411"><a name="p16222124503411"></a><a name="p16222124503411"></a>torch.npu.synchronize()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p922264516347"><a name="p922264516347"></a><a name="p922264516347"></a>Waits until the event is complete.</p>
+   </td>
+   </tr>
+   <tr id="row132226452341"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p152221545123413"><a name="p152221545123413"></a><a name="p152221545123413"></a>torch.cuda.device</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p15222445193410"><a name="p15222445193410"></a><a name="p15222445193410"></a>torch.npu.device</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p16222184523412"><a name="p16222184523412"></a><a name="p16222184523412"></a>Generates a device class, which can be used to perform device-related operations.</p>
+   </td>
+   </tr>
+   <tr id="row1222104543416"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p922284573412"><a name="p922284573412"></a><a name="p922284573412"></a>torch.cuda.Stream(device)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p16222124512343"><a name="p16222124512343"></a><a name="p16222124512343"></a>torch.npu.Stream(device)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p8222144583419"><a name="p8222144583419"></a><a name="p8222144583419"></a>Generates a stream object.</p>
+   </td>
+   </tr>
+   <tr id="row11579712134013"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p45791812154016"><a name="p45791812154016"></a><a name="p45791812154016"></a>torch.cuda.stream(Stream)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p7580151217409"><a name="p7580151217409"></a><a name="p7580151217409"></a>torch.npu.stream(Stream)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p1058019125401"><a name="p1058019125401"></a><a name="p1058019125401"></a>Mainly used for scope restriction.</p>
+   </td>
+   </tr>
+   <tr id="row117072156404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p137074157405"><a name="p137074157405"></a><a name="p137074157405"></a>torch.cuda.current_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p170741544012"><a name="p170741544012"></a><a name="p170741544012"></a>torch.npu.current_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p56119267579"><a name="p56119267579"></a><a name="p56119267579"></a>Obtains the current stream. </p>
+   </td>
+   </tr>
+   <tr id="row13397184409"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p14339181815400"><a name="p14339181815400"></a><a name="p14339181815400"></a>torch.cuda.default_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p203391182401"><a name="p203391182401"></a><a name="p203391182401"></a>torch.npu.default_stream()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p15339101814018"><a name="p15339101814018"></a><a name="p15339101814018"></a>Obtains the default stream.</p>
+   </td>
+   </tr>
+   <tr id="row16315232204019"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p53151332164015"><a name="p53151332164015"></a><a name="p53151332164015"></a>device = torch.device("cuda:0")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11315732124016"><a name="p11315732124016"></a><a name="p11315732124016"></a>device = torch.device("npu:0")</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p631512321408"><a name="p631512321408"></a><a name="p631512321408"></a>Specifies a device.</p>
+   </td>
+   </tr>
+   <tr id="row11692173414015"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p91981312105112"><a name="p91981312105112"></a><a name="p91981312105112"></a>torch.autograd.profiler.profile</p>
+   <p id="p9692103434015"><a name="p9692103434015"></a><a name="p9692103434015"></a>(use_cuda=True)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p143251615120"><a name="p143251615120"></a><a name="p143251615120"></a>torch.autograd.profiler.profile</p>
+   <p id="p46924341402"><a name="p46924341402"></a><a name="p46924341402"></a>(use_npu=True)</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p111818451031"><a name="p111818451031"></a><a name="p111818451031"></a>Specifies that CUDA/NPU is used during profiler execution.</p>
+   </td>
+   </tr>
+   <tr id="row851311373404"><td class="cellrowborder" valign="top" width="43.43434343434344%" headers="mcps1.2.4.1.1 "><p id="p1513737104012"><a name="p1513737104012"></a><a name="p1513737104012"></a>torch.cuda.Event()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="42.154215421542155%" headers="mcps1.2.4.1.2 "><p id="p11513837184012"><a name="p11513837184012"></a><a name="p11513837184012"></a>torch.npu.Event()</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="14.411441144114413%" headers="mcps1.2.4.1.3 "><p id="p14513133754017"><a name="p14513133754017"></a><a name="p14513133754017"></a>Returns events on a device.</p>
+   </td>
+   </tr>
+   </tbody>
+   </table>
 
-    **Table  6**  Tensor-related APIs
+2. When building or porting a network, you need to create tensors of specified data types. The following table lists the tensors created on the Ascend AI Processor.
 
-    <table><thead align="left"><tr id="row1926554133710"><th class="cellrowborder" valign="top" width="50.349999999999994%" id="mcps1.2.3.1.1"><p id="p797211564811"><a name="p797211564811"></a><a name="p797211564811"></a>GPU tensor</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="49.65%" id="mcps1.2.3.1.2"><p id="p132651418371"><a name="p132651418371"></a><a name="p132651418371"></a>API Adapted to the Ascend AI Processor</p>
-    </th>
-    </tr>
-    </thead>
-    <tbody><tr id="row42654453716"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1526514163715"><a name="p1526514163715"></a><a name="p1526514163715"></a>torch.tensor([1,2,3],dtype=torch.long,device='cuda')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p026512416374"><a name="p026512416374"></a><a name="p026512416374"></a>torch.tensor([1,2,3],dtype=torch.long,device='npu')</p>
-    </td>
-    </tr>
-    <tr id="row102651241374"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1967975918509"><a name="p1967975918509"></a><a name="p1967975918509"></a>torch.tensor([1,2,3],dtype=torch.int,device='cuda')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p106785599501"><a name="p106785599501"></a><a name="p106785599501"></a>torch.tensor([1,2,3],dtype=torch.int,device='npu')</p>
-    </td>
-    </tr>
-    <tr id="row2026518423713"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1867615917507"><a name="p1867615917507"></a><a name="p1867615917507"></a>torch.tensor([1,2,3],dtype=torch.half,device='cuda')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p467515985019"><a name="p467515985019"></a><a name="p467515985019"></a>torch.tensor([1,2,3],dtype=torch.half,device='npu')</p>
-    </td>
-    </tr>
-    <tr id="row126594183715"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2673175915506"><a name="p2673175915506"></a><a name="p2673175915506"></a>torch.tensor([1,2,3],dtype=torch.float,device='cuda')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p146721459155010"><a name="p146721459155010"></a><a name="p146721459155010"></a>torch.tensor([1,2,3],dtype=torch.float,device='npu')</p>
-    </td>
-    </tr>
-    <tr id="row1526519423711"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2669175985014"><a name="p2669175985014"></a><a name="p2669175985014"></a>torch.tensor([1,2,3],dtype=torch.bool,device='cuda')</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p1666845913509"><a name="p1666845913509"></a><a name="p1666845913509"></a>torch.tensor([1,2,3],dtype=torch.bool,device='npu')</p>
-    </td>
-    </tr>
-    <tr id="row692750173015"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1392135073013"><a name="p1392135073013"></a><a name="p1392135073013"></a>torch.cuda.BoolTensor([1,2,3])</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p15921350113017"><a name="p15921350113017"></a><a name="p15921350113017"></a>torch.npu.BoolTensor([1,2,3])</p>
-    </td>
-    </tr>
-    <tr id="row113063522303"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p20306135263013"><a name="p20306135263013"></a><a name="p20306135263013"></a>torch.cuda.FloatTensor([1,2,3])</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p16306155203017"><a name="p16306155203017"></a><a name="p16306155203017"></a>torch.npu.FloatTensor([1,2,3])</p>
-    </td>
-    </tr>
-    <tr id="row1566617547300"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2666854133010"><a name="p2666854133010"></a><a name="p2666854133010"></a>torch.cuda.IntTensor([1,2,3])</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p1766611543307"><a name="p1766611543307"></a><a name="p1766611543307"></a>torch.npu.IntTensor([1,2,3])</p>
-    </td>
-    </tr>
-    <tr id="row36931628203120"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1969322811312"><a name="p1969322811312"></a><a name="p1969322811312"></a>torch.cuda.LongTensor([1,2,3])</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p17693628153115"><a name="p17693628153115"></a><a name="p17693628153115"></a>torch.npu.LongTensor([1,2,3])</p>
-    </td>
-    </tr>
-    <tr id="row199463307311"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p19947930123111"><a name="p19947930123111"></a><a name="p19947930123111"></a>torch.cuda.HalfTensor([1,2,3])</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p119471630113112"><a name="p119471630113112"></a><a name="p119471630113112"></a>torch.npu.HalfTensor([1,2,3])</p>
-    </td>
-    </tr>
-    </tbody>
-    </table>
+   **Table  6**  Tensor-related APIs
+
+   <table><thead align="left"><tr id="row1926554133710"><th class="cellrowborder" valign="top" width="50.349999999999994%" id="mcps1.2.3.1.1"><p id="p797211564811"><a name="p797211564811"></a><a name="p797211564811"></a>GPU tensor</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="49.65%" id="mcps1.2.3.1.2"><p id="p132651418371"><a name="p132651418371"></a><a name="p132651418371"></a>API Adapted to the Ascend AI Processor</p>
+   </th>
+   </tr>
+   </thead>
+   <tbody><tr id="row42654453716"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1526514163715"><a name="p1526514163715"></a><a name="p1526514163715"></a>torch.tensor([1,2,3],dtype=torch.long,device='cuda')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p026512416374"><a name="p026512416374"></a><a name="p026512416374"></a>torch.tensor([1,2,3],dtype=torch.long,device='npu')</p>
+   </td>
+   </tr>
+   <tr id="row102651241374"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1967975918509"><a name="p1967975918509"></a><a name="p1967975918509"></a>torch.tensor([1,2,3],dtype=torch.int,device='cuda')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p106785599501"><a name="p106785599501"></a><a name="p106785599501"></a>torch.tensor([1,2,3],dtype=torch.int,device='npu')</p>
+   </td>
+   </tr>
+   <tr id="row2026518423713"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1867615917507"><a name="p1867615917507"></a><a name="p1867615917507"></a>torch.tensor([1,2,3],dtype=torch.half,device='cuda')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p467515985019"><a name="p467515985019"></a><a name="p467515985019"></a>torch.tensor([1,2,3],dtype=torch.half,device='npu')</p>
+   </td>
+   </tr>
+   <tr id="row126594183715"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2673175915506"><a name="p2673175915506"></a><a name="p2673175915506"></a>torch.tensor([1,2,3],dtype=torch.float,device='cuda')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p146721459155010"><a name="p146721459155010"></a><a name="p146721459155010"></a>torch.tensor([1,2,3],dtype=torch.float,device='npu')</p>
+   </td>
+   </tr>
+   <tr id="row1526519423711"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2669175985014"><a name="p2669175985014"></a><a name="p2669175985014"></a>torch.tensor([1,2,3],dtype=torch.bool,device='cuda')</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p1666845913509"><a name="p1666845913509"></a><a name="p1666845913509"></a>torch.tensor([1,2,3],dtype=torch.bool,device='npu')</p>
+   </td>
+   </tr>
+   <tr id="row692750173015"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1392135073013"><a name="p1392135073013"></a><a name="p1392135073013"></a>torch.cuda.BoolTensor([1,2,3])</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p15921350113017"><a name="p15921350113017"></a><a name="p15921350113017"></a>torch.npu.BoolTensor([1,2,3])</p>
+   </td>
+   </tr>
+   <tr id="row113063522303"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p20306135263013"><a name="p20306135263013"></a><a name="p20306135263013"></a>torch.cuda.FloatTensor([1,2,3])</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p16306155203017"><a name="p16306155203017"></a><a name="p16306155203017"></a>torch.npu.FloatTensor([1,2,3])</p>
+   </td>
+   </tr>
+   <tr id="row1566617547300"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p2666854133010"><a name="p2666854133010"></a><a name="p2666854133010"></a>torch.cuda.IntTensor([1,2,3])</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p1766611543307"><a name="p1766611543307"></a><a name="p1766611543307"></a>torch.npu.IntTensor([1,2,3])</p>
+   </td>
+   </tr>
+   <tr id="row36931628203120"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p1969322811312"><a name="p1969322811312"></a><a name="p1969322811312"></a>torch.cuda.LongTensor([1,2,3])</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p17693628153115"><a name="p17693628153115"></a><a name="p17693628153115"></a>torch.npu.LongTensor([1,2,3])</p>
+   </td>
+   </tr>
+   <tr id="row199463307311"><td class="cellrowborder" valign="top" width="50.349999999999994%" headers="mcps1.2.3.1.1 "><p id="p19947930123111"><a name="p19947930123111"></a><a name="p19947930123111"></a>torch.cuda.HalfTensor([1,2,3])</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="49.65%" headers="mcps1.2.3.1.2 "><p id="p119471630113112"><a name="p119471630113112"></a><a name="p119471630113112"></a>torch.npu.HalfTensor([1,2,3])</p>
+   </td>
+   </tr>
+   </tbody>
+   </table>
 
 
 For more APIs, see the  _PyTorch API Support_.
@@ -1594,42 +1599,44 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
 </tbody>
 </table>
 
+
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
+>
 >-   In the current version, Apex is implemented using Python and does not support AscendCL or CUDA optimization.
 >-   Ascend AI devices do not support the original FusedLayerNorm interface module of Apex. If the original model script file uses the FusedLayerNorm interface module, you need to replace the script header file  **from apex.normalization import FusedLayerNorm**  with  **from torch.nn import LayerNorm**.
 
 #### Integrating Mixed Precision Module Into the PyTorch Model
 
-1.  To use the mixed precision module Apex, you need to import the amp from the Apex library as follows:
+1. To use the mixed precision module Apex, you need to import the amp from the Apex library as follows:
 
-    ```
-    from apex import amp
-    ```
+   ```
+   from apex import amp
+   ```
 
-2.  After the amp module is imported, you need to initialize the amp module so that it can modify the model, optimizer, and PyTorch internal functions. The initialization code is as follows:
+2. After the amp module is imported, you need to initialize the amp module so that it can modify the model, optimizer, and PyTorch internal functions. The initialization code is as follows:
 
-    ```
-    model, optimizer = amp.initialize(model, optimizer, combine_grad=True)
-    ```
+   ```
+   model, optimizer = amp.initialize(model, optimizer, combine_grad=True)
+   ```
 
-3.  Mark the location where the back propagation  **.backward\(\)**  occurs so that the amp can perform loss scaling and clear the status of each iteration. The code is as follows:
+3. Mark the location where the back propagation  **.backward\(\)**  occurs so that the amp can perform loss scaling and clear the status of each iteration. The code is as follows:
 
-    Original code:
+   Original code:
 
-    ```
-    loss = criterion(...)
-    loss.backward() 
-    optimizer.step()
-    ```
+   ```
+   loss = criterion(...)
+   loss.backward() 
+   optimizer.step()
+   ```
 
-    Code after the modification to support loss scaling:
+   Code after the modification to support loss scaling:
 
-    ```
-    loss = criterion(...)
-    with amp.scale_loss(loss, optimizer) as scaled_loss:     
-        scaled_loss.backward() 
-    optimizer.step()
-    ```
+   ```
+   loss = criterion(...)
+   with amp.scale_loss(loss, optimizer) as scaled_loss:     
+       scaled_loss.backward() 
+   optimizer.step()
+   ```
 
 ## Model Training
 
@@ -1667,169 +1674,193 @@ During model training, if the throughput does not meet requirements, you can col
 
 Select a collection mode based on the site requirements and perform the following steps to collect the profile data.
 
--   Profile data collection at the PyTorch layer
-    1. Obtain the  **chrome\_trace**  file.
+- Profile data collection at the PyTorch layer
 
-        Use the profile API to reconstruct the loss calculation and optimization process of the original code.
+  1. Obtain the  **chrome\_trace**  file.
 
-        ```
-        # Use the profile API adapted to Ascend-PyTorch. You are advised to run only one step.
-        with torch.autograd.profiler.profile(use_npu=True) as prof:
-            out = model(input_tensor)
-            loss=loss_func(out)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-        # Print the profiling result.
-        print(prof)
-        # Export the chrome_trace file to a specified path.
-        output_path = '/home/HwHiAiUser/profile_data.json'
-        prof.export_chrome_trace(output_path)
-        ```
+     Use the profile API to reconstruct the loss calculation and optimization process of the original code.
 
-    2.  After the execution is successful, print the profiling result.
-    
-        The printed result includes the CPU and NPU time consumption. For details, see Table 8.
-        
-        <a name='Table 8 Profiling result field'>**Table 8** Profiling result fields</a>
-        
-        | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
-        | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
-        
-    3. View the **chrome_trace** file.
-    
-        To view the **chrome_trace** file, access **chrome://tracing** in the Chrome browser, drag the file in the blank space. You can press **W**, **A**, **S**, or **D** to zoom in, zoom out, or move the profiling result.
-    
-    4. Other profiling functions are as follows.
-    
-        - Obtain the shape information of the input tensor of an operator.
-    
-          ```python
-          # Add the record_shapes parameter to obtain the shape information of the input tensor.
-          with torch.autograd.profiler.profile(use_npu=True, record_shapes=True) as prof:
-              # Add the model calculation process.
-          print(prof)
-          ```
-    
-          The `Input Shape` information of each operator is added to the printed result.
-    
-        - Obtain the memory information of the NPU in use.
-    
-          ```python
-          # Add the profile parameter to obtain the memory usage of the operators.
-          with torch.autograd.profiler.profile(use_npu=True, profile_memory=True) as prof:
-              # Add the model calculation process.
-          print(prof)
-          ```
-    
-          The `CPU Mem`, `Self CPU Mem`, `NPU Mem`, and `Self NPU Mem` information of each operator is added to the printed result.
-    
-          >![](public_sys-resources/icon-note.gif) **NOTE:**  
-          >
-          >This function is supported only by PyTorch 1.8 or later.
-    
-        - Obtain a simplified operator performance report.
-    
-          This function prints only the operator information at the bottom layer of each operator stack, simplifying the analysis result.
-    
-          ```python
-          # Add the use_npu_simple parameter to obtain the simplified operator performance report.
-          with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
-              # Add the model calculation process.
-          # Export the chrome_trace file to a specified path.
-          output_path = '/home/HwHiAiUser/profile_data.json'
-          prof.export_chrome_trace(output_path)
-          ```
-    
-          Open the **chrome_trace** result file in the Chrome browser to view the simplified operator performance report.
+     ```
+     # Use the profile API adapted to Ascend-PyTorch. You are advised to run only one step.
+     with torch.autograd.profiler.profile(use_npu=True) as prof:
+         out = model(input_tensor)
+         loss=loss_func(out)
+         loss.backward()
+         optimizer.zero_grad()
+         optimizer.step()
+     # Print the profiling result.
+     print(prof)
+     # Export the chrome_trace file to a specified path.
+     output_path = '/home/HwHiAiUser/profile_data.json'
+     prof.export_chrome_trace(output_path)
+     ```
+
+  2. After the execution is successful, print the profiling result.
+
+     The printed result includes the CPU and NPU time consumption. For details, see Table 8.
+
+     <a name='Table 8 Profiling result field'>**Table 8** Profiling result fields</a>
+
+     | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
+     | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
+
+  3. View the **chrome_trace** file.
+
+     To view the **chrome_trace** file, access **chrome://tracing** in the Chrome browser, drag the file in the blank space. You can press **W**, **A**, **S**, or **D** to zoom in, zoom out, or move the profiling result.
+
+  4. Other profiling functions are as follows.
+
+     - Obtain the shape information of the input tensor of an operator.
+
+       ```python
+       # Add the record_shapes parameter to obtain the shape information of the input tensor.
+       with torch.autograd.profiler.profile(use_npu=True, record_shapes=True) as prof:
+           # Add the model calculation process.
+       print(prof)
+       ```
+
+       The `Input Shape` information of each operator is added to the printed result.
+
+     - Obtain the memory information of the NPU in use.
+
+       ```python
+       # Add the profile parameter to obtain the memory usage of the operators.
+       with torch.autograd.profiler.profile(use_npu=True, profile_memory=True) as prof:
+           # Add the model calculation process.
+       print(prof)
+       ```
+
+       The `CPU Mem`, `Self CPU Mem`, `NPU Mem`, and `Self NPU Mem` information of each operator is added to the printed result.
+
+       >![](public_sys-resources/icon-note.gif) **NOTE:**  
+       >
+       >This function is supported only by PyTorch 1.8 or later.
+
+     - Obtain a simplified operator performance report.
+
+       This function prints only the operator information at the bottom layer of each operator stack, simplifying the analysis result.
+
+       ```python
+       # Add the use_npu_simple parameter to obtain the simplified operator performance report.
+       with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
+           # Add the model calculation process.
+       # Export the chrome_trace file to a specified path.
+       output_path = '/home/HwHiAiUser/profile_data.json'
+       prof.export_chrome_trace(output_path)
+       ```
+
+       Open the **chrome_trace** result file in the Chrome browser to view the simplified operator performance report.
 
 
--   Profile data collection at the CANN layer
-    1.  Obtain the profile data file.
+- Profile data collection at the CANN layer
 
-        ```
-        profiler_result_path  = "/home/profiling_data"     # folder for storing the profile data. You need to manually create the folder in advance based on the site requirements.
-        with torch.npu.profile(profiler_result_path):
-            out = model(input_tensor)
-            loss=loss_func(out,target)
-            loss.backward()
-            optimizer.zero_grad()
-            optimizer.step()
-        ```
+  1. Obtain the profile data file.
 
-        >![](public_sys-resources/icon-note.gif) **NOTE:** 
-        >When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
+     ```
+     profiler_result_path  = "/home/profiling_data"     # Folder for storing the profile data. Specify the folder based on the actual requirements.
+     with torch.npu.profile(profiler_result_path, config):   # Only one step needs to be performed for. You can retain the default value of config.
+         out = model(input_tensor)
+         loss=loss_func(out,target)
+         loss.backward()
+         optimizer.zero_grad()
+         optimizer.step()
+     ```
 
-    2.  Parse the profile data file.
+     The config parameter is used to configure the types of CANN performance data to be obtained. For details about the setting method, see the description about the config parameter in [E2E prof Advanced Settings](#advanced-settings).
 
-        For details, see "Profiling Instructions \(Training\)" in the *CANN Auxiliary Development Tool User Guide*.
+     >![](public_sys-resources/icon-note.gif) **NOTE:** 
+     >When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
+
+  2. Parse the profile data file.
+
+     For details, see "Profiling Instructions > Advanced Features (All Profiling Modes and Items) > Data Parsing and Export" in the *CANN Auxiliary Development Tool User Guide*.
+
+
+    3.  Advanced Usage
+    
+        The PyTorch framework runs in single-operator mode and cannot distinguish step information. If multiple steps are executed in the WITH statement, the data obtained through profiling is multiple steps connected. The data of a step cannot be distinguished from the prof diagram. Therefore, advanced APIs are provided to distinguish step information, the following is an example:
+    ```
+    for i in range(steps):
+        if i >=10 && i <= 100:  ## obtains the profile data from step 10 to step 100.
+            if i == 10:  ## Enables this function in step 10.
+                torch.npu.prof_init(profiler_result_path) ## profiler_result_path is the same as the preceding profiler_result_path.
+                torch.npu.prof_start(config) ## config is the same as the preceding config. You can retain its default value.
+            torch.npu.iteration_start()  ## Adds a start flag when entering each step.
+            train_one_step()
+            torch.npu.iteration_end()    ## Add a start flag when each step ends.
+            if i == 110:   ## disables this function in the step 100.
+                torch.npu.prof_stop()
+                torch.npu.prof_finalize()
+
 
 ##### Obtaining Operator Information (OP_INFO)
 
 The network model is executed as an operator (OP). The OPInfo log can be used to obtain the operator and its attributes during the actual execution. Obtain the information by running the  **get_ascend_op_info.py**  script.
 
-1.  Write the  **get_ascend_op_info.py**  script to obtain the operator information. The script content is as follows:
+1. Write the  **get_ascend_op_info.py**  script to obtain the operator information. The script content is as follows:
 
-    ```
-    # -*- coding: utf-8 -*-
-    """ Used to export operator information.
-    """
-    import os
-    import sys
-    import argparse
-    
-    def func(host_log_folder):
-        """
-        :param host_log_folder: where host_log_folder addr is.
-        :return:
-        """
-        host_log_files = os.listdir(host_log_folder)
-        result = {}
-    
-        for host_log in host_log_files:
-            if not host_log.endswith('.log') or host_log.endswith('.out'):
-                continue
-            with open(os.path.join(host_log_folder, host_log), 'r')as f:
-                host_log_lines = f.readlines()
-                for line in host_log_lines:
-                    if line.startswith('[INFO] ASCENDCL') and "aclopCompile::aclOp" in line:
-                        op_info = line.split('OpType: ')[1][:-2]
-                        op_type = op_info.split(',')[0]
-                        op_param = op_info[len(op_type) + 2:]
-                        if op_type not in result.keys():
-                            result[op_type] = [op_param]
-                        else:
-                            result[op_type].append(op_param)
-    
-        with open('ascend_op_info_summary.txt', 'w')as f:
-            for k, v in result.items():
-                v_set = set(v)
-                for info in v_set:
-                    f.write(k + " " + info + "\n")
-    
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(description='trans the log')
-        parser.add_argument('--host_log_folder', default="./",
-                            help="input the dir name, trans the current dir with default")
-        ags = parser.parse_args()
-        func(ags.host_log_folder)
-    ```
+   ```
+   # -*- coding: utf-8 -*-
+   """ Used to export operator information.
+   """
+   import os
+   import sys
+   import argparse
+   
+   def func(host_log_folder):
+       """
+       :param host_log_folder: where host_log_folder addr is.
+       :return:
+       """
+       host_log_files = os.listdir(host_log_folder)
+       result = {}
+   
+       for host_log in host_log_files:
+           if not host_log.endswith('.log') or host_log.endswith('.out'):
+               continue
+           with open(os.path.join(host_log_folder, host_log), 'r')as f:
+               host_log_lines = f.readlines()
+               for line in host_log_lines:
+                   if line.startswith('[INFO] ASCENDCL') and "aclopCompile::aclOp" in line:
+                       op_info = line.split('OpType: ')[1][:-2]
+                       op_type = op_info.split(',')[0]
+                       op_param = op_info[len(op_type) + 2:]
+                       if op_type not in result.keys():
+                           result[op_type] = [op_param]
+                       else:
+                           result[op_type].append(op_param)
+   
+       with open('ascend_op_info_summary.txt', 'w')as f:
+           for k, v in result.items():
+               v_set = set(v)
+               for info in v_set:
+                   f.write(k + " " + info + "\n")
+   
+   if __name__ == "__main__":
+       parser = argparse.ArgumentParser(description='trans the log')
+       parser.add_argument('--host_log_folder', default="./",
+                           help="input the dir name, trans the current dir with default")
+       ags = parser.parse_args()
+       func(ags.host_log_folder)
+   ```
 
-2.  Set the environment variable to print host logs to the screen.
+2. Set the environment variable to print host logs to the screen.
 
-    ```
-    export ASCEND_SLOG_PRINT_TO_STDOUT=1
-    ```
+   ```
+   export ASCEND_SLOG_PRINT_TO_STDOUT=1
+   ```
 
-3.  Set the log level to  **info**. For details, see the  _CANN Log Reference_.
-4.  Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the **$HOME/ascend/log/plog**  directory. **$HOME**  indicates the root directory of the user on the host.
-5.  After the host logs are parsed, obtain the operator information  **ascend_op_info_summary.txt**  in the current directory.
+3. Set the log level to  **info**. For details, see the  _CANN Log Reference_.
 
-    ```
-    python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
-    ```
+4. Run the training script to train the model. After the training is complete, obtain the host logs. By default, the logs are stored in the **$HOME/ascend/log/plog**  directory. **$HOME**  indicates the root directory of the user on the host.
 
-6.  Analyze the extra tasks in TaskInfo, especially transdata.
+5. After the host logs are parsed, obtain the operator information  **ascend_op_info_summary.txt**  in the current directory.
+
+   ```
+   python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/plog
+   ```
+
+6. Analyze the extra tasks in TaskInfo, especially transdata.
 
 #### Host-side Performance Optimization
 
@@ -1847,109 +1878,111 @@ During PyTorch model porting and training, the number of images recognized withi
 
 To improve network performance, you need to set the power policy to high performance in the BIOS settings of the x86 server. The detailed operations are as follows:
 
-1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 3](#fig15869135420288).
+1. Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 3](#fig15869135420288).
 
-    **Figure  3**  Remote console
+   **Figure  3**  Remote console
 
-    ![](figures/remote-console.png "remote-console")
+   ![](figures/remote-console.png "remote-console")
 
-2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 4](#fig744814574243).
+2. On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 4](#fig744814574243).
 
-    **Figure  4**  Startup item tool
+   **Figure  4**  Startup item tool
 
-    ![](figures/startup-item-tool.png "startup-item-tool")
+   ![](figures/startup-item-tool.png "startup-item-tool")
 
-3.  In the drop-down list, choose, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190201999.png)  on the toolbar to restart the server.
-4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 5](#fig4546303814).
+3. In the drop-down list, choose, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190201999.png)  on the toolbar to restart the server.
 
-    **Figure  5**  Socket Configuration
+4. After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 5](#fig4546303814).
 
-    ![](figures/socket-configuration.png "socket-configuration")
+   **Figure  5**  Socket Configuration
 
-5.  On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 6](#fig15501111014442).
+   ![](figures/socket-configuration.png "socket-configuration")
 
-    **Figure  6**  Setting the power policy
+5. On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 6](#fig15501111014442).
 
-    ![](figures/setting-the-power-policy.png "setting-the-power-policy")
+   **Figure  6**  Setting the power policy
 
-6.  Press  **F10**  to save the settings and reboot the server.
+   ![](figures/setting-the-power-policy.png "setting-the-power-policy")
+
+6. Press  **F10**  to save the settings and reboot the server.
 
 ###### Setting the CPU Mode to Performance
 
 Perform the following steps as the  **root**  user:
 
-1.  Run the following command to check the current CPU mode:
+1. Run the following command to check the current CPU mode:
 
-    ```
-    cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-    ```
+   ```
+   cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+   ```
 
-    After the preceding command is run, the current CPU mode is displayed. For details, see  [Table 1](#table354392019384). If the current CPU mode is not performance, perform the following operations to set the CPU mode to performance: Otherwise, skip this step.
+   After the preceding command is run, the current CPU mode is displayed. For details, see  [Table 1](#table354392019384). If the current CPU mode is not performance, perform the following operations to set the CPU mode to performance: Otherwise, skip this step.
 
-    **Table  1**  CPU mode
+   **Table  1**  CPU mode
 
-    <table><thead align="left"><tr id="row16543172093819"><th class="cellrowborder" valign="top" width="30.819999999999997%" id="mcps1.2.3.1.1"><p id="p2526552113912"><a name="p2526552113912"></a><a name="p2526552113912"></a>Governor</p>
-    </th>
-    <th class="cellrowborder" valign="top" width="69.17999999999999%" id="mcps1.2.3.1.2"><p id="p452519525397"><a name="p452519525397"></a><a name="p452519525397"></a>Description</p>
-    </th>
-    </tr>
-    </thead>
-    <tbody><tr id="row654317204384"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p2376242163917"><a name="p2376242163917"></a><a name="p2376242163917"></a>performance</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p14376442183917"><a name="p14376442183917"></a><a name="p14376442183917"></a>The CPU runs at the maximum frequency.</p>
-    </td>
-    </tr>
-    <tr id="row854318200381"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p153761542123910"><a name="p153761542123910"></a><a name="p153761542123910"></a>powersave</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p8376942173913"><a name="p8376942173913"></a><a name="p8376942173913"></a>The CPU runs at the minimum frequency.</p>
-    </td>
-    </tr>
-    <tr id="row75431920203818"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p1437611425398"><a name="p1437611425398"></a><a name="p1437611425398"></a>userspace</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p103771642173920"><a name="p103771642173920"></a><a name="p103771642173920"></a>The CPU runs at a frequency specified by the user.</p>
-    </td>
-    </tr>
-    <tr id="row165438202382"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p7377142113915"><a name="p7377142113915"></a><a name="p7377142113915"></a>ondemand</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p237794283917"><a name="p237794283917"></a><a name="p237794283917"></a>The CPU frequency is dynamically adjusted as required. Once a task needs CPU computing power, the CPU runs at the maximum frequency. If the idle time increases, the CPU frequency decreases.</p>
-    </td>
-    </tr>
-    <tr id="row55441320113810"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p8377142203913"><a name="p8377142203913"></a><a name="p8377142203913"></a>conservative</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>The CPU frequency is dynamically adjusted as required. The adjustment is more conservative than that of the <strong id="b8120182619306"><a name="b8120182619306"></a><a name="b8120182619306"></a>ondemand</strong> mode.</p>
-    </td>
-    </tr>
-    <tr id="row5544620123817"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p13377154273919"><a name="p13377154273919"></a><a name="p13377154273919"></a>schedutil</p>
-    </td>
-    <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p183779421393"><a name="p183779421393"></a><a name="p183779421393"></a>The CPU frequency is adjusted based on the scheduler.</p>
-    </td>
-    </tr>
-    </tbody>
-    </table>
-    
-2.  Run the following command to install the tool:
-    -   The  **ubuntu/debian**  system is used as an example.
+   <table><thead align="left"><tr id="row16543172093819"><th class="cellrowborder" valign="top" width="30.819999999999997%" id="mcps1.2.3.1.1"><p id="p2526552113912"><a name="p2526552113912"></a><a name="p2526552113912"></a>Governor</p>
+   </th>
+   <th class="cellrowborder" valign="top" width="69.17999999999999%" id="mcps1.2.3.1.2"><p id="p452519525397"><a name="p452519525397"></a><a name="p452519525397"></a>Description</p>
+   </th>
+   </tr>
+   </thead>
+   <tbody><tr id="row654317204384"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p2376242163917"><a name="p2376242163917"></a><a name="p2376242163917"></a>performance</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p14376442183917"><a name="p14376442183917"></a><a name="p14376442183917"></a>The CPU runs at the maximum frequency.</p>
+   </td>
+   </tr>
+   <tr id="row854318200381"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p153761542123910"><a name="p153761542123910"></a><a name="p153761542123910"></a>powersave</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p8376942173913"><a name="p8376942173913"></a><a name="p8376942173913"></a>The CPU runs at the minimum frequency.</p>
+   </td>
+   </tr>
+   <tr id="row75431920203818"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p1437611425398"><a name="p1437611425398"></a><a name="p1437611425398"></a>userspace</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p103771642173920"><a name="p103771642173920"></a><a name="p103771642173920"></a>The CPU runs at a frequency specified by the user.</p>
+   </td>
+   </tr>
+   <tr id="row165438202382"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p7377142113915"><a name="p7377142113915"></a><a name="p7377142113915"></a>ondemand</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p237794283917"><a name="p237794283917"></a><a name="p237794283917"></a>The CPU frequency is dynamically adjusted as required. Once a task needs CPU computing power, the CPU runs at the maximum frequency. If the idle time increases, the CPU frequency decreases.</p>
+   </td>
+   </tr>
+   <tr id="row55441320113810"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p8377142203913"><a name="p8377142203913"></a><a name="p8377142203913"></a>conservative</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p737794216395"><a name="p737794216395"></a><a name="p737794216395"></a>The CPU frequency is dynamically adjusted as required. The adjustment is more conservative than that of the <strong id="b8120182619306"><a name="b8120182619306"></a><a name="b8120182619306"></a>ondemand</strong> mode.</p>
+   </td>
+   </tr>
+   <tr id="row5544620123817"><td class="cellrowborder" valign="top" width="30.819999999999997%" headers="mcps1.2.3.1.1 "><p id="p13377154273919"><a name="p13377154273919"></a><a name="p13377154273919"></a>schedutil</p>
+   </td>
+   <td class="cellrowborder" valign="top" width="69.17999999999999%" headers="mcps1.2.3.1.2 "><p id="p183779421393"><a name="p183779421393"></a><a name="p183779421393"></a>The CPU frequency is adjusted based on the scheduler.</p>
+   </td>
+   </tr>
+   </tbody>
+   </table>
 
-        ```
-        apt-get install linux-tools-$(uname -r)
-        ```
+2. Run the following command to install the tool:
 
-    -   The  **centos/bclinux/euler**  system is used as an example:
+   - The  **ubuntu/debian**  system is used as an example.
 
-        ```
-        yum install kernel-tools -y
-        systemctl daemon-reload 
-        systemctl enable cpupower 
-        systemctl start cpupower
-        ```
+     ```
+     apt-get install linux-tools-$(uname -r)
+     ```
 
-3.  Sets the CPU mode to performance.
+   - The  **centos/bclinux/euler**  system is used as an example:
 
-    ```
-    cpupower frequency-set -g performance
-    ```
+     ```
+     yum install kernel-tools -y
+     systemctl daemon-reload 
+     systemctl enable cpupower 
+     systemctl start cpupower
+     ```
 
-4.  Perform  [Step 1](#li158435131344)  again to check whether the current CPU mode is set to performance.
+3. Sets the CPU mode to performance.
+
+   ```
+   cpupower frequency-set -g performance
+   ```
+
+4. Perform  [Step 1](#li158435131344)  again to check whether the current CPU mode is set to performance.
 
 ##### Changing the CPU Performance Mode (ARM Server)
 
@@ -1957,82 +1990,85 @@ Perform the following steps as the  **root**  user:
 
 Some models that have demanding requirements on the CPUs on the host, for example, the object detection model, require complex image pre-processing. Enabling the high-performance mode of the power supply can improve performance and stability. To improve network performance, you need to set the power policy to high performance in the BIOS settings of the ARM server. The detailed operations are as follows:
 
-1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 7](#fig15869135420288).
+1. Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 7](#fig15869135420288).
 
-    **Figure  7**  Remote console
+   **Figure  7**  Remote console
 
-    ![](figures/remote-console-0.png "remote-console-0")
+   ![](figures/remote-console-0.png "remote-console-0")
 
-2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 8](#fig744814574243).
+2. On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 8](#fig744814574243).
 
-    **Figure  8**  Startup item tool
+   **Figure  8**  Startup item tool
 
-    ![](figures/startup-item-tool-1.png "startup-item-tool-1")
+   ![](figures/startup-item-tool-1.png "startup-item-tool-1")
 
-3.  In the drop-down list, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190081877.png)  on the toolbar to restart the server.
-4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 9](#fig4546303814).
+3. In the drop-down list, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190081877.png)  on the toolbar to restart the server.
 
-    **Figure  9**  Performance Config
+4. After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 9](#fig4546303814).
 
-    ![](figures/performance-config.png "performance-config")
+   **Figure  9**  Performance Config
 
-5.  On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 10](#fig15501111014442).
+   ![](figures/performance-config.png "performance-config")
 
-    **Figure  10**  Setting the power policy 
+5. On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 10](#fig15501111014442).
 
-    ![](figures/setting-the-power-policy-2.png "setting-the-power-policy-2")
+   **Figure  10**  Setting the power policy 
 
-6.  Press  **F10**  to save the settings and reboot the server.
+   ![](figures/setting-the-power-policy-2.png "setting-the-power-policy-2")
+
+6. Press  **F10**  to save the settings and reboot the server.
 
 ##### Installing the High-Performance Pillow Library (x86 Server)
 
-1.  Run the following command to install the dependencies for the high-performance pillow library:
+1. Run the following command to install the dependencies for the high-performance pillow library:
 
-    Ubuntu/Debian:
+   Ubuntu/Debian:
 
-    ```
-    apt-get install libtiff5-dev libjpeg8-dev libopenjp2-7-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python3-tk libharfbuzz-dev libfribidi-dev libxcb1-dev
-    ```
+   ```
+   apt-get install libtiff5-dev libjpeg8-dev libopenjp2-7-dev zlib1g-dev libfreetype6-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev python3-tk libharfbuzz-dev libfribidi-dev libxcb1-dev
+   ```
 
-    CentOS/BC-Linux/EulerOS:
+   CentOS/BC-Linux/EulerOS:
 
-    ```
-    yum install libtiff-devel libjpeg-devel openjpeg2-devel zlib-devel freetype-devel lcms2-devel libwebp-devel tcl-devel tk-devel harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
-    ```
+   ```
+   yum install libtiff-devel libjpeg-devel openjpeg2-devel zlib-devel freetype-devel lcms2-devel libwebp-devel tcl-devel tk-devel harfbuzz-devel fribidi-devel libraqm-devel libimagequant-devel libxcb-devel
+   ```
 
-2.  Install the high-performance Pillow library.
-    1.  Run the following command to uninstall the native Pillow:
+2. Install the high-performance Pillow library.
 
-        ```
-        pip3.7 uninstall -y pillow
-        ```
+   1. Run the following command to uninstall the native Pillow:
 
-    2.  Install the pillow-simd of the SSE4 version.
+      ```
+      pip3.7 uninstall -y pillow
+      ```
 
-        Run the following command as the  **root**  user. If a non-root user is used, add  **--user**  to the end of the command.
+   2. Install the pillow-simd of the SSE4 version.
 
-        ```
-        pip3.7 install pillow-simd
-        ```
+      Run the following command as the  **root**  user. If a non-root user is used, add  **--user**  to the end of the command.
 
-        >![](public_sys-resources/icon-note.gif) **NOTE:** 
-        >If the CPU supports the AVX2 instruction set, run the following command to install pillow-simd of the AVX2 version:
-        >```
-        >CC="cc -mavx2" pip3.7 install -U --force-reinstall pillow-simd
-        >```
+      ```
+      pip3.7 install pillow-simd
+      ```
+
+      >![](public_sys-resources/icon-note.gif) **NOTE:** 
+      >If the CPU supports the AVX2 instruction set, run the following command to install pillow-simd of the AVX2 version:
+      >
+      >```
+      >CC="cc -mavx2" pip3.7 install -U --force-reinstall pillow-simd
+      >```
 
 
-3.  Modify the TorchVision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install TorchVision, see [How to Obtain](#how-to-obtain).
+3. Modify the TorchVision code to solve the problem that the pillow-simd does not contain the  **PILLOW\_VERSION**  field. For details about how to install TorchVision, see [How to Obtain](#how-to-obtain).
 
-    Modify the code in line 5 of  **/usr/local/python3._x.x_/lib/python3._x_/site-packages/torchvision/transforms/functional.py**  as follows:
+   Modify the code in line 5 of  **/usr/local/python3._x.x_/lib/python3._x_/site-packages/torchvision/transforms/functional.py**  as follows:
 
-    ```
-    try:
-        from PIL import Image, ImageOps, ImageEnhance,PILLOW_VERSION
-    except:
-        from PIL import Image, ImageOps, ImageEnhance
-        PILLOW_VERSION="7.0.0"
-    ```
+   ```
+   try:
+       from PIL import Image, ImageOps, ImageEnhance,PILLOW_VERSION
+   except:
+       from PIL import Image, ImageOps, ImageEnhance
+       PILLOW_VERSION="7.0.0"
+   ```
 
 ##### (Optional) Installing the OpenCV Library of the Specified Version
 
@@ -2063,17 +2099,20 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 
 ##### Framework Bottleneck Optimization
 
-1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
-2.  Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
-3.  Solution: Specify the initialization format of some operators to eliminate cast operators.
-4.  In  **pytorch/torch/nn/modules/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
+1. Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
 
-    ![](figures/指定算子初始化方式.png)
+2. Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
 
-    The format setting principle is as follows:
+3. Solution: Specify the initialization format of some operators to eliminate cast operators.
 
-    -   For the Conv2D operator, weight can be set to FZ format, for example, line 424.
-    -   For the linear operator, weight can be set to NZ format, for example, line 409.
+4. In  **pytorch/torch/nn/modules/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
+
+   ![](figures/指定算子初始化方式.png)
+
+   The format setting principle is as follows:
+
+   -   For the Conv2D operator, weight can be set to FZ format, for example, line 424.
+   -   For the linear operator, weight can be set to NZ format, for example, line 409.
 
 
 ##### Compilation Bottleneck Optimization
@@ -2133,7 +2172,7 @@ The results obtained by using the E2E prof tool are raw data, which can be viewe
    2. Click **Load** to upload the file.
 
       ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/chrometracing.png)
-   An example is provided as follows:
+      An example is provided as follows:
 
    ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/3.png)
 
@@ -2144,16 +2183,21 @@ The results obtained by using the E2E prof tool are raw data, which can be viewe
 By default, the E2E prof tool can obtain all of the preceding data. However, the process of obtaining data affects the performance. If a large amount of data is obtained, the profile data cannot be used as a reference. Therefore, the E2E prof tool provides configurable options for fine-grained control over obtaining data of specified layers.
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True，config=torch.npu. profileConfig(ACL_PROF_ACL_API=True, ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True,ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=True, ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=True, aiCoreMetricsType=0)):
+with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
 ```
 
--   **ACL_PROF_ACL_API**: collects profile data of     AscendCL APIs. The default value is **True**.
--   **ACL_PROF_TASK_TIME**: collects the execution time     of AI Core operators. The default value is **True**.
--   **ACL_PROF_AICORE_METRICS**: collects the AI Core     performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
--   **ACL_PROF_AICPU**: 0x0008, collects traces of     AI CPU tasks, including the start and end of each task. The default value     is **True**.
--   **ACL_PROF_L2CACHE**: collects L2 cache data. The     default value is **True**.
--   **ACL_PROF_HCCL_TRACE**: collects HCCL data. The     default value is **True**.
--   **ACL_PROF_TRAINING_TRACE**: collects iteration traces,     which record the forward and backward propagation steps of a model. The     default value is **True**.
+- **ACL_PROF_ACL_API**: collects profile data of     AscendCL APIs. The default value is **True**.
+- **ACL_PROF_TASK_TIME**: collects the execution time     of AI Core operators. The default value is **True**.
+- **ACL_PROF_AICORE_METRICS**: collects the AI Core     performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
+- **ACL_PROF_AICPU**: 0x0008, collects traces of     AI CPU tasks, including the start and end of each task. The default value     is **True**.
+- **ACL_PROF_L2CACHE**: collects L2 cache data. The     default value is **True**.
+- **ACL_PROF_HCCL_TRACE**: collects HCCL data. The     default value is **True**.
+- **ACL_PROF_TRAINING_TRACE**: collects iteration traces,     which record the forward and backward propagation steps of a model. The     default value is **False**.
 
 The values of **aiCoreMetricsType** are defined as follows. The default value is **0**.
 
@@ -2210,6 +2254,7 @@ The common network structures and functions in the public models are optimized t
 </tr>
 </tbody>
 </table>
+
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >The optimization content will be enhanced and updated with the version. Use the content in the corresponding path of the actual PyTorch version.
@@ -2477,62 +2522,62 @@ For details, see "Data Preparation > [Preparing Data Files for Accuracy Comparis
 
 You can also commission the network model precision by analyzing the entire network.
 
-1.  Determine whether the calculation on the Ascend AI Processor is correct by comparing the calculation result on the CPU and that on the Ascend AI Processor.
+1. Determine whether the calculation on the Ascend AI Processor is correct by comparing the calculation result on the CPU and that on the Ascend AI Processor.
 
-    Code example (this example shows only the basic method and does not allow direct copy):
+   Code example (this example shows only the basic method and does not allow direct copy):
 
-    ```
-    # The input parameters are fixed to ensure that the model and input data are the same on the CPU and Ascend AI Processor.
-    input_tensor_cpu = torch.Tensor()
-    model_cpu = build_model()
-    # Port the input data to the Ascend AI Processor.
-    input_tensor_npu = input_tensor_cpu.npu()
-    # Port the model to the Ascend AI Processor.
-    model_npu = model_cpu.npu()
-    
-    #Compare the calculation results.
-    output_cpu = model_cpu(input_tensor_cpu)
-    output_npu = model_npu(input_tensor_npu)
-    compute_result = (output_cpu - output_npu).abs().mean())
-    print(compute_result)
-    ```
+   ```
+   # The input parameters are fixed to ensure that the model and input data are the same on the CPU and Ascend AI Processor.
+   input_tensor_cpu = torch.Tensor()
+   model_cpu = build_model()
+   # Port the input data to the Ascend AI Processor.
+   input_tensor_npu = input_tensor_cpu.npu()
+   # Port the model to the Ascend AI Processor.
+   model_npu = model_cpu.npu()
+   
+   #Compare the calculation results.
+   output_cpu = model_cpu(input_tensor_cpu)
+   output_npu = model_npu(input_tensor_npu)
+   compute_result = (output_cpu - output_npu).abs().mean())
+   print(compute_result)
+   ```
 
-    The calculation results are slightly different because the hardware architecture of the Ascend AI Processor is different from that of the CPU. If the calculation results are close \(generally not higher than 1e-4\), then they are normal.
+   The calculation results are slightly different because the hardware architecture of the Ascend AI Processor is different from that of the CPU. If the calculation results are close \(generally not higher than 1e-4\), then they are normal.
 
-2.  Use the hook mechanism of PyTorch to print the inputs and outputs of the module in the forward and backward propagation for analysis.
+2. Use the hook mechanism of PyTorch to print the inputs and outputs of the module in the forward and backward propagation for analysis.
 
-    Code example (this example shows only the basic method and does not allow direct copy):
+   Code example (this example shows only the basic method and does not allow direct copy):
 
-    ```
-    # Set the hook function.
-    def hook_func(name, module):
-        def hook_function(module, inputs, outputs):
-            print(name+' inputs', inputs)
-            print(name+' outputs', outputs)
-        return hook_function
-    
-    # Register the forward and backward hooks.
-    for name, module in model.named_modules():
-        module.register_forward_hook(hook_func('[forward]: '+name, module))
-        module.register_backward_hook(hook_func('[backward]: '+name, module))
-    
-    # Run
-    model(input_tensor)
-    ```
+   ```
+   # Set the hook function.
+   def hook_func(name, module):
+       def hook_function(module, inputs, outputs):
+           print(name+' inputs', inputs)
+           print(name+' outputs', outputs)
+       return hook_function
+   
+   # Register the forward and backward hooks.
+   for name, module in model.named_modules():
+       module.register_forward_hook(hook_func('[forward]: '+name, module))
+       module.register_backward_hook(hook_func('[backward]: '+name, module))
+   
+   # Run
+   model(input_tensor)
+   ```
 
-    Analyze the printed inputs and outputs in the forward and backward propagation.
+   Analyze the printed inputs and outputs in the forward and backward propagation.
 
-3.  Obtain parameters such as  **grad**,  **running\_mean**, and  **running\_var**  of the module to analyze the updates.
+3. Obtain parameters such as  **grad**,  **running\_mean**, and  **running\_var**  of the module to analyze the updates.
 
-    Code example (this example shows only the basic method and does not allow direct copy):
+   Code example (this example shows only the basic method and does not allow direct copy):
 
-    ```
-    # For example, obtain the gradient and average value of BN for check.
-    for name, module in model.named_modules():
-        if isinstance(module, nn._BatchNorm):
-            print("[BN_buffer]: "+name, module.running_mean, module.running_var)
-        print("[grad]: "+name, module.grad)
-    ```
+   ```
+   # For example, obtain the gradient and average value of BN for check.
+   for name, module in model.named_modules():
+       if isinstance(module, nn._BatchNorm):
+           print("[BN_buffer]: "+name, module.running_mean, module.running_var)
+       print("[grad]: "+name, module.grad)
+   ```
 
 ## Model Saving and Conversion
 
@@ -2552,69 +2597,69 @@ For details about how to build an offline inference application, see the  _CANN 
 
 During PyTorch training,  **torch.save()**  is used to save checkpoint files. Based on the usage of model files, model files are saved in the following two formats:
 
--   .pth or .pt files: These files are used for online inference or exporting ONNX models. Only model parameters are saved, and the model structure is not saved, so that the compressed file can be opened using a visualization tool such as Netron.  [Figure 11](#fig315704722610)  shows an example.
+- .pth or .pt files: These files are used for online inference or exporting ONNX models. Only model parameters are saved, and the model structure is not saved, so that the compressed file can be opened using a visualization tool such as Netron.  [Figure 11](#fig315704722610)  shows an example.
 
-    **Figure  11**  .pth file
-    ![](figures/pth-file.jpg "pth-file")
+  **Figure  11**  .pth file
+  ![](figures/pth-file.jpg "pth-file")
 
-    Use  **state\_dict**  to save and load a model. The following is an example:
+  Use  **state\_dict**  to save and load a model. The following is an example:
 
-    1.  Save a model.
+  1. Save a model.
 
-        ```
-        # Create a storage path.
-        PATH = "state_dict_model.pt"
-        # Save a model.
-        torch.save(net.state_dict(), PATH)
-        ```
+     ```
+     # Create a storage path.
+     PATH = "state_dict_model.pt"
+     # Save a model.
+     torch.save(net.state_dict(), PATH)
+     ```
 
-    2.  Load the model for online inference. The following is an example. For details, see the  _PyTorch Online Inference Guide_.
+  2. Load the model for online inference. The following is an example. For details, see the  _PyTorch Online Inference Guide_.
 
-        ```
-        # Path for storing the model file
-        PATH = "state_dict_model.pt"
-        model = TheModelClass(*args, **kwargs)
-        # Load a model.
-        model.load_state_dict(torch.load(PATH))
-        model.eval()
-        ```
+     ```
+     # Path for storing the model file
+     PATH = "state_dict_model.pt"
+     model = TheModelClass(*args, **kwargs)
+     # Load a model.
+     model.load_state_dict(torch.load(PATH))
+     model.eval()
+     ```
 
-    >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
-    >The model definition file must be provided when the .pth or .pt file is saved. Otherwise, the deployment cannot be performed.
+  >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
+  >The model definition file must be provided when the .pth or .pt file is saved. Otherwise, the deployment cannot be performed.
 
--   .pth.tar files: can be used for online inference or training after reloading. Multiple components are saved in dictionary format. Common components include the  **state\_dict**  of the model and optimizer, epoch when the training stops, training loss of the latest record, and the external torch.nn.Embedding layer. If only an inference model needs to be deployed, you are advised to save the weight information only, that is, the  **state\_dict**  of the model, in the .pth.tar file.
+- .pth.tar files: can be used for online inference or training after reloading. Multiple components are saved in dictionary format. Common components include the  **state\_dict**  of the model and optimizer, epoch when the training stops, training loss of the latest record, and the external torch.nn.Embedding layer. If only an inference model needs to be deployed, you are advised to save the weight information only, that is, the  **state\_dict**  of the model, in the .pth.tar file.
 
-    The following is an example of saving and loading a model:
+  The following is an example of saving and loading a model:
 
-    1.  Save a model.
+  1. Save a model.
 
-        ```
-        PATH = "checkpoint.pth.tar"
-        torch.save({
-            'epoch': epoch,
-            'loss': loss,
-            'state_dict': model.state_dict(),
-            'optimizer' : optimizer.state_dict(),
-            ...
-        }, PATH)
-        ```
+     ```
+     PATH = "checkpoint.pth.tar"
+     torch.save({
+         'epoch': epoch,
+         'loss': loss,
+         'state_dict': model.state_dict(),
+         'optimizer' : optimizer.state_dict(),
+         ...
+     }, PATH)
+     ```
 
-    2.  Load a model for inference or resuming training.
+  2. Load a model for inference or resuming training.
 
-        ```
-        model = TheModelClass(*args, **kwargs)
-        optimizer = TheOptimizerClass(*args, **kwargs)
-        
-        checkpoint = torch.load(PATH)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
-        
-        model.eval()
-        # - or -
-        model.train()
-        ```
+     ```
+     model = TheModelClass(*args, **kwargs)
+     optimizer = TheOptimizerClass(*args, **kwargs)
+     
+     checkpoint = torch.load(PATH)
+     model.load_state_dict(checkpoint['model_state_dict'])
+     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+     epoch = checkpoint['epoch']
+     loss = checkpoint['loss']
+     
+     model.eval()
+     # - or -
+     model.train()
+     ```
 
 >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
 >Generally, an operator is processed in different ways in the training graph and inference graph (for example, BatchNorm and dropout operators), and the input formats are also different. Therefore, before inference or ONNX model exporting,  **model.eval\(\)**  must be called to set the dropout and batch normalization layers to the inference mode.
@@ -2663,6 +2708,7 @@ if __name__ == "__main__":
 ```
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
+>
 >-   Before exporting the ONNX model, the  **model.eval\(\)**  must be called to set the dropout and batch normalization layers to inference mode.
 >-   The model in the sample script comes from the definition in the torchvision module. You need to specify a model when using your own model.
 >-   The constructed input and output must correspond to the input and output during training. Otherwise, the inference cannot be performed properly.
@@ -2714,15 +2760,16 @@ if __name__ == "__main__":
 
 ##### How to Obtain
 
-1.  This sample is used to adapt to the porting and reconstruction of the  Ascend 910 AI Processor  based on the ImageNet dataset training model provided by the PyTorch official website. The sample can be obtained from  [https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet).
-2.  For details about the ShuffleNet model, see the  [ShuffleNet V2](https://pytorch.org/hub/pytorch_vision_shufflenet_v2/)  in the PyTorch official website. Set the  **arch**  parameter to  **shufflenet\_v2\_x1\_0**  during script execution.
+1. This sample is used to adapt to the porting and reconstruction of the  Ascend 910 AI Processor  based on the ImageNet dataset training model provided by the PyTorch official website. The sample can be obtained from  [https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet).
 
-    ```
-    --arch shufflenet_v2_x1_0
-    ```
+2. For details about the ShuffleNet model, see the  [ShuffleNet V2](https://pytorch.org/hub/pytorch_vision_shufflenet_v2/)  in the PyTorch official website. Set the  **arch**  parameter to  **shufflenet\_v2\_x1\_0**  during script execution.
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >ShuffleNet is a model built in PyTorch. For more built-in models, visit the  [PyTorch official website](https://pytorch.org/).
+   ```
+   --arch shufflenet_v2_x1_0
+   ```
+
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >ShuffleNet is a model built in PyTorch. For more built-in models, visit the  [PyTorch official website](https://pytorch.org/).
 
 
 ##### Directory Structure
@@ -2808,6 +2855,7 @@ The forward check record table is as follows:
 </tr>
 </tbody>
 </table>
+
 
 The details are as follows:
 
@@ -2971,6 +3019,7 @@ The record table of the entire network check is as follows:
 </tbody>
 </table>
 
+
 The details are as follows:
 
 1.  Replace framework operators with compute operators.
@@ -2991,85 +3040,85 @@ The details are as follows:
 
 9.  In IndexSelectFullImplementation, the gatherv2 operation is performed twice on a 5HD tensor. In this case, the conversion from 5HD to 4D is performed twice. You can manually convert 5HD to 4D once, so that transdata is not performed during the gatherv2 operation, reducing a transdata operation.
 
-10. Add the mixed precision O1.
+10.  Add the mixed precision O1.
 
-11. Add the mixed precision O2.
-12. Due to the parameter verification of the Axpy operator, when the parameters of all networks are updated, if C dimension is not exactly divided by 16, the Axpy operation for 4D is performed by transdata operators. In this case, a large number of transdata operators are introduced. To solve this problem, add a function, when the Axpy input shapes are the same, the verification ends. This avoids format conversion and improves the running efficiency.
+11.  Add the mixed precision O2.
+12.  Due to the parameter verification of the Axpy operator, when the parameters of all networks are updated, if C dimension is not exactly divided by 16, the Axpy operation for 4D is performed by transdata operators. In this case, a large number of transdata operators are introduced. To solve this problem, add a function, when the Axpy input shapes are the same, the verification ends. This avoids format conversion and improves the running efficiency.
 
-13. Delete all the stream synchronization operations. This is not adopted because it is easy to cause non-convergence.
+13.  Delete all the stream synchronization operations. This is not adopted because it is easy to cause non-convergence.
 
-14. After using the GatherV2 operator optimized for non-alignment scenarios, the overall performance is improved to the delivery level.
+14.  After using the GatherV2 operator optimized for non-alignment scenarios, the overall performance is improved to the delivery level.
 
-15. After using the GatherV3 operator optimized for the ShuffleNet V2 scenario, the overall performance can be further improved.
+15.  After using the GatherV3 operator optimized for the ShuffleNet V2 scenario, the overall performance can be further improved.
 
 
 ##### Python Optimization Details
 
 The optimization on the Python side is to make the network more affinity on the NPU by modifying some equivalent semantics. The current operations of converting non-contiguous tensors to contiguous tensors can be the performance bottleneck. The  **channel\_shuffle**  operation in ShuffleNet V2 involves the conversion operations after permute, causing poor performance of the entire network. The performance of the entire network can be greatly improved by modifying the equivalent semantics of the  **channel\_shuffle**  operation and combining it with the concat operation. The torchvision version is used. For details, go to  [open source link](https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py).
 
--   Original  **channel\_shuffle**  operation:
+- Original  **channel\_shuffle**  operation:
 
-    ```
-    def channel_shuffle(x, groups):
-        # type: (torch.Tensor, int) -> torch.Tensor
-        batchsize, num_channels, height, width = x.data.size()
-        channels_per_group = num_channels // groups
-        # reshape
-        x = x.view(batchsize, groups,
-                   channels_per_group, height, width)
-        x = torch.transpose(x, 1, 2).contiguous()
-        # flatten
-        x = x.view(batchsize, -1, height, width)
-        return x
-    
-    class InvertedResidual(nn.Module):
-        def __init__(self, inp, oup, stride):
-            super(InvertedResidual, self).__init__()
-            if not (1 <= stride <= 3):
-                raise ValueError('illegal stride value')
-            self.stride = stride
-            branch_features = oup // 2
-            assert (self.stride != 1) or (inp == branch_features << 1)
-            if self.stride > 1:
-                self.branch1 = nn.Sequential(
-                    self.depthwise_conv(inp, inp, kernel_size=3, stride=self.stride, padding=1),
-                    nn.BatchNorm2d(inp),
-                    nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                    nn.BatchNorm2d(branch_features),
-                    nn.ReLU(inplace=True),
-                )
-            else:
-                self.branch1 = nn.Sequential()
-    
-            self.branch2 = nn.Sequential(
-                nn.Conv2d(inp if (self.stride > 1) else branch_features,
-                          branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(branch_features),
-                nn.ReLU(inplace=True),
-                self.depthwise_conv(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1),
-                nn.BatchNorm2d(branch_features),
-                nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(branch_features),
-                nn.ReLU(inplace=True),
-            )
-    
-        @staticmethod
-        def depthwise_conv(i, o, kernel_size, stride=1, padding=0, bias=False):
-            return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias, groups=i)
-    
-        def forward(self, x):
-            if self.stride == 1:
-                x1, x2 = x.chunk(2, dim=1)
-                out = torch.cat((x1, self.branch2(x2)), dim=1)
-            else:
-                out = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
-    
-            out = channel_shuffle(out, 2)
-    
-            return out
-    ```
+  ```
+  def channel_shuffle(x, groups):
+      # type: (torch.Tensor, int) -> torch.Tensor
+      batchsize, num_channels, height, width = x.data.size()
+      channels_per_group = num_channels // groups
+      # reshape
+      x = x.view(batchsize, groups,
+                 channels_per_group, height, width)
+      x = torch.transpose(x, 1, 2).contiguous()
+      # flatten
+      x = x.view(batchsize, -1, height, width)
+      return x
+  
+  class InvertedResidual(nn.Module):
+      def __init__(self, inp, oup, stride):
+          super(InvertedResidual, self).__init__()
+          if not (1 <= stride <= 3):
+              raise ValueError('illegal stride value')
+          self.stride = stride
+          branch_features = oup // 2
+          assert (self.stride != 1) or (inp == branch_features << 1)
+          if self.stride > 1:
+              self.branch1 = nn.Sequential(
+                  self.depthwise_conv(inp, inp, kernel_size=3, stride=self.stride, padding=1),
+                  nn.BatchNorm2d(inp),
+                  nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+                  nn.BatchNorm2d(branch_features),
+                  nn.ReLU(inplace=True),
+              )
+          else:
+              self.branch1 = nn.Sequential()
+  
+          self.branch2 = nn.Sequential(
+              nn.Conv2d(inp if (self.stride > 1) else branch_features,
+                        branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+              nn.BatchNorm2d(branch_features),
+              nn.ReLU(inplace=True),
+              self.depthwise_conv(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1),
+              nn.BatchNorm2d(branch_features),
+              nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+              nn.BatchNorm2d(branch_features),
+              nn.ReLU(inplace=True),
+          )
+  
+      @staticmethod
+      def depthwise_conv(i, o, kernel_size, stride=1, padding=0, bias=False):
+          return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias, groups=i)
+  
+      def forward(self, x):
+          if self.stride == 1:
+              x1, x2 = x.chunk(2, dim=1)
+              out = torch.cat((x1, self.branch2(x2)), dim=1)
+          else:
+              out = torch.cat((self.branch1(x), self.branch2(x)), dim=1)
+  
+          out = channel_shuffle(out, 2)
+  
+          return out
+  ```
 
--   Equivalent semantics rewriting:
+- Equivalent semantics rewriting:
 
 ```
 def channel_shuffle_index_select(x, groups=2):
@@ -3090,152 +3139,152 @@ for group in [2, 4, 8]:
     print((out1 - out2).sum())
 ```
 
--   Affinity writing method of the Ascend AI Processor:
+- Affinity writing method of the Ascend AI Processor:
 
-    ```
-    # Corresponding to out = channel_shuffle(torch.cat((self.branch1(x), self.branch2(x)), dim=1))
-    # Replace channel_shuffle with channel_shuffle_index_select.
-    # Customize operators to combine channel_shuffle_index_select and cat, and use compute operators to reduce non-contiguous tensors.
-    class IndexSelectFullImplementation(torch.autograd.Function):
-        @staticmethod
-        def forward(ctx, x1, x2, fp_index, bp_index1, bp_index2):
-            # Forcible stream synchronization, which is used only for training stabilization.
-            stream = torch.npu.current_stream()
-            stream.synchronize()
-    
-            # Register bp_index1 and bp_index2 with context so that they can be used in backward propagation.
-            ctx.bp_index1 = bp_index1
-            ctx.bp_index2 = bp_index2
-    
-            x = torch.cat([x1, x2], dim=1)
-    
-    # Replace channel_shuffle with index_select. In this example, the chunk operator is not used.
-            result = x.index_select(1, fp_index)
-    
-            return result
-    
-        @staticmethod
-        def backward(ctx, grad_output):
-            # Forcible stream synchronization, which is used only for training stabilization.
-            stream = torch.npu.current_stream()
-            stream.synchronize()
-    
-    # Convert the format to NCHW to reduce extra transdata because index_select does not support the 5HD format.
-            grad_output.data = grad_output.data.npu_format_cast(0)
-    
-            # Use index_select to reverse index_select and cat based on the reverse expression obtained from forward derivation.
-            out1 = grad_output.index_select(1, ctx.bp_index1)
-            out2 = grad_output.index_select(1, ctx.bp_index2)
-            return out1, out2, None, None, None, None
-    
-    
-    class IndexSelectHalfImplementation(torch.autograd.Function):
-        @staticmethod
-        def forward(ctx, x1, x2, fp_index1, fp_index2, bp_index1, bp_index2):
-            ctx.bp_index1 = bp_index1
-            ctx.bp_index2 = bp_index2
-            x = torch.cat([x1, x2], dim=1)
-    
-    # Replace channel_shuffle with index_select. In this example, the chunk operator is used.
-            return x.index_select(1, fp_index1), x.index_select(1, fp_index2)
-    
-        @staticmethod
-        def backward(ctx, grad_output1, grad_output2):
-            grad_output = torch.cat([grad_output1, grad_output2], 1)
-    
-            out1 = grad_output.index_select(1, ctx.bp_index1)
-            out2 = grad_output.index_select(1, ctx.bp_index2)
-            return out1, out2, None, None, None, None
-    
-    
-    class Channel_Shuffle(nn.Module):
-        def __init__(self, inp, groups=2, split_shuffle=True):
-            super(Channel_Shuffle, self).__init__()
-    
-            self.split_shuffle = split_shuffle
-            self.group_len = inp // groups
-    
-            # Initialize fp_index to be used in channel_shuffle_index_select.
-            self.out = np.array(list(range(inp))).reshape(groups, self.group_len).transpose(1, 0).flatten().tolist()
-    
-            # Register the initialized fp_index as the buffer of the module. When to.device is called, the buffer is brought to the device to reduce the time consumed by host-to-device copy.
-            # This section describes only the common usage when the value of group is 2. Expand based on the actual scenario.
-            if self.split_shuffle:
-                self.register_buffer('fp_index1', torch.tensor(self.out[:self.group_len], dtype=torch.int32))
-                self.register_buffer('fp_index2', torch.tensor(self.out[self.group_len:], dtype=torch.int32))
-            else:
-                self.register_buffer('fp_index', torch.tensor(self.out, dtype=torch.int32))
-    
-            # Register the corresponding bp_index as the buffer of the module. When to.device is called, the buffer is brought to the device to reduce the time consumed by host-to-device copy.
-            self.register_buffer('bp_index1', torch.tensor(list(range(0, inp, 2)), dtype=torch.int32))
-            self.register_buffer('bp_index2', torch.tensor(list(range(1, inp, 2)), dtype=torch.int32))
-    
-        def forward(self, x1, x2):
-            if self.split_shuffle:
-                return IndexSelectHalfImplementation.apply(x1, x2, self.fp_index1, self.fp_index2, self.bp_index1,
-                                                           self.bp_index2)
-            else:
-                return IndexSelectFullImplementation.apply(x1, x2, self.fp_index, self.bp_index1, self.bp_index2)
-    
-    
-    class InvertedResidual(nn.Module):
-        def __init__(self, inp, oup, stride, split_shuffle=True):
-            super(InvertedResidual, self).__init__()
-    
-            if not (1 <= stride <= 3):
-                raise ValueError('illegal stride value')
-            self.stride = stride
-    
-            branch_features = oup // 2
-            assert (self.stride != 1) or (inp == branch_features << 1)
-    
-            if self.stride > 1:
-                self.branch1 = nn.Sequential(
-                    self.depthwise_conv(inp, inp, kernel_size=3, stride=self.stride, padding=1),
-                    nn.BatchNorm2d(inp),
-                    nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                    nn.BatchNorm2d(branch_features),
-                    nn.ReLU(inplace=True),
-                )
-            else:
-                self.branch1 = nn.Sequential()
-    
-            self.branch2 = nn.Sequential(
-                nn.Conv2d(inp if (self.stride > 1) else branch_features,
-                          branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(branch_features),
-                nn.ReLU(inplace=True),
-                self.depthwise_conv(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1),
-                nn.BatchNorm2d(branch_features),
-                nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
-                nn.BatchNorm2d(branch_features),
-                nn.ReLU(inplace=True),
-            )
-    
-            if self.stride > 1:
-                self.channel_shuffle = Channel_Shuffle(inp=branch_features + branch_features, groups=2,
-                                                       split_shuffle=split_shuffle)
-            else:
-                self.channel_shuffle = Channel_Shuffle(inp=inp, groups=2, split_shuffle=split_shuffle)
-    
-        @staticmethod
-        def depthwise_conv(i, o, kernel_size, stride=1, padding=0, bias=False):
-            return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias, groups=i)
-    
-        def forward(self, x):
-    
-    # Delete the concat and chunk operations and combine them into self.channel_shuffle for processing.
-            if self.stride == 1:
-                x1, x2 = x
-                x2 = self.branch2(x2)
-            else:
-                x1 = self.branch1(x)
-                x2 = self.branch2(x)
-    
-            out = self.channel_shuffle(x1, x2)
-    
-            return out
-    ```
+  ```
+  # Corresponding to out = channel_shuffle(torch.cat((self.branch1(x), self.branch2(x)), dim=1))
+  # Replace channel_shuffle with channel_shuffle_index_select.
+  # Customize operators to combine channel_shuffle_index_select and cat, and use compute operators to reduce non-contiguous tensors.
+  class IndexSelectFullImplementation(torch.autograd.Function):
+      @staticmethod
+      def forward(ctx, x1, x2, fp_index, bp_index1, bp_index2):
+          # Forcible stream synchronization, which is used only for training stabilization.
+          stream = torch.npu.current_stream()
+          stream.synchronize()
+  
+          # Register bp_index1 and bp_index2 with context so that they can be used in backward propagation.
+          ctx.bp_index1 = bp_index1
+          ctx.bp_index2 = bp_index2
+  
+          x = torch.cat([x1, x2], dim=1)
+  
+  # Replace channel_shuffle with index_select. In this example, the chunk operator is not used.
+          result = x.index_select(1, fp_index)
+  
+          return result
+  
+      @staticmethod
+      def backward(ctx, grad_output):
+          # Forcible stream synchronization, which is used only for training stabilization.
+          stream = torch.npu.current_stream()
+          stream.synchronize()
+  
+  # Convert the format to NCHW to reduce extra transdata because index_select does not support the 5HD format.
+          grad_output.data = grad_output.data.npu_format_cast(0)
+  
+          # Use index_select to reverse index_select and cat based on the reverse expression obtained from forward derivation.
+          out1 = grad_output.index_select(1, ctx.bp_index1)
+          out2 = grad_output.index_select(1, ctx.bp_index2)
+          return out1, out2, None, None, None, None
+  
+  
+  class IndexSelectHalfImplementation(torch.autograd.Function):
+      @staticmethod
+      def forward(ctx, x1, x2, fp_index1, fp_index2, bp_index1, bp_index2):
+          ctx.bp_index1 = bp_index1
+          ctx.bp_index2 = bp_index2
+          x = torch.cat([x1, x2], dim=1)
+  
+  # Replace channel_shuffle with index_select. In this example, the chunk operator is used.
+          return x.index_select(1, fp_index1), x.index_select(1, fp_index2)
+  
+      @staticmethod
+      def backward(ctx, grad_output1, grad_output2):
+          grad_output = torch.cat([grad_output1, grad_output2], 1)
+  
+          out1 = grad_output.index_select(1, ctx.bp_index1)
+          out2 = grad_output.index_select(1, ctx.bp_index2)
+          return out1, out2, None, None, None, None
+  
+  
+  class Channel_Shuffle(nn.Module):
+      def __init__(self, inp, groups=2, split_shuffle=True):
+          super(Channel_Shuffle, self).__init__()
+  
+          self.split_shuffle = split_shuffle
+          self.group_len = inp // groups
+  
+          # Initialize fp_index to be used in channel_shuffle_index_select.
+          self.out = np.array(list(range(inp))).reshape(groups, self.group_len).transpose(1, 0).flatten().tolist()
+  
+          # Register the initialized fp_index as the buffer of the module. When to.device is called, the buffer is brought to the device to reduce the time consumed by host-to-device copy.
+          # This section describes only the common usage when the value of group is 2. Expand based on the actual scenario.
+          if self.split_shuffle:
+              self.register_buffer('fp_index1', torch.tensor(self.out[:self.group_len], dtype=torch.int32))
+              self.register_buffer('fp_index2', torch.tensor(self.out[self.group_len:], dtype=torch.int32))
+          else:
+              self.register_buffer('fp_index', torch.tensor(self.out, dtype=torch.int32))
+  
+          # Register the corresponding bp_index as the buffer of the module. When to.device is called, the buffer is brought to the device to reduce the time consumed by host-to-device copy.
+          self.register_buffer('bp_index1', torch.tensor(list(range(0, inp, 2)), dtype=torch.int32))
+          self.register_buffer('bp_index2', torch.tensor(list(range(1, inp, 2)), dtype=torch.int32))
+  
+      def forward(self, x1, x2):
+          if self.split_shuffle:
+              return IndexSelectHalfImplementation.apply(x1, x2, self.fp_index1, self.fp_index2, self.bp_index1,
+                                                         self.bp_index2)
+          else:
+              return IndexSelectFullImplementation.apply(x1, x2, self.fp_index, self.bp_index1, self.bp_index2)
+  
+  
+  class InvertedResidual(nn.Module):
+      def __init__(self, inp, oup, stride, split_shuffle=True):
+          super(InvertedResidual, self).__init__()
+  
+          if not (1 <= stride <= 3):
+              raise ValueError('illegal stride value')
+          self.stride = stride
+  
+          branch_features = oup // 2
+          assert (self.stride != 1) or (inp == branch_features << 1)
+  
+          if self.stride > 1:
+              self.branch1 = nn.Sequential(
+                  self.depthwise_conv(inp, inp, kernel_size=3, stride=self.stride, padding=1),
+                  nn.BatchNorm2d(inp),
+                  nn.Conv2d(inp, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+                  nn.BatchNorm2d(branch_features),
+                  nn.ReLU(inplace=True),
+              )
+          else:
+              self.branch1 = nn.Sequential()
+  
+          self.branch2 = nn.Sequential(
+              nn.Conv2d(inp if (self.stride > 1) else branch_features,
+                        branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+              nn.BatchNorm2d(branch_features),
+              nn.ReLU(inplace=True),
+              self.depthwise_conv(branch_features, branch_features, kernel_size=3, stride=self.stride, padding=1),
+              nn.BatchNorm2d(branch_features),
+              nn.Conv2d(branch_features, branch_features, kernel_size=1, stride=1, padding=0, bias=False),
+              nn.BatchNorm2d(branch_features),
+              nn.ReLU(inplace=True),
+          )
+  
+          if self.stride > 1:
+              self.channel_shuffle = Channel_Shuffle(inp=branch_features + branch_features, groups=2,
+                                                     split_shuffle=split_shuffle)
+          else:
+              self.channel_shuffle = Channel_Shuffle(inp=inp, groups=2, split_shuffle=split_shuffle)
+  
+      @staticmethod
+      def depthwise_conv(i, o, kernel_size, stride=1, padding=0, bias=False):
+          return nn.Conv2d(i, o, kernel_size, stride, padding, bias=bias, groups=i)
+  
+      def forward(self, x):
+  
+  # Delete the concat and chunk operations and combine them into self.channel_shuffle for processing.
+          if self.stride == 1:
+              x1, x2 = x
+              x2 = self.branch2(x2)
+          else:
+              x1 = self.branch1(x)
+              x2 = self.branch2(x)
+  
+          out = self.channel_shuffle(x1, x2)
+  
+          return out
+  ```
 
 ## References
 
@@ -3243,96 +3292,97 @@ for group in [2, 4, 8]:
 
 When a problem occurs in a model, it is costly to reproduce the problem in the entire network. You can build a single-operator sample to reproduce the precision or performance problem to locate and solve the problem. A single-operator sample can be built in either of the following ways: For details about single-operator dump methods, see  [Single-Operator Dump Method](#single-operator-dump-method).
 
-1.  Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
+1. Build a single-operator sample test case. You can directly call the operator to reproduce the error scenario.
 
-    The following is an example of building a single-operator sample of the max operator:
+   The following is an example of building a single-operator sample of the max operator:
 
-    ```
-    import torch
-    import copy
-    from torch.testing._internal.common_utils import TestCase, run_tests 
-    class TestMax(TestCase):    
-        def cpu_op_exec(self, input1):
-            # Call the operator.
-            output = torch.max(input1)
-            output = output.to('cpu')
-            output = output.numpy()
-            return output
-    
-        def npu_op_exec(self, input1):
-            # Call the corresponding NPU operator.
-            output = torch.max(input1)
-            return output
-    
-        def test_max(self):
-            input = torch.randn(10,20))
-            input = input.to(torch.int64) # Convert the data type.
-            input_cpu = copy.deepcopy(input)
-            input_npu = copy.deepcopy(input).npu()
-    
-            output_cpu = self.cpu_op_exec(input_cpu)
-            output_npu = self.npu_op_exec(input_npu)
-    
-            # Compare the calculation results of the CPU and NPU. prec is the allowed error.
-            self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
-    
-    if __name__ == '__main__':
-        run_tests()
-    ```
+   ```
+   import torch
+   import copy
+   from torch.testing._internal.common_utils import TestCase, run_tests 
+   class TestMax(TestCase):    
+       def cpu_op_exec(self, input1):
+           # Call the operator.
+           output = torch.max(input1)
+           output = output.to('cpu')
+           output = output.numpy()
+           return output
+   
+       def npu_op_exec(self, input1):
+           # Call the corresponding NPU operator.
+           output = torch.max(input1)
+           return output
+   
+       def test_max(self):
+           input = torch.randn(10,20))
+           input = input.to(torch.int64) # Convert the data type.
+           input_cpu = copy.deepcopy(input)
+           input_npu = copy.deepcopy(input).npu()
+   
+           output_cpu = self.cpu_op_exec(input_cpu)
+           output_npu = self.npu_op_exec(input_npu)
+   
+           # Compare the calculation results of the CPU and NPU. prec is the allowed error.
+           self.assertEqual(output_cpu, output_npu, prec = 1e-4) 
+   
+   if __name__ == '__main__':
+       run_tests()
+   ```
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >-   Run the preceding code. If the reported error information is the same as that of the max operator in the model, the single-operator test case is successfully built.
-    >-   Assume that the data type conversion code is commented out. If no error is reported in the test case, an error of the max operator is reported on the NPU when the input parameter is  **torch.int64**.
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >
+   >-   Run the preceding code. If the reported error information is the same as that of the max operator in the model, the single-operator test case is successfully built.
+   >-   Assume that the data type conversion code is commented out. If no error is reported in the test case, an error of the max operator is reported on the NPU when the input parameter is  **torch.int64**.
 
-2.  Build a single-operator test case based on the context.
+2. Build a single-operator test case based on the context.
 
-    Although this is a single-operator sample, sometimes it is not only an operation but also a scenario with context or a module with parameters. The module mode is a more common method. The following is an example of building a module that contains two operators:
+   Although this is a single-operator sample, sometimes it is not only an operation but also a scenario with context or a module with parameters. The module mode is a more common method. The following is an example of building a module that contains two operators:
 
-    ```
-    import torch
-    import copy
-    from torch.testing._internal.common_utils import TestCase, run_tests 
-    
-    class Model(nn.Module):
-        def __init__(self, in_channels=1, hooks=False):
-            super(Model, self).__init__()
-            self.conv = nn.Conv2d(in_channels, in_channels*2, kernel_size=64)
-            if hooks:
-                self.conv.weight.register_hook(lambda grad: print(grad))
-        def forward(self, x):
-            out = self.conv(x)
-            return out
-    
-    class TestConv2d(TestCase): 
-        def test_conv2d(self):
-    
-            model = Model(in_channels=16)
-    
-            # Add hooks to obtain the backward propagation result.
-            # model = Model(in_channels=16, hooks=True)
-            # Create an input tensor.
-            input_tensor = torch.randn(4,16,64,64)
-    
-            input_tensor_cpu= copy.deepcopy(input_tensor)
-            out = model(input_tensor_cpu)
-            loss = out.sum()
-            loss.backward()
-            cpuout = out
-    
-            # Run the model and input tensor on the NPU.
-            torch.npu.set_device("npu:0") # Set the running device first.
-            model_npu = Model(in_channels=16).npu()
-            input_tensor_npu= copy.deepcopy(input_tensor).npu()
-            out = model_npu(input_tensor_npu)
-            loss = out.sum()
-            loss.backward()
-            npuout = out
-            # Determine whether the scenario is an error scenario based on the result.
-            self.assertEqual(cpuout, npuout, prec = 1e-4)
-    
-    if __name__ == '__main__':
-        run_tests()
-    ```
+   ```
+   import torch
+   import copy
+   from torch.testing._internal.common_utils import TestCase, run_tests 
+   
+   class Model(nn.Module):
+       def __init__(self, in_channels=1, hooks=False):
+           super(Model, self).__init__()
+           self.conv = nn.Conv2d(in_channels, in_channels*2, kernel_size=64)
+           if hooks:
+               self.conv.weight.register_hook(lambda grad: print(grad))
+       def forward(self, x):
+           out = self.conv(x)
+           return out
+   
+   class TestConv2d(TestCase): 
+       def test_conv2d(self):
+   
+           model = Model(in_channels=16)
+   
+           # Add hooks to obtain the backward propagation result.
+           # model = Model(in_channels=16, hooks=True)
+           # Create an input tensor.
+           input_tensor = torch.randn(4,16,64,64)
+   
+           input_tensor_cpu= copy.deepcopy(input_tensor)
+           out = model(input_tensor_cpu)
+           loss = out.sum()
+           loss.backward()
+           cpuout = out
+   
+           # Run the model and input tensor on the NPU.
+           torch.npu.set_device("npu:0") # Set the running device first.
+           model_npu = Model(in_channels=16).npu()
+           input_tensor_npu= copy.deepcopy(input_tensor).npu()
+           out = model_npu(input_tensor_npu)
+           loss = out.sum()
+           loss.backward()
+           npuout = out
+           # Determine whether the scenario is an error scenario based on the result.
+           self.assertEqual(cpuout, npuout, prec = 1e-4)
+   
+   if __name__ == '__main__':
+       run_tests()
+   ```
 
 ### Single-Operator Dump Method
 
@@ -3399,6 +3449,7 @@ The fields of  **dump.json**  are described as follows.
 </tbody>
 </table>
 
+
 #### Viewing Overflowed Data
 
 The collected dump data is generated in the  _\{dump\_path\}_**/**_\{time\}_**/**_\{deviceid\}_**/**_\{model\_id\}_**/**_\{data\_index\}_  directory, for example,  **/home/HwHiAiUser/output/20200808163566/0/0**.
@@ -3414,86 +3465,87 @@ The fields in the dump data path and file are described as follows:
 
 #### Parse the dump file of an overflow operator.
 
-1.  Upload the  **_\{op\_type\}.\{op\_name\}.\{taskid\}.\{stream\_id\}.\{timestamp\}_**  file to the environment with CANN installed.
-2.  Go to the path where the parsing script is stored. Assume that the installation directory of the CANN is  **/home/HwHiAiUser/Ascend**.
+1. Upload the  **_\{op\_type\}.\{op\_name\}.\{taskid\}.\{stream\_id\}.\{timestamp\}_**  file to the environment with CANN installed.
 
-    **cd  /home/HwHiAiUser/Ascend/ascend-toolkit/latest/toolkit/tools/operator\_cmp/compare**
+2. Go to the path where the parsing script is stored. Assume that the installation directory of the CANN is  **/home/HwHiAiUser/Ascend**.
 
-3.  Run the  **msaccucmp.pyc**  script to convert the dump file into a NumPy file. The following is an example:
+   **cd  /home/HwHiAiUser/Ascend/ascend-toolkit/latest/toolkit/tools/operator\_cmp/compare**
 
-    **python3 msaccucmp.pyc convert -d /home/HwHiAiUser/dump -out /home/HwHiAiUser/dumptonumpy -v 2**
+3. Run the  **msaccucmp.pyc**  script to convert the dump file into a NumPy file. The following is an example:
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >The  **-d**  option enables the conversion of a single dump file or all dump files in a path.
+   **python3 msaccucmp.pyc convert -d /home/HwHiAiUser/dump -out /home/HwHiAiUser/dumptonumpy -v 2**
 
-4.  Use Python to save the NumPy data into a .txt file. The following is an example:
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >The  **-d**  option enables the conversion of a single dump file or all dump files in a path.
 
-    **$ python3**
+4. Use Python to save the NumPy data into a .txt file. The following is an example:
 
-    **\>\>\> import numpy as np**
+   **$ python3**
 
-    **\>\>\> a = np.load("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.npy")**
+   **\>\>\> import numpy as np**
 
-    **\>\>\> b = a.flatten\(\)**
+   **\>\>\> a = np.load("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.npy")**
 
-    **\>\>\> np.savetxt("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.txt", b)**
+   **\>\>\> b = a.flatten\(\)**
 
-    The dimension and  **Dtype**  information no longer exist in the .txt file. For details, visit the NumPy website.
+   **\>\>\> np.savetxt("/home/HwHiAiUser/dumptonumpy/Pooling.pool1.1147.1589195081588018.output.0.txt", b)**
+
+   The dimension and  **Dtype**  information no longer exist in the .txt file. For details, visit the NumPy website.
 
 ### Common Environment Variables
 
-1.  Enables the task delivery in multi-thread mode. When this function is enabled, the training performance of the entire network is improved in most cases.
+1. Enables the task delivery in multi-thread mode. When this function is enabled, the training performance of the entire network is improved in most cases.
 
-    **export TASK\_QUEUE\_ENABLE=1**
+   **export TASK\_QUEUE\_ENABLE=1**
 
-2.  Redirects logs to stdout, which is used to export host logs to the screen.
+2. Redirects logs to stdout, which is used to export host logs to the screen.
 
-    **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
+   **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
 
-3.  Sets the log level. Log levels in descending order are: debug \> info \> warning \> error \> null. Generally, the log level is set to  **error**.  **info**  is used for debugging. For details about how to set the log level, see the  _CANN Log Reference_.
+3. Sets the log level. Log levels in descending order are: debug \> info \> warning \> error \> null. Generally, the log level is set to  **error**.  **info**  is used for debugging. For details about how to set the log level, see the  _CANN Log Reference_.
 
-    **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
+   **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
 
-4.  Dumps graph, which is used to view the graph structure.
+4. Dumps graph, which is used to view the graph structure.
 
-    **export DUMP\_GE\_GRAPH=2**
+   **export DUMP\_GE\_GRAPH=2**
 
-    **export DUMP\_GRAPH\_LEVEL=3**
+   **export DUMP\_GRAPH\_LEVEL=3**
 
-5.  Enables/Disables the event log function.
+5. Enables/Disables the event log function.
 
-    **export ASCEND\_GLOBAL\_EVENT\_ENABLE=0**
+   **export ASCEND\_GLOBAL\_EVENT\_ENABLE=0**
 
-6.  Enables/Disables PTCopy.
+6. Enables/Disables PTCopy.
 
-    **export PTCOPY\_ENABLE=1**
+   **export PTCOPY\_ENABLE=1**
 
-7.  Enables/Disables the combined flag.
+7. Enables/Disables the combined flag.
 
-    **export COMBINED\_ENABLE=1**
+   **export COMBINED\_ENABLE=1**
 
-8.  Sets whether to recompile the code in special scenarios. You do not need to modify this parameter.
+8. Sets whether to recompile the code in special scenarios. You do not need to modify this parameter.
 
-    **export DYNAMIC\_OP="ADD\#MUL"**
+   **export DYNAMIC\_OP="ADD\#MUL"**
 
-9.  Enables/Disables the HCCL trustlist.
+9. Enables/Disables the HCCL trustlist.
 
-    **export HCCL\_WHITELIST\_DISABLE=1**
+   **export HCCL\_WHITELIST\_DISABLE=1**
 
 ### dump op Method
 
-1.  Use the profile API to reconstruct the loss calculation and optimization process of the original code training script and print the operator information. The following is a code example.
+1. Use the profile API to reconstruct the loss calculation and optimization process of the original code training script and print the operator information. The following is a code example.
 
-    ```
-    with torch.autograd.profiler.profile() as prof:
-        out = model(input_tensor)
-        loss = out.sum()
-        loss.backward()
-    # You can also export the file.
-    print(prof.key_averages().table(sort_by="self_cpu_time_total"))
-    ```
+   ```
+   with torch.autograd.profiler.profile() as prof:
+       out = model(input_tensor)
+       loss = out.sum()
+       loss.backward()
+   # You can also export the file.
+   print(prof.key_averages().table(sort_by="self_cpu_time_total"))
+   ```
 
-2.  Train the reconstructed training script on the CPU. The related operator information is displayed.
+2. Train the reconstructed training script on the CPU. The related operator information is displayed.
 
 ### Compilation Option Settings
 
@@ -3540,118 +3592,120 @@ ACL_OP_COMPILER_CACHE_DIR: Configures the disk cache directory for operator comp
 
 Perform the following steps as the  **root**  user.
 
-1.  Download  **gcc-7.3.0.tar.gz**  from  [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
-2.  GCC installation requires adequate temporary space. Run the following command to clear the  **/tmp**  directory in advance:
+1. Download  **gcc-7.3.0.tar.gz**  from  [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
 
-    ```
-    sudo rm -rf /tmp/*
-    ```
+2. GCC installation requires adequate temporary space. Run the following command to clear the  **/tmp**  directory in advance:
 
-3.  Install dependencies.
+   ```
+   sudo rm -rf /tmp/*
+   ```
 
-    For CentOS/BCLinux, run the following command:
+3. Install dependencies.
 
-    ```
-    yum install bzip2    
-    ```
+   For CentOS/BCLinux, run the following command:
 
-    For Ubuntu/Debian, run the following command:
+   ```
+   yum install bzip2    
+   ```
 
-    ```
-    apt-get install bzip2    
-    ```
+   For Ubuntu/Debian, run the following command:
 
-4.  Build and install GCC.
-    1.  Go to the directory where the source package  **gcc-7.3.0.tar.gz**  is located and run the following command to decompress it:
+   ```
+   apt-get install bzip2    
+   ```
 
-        ```
-        tar -zxvf gcc-7.3.0.tar.gz
-        ```
+4. Build and install GCC.
 
-    2.  Go to the extracted directory and run the following command to download the GCC dependency packages:
+   1. Go to the directory where the source package  **gcc-7.3.0.tar.gz**  is located and run the following command to decompress it:
 
-        ```
-        cd gcc-7.3.0
-        ./contrib/download_prerequisites
-        ```
+      ```
+      tar -zxvf gcc-7.3.0.tar.gz
+      ```
 
-        If an error is reported during the command execution, run the following commands in the  **gcc-7.3.0/**  directory to download the dependency packages:
+   2. Go to the extracted directory and run the following command to download the GCC dependency packages:
 
-        ```
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
-        ```
+      ```
+      cd gcc-7.3.0
+      ./contrib/download_prerequisites
+      ```
 
-        After the preceding dependencies are downloaded, run the following command again:
+      If an error is reported during the command execution, run the following commands in the  **gcc-7.3.0/**  directory to download the dependency packages:
 
-        ```
-        ./contrib/download_prerequisites
-        ```
+      ```
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+      ```
 
-        If the validation fails, check whether the dependency packages are repeatedly downloaded. The packages should be downloaded at a time.
+      After the preceding dependencies are downloaded, run the following command again:
 
-    3.  Run the following commands for configuration, build, and installation.
+      ```
+      ./contrib/download_prerequisites
+      ```
 
-        ```
-        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
-        make -j15    # Check the number of CPUs by running grep -w processor /proc/cpuinfo|wc -l. In this example, the number is 15.
-        make install    
-        ```
+      If the validation fails, check whether the dependency packages are repeatedly downloaded. The packages should be downloaded at a time.
 
-        >![](public_sys-resources/icon-caution.gif) **CAUTION:** 
-        >The  **--prefix**  option is used to specify the linux\_gcc7.3.0 installation path, which is configurable. Do not set it to  **/usr/local**  or  **/usr**, which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to  **/usr/local/linux\_gcc7.3.0**.
+   3. Run the following commands for configuration, build, and installation.
+
+      ```
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      make -j15    # Check the number of CPUs by running grep -w processor /proc/cpuinfo|wc -l. In this example, the number is 15.
+      make install    
+      ```
+
+      >![](public_sys-resources/icon-caution.gif) **CAUTION:** 
+      >The  **--prefix**  option is used to specify the linux\_gcc7.3.0 installation path, which is configurable. Do not set it to  **/usr/local**  or  **/usr**, which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to  **/usr/local/linux\_gcc7.3.0**.
 
 
-5.  Set the environment variable.
+5. Set the environment variable.
 
-    Training must be performed in the compilation environment with GCC upgraded. If you will run training, configure the following environment variable in your training script:
+   Training must be performed in the compilation environment with GCC upgraded. If you will run training, configure the following environment variable in your training script:
 
-    ```
-    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
-    ```
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
 
-    **$\{install\_path\}**  indicates the GCC 7.3.0 installation path configured in  [3](#en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is  **/usr/local/gcc7.3.0/**.
+   **$\{install\_path\}**  indicates the GCC 7.3.0 installation path configured in  [3](#en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is  **/usr/local/gcc7.3.0/**.
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >Skip this step if you do not need to use the compilation environment with GCC upgraded.
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 ### HDF5 Compilation and Installation
 
 Perform the following steps as the  **root**  user.
 
-1.  Obtain the code.
+1. Obtain the code.
 
-    ```
-    git clone https://github.com/HDFGroup/hdf5.git 
-    ```
+   ```
+   git clone https://github.com/HDFGroup/hdf5.git 
+   ```
 
-2.  Switch to the hdf5-1\_10\_7 branch.
+2. Switch to the hdf5-1\_10\_7 branch.
 
-    ```
-    cd hdf5
-    git checkout remotes/origin/hdf5_1_10_7 
-    ```
+   ```
+   cd hdf5
+   git checkout remotes/origin/hdf5_1_10_7 
+   ```
 
-3.  Compile HDF5.
+3. Compile HDF5.
 
-    ```
-    ./configure --prefix=/usr/local/hdf5 --enable-cxx
-    make -j72                 # The value following -j can be set based on the number of CPU cores.
-    make check                # run test suite.
-    make install
-    make check-install        # verify installation. 
-    ```
+   ```
+   ./configure --prefix=/usr/local/hdf5 --enable-cxx
+   make -j72                 # The value following -j can be set based on the number of CPU cores.
+   make check                # run test suite.
+   make install
+   make check-install        # verify installation. 
+   ```
 
-4.  Add environment variables.
+4. Add environment variables.
 
-    ```
-    export PATH=/usr/local/hdf5/bin:$PATH
-    export LD_LIBRARY_PATH=/usr/local/hdf5/lib:$LD_LIBRARY_PATH
-    export LIBRARY_PATH=/usr/local/hdf5/lib:$LIBRARY_PATH
-    export CPATH=/usr/local/hdf5/include:$CPATH 
-    ```
+   ```
+   export PATH=/usr/local/hdf5/bin:$PATH
+   export LD_LIBRARY_PATH=/usr/local/hdf5/lib:$LD_LIBRARY_PATH
+   export LIBRARY_PATH=/usr/local/hdf5/lib:$LIBRARY_PATH
+   export CPATH=/usr/local/hdf5/include:$CPATH 
+   ```
 
 
 ## FAQs
@@ -3688,13 +3742,13 @@ Necessary dependencies are missing, such as libjpeg, python-devel, zlib-devel, a
 
 Run the following commands to install the dependencies:
 
--   CentOS/EulerOS/Tlinux/BClinux/Suse
+- CentOS/EulerOS/Tlinux/BClinux/Suse
 
-    **yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
+  **yum install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
--   Ubuntu/Debian/UOS
+- Ubuntu/Debian/UOS
 
-    **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
+  **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
 ### FAQs About Model and Operator Running
@@ -3844,25 +3898,25 @@ The log information indicates that an error is reported when the system starts t
 
 To solve the problem, perform the following steps:
 
-1.  Restart the server and all NPU devices.
+1. Restart the server and all NPU devices.
 
-    If the problem is resolved, no further action is required.
+   If the problem is resolved, no further action is required.
 
-    If the problem persists, go to  [2](#li77121667913).
+   If the problem persists, go to  [2](#li77121667913).
 
-2.  Check whether the driver version matches the firmware version.
+2. Check whether the driver version matches the firmware version.
 
-    If no, go to  [3](#li967615545918).
+   If no, go to  [3](#li967615545918).
 
-    If yes, go to  [4](#li475615212912).
+   If yes, go to  [4](#li475615212912).
 
-3.  Ensure that the driver version matches the firmware version.
+3. Ensure that the driver version matches the firmware version.
 
-    If the problem is resolved, no further action is required.
+   If the problem is resolved, no further action is required.
 
-    If the problem persists, go to Step 4.
+   If the problem persists, go to Step 4.
 
-4.  Contact Huawei technical support personnel.
+4. Contact Huawei technical support personnel.
 
 <h4 id="what-do-i-do-if-the-error-message-tvm-te-cce-error-is-displayed-during-model-runningmd">What Do I Do If the Error Message "TVM/te/cce error." Is Displayed During Model Running?</h4>
 
@@ -4110,12 +4164,14 @@ During model building, the operator input parameters are diversified. For some o
 
 Locate the operators based on the error information and perform the following steps:
 
-1.  Check whether the call mode and parameters of the operators in the model are correct.
-2.  Build a single-operator case based on the error operators to construct the error scenario.
-3.  Generally, operator errors cannot be resolved on Python, and error scenarios need to be constructed. Post the error scenario in the forum and ask for help from Huawei engineers.
+1. Check whether the call mode and parameters of the operators in the model are correct.
 
-    >![](public_sys-resources/icon-note.gif) **NOTE:** 
-    >Pay special attention to the input parameters  **shape**  and  **dtype**, which are the main causes of operator errors.
+2. Build a single-operator case based on the error operators to construct the error scenario.
+
+3. Generally, operator errors cannot be resolved on Python, and error scenarios need to be constructed. Post the error scenario in the forum and ask for help from Huawei engineers.
+
+   >![](public_sys-resources/icon-note.gif) **NOTE:** 
+   >Pay special attention to the input parameters  **shape**  and  **dtype**, which are the main causes of operator errors.
 
 
 In the preceding figure, the error information indicates that the MaxPoolGradWithArgmaxV1 and max operators report the error. MaxPoolGradWithArgmaxV1 reports the error during backward propagation. Therefore, construct a reverse scenario. The max operator reports the error during forward propagation. Therefore, construct a forward scenario.
