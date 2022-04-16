@@ -61,8 +61,11 @@ Tensor log_sigmoid_backward_npu(
     const Tensor& grad_output,
     const Tensor& self,
     const Tensor& buffer) {
+  // calculate the output size
+  auto outputSize = input_same_output_size(grad_output);    
+  
   // construct the output tensor of the NPU
-  Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
 
   // calculate the output result of the NPU
   log_sigmoid_backward_out_npu(grad_input, grad_output, self, buffer);

@@ -49,17 +49,20 @@ tuple<Tensor, Tensor, Tensor> nms_with_mask_npu(
   auto outputSizes = nms_with_mask_npu_output_size(input);
 
   // construct the output tensor of the NPU
-  Tensor boxes = OpPreparation::ApplyTensorWithSizes(
+  Tensor boxes = OpPreparation::ApplyTensorWithFormat(
       std::get<0>(outputSizes),
-      input.options());
+      input.options(),
+      CalcuOpUtil::get_tensor_npu_format(input));
 
-  Tensor idx = OpPreparation::ApplyTensorWithSizes(
+  Tensor idx = OpPreparation::ApplyTensorWithFormat(
       std::get<1>(outputSizes),
-      input.options().dtype(at::kInt));
+      input.options().dtype(at::kInt),
+      CalcuOpUtil::get_tensor_npu_format(input));
 
-  Tensor mask = OpPreparation::ApplyTensorWithSizes(
+  Tensor mask = OpPreparation::ApplyTensorWithFormat(
       std::get<2>(outputSizes),
-      input.options().dtype(at::kByte));
+      input.options().dtype(at::kByte),
+      CalcuOpUtil::get_tensor_npu_format(input));
 
   nms_with_mask_out_npu(boxes, idx, mask, input, iou_threshold);
 

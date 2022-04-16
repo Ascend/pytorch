@@ -68,7 +68,8 @@ Tensor logical_or_npu(const Tensor& self, const Tensor& other) {
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   logical_or_out_npu_nocheck(result, self, other);
 

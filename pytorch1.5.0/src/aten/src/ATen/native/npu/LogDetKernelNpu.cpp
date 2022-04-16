@@ -47,7 +47,8 @@ Tensor logdet_npu(const Tensor& self) {
   auto outputSize = logdet_npu_output_size(self);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options());
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
   // calculate the output result of the NPU
   logdet_out_npu(result, self);
   return result;

@@ -30,8 +30,9 @@ tuple<Tensor, Tensor> nms_v4_out_npu(
     const Tensor& iou_threshold,
     const Tensor& scores_threshold,
     bool pad_to_max_output_size) {
-  Tensor max_output_size_tensor = OpPreparation::ApplyTensorWithSizes(
-      {}, self.options().dtype(at::kInt)).fill_(max_output_size);
+  Tensor max_output_size_tensor = OpPreparation::ApplyTensorWithFormat(
+      {}, self.options().dtype(at::kInt), CalcuOpUtil::get_tensor_npu_format(self))
+      .fill_(max_output_size);
           
   OpCommand cmd;
   cmd.Name("NonMaxSuppressionV4")
@@ -60,13 +61,15 @@ tuple<Tensor, Tensor> nms_v4_npu(
   auto outputSizes = nms_v4_npu_output_size(max_output_size);
 
   // construct the output tensor of the NPU
-  Tensor selected_indices = OpPreparation::ApplyTensorWithSizes(
+  Tensor selected_indices = OpPreparation::ApplyTensorWithFormat(
       std::get<0>(outputSizes),
-      self.options().dtype(at::kInt));
+      self.options().dtype(at::kInt),
+      CalcuOpUtil::get_tensor_npu_format(self));
 
-  Tensor valid_outputs = OpPreparation::ApplyTensorWithSizes(
+  Tensor valid_outputs = OpPreparation::ApplyTensorWithFormat(
       std::get<1>(outputSizes),
-      self.options().dtype(at::kInt));
+      self.options().dtype(at::kInt),
+      CalcuOpUtil::get_tensor_npu_format(self));
 
   nms_v4_out_npu(
       selected_indices,

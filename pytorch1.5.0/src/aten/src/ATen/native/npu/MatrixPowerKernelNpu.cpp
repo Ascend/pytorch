@@ -45,7 +45,8 @@ Tensor& matrix_power_out_npu(Tensor& result, const Tensor& self, int64_t n) {
     shape.insert(shape.begin(), 1);
 
     Tensor input = self.reshape(shape);
-    Tensor output = OpPreparation::ApplyTensorWithSizes(shape, result.options());
+    Tensor output = OpPreparation::ApplyTensorWithFormat(
+        shape, result.options(), CalcuOpUtil::get_tensor_npu_format(result));
     
     matrix_power_out_npu_3d(output, input, n);
 
@@ -58,8 +59,11 @@ Tensor& matrix_power_out_npu(Tensor& result, const Tensor& self, int64_t n) {
 }
 
 Tensor matrix_power_npu(const Tensor& self, int64_t n) {
+  // calculate the output size
+  auto outputSize = input_same_output_size(self);
+  
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self);
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   matrix_power_out_npu(result, self, n);
