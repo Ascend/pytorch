@@ -293,9 +293,6 @@ setup(
         version=VERSION,
         description='NPU bridge for PyTorch',
         url='https://gitee.com/ascend/pytorch',
-        author='PyTorch/NPU Dev Team',
-        author_email='pytorch-npu@huawei.com',
-        # Exclude the build files.
         packages=["torch_npu"],
         libraries=[('torch_npu', {'sources': list()})],
         package_dir={'': os.path.relpath(os.path.join(BASE_DIR, f"build/{get_build_type()}/packages"))},
