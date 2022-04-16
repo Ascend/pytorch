@@ -5657,7 +5657,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  if(APPLE)
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/setup.py patch/setup.py
 --- pytorch-v1.8.1/setup.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/setup.py	2022-04-15 09:55:20.037948509 +0800
++++ patch/setup.py	2022-04-16 12:30:03.012363284 +0800
 @@ -898,9 +898,15 @@
                  'include/c10/hip/*.h',
                  'include/c10/hip/impl/*.h',
@@ -5685,6 +5685,19 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
                  'include/pybind11/*.h',
                  'include/pybind11/detail/*.h',
                  'include/TH/*.h*',
+@@ -952,6 +962,12 @@
+                 'include/THH/*.cuh',
+                 'include/THH/*.h*',
+                 'include/THH/generic/*.h',
++                # TODO(ascend): the following two acl directories should be removed after the NPU API is enhanced.
++                'include/third_party/acl/inc/acl/*.h',
++                'include/third_party/acl/inc/acl/ops/*.h',
++                'include/third_party/acl/inc/ge/*.h',
++                'include/third_party/acl/inc/graph/*.h',
++                'include/third_party/acl/inc/op_proto/*.h',
+                 'share/cmake/ATen/*.cmake',
+                 'share/cmake/Caffe2/*.cmake',
+                 'share/cmake/Caffe2/public/*.cmake',
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp patch/tools/autograd/templates/python_torch_functions.cpp
 --- pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp	2022-03-05 10:10:10.000000000 +0800
 +++ patch/tools/autograd/templates/python_torch_functions.cpp	2022-03-07 18:32:03.068343142 +0800
