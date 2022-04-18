@@ -36,8 +36,8 @@ When setting up the environment for PyTorch model development and running, you c
 -   The development or operating environment of CANN has been installed. For details, see the _CANN Software Installation Guide_.
 -   CMake 3.12.0 or later has been installed. For details about how to install CMake, see  [Installing CMake](#installing-cmakemd).
 -   GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see  [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-7-3-0md).
--   Python 3.7.5, 3.8, or 3.9 has been installed.
--   Note that PyTorch 1.5 does not support Python 3.9 build and installation. Only Torch 1.8.1 supports Python 3.9 build and installation.
+-   Python 3.7.5 or 3.8 has been installed.
+-   Note that PyTorch 1.5 does not support Python 3.9 build and installation.
 -   The Patch and Git tools have been installed in the environment. To install the tools for Ubuntu and CentOS, run the following commands:
     -   Ubuntu
 
@@ -75,8 +75,8 @@ When setting up the environment for PyTorch model development and running, you c
 
         ```
         git clone https://gitee.com/ascend/pytorch.git
-        # By default, the masterf branch is used. If other branches are required, run the git checkout command to switch to that branch.
-        # git checkout -b 2.0.3.tr5 remotes/origin/2.0.3.tr5
+        # By default, the master branch is used. If other branches are required, run the git checkout command to switch to that branch.
+        # git checkout -b v1.5.0 remotes/origin/v1.5.0
 
         ```
 
@@ -85,12 +85,7 @@ When setting up the environment for PyTorch model development and running, you c
         ```
         ├── patch                            # Directory of the patch adapted to Ascend AI Processors
         │   ├── pytorch1.5.0_npu.patch      #  Patch for PyTorch 1.5.0
-        │   └── pytorch1.8.1_npu.patch      # Patch for PyTorch 1.8.1
         ├── pytorch1.5.0                     # Source code and test directory for PyTorch 1.5.0
-        │   ├── access_control_test.py
-        │   ├── src                         # Source code directory
-        │   └── test                        # Directory for storing test cases
-        ├── pytorch1.8.1                     # Source code and test directory for PyTorch 1.8.1
         │   ├── access_control_test.py
         │   ├── src                         # Source code directory
         │   └── test                        # Directory for storing test cases
@@ -98,16 +93,9 @@ When setting up the environment for PyTorch model development and running, you c
         ```
 
     2.  Obtain the native PyTorch source code from the root directory  **/pytorch**  of the current repository.
-        -   If PyTorch 1.5.0 is installed, run the following command:
 
             ```
             git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-            ```
-
-        -   If PyTorch 1.8.1 is installed, run the following command:
-
-            ```
-            git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
             ```
 
     3.  Go to the native PyTorch code directory  **pytorch**  and obtain the PyTorch passive dependency code.
@@ -128,9 +116,6 @@ When setting up the environment for PyTorch model development and running, you c
         cd ../scripts
         # If PyTorch 1.5.0 is installed:
         bash gen.sh
-        # If PyTorch 1.8.1 is installed:
-        bash gen.sh -v 1.8.1
-        ```
 
         The full code adapted to Ascend AI Processors is generated in the  **pytorch/pytorch**  directory.
 
@@ -159,7 +144,8 @@ When setting up the environment for PyTorch model development and running, you c
     Go to the  **pytorch/pytorch/dist**  directory and run the following command to install PyTorch:
 
     ```
-    pip3 install --upgrade torch-1.5.0+ascend.post3-cp37-cp37m-linux_{arch}.whl
+    cd dist/
+    pip3 install --upgrade torch-1.5.0+ascend.post5-cp37-cp37m-linux_{arch}.whl
     ```
 
     _\{**arch\}**_  indicates the architecture information. The value can be  **aarch64**  or  **x86\_64**.
@@ -192,7 +178,7 @@ After the software packages are installed, configure environment variables to us
 3.  \(Optional\) Configure function or performance environment variables in the NPU scenario. The variables are disabled by default.
 
     ```
-    export DYNAMIC_COMPILE_ENABLE=1  # (Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to 1. (PyTorch 1.8.1 does not support this environment variable.)
+    export DYNAMIC_COMPILE_ENABLE=1  # (Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to 1.
     export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to 1.
     export TRI_COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where three inconsecutive operators are combined. To enable this function, set the value to 1.
     export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to 1.
@@ -246,11 +232,6 @@ After the software packages are installed, configure environment variables to us
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p181851575497"><a name="en-us_topic_0000001152616261_p181851575497"></a><a name="en-us_topic_0000001152616261_p181851575497"></a>Path of the AI CPU operator package.</p>
 </td>
 </tr>
-<tr id="en-us_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p2034724894619"><a name="en-us_topic_0000001152616261_p2034724894619"></a><a name="en-us_topic_0000001152616261_p2034724894619"></a>TASK_QUEUE_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p53477489462"><a name="en-us_topic_0000001152616261_p53477489462"></a><a name="en-us_topic_0000001152616261_p53477489462"></a>Whether to asynchronously deliver tasks and call the ACL APIs. You are advised to set this parameter to <strong id="en-us_topic_0000001152616261_b186701714141819"><a name="en-us_topic_0000001152616261_b186701714141819"></a><a name="en-us_topic_0000001152616261_b186701714141819"></a>1</strong> to enable this function.</p>
-</td>
-</tr>
 <tr id="en-us_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="en-us_topic_0000001152616261_p4809112415207"><a name="en-us_topic_0000001152616261_p4809112415207"></a><a name="en-us_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p952814428206"><a name="en-us_topic_0000001152616261_p952814428206"></a><a name="en-us_topic_0000001152616261_p952814428206"></a>Whether to enable the communication trustlist when the HCCL is used.</p>
@@ -290,7 +271,7 @@ After the software packages are installed, configure environment variables to us
 </tr>
 <tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>(Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to <strong id="b11281447194117"><a name="b11281447194117"></a><a name="b11281447194117"></a>1</strong>. (PyTorch 1.8.1 does not support this environment variable.)</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>(Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to <strong id="b11281447194117"><a name="b11281447194117"></a><a name="b11281447194117"></a>1</strong>.</p>
 </td>
 </tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
