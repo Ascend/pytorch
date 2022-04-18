@@ -63,7 +63,7 @@ std::tuple<at::Tensor, at::Tensor> dropout_do_mask_npu(
 at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   bool isFuzzyCompile = env::CheckFuzzyEnable();
   int64_t numels;
-  auto desc_ = self.storage().get_npu_desc();
+  auto desc_ = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
   numels = isFuzzyCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;

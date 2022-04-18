@@ -16,9 +16,9 @@
 
 #pragma once
 #include "torch_npu/csrc/framework/graph/cache/GraphCacher.h"
+#include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
 #include <c10/core/StorageImpl.h>
 #include <c10/macros/Export.h>
-#include <c10/npu/NPUGraph.h>
 
 #ifdef SUCCESS
 #undef SUCCESS
@@ -32,8 +32,8 @@
 
 namespace at_npu {
 namespace native {
-using c10::npu::graph::NodePtr;
-using c10::npu::hash_utils::hash_t;
+
+using namespace at_npu::native::hash_utils;
 
 using GeOutPutOpType =
     std::vector<std::pair<ge::Operator, std::vector<size_t>>>;
@@ -45,7 +45,7 @@ struct CombinedInfo {
   std::vector<hash_t> hash_of_shape;
 };
 
-class TORCH_API GraphExecutor {
+class GraphExecutor {
 public:
   GraphExecutor(const GraphExecutor&) = delete;
   GraphExecutor(GraphExecutor&&) = delete;

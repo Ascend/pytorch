@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -33,13 +33,15 @@
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace c10d_npu {
 namespace {
 
 
 int64_t physical_numel(at::Tensor self){
-  auto sizes = self.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_;
+  auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
     n *= s;
@@ -441,10 +443,10 @@ void Reducer::mark_variable_ready_dense(VariableIndex index) {
       // previous iterations, no copy is needed.
       if (!grad.is_alias_of(bucket_view)) {
         // make sure grad has the same format as variable
-        if (grad.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
-              variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_) {
+        if (torch_npu::NPUBridge::GetNpuStorageImpl(grad)->npu_desc_.npu_format_ !=
+              torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_) {
           grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
-              variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
+              torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
         }
         this->copy_grad_to_bucket(grad, bucket_view);
         if (gradient_as_bucket_view_) {
@@ -1076,7 +1078,7 @@ void Reducer::copy_bucket_to_grad(
         // (see torch/csrc/grad/AccumulateGrad.h)
         grad = at_npu::native::OpPreparation::ApplyTensorWithFormat(
             variable.sizes(), bucket_view.options(),
-            variable.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_);
+            torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
         at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       } else {
         at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);

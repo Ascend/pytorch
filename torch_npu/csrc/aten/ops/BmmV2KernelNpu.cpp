@@ -29,18 +29,18 @@ bool is_transpose_last_two_dims_v2(const at::Tensor& Tensors) {
   if (Tensors.dim() < 2) {
     return false;
   }
-  auto storage_size = Tensors.storage().get_npu_desc().storage_sizes_;
+  auto storage_size = torch_npu::NPUBridge::GetNpuStorageImpl(Tensors)->get_npu_desc().storage_sizes_;
   int64_t numel = at::prod_intlist(storage_size);
 
   int64_t dim1 = Tensors.dim() - 1;
   int64_t dim2 = Tensors.dim() - 2;
 
   int64_t tensor_size = Tensors.storage().nbytes() / Tensors.element_size();
-  auto tensor_desc = Tensors.storage().get_npu_desc();
+  auto tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(Tensors)->get_npu_desc();
   if (tensor_desc.base_sizes_.size() == Tensors.dim() &&
       Tensors.stride(dim2) == 1 && Tensors.stride(dim1) == Tensors.size(dim2) &&
       Tensors.size(dim1) == tensor_desc.base_sizes_[dim2] &&
-      Tensors.size(dim2) == tensor_desc.base_sizes_[dim1] && 
+      Tensors.size(dim2) == tensor_desc.base_sizes_[dim1] &&
       tensor_size == numel) {
     return true;
   } else {
@@ -336,8 +336,8 @@ at::Tensor npu_bmm_v2_mat2_backward(const at::Tensor& grad, const at::Tensor& ma
 class NPUBmmV2Function : public torch::autograd::Function<NPUBmmV2Function> {
 public:
   static at::Tensor forward(AutogradContext *ctx,
-      const at::Tensor& self, 
-      const at::Tensor& mat2, 
+      const at::Tensor& self,
+      const at::Tensor& mat2,
       at::IntArrayRef output_sizes) {
     at::AutoNonVariableTypeMode g;
     ctx->save_for_backward({self, mat2});

@@ -17,15 +17,15 @@
 #pragma once
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-
+#include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
 #include <ATen/ATen.h>
-#include <c10/npu/NPUGraph.h>
+
 namespace at_npu {
 namespace native {
-using c10::npu::graph::DynamicInputRegFunc;
-using c10::npu::graph::DyNumAndIndex;
-using c10::npu::graph::NodeExtInfoType;
-using c10::npu::graph::NodePtr;
+//using DynamicInputRegFunc;
+//using DyNumAndIndex;
+//using NodeExtInfoType;
+//using NodePtr;
 
 class OperatorAttrMaker {
 public:

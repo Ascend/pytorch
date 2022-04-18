@@ -16,13 +16,14 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu {
 namespace native {
 
 at::Tensor NPUNativeFunctions::isfinite(const at::Tensor& self_ex) {
   at::Tensor self = self_ex;
-  if (self.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
+  if (torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_ !=
       ACL_FORMAT_ND) {
     self = NPUNativeFunctions::npu_format_cast(self_ex, ACL_FORMAT_ND);
   }

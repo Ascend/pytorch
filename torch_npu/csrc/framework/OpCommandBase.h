@@ -78,8 +78,8 @@ public:
   }
 
   Derived &DynamicInputReg(
-      c10::npu::graph::DynamicInputRegFunc func,
-      c10::npu::graph::DyNumAndIndex num_and_index) {
+      DynamicInputRegFunc func,
+      DyNumAndIndex num_and_index) {
     IF_GRAPH_MODE_THEN_RUN(
         graphCmd.AddDynamicInputRegFunc(func, num_and_index);)
     return static_cast<Derived &>(*this);

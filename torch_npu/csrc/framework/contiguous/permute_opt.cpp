@@ -15,6 +15,8 @@
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -32,16 +34,16 @@ public:
       at::Tensor temp_src = at::empty(sizes, src.options());
       temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
                     temp_src.strides());
-      auto npu_desc = temp_src.storage().unsafeGetStorageImpl()->npu_desc_;
-      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_ =
+      auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_;
+      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.base_sizes_ =
           temp_src.sizes();
-      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.base_strides_ =
+      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.base_strides_ =
           temp_src.strides();
-      temp_src.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_ =
+      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.storage_sizes_ =
           temp_src.sizes();
 
       NPUNativeFunctions::npu_transpose_out(temp_src, perm, self);
-      temp_src.storage().unsafeGetStorageImpl()->npu_desc_ = npu_desc;
+      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_ = npu_desc;
       return true;
     }
     return false;

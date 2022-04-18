@@ -19,6 +19,8 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -49,8 +51,8 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
 
 // convert src from src_format to dst_format, write the result into dst
 at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tensor& src) {
-  c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-  c10::NPUStorageDesc dst_desc = dst.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+  auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   if (src_desc.npu_format_ == dst_desc.npu_format_) {
     dst.copy_(src);
     return dst;
@@ -66,7 +68,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tens
 at::Tensor npu_format_cast_impl(
     const at::Tensor& src,
     int64_t acl_format) {
-  c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   if (src_desc.npu_format_ == acl_format) {
     NPU_LOGD("no need to do format cast");
     return src;
@@ -96,7 +98,7 @@ at::Tensor npu_format_cast_impl(
 at::Tensor NPUNativeFunctions::npu_format_cast(
     const at::Tensor& src,
     const at::Tensor& dst) {
-  c10::NPUStorageDesc dst_desc = dst.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   int64_t dst_format = dst_desc.npu_format_;
   return NPUNativeFunctions::npu_format_cast(src, dst_format);
 }
@@ -105,7 +107,7 @@ at::Tensor NPUNativeFunctions::npu_format_cast(
 at::Tensor& NPUNativeFunctions::npu_format_cast_(
     at::Tensor& src,
     int64_t acl_format) {
-  c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   if (src_desc.npu_format_ == acl_format) {
     return src;
   }
@@ -132,7 +134,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
 }
 
 int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
-  c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   return src_desc.npu_format_;
 }
 

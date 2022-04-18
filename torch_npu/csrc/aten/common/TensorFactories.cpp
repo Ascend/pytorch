@@ -30,7 +30,7 @@
 #include <ATen/NamedTensorUtils.h>
 #include <c10/util/irange.h>
 #include <c10/util/Exception.h>
-#include <c10/npu/NPUGraphContextManager.h>
+#include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include <ATen/record_function.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -42,6 +42,8 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/tensor_impl.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -136,12 +138,13 @@ namespace at_npu
       int64_t nelements = at::prod_intlist(size);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       int64_t size_bytes = nelements * dtype.itemsize();
-      auto storage_impl = c10::make_intrusive<c10::StorageImpl>(
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           size_bytes,
           allocator->allocate(size_bytes),
           allocator,
           true);
+
       auto tensor =
           at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
@@ -150,7 +153,7 @@ namespace at_npu
       // because we need to get all live tensor in context in mode change scene
       // we want to manage all storage without affect their life cycle
       // so in graph mode, we can get all live tensor storage
-      c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      NpuGraphContextManager::GetInstance().AddOutputStorage(
           storage_impl);
 
       // Default at::TensorImpl has size [0]
@@ -287,7 +290,7 @@ namespace at_npu
         else
         {
           auto npu_format =
-              self.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_;
+              torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
           result = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), npu_format);
         }
       }
@@ -338,18 +341,19 @@ namespace at_npu
       int64_t size_bytes =
           c10_npu::NpuRunMode::IsGraphMode() ? 0 : nelements * dtype.itemsize();
 
-      auto storage_impl = c10::make_intrusive<c10::StorageImpl>(
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           size_bytes,
           allocator->allocate(size_bytes),
           allocator,
           true);
+
       auto tensor =
           at::detail::make_tensor<torch_npu::NPUTensorImpl>(storage_impl, dtype);
 
       // NB Store weak intrusive ptr of storage impl in graph mode
       // see note above
-      c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      NpuGraphContextManager::GetInstance().AddOutputStorage(
           storage_impl);
 
       // Default NPUTensorImpl has size [0]
@@ -382,7 +386,7 @@ namespace at_npu
       auto size_bytes =
           c10_npu::NpuRunMode::IsGraphMode() ? 0 : nelements * dtype.itemsize();
 
-      auto storage_impl = c10::make_intrusive<c10::StorageImpl>(
+      c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
           c10::StorageImpl::use_byte_size_t(),
           size_bytes,
           allocator->allocate(size_bytes),
@@ -393,7 +397,7 @@ namespace at_npu
 
       // NB Store weak intrusive ptr of storage impl in graph mode
       // see note above
-      c10::npu::graph::NpuGraphContextManager::GetInstance().AddOutputStorage(
+      NpuGraphContextManager::GetInstance().AddOutputStorage(
           storage_impl);
 
       // Default at::TensorImpl has size [0]

@@ -18,13 +18,15 @@
 
 #include <ATen/ATen.h>
 #include <c10/core/StorageImpl.h>
-#include <c10/npu/NPUGraph.h>
+#include <torch_npu/csrc/framework/graph/util/NPUGraph.h>
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu {
 namespace native {
 
-using c10::npu::graph::Value;
-using c10::npu::hash_utils::hash_t;
+using namespace at_npu::native::hash_utils;
+
 class GraphUtils {
 public:
   static Value& GetTensorIrValue(const at::Tensor& tensor);

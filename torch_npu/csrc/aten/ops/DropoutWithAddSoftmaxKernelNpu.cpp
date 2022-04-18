@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -88,6 +88,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax_b
     double p,
     int64_t dim){
   at::Tensor result = OpPreparation::ApplyTensor(softmax_out);
+  at::Tensor grad_res = OpPreparation::ApplyTensor(softmax_out);
   c10::SmallVector<int64_t, N> dimList = {dim};
   double retain = 1. - p;
   at::Scalar prob = at::Scalar(retain);
@@ -102,7 +103,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax_b
      .Attr("input_keep_prob", prob)
      .Attr("axes", dimList)
      .Run();
-  return std::tie(result, grad_out);
+  grad_res = grad_out;
+  return std::tie(result, grad_res);
 }
 
 class NPUdropoutwasFunction: public torch::autograd::Function<NPUdropoutwasFunction> {
@@ -115,29 +117,37 @@ public:
     int64_t dim) {
     ctx->saved_data["alpha"] = alpha;
     ctx->saved_data["p"] = p;
-    ctx->saved_data["dim"] = dim;
     at::AutoNonVariableTypeMode g;
+
     auto result = npu_dropout_with_add_softmax_forward(self, x1, alpha, p, dim);
     auto result0 = std::get<0>(result);
     auto result1 = std::get<1>(result);
-    ctx->save_for_backward({result0, result1});
+
+    ctx->saved_data["res0"] = result0;
+    ctx->saved_data["res1"] = result1;
+    ctx->saved_data["alpha"] = alpha;
+    ctx->saved_data["p"] = p;
+    ctx->saved_data["dim"] = dim;
     tensor_list result_list = {result0, result1, std::get<2>(result)};
     return result_list;
   }
 
   static tensor_list backward(AutogradContext *ctx,
     tensor_list grad_outputs) {
+    auto result0 = ctx->saved_data["res0"].toTensor();
+    auto result1 = ctx->saved_data["res1"].toTensor();
     auto alpha = ctx->saved_data["alpha"].toScalar();
     auto p = ctx->saved_data["p"].toDouble();
     auto dim = ctx->saved_data["dim"].toInt();
     auto saved = ctx->get_saved_variables();
-    auto result0 = saved[0];
-    auto result1 = saved[1];
+    auto self = saved[0];
+    auto x1 = saved[1];
+
     auto result = NPUNativeFunctions::npu_dropout_with_add_softmax_backward(
-        grad_outputs[2], 
+        grad_outputs[2],
         result0,
         result1,
-        alpha, 
+        alpha,
         p,
         dim);
     tensor_list output = {std::get<0>(result),
@@ -157,6 +167,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_w
     int64_t dim){
   auto result = NPUdropoutwasFunction::apply(self, x1, alpha, p, dim);
   return std::tie(result[0], result[1], result[2]);
+  return output;
 }
 
 } // namespace native

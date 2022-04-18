@@ -23,6 +23,7 @@
 #include "torch_npu/csrc/framework/NPUDefine.h"
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -62,14 +63,13 @@ namespace at_npu
       static void Add(at::ArrayRef<c10::IntArrayRef> value, string &attrInfo);
     };
 
-    //
     class AclTensorDescMaker
     {
     public:
       AclTensorDescMaker() {}
       ~AclTensorDescMaker() = default;
 
-      AclTensorDescMaker &Create(aclDataType dataType, c10::NPUStorageDesc storageDesc)
+      AclTensorDescMaker &Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc)
       {
         auto dims = storageDesc.base_sizes_;
         auto format = storageDesc.origin_format_;

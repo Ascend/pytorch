@@ -28,8 +28,6 @@ class NPUTensorImpl : public c10::TensorImpl {
 public:
   explicit NPUTensorImpl(c10::Storage&& storage, const caffe2::TypeMeta& data_type);
 
-  static NPUTensorImpl* GetNpuTensorImpl(const at::Tensor& tensor);
-
   void shallow_copy_from(const c10::intrusive_ptr<TensorImpl>& impl) final;
 
   c10::intrusive_ptr<c10::TensorImpl> shallow_copy_and_detach(

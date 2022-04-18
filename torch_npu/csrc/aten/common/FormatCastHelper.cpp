@@ -13,17 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
 
 bool FormatCastHelper::IsSameGroupType(const at::Tensor& src, const at::Tensor& dst) {
-  auto src_format = src.storage().get_npu_desc().npu_format_;
-  auto dst_format = dst.storage().get_npu_desc().npu_format_;
+  auto src_format = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_.npu_format_;
+  auto dst_format = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_.npu_format_;
   return FormatHelper::GetBaseFormat(src_format) == FormatHelper::GetBaseFormat(dst_format);
 }
 
@@ -36,7 +38,7 @@ void FormatCastHelper::format_cast_as_base_format(const at::Tensor& src, aclForm
   AT_ASSERT(FormatHelper::IsBaseFormatType(format), "dst format must be base format");
   AT_ASSERT(FormatHelper::IsBaseFormatType(src), "src format must be base format");
 
-  auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto& src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   // due to CANN principle : if the ori format of a tensor is the
   // same as the npu format, then its base shape must be same as storage shape
   // so we should not change the storage shape when format cast between base format

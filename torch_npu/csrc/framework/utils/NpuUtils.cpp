@@ -27,6 +27,8 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -89,7 +91,7 @@ namespace at_npu
       // (2) 4d format situation, only uncontiguous in Channel size
       // (3) size and start point must be 16*, make sure the memory be contiguous
       const c10::Storage storage = tensor.storage();
-      const c10::NPUStorageDesc npuDesc = storage.get_npu_desc();
+      const torch_npu::NPUStorageDesc npuDesc = torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())->get_npu_desc();
 
       if (tensor.is_contiguous())
       {
@@ -139,10 +141,10 @@ namespace at_npu
 
       return is_offset_match && is_length_match;
     }
-    
+
     void NpuUtils::RefreshFormat(const at::Tensor &tensor)
     {
-      auto &tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
+      auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
       if (tensor_desc.storage_sizes_.size() == 4 && tensor_desc.npu_format_ == ACL_FORMAT_ND)
       {
         tensor_desc.npu_format_ = ACL_FORMAT_NCHW;
@@ -157,7 +159,7 @@ namespace at_npu
 
     at::Tensor metadata_convert_match(const at::Tensor &src)
     {
-      auto &src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+      auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
       bool numelEq = (src.numel() == at::prod_intlist(src_desc.base_sizes_));
       // Only when a tensor monopolizes a storage can NpuStorageDesc be refreshed.
       // When the original format is not NCHW, the npu_format_cast to NCHW will generate
@@ -166,7 +168,7 @@ namespace at_npu
       {
         at::Tensor tempTensor = NPUNativeFunctions::npu_format_cast(src, FormatHelper::GetBaseFormat(src));
         auto &temp_desc =
-            tempTensor.storage().unsafeGetStorageImpl()->npu_desc_;
+            torch_npu::NPUBridge::GetNpuStorageImpl(tempTensor)->npu_desc_;
         temp_desc.base_sizes_ = tempTensor.sizes();
         temp_desc.base_strides_ = tempTensor.strides();
         temp_desc.storage_sizes_ = tempTensor.sizes();
