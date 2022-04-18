@@ -139,6 +139,15 @@ c10::optional<std::string> GetOption(const std::string& key);
     return false;                                                   \
   }
 
+#define REGISTER_OPTION_BOOL_FUNCTION_UNIQ(func, key, defaultVal, trueVal)  \
+  bool func() {                                                             \
+    static auto val = torch_npu::option::GetOption(#key);                            \
+    if (val.value_or(defaultVal) == (trueVal)) {                            \
+      return true;                                                          \
+    }                                                                       \
+    return false;                                                           \
+  }
+
 } // namespace option
 } // namespace torch_npu
 
