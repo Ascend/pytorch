@@ -50,6 +50,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
     if (can_use_combined(
         shape_stride_stacks, offset_stack, src_desc, combined_cases_num)) {
       RECORD_HOST_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("npuCombined");
       // Record src infos for recovering after trans-contiguous
       auto src_storage_desc = src.storage().get_npu_desc();
 
@@ -91,6 +92,7 @@ class CombinedContiguousOpt : public ContiguousOpt {
       return false;
     }
     RECORD_HOST_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
+    E2E_RECORD_FUNCTION("npuMatch");
     StorageDescHelper::SetDesc(
         tensor,
         array_to_small_vector(tensor.sizes()),

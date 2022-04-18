@@ -53,6 +53,7 @@ class ReshapeV2ContiguousOpt : public ContiguousOpt {
 
   bool reshape_match_by_memory_repoint(const Tensor& src, Tensor& self) {
     RECORD_HOST_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("memory_repoint");
     switch (src.scalar_type()) {
       case at::ScalarType::Half:
         ResetDataPtr(

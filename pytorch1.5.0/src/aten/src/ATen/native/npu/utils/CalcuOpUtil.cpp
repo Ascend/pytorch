@@ -731,6 +731,7 @@ void CalcuOpUtil::execute_npu_operate(
 
   auto stream = c10::npu::getCurrentNPUStream();
   RECORD_HOST_FUNCTION(opName, std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION(opName);
   bool reset_flag = false;
   if (env::CheckFuzzyEnable() &&
       FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName)) {

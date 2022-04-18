@@ -25,6 +25,7 @@ class ReshapeContiguousOpt : public ContiguousOpt {
     ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
     if (check_reshape_match(self_desc, src_desc)) {
       RECORD_HOST_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("View_d2dCopyAsync");
       at::npu_reshape_out(self, src, self.sizes());
       return true;
     }

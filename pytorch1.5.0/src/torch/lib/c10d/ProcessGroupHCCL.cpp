@@ -540,6 +540,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce(
           c10::npu::NPUStream& stream) {
         aclrtSetExceptionInfoCallback(exceptionCallback);
         RECORD_HOST_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
+        E2E_RECORD_FUNCTION("HcclAllreduce");
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
@@ -567,6 +568,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
             c10::npu::NPUStream& stream) {
           aclrtSetExceptionInfoCallback(exceptionCallback);
           RECORD_HOST_FUNCTION("HcomAllReduce", std::vector<c10::IValue>({input}));
+          E2E_RECORD_FUNCTION("HcomAllReduce");
           int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
           at::npu_hcom_allreduce(
               input,
@@ -595,6 +597,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::broadcast(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_HOST_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
+        E2E_RECORD_FUNCTION("HcclBroadcast");
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
         return HcclBroadcast(
             input.data_ptr(),
@@ -636,6 +639,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::allgather(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_HOST_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
+        E2E_RECORD_FUNCTION("HcclAllgather");
         c10::npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
         return HcclAllGather(
@@ -687,6 +691,7 @@ std::shared_ptr<ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           HcclComm comm,
           c10::npu::NPUStream& stream) {
         RECORD_HOST_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
+        E2E_RECORD_FUNCTION("HcclReduceScatter");
         c10::npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
         return HcclReduceScatter(

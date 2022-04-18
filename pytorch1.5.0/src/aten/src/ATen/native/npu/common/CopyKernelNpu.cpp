@@ -51,6 +51,7 @@ void copy_kernel_npu(
     const Tensor& src,
     bool non_blocking) {
   RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
+  E2E_RECORD_FUNCTION("d2dCopyWithPTCopy");
   // In single op mode, PTcopy will be replaced by ViewCopy in the future
   if (c10::npu::NpuRunMode::IsGraphMode()) {
     auto self_size = self.sizes();

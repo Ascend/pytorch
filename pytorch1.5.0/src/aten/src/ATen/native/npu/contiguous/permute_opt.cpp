@@ -29,6 +29,7 @@ public:
     SmallVector<int64_t, 5> sizes;
     if (can_use_permute(src_desc, perm, sizes)) {
       RECORD_HOST_FUNCTION("npuTranspose", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("npuTranspose");
       // create contiguous tensor for npu transpose
       Tensor temp_src = at::empty(sizes, src.options());
       temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(), temp_src.strides());

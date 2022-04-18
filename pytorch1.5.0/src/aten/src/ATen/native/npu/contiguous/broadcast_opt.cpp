@@ -31,7 +31,7 @@ public:
 
     if (can_use_broadcast( src_desc)) {
       RECORD_HOST_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
-
+      E2E_RECORD_FUNCTION("npuBroadcast");
       IF_GRAPH_MODE_THEN_RUN(
         IntArrayRef target_shape = self.sizes();
         OpCommand cmd;

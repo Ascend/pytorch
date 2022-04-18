@@ -38,6 +38,7 @@ void NpuUtils::format_fresh_view(
   // x:NPU before inplace_op, y: NPU computed
   // now we fresh x according to y
   RECORD_HOST_FUNCTION("format_fresh_view", vector<c10::IValue>({x, y}));
+  E2E_RECORD_FUNCTION("format_fresh_view");
 
   x.copy_(y);
 }
@@ -130,6 +131,7 @@ Tensor convert_continue_using_gatherv2_improve(Tensor& src){
   // ref: IndexSelectKernelNpu.cpp
   // std::cout<<"step in convert_continue_using_gatherv2."<<std::endl;
   RECORD_HOST_FUNCTION("continue_by_gatherv2_improve", vector<c10::IValue>({src}));
+  E2E_RECORD_FUNCTION("continue_by_gatherv2_improve");
   // 1. get gatherv2 start index and end index
   int64_t start = src.storage_offset()/(src.size(2)*src.size(3))/16;
   int64_t end = start+src.size(1)/16;
@@ -230,6 +232,7 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
   if (!StorageDescHelper::MetaDataAreMatch(&src)) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
     RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("format_contiguous");
     return metadata_convert_match(src);
   }
 
@@ -238,6 +241,7 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
   if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
     RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("format_contiguous");
     return metadata_with_offset_padding_convert_match(src);
   }
 
@@ -248,6 +252,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   // case1:tensor src is not contiguous
   if (!src.is_contiguous()) {
     RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("format_contiguousV2");
     return src.contiguous();
   }
   // case2:meta data not match, sizes or strides of presentation
@@ -255,6 +260,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   if (!StorageDescHelper::MetaDataAreMatch(&src)) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
     RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("format_contiguousV2");
     // copy optimize for reshape cases with 3 choices
     // [1] memory-repoint: base format or NZ[1. key dims keep matched; 2. no padding]
     // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
@@ -273,6 +279,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
   if (FormatHelper::IsPadded(&src) && (!StorageDescHelper::OffsetAreMatch(&src))) {
     // Fix not match case3, tensor with padding should not have storage-offset.
     RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
+    E2E_RECORD_FUNCTION("format_contiguousV2");
     return metadata_with_offset_padding_convert_match(src);
   }
 

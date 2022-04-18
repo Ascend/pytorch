@@ -28,6 +28,7 @@ public:
 
     if (can_use_indexing(src_desc, start, end, step)) {
       RECORD_HOST_FUNCTION("npuStridedSlice", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("npuStridedSlice");
       indexing_to_contiguous(self, src, start, end, step, src_desc);
       return true;
     }

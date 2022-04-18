@@ -29,6 +29,7 @@ class SelectContiguousOpt : public ContiguousOpt {
 
     if (can_use_select(src_desc, start, length)) {
       RECORD_HOST_FUNCTION("select_npuStridedSlice", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("select_npuStridedSlice");
       select_to_contiguous(self, src, start, length, src_desc);
       return true;
     }

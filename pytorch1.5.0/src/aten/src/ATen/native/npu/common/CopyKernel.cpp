@@ -103,6 +103,7 @@ void copy_d2d_dtype_baseformat(
     int64_t numel = self.numel();
     if (numel == src.numel()) {
       RECORD_HOST_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("d2dCopyAsync");
       NPU_LOGD("copy contiguous tensor inside device");
       return copy_d2d_by_memcpy(self, src, numel);
     }
@@ -122,6 +123,7 @@ void copy_d2d_dtype_format(Tensor& self, const Tensor& src, bool non_blocking) {
     if (can_use_memcpy(self, src)) {
       RECORD_HOST_FUNCTION(
           "d2dCopyAsync with format", std::vector<c10::IValue>({src}));
+      E2E_RECORD_FUNCTION("d2dCopyAsync with format");
       return copy_d2d_by_memcpy(self, src);
     }
   }

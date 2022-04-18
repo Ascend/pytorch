@@ -34,6 +34,7 @@ Tensor& stride_copy_out_npu_nocheck(
     return result;
   }
   RECORD_HOST_FUNCTION("npuAsStrided", std::vector<c10::IValue>({self}));
+  E2E_RECORD_FUNCTION("npuAsStrided");
   // Set the offset of input discontiguous tensor to be 0.
   // The accurate offset would be provided as a attr to op. 
   NpuStorageOffsetGuard guard_input(const_cast<Tensor &>(self));

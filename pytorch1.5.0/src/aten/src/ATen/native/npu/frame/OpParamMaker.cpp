@@ -235,6 +235,7 @@ int ExecFunc(QueueParas* in, aclrtStream stream) {
 int MemcopyAsyncFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<CopyParas* >(in->paramVal);
   RECORD_HOST_FUNCTION("aclrtMemcpyAsync", std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION("aclrtMemcpyAsync");
   aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
     cur_paras->srcLen, cur_paras->kind, stream);
   if (ret != ACL_ERROR_NONE) {
@@ -246,6 +247,7 @@ int MemcopyAsyncFunc(QueueParas* in, aclrtStream stream) {
 int RecordEventFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<EventParas* >(in->paramVal);
   RECORD_HOST_FUNCTION("aclrtRecordEvent", std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION("aclrtRecordEvent");
   aclError ret = aclrtRecordEvent(cur_paras->event, stream);
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
@@ -265,6 +267,7 @@ int RecordEventFunc(QueueParas* in, aclrtStream stream) {
 int WaitEventFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<EventParas* >(in->paramVal);
   RECORD_HOST_FUNCTION("aclrtStreamWaitEvent", std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION("aclrtStreamWaitEvent");
   aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
@@ -275,6 +278,7 @@ int WaitEventFunc(QueueParas* in, aclrtStream stream) {
 int LazyDestroyEventFunc(QueueParas* in, aclrtStream stream) {
   auto cur_paras = static_cast<EventParas* >(in->paramVal);
   RECORD_HOST_FUNCTION("LazyDestroyEvent", std::vector<c10::IValue>({}));
+  E2E_RECORD_FUNCTION("LazyDestroyEvent");
   aclError ret = c10::npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
   if (ret != ACL_ERROR_NONE) {
     C10_NPU_SHOW_ERR_MSG();
