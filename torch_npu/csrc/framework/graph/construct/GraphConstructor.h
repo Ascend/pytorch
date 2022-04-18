@@ -22,10 +22,6 @@
 
 namespace at_npu {
 namespace native {
-//using DynamicInputRegFunc;
-//using DyNumAndIndex;
-//using NodeExtInfoType;
-//using NodePtr;
 
 class OperatorAttrMaker {
 public:

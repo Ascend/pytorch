@@ -143,13 +143,13 @@ namespace at_npu
     }
 
     torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-                                                   c10::IntArrayRef strides)
+        c10::IntArrayRef strides)
     {
       return SetDesc(dtype, size, strides, InferFormat::GuessBaseFormat(size));
     }
 
     torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-                                                   c10::IntArrayRef strides, aclFormat format)
+        c10::IntArrayRef strides, aclFormat format)
     {
       struct torch_npu::NPUStorageDesc npu_desc;
       npu_desc.data_type_ = dtype;
