@@ -27,9 +27,8 @@ class TestLstmBackward(TestCase):
         shape_format = [
                         [[np.float16, (16, 32, 64)], 64, 32, True], 
                         [[np.float16, (5, 32, 64)], 64, 32, False],
-                        [[np.float32, (5, 32, 64)], 64, 64, True],
-                        [[np.float32, (5, 32, 64)], 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], 512, 256, False],
+                        [[np.float32, (16, 32, 64)], 64, 32, True],
+                        [[np.float32, (5, 32, 64)], 64, 32, False],
         ]
 
         for item in shape_format: 
@@ -77,9 +76,8 @@ class TestLstmBackward(TestCase):
         shape_format = [
                         [[np.float16, (16, 32, 64)], 64, 32, True], 
                         [[np.float16, (5, 32, 64)], 64, 32, False],
-                        [[np.float32, (5, 32, 64)], 64, 64, True],
-                        [[np.float32, (5, 32, 64)], 64, 64, False],
-                        [[np.float32, (26, 2560, 512)], 512, 256, False],
+                        [[np.float32, (16, 32, 64)], 64, 32, True],
+                        [[np.float32, (5, 32, 64)], 64, 32, False],
         ]
 
         for item in shape_format: 
@@ -120,12 +118,12 @@ class TestLstmBackward(TestCase):
                         npu_output_c.cpu().to(torch.float).detach().numpy(), prec=1.e-3)
 
             cpu_input1.retain_grad()
-            cpu_dx = cpu_input1.grad
             cpu_output_y.backward(torch.ones(cpu_output_y.size(), dtype=torch.float))
+            cpu_dx = cpu_input1.grad
 
             npu_input1.retain_grad()
-            npu_dx = npu_input1.grad
             npu_output_y.backward(torch.ones(npu_output_y.size(), dtype=torch.float).npu())
+            npu_dx = npu_input1.grad
 
             self.assertRtolEqual(cpu_dx.numpy(), npu_dx.cpu().to(torch.float).numpy(), prec=1.e-3)
 
