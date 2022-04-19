@@ -22,12 +22,14 @@
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
 
 static void storage_resize_npu(
-    c10::StorageImpl& storage,
+    torch_npu::NPUStorageImpl& storage,
     ptrdiff_t size,
     c10::IntArrayRef new_size) {
   if (!storage.resizable()) {
@@ -42,7 +44,8 @@ static void storage_resize_npu(
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
   storage.set_nbytes(size);
-  StorageDescHelper::UpdateDesc(storage.npu_desc_, new_size);
+
+  StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;
@@ -76,7 +79,7 @@ static inline void maybe_resize_storage_npu(
         (new_size + self->storage_offset()) * self->dtype().itemsize();
     if (new_size_bytes > self->storage().nbytes()) {
       storage_resize_npu(
-          *(THTensor_getStoragePtr(self)),
+          *torch_npu::NPUBridge::GetNpuStorageImpl((THTensor_getStoragePtr(self))),
           new_size_bytes,
           size);
     }

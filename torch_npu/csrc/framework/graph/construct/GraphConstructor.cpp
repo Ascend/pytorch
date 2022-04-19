@@ -21,9 +21,9 @@
 
 namespace at_npu {
 namespace native {
-using c10::npu::graph::NodeExtInfoType;
+
 void GraphCommandImpl::SetName(const std::string& name) {
-  ir_node_ = std::make_shared<c10::npu::graph::Node>(name);
+  ir_node_ = std::make_shared<Node>(name);
 }
 
 void GraphCommandImpl::AddInput() {

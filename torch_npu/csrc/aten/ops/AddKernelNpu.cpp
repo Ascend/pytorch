@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu
 {
@@ -169,7 +170,7 @@ namespace at_npu
       }
       else
       {
-        c10::NPUStorageDesc src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+        auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
         at::Tensor src_new = OpPreparation::ApplyTensorWithFormat(
             src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
         src_new.set_(

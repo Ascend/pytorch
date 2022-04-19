@@ -15,6 +15,7 @@
 
 #include "ATenGeBridge.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include <third_party/acl/inc/graph/operator_factory.h>
 
 #include <third_party/acl/inc/op_proto/array_ops.h>
@@ -58,7 +59,7 @@ at::Tensor ConstructCpuTenosr(
 
 template <>
 void ATenGeBridge::SetGeOpAttr<std::pair<std::string, std::string>>
-    (const c10::Any& attr_val, ge::OperatorPtr ge_op) {
+    (const Any& attr_val, ge::OperatorPtr ge_op) {
   auto attr = TryToGetAnyValue<std::pair<std::string, std::string>>(attr_val);
   ge_op->SetAttr(attr.first.c_str(), ge::AscendString(attr.second.c_str()));
 }
@@ -89,7 +90,7 @@ ge::Shape ATenGeBridge::GetGeShape(c10::ArrayRef<int64_t> vec) {
 }
 
 ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
-    const c10::NPUStorageDesc& storage_desc,
+    const torch_npu::NPUStorageDesc& storage_desc,
     const c10::optional<std::string>& real_dtype,
     bool is_op_desc) {
   ge::TensorDesc desc;
@@ -142,7 +143,7 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
 
 template <typename ConstType>
 void ATenGeBridge::SetGeOpConstInput(
-    const c10::Any& const_input,
+    const Any& const_input,
     ge::OperatorPtr ge_op) {
   auto const_input_tuple =
       ATenGeBridge::TryToGetAnyValue<ConstType>(const_input);
@@ -162,7 +163,7 @@ void ATenGeBridge::SetGeOpConstInput(
 }
 
 void ATenGeBridge::SetSensitiveFormat(
-    const c10::Any& sensitive_format,
+    const Any& sensitive_format,
     ge::OperatorPtr ge_op,
     NodeExtInfoType ext_type) {
   auto sensitive_format_pair =
@@ -183,7 +184,7 @@ void ATenGeBridge::SetSensitiveFormat(
 }
 
 void ATenGeBridge::AddNodeExtInfoIntoGeOp(
-    c10::ArrayRef<std::pair<NodeExtInfoType, c10::Any>> ext_info,
+    c10::ArrayRef<std::pair<NodeExtInfoType, Any>> ext_info,
     ge::OperatorPtr ge_op) {
   for (const auto& info : ext_info) {
     switch (info.first) {
@@ -241,7 +242,7 @@ void ATenGeBridge::PorcessDynamicInputReg(
   auto it = std::find_if(
       ext_info.begin(),
       ext_info.end(),
-      [](const std::pair<NodeExtInfoType, c10::Any>& item) {
+      [](const std::pair<NodeExtInfoType, Any>& item) {
         return item.first == NodeExtInfoType::DYNAMIC_INPUT_FUNC;
       });
   if (it != ext_info.end()) {

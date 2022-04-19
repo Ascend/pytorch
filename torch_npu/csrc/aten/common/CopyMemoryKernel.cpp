@@ -20,9 +20,9 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 #include <c10/npu/interface/AsyncTaskQueueInterface.h>
 #include "third_party/acl/inc/acl/acl.h"
-
 
 namespace at_npu {
 namespace native {
@@ -39,8 +39,8 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
   AT_ASSERT(
       src.device().index() == self.device().index(),
       "input tensors of copy_memory_ should have same device index");
-  auto dst_desc = self.storage().unsafeGetStorageImpl()->npu_desc_;
-  auto src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
+  auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
 
   int dst_size = 0;
   int src_size = 0;

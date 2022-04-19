@@ -36,7 +36,7 @@ at::Tensor& reshape_out_nocheck(
     copy_d2d_by_memcpy(
         result,
         self,
-        at::prod_intlist(result.storage().get_npu_desc().storage_sizes_));
+        at::prod_intlist(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
   }
   return result;
 }

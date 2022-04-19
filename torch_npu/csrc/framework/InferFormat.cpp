@@ -16,6 +16,8 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -24,7 +26,7 @@ namespace at_npu
 
     aclFormat InferFormat::GuessFormatWhenContiguous(const at::Tensor &tensor)
     {
-      auto desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
+      auto desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
       // fix: NCDHW -> default format
       if ((desc.origin_format_ == ACL_FORMAT_NCDHW))
       {
@@ -110,7 +112,7 @@ namespace at_npu
     FormatShape InferFormat::GuessStorageSizeWhenConvertFormat(const at::Tensor &tensor)
     {
       auto format = FormatHelper::GetFormat(tensor);
-      auto size = tensor.storage().unsafeGetStorageImpl()->npu_desc_.base_sizes_;
+      auto size = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_;
       // TransData: ND->NZ, ND size < 2, we can expand dimension to 2, the storage have no effect.
       // now, only ND->NZ and NZ->ND will call transdata， so we no need to check other format.
       if ((size.size() < 2) && format == ACL_FORMAT_ND)

@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <c10/npu/NPUGraph.h>
-#include <c10/npu/NPUHashUtils.h>
+#include <torch_npu/csrc/framework/graph/util/NPUGraph.h>
+#include <torch_npu/csrc/framework/graph/util/NPUHashUtils.h>
 #include <third_party/acl/inc/graph/tensor.h>
 
 #include <unordered_map>
@@ -25,9 +25,7 @@
 namespace at_npu {
 namespace native {
 
-using c10::npu::graph::Value;
-using c10::npu::hash_utils::hash_t;
-using c10::npu::hash_utils::multi_hash;
+using namespace at_npu::native::hash_utils;
 
 class GraphCache {
 public:
@@ -39,7 +37,7 @@ public:
       uint32_t cur_graph_id);
 
   static hash_t GetTensorTopoHash(
-      const Value& graph_value,
+      const at_npu::native::Value& graph_value,
       const ge::TensorDesc& tensor_desc);
 
   static hash_t GetTensorShapeHash(

@@ -19,16 +19,12 @@
 #include <ATen/ATen.h>
 #include <ATen/Tensor.h>
 #include <c10/core/TensorOptions.h>
-#include <c10/npu/NPUGraph.h>
+#include <torch_npu/csrc/framework/graph/util/NPUGraph.h>
 #include <third_party/acl/inc/graph/operator.h>
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
-
-using c10::npu::graph::NodeExtInfoType;
-using c10::npu::graph::DyNumAndIndex;
-using c10::npu::graph::DynamicInputRegFunc;
-using c10::npu::graph::NodePtr;
 
 class ATenGeBridge {
 public:
@@ -41,7 +37,7 @@ public:
   static ge::Shape GetGeShape(c10::ArrayRef<int64_t> vec);
 
   static ge::TensorDesc InferGeTenosrDesc(
-      const c10::NPUStorageDesc& storage_desc,
+      const torch_npu::NPUStorageDesc& storage_desc,
       const c10::optional<std::string>& real_dtype,
       bool is_op_desc = false);
 
@@ -49,11 +45,11 @@ public:
 
 private:
   template <typename T>
-  static T TryToGetAnyValue(const c10::Any& any_val) {
+  static T TryToGetAnyValue(const Any& any_val) {
     T val;
     try {
-      val = c10::CastAs<T>(any_val);
-    } catch (c10::AnyCastException& bd) {
+      val = CastAs<T>(any_val);
+    } catch (AnyCastException& bd) {
       AT_ERROR(bd.what(), typeid(T).name());
     }
     return val;
@@ -61,11 +57,11 @@ private:
 
   template <typename ConstType>
   static void SetGeOpConstInput(
-      const c10::Any& const_input,
+      const Any& const_input,
       ge::OperatorPtr ge_op);
 
   static void SetSensitiveFormat(
-      const c10::Any& sensitive_format,
+      const Any& sensitive_format,
       ge::OperatorPtr ge_op,
       NodeExtInfoType ext_type);
 
@@ -75,13 +71,13 @@ private:
       std::string op_name);
 
   template <typename AttrType>
-  static void SetGeOpAttr(const c10::Any& attr_val, ge::OperatorPtr ge_op) {
+  static void SetGeOpAttr(const Any& attr_val, ge::OperatorPtr ge_op) {
     AttrType attr = TryToGetAnyValue<AttrType>(attr_val);
     ge_op->SetAttr(attr.first.c_str(), attr.second);
   }
 
   static void AddNodeExtInfoIntoGeOp(
-      c10::ArrayRef<std::pair<NodeExtInfoType, c10::Any>> ext_info,
+      c10::ArrayRef<std::pair<NodeExtInfoType, Any>> ext_info,
       ge::OperatorPtr ge_op);
 };
 } // namespace native

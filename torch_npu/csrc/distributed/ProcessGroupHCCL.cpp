@@ -27,6 +27,8 @@
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace c10d_npu {
 namespace {
@@ -54,7 +56,7 @@ std::map<at::ScalarType, HcclDataType> hcclDataType = {
 };
 
 int64_t physical_numel(at::Tensor self){
-  auto sizes = self.storage().unsafeGetStorageImpl()->npu_desc_.storage_sizes_;
+  auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
     n *= s;

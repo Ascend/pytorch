@@ -50,7 +50,7 @@ public:
                          combined_cases_num)) {
       RECORD_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
       // Record src infos for recovering after trans-contiguous
-      auto src_storage_desc = src.storage().get_npu_desc();
+      auto src_storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
 
       at::Tensor base_tensor =
           at::empty(src_storage_desc.base_sizes_, src.options());
@@ -83,7 +83,7 @@ private:
     if (!tensor.is_contiguous()) {
       return false;
     }
-    auto npu_desc = tensor.storage().get_npu_desc();
+    auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
 
     if ((at::prod_intlist(tensor.sizes()) !=
          at::prod_intlist(npu_desc.base_sizes_)) ||
@@ -432,7 +432,7 @@ Inference order: permute, select, slice.
         // conduct the standard optimization procedure.
         auto transfer_tensor = OpPreparation::ApplyTensorWithFormat(
             src.sizes(), src.options(),
-            src.storage().get_npu_desc().npu_format_);
+            torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc().npu_format_);
         return (copy_optimize_contiguous_by_given_cases(transfer_tensor, src,
                                                         opt_cases_first) &&
                 combined_to_contiguous(self, transfer_tensor,

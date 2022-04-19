@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -34,7 +34,7 @@
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/distributed/reducer.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace torch_npu {
 namespace distributed {
@@ -48,9 +48,9 @@ using intrusive_ptr_class_ = py::class_<T, c10::intrusive_ptr<T>>;
 class BroadcastWork {
 public:
   inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors) {
-    static auto cast_back_to_ori_format = [](const at::Tensor &t) { 
-      return at_npu::native::NPUNativeFunctions::npu_format_cast(t, t.storage().unsafeGetStorageImpl()->npu_desc_.origin_format_); 
-      };
+    static auto cast_back_to_ori_format = [](const at::Tensor &t) {
+      return at_npu::native::NPUNativeFunctions::npu_format_cast(t, torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_.origin_format_);
+    };
     return c10::fmap(tensors, cast_back_to_ori_format);
   }
 
@@ -270,7 +270,7 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
   py::module_ dist = py::module_::import("torch.distributed");
   auto processGroupHCCL = intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL>(
       module, "ProcessGroupHCCL", dist.attr("ProcessGroup"))
-      .def(py::init<c10::intrusive_ptr<::c10d::Store>&, 
+      .def(py::init<c10::intrusive_ptr<::c10d::Store>&,
                     int,
                     int,
                     c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL::Options>>(),

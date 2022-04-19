@@ -14,11 +14,13 @@
 // limitations under the License.
 #include <ATen/record_function.h>
 #include <c10/npu/NPUStream.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
 
-#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include <c10/npu/interface/AsyncTaskQueueInterface.h>
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -71,8 +73,8 @@ void copy_kernel_npu(
   at::Tensor attrTensor = CalcuOpUtil::copy_tensor_host_to_device(
       at::from_blob(value.data(), {value.size()}, dtype(at::ScalarType::Long)));
 
-  auto src_desc_bp = src.storage().get_npu_desc();
-  auto self_desc_bp = self.storage().get_npu_desc();
+  auto src_desc_bp = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
+  auto self_desc_bp = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
 
   // The action of PTcopy_ is defined by attrTensor, so the member of NPUStorageDesc
   // can not affect the result, but the PTcopy_ will check base_size and storage_size,
