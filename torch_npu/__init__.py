@@ -50,6 +50,7 @@ all_monkey_patches = [
     ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
+    ["_C.Generator", torch_npu._C.Generator]
 ]
 
 all_monkey_patches += serialization_patches
