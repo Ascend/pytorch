@@ -30,7 +30,6 @@
 #include <torch/csrc/autograd/generated/variable_factories.h>
 #include <torch/csrc/utils/structseq.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
-#include <torch/csrc/utils/npu_lazy_init.h>
 #include <ATen/ATen.h>
 
 #include <functional>

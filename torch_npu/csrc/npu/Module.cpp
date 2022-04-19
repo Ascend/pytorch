@@ -35,8 +35,6 @@
 #include <thread>
 #include <unordered_map>
 
-#include <torch/csrc/utils/npu_lazy_init.h>
-
 #include "third_party/acl/inc/acl/acl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
@@ -44,7 +42,7 @@
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
-
+#include "torch_npu/csrc/utils/LazyInit.h"
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -76,15 +74,6 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   }
   set_module_attr("default_generators", default_npu_generators);
 
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
-PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
-    PyObject* self,
-    PyObject* noargs) {
-  HANDLE_TH_ERRORS
-  torch::utils::npu_set_run_yet_variable_to_false();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -128,7 +117,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
 PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   int device;
-  torch::utils::npu_lazy_init();
+  torch_npu::utils::npu_lazy_init();
   C10_NPU_CHECK(aclrtGetDevice(&device));
   return PyLong_FromLong(device);
   END_HANDLE_TH_ERRORS
@@ -451,8 +440,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
     const char *pValue = PyUnicode_AsUTF8(value);
     option[pKey] = pValue;
   }
-
-  torch::utils::npu_lazy_init();
+  torch_npu::utils::npu_lazy_init();
   {
     pybind11::gil_scoped_release no_gil;
     torch_npu::option::SetOption(option);
@@ -502,6 +490,15 @@ PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   torch_npu::profiler::finalize_e2e_profiler();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
+    PyObject* self,
+    PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  torch_npu::utils::npu_set_run_yet_variable_to_false();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
