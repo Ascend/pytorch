@@ -12,26 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> quantize_per_tensor_npu_input(
-    const SmallVector<Tensor, N>& self) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(self);
-}
-
-SmallVector<NPUTensorDesc, N> quantize_per_tensor_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> quantize_per_tensor_npu_attr(ScalarType dtype) {
-  NPUAttrDesc npuAttrAxis = NPUAttrDesc("axis", (int64_t)1);
+Tensor& quantize_per_tensor_out_npu(
+    Tensor& result, 
+    const Tensor& self, 
+    const Tensor& scales, 
+    const Tensor& zero_points, 
+    ScalarType dtype) {
   string dtypeStr = "torch.qint8";
   if (dtype == ScalarType::QInt8) {
     dtypeStr = "torch.qint8";
@@ -40,28 +32,16 @@ SmallVector<NPUAttrDesc, N> quantize_per_tensor_npu_attr(ScalarType dtype) {
   } else if (dtype == ScalarType::QInt32) {
     dtypeStr = "torch.qint32";
   }
-  NPUAttrDesc npuAttrDtype = NPUAttrDesc("dtype", dtypeStr);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrAxis, npuAttrDtype};
 
-  return attrs;
-}
-
-Tensor& quantize_per_tensor_out_npu(
-    Tensor& result, 
-    const Tensor& self, 
-    const Tensor& scales, 
-    const Tensor& zero_points, 
-    ScalarType dtype) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = quantize_per_tensor_npu_input({self, scales, zero_points});
-  auto outputs = quantize_per_tensor_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = quantize_per_tensor_npu_attr(dtype);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Quantize", inputs, outputs, attrs);
-
+  OpCommand cmd;
+  cmd.Name("Quantize")
+      .Input(self)
+      .Input(scales)
+      .Input(zero_points)
+      .Output(result)
+      .Attr("axis", (int64_t)1)
+      .Attr("dtype", dtypeStr)
+      .Run();
   return result;
 }
 
@@ -72,7 +52,6 @@ Tensor quantize_per_tensor_npu(
     ScalarType dtype) {
   // constructs the input and output NPUTensorDesc
   float scaleFloat = static_cast<float>(scale);
-  auto outputSize = input_same_output_size(self);
   auto outputDtype = kInt;
   if (dtype == ScalarType::QInt8) {
     outputDtype = kChar;
@@ -81,20 +60,19 @@ Tensor quantize_per_tensor_npu(
   } else if (dtype == ScalarType::QInt32) {
     outputDtype = kInt;
   }
-  Tensor scaleTensor = at::empty_with_format(
+  Tensor scaleTensor = OpPreparation::ApplyTensor(
       {1},
       self.options().dtype(kFloat),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
   scaleTensor[0] = scaleFloat;
-  Tensor zpTensor = at::empty_with_format(
+  Tensor zpTensor = OpPreparation::ApplyTensor(
       {1},
       self.options().dtype(kInt),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self);
   zpTensor[0] = zero_point;
-  Tensor result = at::empty_with_format(
-      outputSize,
-      self.options().dtype(outputDtype),
-      CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(
+      self,
+      self.options().dtype(outputDtype));
   quantize_per_tensor_out_npu(result, self, scaleTensor, zpTensor, dtype);
   return result;
 }

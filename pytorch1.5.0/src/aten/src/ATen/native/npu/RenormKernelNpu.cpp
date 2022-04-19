@@ -12,9 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -34,44 +32,26 @@ SmallVector<int64_t, SIZE> renorm_npu_output_size(
   return outSize;
 }
 
-SmallVector<NPUTensorDesc, N> renorm_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> renorm_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> renorm_npu_attr(Scalar p, int64_t dim, Scalar maxnorm) {
-  float p_value = CalcuOpUtil::get_scalar_float_value(p);
-  float maxnorm_value = CalcuOpUtil::get_scalar_float_value(maxnorm);
-  NPUAttrDesc npuAttrScalarP = NPUAttrDesc("p", p_value);
-  NPUAttrDesc npuAttrScalarMaxnorm = NPUAttrDesc("maxnorm", maxnorm_value);
-  NPUAttrDesc npuAttrDim = NPUAttrDesc("dim", dim);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrScalarP, npuAttrDim, npuAttrScalarMaxnorm};
-  return attrs;
-}
-
 Tensor& renorm_compute(   
     Tensor& result, 
     const Tensor& self,
     Scalar p, 
     int64_t dim, 
     Scalar maxnorm) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = renorm_npu_input({self});
-  auto outputs = renorm_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = renorm_npu_attr(p, dim, maxnorm);
-  
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Renorm", inputs, outputs, attrs);
+  float p_value = CalcuOpUtil::get_scalar_float_value(p);
+  float maxnorm_value = CalcuOpUtil::get_scalar_float_value(maxnorm);
+  OpCommand cmd;
+  cmd.Name("Renorm")
+      .Input(self)
+      .Output(result)
+      .Attr("p", p_value)
+      .Attr("dim", dim)
+      .Attr("maxnorm", maxnorm_value)
+      .Run();
   return result;
 }
 
-Tensor& renorm_out_npu(   
+Tensor& renorm_out_npu_nocheck(   
     Tensor& result, 
     const Tensor& self,
     Scalar p, 
@@ -86,10 +66,10 @@ Tensor& renorm_out_npu(
   }
   dim = CalcuOpUtil::make_wrap_dim(dim, self.dim());
   auto outputSize = renorm_npu_output_size(self, dim);
-  Tensor result_bak = at::empty_with_format(
+  Tensor result_bak = OpPreparation::ApplyTensor(
       outputSize,
-      self.options().dtype(at::kFloat),
-      CalcuOpUtil::get_tensor_npu_format(self));
+      self.options().dtype(at::kFloat), 
+      self);
   if(ori_type == c10::ScalarType::Half) {
     Tensor self_no_name = self.rename(nullopt);
     Tensor result_no_name = result.rename(nullopt);
@@ -119,36 +99,36 @@ Tensor& renorm_out_npu(
   return result;
 }
 
+Tensor& renorm_out_npu(   
+    Tensor& result, 
+    const Tensor& self,
+    Scalar p, 
+    int64_t dim, 
+    Scalar maxnorm) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    renorm_out_npu_nocheck(contiguousResult, self, p, dim, maxnorm);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    renorm_out_npu_nocheck(result, self, p, dim, maxnorm);
+  }
+    return result;
+}
+
 Tensor renorm_npu(const Tensor& self, Scalar p, int64_t dim, Scalar maxnorm) {
-  // calculate the output size  
-  auto outputSize = input_same_output_size(self);
-
-  Tensor result = at::empty_with_format(
-      outputSize,
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
-
-  renorm_out_npu(result, self, p, dim, maxnorm);
-
+  Tensor result = OpPreparation::ApplyTensor(self);
+  renorm_out_npu_nocheck(result, self, p, dim, maxnorm);
   return result;
 }
 
-
 Tensor& renorm_npu_(Tensor& self, Scalar p, int64_t dim, Scalar maxnorm) {
-  SmallVector<Tensor, N> inputs = {self};
-  SmallVector<Tensor, N> outputs = {self};
-  CalcuOpUtil::check_memory_over_laps(inputs, outputs);
-
-  if (!NpuUtils::check_match(&self)) {
-    Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = renorm_out_npu(contiguousSelf, contiguousSelf, p, dim, maxnorm);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    renorm_out_npu(self, self, p, dim, maxnorm);
-  }
-
+  renorm_out_npu(self, self, p, dim, maxnorm);
   return self;
 }
 
-} // namespace native
+} // namespace na tive
 } // namespace at

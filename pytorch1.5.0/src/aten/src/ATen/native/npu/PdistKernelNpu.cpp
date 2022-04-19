@@ -12,44 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> pdist_npu_input(
-    const SmallVector<Tensor, N>& inputTensor){
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> pdist_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N>  pdist_npu_attr(float p_value) {
-  NPUAttrDesc P = NPUAttrDesc("p", p_value);
-  SmallVector<NPUAttrDesc, N> attrs = {P};
-  return attrs;
-}
-
 Tensor& pdist_out_npu(   
     Tensor& result, 
     const Tensor& self,
     float p) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = pdist_npu_input({self});
-  auto outputs = pdist_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = pdist_npu_attr(p);
-  
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("Pdist", inputs, outputs, attrs);
-  
+  OpCommand cmd;
+  cmd.Name("Pdist")
+      .Input(self)
+      .Output(result)
+      .Attr("p", p)
+      .Run();
   return result;
 }
 
@@ -64,10 +42,8 @@ Tensor pdist_npu(const Tensor& self, double p) {
 Tensor _pdist_forward_npu(const Tensor& self, double p) {
   Tensor result;
   if (self.size(0) <= 1) {
-    result = at::empty_with_format(
-        {0},
-        self.options(),
-        CalcuOpUtil::get_tensor_npu_format(self));   
+    result = OpPreparation::ApplyTensor(
+        self, {0});   
   } else {
     // double is not supported in NPU,  type of P needs to be converted from double to float.
     float p_float;
@@ -78,10 +54,8 @@ Tensor _pdist_forward_npu(const Tensor& self, double p) {
       p_float = static_cast<float>(p);
     }
     auto outputSize =  pdist_npu_output_size(self, p_float);
-    result = at::empty_with_format(
-        outputSize,
-        self.options(),
-        CalcuOpUtil::get_tensor_npu_format(self));
+    result = OpPreparation::ApplyTensor(
+        self, outputSize);
     if(self.size(1) == 0){
       result.fill_(0);
     } else {

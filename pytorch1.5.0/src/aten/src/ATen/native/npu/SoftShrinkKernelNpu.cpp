@@ -12,60 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> softshrink_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> softshrink_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> softshrink_npu_attr(Scalar lambd) {
+Tensor& softshrink_out_npu_nocheck(   
+    Tensor& result, 
+    const Tensor& self,
+    Scalar lambd) {
+  TORCH_CHECK(lambd.toFloat() > 0, "lambd should be greater than 0");
   float lambd_value = CalcuOpUtil::get_scalar_float_value(lambd);
-  NPUAttrDesc npuAttrScalarLambd = NPUAttrDesc("lambd", lambd_value);
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrScalarLambd};
-  return attrs;
+  OpCommand cmd;
+  cmd.Name("SoftShrink")
+      .Input(self)
+      .Output(result)
+      .Attr("lambd", lambd_value)
+      .Run();
+  return result;
 }
 
 Tensor& softshrink_out_npu(   
     Tensor& result, 
     const Tensor& self,
     Scalar lambd) {
-  TORCH_CHECK(lambd.toFloat() > 0, "lambd should be greater than 0");
-  // constructs the input and output NPUTensorDesc
-  auto inputs = softshrink_npu_input({self});
-  auto outputs = softshrink_npu_output({result});
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = softshrink_npu_attr(lambd);
-  
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("SoftShrink", inputs, outputs, attrs);
-  
-  return result;
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self);
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    softshrink_out_npu_nocheck(contiguousResult, self, lambd);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+     softshrink_out_npu_nocheck(result, self, lambd);
+  }
+    return result;
 }
 
 Tensor softshrink_npu(const Tensor& self, Scalar lambd) {
-  TORCH_CHECK(lambd.toFloat() > 0, "lambd should be greater than 0");
-  // calculate the output size  
-  auto outputSize = input_same_output_size(self);
-
-  Tensor result = at::empty_with_format(
-      outputSize,
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
-
-  softshrink_out_npu(result, self, lambd);
-
+  Tensor result = OpPreparation::ApplyTensor(self);
+  softshrink_out_npu_nocheck(result, self, lambd);
   return result;
 }
 

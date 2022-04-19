@@ -14,9 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -47,52 +45,7 @@ static inline void upsample_linear1d_check(
       ")");
 }
 
-SmallVector<NPUTensorDesc, N> upsample_linear1d_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> upsample_linear1d_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> upsample_linear1d_npu_attr(
-    const Tensor& self,
-    IntArrayRef output_size,
-    bool align_corners,
-    c10::optional<double> scales) {
-  NPUAttrDesc npuAttrSizes = NPUAttrDesc("sizes", output_size);
-  // If the value of scales is not passed in, then according to the formula:
-  // scale = output_size / input.dim3
-  // to calculate the value of scale
-  SmallVector<float, N> sc = {};
-  if (scales.has_value()) {
-    sc.push_back(scales.value());
-  } else {
-    float temp = float(output_size[0]) / float(self.size(3));
-    sc.push_back(temp);
-  }
-  NPUAttrDesc npuAttrScales = NPUAttrDesc("scales", sc);
-
-  string coordinate_transformation_mode =
-      align_corners ? "align_corners" : "half_pixel";
-  NPUAttrDesc npuAttrCoordinateTransformationMode = NPUAttrDesc(
-      "coordinate_transformation_mode", coordinate_transformation_mode);
-
-  string mode = "linear";
-  NPUAttrDesc npuAttrMode = NPUAttrDesc("mode", mode);
-
-  // required attr
-  SmallVector<NPUAttrDesc, N> attrs = {
-      npuAttrSizes,
-      npuAttrCoordinateTransformationMode,
-      npuAttrMode,
-      npuAttrScales};
-  return attrs;
-}
-
-Tensor& upsample_linear1d_out_npu(
+Tensor& upsample_linear1d_out_npu_nocheck(
     Tensor& result,
     const Tensor& self,
     IntArrayRef output_size,
@@ -101,17 +54,52 @@ Tensor& upsample_linear1d_out_npu(
   upsample_linear1d_check(self,output_size);
   // Since only NCHW format input is currently supported, first convert the
   // input self (3 dimensions) to 4 dimensions as the input of npu
-  auto input_4dim = self.unsqueeze(2);
-  // constructs the input and output NPUTensorDesc
-  auto inputs = upsample_linear1d_npu_input({input_4dim});
-  auto outputs = upsample_linear1d_npu_output({result});
+  Tensor input_4dim = self.unsqueeze(2);
+  SmallVector<float, N> sc = {};
+  if (scales.has_value()) {
+    sc.push_back(scales.value());
+  } else {
+    float temp = float(output_size[0]) / float(input_4dim.size(3));
+    sc.push_back(temp);
+  }
 
-  // constructs the attr of the NPUAttrDesc
-  auto attrs =upsample_linear1d_npu_attr(input_4dim, output_size, align_corners, scales);
-
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("ResizeD", inputs, outputs, attrs);
+  string coordinate_transformation_mode =
+      align_corners ? "align_corners" : "half_pixel";
+  string mode = "linear";
+  OpCommand cmd;
+  cmd.Name("ResizeD")
+      .Input(input_4dim)
+      .Output(result)
+      .Attr("sizes", output_size)
+      .Attr("coordinate_transformation_mode", coordinate_transformation_mode)
+      .Attr("mode", mode)
+      .Attr("scales", sc)
+      .Run();
   return result;
+}
+
+
+Tensor& upsample_linear1d_out_npu(
+    Tensor& result,
+    const Tensor& self,
+    IntArrayRef output_size,
+    bool align_corners,
+    c10::optional<double> scales) {
+  auto outputSize = upsample_linear1d_npu_output_size(
+      self, output_size, align_corners, scales);
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      outputSize);
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    upsample_linear1d_out_npu_nocheck(contiguousResult, self, output_size, align_corners, scales);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    upsample_linear1d_out_npu_nocheck(result, self, output_size, align_corners, scales);
+  }
+    return result;
 }
 
 Tensor upsample_linear1d_npu(
@@ -124,11 +112,10 @@ Tensor upsample_linear1d_npu(
       self, output_size, align_corners, scales);
   
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
-  upsample_linear1d_out_npu(
+  upsample_linear1d_out_npu_nocheck(
       result, self, output_size, align_corners, scales);
 
   return result;

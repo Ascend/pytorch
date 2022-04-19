@@ -12,42 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "ATen/native/npu/utils/CalcuOpUtil.h"
-#include "ATen/native/npu/utils/KernelNpuOutputSize.h"
-#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<NPUTensorDesc, N> repeat_interleave_npu_input(
-    const SmallVector<Tensor, N>& inputTensor) {
-  return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-}
-
-SmallVector<NPUTensorDesc, N> repeat_interleave_npu_output(
-    const SmallVector<Tensor, N>& outputTensor) {
-  return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
-}
-
-SmallVector<NPUAttrDesc, N> repeat_interleave_npu_attr(int64_t repeats, int64_t dim) {
-  NPUAttrDesc npuAttrRepeats = NPUAttrDesc("tiles", repeats);
-  NPUAttrDesc npuAttrDim = NPUAttrDesc("axis", dim);
-
-  SmallVector<NPUAttrDesc, N> attrs = {npuAttrRepeats, npuAttrDim};
-  return attrs;
-}
-
 Tensor& repeat_interleave_out_npu(Tensor& result, Tensor& self, int64_t repeats, int64_t dim) {
-  // constructs the input and output NPUTensorDesc
-  auto inputs = repeat_interleave_npu_input({self});
-  auto outputs = repeat_interleave_npu_output({result});
-
-  // constructs the attr of the NPUAttrDesc
-  auto attrs = repeat_interleave_npu_attr(repeats, dim);
-  // executing the NPU operator
-  CalcuOpUtil::execute_npu_operate("TileWithAxis", inputs, outputs, attrs);
-
+  OpCommand cmd;
+  cmd.Name("TileWithAxis")
+      .Input(self)
+      .Output(result)
+      .Attr("tiles", repeats)
+      .Attr("axis", dim)
+      .Run();
   return result;
 }
 
@@ -68,10 +46,8 @@ Tensor repeat_interleave_npu(const Tensor &self, int64_t repeats, c10::optional<
   auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeats, realDim);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize,
-      selfTensor.options(),
-      CalcuOpUtil::get_tensor_npu_format(selfTensor));
+  Tensor result = OpPreparation::ApplyTensor(
+      selfTensor, outputSize);
 
   // calculate the output result of the NPU
   repeat_interleave_out_npu(result, selfTensor, repeats, realDim);
