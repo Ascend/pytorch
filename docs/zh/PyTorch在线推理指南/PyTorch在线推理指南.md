@@ -157,7 +157,6 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-import torch.npu
 from apex import amp
 
 model_names = sorted(name for name in models.__dict__
@@ -597,5 +596,4 @@ if __name__ == '__main__':
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
-
 
