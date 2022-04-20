@@ -799,8 +799,8 @@
 | 132  | torch.nn.RNN                                             | Supported                                                    |
 | 133  | torch.nn.LSTM                                            | Supported                                                    |
 | 134  | torch.nn.GRU                                             | Supported (The DynamicGRUV2 scenario is not supported.)      |
-| 135  | torch.nn.RNNCell                                         | Supported                                                    |
-| 136  | torch.nn.LSTMCell                                        | Supported                                                    |
+| 135  | torch.nn.RNNCell                                         |  Supported                                                    |
+| 136  | torch.nn.LSTMCell                                        | Supported (The non-16 aligned scenario is not supported.)                                                    |
 | 137  | torch.nn.GRUCell                                         | Supported                                                    |
 | 138  | torch.nn.Transformer                                     | Supported                                                    |
 | 139  | torch.nn.Transformer.forward                             | Supported                                                    |

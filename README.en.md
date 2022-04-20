@@ -2,6 +2,7 @@
 
 
 # Project Introduction
+
 This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors.
 
 # Compilation/Execution Constraints
@@ -10,8 +11,7 @@ GCC version: 7.3.0 (required only in compilation scenarios)
 
 CMake version: 3.12.0 or later (required only in compilation scenarios)
 
-Python versions: 3.7.5, 3.8.*x* and 3.9.*x* (PyTorch1.5 does not support python3.9.x)
-
+Python version: 3.7.5 or 3.8.x
 
 # System Dependencies
 
@@ -26,42 +26,51 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend Auxiliary Software
 
-| AscendPyTorch Version| CANN Version| Supported PyTorch Version|
-| :---------------- | :--------- | :------------------------------- |
-| 2.0.2             | CANN 5.0.2 | 1.5.0                            |
-| 2.0.3             | CANN 5.0.3 | 1.5.0 and 1.8.1 (Only the ResNet-50 model is supported.)|
+| AscendPyTorch Version | CANN Version | Supported PyTorch Version |
+| :-------------------- | :----------- | :------------------------ |
+| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               |
+| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               |
+| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               |
+| 3.0.rc1               | CANN 5.0.4   | 1.5.0.post5, 1.8.1.rc1    |
 
 # Method of Use - Full Code Generation and Compilation
 
+## Obtain the PyTorch source code patch that adapts to the Ascend AI Processors.
+
+Obtain the PyTorch source code (from the current repository) that adapts to Ascend AI Processors and switch to the required branch.
+
+   ```
+git clone https://gitee.com/ascend/pytorch.git
+# The current master branch is PyTorch 1.8.1. If PyTorch 1.5.0 is required, run the **git checkout** command to switch to the branch for version 1.5.0.
+cd pytorch
+git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
+   ```
+
 ## Obtain the native PyTorch source code and third-party code.
 
-Currently, PyTorch 1.5.0 and 1.8.1 are supported. Obtain the native PyTorch source code from the root directory **pytorch/** in the current repository as required.
+Obtain the native PyTorch source code from the root directory **/pytorch** of the current repository.
 
 ```sh
-// Version 1.5.0
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
-// Version 1.8.1
-git clone -b v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git
 ```
 
 Go to the **pytorch/pytorch/** directory and obtain the passive dependency code of PyTorch. (It takes a long time to obtain the code.)
 
 ```sh
+cd pytorch
 git submodule sync
 git submodule update --init --recursive
 ```
 
 If no error is reported after the preceding operations are complete, the PyTorch and third-party code on which PyTorch depends is generated.
 
-## Generate the PyTorch code adapted to Ascend AI Processors.
+## Generate the full PyTorch code that adapts to the Ascend AI Processors.
 
 Go to the **pytorch/scripts** directory and run the script based on the selected version. (Note: The downloaded native PyTorch source code must match the following version. Otherwise, an error may occur.)
 
 ```sh
-// The default version is 1.5.0.
+cd ../scripts/
 bash gen.sh
-// For version 1.8.1, use the -v option to specify the version number.
-bash gen.sh -v 1.8.1
 ```
 
 The full code adapted to NPUs is generated in the **pytorch/pytorch/** directory.
@@ -72,13 +81,14 @@ The full code adapted to NPUs is generated in the **pytorch/pytorch/** directory
 Go to the **pytorch/pytorch/** directory and install the Python dependency.
 
 ```python3
+cd ../pytorch
 pip3 install -r requirements.txt
 ```
 
 
 ## Compile the binary package of Torch.
 
-Go to the **pytorch/pytorch/** directory and run the following command:
+In the **pytorch/pytorch/** directory, run the following command:
 
 ```sh
 # Python 3.7
@@ -88,9 +98,6 @@ bash build.sh --python=3.7 (recommended)
 
 # Python 3.8
 bash build.sh --python=3.8
-
-# Python 3.9
-bash build.sh --python=3.9
 ```
 
 The generated binary package is in the **pytorch/pytorch/dist/** directory.
@@ -104,15 +111,18 @@ The generated binary package is in the **pytorch/pytorch/dist/** directory.
 **torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl** (The actual name may contain the minor version number, for example, **torch-1.5.0.post2+ascend-cp37-cp37m-linux_x86_64.whl**.)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_x86_64.whl
 ```
+
 
 **arm:**
 
 **torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl** (The actual name may contain the minor version number, for example, **torch-1.5.0.post2+ascend-cp37-cp37m-linux_aarch64.whl**.)
 
 ```shell
+cd dist
 pip3 uninstall torch
 pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 ```
@@ -122,10 +132,11 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 
 ## Execute environment variables.
 
-Run the script for setting environment variables in the root directory of the current repository.
+Run the script for setting environment variables in the **pytorch/pytorch/** directory.
 
 ```
-source pytorch/env.sh
+cd ../
+source env.sh
 ```
 
 
@@ -134,18 +145,18 @@ source pytorch/env.sh
 The following environment variables are function classes used in NPU scenarios or environment variables that can improve performance:
 
 ```
-export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to 1.
-export PTCOPY_ENABLE=1 # Use the PTCopy operator mode to accelerate continuous rotation and copy. You are advised to enable this environment variable and set its value to 1.
+export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to **1**.
+export PTCOPY_ENABLE=1 # Use the PTCopy operator mode to accelerate continuous rotation and copy. You are advised to enable this environment variable and set its value to **1**.
 ```
 
 The following are optional environment variables that may affect running models:
 
 ```
-export DYNAMIC_COMPILE_ENABLE=1  # Dynamic shape feature. This environment variable is optional for shape change scenarios. To enable it, set its value to 1.
-export COMBINED_ENABLE=1 # Optimization of scenarios where two inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to 1.
-export TRI_COMBINED_ENABLE=1 # Optimization of scenarios where three inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to 1.
-export ACL_DUMP_DATA=1 # Operator data dump function, which is used for debugging. This environment variable is optional. To enable it, set its value to 1.
-export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. This environment variable is optional.
+export DYNAMIC_COMPILE_ENABLE=1  # Dynamic shape feature. This environment variable is optional for shape change scenarios. To enable it, set its value to **1**.
+export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to **1**.
+export TRI_COMBINED_ENABLE=1 # Optimization of scenarios where three inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to **1**.
+export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.
+export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. Optional
 ```
 
 
@@ -155,9 +166,8 @@ Verify the execution. The output result is OK.
 
 ```shell
 // Select a test script that matches the preceding version. The following uses the 1.5.0 version as an example.
-python3 pytorch1.5.0/test/test_npu/test_div.py
-// The following uses the 1.8.1 version as an example.
-python3 pytorch1.8.1/test/test_npu/test_div.py
+cd ../
+python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 ```
 
 # Documentation
@@ -172,23 +182,35 @@ We sincerely welcome you to join discussions in the community and contribute you
 
 The version branches of AscendPyTorch have the following maintenance phases:
 
-| **Status**| **Duration**| **Description**|
-| ----------------- | ------------- | -------------------------------------------------- |
-| Planning          | 1 - 3 months  | Plan features.|
-| Development       | 3 months      | Develop features.|
-| Maintained        | 6 - 12 months | Allow the incorporation of all resolved issues and release the version.|
-| Unmaintained      | 0 - 3 months  | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released.|
-| End Of Life (EOL) | N/A           | Do not accept any modifications to a branch. |
+| **Status**        | **Duration**  | **Description**                                              |
+| ----------------- | ------------- | ------------------------------------------------------------ |
+| Planning          | 1 - 3 months  | Plan features.                                               |
+| Development       | 3 months      | Develop features.                                            |
+| Maintained        | 6 - 12 months | Allow the incorporation of all resolved issues and release the version. |
+| Unmaintained      | 0 - 3 months  | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released. |
+| End Of Life (EOL) | N/A           | Do not accept any modification to a branch.                  |
 
 # Maintenance Status of Existing Branches
 
-| **Branch Name**| **Status**| **Launch Date**| **Subsequent Status**| **EOL Date**|
-| ---------- | ------------ | ------------ | -------------------------------------- | ------------ |
-| **v2.0.2** | Maintained   | 2021-07-29   | Unmaintained <br> 2022-07-29 estimated |              |
-| **v2.0.3** | Maintained   | 2021-10-15   | Unmaintained <br> 2022-10-15 estimated |              |
+| **Branch Name** | **Status** | **Launch Date** | **Subsequent Status**                  | **EOL Date** |
+| --------------- | ---------- | --------------- | -------------------------------------- | ------------ |
+| **v2.0.2**      | Maintained | 2021-07-29      | Unmaintained <br> 2022-07-29 estimated |              |
+| **v2.0.3**      | Maintained | 2021-10-15      | Unmaintained <br> 2022-10-15 estimated |              |
+| **v2.0.4**      | Maintained | 2022-01-15      | Unmaintained <br> 2023-01-15 estimated |              |
+| **v3.0.rc1**    | Maintained | 2022-04-10      | Unmaintained <br> 2023-04-10 estimated |              |
 
 
-# FAQs
+# FAQ
+
+## The **libhccl.so** cannot be found by **import torch**.
+
+Environment variables are not configured. You need to configure them using the **env.sh** script.
+
+```
+source pytorch/pytorch1.5.0/src/env.sh
+```
+
+
 
 ## The error message "no module named yaml/typing_extensions." is displayed when **bash build.sh** is run during compilation.
 
@@ -201,18 +223,20 @@ pip3 install typing_extensions
 
 After the installation is successful, run **make clean** and then **bash build.sh** to perform compilation. Otherwise, an unknown compilation error may occur due to the cache.
 
-## TE cannot be found during running
+
+
+## TE cannot be found during running.
 
 Development state:
 
 ```
-cd /urs/local/ascend-toolkit/latest/fwkacllib/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
 ```
 
 User state:
 
 ```
-cd /urs/local/nnae/latest/fwkacllib/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -235,11 +259,11 @@ Download the Linux version from the CMake official website and install it. (The 
 
 ## GCC version switch errors occur.
 
-When the test environment is switched from GCC 4.8.5 to GCC 7.3.0, errors may occur and the PyTorch compilation may fail. The following lists the libraries that require soft connections:
+When the test environment is switched from GCC 4.8.5 to GCC 7.3.0, errors may occur and the PyTorch compilation fails. The following lists the libraries that require soft connections:
 
 gcc, g++, c++ (The version must be 7.3.0.)
 
-libstdc++->libstdc++.so.6.0.24 (7.3.0)
+libstdc++->libstdc++.so.6.0.24(7.3.0)
 
 
 
@@ -258,6 +282,28 @@ Ubuntu
 ```sh
 apt install libopenblas-dev
 ```
+
+
+
+## torchvision fails to be installed using pip in the Arm environment.
+
+The source code can be used for installation. (You need to install the Ascend pytorch first and configure environment variables using **env.sh**.)
+
+```
+git clone -b v0.6.0 https://github.com/pytorch/vision.git 
+cd vision
+python setup.py install
+```
+
+Verify that the torchvision is successfully installed.
+
+```
+python -c "import torchvision"
+```
+
+If no error is reported, the installation is successful.
+
+
 
 # Release Notes
 
