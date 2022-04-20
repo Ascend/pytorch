@@ -2,11 +2,8 @@
 
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
-#include <c10/util/typeid.h>
-#include <c10/util/order_preserving_flat_hash_map.h>
 
 #include <c10/util/intrusive_ptr.h>
-#include <third_party/acl/inc/acl/acl_base.h>
 
 namespace c10 {
 
@@ -65,7 +62,9 @@ struct C10_API StorageImpl : public c10::intrusive_ptr_target {
     return static_cast<T*>(this->data_ptr_.get());
   }
 
-  void release_resources() override;
+  void release_resources() override {
+    data_ptr_.clear();
+  }
 
   size_t nbytes() const {
     return size_bytes_;

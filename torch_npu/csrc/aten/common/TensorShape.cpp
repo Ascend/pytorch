@@ -34,6 +34,8 @@
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
+#include "third_party/acl/inc/acl/acl_base.h"
+
 namespace at_npu {
 namespace native {
 
