@@ -1151,31 +1151,32 @@ TBE算子导出有两种方式。
 
 #### C++算子导出<a name="zh-cn_topic_0000001136292799_section1465619203319"></a>
 
-1.  自定义算子
+1. 自定义算子
 
-    ```
-    import torch
-    import torch.utils.cpp_extension
-    # 定义C++实现的算子
-    def test_custom_add():    
-        op_source = """    
-        #include <torch/script.h>    
-    
-        torch::Tensor custom_add(torch::Tensor self, torch::Tensor other) {
-            return self + other;    
-        }
-        static auto registry = 
-            torch::RegisterOperators("custom_namespace::custom_add",&custom_add);
-        """
-        torch.utils.cpp_extension.load_inline(
-            name="custom_add",
-            cpp_sources=op_source,
-            is_python_module=False,
-            verbose=True,
-        )
-    
-    test_custom_add()
-    ```
+   ```
+   import torch
+   import torch_npu
+   import torch.utils.cpp_extension
+   # 定义C++实现的算子
+   def test_custom_add():    
+       op_source = """    
+       #include <torch/script.h>    
+   
+       torch::Tensor custom_add(torch::Tensor self, torch::Tensor other) {
+           return self + other;    
+       }
+       static auto registry = 
+           torch::RegisterOperators("custom_namespace::custom_add",&custom_add);
+       """
+       torch.utils.cpp_extension.load_inline(
+           name="custom_add",
+           cpp_sources=op_source,
+           is_python_module=False,
+           verbose=True,
+       )
+   
+   test_custom_add()
+   ```
 
 2.  注册自定义算子
 
@@ -1217,38 +1218,39 @@ TBE算子导出有两种方式。
 
 #### 纯Python算子导出<a name="zh-cn_topic_0000001136292799_section98044317326"></a>
 
-1.  自定义算子
+1. 自定义算子
 
-    ```
-    import torch
-    import torch.onnx.symbolic_registry as sym_registry
-    
-    import torch.utils.cpp_extension
-    import torch.nn as nn
-    import torch.nn.modules as Module
-    from torch.autograd import Function
-    import numpy as np
-    
-    from torch.nn.parameter import Parameter
-    import math
-    from torch.nn  import init
-    
-    # 定义算子类方法
-    class CustomClassOp_Add_F(Function):
-        @staticmethod
-        def forward(ctx, input1,input2):
-            rtn = torch.add(input1,input2)
-            return torch.add(input1,rtn)
-    
-        @staticmethod
-        def symbolic(g,input1,input2):
-            rtn = g.op("Custom::CustomClassOp_Add", input1, input2,test_attr1_i=1,test_attr2_f=1.0)
-            rtn = g.op("ATen::CustomClassOp_Add", input1, rtn)
-            rtn = g.op("C10::CustomClassOp_Add", rtn, input2)
-            #erro doman: rtn = g.op("onnx::CustomClassOp_Add", input1, input2)
-    
-            return rtn
-    ```
+   ```
+   import torch
+   import torch_npu
+   import torch.onnx.symbolic_registry as sym_registry
+   
+   import torch.utils.cpp_extension
+   import torch.nn as nn
+   import torch.nn.modules as Module
+   from torch.autograd import Function
+   import numpy as np
+   
+   from torch.nn.parameter import Parameter
+   import math
+   from torch.nn  import init
+   
+   # 定义算子类方法
+   class CustomClassOp_Add_F(Function):
+       @staticmethod
+       def forward(ctx, input1,input2):
+           rtn = torch.add(input1,input2)
+           return torch.add(input1,rtn)
+   
+       @staticmethod
+       def symbolic(g,input1,input2):
+           rtn = g.op("Custom::CustomClassOp_Add", input1, input2,test_attr1_i=1,test_attr2_f=1.0)
+           rtn = g.op("ATen::CustomClassOp_Add", input1, rtn)
+           rtn = g.op("C10::CustomClassOp_Add", rtn, input2)
+           #erro doman: rtn = g.op("onnx::CustomClassOp_Add", input1, input2)
+   
+           return rtn
+   ```
 
 2.  建立模型
 

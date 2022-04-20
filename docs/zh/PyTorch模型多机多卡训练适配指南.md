@@ -100,6 +100,7 @@ PyTorch模型多机多卡训练流程一般包括准备环境、准备模型、�
    import argparse
    import os
    import torch
+   import torch_npu
    import torchvision
    import torch.nn as nn
    import torch.nn.functional as F

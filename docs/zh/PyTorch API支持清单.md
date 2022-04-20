@@ -1279,7 +1279,7 @@
 | 49   | torch.distributed.launch                  | 是       |
 | 50   | torch.multiprocessing.spawn               | 是       |
 
-## torch.npu
+## torch_npu.npu
 
 | 序号 | API名称                                       | npu对应API名称                                   | 是否支持 |
 | ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
