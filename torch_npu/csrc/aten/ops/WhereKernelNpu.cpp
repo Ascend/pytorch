@@ -15,6 +15,7 @@
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu {
 namespace native {
@@ -90,7 +91,7 @@ at::SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition
 
 vector<at::Tensor> NPUNativeFunctions::where(const at::Tensor& condition) {
   at::Tensor formatCastOfCondition = condition;
-  if (condition.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ !=
+  if (torch_npu::NPUBridge::GetNpuStorageImpl(condition)->npu_desc_.npu_format_ !=
     ACL_FORMAT_ND) {
     formatCastOfCondition = NPUNativeFunctions::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
   }

@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu
 {
@@ -66,9 +67,9 @@ namespace at_npu
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // use 5HD in Relu
-      if ((grad_output.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ ==
+      if ((torch_npu::NPUBridge::GetNpuStorageImpl(grad_output)->npu_desc_.npu_format_ ==
            ACL_FORMAT_NCHW) &&
-          (self.storage().unsafeGetStorageImpl()->npu_desc_.npu_format_ ==
+          (torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_ ==
            ACL_FORMAT_NC1HWC0))
       {
         at::Tensor grad_output_5HD =

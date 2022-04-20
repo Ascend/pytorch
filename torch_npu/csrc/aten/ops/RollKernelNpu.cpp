@@ -52,9 +52,10 @@ at::Tensor& roll_transpose(
   std::swap(perm[axis], perm[firstDim]);
   at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
   auto outputSize = transpose_npu_output_size(result, perm);
-  at::Tensor transposeResult = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor transposeResult = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options());
+      self.options(),
+      CalcuOpUtil::get_tensor_npu_format(self));
   c10::SmallVector<int64_t, SIZE> dim = {firstDim};
   c10::SmallVector<int64_t, SIZE> shift_bak = {shifts[id]};
   at::IntArrayRef dim_now = at::IntArrayRef(dim);

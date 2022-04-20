@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include <ATen/record_function.h>
+
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include "torch_npu/csrc/framework/StorageDescHelper.h"
+#include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -25,13 +29,21 @@ at::Tensor& stride_copy_out_npu_nocheck(
     at::IntArrayRef shape,
     at::IntArrayRef stride,
     at::Scalar storage_offset) {
+  if ((result.nbytes() < 32) && (!StorageDescHelper::MetaDataAreMatch(&result))) {
+    // [算子限制] 对于1. 小于一个block的数据搬运 2.result不match，Astrided暂不支持。
+    copy_kernel_npu(result, self, false);
+    return result;
+  }
+  // Set the offset of input discontiguous tensor to be 0.
+  // The accurate offset would be provided as a attr to op. 
+  NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(self));
   RECORD_FUNCTION("npuAsStrided", std::vector<c10::IValue>({self}));
   OpCommand cmd;
   cmd.Name("AsStrided")
       .InputWithoutContiguous(self)
       .Input(shape)
       .Input(stride)
-      .Input(storage_offset, at::kLong)
+      .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
   return result;

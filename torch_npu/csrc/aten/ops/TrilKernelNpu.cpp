@@ -34,7 +34,7 @@ at::Tensor& NPUNativeFunctions::tril_out(const at::Tensor& self, int64_t diagona
       {self},
       result,
       self);
-  
+
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
     tril_out_nocheck(self, diagonal, contiguousResult);
@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::tril_out(const at::Tensor& self, int64_t diagona
 
 at::Tensor NPUNativeFunctions::tril(const at::Tensor& self, int64_t diagonal) {
   auto is_last_two_dims = [&self]() {
-      auto selfStorage = self.storage().get_npu_desc().storage_sizes_;
+      auto selfStorage = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc().storage_sizes_;
       if (selfStorage.size() <= 1) {
           return false;
       }

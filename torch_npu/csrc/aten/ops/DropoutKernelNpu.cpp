@@ -43,10 +43,27 @@ at::Tensor dropout_do_mask(
   return result;
 }
 
+std::tuple<at::Tensor, at::Tensor> dropout_do_mask_npu(
+    const at::Tensor& self,
+    const at::Tensor& mask,
+    double p) {
+  at::Scalar prob = at::Scalar(1. - p);
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  OpCommand cmd;
+  cmd.Name("DropOutDoMask")
+      .Input(self)
+      .Input(mask)
+      .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Output(result)
+      .Run();
+
+  return std::tie(result, mask);
+}
+
 at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   bool isFuzzyCompile = env::CheckFuzzyEnable();
   int64_t numels;
-  auto desc_ = self.storage().get_npu_desc();
+  auto desc_ = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
   numels = isFuzzyCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
@@ -65,6 +82,39 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   cmd.Name("DropOutGenMask")
       .Input(selfShape)
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Output(mask)
+      .Attr("seed", seed)
+      .Attr("seed2", seed2)
+      .Run();
+  return mask;
+}
+
+at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
+    at::IntArrayRef size, double p,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<c10::Layout> layout_opt,
+    c10::optional<c10::Device> device_opt,
+    c10::optional<bool> pin_memory_opt) {
+  c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                          .device(device_opt)
+                                          .layout(layout_opt)
+                                          .pinned_memory(pin_memory_opt);
+
+  at::Scalar prob = at::Scalar(1. - p);
+  int64_t numels = at::prod_intlist(size);
+
+  uint32_t length = (numels + 128 - 1) / 128 * 128;
+  at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length / 8}, options.dtype(at::kByte),
+                                                         ACL_FORMAT_ND);
+
+  OpCommand cmd;
+  // If either seed or seed2 are set to be non-zero, the random number generator
+  // is seeded by the given seed. Otherwise, it is seeded by a random seed.
+  int64_t seed = 0;
+  int64_t seed2 = 0;
+  cmd.Name("DropOutGenMask")
+      .Input(size)
+      .Input(prob, c10::typeMetaToScalarType(options.dtype()), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(mask)
       .Attr("seed", seed)
       .Attr("seed2", seed2)
@@ -165,6 +215,41 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_npu_dropout(
     const at::Tensor& self,
     double p) {
     auto result = NPUdropoutFunction::apply(self, p);
+    std::tuple<at::Tensor, at::Tensor> output(result[0], result[1]);
+  return output;
+}
+
+class NPUDropoutDoMaskFunction: public torch::autograd::Function<NPUDropoutDoMaskFunction> {
+public:
+  static tensor_list forward(AutogradContext *ctx,
+    const at::Tensor& self,
+    const at::Tensor& mask,
+    double p) {
+    ctx->saved_data["p"] = p;
+    at::AutoNonVariableTypeMode g;
+    auto result = dropout_do_mask_npu(self, mask, p);
+    auto result1 = std::get<1>(result);
+    ctx->save_for_backward({result1});
+    tensor_list result_list = {std::get<0>(result), result1};
+    return result_list;
+  }
+
+  static tensor_list backward(AutogradContext *ctx,
+    tensor_list grad_outputs) {
+    auto p = ctx->saved_data["p"].toDouble();
+    auto saved = ctx->get_saved_variables();
+    auto mask = saved[0];
+    at::Tensor result = NPUNativeFunctions::npu_dropout_backward(grad_outputs[0], mask, p);
+    tensor_list output = {result, at::Tensor(), at::Tensor()};
+    return output;
+  }
+};
+
+std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_do_mask(
+    const at::Tensor& self,
+    const at::Tensor& mask,
+    double p) {
+    auto result = NPUDropoutDoMaskFunction::apply(self, mask, p);
     std::tuple<at::Tensor, at::Tensor> output(result[0], result[1]);
   return output;
 }

@@ -29,7 +29,6 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-
 namespace at_npu {
 namespace native {
 
@@ -64,7 +63,6 @@ void copy_d2d_last_method(
     bool same_type,
     bool non_blocking) {
   // general copy method but Low performance
-  RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
   copy_kernel_npu(self, src, non_blocking);
 }
 
@@ -85,9 +83,8 @@ void copy_d2d_dtype_baseformat(
     if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src)) {
       // Optimized trans-contiguous method
       return;
-    } else if (StorageDescHelper::MetaDataAreMatch(&self)) {
+    } else {
       // General trans-contiguous method
-      // Note: AsStrided do not support unmatched tensor input
       NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }

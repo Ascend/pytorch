@@ -22,10 +22,12 @@
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include <c10/npu/NPUFunctions.h>
-#include <c10/npu/NPUGraphContextManager.h>
+#include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 #include <third_party/acl/inc/op_proto/array_ops.h>
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 #include <stack>
 
@@ -105,7 +107,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   }
 
   RunGraph(cur_graph_id, inputs, outputs);
-  ScalarMemContext::GetContext().Reset();  
+  ScalarMemContext::GetContext().Reset();
   ResetGraphOutputs();
   if (!cached_graph_id.has_value()) {
     // Data of new graph maybe inputs of old graphs,
@@ -194,10 +196,10 @@ void GraphExecutor::ConstructOps(CombinedInfo& output) {
 
 std::vector<ge::Operator> GraphExecutor::GetInputOps() {
   std::vector<ge::Operator> ops;
-  auto input_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto input_storages = NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
   for (size_t index = 0; index < input_storages.size(); ++index) {
-    auto &graph_desc = input_storages[index]->get_mutable_npu_graph_desc();
+    auto &graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_mutable_npu_graph_desc();
     auto data_node = graph_desc.graph_value.GetDataNode();
     auto op_ptr = data_node.value()->GetGeOp();
     if (data_node.value()->GetOpType() == kDataNodeType) {
@@ -206,7 +208,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
         op_ptr = data_node.value()->GetGeOp();
       }
       auto op_desc = ATenGeBridge::InferGeTenosrDesc(
-          input_storages[index]->get_npu_desc(),
+          torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_npu_desc(),
           graph_desc.graph_value.GetRealDtype(),
           true);
       // x and y are the input and output names of Data IR
@@ -221,7 +223,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
 
 GeOutPutOpType GraphExecutor::GetOutputOps() {
   GeOutPutOpType ops_and_idx;
-  auto output_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
   for (auto& output_storage : output_storages) {
     if (GraphUtils::IsTensorWithoutNode(output_storage) ||
@@ -229,7 +231,7 @@ GeOutPutOpType GraphExecutor::GetOutputOps() {
       continue;
     }
     const auto& graph_value =
-        output_storage->get_mutable_npu_graph_desc().graph_value;
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
     auto op_ptr = graph_value.GetCurNode()->GetGeOp();
     ops_and_idx.emplace_back(
         *op_ptr, std::vector<size_t>{graph_value.GetValueIndex()});
@@ -240,15 +242,15 @@ GeOutPutOpType GraphExecutor::GetOutputOps() {
 CombinedInfo GraphExecutor::GetInputCombinedInfo() {
   RECORD_HOST_FUNCTION("GetInputCombinedInfo", std::vector<c10::IValue>({}));
   CombinedInfo input_infos;
-  auto input_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto input_storages = NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
   for (size_t index = 0; index < input_storages.size(); ++index) {
-    c10::NpuGraphDesc& graph_desc =
-        input_storages[index]->get_mutable_npu_graph_desc();
+    torch_npu::NpuGraphDesc& graph_desc =
+        torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_mutable_npu_graph_desc();
     auto data_node = graph_desc.graph_value.GetDataNode();
     TORCH_CHECK(data_node.has_value(), "Inputs Tensor must have data node");
     ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-        input_storages[index]->get_npu_desc(),
+        torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_npu_desc(),
         graph_desc.graph_value.GetRealDtype());
 
     if (data_node.value()->GetOpType() == kDataNodeType) {
@@ -268,12 +270,12 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
 CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
   RECORD_HOST_FUNCTION("GetOutputCombinedInfo", std::vector<c10::IValue>({}));
   CombinedInfo output_infos;
-  auto output_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
   for (auto& output_storage : output_storages) {
     if (GraphUtils::IsTensorWithoutNode(output_storage) ||
         GraphUtils::IsDataTensor(output_storage)) {
-      c10::NpuGraphDesc graph_desc = output_storage->get_npu_graph_desc();
+      torch_npu::NpuGraphDesc graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_graph_desc();
       // the tensor of scalar_merge_copy will enter here because is has't node,
       // only the length of the out queue is increased, nothing else.
       if ((output_storage->data() == nullptr) &&
@@ -285,11 +287,11 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
       continue;
     }
     auto& graph_value =
-        output_storage->get_mutable_npu_graph_desc().graph_value;
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_mutable_npu_graph_desc().graph_value;
     TORCH_CHECK(graph_value.HashNode(), "output must have node!");
     output_infos.nodes.push_back(graph_value.GetCurNode());
     ge::TensorDesc tensor_desc = ATenGeBridge::InferGeTenosrDesc(
-        output_storage->get_npu_desc(),
+        torch_npu::NPUBridge::GetNpuStorageImpl(output_storage)->get_npu_desc(),
         graph_value.GetRealDtype());
     auto ge_tensor = PrepareOutputTenosr(output_storage, tensor_desc);
     output_infos.tensors.push_back(std::move(ge_tensor));
@@ -305,7 +307,7 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
 ge::Tensor GraphExecutor::PrepareInputTensor(
     const c10::StorageImpl* const storage,
     const ge::TensorDesc& desc) {
-  c10::NpuGraphDesc& graph_desc = storage->get_mutable_npu_graph_desc();
+  torch_npu::NpuGraphDesc& graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(const_cast<c10::StorageImpl*>(storage))->get_mutable_npu_graph_desc();
   auto device_ptr = storage->data();
   size_t nbytes = storage->nbytes();
   auto addr_offset = graph_desc.graph_value.GetScalarMemOffset();
@@ -318,7 +320,7 @@ ge::Tensor GraphExecutor::PrepareInputTensor(
 ge::Tensor GraphExecutor::PrepareOutputTenosr(
     c10::StorageImpl* storage,
     const ge::TensorDesc& desc) {
-  c10::NpuGraphDesc& graph_desc = storage->get_mutable_npu_graph_desc();
+  torch_npu::NpuGraphDesc& graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(storage)->get_mutable_npu_graph_desc();
   TORCH_CHECK(
       graph_desc.graph_value.HashNode(),
       "graph desc in storage must have node");
@@ -340,7 +342,7 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
 
 void GraphExecutor::ResetGraphOutputs() {
   RECORD_HOST_FUNCTION("ResetGraphOutputs", std::vector<c10::IValue>({}));
-  auto output_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
   std::for_each(
       output_storages.begin(), output_storages.end(), [](c10::StorageImpl* x) {
@@ -353,7 +355,7 @@ void GraphExecutor::ResetGraphOutputs() {
 
 void GraphExecutor::RefreshGraphInputs() {
   RECORD_HOST_FUNCTION("RefreshGraphInputs", std::vector<c10::IValue>({}));
-  auto input_storages = c10::npu::graph::NpuGraphContextManager::GetInstance()
+  auto input_storages = NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
   std::for_each(
       input_storages.begin(), input_storages.end(), [&](c10::StorageImpl* x) {
@@ -363,14 +365,14 @@ void GraphExecutor::RefreshGraphInputs() {
 
 void GraphExecutor::ClearDataStore() {
   RECORD_HOST_FUNCTION("ClearDataStore", std::vector<c10::IValue>({}));
-  c10::npu::graph::NpuGraphContextManager::GetInstance().EraseInputStorage(
+  NpuGraphContextManager::GetInstance().EraseInputStorage(
       init_device_id_);
 }
 
 bool GraphExecutor::CheckDeviceIdAndInit() {
   RECORD_HOST_FUNCTION("CheckDeviceIdAndInit", std::vector<c10::IValue>({}));
   auto devices_has_input =
-      c10::npu::graph::NpuGraphContextManager::GetInstance()
+      NpuGraphContextManager::GetInstance()
           .GetDevicesHasLiveTensor();
   if (devices_has_input.empty()) {
     return false;

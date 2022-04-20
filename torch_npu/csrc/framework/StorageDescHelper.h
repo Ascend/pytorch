@@ -18,6 +18,7 @@
 
 #include <ATen/ATen.h>
 
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
 
 namespace at_npu
@@ -35,7 +36,7 @@ namespace at_npu
       static bool OffsetAreMatch(const at::Tensor *tensor);
 
       // helper function of transdata op.
-      static bool IsSameDesc(const c10::NPUStorageDesc &a, const c10::NPUStorageDesc &b);
+      static bool IsSameDesc(const torch_npu::NPUStorageDesc &a, const torch_npu::NPUStorageDesc &b);
       static bool IsSameDesc(const at::Tensor &a, const at::Tensor &b);
 
       // calculate storage size need by npu memory
@@ -52,9 +53,9 @@ namespace at_npu
 
       static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
       static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
-      static void CopyDesc(const at::Tensor &dst, const c10::NPUStorageDesc &src_desc);
+      static void CopyDesc(const at::Tensor &dst, const torch_npu::NPUStorageDesc &src_desc);
 
-      static void UpdateDesc(c10::NPUStorageDesc &npuDesc, c10::IntArrayRef &new_size);
+      static void UpdateDesc(torch_npu::NPUStorageDesc &npuDesc, c10::IntArrayRef &new_size);
 
       static FormatShape ComputeStrideFromShape(const FormatShape &shape);
 
@@ -64,12 +65,12 @@ namespace at_npu
     private:
       // Get Part
       static bool IsSameSize(c10::SmallVector<int64_t, 5> a, c10::IntArrayRef b);
-      static int64_t GetMemorySize(const c10::NPUStorageDesc &dst);
+      static int64_t GetMemorySize(const torch_npu::NPUStorageDesc &dst);
       // Set Part
-      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype);
-      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype);
+      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
                                          c10::IntArrayRef strides);
-      static c10::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
+      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
                                          c10::IntArrayRef strides, aclFormat format);
     };
 

@@ -20,6 +20,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu {
 namespace native {
@@ -43,7 +44,7 @@ bool is_transpose_last_two_dims_flex(const at::Tensor &tensor)
     return false;
   }
   int64_t numel = 1;
-  auto storageSize = tensor.storage().get_npu_desc().storage_sizes_;
+  auto storageSize = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().storage_sizes_;
 
   for (int i = 0; i < storageSize.size(); i++)
   {
@@ -69,7 +70,7 @@ bool is_transpose_last_two_dims_strict(
     const at::Tensor &tensor,
     bool is_transpose_flex)
 {
-  auto base_sizes = tensor.storage().get_npu_desc().base_sizes_;
+  auto base_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().base_sizes_;
   if (is_transpose_flex && base_sizes.size() == tensor.dim() &&
       tensor.size(-1) == base_sizes[tensor.dim() - 2] &&
       tensor.size(-2) == base_sizes[tensor.dim() - 1])
@@ -93,8 +94,8 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self, const at::Tensor 
 {
   at::Tensor contiguousResult = result.is_contiguous() ? result : result.contiguous();
 
-  c10::NPUStorageDesc self_desc = self.storage().get_npu_desc();
-  c10::NPUStorageDesc mat2_desc = mat2.storage().get_npu_desc();
+  auto self_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
+  auto mat2_desc = torch_npu::NPUBridge::GetNpuStorageImpl(mat2)->get_npu_desc();
   bool isSelfT_flex = is_transpose_last_two_dims_flex(self);
   bool isMat2T_flex = is_transpose_last_two_dims_flex(mat2);
   bool isSelfT_strict = is_transpose_last_two_dims_strict(self, isSelfT_flex);
@@ -157,11 +158,11 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self, const at::Tensor 
   // set_transposed_npu_desc
   if (isSelfT_flex && (!isSelfT_strict))
   {
-    self.storage().unsafeGetStorageImpl()->npu_desc_ = self_desc;
+    torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_ = self_desc;
   }
   if (isMat2T_flex && (!isMat2T_strict))
   {
-    mat2.storage().unsafeGetStorageImpl()->npu_desc_ = mat2_desc;
+    torch_npu::NPUBridge::GetNpuStorageImpl(mat2)->npu_desc_ = mat2_desc;
   }
 
   if (!result.is_contiguous())

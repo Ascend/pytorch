@@ -45,7 +45,7 @@ at::Tensor& NPUNativeFunctions::atan2_out(
       outputSize);
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    at::Tensor result = atan2_out_npu_nocheck(self, other, contiguousResult);
+    atan2_out_npu_nocheck(self, other, contiguousResult);
     NpuUtils::format_fresh_view(result, contiguousResult);
   } else {
     atan2_out_npu_nocheck(self, other, result);

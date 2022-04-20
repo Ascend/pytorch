@@ -83,9 +83,10 @@ at::Tensor NPUNativeFunctions::quantize_per_channel(
   } else if (dtype == at::ScalarType::QInt32) {
     outputDtype = at::kInt;
   }
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
-      self.options().dtype(outputDtype));
+      self.options().dtype(outputDtype),
+      CalcuOpUtil::get_tensor_npu_format(self));
   quantize_per_channel_out_nocheck(result, self, scales, zero_points, axis, dtype);
   return result;
 }

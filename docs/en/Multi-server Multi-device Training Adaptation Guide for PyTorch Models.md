@@ -1,12 +1,30 @@
+# Multi-server Multi-device Training Adaptation Guide for PyTorch Models
+
+- [Overview](#overview)
+- [Training Workflow](#training-workflow)
+- [Quick Start](#quick-start)
+  - [Overview](#overview-1)
+  - [Setting Up the Environment](#setting-up-the-environment)
+  - [Preparing a Model](#preparing-a-model)
+  - [Modifying the Model](#modifying-the-model)
+  - [Starting the Training](#starting-the-training)
+- [Multi-server Multi-device Training](#multi-server-multi-device-training)
+  - [Common Concepts and Parameters](#common-concepts-and-parameters)
+  - [Multi-server Multi-device Training Process](#multi-server-multi-device-training-process)
+    - [Setting Up the Environment](#setting-up-the-environment-1)
+    - [Preparing a Model](#preparing-a-model-1)
+    - [Modifying the Model](#modifying-the-model-1)
+    - [Start the Training](#start-the-training)
+- [Appendix](#appendix)
 # Overview 
 
 Users can obtain PyTorch training models from Ascend ModelZoo, but the models do not support multi-server multi-device training. You need to modify the models based on the actual model code. This document describes how to quickly train a PyTorch model in Distributed Data Parallel (DDP) mode in multi-server multi-device scenario.
 
 # Training Workflow
 
-The process of training a PyTorch model in multi-server multi-device scenario includes environment preparation, model preparation, model modification, and training startup.
+The process of training a PyTorch model in multi-server multi-device scenario includes environment setup, model preparation, model modification, and training startup.
 
-1. Environment Preparation
+1. Environment Setup
 
    Prepare the software, hardware, and network environment for multi-server multi-device training, including setting up the development and operating environment, connecting the cluster network, setting the processor IP address, and setting the firewall.
 
@@ -30,7 +48,7 @@ The process of training a PyTorch model in multi-server multi-device scenario in
 
 The example presented in this document helps you quickly understand how a PyTorch model is trained in multi-server multi-device scenario. The example uses a custom model for training in two-computer eight-device scenario. The two computers are named AI Server0 and AI Server1. The eight Ascend 910 Processors on each computer are named device0 to device7.
 
-## Preparing the Environment
+## Setting Up the Environment
 
 At least two computers with Ascend 910 Processors installed are required, and the NPU firmware and driver are correctly installed on each computer.
 
@@ -319,7 +337,7 @@ Parameters for executing **torch.distributed.launch** to start multi-device trai
 
 ## Multi-server Multi-device Training Process
 
-### Preparing the Environment
+### Setting Up the Environment
 
 At least two computers with Ascend 910 Processors installed are required, and the NPU firmware and driver are correctly installed on each server.
 

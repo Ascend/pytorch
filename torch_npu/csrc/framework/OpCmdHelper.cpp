@@ -18,6 +18,8 @@
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -33,7 +35,7 @@ namespace at_npu
       at::ScalarType scalarDataType = tensor.scalar_type();
       aclDataType aclDataType =
           CalcuOpUtil::convert_to_acl_data_type(scalarDataType, forceDataType);
-      const auto &npuDesc = tensor.storage().get_npu_desc();
+      const auto &npuDesc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
       auto &storageDims = npuDesc.storage_sizes_;
       AclTensorDescMaker desc;
       auto aclDesc = desc.Create(aclDataType, npuDesc)
@@ -127,7 +129,7 @@ namespace at_npu
     {
       aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(
           tensorPtr->scalar_type(), forceDataType);
-      const auto &npuDesc = tensorPtr->storage().get_npu_desc();
+      const auto &npuDesc = torch_npu::NPUBridge::GetNpuStorageImpl(*tensorPtr)->get_npu_desc();
       const auto &dims = tensorPtr->sizes();
       auto &storageDims = npuDesc.storage_sizes_;
       AclTensorDescMaker desc;

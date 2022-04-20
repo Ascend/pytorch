@@ -32,13 +32,7 @@ namespace torch_npu
                                             c10::DispatchKey::AutogradNPU},
                         data_type)
   {
-
     is_non_overlapping_and_dense_ = false;
-  }
-
-  NPUTensorImpl *NPUTensorImpl::GetNpuTensorImpl(const at::Tensor &tensor)
-  {
-    return static_cast<NPUTensorImpl *>(tensor.unsafeGetTensorImpl());
   }
 
   void NPUTensorImpl::shallow_copy_from(const c10::intrusive_ptr<TensorImpl> &impl)

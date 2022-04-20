@@ -15,6 +15,7 @@
 
 #include <c10/npu/npu_log.h>
 
+#include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace at_npu
@@ -63,7 +64,7 @@ namespace at_npu
 
     bool FormatHelper::IsPadded(const at::Tensor *tensor)
     {
-      auto format = tensor->storage().unsafeGetStorageImpl()->npu_desc_.npu_format_;
+      auto format = torch_npu::NPUBridge::GetNpuStorageImpl(*tensor)->npu_desc_.npu_format_;
       return IsPadded(format);
     }
 
@@ -91,7 +92,7 @@ namespace at_npu
 
     char *FormatHelper::GetFormatName(const at::Tensor &tensor)
     {
-      auto format = tensor.storage().get_npu_desc().npu_format_;
+      auto format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().npu_format_;
       return GetFormatName(format);
     }
 
@@ -114,7 +115,7 @@ namespace at_npu
 
     aclFormat FormatHelper::GetFormat(const at::Tensor &tensor)
     {
-      return tensor.storage().get_npu_desc().npu_format_;
+      return torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().npu_format_;
     }
 
     bool FormatHelper::IsBaseFormatType(aclFormat format)
@@ -124,11 +125,11 @@ namespace at_npu
 
     bool FormatHelper::IsBaseFormatType(const at::Tensor &tensor)
     {
-      auto format = tensor.storage().get_npu_desc().npu_format_;
+      auto format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().npu_format_;
       return IsBaseFormatType(format);
     }
 
-    FormatShape FormatHelper::GetStorageSizes(c10::NPUStorageDesc desc)
+    FormatShape FormatHelper::GetStorageSizes(torch_npu::NPUStorageDesc desc)
     {
       auto ori_size = desc.base_sizes_;
       auto format = desc.npu_format_;

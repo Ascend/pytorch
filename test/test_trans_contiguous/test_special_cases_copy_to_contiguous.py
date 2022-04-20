@@ -23,14 +23,20 @@ os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
 
 class TestSpecialCasesCopyToContiguous(TestCase):
-    def test_expand_copy_to_slice_tensor(self, device="npu"):
-        cpu_input = torch.zeros((2, 10)).bool()
-        cpu_out = cpu_input
-        cpu_out[0, :3] = True
-        npu_out = cpu_input.npu()
-        npu_out[0, :3] = True
-        self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
-           
+    def test_expand_copy_to_slice_discontiguous_tensor(self, device="npu"):
+        dtype_list = [np.bool, np.int8, np.int16, np.float16, np.float32, np.int32, np.int64]
+        index_list = [3, 8, 16, 32]
+        shape_format = [
+            [i, j] for i in dtype_list for j in index_list
+        ]
+        for item in shape_format: 
+            np_input = np.zeros(40).astype(item[0])
+            cpu_input = torch.from_numpy(np_input)
+            cpu_out = cpu_input
+            cpu_out[:item[1]] = 1
+            npu_out = cpu_input.npu()
+            npu_out[:item[1]] = 1
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())       
 
 if __name__ == "__main__":
     run_tests()

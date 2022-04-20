@@ -22,7 +22,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
-#include <ATen/NPUGeneratorImpl.h>
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -57,7 +57,7 @@ at::Tensor dropout_gen_byte_mask(const at::Tensor& self, at::Scalar prob) {
   // 127~64   63~0
   // so, we set seed2 = 0 to ensure the seed which user set is equal to the seed 
   // used by the operator DropOutGenMaskV3
-  const auto gen = at::npu::detail::getDefaultNPUGenerator();
+  const auto gen = at_npu::detail::getDefaultNPUGenerator();
   const int64_t seed = static_cast<int64_t>(gen.current_seed());
   const int64_t seed2 = 0;
   cmd.Name("DropOutGenMaskV3")

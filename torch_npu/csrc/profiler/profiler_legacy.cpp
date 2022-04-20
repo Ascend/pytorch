@@ -397,7 +397,7 @@ void pushProfilingCallbacksLegacy() {
   auto state_ptr = getProfilerTLSState();
   TORCH_INTERNAL_ASSERT(state_ptr, "Expected profiler state set");
   auto handle = at::addThreadLocalCallback(at::RecordFunctionCallback(
-      [](at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
+      [](const at::RecordFunction& fn) -> std::unique_ptr<at::ObserverContext> {
         auto state_ptr = getProfilerTLSState();
         if (!state_ptr || state_ptr->config().state == ProfilerState::Disabled) {
           return nullptr;
@@ -420,7 +420,7 @@ void pushProfilingCallbacksLegacy() {
 
         return nullptr;
       },
-      [](at::RecordFunction& fn, at::ObserverContext*) {
+      [](const at::RecordFunction& fn, at::ObserverContext*) {
         auto state_ptr = getProfilerTLSState();
         if (!state_ptr || state_ptr->config().state == ProfilerState::Disabled) {
           return;
@@ -576,7 +576,7 @@ void LegacyEvent::record(bool record_device) {
   if (record_device && state_ == ProfilerState::CUDA) {
     device_stubs()->record(&device_, &cuda_event, &cpu_ns_);
     return;
-  } else if (c10::ObservedOperators::EnableNpuOp && record_device && state_ == ProfilerState::NPU) {
+  } else if (record_device && state_ == ProfilerState::NPU) {
     device_stubs()->record(&device_, &npu_event, &cpu_ns_);
     return;  
   }

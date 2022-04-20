@@ -115,7 +115,8 @@ at::Tensor NPUNativeFunctions::upsample_bicubic2d_backward(
     c10::optional<double> scales_w) {
   // construct the output tensor of the NPU
   auto outputSize = upsample_bicubic2d_backward_npu_output_size(input_size);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, grad_output.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, grad_output.options(), CalcuOpUtil::get_tensor_npu_format(grad_output));
   // calculate the output result of the NPU
   return upsample_bicubic2d_backward_out_nocheck(grad_output, output_size, input_size, align_corners, scales_h, scales_w, result);
 }
@@ -131,7 +132,8 @@ at::Tensor NPUNativeFunctions::upsample_bicubic2d_backward(
   auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
   // construct the output tensor of the NPU
   auto outputSize = upsample_bicubic2d_backward_npu_output_size(input_size);
-  at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, grad_output.options());
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, grad_output.options(), CalcuOpUtil::get_tensor_npu_format(grad_output));
   // calculate the output result of the NPU
   return upsample_bicubic2d_backward_out_nocheck(grad_output, osize, input_size, align_corners, scales_h, scales_w, result);
 }

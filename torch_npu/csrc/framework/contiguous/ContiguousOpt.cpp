@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -23,7 +24,7 @@ OptimizationCases TransContiguous::optCasesAnyFormat = {"reshape", "slice"};
 
 ContiguousTensorDesc TransContiguous::GetTensorDescInfo(
     const at::Tensor &src, const OptimizationCases &opt_cases) {
-  c10::NPUStorageDesc src_base_info = src.storage().get_npu_desc();
+  auto src_base_info = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
   c10::SmallVector<int64_t, MAX_DIM> src_size_inferred;
   c10::SmallVector<int64_t, MAX_DIM> src_stride_inferred;
   c10::SmallVector<int64_t, MAX_DIM> src_storage_size_inferred =
@@ -56,7 +57,7 @@ bool TransContiguous::CheckClone(const at::Tensor &src, at::Tensor &self) {
   // 2. full memory copy: size match between src and self
   if (StorageDescHelper::OffsetAreMatch(&self) && self.is_contiguous() &&
       src.sizes().equals(self.sizes()) &&
-      self.sizes().equals(self.storage().get_npu_desc().base_sizes_)) {
+      self.sizes().equals(torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc().base_sizes_)) {
     return true;
   }
   return false;
@@ -111,7 +112,7 @@ bool TransContiguous::ContiguousOptimizeWithAnyFormat(
 c10::optional<at::Tensor> TransContiguous::ContiguousOptimizeWithAnyFormat(
     const at::Tensor &src, const OptimizationCases &opt_cases) {
   auto self = OpPreparation::ApplyTensorWithFormat(
-      src.sizes(), src.options(), src.storage().get_npu_desc().npu_format_);
+      src.sizes(), src.options(), torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc().npu_format_);
   ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
   if (contiguous_optimize_with_anyformat_(self, src, src_desc)) {
     return self;

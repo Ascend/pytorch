@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu
 {
@@ -50,7 +51,7 @@ namespace at_npu
       template <typename sizeType>
       static FormatShape GetStorageSizes(aclFormat format, sizeType ori_size);
       // GetStorageSizes used to calculate the storage sizes of op at npu device at different format.
-      static FormatShape GetStorageSizes(c10::NPUStorageDesc desc);
+      static FormatShape GetStorageSizes(torch_npu::NPUStorageDesc desc);
 
     private:
       static bool IsPadded(aclFormat format);

@@ -31,6 +31,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "c10/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
+#include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu
 {
@@ -201,7 +202,7 @@ namespace at_npu
     {
       if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor) || CanUseMemcpyForOtherFormat(tensor))
       {
-        auto tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
+        auto tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
         return tensor_desc.npu_format_;
       }
       else
@@ -270,7 +271,7 @@ namespace at_npu
         return false;
       }
       int64_t numel = 1;
-      auto storageSize = tensor.storage().get_npu_desc().storage_sizes_;
+      auto storageSize = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc().storage_sizes_;
 
       for (int i = 0; i < storageSize.size(); i++)
       {
@@ -280,7 +281,7 @@ namespace at_npu
       int64_t dim1 = tensor.dim() - 1;
       int64_t dim2 = tensor.dim() - 2;
 
-      auto tensor_desc = tensor.storage().get_npu_desc();
+      auto tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
       if (tensor.stride(dim2) == 1 && tensor.stride(dim1) == tensor.size(dim2) &&
           tensor.size(dim1) == tensor_desc.base_sizes_[dim2] &&
           tensor.size(dim2) == tensor_desc.base_sizes_[dim1] &&
@@ -446,8 +447,8 @@ namespace at_npu
         {
           at::Tensor *aclInput = &input[i].tensor;
           c10::SmallVector<int64_t, 5> dims;
-          dims = aclInput->storage().get_npu_desc().base_sizes_;
-          auto storageDims = aclInput->storage().get_npu_desc().storage_sizes_;
+          dims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().base_sizes_;
+          auto storageDims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().storage_sizes_;
           int64_t numel = 1;
           for (int j = 0; j < storageDims.size(); j++)
           {
@@ -458,9 +459,9 @@ namespace at_npu
               aclDataType,
               dims.size(),
               dims.data(),
-              aclInput->storage().get_npu_desc().origin_format_);
+              torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().origin_format_);
           aclSetTensorFormat(
-              acl_tensor_desc, aclInput->storage().get_npu_desc().npu_format_);
+              acl_tensor_desc, torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().npu_format_);
           aclSetTensorShape(
               acl_tensor_desc, storageDims.size(), storageDims.data());
           if (input[i].tensorDescName != "")
@@ -471,7 +472,7 @@ namespace at_npu
           aclDataInputBuffArr[i] = aclCreateDataBuffer(
               (void *)(aclInput->data_ptr()), aclInput->itemsize() * numel);
           inputDimsArr[i] = storageDims.size();
-          inputFormatsArr[i] = aclInput->storage().get_npu_desc().npu_format_;
+          inputFormatsArr[i] = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().npu_format_;
         }
         else if (
             input[i].tensorDescType ==
@@ -516,7 +517,7 @@ namespace at_npu
             aclOutput->scalar_type(), output[i].realDataType);
 
         auto dims = aclOutput->sizes();
-        auto storageDims = aclOutput->storage().get_npu_desc().storage_sizes_;
+        auto storageDims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclOutput)->get_npu_desc().storage_sizes_;
         int64_t numel = 1;
         for (int j = 0; j < storageDims.size(); j++)
         {
@@ -527,16 +528,16 @@ namespace at_npu
             aclDataType,
             dims.size(),
             dims.data(),
-            aclOutput->storage().get_npu_desc().origin_format_);
+            torch_npu::NPUBridge::GetNpuStorageImpl(*aclOutput)->get_npu_desc().origin_format_);
         aclSetTensorFormat(
-            acl_tensor_desc, aclOutput->storage().get_npu_desc().npu_format_);
+            acl_tensor_desc, torch_npu::NPUBridge::GetNpuStorageImpl(*aclOutput)->get_npu_desc().npu_format_);
         aclSetTensorShape(
             acl_tensor_desc, storageDims.size(), storageDims.data());
         aclTensorOutputDescArr[i] = acl_tensor_desc;
         aclDataOutputBuffArr[i] = aclCreateDataBuffer(
             (void *)aclOutput->data_ptr(), aclOutput->itemsize() * numel);
         outputDimsArr[i] = storageDims.size();
-        outputFormatsArr[i] = aclOutput->storage().get_npu_desc().npu_format_;
+        outputFormatsArr[i] = torch_npu::NPUBridge::GetNpuStorageImpl(*aclOutput)->get_npu_desc().npu_format_;
       }
 
       params.input_num = inputNum;
