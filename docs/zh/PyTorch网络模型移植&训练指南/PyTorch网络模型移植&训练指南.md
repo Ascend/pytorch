@@ -1,5 +1,3 @@
-
-
 # PyTorch网络模型移植&训练指南
 
 -   [概述](#概述md)
@@ -168,10 +166,11 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 
 #### 单卡训练迁移
 
-1. 在main.py脚本中导入torch.npu模块。
+1. 在main.py脚本中导入torch_npu模块。
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    ```
 
 2. 在main.py中定义训练设备。
@@ -315,7 +314,8 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 1. main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练及进行混合精度训练。
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    from apex import amp
    ```
 
@@ -1321,7 +1321,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h4 id="NPU上AMP的使用方法md">NPU上AMP的使用方法</h4>
 
-1. 模型从GPU适配到NPU时，需要将代码torch.cuda.amp修改为torch.npu.amp。
+1. 模型从GPU适配到NPU时，需要将代码torch.cuda.amp修改为torch_npu.npu.amp。
 2. 当前Pytroch1.8.1 AMP工具中GradScaler增加了dynamic选项（默认为True）,设置为False时，AMP能支持静态Loss Scale。
 
 <h4 id="注意事项md">注意事项</h4>
@@ -1456,7 +1456,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
       ```
       profiler_result_path  = "/home/profiling_data"     # profiling 数据保存的文件夹，请根据实际指定。
-      with torch.npu.profile(profiler_result_path, config):  # 一般只需要执行1个step即可，config可默认
+      with torch_npu.npu.profile(profiler_result_path, config):  # 一般只需要执行1个step即可，config可默认
           out = model(input_tensor)
           loss=loss_func(out,target)
           loss.backward()
@@ -1479,14 +1479,14 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
     for i in range(steps):
         if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
             if i == 10:  ## 在第10个step时，开始使能该功能
-                torch.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
-                torch.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
-            torch.npu.iteration_start()  ## 进入每个step时打上开始标记
+                prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
+                torch_npu.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
+            torch_npu.npu.iteration_start()  ## 进入每个step时打上开始标记
             train_one_step()
-            torch.npu.iteration_end()    ## 每个step结束时打上开始标记
+            torch_npu.npu.iteration_end()    ## 每个step结束时打上开始标记
             if i == 110:   ## 在第100个step时，关闭该功能
-                torch.npu.prof_stop()
-                torch.npu.prof_finalize()
+                torch_npu.npu.prof_stop()
+                torch_npu.npu.prof_finalize()
     ```
 
 
@@ -1826,7 +1826,7 @@ E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获�
 添加with语句使能E2E prof功能
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
+with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
@@ -1872,8 +1872,8 @@ with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
-                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
                         ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
                         ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
                         ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
@@ -1980,7 +1980,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
    ```
    def train_model():
-      torch.npu.set_aoe(dump_path) #使能接口,dump_path为设置保存dump出算子信息的路径，为必须项，不能为空；当设置的路径不存在时，会尝试创建，且支持多级目录创建。
+      torch_npu.npu.set_aoe(dump_path) #使能接口,dump_path为设置保存dump出算子信息的路径，为必须项，不能为空；当设置的路径不存在时，会尝试创建，且支持多级目录创建。
       train_model_one_step()       #模型训练过程样例，一般仅需执行一个step即可，请根据代码实际情况修改。
    ```
    
@@ -1991,7 +1991,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
    model.train()
    optimizer.zero_grad()
    end = time.time()
-   torch.npu.set_aoe(dump_path)    #使能接口
+   torch_npu.npu.set_aoe(dump_path)    #使能接口
    for i, (images, target) in enumerate(train_loader):
        if i > 0:             #仅需要运行一个step
            exit()
@@ -2241,7 +2241,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 前提条件：
 
 - 设置环境变量`export ACL_DUMP_DATA=0`。
-- 在脚本中避免使用`torch.npu.init.dump()`和`torch.npu.set.dump()`接口。
+- 在脚本中避免使用`torch_npu.npu.init.dump()`和`torch_npu.npu.set.dump()`接口。
 
 操作步骤：
 
@@ -2484,6 +2484,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
 
 ```
 import torch
+import torch_npu
 import torch.onnx
 import torchvision.models as models
 # 设置使用CPU导出模型
@@ -2528,6 +2529,7 @@ if __name__ == "__main__":
 from collections import OrderedDict
 import mobilenet
 import torch
+import torch_npu
 import torch.onnx
 
 
@@ -2964,7 +2966,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
         @staticmethod
         def forward(ctx, x1, x2, fp_index, bp_index1, bp_index2):
             # 强制流同步，仅稳定训练作用
-            stream = torch.npu.current_stream()
+            stream = torch_npu.npu.current_stream()
             stream.synchronize()
     
             # 对ctx注册bp_index1, bp_index2使反向时可以使用
@@ -2981,7 +2983,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
         @staticmethod
         def backward(ctx, grad_output):
             # 强制流同步，仅稳定训练作用
-            stream = torch.npu.current_stream()
+            stream = torch_npu.npu.current_stream()
             stream.synchronize()
     
             # 由于index_select不支持5HD格式，将格式转换为NCHW来减少额外的transdata
@@ -3227,12 +3229,13 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 ```
 import torch
+import torch_npu
 torch_npu.npu.set_device("npu:0")
-torch.npu.init_dump()
-torch.npu.set_dump("/home/HwHiAiUser/dump.json")   # "/home/HwHiAiUser/dump.json"为配置文件路径，用户自行配置
+torch_npu.npu.init_dump()
+torch_npu.npu.set_dump("/home/HwHiAiUser/dump.json")   # "/home/HwHiAiUser/dump.json"为配置文件路径，用户自行配置
 a = torch.tensor([2, 2]).to("npu:0")
 a.add_(1)
-torch.npu.finalize_dump()
+torch_npu.npu.finalize_dump()
 ```
 
 其中**dump.json**配置方法如下。
@@ -3389,8 +3392,9 @@ torch.npu.finalize_dump()
 
 ```
 import torch
+import torch_npu
 option = {key: val}
-torch.npu.set_option(option) # 以dict方式进行设置
+torch_npu.npu.set_option(option) # 以dict方式进行设置
 
 其中key可选值和对应的含义如下：
 ACL_OP_SELECT_IMPL_MODE,      //选择算子是高精度实现还是高性能实现
@@ -3621,7 +3625,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 **处理方法**<a name="section8970834202112"></a>
 
-检查代码中在调用torch.npu.set\_device\(device\)、tensor.to\(device\)或者model.to\(device\)时，同一个线程内前后调用时device名称不一致。对于多个线程情况（如多卡训练），每个线程同样只能调用固定的npu device。
+检查代码中在调用torch_npu.npu.set\_device\(device\)、tensor.to\(device\)或者model.to\(device\)时，同一个线程内前后调用时device名称不一致。对于多个线程情况（如多卡训练），每个线程同样只能调用固定的npu device。
 
 <h4 id="在模型运行或者算子运行时遇到报错-Error-in-atexit-_run_exitfuncsmd">在模型运行或者算子运行时遇到报错“Error in atexit.\_run\_exitfuncs:”</h4>
 
@@ -3660,7 +3664,7 @@ pip3.7 install pillow==5.3.0安装失败。
 
 ```
 import torch
-
+import torch_npu
 npu = "npu"
 
 def test_cpu():
@@ -3774,7 +3778,7 @@ pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch�
 
 ```
     import torch
-
+    import torch_npu
     def test_sum():
         xs_shape = [22400, 8]
         ys_shape = [22400, 8]
@@ -3843,6 +3847,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
 
 ```
     import torch
+    import torch_npu
 
     def test_sum():
         xs_shape = [22400, 8]
