@@ -89,7 +89,9 @@ at::Tensor NPUNativeFunctions::nll_loss2d_backward(
     grad_output_reshape = grad_output_reshape.reshape({-1});
   }
 
-  at::Tensor grad_input = OpPreparation::ApplyTensor(self_input);
+  auto outputSize = input_same_output_size(self_input);
+  at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self_input.options(), CalcuOpUtil::get_tensor_npu_format(self_input));
   // calculate the output result of the NPU
   NPUNativeFunctions::nll_loss2d_backward_out(
       grad_output_reshape,
