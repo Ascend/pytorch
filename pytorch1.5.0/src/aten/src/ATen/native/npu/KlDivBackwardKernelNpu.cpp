@@ -46,7 +46,13 @@ Tensor kl_div_backward_npu(
       .Attr("reduction", reductionStr)
       .Attr("log_target", false)
       .Run();
-  
+
+  if (reduction == Reduction::Mean) {
+    auto inputShape = self.sizes();
+    int batchSquareSize = prod_intlist(inputShape) / inputShape[0];
+    grad_input.div_(batchSquareSize);
+  }
+
   return grad_input;
 }
 

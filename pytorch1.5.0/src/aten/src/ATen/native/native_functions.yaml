@@ -8357,11 +8357,6 @@
   npu_dispatch_only:
     NPU: format_cast_npu_
 
-- func: npu_transpose_to_contiguous(Tensor self) -> Tensor
-  variants: function, method
-  npu_dispatch_only:
-    NPU: transpose_to_contiguous_npu
-
 - func: npu_transpose(Tensor self, int[] perm) -> Tensor
   variants: function, method
   npu_dispatch_only:
