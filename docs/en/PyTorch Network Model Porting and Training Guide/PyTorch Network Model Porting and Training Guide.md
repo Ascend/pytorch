@@ -268,10 +268,11 @@ Modify the **main.py** training script to implement single-device model training
 
 #### Single-Device Training Porting
 
-1. Import the **torch.npu** module to **main.py**.
+1. Import the **torch_npu** module to **main.py**.
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    ```
 
 2. Define the training device in **main.py**.
@@ -415,7 +416,8 @@ Modify the **main.py** training script to implement single-device model training
 1. Add a header file to **main.py** to support mixed precision training of PyTorch-based models on Ascend 910 AI Processors.
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    from apex import amp
    ```
 
@@ -2486,6 +2488,7 @@ The saved .pth or .pt file can be restored by building a model using PyTorch and
 
 ```
 import torch
+import torch_npu
 import torch.onnx
 import torchvision.models as models
 # Set the CPU to be used to export the model.
@@ -2530,6 +2533,7 @@ Before exporting the ONNX model using the .pth.tar file, you need to check the s
 from collections import OrderedDict
 import mobilenet
 import torch
+import torch_npu
 import torch.onnx
 
 # In this example, when the .pth.tar file is saved, the prefix module is added to the node name. Delete it by traversing.
@@ -3179,7 +3183,7 @@ When a problem occurs in a model, it is costly to reproduce the problem in the e
             cpuout = out
     
             # Run the model and input tensor on the NPU.
-            torch_npu.npu.set_device("npu:0") # Set the running device first.
+            torch.npu.set_device("npu:0") # Set the running device first.
             model_npu = Model(in_channels=16).npu()
             input_tensor_npu= copy.deepcopy(input_tensor).npu()
             out = model_npu(input_tensor_npu)
@@ -3201,9 +3205,10 @@ Currently, the PyTorch adapted to Ascend AI Processors uses the init\_dump\(\), 
 
 ```
 import torch
+import torch_npu
 torch_npu.npu.set_device("npu:0")
-torch.npu.init_dump()
-torch.npu.set_dump("/home/HwHiAiUser/dump.json") # "/home/HwHiAiUser/dump.json" is the path of the configuration file. You can configure it as required.
+torch_npu.npu.init_dump()
+torch_npu.npu.set_dump("/home/HwHiAiUser/dump.json") # "/home/HwHiAiUser/dump.json" is the path of the configuration file. You can configure it as required.
 a = torch.tensor([2, 2]).to("npu:0")
 a.add_(1)
 torch.npu.finalize_dump()
@@ -3360,6 +3365,7 @@ Configure the attributes of an operator during compilation to improve performanc
 
 ```
 import torch
+import torch_npu
 option = {key: val}
 torch.npu.set_option(option) # Set in dict mode.
 
@@ -3633,7 +3639,7 @@ You can resolve this exception by using either of the following methods:
 
 ```
 import torch
-
+import torch_npu
 npu = "npu"
 
 def test_cpu():
@@ -3747,6 +3753,7 @@ Scripts:
 
 ```
     import torch
+    import torch_npu
 
     def test_sum():
         xs_shape = [22400, 8]
@@ -3816,6 +3823,7 @@ Script:
 
 ```
     import torch
+    import torch_npu
 
     def test_sum():
         xs_shape = [22400, 8]
