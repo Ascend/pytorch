@@ -26,6 +26,12 @@ When setting up the environment for PyTorch model development and running, you c
 
 - The development or operating environment of CANN has been installed. For details, see the *CANN Software Installation Guide*.
 
+| AscendPyTorch Version | CANN Version | Supported PyTorch Version |
+| :------------ | :----------- | :----------- |
+| 3.0.2 | CANN 5.0.2 | 1.5.0.post2 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1 |
 - CMake 3.12.0 or later has been installed. For details about how to install CMake, see [Installing CMake](#installing-cmake).
 
 - GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730).
