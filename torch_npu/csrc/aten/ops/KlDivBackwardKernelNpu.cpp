@@ -46,6 +46,11 @@ at::Tensor NPUNativeFunctions::kl_div_backward(
       .Attr("reduction", reductionStr)
       .Attr("log_target", log_target)
       .Run();
+  if (reduction == at::Reduction::Mean) {
+    auto inputShape = self.sizes();
+    int batchSquareSize = at::prod_intlist(inputShape) / inputShape[0];
+    grad_input.div_(batchSquareSize);
+  }
   return grad_input;
 }
 } // namespace native
