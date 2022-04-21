@@ -81,7 +81,7 @@ namespace at_npu
 
     char *FormatHelper::GetFormatName(aclFormat format)
     {
-      auto itr = info.find(format);
+      const auto& itr = info.find(format);
       if (itr == info.end())
       {
         AT_ERROR("unknown format type:", format);
@@ -104,7 +104,7 @@ namespace at_npu
 
     aclFormat FormatHelper::GetBaseFormat(aclFormat format)
     {
-      auto itr = info.find(format);
+      const auto& itr = info.find(format);
       if (itr == info.end())
       {
         AT_ERROR("unknown format type:", format);

@@ -39,7 +39,7 @@ namespace at_npu
     }
 
     // NOTE: this method should cooperate with shape infer.
-    std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(c10::IntArrayRef size, aclFormat format)
+    std::tuple<aclFormat, aclFormat> InferFormat::GuessFormatUnit(const c10::IntArrayRef& size, aclFormat format)
     {
       if ((FormatHelper::GetBaseFormat(format) == ACL_FORMAT_NCDHW) && (size.size() > 4))
       {
@@ -65,7 +65,7 @@ namespace at_npu
       return std::make_tuple(FormatHelper::GetBaseFormat(format), format);
     }
 
-    aclFormat InferFormat::GuessBaseFormat(c10::IntArrayRef size)
+    aclFormat InferFormat::GuessBaseFormat(const c10::IntArrayRef& size)
     {
       if (size.size() == 5)
       {
@@ -78,7 +78,7 @@ namespace at_npu
       return ACL_FORMAT_ND;
     }
 
-    aclFormat InferFormat::GuessStorageFormat(c10::IntArrayRef size, aclFormat format)
+    aclFormat InferFormat::GuessStorageFormat(const c10::IntArrayRef& size, aclFormat format)
     {
       int64_t dim = size.size();
       aclFormat baseFormat = FormatHelper::GetBaseFormat(format);
@@ -125,7 +125,7 @@ namespace at_npu
       return FormatHelper::GetStorageSizes(format, size);
     }
 
-    bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const at::Tensor &tensor, c10::IntArrayRef size)
+    bool InferFormat::IsDefiniteTensorWhenMetaDataChanges(const at::Tensor &tensor, const c10::IntArrayRef& size)
     {
       auto baseformat = FormatHelper::GetBaseFormat(tensor);
       if (baseformat == ACL_FORMAT_NCHW && size.size() >= 5)
