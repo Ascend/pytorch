@@ -35,16 +35,6 @@ namespace at_npu
       OpCommand &InputPair(const at::Tensor &npu_input, const at::Tensor &cpu_input);
     }; // class OpCommand
 
-    // only for transData now
-    class TransDataOpCommand : public OpCommandBase<TransDataOpCommand>
-    {
-    public:
-      TransDataOpCommand &InputAndOutput(const at::Tensor &input, const at::Tensor &output);
-
-    private:
-      TransDataOpCommand &AddInputAndOutput(const at::Tensor &input, const at::Tensor &output);
-    }; // class TransDataOpCommand
-
   } // namespace native
 } // namespace at_npu
 

@@ -27,7 +27,7 @@ namespace at_npu
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
       OpCommand cmd;
-      cmd.Name("Div")
+      cmd.Name("RealDiv")
           .Expect(unified_result)
           .Input(self)
           .Input(other, self.scalar_type())
@@ -41,7 +41,7 @@ namespace at_npu
     {
 
       // executing the NPU operator
-      if (other.dim() == 0)
+      if (other.dim() == 0 && !other.is_npu())
       {
         div_scalar_out_npu(self, other.item(), result);
       }
@@ -49,7 +49,7 @@ namespace at_npu
       {
         auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
         OpCommand cmd;
-        cmd.Name("Div")
+        cmd.Name("RealDiv")
             .Expect(unified_result)
             .Input(self)
             .Input(other)
