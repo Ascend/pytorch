@@ -1040,7 +1040,7 @@ TBE算子导出有两种方式。
             pooled_width=d[2].item()
             sample_num=d[3].item()
             roi_end_mode=d[4].item()
-            rtn = torch.npu_roi_align(a, self.weight, spatial_scale, pooled_height, pooled_width, sample_num,roi_end_mode)
+            rtn = torch_npu.npu_roi_align(a, self.weight, spatial_scale, pooled_height, pooled_width, sample_num,roi_end_mode)
     
             return rtn
     ```
@@ -1074,7 +1074,7 @@ TBE算子导出有两种方式。
     class CustomClassOp_Func_npu_roi_align(Function):
         @staticmethod
         def forward(ctx, input, rois, spatial_scale, pooled_height, pooled_width , sample_num, roi_end_mode):
-            rtn = torch.npu_roi_align(input, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)
+            rtn = torch_npu.npu_roi_align(input, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)
             return rtn
     
         @staticmethod
