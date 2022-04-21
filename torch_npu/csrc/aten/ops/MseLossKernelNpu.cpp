@@ -61,7 +61,6 @@ at::Tensor& NPUNativeFunctions::mse_loss_out(
       self,
       outputSize);
 
-  OpPreparation::CheckMemory({self, target}, {result});
   mse_loss_out_npu_nocheck(result, self, target, reduction);
   return result;
 }
@@ -74,7 +73,10 @@ at::Tensor NPUNativeFunctions::mse_loss(
   if (reduction == at::Reduction::None) {
     outputSize = input_same_output_size(self);
   }
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  at::Tensor result =
+      reduction == at::Reduction::None ?
+      OpPreparation::ApplyTensor(self, outputSize) :
+      OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_ND);
 
   mse_loss_out_npu_nocheck(result, self, target, reduction);
   return result;
