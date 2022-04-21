@@ -20,7 +20,7 @@
 #include <c10/npu/NPUStream.h>
 
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/core/tensor_impl.h"
+#include "torch_npu/csrc/core/NPUTensorImpl.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 
 namespace torch_npu

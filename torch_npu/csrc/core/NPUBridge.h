@@ -1,7 +1,7 @@
 
 #pragma once
 #include<c10/core/StorageImpl.h>
-#include"torch_npu/csrc/core/tensor_impl.h"
+#include"torch_npu/csrc/core/NPUTensorImpl.h"
 #include"torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace torch_npu {
