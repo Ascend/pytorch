@@ -21,16 +21,14 @@
 namespace at_npu {
 namespace native {
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
+tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
+    at::Tensor& result,
+    at::Tensor& total_weight,
     const at::Tensor& self,
     const at::Tensor& target,
-    const c10::optional<at::Tensor>& weight_opt,
+    const at::Tensor& weight,
     int64_t reduction,
-    int64_t ignore_index,
-    at::Tensor& result,
-    at::Tensor& total_weight) {
-
-  const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
+    int64_t ignore_index) {
   at::Tensor weight_tensor;
   if (weight.defined()) {
     weight_tensor = NpuUtils::format_contiguous(weight);
@@ -53,7 +51,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
   at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
   if (scalar_type == at::kLong) {
-    targetCast = target.to(at::kInt);
+    targetCast = NPUNativeFunctions::npu_dtype_cast(target, at::kInt);
   }  else if (scalar_type == at::kInt) {
     ;
   }
@@ -76,13 +74,56 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
   return tuple<at::Tensor&, at::Tensor&>(result, total_weight);
 }
 
+tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
+    const at::Tensor& self,
+    const at::Tensor& target,
+    const c10::optional<at::Tensor>& weight_opt,
+    int64_t reduction,
+    int64_t ignore_index,
+    at::Tensor& result,
+    at::Tensor& total_weight) {
+  const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
+  at::Tensor weight_tensor;
+  if (weight.defined()) {
+    weight_tensor = NpuUtils::format_contiguous(weight);
+  } else {
+    auto options = self.options();
+    weight_tensor = NPUNativeFunctions::ones(
+        self.size(1),
+        optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
+        options.device_opt(), options.pinned_memory_opt());
+  }
+  c10::SmallVector<int64_t, SIZE> outputSize = {};
+  if (reduction == at::Reduction::None) {
+    outputSize = {self.size(0)};
+  }
+  OpPipeWithMultiOut<at::Tensor&, at::Tensor&> pipe(result, total_weight);
+  return pipe.FixOutputSizeAndFormat<0>({self, target, weight_tensor}, self, ACL_FORMAT_ND, outputSize)
+            .FixOutputSizeAndFormat<1>({self, target, weight_tensor}, self, ACL_FORMAT_ND, {})
+            .Call([&self, &target, &weight, &reduction, &ignore_index](at::Tensor& result, at::Tensor& total_weight) {
+              nll_loss_forward_npu_nocheck(result, total_weight, self, target, weight, reduction, ignore_index);})
+            .ReturnRef<at::Tensor&, at::Tensor&>();
+}
+
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss_forward(
     const at::Tensor& self,
     const at::Tensor& target,
     const c10::optional<at::Tensor>& weight_opt,
     int64_t reduction,
     int64_t ignore_index) {
-  // calculate the output size
+  // ND case
+  TORCH_CHECK(
+      self.dim() > 0 && self.dim() <= 2, "input tensor should be 1D or 2D");
+  TORCH_CHECK(
+      target.dim() == 1,
+      "1D target tensor expected, multi-target not supported");
+  TORCH_CHECK(
+      self.size(0) == target.size(0),
+      "size mismatch (got input: ",
+      self.sizes(),
+      ", target: ",
+      target.sizes(),
+      ")");
   c10::SmallVector<int64_t, SIZE> outputSize = {};
   c10::SmallVector<int64_t, SIZE> totalWeightSize = {};
   const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
@@ -93,19 +134,12 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss_forward(
   auto outputSizes = tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(
       outputSize, totalWeightSize);
 
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      std::get<0>(outputSizes),
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
-  at::Tensor total_weight = OpPreparation::ApplyTensorWithFormat(
-      std::get<1>(outputSizes),
-      self.options(),
-      CalcuOpUtil::get_tensor_npu_format(self));
+  // Special output, output' dim is <= 1 fixedly！
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_ND);
+  at::Tensor total_weight = OpPreparation::ApplyTensorWithFormat(self, totalWeightSize, ACL_FORMAT_ND);
 
-  // calculate the output result of the NPU
-  NPUNativeFunctions::nll_loss_forward_out(
-      self, target, weight, reduction, ignore_index, result, total_weight);
+  nll_loss_forward_npu_nocheck(
+      result, total_weight, self, target, weight, reduction, ignore_index);
 
   return tuple<at::Tensor, at::Tensor>(result, total_weight);
 }
