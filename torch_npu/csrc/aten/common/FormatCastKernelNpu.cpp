@@ -17,6 +17,7 @@
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
@@ -40,12 +41,13 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
     return dst;
   }
 
-  TransDataOpCommand cmd;
-  cmd.Name("TransData")
-    .InputAndOutput(src, dst)
-    .Attr("src_format", srcFormat)
-    .Attr("dst_format", dstFormat)
-    .Run();
+  NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(src));
+  NpuStorageOffsetGuard guard_output(dst);
+  OpCommand cmd;
+  cmd.Name("Identity")
+     .InputWithoutContiguous(src)
+     .Output(dst)
+     .Run();
   return dst;
 }
 
