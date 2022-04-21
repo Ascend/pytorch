@@ -446,9 +446,8 @@ namespace at_npu
             input[i].tensorDescType == NPUTensorDesc::TensorDescType::TENSOR)
         {
           at::Tensor *aclInput = &input[i].tensor;
-          c10::SmallVector<int64_t, 5> dims;
-          dims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().base_sizes_;
-          auto storageDims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().storage_sizes_;
+          const auto& dims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().base_sizes_;
+          const auto& storageDims = torch_npu::NPUBridge::GetNpuStorageImpl(*aclInput)->get_npu_desc().storage_sizes_;
           int64_t numel = 1;
           for (int j = 0; j < storageDims.size(); j++)
           {

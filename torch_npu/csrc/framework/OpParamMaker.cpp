@@ -475,7 +475,7 @@ namespace at_npu
       if (objs.size() <= offset)
       {
         OpCommandImpl impl;
-        objs.push_back(impl);
+        objs.emplace_back(impl);
       }
       TORCH_CHECK(
           objs.size() > offset,

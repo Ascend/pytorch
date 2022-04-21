@@ -41,15 +41,15 @@ namespace at_npu
 
       // calculate storage size need by npu memory
       static int64_t GetMemorySize(const at::Tensor &dst);
-      static int64_t GetMemorySize(c10::IntArrayRef size, aclFormat format);
+      static int64_t GetMemorySize(const c10::IntArrayRef& size, aclFormat format);
       // Calculate the valid memory size of the tensor, because of view operator and so on.
       static int64_t GetValidMemorySize(const at::Tensor &tensor);
 
       // Set Part
       // StorageDesc Init/Set
       static void SetDesc(at::Tensor &dst);
-      static void SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides);
-      static void SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides, aclFormat format);
+      static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides);
+      static void SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format);
 
       static void CopyDesc(at::Tensor &dst, const at::Tensor &src);
       static void CopyDesc(at::Tensor &dst, const c10::Storage &src);
@@ -68,10 +68,10 @@ namespace at_npu
       static int64_t GetMemorySize(const torch_npu::NPUStorageDesc &dst);
       // Set Part
       static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype);
-      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-                                         c10::IntArrayRef strides);
-      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-                                         c10::IntArrayRef strides, aclFormat format);
+      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& size,
+                                               const c10::IntArrayRef& strides);
+      static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& size,
+                                               const c10::IntArrayRef& strides, aclFormat format);
     };
 
   } // namespace native

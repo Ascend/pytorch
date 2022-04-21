@@ -361,10 +361,8 @@ namespace at_npu
       {
         tensor.unsafeGetTensorImpl()->set_sizes_contiguous(size);
       }
-      auto memory_format = c10::MemoryFormat::Contiguous;
-      tensor.unsafeGetTensorImpl()->empty_tensor_restride(memory_format);
+      tensor.unsafeGetTensorImpl()->empty_tensor_restride(c10::MemoryFormat::Contiguous);
       StorageDescHelper::SetDesc(tensor, size, tensor.strides(), format);
-
       return tensor;
     }
 

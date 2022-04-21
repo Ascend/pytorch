@@ -71,7 +71,7 @@ namespace at_npu
 
       AclTensorDescMaker &Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc)
       {
-        auto dims = storageDesc.base_sizes_;
+        auto& dims = storageDesc.base_sizes_;
         auto format = storageDesc.origin_format_;
         desc = aclCreateTensorDesc(dataType, dims.size(), dims.data(), format);
         return *this;

@@ -103,12 +103,12 @@ namespace at_npu
       torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype());
     }
 
-    void StorageDescHelper::SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides)
+    void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides)
     {
       torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides);
     }
 
-    void StorageDescHelper::SetDesc(at::Tensor &dst, c10::IntArrayRef size, c10::IntArrayRef strides, aclFormat format)
+    void StorageDescHelper::SetDesc(at::Tensor &dst, const c10::IntArrayRef& size, const c10::IntArrayRef& strides, aclFormat format)
     {
       torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_ = SetDesc(dst.dtype(), size, strides, format);
     }
@@ -142,14 +142,14 @@ namespace at_npu
       return SetDesc(dtype, {0}, {});
     }
 
-    torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-        c10::IntArrayRef strides)
+    torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& size,
+                                                         const c10::IntArrayRef& strides)
     {
       return SetDesc(dtype, size, strides, InferFormat::GuessBaseFormat(size));
     }
 
-    torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, c10::IntArrayRef size,
-        c10::IntArrayRef strides, aclFormat format)
+    torch_npu::NPUStorageDesc StorageDescHelper::SetDesc(const caffe2::TypeMeta &dtype, const c10::IntArrayRef& size,
+                                                         const c10::IntArrayRef& strides, aclFormat format)
     {
       struct torch_npu::NPUStorageDesc npu_desc;
       npu_desc.data_type_ = dtype;
@@ -179,7 +179,7 @@ namespace at_npu
       return GetMemorySize(desc);
     }
 
-    int64_t StorageDescHelper::GetMemorySize(c10::IntArrayRef size, aclFormat format)
+    int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format)
     {
       auto physical_size = FormatHelper::GetStorageSizes(format, size);
       return at::prod_intlist(physical_size);
