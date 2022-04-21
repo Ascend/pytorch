@@ -152,16 +152,21 @@ namespace at_npu
       c10::SmallVector<at::Tensor, N> outputs = {self};
       CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-      if (!NpuUtils::check_match(&self))
-      {
-        at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-        at::Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-        NpuUtils::format_fresh_view(self, result);
+      at::Tensor selfDtypeCast = 
+          (self.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+      at::Tensor otherDtypeCast = 
+          (other.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
+      if (!NpuUtils::check_match(&selfDtypeCast)) {
+        at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfDtypeCast);
+        at::Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, otherDtypeCast);
+        NpuUtils::format_fresh_view(selfDtypeCast, result);
+      } else {
+        mul_out_npu_nocheck(selfDtypeCast, selfDtypeCast, otherDtypeCast);
       }
-      else
-      {
-        mul_out_npu_nocheck(self, self, other);
+      if (self.scalar_type() == at::kBool) {
+        selfDtypeCast = NPUNativeFunctions::npu_dtype_cast(selfDtypeCast, at::kBool);
       }
+      self.copy_(selfDtypeCast);
 
       return self;
     }
