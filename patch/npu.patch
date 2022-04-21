@@ -465,45 +465,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      DispatchKey::AutogradNestedTensor,
      DispatchKey::AutogradXPU,
      DispatchKey::AutogradPrivateUse1,
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.cpp patch/c10/core/StorageImpl.cpp
---- pytorch-v1.8.1/c10/core/StorageImpl.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/StorageImpl.cpp	2022-04-19 12:30:03.490096303 +0800
-@@ -1 +1,8 @@
- #include <c10/core/StorageImpl.h>
-+
-+namespace c10 {
-+
-+void StorageImpl::release_resources() {
-+  data_ptr_.clear();
-+}
-+} // namespace c10
-\ No newline at end of file
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h patch/c10/core/StorageImpl.h
---- pytorch-v1.8.1/c10/core/StorageImpl.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/StorageImpl.h	2022-04-19 12:30:03.490096303 +0800
-@@ -2,8 +2,11 @@
- 
- #include <c10/core/Allocator.h>
- #include <c10/core/ScalarType.h>
-+#include <c10/util/typeid.h>
-+#include <c10/util/order_preserving_flat_hash_map.h>
- 
- #include <c10/util/intrusive_ptr.h>
-+#include <third_party/acl/inc/acl/acl_base.h>
- 
- namespace c10 {
- 
-@@ -62,9 +65,7 @@
-     return static_cast<T*>(this->data_ptr_.get());
-   }
- 
--  void release_resources() override {
--    data_ptr_.clear();
--  }
-+  void release_resources() override;
- 
-   size_t nbytes() const {
-     return size_bytes_;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorImpl.h patch/c10/core/TensorImpl.h
 --- pytorch-v1.8.1/c10/core/TensorImpl.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/c10/core/TensorImpl.h	2022-03-08 15:25:36.520231820 +0800
