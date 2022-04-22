@@ -39,6 +39,8 @@ def to_cpu(data):
                 copy_data[i] = to_cpu(value)
             elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
                 copy_data[i] = value.cpu()
+            else:
+                copy_data[i] = value
         return copy_data
 
     if isinstance(data, container_abcs.Mapping):
@@ -52,6 +54,8 @@ def to_cpu(data):
                 copy_data[key] = to_cpu(value)
             elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
                 copy_data[key] = value.cpu()
+            else:
+                copy_data[key] = value
         return copy_data
     return data.cpu() if isinstance(value, (torch.Tensor, nn.Module)) else data
 
