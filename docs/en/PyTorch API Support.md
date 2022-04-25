@@ -1279,7 +1279,7 @@
 | 49   | torch.distributed.launch                  | Supported      |
 | 50   | torch.multiprocessing.spawn               | Supported      |
 
-## torch.npu
+## torch_npu.npu
 
 | No.| API                                      | NPU API Name                                  | Supported/Unsupported|
 | ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
@@ -3136,47 +3136,6 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   >>> output
   tensor([[3.6335, 4.3713, 2.4440, 2.0081],
           [5.3273, 6.3089, 3.9601, 3.2410]], device='npu:0')
-  ```
-
-> torch_npu.npu_bert_apply_adam.old(Tensor(a!) var, Tensor(b!) m, Tensor(c!) v, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0) -> (Tensor(a!), Tensor(b!), Tensor(c!))
-
-   count adam result. 
-
-- Parameters:
-
-  - **var** (Tensor) - A Tensor. Support float16/float32.
-  - **m**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **v**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **lr** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **beta1** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **beta2** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **epsilon** (Number) - A Tensor. Datatype is same as exp_avg. 
-  - **grad**(Tensor) - A Tensor. Datatype and shape are same as exp_avg.
-  - **max_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **global_grad_norm** (Number) - A Tensor. Datatype is same as exp_avg.
-  - **weight_decay** (Number) - A Tensor. Datatype is same as exp_avg.
-
-- Constraints:
-
-  None
-
-- Examples:
-  ```python
-  >>> var_in = torch.rand(321538).uniform_(-32., 21.).npu()
-  >>> m_in = torch.zeros(321538).npu()
-  >>> v_in = torch.zeros(321538).npu()
-  >>> grad = torch.rand(321538).uniform_(-0.05, 0.03).npu()
-  >>> max_grad_norm = -1.
-  >>> beta1 = 0.9
-  >>> beta2 = 0.99
-  >>> weight_decay = 0.
-  >>> lr = 0.
-  >>> epsilon = 1e-06
-  >>> global_grad_norm = 0.
-  >>> var_out, m_out, v_out = torch_npu.npu_bert_apply_adam(var_in, m_in, v_in, lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay)
-  >>> var_out
-  tensor([ 14.7733, -30.1218,  -1.3647,  ..., -16.6840,   7.1518,   8.4872],
-        device='npu:0')
   ```
 
 > torch_npu.npu_bert_apply_adam(lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size=None, adam_mode=0, *, out= (var,m,v) )

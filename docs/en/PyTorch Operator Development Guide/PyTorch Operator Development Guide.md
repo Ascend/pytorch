@@ -1002,7 +1002,7 @@ Method 1:
             pooled_width=d[2].item()
             sample_num=d[3].item()
             roi_end_mode=d[4].item()
-            rtn = torch.npu_roi_align(a, self.weight, spatial_scale, pooled_height, pooled_width, sample_num,roi_end_mode)
+            rtn = torch_npu.npu_roi_align(a, self.weight, spatial_scale, pooled_height, pooled_width, sample_num,roi_end_mode)
     
             return rtn
     ```
@@ -1036,7 +1036,7 @@ Method 2:
     class CustomClassOp_Func_npu_roi_align(Function):
         @staticmethod
         def forward(ctx, input, rois, spatial_scale, pooled_height, pooled_width , sample_num, roi_end_mode):
-            rtn = torch.npu_roi_align(input, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)
+            rtn = torch_npu.npu_roi_align(input, rois, spatial_scale, pooled_height, pooled_width, sample_num, roi_end_mode)
             return rtn
     
         @staticmethod
@@ -1113,31 +1113,32 @@ Method 2:
 
 #### C++ Operator Export
 
-1.  Customize an operator.
+1. Customize an operator.
 
-    ```
-    import torch
-    import torch.utils.cpp_extension
-    # Define a C++ operator.
-    def test_custom_add():    
-        op_source = """    
-        #include <torch/script.h>    
-    
-        torch::Tensor custom_add(torch::Tensor self, torch::Tensor other) {
-            return self + other;    
-        }
-        static auto registry = 
-            torch::RegisterOperators("custom_namespace::custom_add",&custom_add);
-        """
-        torch.utils.cpp_extension.load_inline(
-            name="custom_add",
-            cpp_sources=op_source,
-            is_python_module=False,
-            verbose=True,
-        )
-    
-    test_custom_add()
-    ```
+   ```
+   import torch
+   import torch_npu
+   import torch.utils.cpp_extension
+   # Define a C++ operator.
+   def test_custom_add():    
+       op_source = """    
+       #include <torch/script.h>    
+   
+       torch::Tensor custom_add(torch::Tensor self, torch::Tensor other) {
+           return self + other;    
+       }
+       static auto registry = 
+           torch::RegisterOperators("custom_namespace::custom_add",&custom_add);
+       """
+       torch.utils.cpp_extension.load_inline(
+           name="custom_add",
+           cpp_sources=op_source,
+           is_python_module=False,
+           verbose=True,
+       )
+   
+   test_custom_add()
+   ```
 
 2.  Register the custom operator.
 
@@ -1179,38 +1180,39 @@ Method 2:
 
 #### Pure Python Operator Export
 
-1.  Customize an operator.
+1. Customize an operator.
 
-    ```
-    import torch
-    import torch.onnx.symbolic_registry as sym_registry
-    
-    import torch.utils.cpp_extension
-    import torch.nn as nn
-    import torch.nn.modules as Module
-    from torch.autograd import Function
-    import numpy as np
-    
-    from torch.nn.parameter import Parameter
-    import math
-    from torch.nn  import init
-    
-    # Define an operator class method.
-    class CustomClassOp_Add_F(Function):
-        @staticmethod
-        def forward(ctx, input1,input2):
-            rtn = torch.add(input1,input2)
-            return torch.add(input1,rtn)
-    
-        @staticmethod
-        def symbolic(g,input1,input2):
-            rtn = g.op("Custom::CustomClassOp_Add", input1, input2,test_attr1_i=1,test_attr2_f=1.0)
-            rtn = g.op("ATen::CustomClassOp_Add", input1, rtn)
-            rtn = g.op("C10::CustomClassOp_Add", rtn, input2)
-            #erro doman: rtn = g.op("onnx::CustomClassOp_Add", input1, input2)
-    
-            return rtn
-    ```
+   ```
+   import torch
+   import torch_npu
+   import torch.onnx.symbolic_registry as sym_registry
+   
+   import torch.utils.cpp_extension
+   import torch.nn as nn
+   import torch.nn.modules as Module
+   from torch.autograd import Function
+   import numpy as np
+   
+   from torch.nn.parameter import Parameter
+   import math
+   from torch.nn  import init
+   
+   # Define an operator class method.
+   class CustomClassOp_Add_F(Function):
+       @staticmethod
+       def forward(ctx, input1,input2):
+           rtn = torch.add(input1,input2)
+           return torch.add(input1,rtn)
+   
+       @staticmethod
+       def symbolic(g,input1,input2):
+           rtn = g.op("Custom::CustomClassOp_Add", input1, input2,test_attr1_i=1,test_attr2_f=1.0)
+           rtn = g.op("ATen::CustomClassOp_Add", input1, rtn)
+           rtn = g.op("C10::CustomClassOp_Add", rtn, input2)
+           #erro doman: rtn = g.op("onnx::CustomClassOp_Add", input1, input2)
+   
+           return rtn
+   ```
 
 2.  Build a model.
 
