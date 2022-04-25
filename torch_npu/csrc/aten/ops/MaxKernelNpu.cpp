@@ -149,7 +149,7 @@ at::Tensor& NPUNativeFunctions::max_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::max(
+at::Tensor NPUNativeFunctions::maximum(
     const at::Tensor& self, 
     const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
