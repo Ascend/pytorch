@@ -199,15 +199,38 @@ namespace at_npu
       return "SUCCESS";
     }
 
-    int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor)
-    {
-      if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor) || CanUseMemcpyForOtherFormat(tensor))
-      {
-        auto tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-        return tensor_desc.npu_format_;
+    bool check_npu_format_unchanged_in_format_contiguous(
+        const at::Tensor &tensor,
+        const torch_npu::NPUStorageDesc &tensor_desc) {
+      // There are 2 cases that we need apply new tensors with native formats.
+      if (!tensor.is_contiguous()) {
+        // case1-discontiguous & slice case(op supports inputs with native
+        // formats)
+        return TransContiguous::CanOptimize(tensor, {"slice"});
       }
-      else
-      {
+
+      if (!StorageDescHelper::MetaDataAreMatch(&tensor)) {
+        if (tensor_desc.npu_format_ == ACL_FORMAT_FRACTAL_NZ) {
+          // case2-unmatched & memory copy without transdata
+          return CanUseMemcpyForOtherFormat(tensor);
+        }
+        return false;
+      }
+
+      bool isPadding = FormatHelper::IsPadded(&tensor);
+      if (isPadding && (!StorageDescHelper::OffsetAreMatch(&tensor))) {
+        return false;
+      }
+      return true;
+    }
+
+    int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor) {
+      const torch_npu::NPUStorageDesc &tensor_desc =
+          torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
+      if (check_npu_format_unchanged_in_format_contiguous(tensor,
+                                                          tensor_desc)) {
+        return tensor_desc.npu_format_;
+      } else {
         return InferFormat::GuessFormatWhenContiguous(tensor);
       }
     }

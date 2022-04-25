@@ -44,6 +44,7 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 
 namespace at_npu
 {
@@ -727,18 +728,30 @@ namespace at_npu
   }
     AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 #undef TENSOR
+
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
-                     c10::optional<c10::MemoryFormat> format) {
+                                         c10::optional<c10::MemoryFormat> format)
+    {
       OptimizationCases opt_cases{"reshape", "slice"};
-      if (TransContiguous::CanOptimize(src, opt_cases)) {
+      if (TransContiguous::CanOptimize(src, opt_cases))
+      {
+        // clone with any npu formats
         auto formatTempTensor =
             TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
         return formatTempTensor.value();
-      } else {
+      }
+      else
+      {
+        // clone with base formats
         auto baseSelf =
             OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
-        copy_d2d_dtype(baseSelf, src, false);
+        at::Tensor baseSrc = src;
+        if (!FormatHelper::IsBaseFormatType(src))
+        {
+          baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+        }
+        copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
         return baseSelf;
       }
     }
