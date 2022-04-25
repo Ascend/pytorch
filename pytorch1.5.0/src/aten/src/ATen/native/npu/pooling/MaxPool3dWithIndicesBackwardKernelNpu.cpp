@@ -56,24 +56,26 @@ Tensor& max_pool3d_with_indices_backward_out_npu(
     padrs[1] += CalcuOpUtil::completePad(hs, padding[1], kernel_size[1], strideH);
     padrs[2] += CalcuOpUtil::completePad(ws, padding[2], kernel_size[2], strideW);
   }
-  SmallVector<int64_t, SIZE> kernel_sizes = {1, 1, kernel_size[0], kernel_size[1], kernel_size[2]};
+  SmallVector<int64_t, SIZE> kernel_sizes = {
+      1, 1, kernel_size[0], kernel_size[1], kernel_size[2]};
   SmallVector<int64_t, SIZE> stride_sizes = {1, 1, strideT, strideH, strideW};
-  SmallVector<int64_t, SIZE> padding_sizes = {padding[0], padrs[0], padding[1], padrs[1], padding[2], padrs[2]};
-  
+  SmallVector<int64_t, SIZE> padding_sizes = {
+      padding[0], padrs[0], padding[1], padrs[1], padding[2], padrs[2]};
+
   string data_format = "NCDHW";
 
   OpCommand cmd;
   cmd.Name("MaxPool3DGrad")
-     .Input(self)
-     .Input(indices)
-     .Input(grad_output)
-     .Output(grad_input)
-     .Attr("ksize", kernel_sizes)
-     .Attr("strides", stride_sizes)
-     .Attr("padding", padstr)
-     .Attr("pads", padding_sizes)
-     .Attr("data_format", data_format)
-     .Run();
+      .Input(self, "orig_x", ACL_FORMAT_NCDHW)
+      .Input(indices, "orig_y", ACL_FORMAT_NCDHW)
+      .Input(grad_output, "grads", ACL_FORMAT_NCDHW)
+      .Output(grad_input, "y", ACL_FORMAT_NCDHW)
+      .Attr("ksize", kernel_sizes)
+      .Attr("strides", stride_sizes)
+      .Attr("padding", padstr)
+      .Attr("pads", padding_sizes)
+      .Attr("data_format", data_format)
+      .Run();
 
   return grad_input;
 }

@@ -58,15 +58,15 @@ Tensor conv_tbc_npu(
 
   OpCommand cmd;
   cmd.Name("Conv2D")
-    .Input(self_tensor)
-    .Input(weight_tensor)
-    .Input(bias)
-    .Output(result)
-    .Attr("pads", paddings)
-    .Attr("strides", stridesSize)
-    .Attr("dilations", dilations)
-    .Attr("data_format", (string)"NCHW")
-    .Run();
+      .Input(self_tensor, "x", ACL_FORMAT_NCHW)
+      .Input(weight_tensor, "filter", ACL_FORMAT_NCHW)
+      .Input(bias)
+      .Output(result, "y", ACL_FORMAT_NCHW)
+      .Attr("pads", paddings)
+      .Attr("strides", stridesSize)
+      .Attr("dilations", dilations)
+      .Attr("data_format", (string) "NCHW")
+      .Run();
 
   result = result.squeeze(2).transpose(0, 2).transpose(1, 2);
   return result;

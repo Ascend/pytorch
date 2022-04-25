@@ -197,6 +197,17 @@ ACL_FUNC_VISIBILITY size_t acltdtGetDatasetSize(const acltdtDataset *dataset);
 
 /**
  * @ingroup AscendCL
+ * @brief Get the name of dataset
+ *
+ * @param  dataset [IN]      pointer to the dataset
+ *
+ * @retval null for failed
+ * @retval OtherValues success
+ */
+ACL_FUNC_VISIBILITY const char *acltdtGetDatasetName(const acltdtDataset *dataset);
+
+/**
+ * @ingroup AscendCL
  * @brief Stop the channel
  *
  * @param handle [IN]  pointer to the channel handle

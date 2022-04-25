@@ -33,7 +33,7 @@ Tensor& upsample_bicubic2d_out_npu(
   int64_t W = output_size[1];
 
   SmallVector<int64_t, SIZE> outputSize = {N, C, H, W};
-  
+
   if (!result.sizes().equals(outputSize)) {
     result.resize_(outputSize);
   }
@@ -60,8 +60,8 @@ Tensor& upsample_bicubic2d_out_npu(
 
   OpCommand cmd;
   cmd.Name("ResizeD")
-      .Input(self)
-      .Output(result)
+      .Input(self, "X", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("sizes", output_size)
       .Attr("scales", scales)
       .Attr("roi", roi)
@@ -69,10 +69,10 @@ Tensor& upsample_bicubic2d_out_npu(
       .Attr("cubic_coeff_a", (float)-0.75)
       .Attr("exclude_outside", (int64_t)0)
       .Attr("extrapolation_value", (float)0.0)
-      .Attr("mode", (string)"cubic")
-      .Attr("nearest_mode", (string)"round_prefer_floor")
+      .Attr("mode", (string) "cubic")
+      .Attr("nearest_mode", (string) "round_prefer_floor")
       .Run();
-      
+
   return result;
 }
 
@@ -82,7 +82,6 @@ Tensor upsample_bicubic2d_npu(
     bool align_corners,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  
   // calculate the output size
   int64_t N = self.size(0);
   int64_t C = self.size(1);
@@ -94,8 +93,9 @@ Tensor upsample_bicubic2d_npu(
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
-  upsample_bicubic2d_out_npu(result, self, output_size, align_corners, scales_h, scales_w);
-  
+  upsample_bicubic2d_out_npu(
+      result, self, output_size, align_corners, scales_h, scales_w);
+
   return result;
 }
 

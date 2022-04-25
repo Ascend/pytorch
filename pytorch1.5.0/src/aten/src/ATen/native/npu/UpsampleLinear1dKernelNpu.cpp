@@ -51,7 +51,7 @@ Tensor& upsample_linear1d_out_npu_nocheck(
     IntArrayRef output_size,
     bool align_corners,
     c10::optional<double> scales) {
-  upsample_linear1d_check(self,output_size);
+  upsample_linear1d_check(self, output_size);
   // Since only NCHW format input is currently supported, first convert the
   // input self (3 dimensions) to 4 dimensions as the input of npu
   Tensor input_4dim = self.unsqueeze(2);
@@ -68,8 +68,8 @@ Tensor& upsample_linear1d_out_npu_nocheck(
   string mode = "linear";
   OpCommand cmd;
   cmd.Name("ResizeD")
-      .Input(input_4dim)
-      .Output(result)
+      .Input(input_4dim, "X", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("sizes", output_size)
       .Attr("coordinate_transformation_mode", coordinate_transformation_mode)
       .Attr("mode", mode)
@@ -94,10 +94,12 @@ Tensor& upsample_linear1d_out_npu(
       outputSize);
   if (!NpuUtils::check_match(&result)) {
     Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    upsample_linear1d_out_npu_nocheck(contiguousResult, self, output_size, align_corners, scales);
+    upsample_linear1d_out_npu_nocheck(
+        contiguousResult, self, output_size, align_corners, scales);
     NpuUtils::format_fresh_view(result, contiguousResult);
   } else {
-    upsample_linear1d_out_npu_nocheck(result, self, output_size, align_corners, scales);
+    upsample_linear1d_out_npu_nocheck(
+        result, self, output_size, align_corners, scales);
   }
     return result;
 }

@@ -25,43 +25,46 @@
 #include <c10/npu/interface/AclInterface.h>
 #include <c10/npu/interface/AclTdtInterface.h>
 #include <c10/npu/tools/NPUTdtDataset.h>
-#include <c10/npu/tools/NPUTdtChannelQueue.h>
+#include <c10/npu/tools/NPUTdtChannel.h>
 #include <c10/util/intrusive_ptr.h>
 namespace at {
 namespace native {
 namespace npu {
 using TupleToPrint = std::tuple<std::vector<Tensor>, std::string>;
-class TORCH_NPU_API TdtQueForPrint {
+class TORCH_NPU_API TdtChannelForPrint {
 public:
-  static TdtQueForPrint& GetInstance();
+  static TdtChannelForPrint& GetInstance();
 
   bool Init();
 
   void Finalize() {
-    std::lock_guard<std::mutex> lock(que_mutex_);
-    if (que_ != nullptr) {
-      delete que_;
-      que_ = nullptr;
+    std::lock_guard<std::mutex> lock(channel_mutex_);
+    if (channel_ != nullptr) {
+      delete channel_;
+      channel_ = nullptr;
     }
   }
 
-  const std::string& GetChannelName() const {
-    TORCH_CHECK(que_ != nullptr, "Que is none during GetChannelName");
-    return que_->GetChannelName();
+  const std::string& GetChannelName() {
+    if (channel_ == nullptr) {
+      this->Init();
+    }
+    TORCH_CHECK(channel_ != nullptr, "Que is none during GetChannelName");
+    return channel_->GetChannelName();
   }
 
   TupleToPrint GetTupleToPrint();
 
-  TdtQueForPrint(const TdtQueForPrint& other) = delete;
-  TdtQueForPrint& operator=(const TdtQueForPrint& other) = delete;
-  TdtQueForPrint(TdtQueForPrint&& other) = delete;
-  TdtQueForPrint& operator=(TdtQueForPrint&& other) = delete;
+  TdtChannelForPrint(const TdtChannelForPrint& other) = delete;
+  TdtChannelForPrint& operator=(const TdtChannelForPrint& other) = delete;
+  TdtChannelForPrint(TdtChannelForPrint&& other) = delete;
+  TdtChannelForPrint& operator=(TdtChannelForPrint&& other) = delete;
 
 private:
-  std::mutex que_mutex_;
-  c10::npu::NpuTdtChannelQue* que_;
+  std::mutex channel_mutex_;
+  c10::npu::NpuTdtChannel* channel_ = nullptr;
 
-  TdtQueForPrint();
+  TdtChannelForPrint() = default;
   std::shared_ptr<c10::npu::TdtDataSet> GetNextDatasetToPrint();
 };
 }

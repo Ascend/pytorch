@@ -122,7 +122,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             # case 1: unsqueeze+unfold:size==step ==> can be optimized as reshape+permute
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.unsqueeze(1).unfold(0,2,2).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.unsqueeze(1).unfold(0,2,2).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 

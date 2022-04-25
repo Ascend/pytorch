@@ -53,7 +53,8 @@ Tensor& avg_pool3d_out_npu(
       ? (CeilDiv(W + 2 * padding[2] - kernel_size[2], stride[2]) + 1)
       : ((W + 2 * padding[2] - kernel_size[2]) / stride[2] + 1);
 
-  SmallVector<int64_t, SIZE> outputSize = {input.size(0), input.size(1), D_size, H_size, W_size};
+  SmallVector<int64_t, SIZE> outputSize = {
+      input.size(0), input.size(1), D_size, H_size, W_size};
   OpPreparation::CheckOut(
       {self},
       out,
@@ -63,8 +64,8 @@ Tensor& avg_pool3d_out_npu(
 
   OpCommand cmd;
   cmd.Name("AvgPool3D")
-      .Input(input)
-      .Output(out)
+      .Input(input, "x", ACL_FORMAT_NCDHW)
+      .Output(out, "y", ACL_FORMAT_NCDHW)
       .Attr("ksize", kernel_size)
       .Attr("strides", stride)
       .Attr("pads", pads)

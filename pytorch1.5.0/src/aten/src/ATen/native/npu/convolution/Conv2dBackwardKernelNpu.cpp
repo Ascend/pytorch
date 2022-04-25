@@ -73,18 +73,18 @@ Tensor conv2d_backward_input_out_npu(
   string sizeName = "input_size";
 
   // executing the NPU operator
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropInput")
-        .Input(dimList, at::kInt)
-        .Input(weight, "filter", ACL_FORMAT_NCHW)
-        .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
-        .Output(gradInput, "y", ACL_FORMAT_NCHW)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
+  OpCommand cmd;
+  cmd.Name("Conv2DBackpropInput")
+      .Input(dimList, at::kInt)
+      .Input(weight, "filter", ACL_FORMAT_NCHW)
+      .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(gradInput, "y", ACL_FORMAT_NCHW)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
 
   return gradInput;
 }
@@ -115,7 +115,7 @@ Tensor conv2d_backward_weight_out_npu(
     gradWeight = mmResult.reshape({grad.size(1), 1, 1, weight.size(3)});
     return gradWeight;
   }
-  
+
   SmallVector<int64_t, N> dimList = array_to_small_vector(weight.sizes());
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   SmallVector<int64_t, N> paddings = {
@@ -125,18 +125,18 @@ Tensor conv2d_backward_weight_out_npu(
   string sizeName = "filter_size";
   
   // executing the NPU operator
-    OpCommand cmd;
-    cmd.Name("Conv2DBackpropFilter")
-        .Input(input, "x", ACL_FORMAT_NCHW)
-        .Input(dimList, at::kInt)
-        .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
-        .Output(gradWeight, "y", ACL_FORMAT_NCHW)
-        .Attr("strides", stridesSize)
-        .Attr("pads", paddings)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
+  OpCommand cmd;
+  cmd.Name("Conv2DBackpropFilter")
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(dimList, at::kInt)
+      .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(gradWeight, "y", ACL_FORMAT_NCHW)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
 
   return gradWeight;
 }

@@ -51,6 +51,14 @@ REG_OP(OutfeedEnqueueOp)
   .ATTR(channel_name, String, "")
   .OP_END_FACTORY_REG(OutfeedEnqueueOp)
 
+REG_OP(OutfeedEnqueueOpV2)
+  .DYNAMIC_INPUT(x, TensorType({DT_FLOAT, DT_FLOAT16, DT_INT8,
+      DT_INT16, DT_UINT16, DT_UINT8, DT_INT32, DT_INT64, DT_UINT32,
+      DT_UINT64, DT_BOOL, DT_DOUBLE, DT_STRING}))
+  .INPUT(tensor_name, TensorType({DT_STRING}))
+  .ATTR(channel_name, String, "")
+  .OP_END_FACTORY_REG(OutfeedEnqueueOpV2)
+
 }   // namespace ge
 
 #endif  // OPS_BUILT_IN_OP_PROTO_INC_DATA_FLOW_OPS_H_

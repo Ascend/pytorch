@@ -34,6 +34,7 @@
 #include <c10/npu/NPUGraphContextManager.h>
 #include <c10/npu/NPURunMode.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
+#include "ATen/native/npu/common/FormatCastHelper.h"
 
 #include <algorithm>
 #include <cctype>
@@ -530,17 +531,22 @@ Tensor tensor_backend_npu(ArrayRef<T> values, const TensorOptions& options) {
 AT_FORALL_SCALAR_TYPES_AND3(Bool, Half, BFloat16, TENSOR)
 #undef TENSOR
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
   OptimizationCases opt_cases{"reshape", "slice"};
   if (TransContiguous::CanOptimize(src, opt_cases)) {
+    // clone with any npu formats
     auto formatTempTensor =
         TransContiguous::ContiguousOptimizeWithAnyFormat(src, opt_cases);
     return formatTempTensor.value();
   } else {
+    // clone with base formats
     auto baseSelf =
         OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
-    copy_d2d_dtype(baseSelf, src, false);
+    Tensor baseSrc = src;
+    if (!FormatHelper::IsBaseFormatType(src)) {
+      baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
+    }
+    copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
     return baseSelf;
   }
 }

@@ -195,9 +195,7 @@ Tensor deal_with_5d_5d_match(const Tensor& src) {
     return ret_tmp;
 }
 
-Tensor metadata_convert_match(const Tensor& src) {
-  auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
-  bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
+Tensor metadata_convert_match(const Tensor& src, bool numelEq) {
   // Only when a tensor monopolizes a storage can NpuStorageDesc be refreshed.
   // When the original format is not NCHW, the npu_format_cast to NCHW will generate
   // a temporary tensor, which always monopolizes its own storage.
@@ -212,6 +210,38 @@ Tensor metadata_convert_match(const Tensor& src) {
     NpuUtils::RefreshFormat(contiguous_view);
     return contiguous_view;
   }
+}
+
+Tensor metadata_convert_match_without_copy_optimize(const Tensor& src) {
+  auto& src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
+  return metadata_convert_match(src, numelEq);
+}
+
+Tensor metadata_convert_match_with_copy_optimize(const Tensor &src) {
+  auto &src_desc = src.storage().unsafeGetStorageImpl()->npu_desc_;
+  bool numelEq = (src.numel() == prod_intlist(src_desc.base_sizes_));
+  
+  // For unmatched Tensors with base format, we can:
+  OptimizationCases optimizations_reshape{"reshapeV2"};
+  if ((!c10::npu::NpuRunMode::IsGraphMode()) && numelEq && (src.dim() != 0) &&
+      !src_desc.base_sizes_.empty() && FormatHelper::IsBaseFormatType(src)) {
+    // 1. directly rewrite their storage description to get matched tensors.
+    src_desc.base_sizes_ = array_to_small_vector(src.sizes());
+    src_desc.base_strides_ = array_to_small_vector(src.strides());
+    src_desc.storage_sizes_ = array_to_small_vector(src.sizes());
+    return src;
+  } else if (TransContiguous::CanOptimize(src, optimizations_reshape)) {
+    // 2. using memory-repoint/DMA for other cases.
+    auto reshapeTensor = TransContiguous::ContiguousOptimizeWithAnyFormat(
+        src, optimizations_reshape);
+    if (reshapeTensor.has_value()) {
+      return reshapeTensor.value();
+    }
+  }
+  // 3. common method using transdata and copy_, just the same as:
+  // metadata_convert_match_without_copy_optimize
+  return metadata_convert_match(src, numelEq);
 }
 
 Tensor metadata_with_offset_padding_convert_match(const Tensor& src) {
@@ -233,7 +263,7 @@ Tensor NpuUtils::format_contiguous(const Tensor& src) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
     RECORD_HOST_FUNCTION("format_contiguous", vector<c10::IValue>({src}));
     E2E_RECORD_FUNCTION("format_contiguous");
-    return metadata_convert_match(src);
+    return metadata_convert_match_without_copy_optimize(src);
   }
 
   // case3:meta data not match, storage_offset of presentation layer
@@ -261,17 +291,7 @@ Tensor NpuUtils::format_contiguous_add_copy_optimize(const Tensor& src) {
     // Fix not match case2, tensor should have matched metadata and NPUStorageDesc.
     RECORD_HOST_FUNCTION("format_contiguousV2", vector<c10::IValue>({src}));
     E2E_RECORD_FUNCTION("format_contiguousV2");
-    // copy optimize for reshape cases with 3 choices
-    // [1] memory-repoint: base format or NZ[1. key dims keep matched; 2. no padding]
-    // [2] d2dCopyAsync: base format or NZ[key dims keep matched]
-    // [3] copy_: Universal method
-    OptimizationCases optimizations_reshape{"reshapeV2"};
-    auto reshapeTensor =
-        TransContiguous::ContiguousOptimizeWithAnyFormat(src, optimizations_reshape);
-    if (reshapeTensor.has_value()) {
-      return reshapeTensor.value();
-    }
-    return metadata_convert_match(src);
+    return metadata_convert_match_with_copy_optimize(src);
   }
 
   // case3:meta data not match, storage_offset of presentation layer

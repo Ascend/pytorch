@@ -43,13 +43,19 @@ void avg_pool3d_backward_out_npu_nocheck(
   grad_output.zero_();
 
   SmallVector<int64_t, N> dimList(input.sizes());
-  SmallVector<int64_t, N> pads = {paddingss[0], paddingss[0], paddingss[1], paddingss[1], paddingss[2], paddingss[2]};
+  SmallVector<int64_t, N> pads = {
+      paddingss[0],
+      paddingss[0],
+      paddingss[1],
+      paddingss[1],
+      paddingss[2],
+      paddingss[2]};
 
   OpCommand cmd;
   cmd.Name("AvgPool3DGrad")
       .Input(dimList)
-      .Input(grads)
-      .Output(grad_output)
+      .Input(grads, "grads", ACL_FORMAT_NCDHW)
+      .Output(grad_output, "output", ACL_FORMAT_NCDHW)
       .Attr("ksize", kernel_sizess)
       .Attr("strides", stridess)
       .Attr("pads", pads)
@@ -66,7 +72,6 @@ void avg_pool3d_backward_out_npu_nocheck(
   if (self.ndimension() == 4) {
     grad_output = grad_output.squeeze(0);
   }
-
 }
 
 Tensor& avg_pool3d_backward_out_npu(

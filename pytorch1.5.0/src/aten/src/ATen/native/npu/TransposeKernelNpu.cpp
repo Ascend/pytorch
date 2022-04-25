@@ -28,7 +28,7 @@ Tensor& transpose_out_npu(
     IntArrayRef perm) {
   OpCommand cmd;
   cmd.Name("Transpose")
-    .Input(self)
+    .InputWithoutContiguous(self)
     .Input(perm)
     .Output(result)
     .Run();

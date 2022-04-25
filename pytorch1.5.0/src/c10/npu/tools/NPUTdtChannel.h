@@ -22,16 +22,16 @@
 #include <c10/npu/interface/AclTdtInterface.h>
 namespace c10 {
 namespace npu {
-class NpuTdtChannelQue {
+class NpuTdtChannel {
 public:
-  NpuTdtChannelQue() = default;
-  NpuTdtChannelQue(int32_t time_out,
-                   int32_t capacity,
-                   const std::string& channel_name) :
+  NpuTdtChannel() = default;
+  NpuTdtChannel(int32_t time_out,
+                int32_t capacity,
+                const std::string& channel_name) :
           time_out_(time_out),
           capacity_(capacity),
           channel_name_(channel_name) {}
-  virtual ~NpuTdtChannelQue();
+  virtual ~NpuTdtChannel();
   virtual bool Init();
 
   virtual std::shared_ptr<TdtDataSet> Dequeue();

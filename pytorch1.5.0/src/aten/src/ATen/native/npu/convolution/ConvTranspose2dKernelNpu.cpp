@@ -40,21 +40,21 @@ Tensor& conv_transpose2d_out_npu(
 
   SmallVector<int64_t, N> sizeVec = array_to_small_vector(result.sizes());
   OpCommand cmd;
-    cmd.Name("Conv2DTranspose")
-        .Input(sizeVec, at::kInt)
-        .Input(input)
-        .Input(weight);
-    if (bias.defined()){
-      cmd.Input(bias);
-    }
-    cmd.Output(result)
-        .Attr("pads", paddings)
-        .Attr("output_padding", outputpadding)
-        .Attr("strides", stridesSize)
-        .Attr("dilations", dilations)
-        .Attr("groups", groups)
-        .Attr("data_format", dataFormat)
-        .Run();
+  cmd.Name("Conv2DTranspose")
+      .Input(sizeVec, at::kInt)
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW);
+  if (bias.defined()) {
+    cmd.Input(bias);
+  }
+  cmd.Output(result, "y", ACL_FORMAT_NCHW)
+      .Attr("pads", paddings)
+      .Attr("output_padding", outputpadding)
+      .Attr("strides", stridesSize)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
+      .Run();
 
   return result;
 }

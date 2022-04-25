@@ -41,16 +41,16 @@ Tensor _nnpack_spatial_convolution_nocheck_npu(
 
   OpCommand cmd;
   cmd.Name("Conv2D")
-    .Input(input)
-    .Input(weight)
-    .Input(bias)
-    .Output(result) 
-    .Attr("strides", stridesSize)
-    .Attr("pads", paddings)
-    .Attr("dilations", dilations)
-    .Attr("groups", (int64_t)1)
-    .Attr("data_format", (string)"NCHW")
-    .Run();
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW)
+      .Input(bias)
+      .Output(result, "y", ACL_FORMAT_NCHW)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", (int64_t)1)
+      .Attr("data_format", (string) "NCHW")
+      .Run();
   return result;
 }
 
@@ -62,7 +62,8 @@ Tensor _nnpack_spatial_convolution_npu(
     IntArrayRef stride) {
   auto outputSize = nnpack_spatial_convolution_npu_output_size(
       input, weight, padding, stride);
-  Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, input.options(), ACL_FORMAT_NC1HWC0);
   _nnpack_spatial_convolution_nocheck_npu(
       input, weight, bias, padding, stride, result);
   return result;

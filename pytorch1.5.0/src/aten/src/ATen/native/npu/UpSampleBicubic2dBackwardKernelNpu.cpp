@@ -23,13 +23,12 @@ using namespace at::native::npu;
 
 Tensor& upsample_bicubic2d_backward_out_npu(
     Tensor& grad_input,
-    const Tensor& grad_output, 
-    IntArrayRef output_size, 
-    IntArrayRef input_size, 
-    bool align_corners, 
+    const Tensor& grad_output,
+    IntArrayRef output_size,
+    IntArrayRef input_size,
+    bool align_corners,
     c10::optional<double> scales_h,
-    c10::optional<double> scales_w
-  ) {
+    c10::optional<double> scales_w) {
   TORCH_CHECK(
       output_size.size() == 2,
       "It is expected output_size equals to 2, but got size ",
@@ -41,13 +40,13 @@ Tensor& upsample_bicubic2d_backward_out_npu(
       input_size.size());
   float temp_h = 0.0;
   float temp_w = 0.0;
-  if(scales_h.has_value()) {
+  if (scales_h.has_value()) {
     temp_h = (float)scales_h.value();
-  } 
-  if(scales_w.has_value()) {
+  }
+  if (scales_w.has_value()) {
     temp_w = (float)scales_w.value();
   }
-  SmallVector<float,N> scales = {temp_h, temp_w};
+  SmallVector<float, N> scales = {temp_h, temp_w};
   SmallVector<float, N> roi = {};
   string coordinate_transformation_mode =
       align_corners ? "align_corners" : "half_pixel";
@@ -58,8 +57,8 @@ Tensor& upsample_bicubic2d_backward_out_npu(
   string ne = "round_prefer_floor";
   OpCommand cmd;
   cmd.Name("ResizeGradD")
-      .Input(grad_output)
-      .Output(grad_input)
+      .Input(grad_output, "grads", ACL_FORMAT_NCHW)
+      .Output(grad_input, "y", ACL_FORMAT_NCHW)
       .Attr("original_size", input_size)
       .Attr("roi", roi)
       .Attr("scales", scales)
@@ -74,18 +73,24 @@ Tensor& upsample_bicubic2d_backward_out_npu(
 }
 
 Tensor upsample_bicubic2d_backward_npu(
-    const Tensor& grad_output, 
-    IntArrayRef output_size, 
-    IntArrayRef input_size, 
-    bool align_corners, 
+    const Tensor& grad_output,
+    IntArrayRef output_size,
+    IntArrayRef input_size,
+    bool align_corners,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
   // construct the output tensor of the NPU
   auto outputSize = upsample_bicubic2d_backward_npu_output_size(input_size);
-  Tensor result = OpPreparation::ApplyTensor(
-      grad_output, outputSize);
+  Tensor result = OpPreparation::ApplyTensor(grad_output, outputSize);
   // calculate the output result of the NPU
-  return upsample_bicubic2d_backward_out_npu(result, grad_output, output_size, input_size, align_corners, scales_h, scales_w);
+  return upsample_bicubic2d_backward_out_npu(
+      result,
+      grad_output,
+      output_size,
+      input_size,
+      align_corners,
+      scales_h,
+      scales_w);
 }
 } // namespace native
 } // namespace at

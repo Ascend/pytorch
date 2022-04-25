@@ -50,19 +50,19 @@ Tensor slow_conv_dilated2d_npu(
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("Conv2D")
-      .Input(self)
-      .Input(weight);
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW);
   if (bias.defined()){
      cmd.Input(bias);
-  } 
-  cmd.Output(result)
+  }
+  cmd.Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
-      .Attr("groups",groups)
-      .Attr("data_format",dataFormat)
+      .Attr("groups", groups)
+      .Attr("data_format", dataFormat)
       .Run();
-      
+
   return result;
 }
 } // namespace native

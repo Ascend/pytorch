@@ -16,7 +16,7 @@
 #include <thread>
 #include <mutex>
 
-#include "TdtQueForPrint.h"
+#include "TdtChannelForPrint.h"
 #include <ATen/ATen.h>
 #include <ATen/Utils.h>
 #include <ATen/core/Tensor.h>
@@ -26,31 +26,34 @@
 namespace at {
 namespace native {
 namespace npu {
+namespace {
+const int32_t kChannelTimeOut = 500;
+const int32_t kChannelCapacity = 1024;
+}
 using namespace c10::npu;
-TdtQueForPrint::TdtQueForPrint() {
-  que_ = new NpuTdtChannelQue(500, 2000, "TDTQueForPrint");
+bool TdtChannelForPrint::Init() {
+  std::lock_guard<std::mutex> lock(channel_mutex_);
+  if (channel_ == nullptr) {
+    channel_ = new NpuTdtChannel(kChannelTimeOut, kChannelCapacity, "TDTChannelForPrint");
+  }
+  TORCH_CHECK(channel_ != nullptr, "Channel is none during Init TdtChannelForPrint");
+  return channel_->Init();
 }
 
-bool TdtQueForPrint::Init() {
-  std::lock_guard<std::mutex> lock(que_mutex_);
-  TORCH_CHECK(que_ != nullptr, "Que is none during Init TdtQueForPrint");
-  return que_->Init();
+TdtChannelForPrint& TdtChannelForPrint::GetInstance() {
+  static TdtChannelForPrint channel_for_print;
+  return channel_for_print;
 }
 
-TdtQueForPrint& TdtQueForPrint::GetInstance() {
-  static TdtQueForPrint que_for_print;
-  return que_for_print;
-}
-
-std::shared_ptr<TdtDataSet> TdtQueForPrint::GetNextDatasetToPrint() {
-  std::lock_guard<std::mutex> lock(que_mutex_);
-  if (que_ == nullptr) {
+std::shared_ptr<TdtDataSet> TdtChannelForPrint::GetNextDatasetToPrint() {
+  std::lock_guard<std::mutex> lock(channel_mutex_);
+  if (channel_ == nullptr) {
     return nullptr;
   }
-  return que_->Dequeue();
+  return channel_->Dequeue();
 }
 
-TupleToPrint TdtQueForPrint::GetTupleToPrint() {
+TupleToPrint TdtChannelForPrint::GetTupleToPrint() {
   auto tdt_data_set = this->GetNextDatasetToPrint();
   if (tdt_data_set == nullptr) {
     TupleToPrint tuple_to_print;
@@ -60,7 +63,6 @@ TupleToPrint TdtQueForPrint::GetTupleToPrint() {
   TORCH_CHECK(data_set != nullptr, "Get item to be printed failed");
   auto data_size = acl_tdt::AcltdtGetDatasetSize(data_set.get());
   std::vector<Tensor> tensor_to_print;
-  std::string format_string = "";
   for (size_t i = 0UL; i < data_size; i++) {
     auto data_item = acl_tdt::AcltdtGetDataItem(data_set.get(), i);
     void* data_addr = acl_tdt::AcltdtGetDataAddrFromItem(data_item);
@@ -81,11 +83,11 @@ TupleToPrint TdtQueForPrint::GetTupleToPrint() {
     (void)memcpy(tensor.data_ptr(), data_addr, tensor.numel() * tensor.itemsize());
 
     tensor_to_print.emplace_back(std::move(tensor));
-    format_string = format_string + "{}";
   }
+  const char* desc_name = acl_tdt::AcltdtGetDatasetName(data_set.get());
+  const std::string format_string(desc_name);
 
   TupleToPrint tuple_to_print;
-
   std::get<0>(tuple_to_print) = tensor_to_print;
   std::get<1>(tuple_to_print) = format_string;
 

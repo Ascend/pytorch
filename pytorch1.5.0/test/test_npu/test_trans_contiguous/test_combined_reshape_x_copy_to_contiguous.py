@@ -39,14 +39,14 @@ class CombinedReshapeXCopyToContiguous(TestCase):
             # case 1: view+permute
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)).transpose(0, 1).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "Error operators called!")
             cpu_out1 = cpu_input.view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), cpu_input.size(3)).transpose(0, 1).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             # case 2: permute+view
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input.permute(1, 0, 2, 3).view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), True, "Error operators called!")
             cpu_out2 = cpu_input.permute(1, 0, 2, 3).view(cpu_input.size(1), cpu_input.size(0), cpu_input.size(2)*cpu_input.size(3)).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy()) 
     

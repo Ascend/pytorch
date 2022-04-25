@@ -34,32 +34,49 @@ tuple<Tensor, Tensor> deformable_conv2d_npu(
     bool modulated) {
   // calculate the output size
   auto outputSize = deformable_conv2d_npu_output_size(
-      input, weight, offset, bias, kernel_size, stride, padding, dilation, groups, deformable_groups, modulated);
+      input,
+      weight,
+      offset,
+      bias,
+      kernel_size,
+      stride,
+      padding,
+      dilation,
+      groups,
+      deformable_groups,
+      modulated);
 
   // construct the output tensor of the NPU
-  Tensor deformableOffsetsOutput = OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), ACL_FORMAT_NCHW);
+  Tensor deformableOffsetsOutput = OpPreparation::ApplyTensorWithFormat(
+      outputSize, input.options(), ACL_FORMAT_NCHW);
 
   string dataFormat = "NCHW";
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("DeformableOffsets")
-      .Input(input)
-      .Input(offset)
-      .Output(deformableOffsetsOutput)
+      .Input(input, "X", ACL_FORMAT_NCHW)
+      .Input(offset, "offsets", ACL_FORMAT_NCHW)
+      .Output(deformableOffsetsOutput, "y", ACL_FORMAT_NCHW)
       .Attr("ksize", kernel_size)
       .Attr("strides", stride)
       .Attr("pads", padding)
       .Attr("dilations", dilation)
       .Attr("deformable_groups", deformable_groups)
-      .Attr("data_format",dataFormat)
-      .Attr("modulated",modulated)
+      .Attr("data_format", dataFormat)
+      .Attr("modulated", modulated)
       .Run();
-  
+
   SmallVector<int64_t, SIZE> conv2dStride = array_to_small_vector(kernel_size);
   SmallVector<int64_t, SIZE> conv2dPadding = {0, 0, 0, 0};
   SmallVector<int64_t, SIZE> conv2dDilation = {1, 1};
   Tensor conv2dOutput = at::npu_conv2d(
-      deformableOffsetsOutput, weight, bias, conv2dStride, conv2dPadding, conv2dDilation, groups);
+      deformableOffsetsOutput,
+      weight,
+      bias,
+      conv2dStride,
+      conv2dPadding,
+      conv2dDilation,
+      groups);
 
   return std::tie(conv2dOutput, deformableOffsetsOutput);
 }

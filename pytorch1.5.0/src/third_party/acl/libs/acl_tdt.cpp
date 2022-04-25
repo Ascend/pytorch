@@ -45,4 +45,6 @@ aclError acltdtGetDimsFromItem(const acltdtDataItem* dataItem, int64_t* dims, si
 aclError acltdtDestroyDataItem(acltdtDataItem* dataItem) {return 0;}
 
 size_t acltdtGetDatasetSize(const acltdtDataset* dataset) {return 0;}
+
+const char *acltdtGetDatasetName(const acltdtDataset *dataset) {return nullptr;}
 }

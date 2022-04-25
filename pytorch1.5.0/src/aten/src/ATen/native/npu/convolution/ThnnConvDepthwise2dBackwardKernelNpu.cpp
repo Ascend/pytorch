@@ -36,13 +36,13 @@ void thnn_conv_depthwise2d_backward_input_out_npu(
   OpCommand cmd;
   cmd.Name("DepthwiseConv2DBackpropInput")
       .Input(inputSize, at::kInt)
-      .Input(weight)
-      .Input(grad_output)
-      .Output(grad_input)
+      .Input(weight, "filter", ACL_FORMAT_NCHW)
+      .Input(grad_output, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(grad_input, "input_grad", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
-      .Attr("data_format", (string)"NCHW")
+      .Attr("data_format", (string) "NCHW")
       .Run();
 }
 
@@ -61,15 +61,15 @@ void thnn_conv_depthwise2d_backward_weight_out_npu(
   auto inputSize = weight.sizes();
   OpCommand cmd;
   cmd.Name("DepthwiseConv2DBackpropFilter")
-     .Input(self)
-     .Input(inputSize, at::kInt)
-     .Input(grad_output)
-     .Output(grad_weight)
-     .Attr("strides", stridesSize)
-     .Attr("pads", paddings)
-     .Attr("dilations", dilations)
-     .Attr("data_format", (string)"NCHW")
-     .Run();
+      .Input(self, "input", ACL_FORMAT_NCHW)
+      .Input(inputSize, at::kInt)
+      .Input(grad_output, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(grad_weight, "filter_grad", ACL_FORMAT_NCHW)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("data_format", (string) "NCHW")
+      .Run();
 }
 
 tuple<Tensor&, Tensor&> thnn_conv_depthwise2d_backward_out_npu(

@@ -42,7 +42,14 @@ tuple<Tensor, Tensor, Tensor, Tensor> deformable_conv2d_backward_npu(
   SmallVector<int64_t, SIZE> conv2dPadding = {0, 0, 0, 0};
   SmallVector<int64_t, SIZE> conv2dDilation = {1, 1};
   auto conv2dBackwardOutput = at::npu_conv2d_backward(
-      offset_out, grad_output, weight, conv2dStride, conv2dPadding, conv2dDilation, groups, {true, true, true});
+      offset_out,
+      grad_output,
+      weight,
+      conv2dStride,
+      conv2dPadding,
+      conv2dDilation,
+      groups,
+      {true, true, true});
 
   // DeformableOffsetsGrad's input 'grad' is the output[0] of conv2d_backward
   Tensor deformableOffsetsBackwardInput = std::get<0>(conv2dBackwardOutput);
@@ -53,20 +60,20 @@ tuple<Tensor, Tensor, Tensor, Tensor> deformable_conv2d_backward_npu(
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("DeformableOffsetsGrad")
-      .Input(deformableOffsetsBackwardInput)
-      .Input(input)
-      .Input(offset)
-      .Output(grad_input)
-      .Output(grad_offset)
+      .Input(deformableOffsetsBackwardInput, "grad", ACL_FORMAT_NCHW)
+      .Input(input, "X", ACL_FORMAT_NCHW)
+      .Input(offset, "offsets", ACL_FORMAT_NCHW)
+      .Output(grad_input, "grad_X", ACL_FORMAT_NCHW)
+      .Output(grad_offset, "grad_offsets", ACL_FORMAT_NCHW)
       .Attr("strides", stride)
       .Attr("pads", padding)
       .Attr("ksize", kernel_size)
       .Attr("dilations", dilation)
-      .Attr("data_format",dataFormat)
+      .Attr("data_format", dataFormat)
       .Attr("deformable_groups", deformable_groups)
-      .Attr("modulated",modulated)
+      .Attr("modulated", modulated)
       .Run();
-      
+
   return std::tie(grad_input, grad_weight, grad_offset, grad_bias);
 }
 

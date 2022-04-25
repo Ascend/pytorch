@@ -22,10 +22,14 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<int64_t, SIZE> conv3d_npu_output_size(const Tensor &input, const Tensor &weight,
-                                                  const Tensor &bias, IntArrayRef stride,
-                                                  IntArrayRef padding, IntArrayRef dilation,
-                                                  int64_t groups) {
+SmallVector<int64_t, SIZE> conv3d_npu_output_size(
+    const Tensor& input,
+    const Tensor& weight,
+    const Tensor& bias,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
   int64_t N = input.size(0);
   int64_t D = input.size(2);
   int64_t H = input.size(3);
@@ -57,12 +61,12 @@ Tensor &conv3d_out_npu_nocheck(Tensor &result, const Tensor &input,
 
   OpCommand cmd;
   cmd.Name("Conv3D");
-  cmd.Input(input);
-  cmd.Input(filter);
+  cmd.Input(input, "x", ACL_FORMAT_NCDHW);
+  cmd.Input(filter, "filter", ACL_FORMAT_NCDHW);
   if (bias.defined()) {
     cmd.Input(bias);
   }
-  cmd.Output(result);
+  cmd.Output(result, "y", ACL_FORMAT_NCDHW);
   cmd.Attr("strides", stridesSize);
   cmd.Attr("pads", paddings);
   cmd.Attr("dilations", dilations);
@@ -121,7 +125,8 @@ tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>> slow_conv3d_npu_ou
   SmallVector<int64_t, SIZE> finputSize = {
     N, C * kernel_size[0] * kernel_size[1] * kernel_size[2], Do * Ho * Wo};
 
-  return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(outputSize, finputSize);
+  return tuple<SmallVector<int64_t, SIZE>, SmallVector<int64_t, SIZE>>(
+      outputSize, finputSize);
 }
 
 std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_out_npu(
@@ -142,12 +147,12 @@ std::tuple<Tensor&, Tensor&, Tensor&> slow_conv3d_forward_out_npu(
 
   OpCommand cmd;
   cmd.Name("Conv3D");
-  cmd.Input(input);
-  cmd.Input(filter);
+  cmd.Input(input, "x", ACL_FORMAT_NCDHW);
+  cmd.Input(filter, "filter", ACL_FORMAT_NCDHW);
   if (bias.defined()) {
     cmd.Input(bias);
   }
-  cmd.Output(output);
+  cmd.Output(output, "y", ACL_FORMAT_NCDHW);
   cmd.Attr("strides", stridesSize);
   cmd.Attr("pads", paddings);
   cmd.Attr("dilations", dilations);
@@ -167,7 +172,8 @@ std::tuple<Tensor, Tensor, Tensor> slow_conv3d_forward_npu(
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
   // Assign NDC1HWC0 format to output for cutting down transdata.
-  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
+  auto output = OpPreparation::ApplyTensorWithFormat(
+      self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
   auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
   auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 

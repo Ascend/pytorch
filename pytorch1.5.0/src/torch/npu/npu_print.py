@@ -17,6 +17,7 @@
 import threading
 import torch
 import torch._C
+import torch._tensor_str
 global print_holder
 print_holder = '{}'
 
@@ -24,7 +25,7 @@ def generate_string_to_print(tuple_to_print):
     length = len(tuple_to_print)
     format_string = tuple_to_print[length - 1].decode()
     for i in range(length - 1):
-        format_string = format_string.replace(print_holder, str(tuple_to_print[i]))
+        format_string = format_string.replace(print_holder, torch._tensor_str._tensor_str(tuple_to_print[i], 0), 1)
     return format_string
 
 def print_deque_tensor():
@@ -68,17 +69,15 @@ def npu_lazy_print(args):
     if not torch.npu.is_graph_mode():
         print(args)
     if isinstance(args, torch.Tensor):
-        torch.npu_enque_tensor([args], print_holder)
+        torch.npu_enque_tensor([args], str(args))
     elif isinstance(args, list):
-        format_string = ""
         for t in args:
             if not isinstance(t, torch.Tensor):
-                format_string = format_string + print_holder
                 raise RuntimeError("npu lazy_print only support tensor, "
                                    "tensor list or format string, while"
                                    "not support list of ", t.__class__.__name__)
-        torch.npu_enque_tensor(args, format_string)
-    elif isinstance(args, string):
+        torch.npu_enque_tensor(args, str(args))
+    elif isinstance(args, str):
         tm = NpuTensorManager()
         tensor_list = tm.get_npu_tensor_to_print()
         if len(tensor_list) == 0:

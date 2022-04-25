@@ -47,6 +47,8 @@ aclError AcltdtGetDimsFromItem(const acltdtDataItem* dataItem, int64_t* dims, si
 aclError AcltdtDestroyDataItem(acltdtDataItem* dataItem);
 
 size_t AcltdtGetDatasetSize(const acltdtDataset* dataset);
+
+const char* AcltdtGetDatasetName(const acltdtDataset* dataset);
 }
 }
 }

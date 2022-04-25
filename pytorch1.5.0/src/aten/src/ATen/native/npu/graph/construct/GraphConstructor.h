@@ -128,6 +128,8 @@ public:
 
   void AddInput(const IntArrayRef& dim_list, const ScalarType to_type);
 
+  void AddInput(const string& str);
+
   void AddOutput(
       const at::Tensor& output,
       const string& desc_name = "",

@@ -110,7 +110,7 @@ Tensor& im2col_out_npu_nocheck(Tensor& result, const Tensor &self, IntArrayRef k
 
   OpCommand cmd;
   cmd.Name("Im2col")
-      .Input(self)
+      .Input(self, "x", ACL_FORMAT_NCHW)
       .Output(result)
       .Attr("ksizes", kernelSize)
       .Attr("strides", stridesSize)

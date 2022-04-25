@@ -36,7 +36,7 @@ namespace {
 const char* kPytorchGraphName = "PytorchGraph";
 const std::string kDataNodeType = "Data";
 const char* kDataAttrIndex = "index";
-const std::string kEnqueNodeType = "OutfeedEnqueueOp";
+const std::string kEnqueNodeType = "OutfeedEnqueueOpV2";
 
 static ge::Tensor MakeGeTensor(
     const ge::TensorDesc& tensor_desc,

@@ -77,50 +77,5 @@ bool OptionsManager::CheckUseNpuLogEnable() {
   return (useNpuLog == 1);
 }
 
-bool OptionsManager::CheckDynamicOptimizer(const char* op) {
-  static int isGetOps = 0;
-  static std::map<std::string, bool> op_map = {{"ADD", false}, {"MUL", false}};
-  if (isGetOps == 0) {
-    char* dynamicOptimizerEnv = std::getenv("DYNAMIC_OP");
-    if (dynamicOptimizerEnv != nullptr) {
-      std::string dynamicOptimizerEnvStr = dynamicOptimizerEnv;
-      const std::string separator = "#";
-      std::string::size_type pos1 = 0;
-      std::string::size_type pos2 = dynamicOptimizerEnvStr.find(separator);
-      std::string substr;
-      while (pos2 != std::string::npos) {
-        substr = dynamicOptimizerEnvStr.substr(pos1, pos2 - pos1);
-        if (op_map.find(substr) != op_map.end()) {
-          op_map[substr] = true;
-        }
-        pos1 = pos2 + separator.size();
-        pos2 = dynamicOptimizerEnvStr.find(separator, pos1);
-      }
-      if (pos1 != dynamicOptimizerEnvStr.size()) {
-        substr = dynamicOptimizerEnvStr.substr(pos1);
-        if (op_map.find(substr) != op_map.end()) {
-          op_map[substr] = true;
-        }
-      }
-    }
-    isGetOps = 1;
-  }
-  TORCH_CHECK(
-      op_map.find(op) != op_map.end(), "This op is not currently optimized.");
-  return op_map[op];
-}
-
-bool OptionsManager::CheckScalarToHostMemEnable()
-{
-  static int32_t scalarToHostMemFlag = -1;
-  if (scalarToHostMemFlag == -1) {
-    // this env will be deleted when cann sets scalar input to data input
-    // whether in fuzzy compile or no fuzzy compile
-    scalarToHostMemFlag = GetBoolTypeOption("SCALAR_TO_HOST_MEM");
-  }
-  return (scalarToHostMemFlag == 1);
-}
-
-
 } // namespace npu
 } // namespace c10

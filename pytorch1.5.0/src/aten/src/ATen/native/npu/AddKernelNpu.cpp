@@ -100,21 +100,12 @@ Tensor& add_out_npu_nocheck(
           .Output(result, "", nullopt, real_type)
           .Run();
     } else {
-      if (c10::npu::OptionsManager::CheckDynamicOptimizer("ADD")) {
-        cmd.Name("AxpyV2")
-            .Input(self)
-            .Input(other)
-            .Input(alpha, self.scalar_type())
-            .Output(result)
-            .Run();
-      } else {
-        cmd.Name("Axpy")
-            .Input(self)
-            .Input(other)
-            .Attr("alpha", alpha)
-            .Output(result)
-            .Run();
-      }
+      cmd.Name("AxpyV2")
+          .Input(self)
+          .Input(other)
+          .Input(alpha, self.scalar_type())
+          .Output(result)
+          .Run();
     }
   }
 

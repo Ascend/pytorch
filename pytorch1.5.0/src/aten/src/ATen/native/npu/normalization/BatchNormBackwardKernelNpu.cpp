@@ -21,7 +21,7 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-namespace{
+namespace {
 tuple<Tensor&, Tensor&> batch_norm_backward_training_update_nocheck(
     Tensor& grad_weight,
     Tensor& grad_bias,
@@ -40,10 +40,10 @@ tuple<Tensor&, Tensor&> batch_norm_backward_training_update_nocheck(
     cmd.Name("BN3DTrainingUpdateGrad")
         .Input(grad_out, "grads", ACL_FORMAT_NCDHW)
         .Input(self, "x", ACL_FORMAT_NCDHW)
-        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-        .Output(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
-        .Output(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCDHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCDHW)
+        .Output(grad_weight, "diff_scale", ACL_FORMAT_NCDHW)
+        .Output(grad_bias, "diff_offset", ACL_FORMAT_NCDHW)
         .Attr("epsilon", static_cast<float>(eps))
         .Run();
   } else {
@@ -81,12 +81,12 @@ Tensor& batch_norm_backward_training_reduce_nocheck(
     cmd.Name("BN3DTrainingReduceGrad")
         .Input(grad_out, "grads", ACL_FORMAT_NCDHW)
         .Input(self, "x", ACL_FORMAT_NCDHW)
-        .Input(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
-        .Input(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
-        .Input(weight, "scale", ACL_FORMAT_NCHW)
-        .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-        .Output(grad_input, "y", ACL_FORMAT_NCHW)
+        .Input(grad_weight, "diff_scale", ACL_FORMAT_NCDHW)
+        .Input(grad_bias, "diff_offset", ACL_FORMAT_NCDHW)
+        .Input(weight, "scale", ACL_FORMAT_NCDHW)
+        .Input(save_mean, "batch_mean", ACL_FORMAT_NCDHW)
+        .Input(save_invstd, "batch_variance", ACL_FORMAT_NCDHW)
+        .Output(grad_input, "y", ACL_FORMAT_NCDHW)
         .Attr("epsilon", static_cast<float>(eps))
         .Run();
   } else {
@@ -122,13 +122,13 @@ Tensor& batch_norm_backward_infer_nocheck(
     double eps)  {
   OpCommand cmd;
   cmd.Name("BNInferGrad")
-      .Input(grad_out)
-      .Input(weight)
-      .Input(running_var)
-      .Output(grad_input)
+      .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+      .Input(weight, "scale", ACL_FORMAT_NCHW)
+      .Input(running_var, "batch_variance", ACL_FORMAT_NCHW)
+      .Output(grad_input, "x_backprop", ACL_FORMAT_NCHW)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-  
+
   return grad_input;  
 }
 
@@ -198,7 +198,7 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_backward_impl(
   
   return tuple<Tensor&, Tensor&, Tensor&>(grad_input, grad_weight, grad_bias);
 }
-}
+} // namespace
 
 tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
     const Tensor& grad_out,
@@ -230,11 +230,14 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
     self_reshape = self.permute({0, 2, 1, 3, 4});
     grad_out_reshape = grad_out.permute({0, 2, 1, 3, 4});
     // nchw=(n*d, c, h, w)
-    SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
+    SmallVector<int64_t, N> nchw_shape = {
+        self_shape[0] * self_shape[2],
+        self_shape[1],
+        self_shape[3],
+        self_shape[4]};
     // ndchw -> nchw
     self_reshape = self_reshape.reshape(nchw_shape);
     grad_out_reshape = grad_out_reshape.reshape(nchw_shape);
-    
   }
 
   // init optional input
@@ -242,14 +245,23 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
   TensorOptions options = self.options().dtype(ScalarType::Float);
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format 1D Input tensor.
-  Tensor weight_tensor = weight.defined() ? weight.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
-  Tensor running_mean_tensor = running_mean.defined() ? running_mean.npu_format_cast_(ACL_FORMAT_NC1HWC0) : zeros_npu({dim_c}, options);
-  Tensor running_var_tensor = running_var.defined() ? running_var.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
+  Tensor weight_tensor = weight.defined()
+      ? weight.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : ones_npu({dim_c}, options);
+  Tensor running_mean_tensor = running_mean.defined()
+      ? running_mean.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : zeros_npu({dim_c}, options);
+  Tensor running_var_tensor = running_var.defined()
+      ? running_var.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : ones_npu({dim_c}, options);
 
   // construct the output tensor of the NPU
-  Tensor grad_input = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
-  Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
-  Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
+  Tensor grad_input = OpPreparation::ApplyTensor(
+      self_reshape.sizes(), self_reshape.options(), self_reshape);
+  Tensor grad_weight = OpPreparation::ApplyTensor(
+      weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
+  Tensor grad_bias = OpPreparation::ApplyTensor(
+      weight_tensor, weight_tensor.options().dtype(ScalarType::Float));
 
   // calculate the output result of the NPU
   batch_norm_backward_impl(
@@ -266,7 +278,7 @@ tuple<Tensor, Tensor, Tensor> batch_norm_backward_npu(
       train,
       eps,
       grad_input_mask);
-  
+
   // grad_input_mask
   Tensor undefine_grad_input;
   Tensor undefine_grad_weight;

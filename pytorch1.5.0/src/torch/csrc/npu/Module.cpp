@@ -19,7 +19,7 @@
 #include <ATen/ATen.h>
 #include <ATen/npu/NPUGenerator.h>
 #include <ATen/native/npu/graph/execute/GraphExecutor.h>
-#include <ATen/native/npu/graph/util/TdtQueForPrint.h>
+#include <ATen/native/npu/graph/util/TdtChannelForPrint.h>
 #include <TH/TH.h>
 #include <acl/acl.h>
 #include <c10/npu/NPUException.h>
@@ -145,8 +145,6 @@ PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* arg) {
   bool verbose = THPUtils_unpackBool(arg);
   c10::npu::NpuRunMode::SetNpuRunMode(c10::npu::ModeKind::GRAPH_MODE);
   at::native::npu::GraphExecutor::GetInstance().SetVerbose(verbose);
-  TORCH_CHECK(at::native::npu::TdtQueForPrint::GetInstance().Init(),
-              "Init queue for npu lazy print failed");
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -498,12 +496,13 @@ PyObject* wrap_tuple_to_print(at::native::npu::TupleToPrint& tuple_to_print) {
   PyTuple_SET_ITEM(ret.get(), tensor_num, PYBIND11_BYTES_FROM_STRING(format_string.c_str()));
   return ret.release();
 }
+
 PyObject* THNPModule_npu_deque_tensor(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   at::native::npu::TupleToPrint tuple_to_print;
   do {
-    tuple_to_print = at::native::npu::TdtQueForPrint::GetInstance().GetTupleToPrint();
+    tuple_to_print = at::native::npu::TdtChannelForPrint::GetInstance().GetTupleToPrint();
     if (std::get<0>(tuple_to_print).size() == 0) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } else {

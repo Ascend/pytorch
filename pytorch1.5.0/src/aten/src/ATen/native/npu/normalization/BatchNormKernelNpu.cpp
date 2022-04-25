@@ -35,12 +35,12 @@ Tensor& batch_norm_infer_nocheck(
     double eps) {
   OpCommand cmd;
   cmd.Name("BNInfer")
-      .Input(self)
-      .Input(weight)
-      .Input(bias)
-      .Input(running_mean)
-      .Input(running_var)
-      .Output(result)
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "scale", ACL_FORMAT_NCHW)
+      .Input(bias, "offset", ACL_FORMAT_NCHW)
+      .Input(running_mean, "mean", ACL_FORMAT_NCHW)
+      .Input(running_var, "variance", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
@@ -63,8 +63,8 @@ tuple<Tensor&, Tensor&> batch_norm_training_reduce_nocheck(
     // Used for 3D BatchNorm in Training
     cmd.Name("BN3DTrainingReduce")
         .Input(self, "x", ACL_FORMAT_NCDHW)
-        .Output(sum, "sum", ACL_FORMAT_NCHW)
-        .Output(square_sum, "square_sum", ACL_FORMAT_NCHW)
+        .Output(sum, "sum", ACL_FORMAT_NCDHW)
+        .Output(square_sum, "square_sum", ACL_FORMAT_NCDHW)
         .Attr("epsilon", static_cast<float>(eps))
         .Run();
   } else {
@@ -99,12 +99,12 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_training_update_nocheck(
     // Used for 3D BatchNorm in Training
     cmd.Name("BN3DTrainingUpdate")
         .Input(self, "x", ACL_FORMAT_NCDHW)
-        .Input(sum, "sum", ACL_FORMAT_NCHW)
-        .Input(square_sum, "square_sum", ACL_FORMAT_NCHW)
-        .Input(weight, "scale", ACL_FORMAT_NCHW)
-        .Input(bias, "offset", ACL_FORMAT_NCHW)
-        .Input(running_mean, "mean", ACL_FORMAT_NCHW)
-        .Input(running_var, "variance", ACL_FORMAT_NCHW)
+        .Input(sum, "sum", ACL_FORMAT_NCDHW)
+        .Input(square_sum, "square_sum", ACL_FORMAT_NCDHW)
+        .Input(weight, "scale", ACL_FORMAT_NCDHW)
+        .Input(bias, "offset", ACL_FORMAT_NCDHW)
+        .Input(running_mean, "mean", ACL_FORMAT_NCDHW)
+        .Input(running_var, "variance", ACL_FORMAT_NCDHW)
         .Output(result, "y", ACL_FORMAT_NCDHW)
         .Output(const_cast<Tensor&>(running_mean), "mean", ACL_FORMAT_NCHW)
         .Output(const_cast<Tensor&>(running_var), "variance", ACL_FORMAT_NCHW)
@@ -163,8 +163,14 @@ tuple<Tensor&, Tensor&, Tensor&> batch_norm_impl(
   }
 
   // calculate the output result of the NPU
-  Tensor sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
-  Tensor square_sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
+  Tensor sum = OpPreparation::ApplyTensor(
+      running_mean.sizes(),
+      running_mean.options().dtype(at::kFloat),
+      running_mean);
+  Tensor square_sum = OpPreparation::ApplyTensor(
+      running_mean.sizes(),
+      running_mean.options().dtype(at::kFloat),
+      running_mean);
 
   batch_norm_training_reduce_nocheck(
       sum,
@@ -249,7 +255,11 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
     // ncdhw -> ndchw
     self_reshape = self.permute({0, 2, 1, 3, 4});
     // nchw=(n*d, c, h, w)
-    SmallVector<int64_t, N> nchw_shape = {self_shape[0] * self_shape[2], self_shape[1], self_shape[3], self_shape[4]};
+    SmallVector<int64_t, N> nchw_shape = {
+        self_shape[0] * self_shape[2],
+        self_shape[1],
+        self_shape[3],
+        self_shape[4]};
     // ndchw -> nchw
     self_reshape = self_reshape.reshape(nchw_shape);
   }
@@ -259,20 +269,35 @@ tuple<Tensor, Tensor, Tensor> batch_norm_npu(
   TensorOptions options = self.options().dtype(ScalarType::Float);
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
-  Tensor running_mean_tensor = running_mean.defined() ? running_mean.npu_format_cast_(ACL_FORMAT_NC1HWC0) : zeros_npu({dim_c}, options);
-  Tensor running_var_tensor = running_var.defined() ? running_var.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
+  Tensor running_mean_tensor = running_mean.defined()
+      ? running_mean.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : zeros_npu({dim_c}, options);
+  Tensor running_var_tensor = running_var.defined()
+      ? running_var.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : ones_npu({dim_c}, options);
 
-  Tensor weight_tensor = weight.defined() ? weight.npu_format_cast_(ACL_FORMAT_NC1HWC0) : ones_npu({dim_c}, options);
-  Tensor bias_tensor = bias.defined() ? bias.npu_format_cast_(ACL_FORMAT_NC1HWC0) : zeros_npu({dim_c}, options);
+  Tensor weight_tensor = weight.defined()
+      ? weight.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : ones_npu({dim_c}, options);
+  Tensor bias_tensor = bias.defined()
+      ? bias.npu_format_cast_(ACL_FORMAT_NC1HWC0)
+      : zeros_npu({dim_c}, options);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
+  Tensor result = OpPreparation::ApplyTensor(
+      self_reshape.sizes(), self_reshape.options(), self_reshape);
 
   Tensor save_mean;
   Tensor save_invstd;
   if (train) {
-    save_mean = OpPreparation::ApplyTensor(running_mean_tensor.sizes(), running_mean_tensor.options().dtype(at::kFloat), running_mean_tensor);
-    save_invstd = OpPreparation::ApplyTensor(running_var_tensor.sizes(), running_var_tensor.options().dtype(at::kFloat), running_var_tensor);
+    save_mean = OpPreparation::ApplyTensor(
+        running_mean_tensor.sizes(),
+        running_mean_tensor.options().dtype(at::kFloat),
+        running_mean_tensor);
+    save_invstd = OpPreparation::ApplyTensor(
+        running_var_tensor.sizes(),
+        running_var_tensor.options().dtype(at::kFloat),
+        running_var_tensor);
   } else {
     save_mean = {};
     save_invstd = {};

@@ -47,12 +47,12 @@ Tensor& upsample_nearest2d_out_npu(
   SmallVector<int64_t,N> outputSizeVec = array_to_small_vector(output_size);
   OpCommand cmd;
   cmd.Name("ResizeNearestNeighborV2")
-    .Input(self)
-    .Input(outputSizeVec, at::kInt)
-    .Output(result)
-    .Attr("align_corners", false)
-    .Attr("half_pixel_centers", false)
-    .Run();
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(outputSizeVec, at::kInt)
+      .Output(result, "y", ACL_FORMAT_NCHW)
+      .Attr("align_corners", false)
+      .Attr("half_pixel_centers", false)
+      .Run();
   return result;
 }
 

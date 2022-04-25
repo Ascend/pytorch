@@ -69,8 +69,6 @@ class TestDynamicMulWithQueEnable(TestCase):
         items = [
             [i, j, k, 200] for i in format_list for j in dtype_list for k in dim_list
         ]
-        torch.npu.increase_step()
-        torch.npu.increase_step()
         for item in items:
             cpu_tensor_list, npu_tensor_list = self.create_random_shape_tensor(item, -100, 100)
             cpu_outputs = self.cpu_exec(cpu_tensor_list)

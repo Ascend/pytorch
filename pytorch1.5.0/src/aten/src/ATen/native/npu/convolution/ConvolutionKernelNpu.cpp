@@ -137,12 +137,12 @@ Tensor& convolution_transpose3d_out_npu_nocheck(
   OpCommand cmd;
   cmd.Name("Conv3DTranspose")
       .Input(sizeVec, at::kInt)
-      .Input(input)
-      .Input(weight);
-  if (bias.defined()){
+      .Input(input, "x", ACL_FORMAT_NCDHW)
+      .Input(weight, "filter", ACL_FORMAT_NCDHW);
+  if (bias.defined()) {
     cmd.Input(bias);
   }
-  cmd.Output(result)
+  cmd.Output(result, "y", ACL_FORMAT_NCDHW)
       .Attr("pads", paddings)
       .Attr("output_padding", outputpadding)
       .Attr("strides", stridesSize)

@@ -20,36 +20,47 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor conv3d_backward_inputmask(Tensor &gradInput, const Tensor &input,
-    const Tensor &grad, const Tensor &weight,
-    IntArrayRef stride, IntArrayRef padding,
-    IntArrayRef dilation, int64_t groups) {
+Tensor conv3d_backward_inputmask(
+    Tensor& gradInput,
+    const Tensor& input,
+    const Tensor& grad,
+    const Tensor& weight,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
   SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1],
                                       padding[1], padding[2], padding[2]};
   SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1], dilation[2]};
   IntArrayRef inputSize = input.sizes();
   Tensor weightCast = weight.to(grad.dtype());
-  
+
   OpCommand cmd;
   cmd.Name("Conv3DBackpropInput")
-    .Input(inputSize, at::kInt)
-    .Input(weightCast)
-    .Input(grad)
-    .Output(gradInput)
-    .Attr("strides", stridesSize)
-    .Attr("pads", paddings)
-    .Attr("dilations", dilations)
-    .Attr("groups", groups)
-    .Attr("data_format", (string) "NCDHW")
-    .Run();
+      .Input(inputSize, at::kInt)
+      .Input(weightCast, "filter", ACL_FORMAT_NCDHW)
+      .Input(grad, "out_backprop", ACL_FORMAT_NCDHW)
+      .Output(gradInput, "y", ACL_FORMAT_NCDHW)
+      .Attr("strides", stridesSize)
+      .Attr("pads", paddings)
+      .Attr("dilations", dilations)
+      .Attr("groups", groups)
+      .Attr("data_format", (string) "NCDHW")
+      .Run();
+
   return gradInput;
 }
 
-Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
-    const Tensor &grad, const Tensor &weight,
-    IntArrayRef stride, IntArrayRef padding,
-    IntArrayRef dilation, int64_t groups) {
+Tensor conv3d_backward_weightmask(
+    Tensor& gradWeight,
+    const Tensor& input,
+    const Tensor& grad,
+    const Tensor& weight,
+    IntArrayRef stride,
+    IntArrayRef padding,
+    IntArrayRef dilation,
+    int64_t groups) {
   SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
   SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1],
                                       padding[1], padding[2], padding[2]};
@@ -57,11 +68,11 @@ Tensor conv3d_backward_weightmask(Tensor &gradWeight, const Tensor &input,
   IntArrayRef inputSize = weight.sizes();
 
   OpCommand cmd;
-    cmd.Name("Conv3DBackpropFilter")
-      .Input(input)
+  cmd.Name("Conv3DBackpropFilter")
+      .Input(input, "x", ACL_FORMAT_NCDHW)
       .Input(inputSize, at::kInt)
-      .Input(grad)
-      .Output(gradWeight)
+      .Input(grad, "out_backprop", ACL_FORMAT_NCDHW)
+      .Output(gradWeight, "y", ACL_FORMAT_NCDHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)

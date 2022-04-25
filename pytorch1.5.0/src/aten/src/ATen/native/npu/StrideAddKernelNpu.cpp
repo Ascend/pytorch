@@ -64,13 +64,13 @@ Tensor& stride_add_out_npu(
     
   OpCommand cmd;
   cmd.Name("StrideAdd")
-      .Input(self)
-      .Input(other)
-      .Output(result)
+      .Input(self, "x1", ACL_FORMAT_NCHW)
+      .Input(other, "x2", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("x1_c1_offset", (int64_t)offset1.toInt())
       .Attr("x2_c1_offset", (int64_t)offset2.toInt())
       .Attr("c1_len", (int64_t)c1_len.toInt())
-      .Run();     
+      .Run();
 
   return result;
 }
@@ -82,7 +82,8 @@ Tensor stride_add_npu(
     Scalar offset2,
     Scalar c1_len) {
   // calculate the output size
-  auto outputSize = deprecated_broadcast_ops_npu_output_size(self.sizes(), other.sizes());
+  auto outputSize =
+      deprecated_broadcast_ops_npu_output_size(self.sizes(), other.sizes());
   outputSize[1] = c1_len.toInt() * 16;
 
   // construct the output tensor of the NPU

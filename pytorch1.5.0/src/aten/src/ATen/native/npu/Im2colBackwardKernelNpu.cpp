@@ -42,9 +42,9 @@ Tensor& im2col_backward_out_npu_nocheck(
   
   OpCommand cmd;
   cmd.Name("Col2im")
-      .Input(gradOutput)
+      .Input(gradOutput, "x", ACL_FORMAT_NCHW)
       .Input(inputSize, at::kInt)
-      .Output(grad_input)
+      .Output(grad_input, "y", ACL_FORMAT_NCHW)
       .Attr("kernel_size", kernelSize)
       .Attr("dilation", dilations)
       .Attr("padding", paddings)

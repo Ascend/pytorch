@@ -24,6 +24,10 @@
 namespace at {
 namespace native {
 namespace npu {
+namespace {
+const uint64_t kStringOffset = 16UL;
+const std::string kStringDType = "string";
+}
 using c10::npu::graph::NodeExtInfoType;
 void at::native::npu::GraphCommandImpl::SetName(const std::string& name) {
   ir_node_ = std::make_shared<c10::npu::graph::Node>(name);
@@ -120,6 +124,51 @@ void GraphCommandImpl::AddInput(
     ir_node_->UpdateNodeHash(dim_list, to_type);
   }
   ++input_index_;
+  return;
+}
+
+void GraphCommandImpl::AddInput(const string& str) {
+  const auto length = str.length();
+  const uint64_t total_length = length + kStringOffset;
+  auto cpu_str_tensor = at::empty({total_length}, at::dtype(kByte).pinned_memory(true));
+  uint8_t* cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
+  const size_t head_size = sizeof(kStringOffset);
+  AT_NPU_CHECK(
+    aclrtMemcpy(cpu_ptr,
+                head_size,
+                &kStringOffset,
+                head_size,
+                ACL_MEMCPY_HOST_TO_HOST)
+  );
+  AT_NPU_CHECK(
+    aclrtMemcpy(cpu_ptr + head_size,
+                head_size,
+                &length,
+                head_size,
+                ACL_MEMCPY_HOST_TO_HOST)
+  );
+  AT_NPU_CHECK(
+    aclrtMemcpy(cpu_ptr + kStringOffset,
+                length,
+                str.c_str(),
+                length,
+                ACL_MEMCPY_HOST_TO_HOST)
+  );
+
+  auto input = at::empty({total_length}, at::dtype(kByte).device(kNPU));
+  auto cal_stream = c10::npu::getCurrentNPUStream();
+  AT_NPU_CHECK(
+    aclrtMemcpyAsync(input.data_ptr(),
+                     total_length,
+                     cpu_ptr,
+                     total_length,
+                     ACL_MEMCPY_HOST_TO_DEVICE,
+                     cal_stream)
+  );
+
+  AT_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
+			                             cal_stream));
+  this->AddInput(input, "", kStringDType, nullopt);
   return;
 }
 

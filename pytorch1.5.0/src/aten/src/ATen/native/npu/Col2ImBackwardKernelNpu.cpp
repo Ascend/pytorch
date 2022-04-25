@@ -33,11 +33,11 @@ Tensor col2im_backward_out_npu_template(
 
   OpCommand cmd;
   cmd.Name("ExtractImagePatches")
-      .Input(grad_output)
+      .Input(grad_output, "x", ACL_FORMAT_NCHW)
       .Output(grad_input)
       .Attr("ksizes", kernelSize)
       .Attr("strides", stridesSize)
-      .Attr("padding", (string)"SAME")
+      .Attr("padding", (string) "SAME")
       .Attr("dilations", dilations)
       .Run();
   return grad_input;
@@ -50,11 +50,9 @@ Tensor& col2im_backward_out_npu(
     IntArrayRef dilation,
     IntArrayRef padding,
     IntArrayRef stride) {
-  OpPreparation::CheckOut(
-      {grad_output},
-      grad_input,
-      grad_output);
-  col2im_backward_out_npu_template(grad_input, grad_output, kernel_size, dilation, padding, stride);
+  OpPreparation::CheckOut({grad_output}, grad_input, grad_output);
+  col2im_backward_out_npu_template(
+      grad_input, grad_output, kernel_size, dilation, padding, stride);
   return grad_input;
 }
 
@@ -65,9 +63,9 @@ Tensor col2im_backward_npu(
     IntArrayRef padding,
     IntArrayRef stride) {
   Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
-  col2im_backward_out_npu_template(grad_input, grad_output, kernel_size, dilation,padding,stride);
+  col2im_backward_out_npu_template(
+      grad_input, grad_output, kernel_size, dilation, padding, stride);
   return grad_input;
 }
-
 }
 }

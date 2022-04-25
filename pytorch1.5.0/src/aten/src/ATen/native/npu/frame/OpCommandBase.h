@@ -173,21 +173,21 @@ class OpCommandBase {
   Derived& Input(
       const Scalar& input,
       const ScalarType type,
-      CompileType compileType = CompileType::MEMORY_DEVICE_COMPILE) {
-    if ((compileType == MEMORY_DEVICE_COMPILE) &&
-      (c10::npu::OptionsManager::CheckScalarToHostMemEnable())) {
-      compileType = MEMORY_HOST_COMPILE_INDEPENDENT;
-    }
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
         auto true_type = commonType.has_value() ? commonType.value() : type;
         graphCmd.AddInput(input, true_type, compileType);
         )
-    if (compileType == CompileType::MEMORY_DEVICE_COMPILE) {
-      return AddScalarInput(input, type);
-    } else {
-      auto scalarTensor = CreateScalarTensor(input, type);
-      return AddHostTensorInput(scalarTensor, compileType);
-    }
+    auto scalarTensor = CreateScalarTensor(input, type);
+    return AddHostTensorInput(scalarTensor, compileType);
+  }
+
+  Derived& Input(const string& str) {
+    IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
+      graphCmd.AddInput(str);
+    )
+    AT_ERROR("single op mode do not support string input temporarily");
+    return static_cast<Derived&>(*this);
   }
 
   // TODO(ascend): 这个类型的参数应该是一个bug

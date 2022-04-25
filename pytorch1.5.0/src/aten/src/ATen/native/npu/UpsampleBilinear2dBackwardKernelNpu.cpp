@@ -29,12 +29,12 @@ Tensor& upsample_bilinear2d_backward_out_npu_nocheck(
   bool half_pixel_centers = !align_corners;
   OpCommand cmd;
   cmd.Name("ResizeBilinearV2Grad")
-    .Input(grad_output)
-    .Input(original_image)
-    .Output(grad_input)
-    .Attr("align_corners", align_corners)
-    .Attr("half_pixel_centers", half_pixel_centers)
-    .Run();
+      .Input(grad_output, "grads", ACL_FORMAT_NCHW)
+      .Input(original_image, "original_image", ACL_FORMAT_NCHW)
+      .Output(grad_input, "y", ACL_FORMAT_NCHW)
+      .Attr("align_corners", align_corners)
+      .Attr("half_pixel_centers", half_pixel_centers)
+      .Run();
   return grad_input;
 }
 

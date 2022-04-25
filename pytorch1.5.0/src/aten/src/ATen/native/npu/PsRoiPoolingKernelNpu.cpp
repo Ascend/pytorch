@@ -31,9 +31,9 @@ Tensor& ps_roi_pooling_npu_nocheck(
     int64_t output_dim) {
   OpCommand cmd;
   cmd.Name("PSROIPoolingV2")
-      .Input(self)
+      .Input(self, "x", ACL_FORMAT_NCHW)
       .Input(rois)
-      .Output(result)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("spatial_scale", (float)spatial_scale)
       .Attr("output_dim", output_dim)
       .Attr("group_size", group_size)

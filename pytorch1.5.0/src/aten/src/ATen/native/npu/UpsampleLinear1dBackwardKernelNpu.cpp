@@ -58,7 +58,6 @@ Tensor& upsample_linear1d_backward_out_npu(
     IntArrayRef input_size,
     bool align_corners,
     c10::optional<double> scales) {
-
   SmallVector<float, N> sc = {};
   if (scales.has_value()) {
     sc.push_back(scales.value());
@@ -72,12 +71,12 @@ Tensor& upsample_linear1d_backward_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("ResizeGradD")
-      .Input(grad_output)
-      .Output(result)
+      .Input(grad_output, "grads", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("original_size", input_size)
       .Attr("scales", sc)
       .Attr("coordinate_transformation_mode", coordinate_transformation_mode)
-      .Attr("mode", (string)"linear")
+      .Attr("mode", (string) "linear")
       .Run();
   return result;
 }
