@@ -268,10 +268,11 @@ Modify the **main.py** training script to implement single-device model training
 
 #### Single-Device Training Porting
 
-1. Import the **torch.npu** module to **main.py**.
+1. Import the **torch_npu** module to **main.py**.
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    ```
 
 2. Define the training device in **main.py**.
@@ -415,7 +416,8 @@ Modify the **main.py** training script to implement single-device model training
 1. Add a header file to **main.py** to support mixed precision training of PyTorch-based models on Ascend 910 AI Processors.
 
    ```python
-   import torch.npu
+   import torch
+   import torch_npu
    from apex import amp
    ```
 
@@ -1383,7 +1385,7 @@ The PyTorch 1.8.1 framework supports only the preceding four scenarios. For deta
 
 #### Usage of AMP on NPUs
 
-1. When a model is adapted from GPUs to NPUs, you need to change **code torch.cuda.amp** to **torch.npu.amp**.
+1. When a model is adapted from GPUs to NPUs, you need to change **code torch.cuda.amp** to **torch_npu.npu.amp**.
 2. In the PyTorch 1.8.1 AMP tool, the **dynamic** option, defaulted to **True**, is added to **GradScaler**. If this option is set to **False**, AMP supports static loss scale.
 
 #### Precautions
@@ -1508,7 +1510,7 @@ Select a collection mode based on the site requirements and perform the followin
 
         ```
         profiler_result_path  = "/home/profiling_data"     # folder for storing the profile data. Specify it based on the site requirements.
-        with torch.npu.profile(profiler_result_path, config): Generally, only one step needs to be performed. You can retain the default config.
+        with torch_npu.npu.profile(profiler_result_path, config): Generally, only one step needs to be performed. You can retain the default config.
             out = model(input_tensor)
             loss=loss_func(out,target)
             loss.backward()
@@ -1530,14 +1532,14 @@ Select a collection mode based on the site requirements and perform the followin
     for i in range(steps):
         if i >=10 && i <= 100:  ## Obtains the profile data from step 10 to step 100.
             if i == 10:  ## Enables this function in step 10.
-                torch.npu.prof_init(profiler_result_path) ## profiler_result_path is the same as the preceding profiler_result_path.
-                torch.npu.prof_start(config) ## config is the same as the preceding config. You can retain its default value.
-            torch.npu.iteration_start()  ## Adds a start flag when entering each step.
+                torch_npu.npu.prof_init(profiler_result_path) ## profiler_result_path is the same as the preceding profiler_result_path.
+                torch_npu.npu.prof_start(config) ## config is the same as the preceding config. You can retain its default value.
+            torch_npu.npu.iteration_start()  ## Adds a start flag when entering each step.
             train_one_step()
-            torch.npu.iteration_end()    ## Adds a start flag when each step ends.
+            torch_npu.npu.iteration_end()    ## Adds a start flag when each step ends.
             if i == 110:   ## Disables this function in the step 100.
-                torch.npu.prof_stop()
-                torch.npu.prof_finalize()
+                torch_npu.npu.prof_stop()
+                torch_npu.npu.prof_finalize()
     ```
 
 ##### Obtaining Operator Information (OP_INFO)
@@ -1871,7 +1873,7 @@ The E2E prof tool integrates the framework-layer data obtained by the Profiling 
 Add the following with statement to enable the E2E prof function.
 
 ```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
+with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
 
      model_train()
 ```
@@ -1919,8 +1921,8 @@ The results obtained by using the E2E prof tool are raw data, which can be viewe
 By default, the E2E prof tool can obtain all of the preceding data. However, the process of obtaining data affects the performance. If a large amount of data is obtained, the profile data cannot be used as a reference. Therefore, the E2E prof tool provides configurable options for fine-grained control over obtaining data of specified layers.
 
 ```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
-                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
+with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
                         ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
                         ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
                         ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
@@ -2008,7 +2010,7 @@ For an NPU device, the input parameters (such as the shape and format) of each o
 
    ```
    def train_model():
-      torch.npu.set_aoe(dump_path) # Enablement API. dump_path is the path for saving the dumped operator information. It is mandatory and cannot be left empty. If the configured path does not exist, the system attempts to create one. Multi-level directories are supported.
+      torch_npu.npu.set_aoe(dump_path) # Enablement API. dump_path is the path for saving the dumped operator information. It is mandatory and cannot be left empty. If the configured path does not exist, the system attempts to create one. Multi-level directories are supported.
       train_model_one_step()       # Model training process example. Generally, only one step needs to be performed. Modify the code based on the site requirements.
    ```
    
@@ -2019,7 +2021,7 @@ For an NPU device, the input parameters (such as the shape and format) of each o
    model.train()
    optimizer.zero_grad()
    end = time.time()
-   torch.npu.set_aoe(dump_path)    # Enablement API
+   torch_npu.npu.set_aoe(dump_path)    # Enablement API
    for i, (images, target) in enumerate(train_loader):
        if i > 0:             # Only one step needs to be run.
            exit()
@@ -2253,7 +2255,7 @@ Solution:
 Prerequisites:
 
 - Set the environment variable export `ACL_DUMP_DATA=0`.
-- Do not use the `torch.npu.init.dump()` and `torch.npu.set.dump()` APIs in the script.
+- Do not use the `torch_npu.npu.init.dump()` and `torch_npu.npu.set.dump()` APIs in the script.
 
 Procedure:
 
@@ -2486,6 +2488,7 @@ The saved .pth or .pt file can be restored by building a model using PyTorch and
 
 ```
 import torch
+import torch_npu
 import torch.onnx
 import torchvision.models as models
 # Set the CPU to be used to export the model.
@@ -2530,6 +2533,7 @@ Before exporting the ONNX model using the .pth.tar file, you need to check the s
 from collections import OrderedDict
 import mobilenet
 import torch
+import torch_npu
 import torch.onnx
 
 # In this example, when the .pth.tar file is saved, the prefix module is added to the node name. Delete it by traversing.
@@ -2955,7 +2959,7 @@ for group in [2, 4, 8]:
         @staticmethod
         def forward(ctx, x1, x2, fp_index, bp_index1, bp_index2):
             # Forcible stream synchronization, which is used only for training stabilization.
-            stream = torch.npu.current_stream()
+            stream = torch_npu.npu.current_stream()
             stream.synchronize()
     
             # Register bp_index1 and bp_index2 with context so that they can be used in backward propagation.
@@ -2972,7 +2976,7 @@ for group in [2, 4, 8]:
         @staticmethod
         def backward(ctx, grad_output):
             # Forcible stream synchronization, which is used only for training stabilization.
-            stream = torch.npu.current_stream()
+            stream = torch_npu.npu.current_stream()
             stream.synchronize()
     
     # Convert the format to NCHW to reduce extra transdata because index_select does not support the 5HD format.
@@ -3197,16 +3201,17 @@ When a problem occurs in a model, it is costly to reproduce the problem in the e
 
 #### Collecting Dump Data
 
-Currently, the PyTorch adapted to Ascend AI Processors uses the init\_dump\(\), set\_dump\(\), and finalize\_dump\(\) interfaces in  **torch.npu**  to collect operator dump data. The init\_dump\(\) interface initializes the dump configuration, invokes the set\_dump\(\) interface to import the configuration file to configure dump parameters, and invokes the finalize\_dump interface to end the dump. The following uses the add\_ operator as an example to describe how to collect dump data.
+Currently, the PyTorch adapted to Ascend AI Processors uses the init\_dump\(\), set\_dump\(\), and finalize\_dump\(\) interfaces in  **torch_npu.npu**  to collect operator dump data. The init\_dump\(\) interface initializes the dump configuration, invokes the set\_dump\(\) interface to import the configuration file to configure dump parameters, and invokes the finalize\_dump interface to end the dump. The following uses the add\_ operator as an example to describe how to collect dump data.
 
 ```
 import torch
+import torch_npu
 torch_npu.npu.set_device("npu:0")
-torch.npu.init_dump()
-torch.npu.set_dump("/home/HwHiAiUser/dump.json") # "/home/HwHiAiUser/dump.json" is the path of the configuration file. You can configure it as required.
+torch_npu.npu.init_dump()
+torch_npu.npu.set_dump("/home/HwHiAiUser/dump.json") # "/home/HwHiAiUser/dump.json" is the path of the configuration file. You can configure it as required.
 a = torch.tensor([2, 2]).to("npu:0")
 a.add_(1)
-torch.npu.finalize_dump()
+torch_npu.npu.finalize_dump()
 ```
 
 The configuration method of  **dump.json**  is as follows.
@@ -3360,8 +3365,9 @@ Configure the attributes of an operator during compilation to improve performanc
 
 ```
 import torch
+import torch_npu
 option = {key: val}
-torch.npu.set_option(option) # Set in dict mode.
+torch_npu.npu.set_option(option) # Set in dict mode.
 
 The key options are as follows:
 ACL_OP_SELECT_IMPL_MODE,      // Sets the operator implementation mode (high-precision or high-performance).
@@ -3594,7 +3600,7 @@ Currently, only one NPU device can be called in a thread. When different NPU dev
 
 ##### Solution
 
-In the code, when  **torch.npu.set_device(device)**,  **tensor.to(device)**, or  **model.to(device)**  is called in the same thread, the device names are inconsistent. For multiple threads (such as multi-device training), each thread can call only a fixed NPU device.
+In the code, when  **torch_npu.npu.set_device(device)**,  **tensor.to(device)**, or  **model.to(device)**  is called in the same thread, the device names are inconsistent. For multiple threads (such as multi-device training), each thread can call only a fixed NPU device.
 
 <h4 id="what-do-i-do-if-the-error-message-error-in-atexit-_run_exitfuncs-is-displayed-during-model-or-operatmd">What Do I Do If the Error Message "Error in atexit.\_run\_exitfuncs:" Is Displayed During Model or Operator Running?</h4>
 
@@ -3604,11 +3610,11 @@ In the code, when  **torch.npu.set_device(device)**,  **tensor.to(device)**, or 
 
 ##### Possible Causes
 
-If no NPU device is specified by  **torch.npu.device\(id\)**  during torch initialization, device 0 is used by default. If another NPU device is directly used, for example, a tensor is created on device 1, the preceding error occurs during running.
+If no NPU device is specified by  **torch_npu.npu.device\(id\)**  during torch initialization, device 0 is used by default. If another NPU device is directly used, for example, a tensor is created on device 1, the preceding error occurs during running.
 
 ##### Solution
 
-Before calling an NPU device, specify the NPU device by using  **torch.npu.set_device(device)**.
+Before calling an NPU device, specify the NPU device by using  **torch_npu.npu.set_device(device)**.
 
 <h4 id="what-do-i-do-if-the-error-message-terminate-called-after-throwing-an-instance-of-c10-error-what()-hemd">What Do I Do If the Error Message "terminate called after throwing an instance of 'c10::Error' what(): HelpACLExecute:" Is Displayed During Model Running?</h4>
 
@@ -3633,7 +3639,7 @@ You can resolve this exception by using either of the following methods:
 
 ```
 import torch
-
+import torch_npu
 npu = "npu"
 
 def test_cpu():
@@ -3666,7 +3672,7 @@ Before performing the backward operation, use the  **set\_decice\(\)**  method t
 
 ```
 if __name__ == "__main__":
-    torch.npu.set_device(f"{npu}:1")
+    torch_npu.npu.set_device(f"{npu}:1")
     test_cpu()
     test_npu()
 ```
@@ -3747,6 +3753,7 @@ Scripts:
 
 ```
     import torch
+    import torch_npu
 
     def test_sum():
         xs_shape = [22400, 8]
@@ -3759,7 +3766,7 @@ Scripts:
         right = gt_bboxes[..., 2] - xs
         top = ys - gt_bboxes[..., 1]
         bottom = gt_bboxes[..., 3] - ys
-        # stream = torch.npu.current_stream()
+        # stream = torch_npu.npu.current_stream()
         # stream.synchronize()
         # left, top: fp32,  right, bottom: fp16,
         # print(left.dtype, top.dtype, right.dtype, bottom.dtype)
@@ -3816,6 +3823,7 @@ Script:
 
 ```
     import torch
+    import torch_npu
 
     def test_sum():
         xs_shape = [22400, 8]
@@ -3828,7 +3836,7 @@ Script:
         right = gt_bboxes[..., 2] - xs
         top = ys - gt_bboxes[..., 1]
         bottom = gt_bboxes[..., 3] - ys
-        # stream = torch.npu.current_stream()
+        # stream = torch_npu.npu.current_stream()
         # stream.synchronize()
         # left, top: fp32,  right, bottom: fp16,
         # print(left.dtype, top.dtype, right.dtype, bottom.dtype)
@@ -4028,7 +4036,7 @@ The NPU does not use NPU stream synchronization.
 Use NPU stream synchronization.
 
 ```
-stream = torch.npu.current_stream()
+stream = torch_npu.npu.current_stream()
 stream.synchronize()
 ```
 

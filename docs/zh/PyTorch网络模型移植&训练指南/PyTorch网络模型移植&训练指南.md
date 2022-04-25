@@ -3225,7 +3225,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 #### 采集Dump数据<a name="zh-cn_topic_0235790166_section1470293916167"></a>
 
-当前适配昇腾AI处理器的PyTorch通过torch.npu中的init\_dump\(\)、set\_dump\(\)和finalize\_dump接口来进行算子dump数据的采集。首先init\_dump\(\)会进行初始化dump配置，然后通过set\_dump\(\)接口通过传入配置文件来配置dump参数，最后通过finalize\_dump来结束dump。以下以add\_算子为例，介绍算子dump数据采集方法。
+当前适配昇腾AI处理器的PyTorch通过torch_npu.npu中的init\_dump\(\)、set\_dump\(\)和finalize\_dump接口来进行算子dump数据的采集。首先init\_dump\(\)会进行初始化dump配置，然后通过set\_dump\(\)接口通过传入配置文件来配置dump参数，最后通过finalize\_dump来结束dump。以下以add\_算子为例，介绍算子dump数据采集方法。
 
 ```
 import torch
@@ -3635,11 +3635,11 @@ pip3.7 install pillow==5.3.0安装失败。
 
 **可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
 
-在torch初始化时，若未通过torch.npu.device\(id\)指定npu设备，则默认使用device 0设备。若直接使用其他NPU设备，如指定在device 1上创建tensor，那么在运行时会出现上述错误。
+在torch初始化时，若未通过torch_npu.npu.device\(id\)指定npu设备，则默认使用device 0设备。若直接使用其他NPU设备，如指定在device 1上创建tensor，那么在运行时会出现上述错误。
 
 **处理方法**<a name="section8970834202112"></a>
 
-在调用NPU设备之前，通过torch.npu.set\_device\(device\)指定需要使用的NPU设备即可。
+在调用NPU设备之前，通过torch_npu.npu.set\_device\(device\)指定需要使用的NPU设备即可。
 
 <h4 id="在模型运行时遇到报错-terminate-called-after-throwing-an-instance-of-c10-Error-what()-HelpACLExecutemd">在模型运行时遇到报错“terminate called after throwing an instance of 'c10::Error' what\(\): HelpACLExecute:”</h4>
 
@@ -3697,7 +3697,7 @@ if __name__ == "__main__":
 
 ```
 if __name__ == "__main__":
-    torch.npu.set_device(f"{npu}:1")
+    torch_npu.npu.set_device(f"{npu}:1")
     test_cpu()
     test_npu()
 ```
@@ -3790,7 +3790,7 @@ pytorch内调用npu类型算子时，强依赖于te、cce、tvm组件，pytorch�
         right = gt_bboxes[..., 2] - xs
         top = ys - gt_bboxes[..., 1]
         bottom = gt_bboxes[..., 3] - ys
-        # stream = torch.npu.current_stream()
+        # stream = torch_npu.npu.current_stream()
         # stream.synchronize()
         # left, top 结果是fp32，  right, bottom 结果是fp16，
         # print(left.dtype, top.dtype, right.dtype, bottom.dtype)
@@ -3860,7 +3860,7 @@ shell报错是在同步操作中和AI CPU错误，而日志报错信息却是在
         right = gt_bboxes[..., 2] - xs
         top = ys - gt_bboxes[..., 1]
         bottom = gt_bboxes[..., 3] - ys
-        # stream = torch.npu.current_stream()
+        # stream = torch_npu.npu.current_stream()
         # stream.synchronize()
         # left, top 结果是fp32，  right, bottom 结果是fp16，
         # print(left.dtype, top.dtype, right.dtype, bottom.dtype)
@@ -4058,7 +4058,7 @@ npu未使用npu的流同步方法。
 使用NPU的流同步方法：
 
 ```
-stream = torch.npu.current_stream()
+stream = torch_npu.npu.current_stream()
 stream.synchronize()
 ```
 

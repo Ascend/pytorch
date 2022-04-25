@@ -157,7 +157,7 @@ import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
-import torch.npu
+
 from apex import amp
 
 model_names = sorted(name for name in models.__dict__
@@ -597,5 +597,4 @@ Perform the following steps as the  **root**  user.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >Skip this step if you do not the compilation environment with GCC upgraded.
-
 
