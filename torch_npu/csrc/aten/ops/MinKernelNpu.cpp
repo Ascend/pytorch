@@ -128,7 +128,7 @@ at::Tensor& NPUNativeFunctions::min_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::min(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::minimum(const at::Tensor& self, const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   min_out_npu_nocheck(self, other, result);
