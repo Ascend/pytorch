@@ -57,10 +57,8 @@ at::Tensor NPUNativeFunctions::npu_layer_norm_eval(
     }
   }
   std::reverse(tmpSize.begin(), tmpSize.end());
-  at::Tensor resizeWeight = weight;
-  resizeWeight.requires_grad_(false);
-  at::Tensor resizeBias = bias;
-  resizeBias.requires_grad_(false);
+  at::Tensor resizeWeight = weight.detach().clone();
+  at::Tensor resizeBias = bias.detach().clone();
   if (!resizeWeight.defined()) {
     resizeWeight = at::ones(tmpSize, input.options());
   } else if (!resizeWeight.sizes().equals(tmpSize)) {
