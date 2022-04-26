@@ -173,12 +173,12 @@ def _get_device_index(device, optional=False):
             return int(device)
         else:
             device = torch.device(device)
+    device_idx = None
     if isinstance(device, torch.device):
-        dev_type = device.type
         if device.type != 'npu':
             raise ValueError('Expected a npu device, but got: {}'.format(device))
         device_idx = device.index
-    else:
+    if isinstance(device, int):
         device_idx = device
     if device_idx is None:
         if optional:
