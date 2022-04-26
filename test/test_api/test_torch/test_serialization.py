@@ -95,6 +95,15 @@ class TestSerialization(TestCase):
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
 
+    def test_model_storage_ptr(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            model = NpuMNIST().npu()
+            ptr1 = model.conv1.weight.data_ptr()
+            torch.save(model, path)
+            ptr2 = model.conv1.weight.data_ptr()
+            self.assertEqual(ptr1, ptr2)
+
     def test_serialization_state_dict(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
