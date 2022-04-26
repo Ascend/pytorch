@@ -60,17 +60,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
  bool is_xla(Tensor self) {
      return self.is_xla();
  }
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/TH/generic/THStorage.h patch/aten/src/TH/generic/THStorage.h
---- pytorch-v1.8.1/aten/src/TH/generic/THStorage.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/TH/generic/THStorage.h	2022-03-07 18:32:02.196337625 +0800
-@@ -51,6 +51,7 @@
- 
- TH_API THStorage* THStorage_(new)(void);
- TH_API THStorage* THStorage_(newWithSize)(ptrdiff_t size);
-+TH_API THStorage* THStorage_(newWithSizeAndDevice)(ptrdiff_t size, c10::DeviceType type);
- TH_API THStorage* THStorage_(newWithSize1)(scalar_t);
- TH_API THStorage* THStorage_(newWithMapping)(const char *filename, ptrdiff_t size, int flags);
- 
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/build.sh patch/build.sh
 --- pytorch-v1.8.1/build.sh	1970-01-01 08:00:00.000000000 +0800
 +++ patch/build.sh	2022-03-28 14:22:12.213032697 +0800
