@@ -37,8 +37,10 @@ def to_cpu(data):
                 continue
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 copy_data[i] = to_cpu(value)
-            elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
+            elif isinstance(value, torch.Tensor):
                 copy_data[i] = value.cpu()
+            elif isinstance(value, nn.Module):
+                copy_data[i] = copy.deepcopy(value).cpu()
             else:
                 copy_data[i] = value
         return copy_data
@@ -52,12 +54,21 @@ def to_cpu(data):
                 copy_data[key] = tuple(cpu_list_value)
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 copy_data[key] = to_cpu(value)
-            elif isinstance(value, torch.Tensor) or isinstance(value, nn.Module):
+            elif isinstance(value, torch.Tensor):
                 copy_data[key] = value.cpu()
+            elif isinstance(value, nn.Module):
+                copy_data[key] = copy.deepcopy(value).cpu()
             else:
                 copy_data[key] = value
         return copy_data
-    return data.cpu() if isinstance(value, (torch.Tensor, nn.Module)) else data
+
+    if isinstance(value, torch.Tensor):
+        return data.cpu()
+
+    if isinstance(value, nn.Module):
+        return copy.deepcopy(value).cpu()
+
+    return data
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=False):
     """Saves the input data into a file.
@@ -89,7 +100,7 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
         se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
     elif isinstance(obj, nn.Module):
-        se.save(obj.cpu(), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+        se.save(copy.deepcopy(obj).cpu(), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
     
     elif isinstance(obj, argparse.Namespace):
         dict_obj = vars(obj)
