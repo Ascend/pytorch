@@ -127,6 +127,12 @@ HcclComm comm, aclrtStream stream);
  */
 extern HcclResult HcclCommDestroy(HcclComm comm);
 
+extern HcclResult HcclSend(void *sendBuf, uint64_t count, HcclDataType dataType, uint32_t destRank, 
+    HcclComm comm, aclrtStream stream);
+
+extern HcclResult HcclRecv(void *recvBuf, uint64_t count, HcclDataType dataType, uint32_t srcRank, 
+    HcclComm comm, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
