@@ -565,6 +565,15 @@ class TestMax(TestCase):
                         ]  
         self.max_values_result(shape_format)
 
+    def test_max_out_5d_ncdhw(self, device):
+        a_cpu = torch.rand(2, 2, 2, 2, 2)
+        b_cpu = torch.rand(2, 2, 2, 2, 2)
+        a_npu = a_cpu.clone().npu()
+        b_npu = b_cpu.clone().npu()
+        cpu_output = self.cpu_op_other_exec(a_cpu, b_cpu)
+        npu_output_out2 = self.npu_op_exec_out(a_npu, b_npu, a_npu)
+        self.assertRtolEqual(cpu_output, npu_output_out2)
+
 instantiate_device_type_tests(TestMax, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()

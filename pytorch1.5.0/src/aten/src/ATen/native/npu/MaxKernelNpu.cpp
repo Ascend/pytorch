@@ -142,9 +142,7 @@ Tensor& max_out_npu(
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_ND,
-      self.scalar_type(),
-      self.sizes());
+      self);
   max_out_npu_nocheck(result, self, other);
 
   return result;
