@@ -28,18 +28,10 @@ namespace at_npu
         at::Tensor &result)
     {
       // executing the NPU operator
-      int value = size.size();
-      vector<int> tmp_vector = {};
-      for (int i = 0; i < value; i++)
-      {
-        tmp_vector.emplace_back(size[i]);
-      }
-      at::Tensor shapeCpuTensor = at::from_blob((void *)tmp_vector.data(), {value}, at::kInt);
-      at::Tensor shapeNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(shapeCpuTensor);
       OpCommand cmd;
       cmd.Name("BroadcastTo")
           .Input(self)
-          .InputPair(shapeNpuTensor, shapeCpuTensor)
+          .Input(size, at::kInt)
           .Output(result)
           .Run();
       return result;

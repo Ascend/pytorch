@@ -37,20 +37,11 @@ at::Tensor& NPUNativeFunctions::bmm_out(const at::Tensor& self, const at::Tensor
     contiguousMat2 = NpuUtils::format_contiguous_add_copy_optimize(mat2);
   }
 
-  auto func1 = [&contiguousSelf]() {
-      bool pass = false;
-      return std::tie(pass, contiguousSelf);
-  };
-  auto func2 = [&contiguousMat2]() {
-      bool pass = false;
-      return std::tie(pass, contiguousMat2);
-  };
-
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("BatchMatMul")
-      .InputWithFunc(func1)
-      .InputWithFunc(func2)
+      .InputWithoutContiguous(contiguousSelf)
+      .InputWithoutContiguous(contiguousMat2)
       .Output(contiguousResult)
       .Attr("adj_x1", isSelfT)
       .Attr("adj_x2", isMat2T)

@@ -17,7 +17,7 @@
 #define __PULGIN_NATIVE_NPU_UTILS_OP_PREPARATION__
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
-#include "torch_npu/csrc/framework/OpCommandBase.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
 namespace at_npu
 {

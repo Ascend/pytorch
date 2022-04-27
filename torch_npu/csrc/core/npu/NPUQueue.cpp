@@ -67,10 +67,10 @@ public:
     return this->execFunc(dstPtr, queueLen);
   }
 
-  void Copy(void* dstHead, int offset, void* src, c10::SmallVector<c10::Storage, N>& needClearVec, uint32_t queueLen) {
+  void Copy(void* dstHead, int offset, void* src, uint32_t queueLen) {
     TORCH_CHECK(this->copyFunc, "Failed to find copy function.");
     auto dstPtr = (uint8_t*)dstHead + sizePerParams * offset;
-    return this->copyFunc(dstPtr, src, needClearVec, queueLen);
+    return this->copyFunc(dstPtr, src, queueLen);
   }
 
   void Release(void* head, int offset, ReleaseQueue& releaseQueue) {
@@ -246,7 +246,7 @@ bool Repository::NeedNotify(RepoRole role) const {
   return !working;
 }
 
-bool Repository::WriteQueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& needClearVec) {
+bool Repository::WriteQueue(void* cur_paras) {
   QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
   if (IsFullQueue()) {
     QUEUE_DEBUG("queue is full");
@@ -255,7 +255,7 @@ bool Repository::WriteQueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& 
 
   std::lock_guard<std::mutex> lock(mu_enqueue);
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
-  manager().Copy(datas, write_idx.idx, cur_paras, needClearVec, queueLen);
+  manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
   __sync_synchronize();
 
   write_idx.idx = (write_idx.idx + 1) % kQueueCapacity;
@@ -296,7 +296,7 @@ bool Repository::ReadQueue() {
   return true;
 }
 
-void Repository::Enqueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& needClearVec) {
+void Repository::Enqueue(void* cur_paras) {
   if (initialized == false) {
     NPU_LOGE("Task queue is not initialized, shouldn't call Enqueue(). !!");
     return;
@@ -311,7 +311,7 @@ void Repository::Enqueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& nee
 
   DisableInterrupt(RepoRole::WRITER);
   while (ret == false) {
-    ret = WriteQueue(cur_paras, needClearVec);
+    ret = WriteQueue(cur_paras);
     if (ret == false) {
       EnableInterrupt(RepoRole::WRITER);
       __sync_synchronize();

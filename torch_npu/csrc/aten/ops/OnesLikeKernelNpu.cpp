@@ -15,9 +15,9 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu
 {

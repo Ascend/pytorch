@@ -31,8 +31,6 @@ at::Tensor& avg_pool2d_backward_out_npu_nocheck(
     bool ceil_mode,
     bool count_include_pad,
     at::Tensor& grad_input) {
-  at::Tensor orig_input_shape_cpu = at::from_blob((void*)self.sizes().data(), {self.dim()}, at::kLong).to(at::kInt);
-  at::Tensor orig_input_shape_npu = CalcuOpUtil::copy_tensor_host_to_device(orig_input_shape_cpu);
   int64_t strideH = 1;
   int64_t strideW = 1;
   if (!stride.empty()) {
@@ -50,7 +48,7 @@ at::Tensor& avg_pool2d_backward_out_npu_nocheck(
   OpPreparation::CheckMemory({grad_output, self}, {grad_input});
   OpCommand cmd;
   cmd.Name("AvgPoolV2Grad")
-     .InputPair(orig_input_shape_npu, orig_input_shape_cpu)
+     .Input(self.sizes(), at::kInt)
      .Input(grad_output)
      .Output(grad_input)
      .Attr("ksize", kernelSize)

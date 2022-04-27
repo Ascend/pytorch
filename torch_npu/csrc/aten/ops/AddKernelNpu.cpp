@@ -70,7 +70,7 @@ namespace at_npu
       }
       cmd.Name("Add")
           .Input(self)
-          .Input(value, self.scalar_type())
+          .Input(at::Scalar(value), self.scalar_type())
           .Output(result, real_type)
           .Run();
 

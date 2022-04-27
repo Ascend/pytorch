@@ -274,149 +274,7 @@ struct THNCachingAllocator {
   }
 
   /** allocates a block which is safe to use from the provided stream */
-  void malloc(void** devPtr, size_t size, aclrtStream stream) {
-    std::lock_guard<std::recursive_mutex> lock(mutex);
-    int device = 0;
-    C10_NPU_CHECK(aclrtGetDevice(&device));
-    // process outstanding npuEvents
-    process_events();
-    size = round_size(size);
-    DeviceStats& stats = get_stats_for_device(device);
-
-    Block search_key(device, stream, size);
-    auto& pool = get_pool(size);
-
-    DeviceStats_& stats_ = get_stats_for_device_(device);
-    StatTypes stat_types;
-    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
-
-    auto find_free_block = [&]() -> Block* {
-      auto it = pool.lower_bound(&search_key);
-      if (it != pool.end() && (*it)->device == device &&
-          (*it)->stream == stream) {
-        Block* block = *it;
-        pool.erase(it);
-        return block;
-      }
-      return nullptr;
-    };
-
-    Block* block = find_free_block();
-    if (block == nullptr) {
-      bool freed_memory = false;
-      for (const auto& name : FreeNPUMemoryCallbacksRegistry()->Keys()) {
-        freed_memory |=
-            FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
-      }
-      if (freed_memory) {
-        block = find_free_block();
-      }
-    }
-    if (block == nullptr) {
-      void* ptr = nullptr;
-      size_t alloc_size = get_allocation_size(size);
-      aclError err = npu_malloc_retry(device, &ptr, alloc_size);
-
-      if (err != ACL_ERROR_NONE) {
-        if (err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
-          size_t device_free;
-          size_t device_total;
-          C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-
-          const auto& stats = get_stats_for_device(device);
-
-          stats_.num_ooms += 1;
-          // "total capacity": total global memory on NPU
-          // "already allocated": memory allocated by the program using the
-          //                      caching allocator
-          // "free": free memory as reported by the NPU API
-          // "cached": memory held by the allocator but not used by the program
-          //
-          // The "allocated" amount  does not include memory allocated outside
-          // of the caching allocator, such as memory allocated by other
-          // programs or memory held by the driver.
-          //
-          // The sum of "allocated" + "free" + "cached" may be less than the
-          // total capacity due to memory held by the driver and usage by other
-          // programs.
-          //
-          // Note that at this point npu_malloc_retry has already returned all
-          // possible "cached" memory to the driver. The only remaining "cached"
-          // memory is split from a larger block that is partially in-use.
-          AT_ERROR(
-              "NPU out of memory. Tried to allocate ",
-              format_size(alloc_size),
-              " (NPU ",
-              device,
-              "; ",
-              format_size(device_total),
-              " total capacity; ",
-              format_size(stats.amount_allocated),
-              " already allocated; ",
-              format_size(device_free),
-              " free; ",
-              format_size(stats.amount_cached - stats.amount_allocated),
-              " cached)");
-        } else {
-          C10_NPU_CHECK(err);
-        }
-      }
-      stats.increaseCached(alloc_size);
-      block = new Block(device, stream, alloc_size, &pool, ptr);
-
-      update_stat_array(stats_.segment, 1, stat_types);
-      update_stat_array(stats_.reserved_bytes, alloc_size, stat_types);
-    }
-
-    Block* remaining = nullptr;
-    AT_ASSERT(block);
-
-    const bool already_split = block->is_split();
-    if (should_split(block, size)) {
-      remaining = block;
-      block = new Block(device, stream, size, &pool, block->ptr);
-      block->prev = remaining->prev;
-      if (block->prev) {
-        block->prev->next = block;
-      }
-      block->next = remaining;
-
-      remaining->prev = block;
-      remaining->ptr = static_cast<char*>(remaining->ptr) + size;
-      remaining->size -= size;
-      pool.insert(remaining);
-
-      if (already_split) {
-        // An already-split inactive block is being shrunk by size bytes.
-        update_stat_array(
-            stats_.inactive_split_bytes, -block->size, stat_types);
-      } else {
-        // A new split inactive block is being created from a previously unsplit
-        // block, size remaining->size bytes.
-        update_stat_array(
-            stats_.inactive_split_bytes, remaining->size, stat_types);
-        update_stat_array(stats_.inactive_split, 1, stat_types);
-      }
-    } else if (already_split) {
-      // An already-split block is becoming active
-      update_stat_array(stats_.inactive_split_bytes, -block->size, stat_types);
-      update_stat_array(stats_.inactive_split, -1, stat_types);
-    }
-
-    block->allocated = true;
-    allocated_blocks[block->ptr] = block;
-    *devPtr = block->ptr;
-    stats.increaseAllocated(block->size);
-
-    c10::reportMemoryUsageToProfiler(
-        block, block->size, c10::Device(c10::DeviceType::NPU, device));
-
-    update_stat_array(stats_.allocation, 1, stat_types);
-    update_stat_array(stats_.allocated_bytes, block->size, stat_types);
-    update_stat_array(stats_.active, 1, stat_types);
-    update_stat_array(stats_.active_bytes, block->size, stat_types);
-  }
+  void malloc(void** devPtr, size_t size, aclrtStream stream, int device = -1);
 
   void free(void* ptr) {
     std::lock_guard<std::recursive_mutex> lock(mutex);
@@ -1038,6 +896,151 @@ struct THNCachingAllocator {
   }
 };
 
+void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream, int device) {
+  std::lock_guard<std::recursive_mutex> lock(mutex);
+  if (device == -1) {
+    C10_NPU_CHECK(aclrtGetDevice(&device));
+  }
+  // process outstanding npuEvents
+  process_events();
+  size = round_size(size);
+  DeviceStats& stats = get_stats_for_device(device);
+
+  Block search_key(device, stream, size);
+  auto& pool = get_pool(size);
+
+  DeviceStats_& stats_ = get_stats_for_device_(device);
+  StatTypes stat_types;
+  stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
+  stat_types[static_cast<size_t>(get_stat_type_for_pool(pool))] = true;
+
+  auto find_free_block = [&]() -> Block* {
+    auto it = pool.lower_bound(&search_key);
+    if (it != pool.end() && (*it)->device == device &&
+        (*it)->stream == stream) {
+      Block* block = *it;
+      pool.erase(it);
+      return block;
+    }
+    return nullptr;
+  };
+
+  Block* block = find_free_block();
+  if (block == nullptr) {
+    bool freed_memory = false;
+    for (const auto& name : FreeNPUMemoryCallbacksRegistry()->Keys()) {
+      freed_memory |=
+          FreeNPUMemoryCallbacksRegistry()->Create(name)->Execute();
+    }
+    if (freed_memory) {
+      block = find_free_block();
+    }
+  }
+  if (block == nullptr) {
+    void* ptr = nullptr;
+    size_t alloc_size = get_allocation_size(size);
+    aclError err = npu_malloc_retry(device, &ptr, alloc_size);
+
+    if (err != ACL_ERROR_NONE) {
+      if (err == ACL_ERROR_RT_MEMORY_ALLOCATION) {
+        size_t device_free;
+        size_t device_total;
+        C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+
+        const auto& stats = get_stats_for_device(device);
+
+        stats_.num_ooms += 1;
+        // "total capacity": total global memory on NPU
+        // "already allocated": memory allocated by the program using the
+        //                      caching allocator
+        // "free": free memory as reported by the NPU API
+        // "cached": memory held by the allocator but not used by the program
+        //
+        // The "allocated" amount  does not include memory allocated outside
+        // of the caching allocator, such as memory allocated by other
+        // programs or memory held by the driver.
+        //
+        // The sum of "allocated" + "free" + "cached" may be less than the
+        // total capacity due to memory held by the driver and usage by other
+        // programs.
+        //
+        // Note that at this point npu_malloc_retry has already returned all
+        // possible "cached" memory to the driver. The only remaining "cached"
+        // memory is split from a larger block that is partially in-use.
+        AT_ERROR(
+            "NPU out of memory. Tried to allocate ",
+            format_size(alloc_size),
+            " (NPU ",
+            device,
+            "; ",
+            format_size(device_total),
+            " total capacity; ",
+            format_size(stats.amount_allocated),
+            " already allocated; ",
+            format_size(device_free),
+            " free; ",
+            format_size(stats.amount_cached - stats.amount_allocated),
+            " cached)");
+      } else {
+        C10_NPU_CHECK(err);
+      }
+    }
+    stats.increaseCached(alloc_size);
+    block = new Block(device, stream, alloc_size, &pool, ptr);
+
+    update_stat_array(stats_.segment, 1, stat_types);
+    update_stat_array(stats_.reserved_bytes, alloc_size, stat_types);
+  }
+
+  Block* remaining = nullptr;
+  AT_ASSERT(block);
+
+  const bool already_split = block->is_split();
+  if (should_split(block, size)) {
+    remaining = block;
+    block = new Block(device, stream, size, &pool, block->ptr);
+    block->prev = remaining->prev;
+    if (block->prev) {
+      block->prev->next = block;
+    }
+    block->next = remaining;
+
+    remaining->prev = block;
+    remaining->ptr = static_cast<char*>(remaining->ptr) + size;
+    remaining->size -= size;
+    pool.insert(remaining);
+
+    if (already_split) {
+      // An already-split inactive block is being shrunk by size bytes.
+      update_stat_array(
+          stats_.inactive_split_bytes, -block->size, stat_types);
+    } else {
+      // A new split inactive block is being created from a previously unsplit
+      // block, size remaining->size bytes.
+      update_stat_array(
+          stats_.inactive_split_bytes, remaining->size, stat_types);
+      update_stat_array(stats_.inactive_split, 1, stat_types);
+    }
+  } else if (already_split) {
+    // An already-split block is becoming active
+    update_stat_array(stats_.inactive_split_bytes, -block->size, stat_types);
+    update_stat_array(stats_.inactive_split, -1, stat_types);
+  }
+
+  block->allocated = true;
+  allocated_blocks[block->ptr] = block;
+  *devPtr = block->ptr;
+  stats.increaseAllocated(block->size);
+
+  c10::reportMemoryUsageToProfiler(
+      block, block->size, c10::Device(c10::DeviceType::NPU, device));
+
+  update_stat_array(stats_.allocation, 1, stat_types);
+  update_stat_array(stats_.allocated_bytes, block->size, stat_types);
+  update_stat_array(stats_.active, 1, stat_types);
+  update_stat_array(stats_.active_bytes, block->size, stat_types);
+}
+
 THNCachingAllocator caching_allocator;
 
 static void NPUCachingDeleter(void* ptr) {
@@ -1054,7 +1057,7 @@ struct NPUCachingAllocator : public c10::Allocator {
     void* r = nullptr;
     if (size != 0) {
       caching_allocator.malloc(
-          &r, size, c10_npu::getCurrentNPUStreamNoWait(device));
+          &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
     }
     return {r, r, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
   }
@@ -1200,7 +1203,7 @@ void* raw_alloc(size_t nbytes) {
   int device = 0;
   C10_NPU_CHECK(aclrtGetDevice(&device));
   void* r = nullptr;
-  caching_allocator.malloc(&r, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
+  caching_allocator.malloc(&r, nbytes, c10_npu::getCurrentNPUStreamNoWait(device), device);
   return r;
 }
 

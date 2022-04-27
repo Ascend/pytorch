@@ -18,7 +18,6 @@
 #include <Python.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/aoe/AoeUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -32,6 +31,10 @@ namespace at_npu
 {
   namespace native
   {
+    using namespace c10_npu::queue;
+    constexpr size_t MAX_VAL_SIZE = (sizeof(ExecuteParas) > sizeof(CopyParas)) ?
+      ((sizeof(ExecuteParas) >  sizeof(EventParas)) ? sizeof(ExecuteParas) : sizeof(EventParas)) :
+      ((sizeof(CopyParas) > sizeof(EventParas)) ? sizeof(CopyParas) : sizeof(EventParas));
 
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, bool value)
     {
@@ -107,80 +110,8 @@ namespace at_npu
           attrValue.data());
     }
 
-    void AttrInfoMaker::Add(bool value, string &attrInfo)
+    void OpCommandImpl::Run()
     {
-      attrInfo += std::to_string(value) + "-";
-    }
-
-    void AttrInfoMaker::Add(int64_t value, string &attrInfo)
-    {
-      attrInfo += std::to_string(value) + "-";
-    }
-
-    void AttrInfoMaker::Add(float value, string &attrInfo)
-    {
-      attrInfo += std::to_string(value) + "-";
-    }
-
-    void AttrInfoMaker::Add(string value, string &attrInfo)
-    {
-      attrInfo += value + "-";
-    }
-
-    void AttrInfoMaker::Add(c10::IntArrayRef value, string &attrInfo)
-    {
-      auto vec = value.vec();
-      for (unsigned i = 0; i < vec.size(); i++)
-        attrInfo += std::to_string(vec.at(i)) + ",";
-      attrInfo += "-";
-    }
-
-    void AttrInfoMaker::Add(
-        at::ArrayRef<float> value,
-        string &attrInfo)
-    {
-      auto vec = value.vec();
-      for (unsigned i = 0; i < vec.size(); i++)
-        attrInfo += std::to_string(vec.at(i)) + ",";
-      attrInfo += "-";
-    }
-
-    void AttrInfoMaker::Add(
-        at::ArrayRef<uint8_t> value,
-        string& attrInfo)
-    {
-      auto vec = value.vec();
-      for (unsigned i = 0; i < vec.size(); i++)
-        attrInfo += std::to_string(vec.at(i)) + ",";
-      attrInfo += "-";
-    }
-
-    void AttrInfoMaker::Add(c10::Scalar value, string &attrInfo)
-    {
-      float val = CalcuOpUtil::get_scalar_float_value(value);
-      attrInfo += std::to_string(val) + "-";
-    }
-
-    void AttrInfoMaker::Add(
-        at::ArrayRef<c10::IntArrayRef> value,
-        string &attrInfo)
-    {
-      // Pointer to values of each listInt.
-      c10::SmallVector<int64_t *, N> attrValue;
-      // Pointer to number of each listInt.
-      c10::SmallVector<int, N> eachListIntNum;
-      // Value of each listInt.
-      c10::SmallVector<c10::SmallVector<int64_t, N>, N> eachListIntVal;
-      for (int i = 0; i < value.size(); i++)
-      {
-        int64_t valueSize = value[i].size();
-        attrInfo += std::to_string(valueSize) + ",";
-      }
-      attrInfo += "-";
-    }
-
-    void OpCommandImpl::Run() {
-      InitAttr();
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
       if (PyGILState_Check()) {
@@ -358,37 +289,22 @@ namespace at_npu
       return ret;
     }
 
-    size_t GetMaxLen(size_t x, size_t y, size_t z)
-    {
-      return x > y ? (x > z ? x : z) : (y > z ? y : z);
-    }
-
-    void CopyFunc(void* dst, void* src, c10::SmallVector<c10::Storage, N>& needClearVec, uint32_t queueLen)
+    void CopyFunc(void* dst, void* src, uint32_t queueLen)
     {
       auto dstPtr = static_cast<c10_npu::queue::QueueParas* >(dst);
       auto srcPtr = static_cast<c10_npu::queue::QueueParas* >(src);
       dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(c10_npu::queue::QueueParas);
-      // pin memory free will add aclrtRecordEvent to queue
-      // in order to avoid deadlock, pin memory free operation is moved out of the enqueue operation
       if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
-        needClearVec.swap((static_cast<ExecuteParas* >(dstPtr->paramVal))->hostMemory);
         // string or smallvector of struct is used, deconstructor need be called before memset
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
-      } else if (dstPtr->paramType == c10_npu::queue::ASYNC_MEMCPY_EX) {
-        needClearVec.swap((static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->pinMem);
-        // string or smallvector of struct is used, deconstructor need be called before memset
-        (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->~CopyParas();
       }
       dstPtr->paramStream = srcPtr->paramStream;
       dstPtr->paramType = srcPtr->paramType;
       dstPtr->paramLen = srcPtr->paramLen;
-      size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(c10_npu::queue::CopyParas),
-          sizeof(c10_npu::queue::EventParas));
-      memset(dstPtr->paramVal, 0, maxSize);
+      memset(dstPtr->paramVal, 0, MAX_VAL_SIZE);
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
-      } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY) ||
-        (srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY_EX)) {
+      } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
       } else {
@@ -413,9 +329,7 @@ namespace at_npu
 
     void* NewFunc(int caption, int& size)
     {
-      size_t maxSize = GetMaxLen(sizeof(ExecuteParas), sizeof(c10_npu::queue::CopyParas),
-          sizeof(c10_npu::queue::EventParas));
-      size = sizeof(c10_npu::queue::QueueParas) + maxSize;
+      size = sizeof(c10_npu::queue::QueueParas) + MAX_VAL_SIZE;
       void *ptr = malloc(size * caption);
       TORCH_CHECK(ptr != nullptr, "OpCommand new buffer must be not NULL");
       memset(ptr, 0, size * caption);
@@ -432,7 +346,6 @@ namespace at_npu
     AsyncFuncMap funcMap = {
       {c10_npu::queue::COMPILE_AND_EXECUTE, ExecFunc},
       {c10_npu::queue::ASYNC_MEMCPY, MemcopyAsyncFunc},
-      {c10_npu::queue::ASYNC_MEMCPY_EX, MemcopyAsyncFunc},
       {c10_npu::queue::RECORD_EVENT, RecordEventFunc},
       {c10_npu::queue::WAIT_EVENT, WaitEventFunc},
       {c10_npu::queue::LAZY_DESTROY_EVENT, LazyDestroyEventFunc},
@@ -454,6 +367,7 @@ namespace at_npu
       dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(c10_npu::queue::QueueParas);
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->CopyEx(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
+        (static_cast<ExecuteParas* >(srcPtr->paramVal))->hostMemory.clear();
       }
     }
 

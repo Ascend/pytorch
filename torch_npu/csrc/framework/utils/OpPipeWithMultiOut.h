@@ -19,7 +19,7 @@
 #include <ATen/ATen.h>
 
 #include "torch_npu/csrc/framework/utils/NPUDefinition.h"
-#include "torch_npu/csrc/framework/utils/OpTemplate.h"
+#include "torch_npu/csrc/framework/utils/OpPreparation.h"
 
 namespace at_npu
 {

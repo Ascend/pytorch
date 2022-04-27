@@ -12,7 +12,6 @@ struct CopyParas {
   void *src = nullptr;
   size_t srcLen = 0;
   aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
-  c10::SmallVector<c10::Storage, 1> pinMem;
   void Copy(CopyParas& other);
 };
 
@@ -33,10 +32,9 @@ struct EventParas {
 enum QueueParamType {
   COMPILE_AND_EXECUTE = 1,
   ASYNC_MEMCPY = 2,
-  ASYNC_MEMCPY_EX = 3,
-  RECORD_EVENT = 4,
-  WAIT_EVENT = 5,
-  LAZY_DESTROY_EVENT = 6,
+  RECORD_EVENT = 3,
+  WAIT_EVENT = 4,
+  LAZY_DESTROY_EVENT = 5,
 };
 
 struct QueueParas {
@@ -49,12 +47,8 @@ struct QueueParas {
 
 aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind);
 
-aclError LaunchAsyncCopyTask(void* dst, size_t dstLen, void* src, size_t srcLen, aclrtMemcpyKind kind,
-    c10::Storage& st, bool isPinMem);
-
 aclError HostAllocatorLaunchRecordEventTask(aclrtEvent event,
-                                            c10_npu::NPUStream npuStream,
-                                            c10::SmallVector<c10::Storage, c10_npu::N>& needClearVec);
+                                            c10_npu::NPUStream npuStream);
 
 aclError NpuAllocatorLaunchRecordEventTask(aclrtEvent event,
                                            c10_npu::NPUStream npuStream);

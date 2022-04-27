@@ -116,43 +116,37 @@ struct HostAllocator {
   }
 
   aclError free(void* ptr) {
-    c10::SmallVector<c10::Storage, c10_npu::N> needClearVec;
-    {
-      std::lock_guard<std::mutex> lock(mutex);
-
-      if (!ptr) {
-        return ACL_ERROR_NONE;
-      }
-
-      // process outstanding npu events which may have occurred
-      aclError err = processEvents();
-      if (err != ACL_ERROR_NONE) {
-        return err;
-      }
-
-      auto it = blocks.find(ptr);
-      AT_ASSERT(it != blocks.end());
-
-      Block& block = it->second;
-      AT_ASSERT(block.allocated);
-
-      // free (on valid memory) shouldn't fail, so mark unallocated before
-      // we process the streams.
-      block.allocated = false;
-
-      // insert npu events for each stream on which this block was used. This
-      err = insertEvents(block, needClearVec);
-      if (err != ACL_ERROR_NONE) {
-        return err;
-      }
-
-      if (block.event_count == 0) {
-        // the block can be re-used if there are no outstanding npu events
-        available.insert(block);
-      }
+    std::lock_guard<std::mutex> lock(mutex);
+    if (!ptr) {
+      return ACL_ERROR_NONE;
     }
-    // free pin memory
-    needClearVec.clear();
+
+    // process outstanding npu events which may have occurred
+    aclError err = processEvents();
+    if (err != ACL_ERROR_NONE) {
+      return err;
+    }
+
+    auto it = blocks.find(ptr);
+    AT_ASSERT(it != blocks.end());
+
+    Block& block = it->second;
+    AT_ASSERT(block.allocated);
+
+    // free (on valid memory) shouldn't fail, so mark unallocated before
+    // we process the streams.
+    block.allocated = false;
+
+    // insert npu events for each stream on which this block was used. This
+    err = insertEvents(block);
+    if (err != ACL_ERROR_NONE) {
+      return err;
+    }
+
+    if (block.event_count == 0) {
+      // the block can be re-used if there are no outstanding npu events
+      available.insert(block);
+    }
     return ACL_ERROR_NONE;
   }
 
@@ -285,7 +279,7 @@ struct HostAllocator {
     }
   }
 
-  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, c10_npu::N>& needClearVec) {
+  aclError insertEvents(Block& block) {
     aclError err = ACL_ERROR_NONE;
 
     int prev_device = 0;
@@ -317,7 +311,7 @@ struct HostAllocator {
         C10_NPU_SHOW_ERR_MSG();
         break;
       }
-      err = c10_npu::queue::HostAllocatorLaunchRecordEventTask(event, *it, needClearVec);
+      err = c10_npu::queue::HostAllocatorLaunchRecordEventTask(event, *it);
       if (err != ACL_ERROR_NONE)
         break;
 

@@ -252,7 +252,7 @@ namespace at_npu
           at::ScalarType scalar_type);
       static c10::SmallVector<NPUTensorDesc, N> create_npu_output_tensor_desc(
           const c10::SmallVector<at::Tensor, N> &outputTensor);
-      static std::tuple<aclopAttr *, string> CreateNpuAttrDesc(const c10::SmallVector<NPUAttrDesc, N> &attrs);
+      static aclopAttr* CreateNpuAttrDesc(const c10::SmallVector<NPUAttrDesc, N> &attrs);
       static NPUStatus CreateAclTensorDescInfo(
           c10::SmallVector<NPUTensorDesc, N> &input,
           c10::SmallVector<NPUTensorDesc, N> &output,
