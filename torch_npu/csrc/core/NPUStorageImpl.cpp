@@ -19,13 +19,11 @@ NPUStorageImpl::NPUStorageImpl(
 }
 
 void NPUStorageImpl::release_resources() {
-#ifdef USE_NPU
+  StorageImpl::release_resources();
   if (this->npu_graph_desc != nullptr) {
-    NpuGraphContextManager::GetInstance().EraseOutputStorage(
+    at_npu::native::NpuGraphContextManager::GetInstance().EraseOutputStorage(
         this->device().index(), this->get_npu_graph_desc().unique_id);
   }
-#endif
-  data_ptr().clear();
 }
 
 }
