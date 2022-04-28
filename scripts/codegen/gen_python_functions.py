@@ -34,6 +34,7 @@ from codegen.api.python import (PythonSignature,
                                 PythonSignatureNativeFunctionPair,
                                 arg_parser_output_exprs,
                                 cpp_dispatch_exprs,
+                                cpp_record_func,
                                 cpp_dispatch_target,
                                 dispatch_lambda_args,
                                 dispatch_lambda_exprs,
@@ -574,6 +575,7 @@ def emit_single_dispatch(
         lambda_return = dispatch_lambda_return_str(f)
 
         # dispatch lambda body
+        record_func_define = cpp_record_func(f, custom=True)
         dispatch_callee = cpp_dispatch_target(f, custom=True)
         dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=True))
 
@@ -594,6 +596,7 @@ def emit_single_dispatch(
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   pybind11::gil_scoped_release no_gil;
+  {record_func_define}
   {dispatch_callee}({dispatch_args});
 }};
 dispatch_{name}({lambda_args}){set_requires_grad};
@@ -607,6 +610,7 @@ Py_RETURN_NONE;
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   pybind11::gil_scoped_release no_gil;
+  {record_func_define}
   return {dispatch_callee}({dispatch_args});
 }};
 return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad});

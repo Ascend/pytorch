@@ -981,6 +981,17 @@ def dispatch_lambda_return_str(f: NativeFunction) -> str:
         raise RuntimeError(f'{f.func.name} returns unsupported type {return_str}')
     return return_str
 
+def cpp_record_func(f: NativeFunction, custom=False) -> str:
+    name = cpp.name(f.func)
+
+    if Variant.function in f.variants:
+        if custom:
+            record_func = f'RECORD_FUNCTION("{name}", std::vector<c10::IValue>({{}}));'
+        else:
+            record_func = f'// RECORD_FUNCTION("{name}")'
+        return record_func
+    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
+
 def cpp_dispatch_target(f: NativeFunction, custom=False) -> str:
     name = cpp.name(f.func)
     if Variant.method in f.variants and not custom:
