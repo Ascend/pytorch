@@ -454,6 +454,18 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      DispatchKey::AutogradNestedTensor,
      DispatchKey::AutogradXPU,
      DispatchKey::AutogradPrivateUse1,
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h patch/c10/core/StorageImpl.h
+--- pytorch-v1.8.1/c10/core/StorageImpl.h	2022-03-05 10:10:10.000000000 +0800
++++ patch/c10/core/StorageImpl.h	2022-04-28 18:51:47.202663489 +0800
+@@ -7,7 +7,7 @@
+ 
+ namespace c10 {
+ 
+-struct C10_API StorageImpl final : public c10::intrusive_ptr_target {
++struct C10_API StorageImpl : public c10::intrusive_ptr_target {
+  public:
+   struct use_byte_size_t {};
+ 
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorImpl.h patch/c10/core/TensorImpl.h
 --- pytorch-v1.8.1/c10/core/TensorImpl.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/c10/core/TensorImpl.h	2022-03-08 15:25:36.520231820 +0800
