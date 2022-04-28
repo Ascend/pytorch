@@ -35,24 +35,12 @@ namespace at_npu
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
       OpCommand cmd;
-      if (torch_npu::option::OptionsManager::CheckDynamicOptimizer("MUL"))
-      {
-        cmd.Name("Mul")
-            .Expect(unified_result)
-            .Input(self)
-            .Input(other, self.scalar_type())
-            .Output(result)
-            .Run();
-      }
-      else
-      {
-        cmd.Name("Muls")
-            .Expect(unified_result)
-            .Input(self)
-            .Output(result)
-            .Attr("value", other)
-            .Run();
-      }
+      cmd.Name("Mul")
+          .Expect(unified_result)
+          .Input(self)
+          .Input(other, self.scalar_type())
+          .Output(result)
+          .Run();
 
       return result;
     }

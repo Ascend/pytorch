@@ -50,7 +50,6 @@ namespace at_npu
 
     typedef enum CompileType 
     {
-      MEMORY_DEVICE_COMPILE = 0,
       MEMORY_HOST_COMPILE_DEPENDENT = 1,
       MEMORY_HOST_COMPILE_INDEPENDENT = 2,
     } CompileType;
