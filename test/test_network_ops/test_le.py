@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import copy
 import torch
 import numpy as np
@@ -93,37 +94,6 @@ class TestLe(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_inplace_stride_exec(self, input1, input2):
-        input1 = input1.as_strided([2, 2], [1, 2], 1)
-        input2 = input2.as_strided([2, 2], [1, 2], 1)
-        output = input1.le_(input2)
-        output = output.numpy()
-        return output
-
-    def npu_op_inplace_stride_exec(self, input1, input2):
-        input1 = input1.to("npu")
-        input2 = input2.to("npu")
-        input1 = input1.as_strided([2, 2], [1, 2], 1)
-        input2 = input2.as_strided([2, 2], [1, 2], 1)
-        output = input1.le_(input2)
-        output = output.to("cpu")
-        output = output.numpy()
-        return output
-
-    def cpu_op_inplace_stride_scalar_exec(self, input1, input2):
-        input1 = input1.as_strided([2, 2], [1, 2], 1)
-        output = input1.le_(input2)
-        output = output.numpy()
-        return output
-
-    def npu_op_inplace_stride_scalar_exec(self, input1, input2):
-        input1 = input1.to("npu")
-        input1 = input1.as_strided([2, 2], [1, 2], 1)
-        output = input1.le_(input2)
-        output = output.to("cpu")
-        output = output.numpy()
-        return output
-
     def le_tensor_out_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
@@ -140,7 +110,6 @@ class TestLe(TestCase):
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2, npu_input3)
             if cpu_input1.dtype == torch.float16:
                 cpu_output_out = cpu_output_out.astype(np.float16)
-
             self.assertRtolEqual(cpu_output_out, npu_output_out)
 
     def test_le_tensor_out(self, device="npu"):
