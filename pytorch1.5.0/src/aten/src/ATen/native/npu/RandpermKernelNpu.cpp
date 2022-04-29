@@ -43,6 +43,7 @@ Tensor& randperm_out_npu(Tensor& result, int64_t n, Generator* generator) {
   OpCommand cmd;
   cmd.Name("Randperm")
        .Output(result)
+       .Attr("n", n)
        .Run();
   return result;
 }
