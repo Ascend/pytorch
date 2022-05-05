@@ -26,12 +26,15 @@ Tensor& reshape_out_npu(
     IntArrayRef shape,
     bool can_refresh) {
   if (c10::npu::NpuRunMode::IsGraphMode()) {
-    auto out_strides = at::detail::defaultStrides(shape);
-    auto out_format = CalcuOpUtil::get_tensor_npu_format(result);
-    auto allow_flag = result.unsafeGetTensorImpl()->allow_tensor_metadata_change();
-    result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(true);
-    result.npu_set_(result.storage(), 0, out_format, shape, out_strides);
-    result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(allow_flag);
+    std::vector<int64_t> out_strides = at::detail::defaultStrides(shape);
+    if (result.sizes() != shape || result.strides() != out_strides) {
+      auto allow_flag =
+          result.unsafeGetTensorImpl()->allow_tensor_metadata_change();
+      result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(true);
+      StorageDescHelper::SetDesc(result, shape, out_strides);
+      result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(
+          allow_flag);
+    }
 
     OpCommand cmd;
     cmd.Name("Reshape")

@@ -13,10 +13,11 @@
 // limitations under the License.
 
 #include <ATen/native/IndexingUtils.h>
-#include "ATen/native/npu/utils/NpuUtils.h"
-#include "ATen/native/npu/utils/OpAdapter.h"
+#include <ATen/native/npu/graph/util/GraphModeGuard.h>
 #include "ATen/native/npu/utils/CalcuOpUtil.h"
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
+#include "ATen/native/npu/utils/NpuUtils.h"
+#include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
@@ -26,11 +27,11 @@ Tensor& index_out_npu(
     Tensor& result,
     const Tensor& self,
     const Tensor& masksTensor,
-    TensorList allDefinedIndices) {  
+    TensorList allDefinedIndices) {
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(masksTensor);    
+      .Input(masksTensor);
   for (int i = 0; i < allDefinedIndices.size(); i++) {
     cmd.Input(allDefinedIndices[i]);
   }
@@ -40,6 +41,17 @@ Tensor& index_out_npu(
 }
 
 Tensor index_npu(const Tensor& self, TensorList indices) {
+  /**
+   * In the cann framework, index operator belongs to the fourth type of
+   * operator, which means that the execution of the index operator must go
+   * through the dynamic shape execution framework. In this case, constructing
+   * a large dynamic shape graph is not beneficial to the overall execution
+   * performance, because more dynamic shape operators are introduced.
+   * Therefore, when the fourth type of operator is encountered in graph
+   * mode, the single op mode is switched to execute by default.
+   */
+  GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
+
   checkIndexTensorTypes(indices);
   Tensor formatCastOfSelf = self.npu_format_cast(ACL_FORMAT_ND);
 

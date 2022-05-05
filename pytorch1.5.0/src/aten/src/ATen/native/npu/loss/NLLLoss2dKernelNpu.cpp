@@ -76,6 +76,7 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
       .Output(total_weight)
       .Run();
 
+  at::npu_reshape_out(result, result, result.sizes(), true);
   return tuple<Tensor&, Tensor&>(result, total_weight);
 }
 
