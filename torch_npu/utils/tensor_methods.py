@@ -18,7 +18,7 @@ import warnings
 import torch
 import torch_npu
 
-
+warnings.filterwarnings(action="once")
 warning_str = "The tensor methods of custom operators would cause performance drop." + \
               " Suggest to use torch.{0} or torch_npu.{0} instead."
 
@@ -56,6 +56,21 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
     warnings.warn(warning_str.format("npu_confusion_transpose"))
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
+def _npu(self, *args, **kwargs):
+    warnings.warn(warning_str.format("npu"))
+    return torch_npu._C.npu(self, *args, **kwargs)
+
+def _type(self, *args, **kwargs):
+    warnings.warn(warning_str.format("type"))
+    return torch_npu._C.type(self, *args, **kwargs)
+
+def _to(self, *args, **kwargs):
+    warnings.warn(warning_str.format("to"))
+    return torch_npu._C.to(self, *args, **kwargs)
+
+def _is_npu(self):
+    warnings.warn(warning_str.format("is_npu"))
+    return torch_npu._C.is_npu(self)
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
@@ -65,3 +80,7 @@ def add_tensor_methods():
     torch.Tensor.copy_memory_ = copy_memory_
     torch.Tensor.one_ = one_
     torch.Tensor.npu_confusion_transpose = npu_confusion_transpose
+    torch.Tensor.npu = _npu
+    torch.Tensor.type = _type
+    torch.Tensor.to = _to
+    torch.Tensor.is_npu = _is_npu
