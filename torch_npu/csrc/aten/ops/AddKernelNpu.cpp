@@ -122,24 +122,12 @@ namespace at_npu
         }
         else
         {
-          if (torch_npu::option::OptionsManager::CheckDynamicOptimizer("ADD"))
-          {
-            cmd.Name("AxpyV2")
-                .Input(self)
-                .Input(other)
-                .Input(alpha, self.scalar_type())
-                .Output(result)
-                .Run();
-          }
-          else
-          {
-            cmd.Name("Axpy")
-                .Input(self)
-                .Input(other)
-                .Attr("alpha", alpha)
-                .Output(result)
-                .Run();
-          }
+          cmd.Name("AxpyV2")
+              .Input(self)
+              .Input(other)
+              .Input(alpha, self.scalar_type())
+              .Output(result)
+              .Run();
         }
       }
 
