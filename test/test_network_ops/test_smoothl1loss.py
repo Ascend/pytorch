@@ -23,12 +23,12 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestSmoothL1loss(TestCase):
     def cpu_op_exec_new(self, input1, target, reduction):
-        output = torch.nn.functional.smooth_l1_loss(input1, target, reduction=reduction)
+        output = torch.nn.functional.smooth_l1_loss(input1, target, beta=2.0, reduction=reduction)
         return output.numpy()
 
     def npu_op_exec_new(self, input1, target, reduction):
         target = target.npu()
-        output = torch.nn.functional.smooth_l1_loss(input1, target, reduction=reduction)
+        output = torch.nn.functional.smooth_l1_loss(input1, target,  beta=2.0, reduction=reduction)
         return output.cpu().numpy()
 
     def test_smoothl1loss_shape_format_fp32(self):

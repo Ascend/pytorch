@@ -24,7 +24,8 @@ at::Tensor& smooth_l1_loss_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& target,
-    int64_t reduction) {
+    int64_t reduction,
+    double beta) {
   if (self.numel()==0) {
     // In this scenario, needs to return nan. And the nan of the NPU can only be fp32.
     result = result.to(at::kFloat).fill_(0);
@@ -39,6 +40,7 @@ at::Tensor& smooth_l1_loss_out_npu_nocheck(
     .Input(target)
     .Output(result)
     .Attr("reduction", reductionStr)
+    .Attr("sigma", static_cast<float>(beta))
     .Run();
   return result;
 }
@@ -59,7 +61,7 @@ at::Tensor& NPUNativeFunctions::smooth_l1_loss_out(
       outputSize);
 
   OpPreparation::CheckMemory({self, target}, {result});
-  smooth_l1_loss_out_npu_nocheck(result, self, target, reduction);
+  smooth_l1_loss_out_npu_nocheck(result, self, target, reduction, beta);
   return result;
 }
 
@@ -71,7 +73,7 @@ at::Tensor NPUNativeFunctions::smooth_l1_loss(
   auto outputSize = smooth_l1_loss_npu_output_size(self, target, reduction);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
-  smooth_l1_loss_out_npu_nocheck(result, self, target, reduction);
+  smooth_l1_loss_out_npu_nocheck(result, self, target, reduction, beta);
   return result;
 }
 
