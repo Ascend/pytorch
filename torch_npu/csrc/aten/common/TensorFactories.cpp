@@ -123,6 +123,14 @@ namespace at_npu
       }
     } // namespace
 
+    at::Tensor NPUNativeFunctions::scalar_tensor(c10::Scalar s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
+                                                 c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
+      at::tracer::impl::NoTracerDispatchMode tracer_guard;
+      at::AutoNonVariableTypeMode non_var_type_mode(true);
+      auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
+      at::native::fill_(result, s);
+      return result.to("npu");
+    }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                          c10::optional<at::ScalarType> dtype_opt,
