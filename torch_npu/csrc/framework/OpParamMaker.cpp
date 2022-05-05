@@ -15,6 +15,7 @@
 
 #include <c10/npu/NPUQueue.h>
 #include <ATen/record_function.h>
+#include <Python.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -178,13 +179,18 @@ namespace at_npu
       attrInfo += "-";
     }
 
-    void OpCommandImpl::Run()
-    {
+    void OpCommandImpl::Run() {
       InitAttr();
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
-
-      ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+      if (PyGILState_Check()) {
+        // we need to release GIL for NPU to compile op.
+        Py_BEGIN_ALLOW_THREADS 
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+        Py_END_ALLOW_THREADS
+      } else {
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+      }
     }
 
     aclError OpCommandImpl::InnerRun(string name, AclExecParam &params)
