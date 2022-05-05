@@ -25,6 +25,7 @@ at::Tensor& NPUNativeFunctions::randperm_out(int64_t n, c10::optional<at::Genera
   OpCommand cmd;
   cmd.Name("Randperm")
        .Output(result)
+       .Attr("n", n)
        .Run();
 
   return result;
