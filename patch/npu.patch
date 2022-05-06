@@ -565,8 +565,8 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +} // namespace c10
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.h patch/c10/npu/impl/NPUGuardImpl.h
 --- pytorch-v1.8.1/c10/npu/impl/NPUGuardImpl.h	1970-01-01 08:00:00.000000000 +0800
-+++ patch/c10/npu/impl/NPUGuardImpl.h	2022-03-07 18:32:02.224337802 +0800
-@@ -0,0 +1,165 @@
++++ patch/c10/npu/impl/NPUGuardImpl.h	2022-05-06 11:00:51.710123566 +0800
+@@ -0,0 +1,162 @@
 +#pragma once
 +
 +#include <c10/core/impl/DeviceGuardImplInterface.h>
@@ -612,10 +612,7 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +  }
 +  void setDevice(Device d) const override {
 +    TORCH_INTERNAL_ASSERT(d.type() == DeviceType::NPU);
-+    Device old_device = getDevice();
-+    if (old_device.index() != d.index()) {
-+      C10_NPU_CHECK(aclrtSetDevice(d.index()));
-+    }
++    c10::npu::NpuSysCtrl::GetInstance().BackwardsInit();
 +  }
 +  void uncheckedSetDevice(Device d) const noexcept override {
 +    int old_device = 0;
@@ -4413,44 +4410,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
                  'share/cmake/ATen/*.cmake',
                  'share/cmake/Caffe2/*.cmake',
                  'share/cmake/Caffe2/public/*.cmake',
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp patch/tools/autograd/templates/python_torch_functions.cpp
---- pytorch-v1.8.1/tools/autograd/templates/python_torch_functions.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/autograd/templates/python_torch_functions.cpp	2022-05-05 14:32:51.351071624 +0800
-@@ -30,7 +30,6 @@
- #include "torch/csrc/autograd/generated/variable_factories.h"
- #include "torch/csrc/utils/structseq.h"
- #include "torch/csrc/utils/cuda_lazy_init.h"
--
- #include <ATen/ATen.h>
- 
- #include <functional>
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp patch/tools/autograd/templates/python_variable_methods.cpp
---- pytorch-v1.8.1/tools/autograd/templates/python_variable_methods.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/tools/autograd/templates/python_variable_methods.cpp	2022-05-05 14:32:51.351071624 +0800
-@@ -531,6 +531,23 @@
-   END_HANDLE_TH_ERRORS
- }
- 
-+static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwargs)
-+{
-+  HANDLE_TH_ERRORS
-+  static PythonArgParser parser({
-+    "npu(Device? device=None, bool non_blocking=False, *, MemoryFormat? memory_format=None)",
-+    "npu(Device? device=None, bool async=False, *, MemoryFormat? memory_format=None)|deprecated"
-+  });
-+  auto& self_ = reinterpret_cast<THPVariable*>(self)->cdata;
-+  ParsedArgs<3> parsed_args;
-+  auto r = parser.parse(args, kwargs, parsed_args);
-+  auto device = r.isNone(0) ? at::Device(at::DeviceType::NPU) : r.device(0);
-+  auto opt_memory_format = r.memoryformatOptional(2);
-+  TORCH_CHECK(device.is_npu(), "Invalid device, must be npu device");
-+  return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(1), false, opt_memory_format));
-+  END_HANDLE_TH_ERRORS
-+}
-+
- static PyObject * THPVariable_to_type(PyObject* self, ScalarType scalarType, c10::optional<c10::MemoryFormat> optional_memory_format) {
-   HANDLE_TH_ERRORS
-   auto& self_ = reinterpret_cast<THPVariable*>(self)->cdata;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/generate_torch_version.py patch/tools/generate_torch_version.py
 --- pytorch-v1.8.1/tools/generate_torch_version.py	2022-03-05 10:10:10.000000000 +0800
 +++ patch/tools/generate_torch_version.py	2022-03-07 18:32:03.076343192 +0800
@@ -4489,83 +4448,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      ...
  
  class ProfilerConfig:
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/engine.cpp patch/torch/csrc/autograd/engine.cpp
---- pytorch-v1.8.1/torch/csrc/autograd/engine.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/engine.cpp	2022-03-07 18:32:03.100343345 +0800
-@@ -34,6 +34,11 @@
- #include <queue>
- #include <TH/TH.h>
- 
-+#ifdef USE_NPU
-+#include <third_party/acl/inc/acl/acl.h>
-+#include <c10/npu/NPUFunctions.h>
-+#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
-+#endif
- namespace torch { namespace autograd {
- 
- namespace {
-@@ -499,10 +504,22 @@
-     cb_lock.lock();
-   }
- 
-+  at::DeviceType device_type;
-+  at::DeviceType cuda_type = c10::DeviceType::CUDA;
-+#ifdef USE_NPU
-+  at::DeviceType npu_type = c10::DeviceType::NPU;
-+  if (c10::npu::device_count() > 0) {
-+    device_type = npu_type;
-+  } else {
-+    device_type = cuda_type;
-+  }
-+#else
-+   device_type = cuda_type;
-+#endif
-   // Syncs leaf streams with default streams (if necessary)
-   // See note "Streaming backwards"
-   for (const auto& leaf_stream : leaf_streams) {
--    const auto guard = c10::impl::VirtualGuardImpl{c10::DeviceType::CUDA};
-+    const auto guard = c10::impl::VirtualGuardImpl{device_type};
-     const auto default_stream = guard.getDefaultStream(leaf_stream.device());
-     if (leaf_stream != default_stream) {
-       auto event = c10::Event{c10::DeviceType::CUDA};
-@@ -558,6 +575,9 @@
-   //
-   // Don't use DeviceGuard here because its destructor may be called before the
-   // device is reset. This is fine because the device is thread local.
-+#ifdef USE_NPU
-+  c10::npu::NpuSysCtrl::GetInstance().BackwardsInit();
-+#else 
-   if (device != CPU_DEVICE) {
-     for (size_t i = 0; i < static_cast<size_t>(c10::DeviceType::COMPILE_TIME_MAX_DEVICE_TYPES); i++) {
-       auto* impl = c10::impl::device_guard_impl_registry[i].load();
-@@ -566,7 +586,9 @@
-       }
-     }
-   }
-+#endif
-   worker_device = device;
-+
- }
- 
- void validate_outputs(
-@@ -716,7 +738,16 @@
-   }
- 
-   // Switches to a function's CUDA stream (if applicable) before calling it
--  const auto opt_parent_stream = (*func).stream(c10::DeviceType::CUDA);
-+  const auto opt_stream_gpu = (*func).stream(c10::DeviceType::CUDA);
-+#ifdef USE_NPU
-+  const auto opt_stream_npu = (*func).stream(c10::DeviceType::NPU);
-+
-+  const auto opt_parent_stream = (opt_stream_npu !=  c10::nullopt) ?  opt_stream_npu : opt_stream_gpu;
-+  auto stream_device = (opt_stream_npu !=  c10::nullopt) ? c10::DeviceType::NPU : c10::DeviceType::CUDA;
-+#else
-+  const auto opt_parent_stream = opt_stream_gpu;
-+  auto stream_device = c10::DeviceType::CUDA;
-+#endif
-   c10::OptionalStreamGuard parent_stream_guard{opt_parent_stream};
- 
-   auto outputs = call_function(graph_task, func, inputs);
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp patch/torch/csrc/autograd/functions/tensor.cpp
 --- pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp	2022-03-05 10:10:10.000000000 +0800
 +++ patch/torch/csrc/autograd/functions/tensor.cpp	2022-03-07 18:32:03.104343370 +0800
@@ -4578,51 +4460,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
          grad_inputs[1] = grad.to(
              src_options,
              /*non_blocking=*/false,
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp patch/torch/csrc/autograd/input_buffer.cpp
---- pytorch-v1.8.1/torch/csrc/autograd/input_buffer.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/input_buffer.cpp	2022-03-07 18:32:03.104343370 +0800
-@@ -100,6 +100,28 @@
-         opt_accumulate_stream->wait(event);
-       }
-     }
-+  } else if (device_of(var)->is_npu()) {
-+    const auto on_producer = opt_producer_stream
-+                             && device_of(var) == opt_producer_stream->device();
-+    const auto on_consumer = opt_consumer_stream
-+                             && device_of(var) == opt_consumer_stream->device();
-+    if (on_producer && on_consumer) {
-+      // (2) NPU variable with producer and consumer sharing a device
-+      //     Accumulation happens on consumer's stream
-+      opt_accumulate_stream = opt_consumer_stream;
-+      if (opt_producer_stream != opt_consumer_stream) {
-+        // (2a) Syncs consumer with producer
-+        auto event = c10::Event{c10::DeviceType::NPU};
-+        event.record(*opt_producer_stream);
-+        opt_consumer_stream->wait(event);
-+      }
-+    } else {
-+      // (3) NPU variable with multiple devices
-+      //     Accumulation happens on variable's device's default stream
-+      const auto guard = c10::impl::VirtualGuardImpl{c10::DeviceType::NPU};
-+      const auto default_stream = guard.getDefaultStream(*device_of(var));
-+      opt_accumulate_stream = default_stream;
-+    }
-   }
- 
-   auto& old_var = buffer[pos];
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp patch/torch/csrc/autograd/python_variable_indexing.cpp
---- pytorch-v1.8.1/torch/csrc/autograd/python_variable_indexing.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/python_variable_indexing.cpp	2022-03-07 18:32:03.104343370 +0800
-@@ -368,6 +368,9 @@
-   // TODO: This qint special case looks very suspicious...
-   if (isQIntType(self_.scalar_type())) {
-     value = valueToTensor(device(kCPU).dtype(kFloat), py_value, at::Device(kCPU));
-+  } else if (self_device.type() == DeviceType::NPU) {
-+    value = valueToTensor(self_.options().device(kCPU), py_value, at::Device(kCPU));
-+    value = value.to("npu");
-   } else {
-     value = valueToTensor(self_.options(), py_value, self_device);
-   }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp patch/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp	2022-03-05 10:10:10.000000000 +0800
 +++ patch/torch/csrc/DynamicTypes.cpp	2022-05-05 14:32:51.351071624 +0800
