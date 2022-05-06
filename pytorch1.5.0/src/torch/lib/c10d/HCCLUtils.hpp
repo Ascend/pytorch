@@ -17,6 +17,7 @@
 #pragma once
 
 #include <c10/npu/npu_log.h>
+#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
 #include <memory>
 
 #define C10D_HCCL_CHECK(cmd)                                        \
@@ -38,11 +39,7 @@ class HCCLComm {
 
   HCCLComm() : HCCLComm(nullptr) {}
 
-  ~HCCLComm() noexcept {
-    if (hcclComm_) {
-      HcclCommDestroy(hcclComm_);
-    }
-  }
+  ~HCCLComm() = default;
 
   static std::shared_ptr<HCCLComm> create(
       int numRanks,
@@ -51,6 +48,9 @@ class HCCLComm {
     auto comm = std::make_shared<HCCLComm>();
     C10D_HCCL_CHECK(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
+    c10::npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
+      HcclCommDestroy(comm->hcclComm_);
+    }, c10::npu::ReleasePriority::PriorityMiddle);
     return comm;
   }
 
