@@ -16,8 +16,10 @@
 from .module import apply_module_patch
 from .tensor_methods import add_tensor_methods
 from .serialization import save, load
+from ._tensor_str import add_str_methods
+from .dataloader import add_dataloader_method
 from .utils import manual_seed, seed
-
+from .storage import add_storage_methods
 
 serialization_patches = [
     ["save", save],

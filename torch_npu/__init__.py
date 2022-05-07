@@ -26,7 +26,8 @@ import torch_npu._C
 
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
-from torch_npu.utils import apply_module_patch, add_tensor_methods, serialization_patches
+from torch_npu.utils import apply_module_patch, add_tensor_methods, serialization_patches, \
+     add_storage_methods, add_str_methods, add_dataloader_method
 
 from .version import __version__ as __version__
 
@@ -91,6 +92,9 @@ def _apply_patches(monkey_patches):
 def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
+    add_storage_methods()
+    add_str_methods()
+    add_dataloader_method()
 
 
 # Apply monkey-patches.
