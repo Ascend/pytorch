@@ -21,7 +21,7 @@
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
-#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
@@ -54,13 +54,13 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   // on the current device, while aclrtFree Free device memory immediately.
   // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
   // all of op tasks completed before device memory free.
-  if (c10::npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
-    c10::npu::npuSynchronizeDevice();
+  if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
+    c10_npu::npuSynchronizeDevice();
     at_npu::native::GraphExecutor::GetInstance().Finalize();
     THNPUCachingHostAllocator_emptyCache();
     c10_npu::NPUCachingAllocator::emptyCache();
-    c10::npu::NpuSysCtrl::SysStatus status = c10::npu::NpuSysCtrl::GetInstance().Finalize();
-    if (status != c10::npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
+    c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
+    if (status != c10_npu::NpuSysCtrl::SysStatus::FINALIZE_SUCC) {
       fprintf(stdout, "THPModule_npu_shutdown failed.\n");
     } else {
       fprintf(stdout, "THPModule_npu_shutdown success.\n");

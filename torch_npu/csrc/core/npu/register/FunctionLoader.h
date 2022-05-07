@@ -18,7 +18,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 /**
@@ -98,16 +98,16 @@ public:
 
 #define REGISTER_LIBRARY(soName)                                                \
   auto library_##soName =                                                       \
-    ::std::unique_ptr<torch_npu::option::FunctionLoader>(new torch_npu::option::FunctionLoader(#soName));      \
-  static torch_npu::option::register_function::FunctionRegisterBuilder                             \
+    ::std::unique_ptr<c10_npu::option::FunctionLoader>(new c10_npu::option::FunctionLoader(#soName));      \
+  static c10_npu::option::register_function::FunctionRegisterBuilder                             \
     register_library_##soName(#soName, library_##soName);
 
 #define REGISTER_FUNCTION(soName, funcName)                                     \
-  static torch_npu::option::register_function::FunctionRegisterBuilder                             \
+  static c10_npu::option::register_function::FunctionRegisterBuilder                             \
     register_function_##funcName(#soName, #funcName);
 
 #define GET_FUNCTION(soName, funcName)                                              \
-  torch_npu::option::register_function::FunctionRegister::GetInstance()->Get(#soName, #funcName);
+  c10_npu::option::register_function::FunctionRegister::GetInstance()->Get(#soName, #funcName);
 
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu

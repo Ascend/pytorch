@@ -30,4 +30,4 @@ ModeKind NpuRunMode::CurRunMode() {
 bool NpuRunMode::IsGraphMode() {
   return cur_mode_ == ModeKind::GRAPH_MODE;
 }
-} // namespace c10
+} // namespace c10_npu

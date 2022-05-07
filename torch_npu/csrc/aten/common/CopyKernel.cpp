@@ -16,7 +16,7 @@
 
 #include <ATen/ATen.h>
 #include <c10/util/Exception.h>
-#include <c10/npu/NPUGuard.h>
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
@@ -145,12 +145,12 @@ void copy_between_host_and_device(
   void* dst_ptr = dst.data_ptr();
   void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
-  c10::npu::NPUStream stream = c10::npu::getCurrentNPUStream();
+  c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
   at::Tensor tmp = dst.is_npu() ? src : dst;
   c10::Storage tmpSt = tmp.storage();
   bool is_pinned = THNPUCachingHostAllocator_isPinndPtr(tmp.data_ptr());
   C10_NPU_CHECK(
-      c10::npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
+      c10_npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
@@ -172,7 +172,7 @@ void copy_h2d_baseformat_dtype_contigous(
     at::Tensor& dst,
     const at::Tensor& src,
     bool non_blocking) {
-  c10::npu::OptionalNPUGuard device_guard;
+  c10_npu::OptionalNPUGuard device_guard;
   device_guard.set_device(dst.device());
   aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_HOST_TO_DEVICE;
   copy_between_host_and_device(dst, src, kind, non_blocking);
@@ -185,7 +185,7 @@ void copy_d2h_baseformat_dtype_contigous(
     at::Tensor& dst,
     const at::Tensor& src,
     bool non_blocking) {
-  c10::npu::OptionalNPUGuard device_guard;
+  c10_npu::OptionalNPUGuard device_guard;
   device_guard.set_device(src.device());
   aclrtMemcpyKind kind = aclrtMemcpyKind::ACL_MEMCPY_DEVICE_TO_HOST;
   copy_between_host_and_device(dst, src, kind, non_blocking);

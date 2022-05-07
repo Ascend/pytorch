@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -33,7 +33,7 @@ C10_DEFINE_bool(
     false,
     "If set, fill memory with deterministic junk when allocating on NPU");
 
-namespace torch_npu {
+namespace c10_npu {
 void memset_junk_npu(void* data, size_t num) {
   // This garbage pattern is NaN when interpreted as floating point values,
   // or as very large integer values.

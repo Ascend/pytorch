@@ -13,7 +13,7 @@ void ScalarMemContext::Init() {
   inited_ = true;
 }
 
-void ScalarMemContext::ExecuteH2D(c10::npu::NPUStream stream) {
+void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
   if (!inited_) {
     return;
   }
@@ -27,7 +27,7 @@ void ScalarMemContext::ExecuteH2D(c10::npu::NPUStream stream) {
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
       at::TensorOptions().device(at::kNPU, deviceIndex).dtype(at::kByte));
-  
+
   C10_NPU_CHECK(
       aclrtMemcpyAsync(
           npu_tensor_.data_ptr(),
@@ -52,7 +52,7 @@ void ScalarMemContext::CheckForExpand(uint32_t input_valid_len) {
   cpu_tensor_ = at::empty(
       {expand_tensor_size},
       at::TensorOptions().pinned_memory(true).device(at::kCPU).dtype(at::kByte));
-  
+
   C10_NPU_CHECK(
       aclrtMemcpy(
           cpu_tensor_.data_ptr(),

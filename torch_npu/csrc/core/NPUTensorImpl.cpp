@@ -17,7 +17,7 @@
 #include <c10/core/ScalarType.h>
 #include <c10/core/impl/DeviceGuardImplInterface.h>
 #include <c10/macros/Macros.h>
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUTensorImpl.h"
@@ -25,7 +25,6 @@
 
 namespace torch_npu
 {
-
   NPUTensorImpl::NPUTensorImpl(c10::Storage &&storage, const caffe2::TypeMeta &data_type)
       : c10::TensorImpl(std::move(storage),
                         c10::DispatchKeySet{c10::DispatchKey::NPU,

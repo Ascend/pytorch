@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -103,7 +103,7 @@ public:
     std::vector<at::Device> devices_;
 
     // The NPU events tracking this work item on multiple NPU devices
-    std::vector<at::npu::NPUEvent> npuEvents_;
+    std::vector<c10_npu::NPUEvent> npuEvents_;
 
     // The HCCL communicators used for this work item.
     std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
@@ -315,14 +315,14 @@ protected:
   std::mutex watchdogCVMutex_;
 
   // The NPU steams used by NCCL kernels
-  std::unordered_map<std::string, std::vector<c10::npu::NPUStream>>
+  std::unordered_map<std::string, std::vector<c10_npu::NPUStream>>
       hcclStreams_;
 
   // The NPU events used to sync HCCL streams
-  std::unordered_map<std::string, std::vector<at::npu::NPUEvent>> hcclEvents_;
+  std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>> hcclEvents_;
 
   // The NPU events used to control task rate to protect streams
-  std::unordered_map<std::string, std::vector<at::npu::NPUEvent>>
+  std::unordered_map<std::string, std::vector<c10_npu::NPUEvent>>
       rateCtrlEvents_;
   std::unordered_map<std::string, std::vector<uint64_t>> collectiveCnts_;
 

@@ -29,7 +29,7 @@
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_base.h"
-#include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 
@@ -192,7 +192,7 @@ namespace at_npu
             dst.second * dst.first.itemsize();
       void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
             src.second * src.first.itemsize();
-      C10_NPU_CHECK(c10::npu::queue::LaunchAsyncCopyTask(
+      C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(
           dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
       return SUCCESS;
@@ -716,7 +716,7 @@ namespace at_npu
         c10::SmallVector<NPUTensorDesc, N> &outputs,
         const c10::SmallVector<NPUAttrDesc, N> &attrs)
     {
-      if (torch_npu::option::OptionsManager::CheckQueueEnable())
+      if (c10_npu::option::OptionsManager::CheckQueueEnable())
       {
         ExecuteParas cur_paras;
         cur_paras.opType = opName;
@@ -729,9 +729,9 @@ namespace at_npu
         if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
           cur_paras.isFuzzy = true;
         }
-        c10::npu::queue::QueueParas params(c10::npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
         c10::SmallVector<c10::Storage, N> needClearVec;
-        c10::npu::enCurrentNPUStream(&params, needClearVec);
+        c10_npu::enCurrentNPUStream(&params, needClearVec);
         needClearVec.clear();
         return;
       }
@@ -741,7 +741,7 @@ namespace at_npu
       CalcuOpUtil::CreateAclTensorDescInfo(inputs, outputs, params, opName, attrs);
       aclopAttr *attr = std::get<0>(CalcuOpUtil::CreateNpuAttrDesc(attrs));
 
-      auto stream = c10::npu::getCurrentNPUStream();
+      auto stream = c10_npu::getCurrentNPUStream();
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
       bool reset_flag = false;
       if (env::CheckFuzzyEnable() &&

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 
 namespace at_npu {
@@ -97,7 +97,7 @@ private:
 
     if (temp_src.is_contiguous()) {
       auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
-      c10::npu::queue::LaunchAsyncCopyTask(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
+      c10_npu::queue::LaunchAsyncCopyTask(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
                                            self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE);
       return true;
     }

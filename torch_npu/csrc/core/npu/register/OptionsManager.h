@@ -13,15 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __TORCH_NPU_OPTIONSMANAGER_H__
-#define __TORCH_NPU_OPTIONSMANAGER_H__
+#pragma once
 
 #include <map>
 #include <string>
 #include <unordered_map>
 #include <c10/util/Exception.h>
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 class OptionsManager {
@@ -38,6 +37,4 @@ private:
 };
 
 } // namespace option
-} // namespace torch_npu
-
-#endif // __TORCH_NPU_OPTIONSMANAGER_H__
+} // namespace c10_npu

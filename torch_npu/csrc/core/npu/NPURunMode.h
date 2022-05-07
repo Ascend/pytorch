@@ -26,7 +26,7 @@ enum class ModeKind : uint8_t {
   GRAPH_MODE,
 };
 
-class TORCH_API NpuRunMode{
+class  NpuRunMode{
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();
@@ -35,4 +35,4 @@ public:
 private:
   static ModeKind cur_mode_;
 };
-} // namespace c10
+} // namespace c10_npu

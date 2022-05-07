@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/npu_log.h>
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"

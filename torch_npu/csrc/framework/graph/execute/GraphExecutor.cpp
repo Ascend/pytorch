@@ -21,7 +21,7 @@
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include <c10/npu/NPUFunctions.h>
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
@@ -61,7 +61,7 @@ void GraphExecutor::RunGraph(
     CombinedInfo& outputs) {
   RECORD_HOST_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
   aclrtStream cal_stream =
-      const_cast<aclrtStream>(c10::npu::getCurrentNPUStream().stream());
+      const_cast<aclrtStream>(c10_npu::getCurrentNPUStream().stream());
 
   auto ret = session_->RunGraphWithStreamAsync(graph_id,
                                                cal_stream,
@@ -78,7 +78,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   }
   TORCH_CHECK(session_ != nullptr, "Undefined session before run graph.");
   // before construct graph and tensor, do H2D copy for scalar.
-  ScalarMemContext::GetContext().ExecuteH2D(c10::npu::getCurrentNPUStream());
+  ScalarMemContext::GetContext().ExecuteH2D(c10_npu::getCurrentNPUStream());
   CombinedInfo inputs = GetInputCombinedInfo();
   CombinedInfo outputs = GetOutputCombinedInfo();
   if (outputs.nodes.empty()) {
@@ -140,7 +140,7 @@ void GraphExecutor::Init() {
       };
 
   for (const auto& iter : STRING_TO_COMPILE_OPT_MAP) {
-    auto val = torch_npu::option::GetOption(iter.first);
+    auto val = c10_npu::option::GetOption(iter.first);
     if (val.has_value() && (!val.value().empty())) {
       config.emplace(iter.second.data(), val.value().data());
     }

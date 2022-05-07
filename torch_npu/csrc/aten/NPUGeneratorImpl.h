@@ -118,7 +118,7 @@ struct PhiloxNpuState {
   bool captured_ = false;
 };
 
-struct C10_EXPORT NPUGeneratorImpl : public c10::GeneratorImpl {
+struct NPUGeneratorImpl : public c10::GeneratorImpl {
   // Constructors
   NPUGeneratorImpl(c10::DeviceIndex device_index = -1);
   ~NPUGeneratorImpl() = default;
@@ -150,7 +150,7 @@ private:
   bool graph_expects_this_gen_ = false;
 };
 
-namespace detail { 
+namespace detail {
 const at::Generator& getDefaultNPUGenerator(
     c10::DeviceIndex device_index = -1);
 at::Generator createNPUGenerator(c10::DeviceIndex device_index = -1);

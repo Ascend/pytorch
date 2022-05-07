@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 #include <ATen/ATen.h>
-#include <c10/npu/npu_log.h>
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
@@ -48,7 +48,7 @@ namespace at_npu
     const int NPU_HALF_MIN = -65504;
     const int NPU_MAX_OP_EXEC_TRY_NUM = 2;
 
-    typedef enum CompileType 
+    typedef enum CompileType
     {
       MEMORY_HOST_COMPILE_DEPENDENT = 1,
       MEMORY_HOST_COMPILE_INDEPENDENT = 2,

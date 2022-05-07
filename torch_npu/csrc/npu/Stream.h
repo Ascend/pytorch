@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,13 +17,13 @@
 #ifndef THNP_STREAM_INC
 #define THNP_STREAM_INC
 
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include <torch/csrc/python_headers.h>
 
 struct THNPStream {
   PyObject_HEAD
   uint64_t cdata;
-  at::npu::NPUStream npu_stream;
+  c10_npu::NPUStream npu_stream;
 };
 extern PyObject *THNPStreamClass;
 

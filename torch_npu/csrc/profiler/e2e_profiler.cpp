@@ -15,14 +15,14 @@
 // limitations under the License.
 
 
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include <third_party/acl/inc/acl/acl_prof.h>
 #include <mutex>
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
 
-namespace torch_npu { 
+namespace torch_npu {
 namespace profiler {
 
 aclprofConfig* local_profCfg = nullptr;
@@ -43,11 +43,11 @@ void checkProfilerRet(aclError ret, const std::string message) {
 void initMsPorf(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics) {
   // to init MsProf, there are 4 steps:
-  // 1. create profile config, configure option, 
-  //    such as type of aicore metrics and 
+  // 1. create profile config, configure option,
+  //    such as type of aicore metrics and
   //    which modules(ACL, TASK, AICORE, AICORE, L2CACHE) need profiling
   // 2. set msprof switch to be true and set profiling result path.
-  // 3. create `stamp` used to record time info.  
+  // 3. create `stamp` used to record time info.
   // 4. configure the option of `stamp`.
 
   int deviceIndex = 0;
@@ -71,7 +71,7 @@ void initMsPorf(const std::string dump_path, uint64_t npu_event,
     (void)at_npu::native::AclProfilingFinalize();
     return;
   }
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   ret  = at_npu::native::AclProfilingInit(dump_path.c_str(), dump_path.length());
   if (ret != ACL_ERROR_NONE) {
     NPU_LOGE("In npu e2e profiling, AclProfilingInit failed.");
@@ -126,7 +126,7 @@ void init_e2e_profiler(const std::string dump_path, uint64_t npu_event,
 }
 
 void finalize_e2e_profiler() {
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingStop(local_profCfg);
   if (ret) {
     NPU_LOGE("In npu e2e profiling, AclProfStop fail, error code: %d", ret);

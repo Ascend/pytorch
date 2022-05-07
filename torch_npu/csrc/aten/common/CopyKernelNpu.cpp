@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <ATen/record_function.h>
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 
@@ -112,7 +112,7 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
     return;
   }
 
-  aclError error = c10::npu::queue::LaunchAsyncCopyTask(
+  aclError error = c10_npu::queue::LaunchAsyncCopyTask(
       dst.data_ptr(),
       size * dst.element_size(),
       src.data_ptr(),

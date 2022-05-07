@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -16,20 +16,20 @@
 
 #pragma once
 
-#include <c10/npu/NPUEvent.h>
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
-namespace torch_npu {
+namespace c10_npu {
 struct SecondaryStreamGuard{
   explicit SecondaryStreamGuard() = delete;
   explicit SecondaryStreamGuard(c10::Stream stream) : guard_(stream) {};
 
   ~SecondaryStreamGuard() {
-      c10::npu::NPUEvent npu_event;
+      c10_npu::NPUEvent npu_event;
       npu_event.record(guard_.current_stream());
       npu_event.block(guard_.original_stream());
   }
 private:
-  c10::npu::NPUStreamGuard guard_;
+  c10_npu::NPUStreamGuard guard_;
 };
-} // namespace torch_npu
+} // namespace c10_npu

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,9 +17,9 @@
 #include <pybind11/pybind11.h>
 #include <torch/csrc/Device.h>
 #include <torch/csrc/THP.h>
-#include <c10/npu/NPUGuard.h>
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include <structmember.h>
-#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include "torch_npu/csrc/npu/Stream.h"
 #include "torch_npu/csrc/npu/Module.h"
@@ -51,14 +51,14 @@ static PyObject * THNPStream_pynew(
     return nullptr;
   }
 
-  at::npu::NPUStream stream =
+  c10_npu::NPUStream stream =
     cdata ?
-    at::npu::NPUStream::unpack(cdata) :
-    at::npu::getNPUStreamFromPool();
+    c10_npu::NPUStream::unpack(cdata) :
+    c10_npu::getNPUStreamFromPool();
 
   THNPStream* self = (THNPStream *)ptr.get();
   self->cdata = stream.pack();
-  new (&self->npu_stream) at::npu::NPUStream(stream);
+  new (&self->npu_stream) c10_npu::NPUStream(stream);
 
   return (PyObject *)ptr.release();
   END_HANDLE_TH_ERRORS

@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/profiler/cann_profiling.h"
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/NPUException.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace torch_npu {
 namespace profiler {
@@ -26,7 +26,7 @@ NpuProfiling& NpuProfiling::Instance() {
 
 void NpuProfiling::Init(const std::string &path) {
   TORCH_CHECK(status == PROFILING_FINALIZE, "init current profile status is: ", status, " error!");
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingInit(path.c_str(), path.length());
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfInit fail, error code: %d", ret);
@@ -37,7 +37,7 @@ void NpuProfiling::Init(const std::string &path) {
 }
 
 void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
-  TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP, 
+  TORCH_CHECK(status == PROFILING_INIT || status == PROFILING_STOP,
       "start current profile status is: ", status, " error!");
   int deviceIndex = 0;
   aclError ret = aclrtGetDevice(&deviceIndex);
@@ -63,7 +63,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
     status = PROFILING_FINALIZE;
     return;
   }
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   ret = at_npu::native::AclProfilingStart(profCfg);
   if(ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)){
     NPU_LOGE("npu profiling AclProfStart fail, error code: %d", ret);
@@ -74,7 +74,7 @@ void NpuProfiling::Start(uint64_t npu_event, uint64_t aicore_metrics) {
 
 void NpuProfiling::Stop() {
   TORCH_CHECK(status == PROFILING_START, "stop current profile status is: ", status, " error!");
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   auto ret = at_npu::native::AclProfilingStop(profCfg);
   if (ret && (ret != ACL_ERROR_PROF_ALREADY_RUN)) {
     NPU_LOGE("npu AclProfStop fail, error code: %d", ret);
@@ -120,7 +120,7 @@ void NpuProfilingDispatch::init(){
 
 void NpuProfilingDispatch::start(){
   this->init();
-  auto stream = c10::npu::getCurrentNPUStream();
+  auto stream = c10_npu::getCurrentNPUStream();
   auto ret = at_npu::native::start_deliver_op(
       profStepInfo,
       aclprofStepTag::ACL_STEP_START,
@@ -132,7 +132,7 @@ void NpuProfilingDispatch::start(){
 }
 
 void NpuProfilingDispatch::stop(){
-  auto stream = c10::npu::getCurrentNPUStream();
+  auto stream = c10_npu::getCurrentNPUStream();
   auto ret = at_npu::native::stop_deliver_op(
       profStepInfo,
       aclprofStepTag::ACL_STEP_END,

@@ -19,7 +19,7 @@
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "c10/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"

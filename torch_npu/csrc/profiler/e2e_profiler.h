@@ -18,7 +18,7 @@
 #define __TORCH_NPU_TOOLS_E2EPROFILER__
 
 #include <third_party/acl/inc/acl/acl.h>
-#include <c10/npu/NPUException.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include <chrono>
 #include <sstream>
 #include <thread>

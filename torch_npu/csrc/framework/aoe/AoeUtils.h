@@ -19,7 +19,7 @@
 
 #include <unordered_set>
 #include <third_party/acl/inc/acl/acl_op_compiler.h>
-#include <c10/npu/NPUException.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 namespace at_npu {
 namespace native {
@@ -36,7 +36,7 @@ public:
   void EnableAoe();
   bool IsAoeEnabled() const;
   bool IsInWhiltelist(const std::string &opName) const;
-  
+
   bool aoe_enable=false;
   // to save graph for autotune, default path is ./
   std::string autotune_graphdumppath="./";
@@ -148,7 +148,7 @@ public:
       "Pooling",
       "Conv2DTranspose",
       "Conv3DTranspose"};
-      
+
 };
 
 AoeDumpGraphManager& aoe_manager();

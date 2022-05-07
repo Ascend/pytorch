@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -23,9 +23,9 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& bernoulli_npu_nocheck(at::Tensor& result, const at::Tensor& self, double p) {
-  auto original_stream = c10::npu::getCurrentNPUStream();
+  auto original_stream = c10_npu::getCurrentNPUStream();
   {
-      torch_npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+      c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
       OpCommand cmd;
       cmd.Name("Bernoulli")
         .Input(self)
@@ -39,9 +39,9 @@ at::Tensor& bernoulli_npu_nocheck(at::Tensor& result, const at::Tensor& self, do
 }
 
 at::Tensor& bernoulli_npu_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& p) {
-  auto original_stream = c10::npu::getCurrentNPUStream();
+  auto original_stream = c10_npu::getCurrentNPUStream();
   {
-      torch_npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+      c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
       OpCommand cmd;
       cmd.Name("Bernoulli")
         .Input(self)

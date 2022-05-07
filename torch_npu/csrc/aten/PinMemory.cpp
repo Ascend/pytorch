@@ -4,7 +4,7 @@
 #include <ATen/TensorUtils.h>
 #include <c10/util/Exception.h>
 #include <c10/core/Storage.h>
-#include <c10/npu/NPUFunctions.h>
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include <torch/library.h>
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
@@ -21,10 +21,10 @@ at::Tensor pin_memory(const at::Tensor& self) {
   }
 
   at::Allocator* allocator = nullptr;
-  if (c10::npu::device_count() > 0) {
+  if (c10_npu::device_count() > 0) {
     allocator = getPinnedMemoryAllocator();
   }
-  
+
   if(allocator == nullptr) {
       return self;
   }
