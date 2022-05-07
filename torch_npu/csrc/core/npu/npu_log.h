@@ -1,5 +1,5 @@
-#ifndef __C10_NPU_NPU_LOG___
-#define __C10_NPU_NPU_LOG___
+#pragma once
+
 #include <iostream>
 #include <string>
 
@@ -31,7 +31,6 @@
       __FILE__,                    \
       __LINE__,                    \
       ##__VA_ARGS__)
-#endif
 
 #ifdef USE_NPU_LOG
 #define NPU_LOGD(fmt, ...)         \

@@ -30,7 +30,7 @@ struct NPUEvent {
         C10_NPU_CHECK(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
         C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
-    } catch (...) {} /* No throw */
+    } catch (...) {}
   }
 
   NPUEvent(const NPUEvent&) = delete;
@@ -87,7 +87,7 @@ struct NPUEvent {
     }
 
     TORCH_CHECK(device_index_ == stream.device_index(), "Event device ", device_index_,
-      " does not match recording stream's device ", stream.device_index(), ".");
+        " does not match recording stream's device ", stream.device_index(), ".");
     NPUGuard guard(device_index_);
     C10_NPU_CHECK(c10_npu::queue::LaunchRecordEventTask(event_, stream));
     was_recorded_ = true;
@@ -102,7 +102,7 @@ struct NPUEvent {
 
   float elapsed_time(const NPUEvent& other) const {
     TORCH_CHECK(is_created_ && other.isCreated(),
-      "Both events must be recorded before calculating elapsed time.");
+        "Both events must be recorded before calculating elapsed time.");
     float time_ms = 0;
     NPUStatus ret = c10_npu::emptyAllNPUStream();
     if (ret != SUCCESS) {

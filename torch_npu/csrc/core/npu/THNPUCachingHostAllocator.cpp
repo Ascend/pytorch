@@ -116,7 +116,7 @@ struct HostAllocator {
   }
 
   aclError free(void* ptr) {
-    c10::SmallVector<c10::Storage, 32> needClearVec;
+    c10::SmallVector<c10::Storage, c10_npu::N> needClearVec;
     {
       std::lock_guard<std::mutex> lock(mutex);
 
@@ -285,7 +285,7 @@ struct HostAllocator {
     }
   }
 
-  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, 32>& needClearVec) {
+  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, c10_npu::N>& needClearVec) {
     aclError err = ACL_ERROR_NONE;
 
     int prev_device = 0;

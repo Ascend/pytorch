@@ -1,5 +1,4 @@
-#ifndef __C10_NPU_SYS_CTRL___
-#define __C10_NPU_SYS_CTRL___
+#pragma once
 
 #include <third_party/acl/inc/acl/acl.h>
 #include <map>
@@ -53,7 +52,5 @@ private:
     bool init_flag_;
     int device_id_;
 };
-
 } // namespace c10_npu
 
-#endif

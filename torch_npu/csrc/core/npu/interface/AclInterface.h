@@ -1,5 +1,4 @@
-#ifndef __C10_NPU_INTERFACE_ACLINTERFACE__
-#define __C10_NPU_INTERFACE_ACLINTERFACE__
+#pragma once
 
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
@@ -73,7 +72,4 @@ aclprofConfig * AclProfilingCreateConfig(
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
 
 } // namespace acl
-
 } // namespace c10_npu
-
-#endif // __C10_NPU_INTERFACE_ACLINTERFACE__

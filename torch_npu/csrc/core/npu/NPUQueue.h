@@ -1,5 +1,4 @@
-#ifndef __C10_NPU_NPUQUEUE__
-#define __C10_NPU_NPUQUEUE__
+#pragma once
 
 #include <string>
 #include <thread>
@@ -148,5 +147,3 @@ public:
     static ::c10_npu::register_queue_cb::NPUCallBackRegisterBuilder                     \
         register_queue_func_builder(execF, copyF, releaseF, newF, deleteF, copyReleaseParamF, releaseParamF);
 } // namespace c10_npu
-
-#endif // __C10_NPU_NPUQUEUE__

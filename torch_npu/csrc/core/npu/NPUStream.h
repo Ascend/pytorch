@@ -16,8 +16,8 @@
 
 namespace c10_npu {
 
-class C10_NPU_API NPUStream {
- public:
+class NPUStream {
+public:
   enum Unchecked { UNCHECKED };
 
   explicit NPUStream(c10::Stream stream) : stream_(stream) {
@@ -61,20 +61,6 @@ class C10_NPU_API NPUStream {
     return stream_.id();
   }
 
-  /*
-  bool query() const {
-      DeviceGuard guard{stream_.device()};
-      aclError err = aclrtQueryStream(stream());
-
-      if (err == ACL_ERROR_NONE) {
-          return true;
-      } else if (err != ACL_ERROR_NOT_READY) {
-          C10_NPU_CHECK(err);
-      }
-
-      return false;
-  } */
-
   void synchronize() const {
     c10::DeviceGuard guard{stream_.device()};
     C10_NPU_CHECK(aclrtSynchronizeStream(stream()));
@@ -96,33 +82,32 @@ class C10_NPU_API NPUStream {
     return NPUStream(c10::Stream::unpack(bits));
   }
 
- private:
+private:
   c10::Stream stream_;
 };
 
- NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
+NPUStream getNPUStreamFromPool(c10::DeviceIndex device = -1);
 
- NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
+NPUStream getDefaultNPUStream(c10::DeviceIndex device_index = -1);
 
- NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
+NPUStream getCurrentNPUStream(c10::DeviceIndex device_index = -1);
 
- NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
+NPUStream getCurrentSecondaryStream(c10::DeviceIndex device_index = -1);
 
- aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
+aclrtStream getCurrentNPUStreamNoWait(c10::DeviceIndex device_index = -1);
 
- NPUStatus emptyAllNPUStream();
+NPUStatus emptyAllNPUStream();
 
- void npuSynchronizeDevice();
+void npuSynchronizeDevice();
 
- void enCurrentNPUStream(
+void enCurrentNPUStream(
     void* cur_paras,
     c10::SmallVector<c10::Storage, N>& needClearVec,
     c10::DeviceIndex device_index = -1);
 
- void setCurrentNPUStream(NPUStream stream);
+void setCurrentNPUStream(NPUStream stream);
 
- std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
-
+std::ostream& operator<<(std::ostream& stream, const NPUStream& s);
 } // namespace c10_npu
 
 namespace std {

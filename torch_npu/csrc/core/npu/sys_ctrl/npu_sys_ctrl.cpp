@@ -119,16 +119,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
   }
 
-//  auto soc_name = c10_npu::acl::AclGetSocName();
-//  if (soc_name != nullptr) {
-//    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
-//  }
-
-//  if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
-//    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
-//    config.emplace(HCOM_OPTIONS.data(), "1");
-//  }
-
   auto ge_ret = ge::GEInitialize(config);
   if (ge_ret != ge::SUCCESS) {
     AT_ERROR("GE init failed!");
@@ -136,7 +126,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   // set default compile cache mode and dir for users to improve op compile time
   // set option has been moved to plugin, wait to be decoupled
-  // MakeCompileCacheDirAndSetOption();
 
   return INIT_SUCC;
 }

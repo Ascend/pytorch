@@ -20,7 +20,7 @@ void EventParas::Copy(EventParas& other) {
 }
 
 class AsyncCopyTask {
- public:
+public:
   AsyncCopyTask(
       void* dst,
       size_t dstLen,
@@ -38,12 +38,12 @@ class AsyncCopyTask {
   void LaunchCopyTask();
   void LaunchCopyTask(bool isPinnedMem);
 
- private:
+private:
   CopyParas copyParam_;
 };
 
 class EventTask {
- public:
+public:
   explicit EventTask(
       aclrtEvent event,
       EventAllocatorType allocatorType = RESERVED)
@@ -55,7 +55,7 @@ class EventTask {
   void LaunchWaitTask(c10_npu::NPUStream npuStream);
   void LaunchLazyDestroyTask();
 
- private:
+private:
   EventParas eventParam_;
 };
 

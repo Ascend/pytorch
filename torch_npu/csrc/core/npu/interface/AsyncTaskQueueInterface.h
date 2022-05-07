@@ -1,5 +1,4 @@
-#ifndef __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
-#define __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
+#pragma once
 
 #include "c10/core/Storage.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -66,6 +65,4 @@ aclError LaunchWaitEventTask(aclrtEvent event, c10_npu::NPUStream npuStream);
 
 aclError LaunchLazyDestroyEventTask(aclrtEvent event);
 } // namespace queue
-} // namespace c1c10_npu0
-
-#endif // __C10_NPU_INTERFACE_ASYNCTASKQUEUEINTERFACE__
+} // namespace c10_npu

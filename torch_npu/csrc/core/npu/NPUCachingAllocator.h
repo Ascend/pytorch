@@ -32,7 +32,7 @@ namespace NPUCachingAllocator {
 // Caching allocator will execute every registered callback if it unable to find
 // block inside of already allocated area.
 class FreeMemoryCallback {
- public:
+public:
   virtual ~FreeMemoryCallback(){};
   virtual bool Execute() = 0;
 };

@@ -31,9 +31,6 @@ struct LeakyStreamInternals {
     // runtime might be already destroyed and invoking npuStreamDestroy leads
     // to a crash. It's likely an issue in NPU, but to be safe - let's just
     // "forget" the destruction.
-
-    // if (stream) npuStreamDestroy(stream);
-
   }
 
   c10::DeviceIndex device_index = -1;
