@@ -26,12 +26,12 @@
 #include <unordered_set>
 #include <vector>
 
-#include <c10/npu/NPUGuard.h>
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include <c10/util/UniqueVoidPtr.h>
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
 #include <c10/util/intrusive_ptr.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -69,7 +69,7 @@ C10_DEFINE_REGISTRY(FreeNPUMemoryCallbacksRegistry, FreeMemoryCallback);
 // work.
 //
 namespace {
-using stream_set = std::unordered_set<c10::npu::NPUStream>;
+using stream_set = std::unordered_set<c10_npu::NPUStream>;
 
 constexpr size_t kMinBlockSize =
     512; // all sizes are rounded to at least 512 bytes
@@ -456,7 +456,7 @@ struct THNCachingAllocator {
   void emptyCache() {
     std::lock_guard<std::recursive_mutex> lock(mutex);
     synchronize_and_free_events(c10::nullopt);
-    c10::npu::npuSynchronizeDevice();
+    c10_npu::npuSynchronizeDevice();
     free_blocks(large_blocks, large_blocks.begin(), large_blocks.end());
     free_blocks(small_blocks, small_blocks.begin(), small_blocks.end());
   }
@@ -614,7 +614,7 @@ struct THNCachingAllocator {
     return blocks;
   }
 
-  void recordStream(const c10::DataPtr& ptr, c10::npu::NPUStream stream) {
+  void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
     // Empty tensor's storage().data() might be a null ptr. As there is no
     // blocks associated with those tensors, it is fine to do nothing here.
     if (!ptr.get()) {
@@ -791,7 +791,7 @@ struct THNCachingAllocator {
     Block lower_bound(device, nullptr, 0);
     Block upper_bound(device + 1, nullptr, 0);
 
-    c10::npu::npuSynchronizeDevice();
+    c10_npu::npuSynchronizeDevice();
     free_blocks(
         large_blocks,
         large_blocks.lower_bound(&lower_bound),
@@ -843,7 +843,7 @@ struct THNCachingAllocator {
       {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.find(event);
-        if (c10::npu::OptionsManager::CheckQueueEnable() &&
+        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
             it == recorded_events.end()) {
           break;
         }
@@ -901,8 +901,8 @@ struct THNCachingAllocator {
       }
 
       aclrtEvent event = nullptr;
-      C10_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
-      c10::npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
+      C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
+      c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
 
       block->event_count++;
       npu_events.emplace_back(event, block);
@@ -932,7 +932,7 @@ struct THNCachingAllocator {
         std::lock_guard<std::mutex> lock(recorded_event_mutex);
         auto it = recorded_events.begin();
         it = recorded_events.find(event);
-        if (c10::npu::OptionsManager::CheckQueueEnable() &&
+        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
             it == recorded_events.end()) {
           break;
         }
@@ -1054,7 +1054,7 @@ struct NPUCachingAllocator : public c10::Allocator {
     void* r = nullptr;
     if (size != 0) {
       caching_allocator.malloc(
-          &r, size, c10::npu::getCurrentNPUStreamNoWait(device));
+          &r, size, c10_npu::getCurrentNPUStreamNoWait(device));
     }
     return {r, r, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
   }
@@ -1073,7 +1073,7 @@ std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t si
       size2,
       &ptr_pre,
       &ptr_next,
-      c10::npu::getCurrentNPUStreamNoWait(device));
+      c10_npu::getCurrentNPUStreamNoWait(device));
 
   c10::DataPtr data_pre = {
       ptr_pre, ptr_pre, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
@@ -1103,7 +1103,7 @@ void* getBaseAllocation(void* ptr, size_t* size) {
   return caching_allocator.getBaseAllocation(ptr, size);
 }
 
-void recordStream(const c10::DataPtr& ptr, c10::npu::NPUStream stream) {
+void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream) {
   caching_allocator.recordStream(ptr, stream);
 }
 
@@ -1112,7 +1112,7 @@ std::mutex* getFreeMutex() {
 }
 
 static inline void assertValidDevice(int device) {
-  int device_num = c10::npu::device_count();
+  int device_num = c10_npu::device_count();
   AT_ASSERTM(0 <= device && device < device_num, "Invalid device argument.");
 }
 
@@ -1200,7 +1200,7 @@ void* raw_alloc(size_t nbytes) {
   int device = 0;
   C10_NPU_CHECK(aclrtGetDevice(&device));
   void* r = nullptr;
-  caching_allocator.malloc(&r, nbytes, c10::npu::getCurrentNPUStreamNoWait(device));
+  caching_allocator.malloc(&r, nbytes, c10_npu::getCurrentNPUStreamNoWait(device));
   return r;
 }
 

@@ -18,11 +18,11 @@
 
 #include <ATen/ATen.h>
 #include <TH/TH.h>
-#include <c10/npu/NPUException.h>
-#include <c10/npu/NPUFunctions.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include <torch/csrc/Generator.h>
 #include <torch/csrc/autograd/generated/VariableType.h>
 #include <torch/csrc/autograd/generated/variable_factories.h>
@@ -48,10 +48,10 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   {
     pybind11::gil_scoped_release no_gil;
-    c10::npu::NpuSysCtrl::SysStatus status =
-        c10::npu::NpuSysCtrl::GetInstance().Initialize();
+    c10_npu::NpuSysCtrl::SysStatus status =
+        c10_npu::NpuSysCtrl::GetInstance().Initialize();
     if (status !=
-        c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+        c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       throw python_error();
     }
   }
@@ -64,7 +64,7 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
       throw python_error();
     }
   };
-  auto num_npus = c10::npu::device_count();
+  auto num_npus = c10_npu::device_count();
   auto default_npu_generators = PyTuple_New(static_cast<Py_ssize_t>(num_npus));
   for(int i = 0; i < num_npus; i++) {
     auto gen = at_npu::detail::getDefaultNPUGenerator(i);
@@ -81,7 +81,7 @@ static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
 PyObject* THNPModule_npuSynchronize(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -95,9 +95,9 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   int device = THPUtils_unpackLong(arg);
   {
     pybind11::gil_scoped_release no_gil;
-    c10::npu::NpuSysCtrl::SysStatus status =
-        c10::npu::NpuSysCtrl::GetInstance().Initialize(device);
-    if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+    c10_npu::NpuSysCtrl::SysStatus status =
+        c10_npu::NpuSysCtrl::GetInstance().Initialize(device);
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
       NPU_LOGE("Npu init fail.");
     }
   }
@@ -107,7 +107,7 @@ PyObject* THNPModule_setDevice_wrap(PyObject* self, PyObject* arg) {
   if (ret != ACL_ERROR_NONE){
       C10_NPU_CHECK(aclrtSetDevice(device));
   } else if (pre_device != device) {
-      c10::npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
+      c10_npu::NpuSysCtrl::GetInstance().ExchangeDevice(pre_device, device);
   }
 
   Py_RETURN_NONE;
@@ -125,7 +125,7 @@ PyObject* THNPModule_getDevice_wrap(PyObject* self, PyObject* noargs) {
 
 PyObject* THNPModule_getDeviceCount_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
-  return PyLong_FromLong(c10::npu::device_count());
+  return PyLong_FromLong(c10_npu::device_count());
   END_HANDLE_TH_ERRORS
 }
 
@@ -136,7 +136,7 @@ PyObject * THNPModule_getCurrentStream_wrap(
     THPUtils_checkLong(device_index), "invalid argument to getCurrentStream");
   int64_t device = THPUtils_unpackLong(device_index);
   return PyLong_FromUnsignedLongLong(
-      c10::npu::getCurrentNPUStream(device).pack());
+      c10_npu::getCurrentNPUStream(device).pack());
   END_HANDLE_TH_ERRORS
 }
 
@@ -144,7 +144,7 @@ PyObject * THNPModule_getDefaultStream_wrap(PyObject *self /* unused */, PyObjec
   HANDLE_TH_ERRORS
   THPUtils_assert(THPUtils_checkLong(device_index), "invalid argument to getDefaultStream");
   int64_t device = THPUtils_unpackLong(device_index);
-  return PyLong_FromUnsignedLongLong(c10::npu::getDefaultNPUStream(device).pack());
+  return PyLong_FromUnsignedLongLong(c10_npu::getDefaultNPUStream(device).pack());
   END_HANDLE_TH_ERRORS
 }
 
@@ -156,13 +156,13 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
   if (bits == static_cast<uint64_t>(-1) && PyErr_Occurred()) {
     throw python_error();
   }
-  auto stream = c10::npu::NPUStream::unpack(bits);
+  auto stream = c10_npu::NPUStream::unpack(bits);
   int device;
   C10_NPU_CHECK(aclrtGetDevice(&device));
   if (device != stream.device_index()) {
     THNPModule_setDevice(stream.device_index());
   }
-  c10::npu::setCurrentNPUStream(stream);
+  c10_npu::setCurrentNPUStream(stream);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -443,7 +443,7 @@ PyObject* THNPModule_setOption_wrap(PyObject* self, PyObject* arg) {
   torch_npu::utils::npu_lazy_init();
   {
     pybind11::gil_scoped_release no_gil;
-    torch_npu::option::SetOption(option);
+    c10_npu::option::SetOption(option);
   }
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -463,7 +463,7 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   torch_npu::profiler::NpuProfiling::Instance().Start(npu_event, aicore_metrics);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
-} 
+}
 
 PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS

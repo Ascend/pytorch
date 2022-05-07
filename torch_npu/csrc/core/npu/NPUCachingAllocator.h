@@ -17,11 +17,12 @@
 #pragma once
 
 #include <c10/core/Allocator.h>
-#include <c10/npu/NPUMacros.h>
-#include <c10/npu/NPUStream.h>
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
-#include <c10/npu/OptionsManager.h>
+#include "torch_npu/csrc/core/npu/NPUMacros.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+
 
 #include <mutex>
 
@@ -30,7 +31,7 @@ namespace NPUCachingAllocator {
 
 // Caching allocator will execute every registered callback if it unable to find
 // block inside of already allocated area.
-class C10_NPU_API FreeMemoryCallback {
+class FreeMemoryCallback {
  public:
   virtual ~FreeMemoryCallback(){};
   virtual bool Execute() = 0;
@@ -124,7 +125,7 @@ c10::Allocator* get();
 void emptyCache();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
 void* getBaseAllocation(void* ptr, size_t* size);
-void recordStream(const c10::DataPtr& ptr, c10::npu::NPUStream stream);
+void recordStream(const c10::DataPtr& ptr, c10_npu::NPUStream stream);
 DeviceStats_ getDeviceStats(int device);
 void resetAccumulatedStats(int device);
 void resetPeakStats(int device);
@@ -141,6 +142,7 @@ std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
 
-C10_NPU_API void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
+void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
+
 } // namespace NPUCachingAllocator
-} // namespace c10
+} // namespace c10_npu

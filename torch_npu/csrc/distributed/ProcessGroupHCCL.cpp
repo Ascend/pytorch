@@ -15,8 +15,8 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include <c10/npu/NPUGuard.h>
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 #include <ATen/record_function.h>
 #include <algorithm>
 #include <map>
@@ -111,12 +111,12 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
 // event is done.
 void syncStreams(
     const std::vector<at::Device>& devices,
-    std::vector<at::npu::NPUEvent>& hcclEvents,
-    std::vector<c10::npu::NPUStream>& hcclStreams) {
+    std::vector<c10_npu::NPUEvent>& hcclEvents,
+    std::vector<c10_npu::NPUStream>& hcclStreams) {
   for (size_t i = 0; i < devices.size(); ++i) {
-    c10::npu::NPUStream& hcclStream = hcclStreams[i];
-    at::npu::NPUEvent& hcclEvent = hcclEvents[i];
-    hcclEvent.record(c10::npu::getCurrentNPUStream(devices[i].index()));
+    c10_npu::NPUStream& hcclStream = hcclStreams[i];
+    c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
+    hcclEvent.record(c10_npu::getCurrentNPUStream(devices[i].index()));
     hcclEvent.block(hcclStream);
   }
 }
@@ -195,13 +195,13 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException() {
 // Waiting on the work's corresponding NPU events
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
   for (size_t i = 0; i < devices_.size(); ++i) {
-    auto currentStream = at::npu::getCurrentNPUStream(devices_[i].index());
+    auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
     npuEvents_[i].block(currentStream);
     // If we use the work to do barrier, we should block here
     if (!barrierTensors_.empty()) {
-      c10::npu::NPUGuard npuGuard(devices_[i]);
-      c10::npu::npuSynchronizeDevice();
+      c10_npu::NPUGuard npuGuard(devices_[i]);
+      c10_npu::npuSynchronizeDevice();
     }
   }
 
@@ -314,8 +314,8 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
   }
   broadcastMasterID(&hcclID);
 
-  c10::npu::OptionalNPUGuard npuGuard;
-  std::vector<c10::npu::NPUStream> streamVal;
+  c10_npu::OptionalNPUGuard npuGuard;
+  std::vector<c10_npu::NPUStream> streamVal;
   streamVal.reserve(devices.size());
 
   for (size_t i = 0; i < devices.size(); ++i) {
@@ -326,7 +326,7 @@ std::vector<std::shared_ptr<HCCLComm>>& ProcessGroupHCCL::getHCCLComm(
     hcclComms[i] = HCCLComm::create(numRanks, rank, hcclID);
 
     // Creates the HCCL streams
-    streamVal.push_back(c10::npu::getNPUStreamFromPool(devices[i].index()));
+    streamVal.push_back(c10_npu::getNPUStreamFromPool(devices[i].index()));
   }
 
   hcclStreams_.emplace(devicesKey, std::move(streamVal));
@@ -447,12 +447,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   // Work itself will create the events on all NPUs of tensors
   auto work = initWork(devices);
 
-  c10::npu::OptionalNPUGuard npuGuard;
+  c10_npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams_[key]);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
     npuGuard.set_index(devices[i].index());
-    c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
+    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
 
     // Both `inputs' and `outputs' are created on a worker stream and used in
     // different hcclStreams.  Hence, both must record the hcclStream to
@@ -470,7 +470,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       npuGuard.set_index(devices[i].index());
       // to avoid to much task pushed to the stream, leading to stream overflow
       // insert sync point fluxLimit(key, i)
-      c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
+      c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
       hcclUs startut = TIME_NOW();
       C10D_HCCL_CHECK(
           fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
@@ -479,7 +479,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   post(hcclStreams_[key]);
 
   for (size_t i = 0; i < inputs.size(); ++i) {
-    c10::npu::NPUStream& hcclStream = hcclStreams_[key][i];
+    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
     work->npuEvents_[i].record(hcclStream);
     work->hcclComms_[i] = hcclComms[i];
     work->blockingWait_ = blockingWait_;
@@ -498,8 +498,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
       inputs,
       outputs,
       fn,
-      [](std::vector<c10::npu::NPUStream>&) {},
-      [](std::vector<c10::npu::NPUStream>&) {});
+      [](std::vector<c10_npu::NPUStream>&) {},
+      [](std::vector<c10_npu::NPUStream>&) {});
 }
 
 int g_allreduceID = 0;
@@ -513,7 +513,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
-          c10::npu::NPUStream& stream) {
+          c10_npu::NPUStream& stream) {
         aclrtSetExceptionInfoCallback(exceptionCallback);
         RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
         return HcclAllReduce(
@@ -537,7 +537,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
-          c10::npu::NPUStream& stream) {
+          c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclBroadcast", std::vector<c10::IValue>({input}));
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
         return HcclBroadcast(
@@ -578,7 +578,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
-          c10::npu::NPUStream& stream) {
+          c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclAllgather", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
@@ -590,11 +590,11 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10::npu::NPUStream>& hcclStreams) {},
-      [&](std::vector<c10::npu::NPUStream>& hcclStreams) {
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
         // Copy the flattened output tensors to the outputs.
         for (size_t i = 0; i < outputTensors.size(); ++i) {
-          c10::npu::NPUStreamGuard guard(hcclStreams[i]);
+          c10_npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < outputTensors[0].size(); ++j) {
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
@@ -629,7 +629,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
       [&](at::Tensor& input,
           at::Tensor& output,
           HcclComm comm,
-          c10::npu::NPUStream& stream) {
+          c10_npu::NPUStream& stream) {
         RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
@@ -642,10 +642,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
             comm,
             stream.stream());
       },
-      [&](std::vector<c10::npu::NPUStream>& hcclStreams) {
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
         // Copy the input tensors to the flattened inputs.
         for (size_t i = 0; i < inputTensors.size(); ++i) {
-          c10::npu::NPUStreamGuard guard(hcclStreams[i]);
+          c10_npu::NPUStreamGuard guard(hcclStreams[i]);
           for (size_t j = 0; j < inputTensors[0].size(); ++j) {
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
@@ -655,14 +655,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           }
         }
       },
-      [&](std::vector<c10::npu::NPUStream>& hcclStreams) {});
+      [&](std::vector<c10_npu::NPUStream>& hcclStreams) {});
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
     const c10d::BarrierOptions& opts) {
   std::vector<at::Device> devices;
   if (usedDeviceIdxs_.empty()) {
-    auto numNPUs = c10::npu::device_count();
+    auto numNPUs = c10_npu::device_count();
     int16_t deviceIdx = static_cast<int16_t>(rank_ % std::max(static_cast<int>(numNPUs), 1));
     devices.push_back(at::Device(at::DeviceType::NPU, deviceIdx));
   } else {
@@ -674,7 +674,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   std::vector<at::Tensor> barrierTensors;
   barrierTensors.reserve(devices.size());
 
-  at::npu::OptionalNPUGuard npuGuard;
+  c10_npu::OptionalNPUGuard npuGuard;
   for (auto& device : devices) {
     npuGuard.set_index(device.index());
     barrierTensors.push_back(at::empty(
@@ -727,7 +727,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
 }
 
 void ProcessGroupHCCL::release_resource() {
-  c10::npu::npuSynchronizeDevice();
+  c10_npu::npuSynchronizeDevice();
   this->hcclEvents_.clear();
   this->devHCCLCommMap_.clear();
 }

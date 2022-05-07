@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -27,7 +27,7 @@ C10_DECLARE_bool(caffe2_report_npu_memory_usage);
 C10_DECLARE_bool(caffe2_npu_allocator_do_zero_fill);
 C10_DECLARE_bool(caffe2_npu_allocator_do_junk_fill);
 
-namespace torch_npu {
+namespace c10_npu {
 
 // Use 64-byte alignment should be enough for computation up to AVX512.
 constexpr size_t gAlignment = 64;
@@ -53,4 +53,4 @@ void SetNPUAllocator(at::Allocator* alloc);
 // Get the Default CPU Allocator
 at::Allocator* GetDefaultNPUAllocator();
 
-} // namespace torch_npu
+} // namespace c10_npu

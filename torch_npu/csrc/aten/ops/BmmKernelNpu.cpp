@@ -71,7 +71,7 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
   auto options = self.options();
 
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
-  if ((self.scalar_type() == at::ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
+  if ((self.scalar_type() == at::ScalarType::Half) && !c10_npu::option::OptionsManager::CheckSwitchMMOutputEnable()) {
     // check is 16-algined with high-performance
     auto isAligin = [&]() {
       return (!(static_cast<uint64_t>(self.size(1)) & 0x0000000F)) &&

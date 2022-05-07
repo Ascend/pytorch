@@ -15,12 +15,12 @@
 // limitations under the License.
 
 #include <c10/core/DeviceGuard.h>
-#include <c10/npu/npu_log.h>
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include <c10/util/Logging.h>
-#include <c10/npu/sys_ctrl/npu_sys_ctrl.h>
-#include "c10/npu/interface/AsyncTaskQueueInterface.h"
-#include "c10/npu/interface/AclInterface.h"
-#include "c10/npu/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 #include <Python.h>
 
@@ -47,7 +47,7 @@ struct BlockSize {
 struct Block : public BlockSize {
   bool allocated; // true if the block is currently allocated
   int event_count; // number of outstanding npu events
-  std::unordered_set<at::npu::NPUStream> streams;
+  std::unordered_set<c10_npu::NPUStream> streams;
   Block(size_t size, void* ptr, bool allocated)
       : BlockSize(size, ptr), allocated(allocated), event_count(0), streams() {}
 };
@@ -116,7 +116,7 @@ struct HostAllocator {
   }
 
   aclError free(void* ptr) {
-    c10::SmallVector<c10::Storage, c10::npu::N> needClearVec;
+    c10::SmallVector<c10::Storage, 32> needClearVec;
     {
       std::lock_guard<std::mutex> lock(mutex);
 
@@ -156,7 +156,7 @@ struct HostAllocator {
     return ACL_ERROR_NONE;
   }
 
-  aclError recordEvent(void* ptr, at::npu::NPUStream stream) {
+  aclError recordEvent(void* ptr, c10_npu::NPUStream stream) {
     std::lock_guard<std::mutex> lock(mutex);
 
     auto it = blocks.find(ptr);
@@ -186,7 +186,7 @@ struct HostAllocator {
 
   void insertCompleteEvent(aclrtEvent event)
   {
-    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+    if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
       std::lock_guard<std::mutex> lock(record_mutex);
       complete_events.insert(event);
     }
@@ -194,7 +194,7 @@ struct HostAllocator {
 
   bool findAndEraseCompleteEvent(aclrtEvent event)
   {
-    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+    if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
       std::lock_guard<std::mutex> lock(record_mutex);
       auto it = complete_events.find(event);
       if (it == complete_events.end()) {
@@ -285,7 +285,7 @@ struct HostAllocator {
     }
   }
 
-  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, c10::npu::N>& needClearVec) {
+  aclError insertEvents(Block& block, c10::SmallVector<c10::Storage, 32>& needClearVec) {
     aclError err = ACL_ERROR_NONE;
 
     int prev_device = 0;
@@ -293,7 +293,7 @@ struct HostAllocator {
     if (err != ACL_ERROR_NONE)
       return err;
 
-    std::unordered_set<at::npu::NPUStream> streams(std::move(block.streams));
+    std::unordered_set<c10_npu::NPUStream> streams(std::move(block.streams));
     for (auto it = streams.begin(); it != streams.end(); ++it) {
       int pre_device = 0;
       aclError ret = aclrtGetDevice(&pre_device);
@@ -312,12 +312,12 @@ struct HostAllocator {
       }
 
       aclrtEvent event = nullptr;
-      err = c10::npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE);
+      err = c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE);
       if (err != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         break;
       }
-      err = c10::npu::queue::HostAllocatorLaunchRecordEventTask(event, *it, needClearVec);
+      err = c10_npu::queue::HostAllocatorLaunchRecordEventTask(event, *it, needClearVec);
       if (err != ACL_ERROR_NONE)
         break;
 
@@ -341,7 +341,7 @@ static HostAllocator allocator;
 
 aclError THNPUCachingHostAllocator_recordEvent(
     void* ptr,
-    at::npu::NPUStream stream) {
+    c10_npu::NPUStream stream) {
   return allocator.recordEvent(ptr, stream);
 }
 
@@ -390,9 +390,9 @@ at::Allocator* getTHNPUCachingHostAllocator() {
 
 c10::Allocator* getPinnedMemoryAllocator(){
   C10_LOG_API_USAGE_ONCE("aten.init.npu");
-  c10::npu::NpuSysCtrl::SysStatus status =
-      c10::npu::NpuSysCtrl::GetInstance().Initialize();
-  if (status != c10::npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+  c10_npu::NpuSysCtrl::SysStatus status =
+      c10_npu::NpuSysCtrl::GetInstance().Initialize();
+  if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
     NPU_LOGE("Npu init fail.");
   }
   return getTHNPUCachingHostAllocator();

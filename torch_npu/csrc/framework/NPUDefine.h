@@ -16,7 +16,7 @@
 #ifndef __PULGIN_C10_NPUQUEUE_WITH_QUEUE__
 #define __PULGIN_C10_NPUQUEUE_WITH_QUEUE__
 
-#include <c10/npu/npu_log.h>
+#include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 

@@ -18,7 +18,7 @@
 
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 FunctionLoader::FunctionLoader(const std::string& name) {
@@ -81,7 +81,7 @@ namespace register_function {
     }
     itr->second->Set(funcName);
   }
-  
+
   void* FunctionRegister::Get(const std::string& soName, const std::string& funcName) {
     auto itr = registry.find(soName);
     if (itr != registry.end()) {
@@ -100,4 +100,4 @@ namespace register_function {
 
 
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu

@@ -16,7 +16,7 @@
 #ifndef __PULGIN_NATIVE_UTILS_OP_PARAM_MAKER__
 #define __PULGIN_NATIVE_UTILS_OP_PARAM_MAKER__
 
-#include <c10/npu/NPUStream.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"

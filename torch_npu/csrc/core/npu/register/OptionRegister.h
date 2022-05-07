@@ -23,7 +23,7 @@
 #include <unordered_map>
 #include <c10/util/Optional.h>
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 typedef void(*OptionCallBack) (const std::string&);
@@ -48,7 +48,7 @@ private:
 /**
   Its used to store hook.
   */
-  OptionCallBack callback = nullptr; 
+  OptionCallBack callback = nullptr;
   std::string val;
 };
 
@@ -116,8 +116,8 @@ c10::optional<std::string> GetOption(const std::string& key);
 
 #define REGISTER_OPTION_UNIQ(id, name, type)                        \
   auto options_interface_##id =                                     \
-      ::std::unique_ptr<torch_npu::option::OptionInterface>(new torch_npu::option::OptionInterface());    \
-  static torch_npu::option::register_options::OptionInterfaceBuilder                             \
+      ::std::unique_ptr<c10_npu::option::OptionInterface>(new c10_npu::option::OptionInterface());    \
+  static c10_npu::option::register_options::OptionInterfaceBuilder                             \
       register_options_interface_##id(#name, options_interface_##id, #type);
 
 #define REGISTER_OPTION_HOOK(name, ...)                                       \
@@ -125,14 +125,14 @@ c10::optional<std::string> GetOption(const std::string& key);
 
 #define REGISTER_OPTION_HOOK_UNIQ(id, name, ...)                                \
   auto options_interface_##id =                                                 \
-      ::std::unique_ptr<torch_npu::option::OptionInterface>(                             \
-        new torch_npu::option::OptionInterface(torch_npu::option::OptionCallBack(__VA_ARGS__)));  \
-  static torch_npu::option::register_options::OptionInterfaceBuilder                     \
+      ::std::unique_ptr<c10_npu::option::OptionInterface>(                             \
+        new c10_npu::option::OptionInterface(c10_npu::option::OptionCallBack(__VA_ARGS__)));  \
+  static c10_npu::option::register_options::OptionInterfaceBuilder                     \
       register_options_interface_##id(#name, options_interface_##id);
 
 #define REGISTER_OPTION_BOOL_FUNCTION(func, key, defaultVal, trueVal)  \
   bool func() {                                                     \
-    auto val = torch_npu::option::GetOption(#key);                           \
+    auto val = c10_npu::option::GetOption(#key);                           \
     if (val.value_or(defaultVal) == (trueVal)) {                    \
       return true;                                                  \
     }                                                               \
@@ -141,7 +141,7 @@ c10::optional<std::string> GetOption(const std::string& key);
 
 #define REGISTER_OPTION_BOOL_FUNCTION_UNIQ(func, key, defaultVal, trueVal)  \
   bool func() {                                                             \
-    static auto val = torch_npu::option::GetOption(#key);                            \
+    static auto val = c10_npu::option::GetOption(#key);                            \
     if (val.value_or(defaultVal) == (trueVal)) {                            \
       return true;                                                          \
     }                                                                       \
@@ -149,6 +149,6 @@ c10::optional<std::string> GetOption(const std::string& key);
   }
 
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu
 
 #endif // __TORCH_NPU_OPTION_REGISTER_H__

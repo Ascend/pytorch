@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,12 +17,12 @@
 #ifndef THNP_EVENT_INC
 #define THNP_EVENT_INC
 
-#include <c10/npu/NPUEvent.h>
+#include "torch_npu/csrc/core/npu/NPUEvent.h"
 #include <torch/csrc/python_headers.h>
 
 struct THNPEvent {
   PyObject_HEAD
-  at::npu::NPUEvent npu_event;
+  c10_npu::NPUEvent npu_event;
 };
 extern PyObject *THNPEventClass;
 

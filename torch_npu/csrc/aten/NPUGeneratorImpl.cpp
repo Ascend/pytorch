@@ -1,6 +1,6 @@
 #include <ATen/Utils.h>
 #include <c10/core/StreamGuard.h>
-#include <c10/npu/NPUFunctions.h>
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
@@ -26,7 +26,7 @@ static std::vector<at::Generator> default_gens_npu;
 * Warning: this function must only be called once!
 */
 static void initNPUGenVector(){
-  num_npus = c10::npu::device_count();
+  num_npus = c10_npu::device_count();
   npu_gens_init_flag.resize(num_npus);
   default_gens_npu.resize(num_npus);
 }
@@ -45,7 +45,7 @@ const at::Generator& getDefaultNPUGenerator(c10::DeviceIndex device_index) {
   std::call_once(num_npu_init_flag, initNPUGenVector);
   c10::DeviceIndex idx = device_index;
   if (idx == -1) {
-    idx = c10::npu::current_device();
+    idx = c10_npu::current_device();
   } else {
     TORCH_CHECK(idx >= 0 && idx < num_npus);
   }
@@ -63,14 +63,14 @@ at::Generator createNPUGenerator(c10::DeviceIndex device_index) {
   std::call_once(num_npu_init_flag, initNPUGenVector);
   c10::DeviceIndex idx = device_index;
   if (idx == -1) {
-    idx = c10::npu::current_device();
+    idx = c10_npu::current_device();
   }
   TORCH_CHECK(idx >= 0 && idx < num_npus, "The device_index is invalid.");
   auto gen = at::make_generator<NPUGeneratorImpl>(idx);
   auto npu_gen = at::check_generator<NPUGeneratorImpl>(gen);
   npu_gen->set_current_seed(c10::default_rng_seed_val);
   npu_gen->set_philox_offset_per_thread(0);
-  return gen; 
+  return gen;
 }
 
 } // namespace detail
@@ -188,7 +188,7 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
   } else {
     TORCH_CHECK(new_state_size == total_size, "RNG state is wrong size");
   }
-  
+
   uint64_t input_seed;
   auto new_rng_state = new_state.data<uint8_t>();
   memcpy(&input_seed, new_rng_state + states_size, seed_size);

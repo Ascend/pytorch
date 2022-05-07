@@ -26,7 +26,7 @@ namespace native {
 #define CHECK_MEM_MAX_SIZE (65536 * 1024)   // 64M
 #define DEVICE_VALID_LEN(a) ((((a) + 32 + 511) / 512) * 512)
 
-class C10_API ScalarMemContext {
+class  ScalarMemContext {
 public:
   static ScalarMemContext &GetContext() {
     static ScalarMemContext ctx;
@@ -46,8 +46,8 @@ public:
       uint8_t* host_ptr,
       uint32_t data_len,
       uint32_t& data_offset);
-  
-  void ExecuteH2D(c10::npu::NPUStream stream);
+
+  void ExecuteH2D(c10_npu::NPUStream stream);
 
   void Reset();
 

@@ -129,7 +129,7 @@ bool TransContiguous::ContiguousOptimizeWithBaseFormat(
   // In non-specific cases, classify the cases and simplify judgement.
   ContiguousTensorDesc src_desc = GetTensorDescInfo(src, opt_cases);
   if (OpenCombined &&
-      torch_npu::option::OptionsManager::CheckCombinedOptimizerEnable()) {
+      c10_npu::option::OptionsManager::CheckCombinedOptimizerEnable()) {
     src_desc.add_optimization_case("combined");
   }
   return contiguous_optimize_with_anyformat_(self, src, src_desc);

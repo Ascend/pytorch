@@ -59,9 +59,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_dropout_with_add_softmax_forw
   double retain = 1. - p;
   at::Scalar prob = at::Scalar(retain);
   at::Tensor mask;
-  auto original_stream = c10::npu::getCurrentNPUStream();
+  auto original_stream = c10_npu::getCurrentNPUStream();
   {
-    torch_npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+    c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
     mask = dropout_genmask(x1, prob);
   }
   c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
@@ -134,10 +134,10 @@ public:
     auto result0 = saved[0];
     auto result1 = saved[1];
     auto result = NPUNativeFunctions::npu_dropout_with_add_softmax_backward(
-        grad_outputs[2], 
+        grad_outputs[2],
         result0,
         result1,
-        alpha, 
+        alpha,
         p,
         dim);
     tensor_list output = {std::get<0>(result),

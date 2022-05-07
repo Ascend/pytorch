@@ -18,7 +18,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 using namespace std;
@@ -70,4 +70,4 @@ bool OptionsManager::CheckUseNpuLogEnable() {
   return (useNpuLog == 1);
 }
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu

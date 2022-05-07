@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/NPUException.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 
 #include "torch_npu/csrc/framework/NPUDefine.h"
 

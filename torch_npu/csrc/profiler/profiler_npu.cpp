@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -15,9 +15,9 @@
 // limitations under the License.
 
 
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/NPUGuard.h>
-#include <c10/npu/interface/AclInterface.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/profiler/profiler.h"
 #include <sstream>
@@ -48,8 +48,8 @@ struct NPUMethods : public DeviceStubs {
   }
   void record(int* device, aclrtEvent* event1, int64_t* cpu_ns) const override {
     TORCH_NPU_CHECK(aclrtGetDevice(device));
-    TORCH_NPU_CHECK(c10::npu::acl::AclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
-    auto stream = c10::npu::getCurrentNPUStream();
+    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
+    auto stream = c10_npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
   }
@@ -61,7 +61,7 @@ struct NPUMethods : public DeviceStubs {
     return ms*1000.0;
   }
   void onEachDevice(std::function<void(int)> op) const override {
-    c10::npu::OptionalNPUGuard device_guard;
+    c10_npu::OptionalNPUGuard device_guard;
     int dev = -1;
     auto ret = aclrtGetDevice(&dev);
     if (ret != ACL_ERROR_NONE) {
@@ -72,7 +72,7 @@ struct NPUMethods : public DeviceStubs {
   }
 
   void synchronize() const override {
-    c10::npu::npuSynchronizeDevice();
+    c10_npu::npuSynchronizeDevice();
   }
   bool enabled() const override {
     return true;

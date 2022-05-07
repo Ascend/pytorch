@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <c10/npu/NPUException.h>
+#include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/framework/interface/MsProfilerInterface.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 
@@ -69,7 +69,7 @@ aclError AclprofSetCategoryName(uint32_t category, const char *categoryName) {
         func = (AclprofSetCategoryNameFunc)GET_FUNC(aclprofSetCategoryName);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetCategoryName");
-    return func(category, categoryName);  
+    return func(category, categoryName);
 }
 
 aclError AclprofSetStampCategory(void *stamp, uint32_t category) {
@@ -79,7 +79,7 @@ aclError AclprofSetStampCategory(void *stamp, uint32_t category) {
         func = (AclprofSetStampCategoryFunc)GET_FUNC(aclprofSetStampCategory);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampCategory");
-    return func(stamp, category);      
+    return func(stamp, category);
 }
 
 aclError AclprofSetStampPayload(void *stamp, const int32_t type, void *value) {
@@ -89,7 +89,7 @@ aclError AclprofSetStampPayload(void *stamp, const int32_t type, void *value) {
         func = (AclprofSetStampPayloadFunc)GET_FUNC(aclprofSetStampPayload);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampPayload");
-    return func(stamp, type, value);      
+    return func(stamp, type, value);
 }
 
 aclError AclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgLen) {
@@ -99,7 +99,7 @@ aclError AclprofSetStampTraceMessage(void *stamp, const char *msg, uint32_t msgL
         func = (AclprofSetStampTraceMessageFunc)GET_FUNC(aclprofSetStampTraceMessage);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofSetStampTraceMessage");
-    return func(stamp, msg, msgLen);  
+    return func(stamp, msg, msgLen);
 }
 
 aclError AclprofMsproftxSwitch(bool isOpen) {
@@ -109,7 +109,7 @@ aclError AclprofMsproftxSwitch(bool isOpen) {
         func = (AclprofMsproftxSwitchFunc)GET_FUNC(aclprofMsproftxSwitch);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofMsproftxSwitch");
-    return func(isOpen);    
+    return func(isOpen);
 }
 
 aclError AclprofMark(void *stamp) {
@@ -119,7 +119,7 @@ aclError AclprofMark(void *stamp) {
         func = (AclprofMarkFunc)GET_FUNC(aclprofMark);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofMark");
-    return func(stamp);    
+    return func(stamp);
 }
 
 aclError AclprofPush(void *stamp) {
@@ -129,7 +129,7 @@ aclError AclprofPush(void *stamp) {
         func = (AclprofPushFunc)GET_FUNC(aclprofPush);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofPush");
-    return func(stamp);    
+    return func(stamp);
 }
 
 aclError AclprofPop() {
@@ -139,7 +139,7 @@ aclError AclprofPop() {
         func = (AclprofPopFunc)GET_FUNC(aclprofPop);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofPop");
-    return func();    
+    return func();
 }
 
 aclError AclprofRangeStart(void *stamp, uint32_t *rangeId) {
@@ -149,7 +149,7 @@ aclError AclprofRangeStart(void *stamp, uint32_t *rangeId) {
         func = (AclprofRangeStartFunc)GET_FUNC(aclprofRangeStart);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStart");
-    return func(stamp, rangeId);    
+    return func(stamp, rangeId);
 }
 
 aclError AclprofRangeStop(uint32_t rangeId) {
@@ -159,7 +159,7 @@ aclError AclprofRangeStop(uint32_t rangeId) {
         func = (AclprofRangeStopFunc)GET_FUNC(aclprofRangeStop);
     }
     TORCH_CHECK(func, "Failed to find function ", "aclprofRangeStop");
-    return func(rangeId);   
+    return func(rangeId);
 }
 
 }

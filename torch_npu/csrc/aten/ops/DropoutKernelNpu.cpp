@@ -138,13 +138,13 @@ std::tuple<at::Tensor, at::Tensor> dropout_v1_npu_impl(
   double retain = 1. - p;
   at::Scalar prob = at::Scalar(retain);
   at::Tensor mask;
-  auto original_stream = c10::npu::getCurrentNPUStream();
+  auto original_stream = c10_npu::getCurrentNPUStream();
   {
     // During the life cycle of this raii instance, the calcu stream is set as the
     // secondary stream, and tasks are distributed to the secondary stream. At the
     // same time, according to the one-stream-one-pool principle, memory is also
     // alloced from the pool of the secondary stream.
-    torch_npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+    c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
     mask = dropout_gen_mask(selfCp, prob);
   }
   // When tasks on multiple streams read and write the same block of memory,

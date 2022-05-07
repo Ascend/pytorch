@@ -18,8 +18,8 @@
 
 #include <ATen/ATen.h>
 #include <TH/THTensor.hpp>
-#include <c10/npu/NPUStream.h>
-#include <c10/npu/interface/AsyncTaskQueueInterface.h>
+#include "torch_npu/csrc/core/npu/NPUStream.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
@@ -53,7 +53,7 @@ static void storage_resize_npu(
       copy_size = storage.nbytes();
     }
     if (copy_size > 0) {
-      aclError error = c10::npu::queue::LaunchAsyncCopyTask(
+      aclError error = c10_npu::queue::LaunchAsyncCopyTask(
           storage.data(),
           copy_size,
           old_data.get(),

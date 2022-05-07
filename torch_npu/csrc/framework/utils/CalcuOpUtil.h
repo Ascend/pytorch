@@ -21,9 +21,9 @@
 #include <vector>
 #include <ATen/ATen.h>
 #include <ATen/NamedTensorUtils.h>
-#include <c10/npu/npu_log.h>
+#include "torch_npu/csrc/core/npu/npu_log.h"
 #include <c10/util/Exception.h>
-#include <c10/npu/interface/AclInterface.h>
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include <stdint.h>
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -66,7 +66,7 @@ using std::vector;
           __LINE__,                        \
           " NPU error,NPU error code is:", \
           expr, "\n",                      \
-          c10::npu::acl::AclGetErrMsg());  \
+          c10_npu::acl::AclGetErrMsg());  \
     }                                      \
   } while (0)
 

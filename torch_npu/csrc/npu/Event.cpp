@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -18,7 +18,7 @@
 #include <torch/csrc/Device.h>
 #include <torch/csrc/THP.h>
 #include <torch/csrc/utils/python_arg_parser.h>
-#include <c10/npu/NPUGuard.h>
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
 #include <structmember.h>
 
 #include "torch_npu/csrc/npu/Event.h"
@@ -45,7 +45,7 @@ static PyObject * THNPEvent_pynew(PyTypeObject *type, PyObject *args, PyObject *
 
   THNPEvent* self = (THNPEvent *)ptr.get();
 
-  new (&self->npu_event) at::npu::NPUEvent();
+  new (&self->npu_event) c10_npu::NPUEvent();
 
   return (PyObject *)ptr.release();
   END_HANDLE_TH_ERRORS

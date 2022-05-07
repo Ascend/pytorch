@@ -18,7 +18,7 @@
 
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 OptionInterface::OptionInterface(OptionCallBack callback) {
@@ -100,4 +100,4 @@ c10::optional<std::string> GetOption(const std::string& key) {
 }
 
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu

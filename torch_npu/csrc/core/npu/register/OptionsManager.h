@@ -21,7 +21,7 @@
 #include <unordered_map>
 #include <c10/util/Exception.h>
 
-namespace torch_npu {
+namespace c10_npu {
 namespace option {
 
 class OptionsManager {
@@ -38,6 +38,6 @@ private:
 };
 
 } // namespace option
-} // namespace torch_npu
+} // namespace c10_npu
 
 #endif // __TORCH_NPU_OPTIONSMANAGER_H__
