@@ -81,5 +81,29 @@ at::Tensor NPUNativeFunctions::cumprod(const at::Tensor& self, at::Dimname dim, 
   return NPUNativeFunctions::cumprod(self, dimname_to_position(self.toType(dstType), dim), self.scalar_type());
 }
 
+at::Tensor& NPUNativeFunctions::cumprod_(at::Tensor& self, int64_t dim, c10::optional<at::ScalarType> dtype) {
+  TORCH_CHECK(
+      !dtype.has_value() || (self.scalar_type() == dtype.value()),
+      "provided dtype must match the dtype of self tensor in cumprod. Got ",
+      toString(self.scalar_type()),
+      " and ",
+      toString(dtype.value()),
+      ".");
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    NPUNativeFunctions::_cumprod_out(contiguousSelf, dim, result);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+    NPUNativeFunctions::_cumprod_out(self, dim, result);
+  }
+  self.copy_(result);
+  return self;
+}
+
+at::Tensor& NPUNativeFunctions::cumprod_(at::Tensor& self, at::Dimname dim, c10::optional<at::ScalarType> dtype) {
+  return NPUNativeFunctions::cumprod_(self, dimname_to_position(self, dim), dtype);
+}
+
 } // namespace native
 } // namespace at_npu
