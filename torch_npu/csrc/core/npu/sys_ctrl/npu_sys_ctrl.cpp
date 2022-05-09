@@ -147,17 +147,30 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     if (!init_flag_) {
         return FINALIZE_SUCC;
     }
-    c10_npu::NPUEventManager::GetInstance().ClearEvent();
-    auto stream = c10_npu::getCurrentNPUStream();
-    (void)aclrtDestroyStream(stream);
-    C10_NPU_CHECK(ge::GEFinalize());
-    C10_NPU_CHECK(aclrtResetDevice(device_id_));
-    C10_NPU_CHECK(aclFinalize());
+
+    this->RegisterReleaseFn([=]() ->void {
+        c10_npu::NPUEventManager::GetInstance().ClearEvent();
+        auto stream = c10_npu::getCurrentNPUStream();
+        (void)aclrtDestroyStream(stream);
+        C10_NPU_CHECK(ge::GEFinalize());
+        C10_NPU_CHECK(aclrtResetDevice(device_id_));
+        C10_NPU_CHECK(aclFinalize());
+    }, ReleasePriority::PriorityLast);
+
     init_flag_ = false;
 
     if (c10_npu::option::OptionsManager::CheckAclDumpDateEnable()) {
         C10_NPU_CHECK(aclmdlFinalizeDump());
     }
+
+    // call release fn by priotity
+    for (const auto& iter : release_fn_) {
+        const auto& fn_vec = iter.second;
+        for (const auto& fn : fn_vec) {
+            fn();
+        }
+    }
+    release_fn_.clear();
 
     NPU_LOGD("Npu sys ctrl finalize successfully.");
     return FINALIZE_SUCC;
@@ -165,6 +178,16 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
  bool NpuSysCtrl::GetInitFlag() {
     return init_flag_;
+}
+
+void NpuSysCtrl::RegisterReleaseFn(ReleaseFn release_fn,
+                                   ReleasePriority priority) {
+    const auto& iter = this->release_fn_.find(priority);
+    if (iter != release_fn_.end()) {
+        release_fn_[priority].emplace_back(release_fn);
+    } else {
+        release_fn_[priority] = (std::vector<ReleaseFn>({release_fn}));
+    }
 }
 
 } // namespace c10_npu
