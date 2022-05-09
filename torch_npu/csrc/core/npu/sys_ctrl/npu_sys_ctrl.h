@@ -4,11 +4,19 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <functional>
 #include "c10/macros/Export.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #define NpuSysStatus c10_npu::NpuSysCtrl::SysStatus
 
 namespace c10_npu {
+using ReleaseFn = std::function<void()>;
+
+enum class ReleasePriority : uint8_t {
+    PriorityFirst = 0,
+    PriorityMiddle = 5,
+    PriorityLast = 10
+};
 
 class NpuSysCtrl {
 public:
@@ -45,12 +53,18 @@ public:
 
     // Get Init_flag
      bool GetInitFlag();
+
+    // Register fn to be called during stage of exit and
+    // the callability of fn is guaranteed by the caller.
+     void RegisterReleaseFn(ReleaseFn release_fn,
+         ReleasePriority priority = ReleasePriority::PriorityMiddle);
 private:
     NpuSysCtrl();
 
 private:
     bool init_flag_;
     int device_id_;
+    std::map<ReleasePriority, std::vector<ReleaseFn>> release_fn_;
 };
 } // namespace c10_npu
 

@@ -9,7 +9,7 @@ __all__ = [
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
     "Reducer", "_DEFAULT_FIRST_BUCKET_BYTES", "_register_comm_hook", "_register_builtin_comm_hook",
     "_broadcast_coalesced", "_compute_bucket_assignment_by_size", "_set_construction_logging_data",
-    "_get_ddp_logging_data", "release_process_group"
+    "_get_ddp_logging_data",
 ]
 
 
@@ -45,5 +45,5 @@ from .distributed_c10d import (
     init_process_group, destroy_process_group, get_rank, get_world_size, isend,
     irecv, send, recv, P2POp, batch_isend_irecv, broadcast, all_reduce, all_reduce_coalesced,
     reduce, all_gather, all_gather_coalesced, gather, scatter, reduce_scatter,
-    all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL, release_process_group
+    all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL
 )

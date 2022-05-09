@@ -5,6 +5,7 @@
 #include "third_party/acl/inc/acl/acl.h"
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include <cstdint>
 #include <utility>
@@ -26,7 +27,7 @@ struct NPUEvent {
 
   ~NPUEvent() {
     try {
-      if (is_created_) {
+      if (is_created_ && (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag())) {
         C10_NPU_CHECK(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
         C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }

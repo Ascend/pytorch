@@ -17,6 +17,7 @@
 #pragma once
 
 #include "torch_npu/csrc/core/npu/npu_log.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 #include <memory>
 
 #include "hccl/hccl.h"
@@ -41,11 +42,7 @@ public:
 
   HCCLComm() : HCCLComm(nullptr) {}
 
-  ~HCCLComm() noexcept {
-    if (hcclComm_) {
-      HcclCommDestroy(hcclComm_);
-    }
-  }
+  ~HCCLComm() = default;
 
   static std::shared_ptr<HCCLComm> create(
       int numRanks,
@@ -54,6 +51,9 @@ public:
     auto comm = std::make_shared<HCCLComm>();
     C10D_HCCL_CHECK(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
+    c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
+      HcclCommDestroy(comm->hcclComm_);
+    }, c10_npu::ReleasePriority::PriorityMiddle);
     return comm;
   }
 

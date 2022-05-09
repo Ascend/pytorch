@@ -725,10 +725,4 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
     int /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support recv");
 }
-
-void ProcessGroupHCCL::release_resource() {
-  c10_npu::npuSynchronizeDevice();
-  this->hcclEvents_.clear();
-  this->devHCCLCommMap_.clear();
-}
 } // namespace c10d_npu
