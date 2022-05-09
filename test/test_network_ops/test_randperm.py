@@ -34,7 +34,7 @@ class TestRandperm(TestCase):
         return output.numpy()
 
     def test_randperm_shape_format(self):
-        for n in (10, 25, 123, 1000):
+        for n in (10, 25, 123):
             for dtype in (torch.long, torch.float32, torch.float16):
                 cpu_output = self.cpu_op_exec(n, dtype)
                 npu_output = self.npu_op_exec(n, dtype)
