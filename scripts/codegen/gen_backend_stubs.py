@@ -132,9 +132,9 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
     return _GLOBAL_PARSE_NATIVE_YAML_CACHE[path]
 
 # Parses the external backend's yaml, and adds a new BackendIndex for the backend's dispatch key.
-# Returns a Tuple of (backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
+# Returns a Tuple of (true_backend, backend_key, autograd_key, cpp_namespace, updated BackendIndex mapping)
 ParsedExternalYaml = namedtuple('ParsedExternalYaml', [
-    'backend_key', 'autograd_key', 'cpp_namespace', 'backend_indices'])
+    'true_backend', 'backend_key', 'autograd_key', 'cpp_namespace', 'backend_indices'])
 def parse_backend_yaml(
         backend_yaml_path: str,
         grouped_native_functions: Sequence[Union[NativeFunction, NativeFunctionsGroup]],
@@ -153,8 +153,9 @@ def parse_backend_yaml(
 
     valid_keys = ['backend', 'cpp_namespace', 'extra_headers', 'supported', 'autograd', 'custom', 'custom_autograd']
 
-    backend = yaml_values.pop('backend', None)
-    assert backend is not None, 'You must provide a value for "backend"'
+    true_backend = yaml_values.pop('backend', None)
+    assert true_backend is not None, 'You must provide a value for "backend"'
+    backend = "NPU"
 
     cpp_namespace = yaml_values.pop('cpp_namespace', None)
     assert cpp_namespace is not None, 'You must provide a value for "cpp_namespace"'
@@ -204,7 +205,7 @@ the behavior of autograd for some operators on your backend. However "Autograd{b
         backend_indices[autograd_key] = autograd_idx
 
     check_grouped_native_functions(backend_key, autograd_key, backend_indices, grouped_native_functions)
-    return ParsedExternalYaml(backend_key, autograd_key, cpp_namespace, backend_indices)
+    return ParsedExternalYaml(true_backend, backend_key, autograd_key, cpp_namespace, backend_indices)
 
 # Double-check the functions we supported to see whether there exists something mismatch.
 def error_on_missing_kernels(
@@ -294,6 +295,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
     native_functions, backend_indices = parsed_yaml.native_functions, parsed_yaml.backend_indices
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
+    true_backend = parsed_backend_yaml.true_backend
     backend_key = parsed_backend_yaml.backend_key
     autograd_key = parsed_backend_yaml.autograd_key
     cpp_namespace = parsed_backend_yaml.cpp_namespace
@@ -336,7 +338,7 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
             fm.write_with_template(f'Register{dispatch_key}.cpp', 'RegisterDispatchKey.cpp', lambda: {
                 'external_backend_headers': native_func_header,
                 'namespaced_headers': '',
-                'DispatchKey': dispatch_key,
+                'DispatchKey': dispatch_key.name.replace("NPU", true_backend),
                 'dispatch_namespace': dispatch_key.lower(),
                 'dispatch_helpers': dest.gen_registration_helpers(backend_indices[dispatch_key]),
                 'dispatch_namespaced_definitions': list(concat_map(
