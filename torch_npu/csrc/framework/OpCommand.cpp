@@ -208,8 +208,10 @@ at::Tensor& OpCommand::Contiguous(const at::Tensor &input) {
   return storage.back();
 }
 
-at::Tensor& OpCommand::CreateHostTensor(void *data, size_t size,
-                             const c10::TensorOptions &options, at::ScalarType toType) {
+at::Tensor& OpCommand::CreateHostTensor(
+    void *data, size_t size,
+    const c10::TensorOptions &options,
+    at::ScalarType toType) {
   AT_ASSERT(options.dtype() == at::kLong);
   auto cpuTensor = at::empty(size, options);
   AT_ASSERT(cpuTensor.is_contiguous());
