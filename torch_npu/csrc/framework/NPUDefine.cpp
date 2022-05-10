@@ -25,7 +25,7 @@ namespace at_npu
     void ExecuteParas::Release()
     {
       // if useDynamicCompile, this attr will be freed in dynamic compile.
-      if (!isCompiling)
+      if (attr != nullptr)
       {
         aclopDestroyAttr(attr);
       }
@@ -42,13 +42,11 @@ namespace at_npu
     void ExecuteParas::Copy(ExecuteParas &other)
     {
       this->opType = other.opType;
-      this->attrInfo = other.attrInfo;
       this->paras = other.paras;
       this->attr = other.attr;
       this->constParams = other.constParams;
       this->hostMemory = other.hostMemory;
       this->isFuzzy = other.isFuzzy;
-      this->isCompiling = other.isCompiling;
     }
 
     void ExecuteParas::CopyEx(ExecuteParas& other)
@@ -56,7 +54,6 @@ namespace at_npu
       this->paras = other.paras;
       this->attr = other.attr;
       this->constParams = other.constParams;
-      this->isCompiling = other.isCompiling;
     }
 
     NPUStatus DestroyAclParams(ACL_PARAMS& params)
@@ -93,12 +90,8 @@ namespace at_npu
       }
       free(params.input_desc);
       params.input_desc = nullptr;
-      params.inputDims = nullptr;
-      params.inputFormats = nullptr;
       params.input_data_buf = nullptr;
       params.output_desc = nullptr;
-      params.outputDims = nullptr;
-      params.outputFormats = nullptr;
       params.output_data_buf = nullptr;
       return SUCCESS;
     }

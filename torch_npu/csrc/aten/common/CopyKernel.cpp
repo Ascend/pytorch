@@ -22,7 +22,6 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
@@ -146,11 +145,7 @@ void copy_between_host_and_device(
   void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-  at::Tensor tmp = dst.is_npu() ? src : dst;
-  c10::Storage tmpSt = tmp.storage();
-  bool is_pinned = THNPUCachingHostAllocator_isPinndPtr(tmp.data_ptr());
-  C10_NPU_CHECK(
-      c10_npu::queue::LaunchAsyncCopyTask(dst_ptr, nbytes, src_ptr, nbytes, kind, tmpSt, is_pinned));
+  C10_NPU_CHECK(aclrtMemcpyAsync(dst_ptr, nbytes, src_ptr, nbytes, kind, stream));
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");

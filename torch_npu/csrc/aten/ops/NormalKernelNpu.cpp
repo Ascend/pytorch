@@ -15,8 +15,8 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu
 {
@@ -42,7 +42,7 @@ namespace at_npu
       OpCommand cmd;
       cmd.Name("Normal")
           .Input(dtypeCastOfMean)
-          .Input(std, at::ScalarType::Float)
+          .Input(at::Scalar(std), at::ScalarType::Float)
           .Output(resultCopy)
           .Run();
 
@@ -67,7 +67,7 @@ namespace at_npu
 
       OpCommand cmd;
       cmd.Name("Normal")
-          .Input(mean, at::ScalarType::Float)
+          .Input(at::Scalar(mean), at::ScalarType::Float)
           .Input(dtypeCastOfStd)
           .Output(resultCopy)
           .Run();
@@ -129,7 +129,7 @@ namespace at_npu
       OpCommand cmd;
       cmd.Name("Normal")
           .Input(meanTensor)
-          .Input(std, at::ScalarType::Float)
+          .Input(at::Scalar(std), at::ScalarType::Float)
           .Output(formatCastOfResult)
           .Run();
 

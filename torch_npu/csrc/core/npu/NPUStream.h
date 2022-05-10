@@ -102,7 +102,6 @@ void npuSynchronizeDevice();
 
 void enCurrentNPUStream(
     void* cur_paras,
-    c10::SmallVector<c10::Storage, N>& needClearVec,
     c10::DeviceIndex device_index = -1);
 
 void setCurrentNPUStream(NPUStream stream);

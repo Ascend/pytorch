@@ -25,18 +25,11 @@ at::Tensor& affine_grid_generator_npu_nocheck(
     const at::Tensor& theta,
     at::IntArrayRef size,
     bool align_corners) {
-  int value = size.size();
-  vector<int> tmp_vector = {};
-  for (int i = 0; i < value; i++) {
-    tmp_vector.emplace_back(size[i]);
-  }
-  at::Tensor sizeTensor_cpu = at::from_blob((void*)tmp_vector.data(), {value}, at::kInt);
-  at::Tensor sizeTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(sizeTensor_cpu);
 
   OpCommand cmd;
   cmd.Name("AffineGrid")
       .Input(theta)
-      .InputPair(sizeTensor_npu, sizeTensor_cpu)
+      .Input(size, at::kInt)
       .Output(result)
       .Attr("align_corners", align_corners)
       .Run();

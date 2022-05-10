@@ -17,11 +17,10 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/OpTemplate.h"
 #include "torch_npu/csrc/core/npu/SecondaryStreamGuard.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {

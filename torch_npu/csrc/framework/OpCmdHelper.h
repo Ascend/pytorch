@@ -31,30 +31,25 @@ namespace at_npu
     class OpCmdHelper
     {
     public:
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertTensorToAclInput(
           const at::Tensor &tensor,
-          const c10::optional<at::Tensor> &cpu_tensor,
           const string &descName,
           const string &forceDataType = "");
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertTensorWithZeroDimToAclInput(const at::Tensor &tensor, at::ScalarType type);
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertNPUTensorWithZeroDimToAclInput(const at::Tensor &tensor, const string &descName);
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertScalarToAclInput(const at::Tensor &tensor, at::ScalarType type);
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
-      CovertToAclOutput(const at::Tensor *tensorPtr, const string &forceDataType);
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
+      CovertToAclOutput(const at::Tensor &tensor, const string &forceDataType);
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
-      CovertTransDataTensorToAcl(
-          const at::Tensor &tensor);
-
-      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertHostTensorToAclInput(const at::Tensor &tensor, at::ScalarType type, CompileType compileType);
     }; // class OpCommandImpl
 

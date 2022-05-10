@@ -5,10 +5,8 @@
 #include <mutex>
 #include <atomic>
 
-#include <c10/core/Storage.h>
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
-#include <c10/util/SmallVector.h>
 #include <third_party/acl/inc/acl/acl_op.h>
 
 namespace c10_npu {
@@ -67,7 +65,7 @@ class NPUQueueBase {
   virtual RepoStatus GetStatus() const = 0;
   virtual void SetStatus(RepoStatus desired) = 0;
   virtual void ChangeStatus(RepoStatus expected, RepoStatus desired) = 0;
-  virtual void Enqueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& needClearVec) = 0;
+  virtual void Enqueue(void* cur_paras) = 0;
   virtual void Dequeue() = 0;
   virtual NPUStatus MakeSureQueueEmpty() = 0;
   virtual void InitRepo(c10::DeviceIndex device_id) = 0;
@@ -87,7 +85,7 @@ class Repository : public NPUQueueBase {
   RepoStatus GetStatus() const override;
   void SetStatus(RepoStatus desired) override;
   void ChangeStatus(RepoStatus expected, RepoStatus desired) override;
-  void Enqueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& needClearVec) override;
+  void Enqueue(void* cur_paras) override;
   void Dequeue() override;
   NPUStatus MakeSureQueueEmpty() override;
   void InitRepo(c10::DeviceIndex device_id) override;
@@ -100,7 +98,7 @@ class Repository : public NPUQueueBase {
   void EnableInterrupt(RepoRole role);
   void DisableInterrupt(RepoRole role);
   bool NeedNotify(RepoRole role) const;
-  bool WriteQueue(void* cur_paras, c10::SmallVector<c10::Storage, N>& needClearVec);
+  bool WriteQueue(void* cur_paras);
   bool ReadQueue();
 
  private:
@@ -126,7 +124,7 @@ class Repository : public NPUQueueBase {
 };
 
 using ACL_EXEC_FUNC     = std::function<int(void*, uint32_t)>;
-using ACL_COPY_FUNC     = std::function<void(void*, void*, c10::SmallVector<c10::Storage, N>&, uint32_t)>;
+using ACL_COPY_FUNC     = std::function<void(void*, void*, uint32_t)>;
 using ACL_RELEASE_FUNC  = std::function<void(void*, ReleaseQueue&)>;
 using ACL_NEW_FUNC      = std::function<void*(int, int&)>;
 using ACL_DELETE_FUNC   = std::function<void(void*)>;

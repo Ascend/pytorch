@@ -28,7 +28,7 @@ at::Tensor& bincount_npu_nocheck(
   OpCommand cmd;
   cmd.Name("Bincount")
       .Input(self)
-      .Input(sizes, at::ScalarType::Int)
+      .Input(at::Scalar(sizes), at::ScalarType::Int)
       .Input(weights)
       .Output(result)
       .Run();

@@ -42,7 +42,7 @@ at::Tensor& index_put_nocheck(
       masks.emplace_back(0);
     }
   }
-
+  
   auto masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
       at::from_blob(masks.data(), {masks.size()}, dtype(at::ScalarType::Long)));
 

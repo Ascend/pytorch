@@ -30,12 +30,10 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_no_transpose(
     bool largest,
     bool sorted) {
   c10::SmallVector<int64_t, N> kVec = {k};
-
-  at::Tensor kCpuTensor = at::from_blob((void*)kVec.data(), {1}, at::kLong).to( at::kInt);
   OpCommand cmd;
   cmd.Name("TopKV2")
     .Input(self)
-    .Input(kCpuTensor, kVec, "k") 
+    .Input(kVec, at::kInt) 
     .Output(values)
     .Output(indices)
     .Attr("dim", dim)

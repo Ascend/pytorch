@@ -104,20 +104,11 @@ at::Tensor pure_bmm_v2_npu(const at::Tensor& self, const at::Tensor& mat2, const
     contiguous_mat2 = NpuUtils::format_contiguous(tensor2);
   }
 
-  auto func1 = [&contiguous_self]() {
-      bool pass = false;
-      return std::tie(pass, contiguous_self);
-  };
-  auto func2 = [&contiguous_mat2]() {
-      bool pass = false;
-      return std::tie(pass, contiguous_mat2);
-  };
-
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("BatchMatMul")
-      .InputWithFunc(func1)
-      .InputWithFunc(func2)
+      .InputWithoutContiguous(contiguous_self)
+      .InputWithoutContiguous(contiguous_mat2)
       .Output(result)
       .Attr("adj_x1", is_self_t)
       .Attr("adj_x2", is_mat2_t)
