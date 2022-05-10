@@ -54,7 +54,8 @@ static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwar
   torch::ParsedArgs<4> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-  auto device = r.isNone(1) ? c10::Device(at::DeviceType::NPU) : r.device(1);
+  auto local_device = r.isNone(1) ? c10::Device(at::DeviceType::NPU) : r.device(1);
+  auto device = c10::Device(at::DeviceType::NPU, local_device.index()); 
   auto opt_memory_format = r.memoryformatOptional(3);
   TORCH_CHECK(device.is_npu(), "Invalid device, must be npu device");
   torch_npu::utils::npu_lazy_init();
