@@ -27,6 +27,9 @@
 #endif
 
 namespace c10_npu {
+
+constexpr int32_t MAX_JUDGE_NUM = 1000000;
+
 namespace {
 
 class CallBackManager {
@@ -373,20 +376,33 @@ void Repository::Dequeue() {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
       }
-      EnableInterrupt(RepoRole::READER);
-      __sync_synchronize();
-      if (IsEmptyQueue()) {
-        s = eventfd_read(efd_read, &u);
-        if (s != 0) {
-          if (errno == EINTR) {
-            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
-            continue;
-          }
-          NPU_LOGE("waiting queue not empty failed. s=%zd, errno=%s.", s, strerror(errno));
-          return;
+      // reduce system wait time
+      bool emptyFlag = true;
+      for (int i = 0; i < MAX_JUDGE_NUM; ++i) {
+        if (IsEmptyQueue()) {
+          continue;
+        } else {
+          emptyFlag = false;
+          break;
         }
-        DisableInterrupt(RepoRole::READER);
-        QUEUE_DEBUG("waiting ok, queue isn't empty now");
+      }
+
+      if (emptyFlag) {
+        EnableInterrupt(RepoRole::READER);
+        __sync_synchronize();
+        if (IsEmptyQueue()) {
+          s = eventfd_read(efd_read, &u);
+          if (s != 0) {
+            if (errno == EINTR) {
+              QUEUE_DEBUG("EINTR occurs on the eventfd_read");
+              continue;
+            }
+            NPU_LOGE("waiting queue not empty failed. s=%zd, errno=%s.", s, strerror(errno));
+            return;
+          }
+          DisableInterrupt(RepoRole::READER);
+          QUEUE_DEBUG("waiting ok, queue isn't empty now");
+        }
       }
       continue;
     }
