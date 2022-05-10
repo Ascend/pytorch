@@ -707,17 +707,49 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::scatter(
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
-    std::vector<at::Tensor>& /* unused */,
-    int /* unused */,
-    int /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support send");
+    std::vector<at::Tensor>& tensors,
+    int dstRank,
+    int tag) {
+  check_npu_tensors(tensors);
+  return collective(
+      tensors,
+      tensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
+        return HcclSend(
+            input.data_ptr(),
+            (uint64_t)physical_numel(input),
+            getHcclDataType(input.scalar_type()),
+            dstRank,
+            comm,
+            stream.stream());
+      });
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
-    std::vector<at::Tensor>& /* unused */,
-    int /* unused */,
-    int /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support recv");
+    std::vector<at::Tensor>& tensors,
+    int srcRank,
+    int tag) {
+  check_npu_tensors(tensors);
+  return collective(
+      tensors,
+      tensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
+        return HcclRecv(
+            input.data_ptr(),
+            (uint64_t)physical_numel(input),
+            getHcclDataType(input.scalar_type()),
+            srcRank,
+            comm,
+            stream.stream());
+      });
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
