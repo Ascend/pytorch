@@ -312,28 +312,9 @@ aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
   return ret;
 }
 
-bool check_npu_format_unchanged_in_format_contiguous(
-    const Tensor &tensor, const NPUStorageDesc &tensor_desc) {
-  if (!tensor.is_contiguous()) {
-    return TransContiguous::CanOptimize(tensor, {"slice"});
-  }
-
-  if (!StorageDescHelper::MetaDataAreMatch(&tensor) &&
-      (tensor_desc.npu_format_ == ACL_FORMAT_FRACTAL_NZ)) {
-    return CanUseMemcpyForOtherFormat(tensor);
-  }
-
-  bool isPadding = FormatHelper::IsPadded(&tensor);
-  if (isPadding && (!StorageDescHelper::OffsetAreMatch(&tensor))) {
-    return false;
-  }
-  return true;
-}
-
-int64_t CalcuOpUtil::get_tensor_npu_format(const Tensor &tensor) {
-  const NPUStorageDesc &tensor_desc =
-      tensor.storage().unsafeGetStorageImpl()->npu_desc_;
-  if (check_npu_format_unchanged_in_format_contiguous(tensor, tensor_desc)) {
+int64_t CalcuOpUtil::get_tensor_npu_format(const Tensor& tensor) {
+  if (NpuUtils::check_match(&tensor) || CanUseMemcpyForOtherFormat(tensor)) {
+    auto tensor_desc = tensor.storage().unsafeGetStorageImpl()->npu_desc_;
     return tensor_desc.npu_format_;
   } else {
     return InferFormat::GuessFormatWhenContiguous(tensor);
