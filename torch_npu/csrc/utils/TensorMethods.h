@@ -79,6 +79,9 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   auto parsed = torch_npu::utils::parse_to_conversion(r, true);
   auto self_ = std::get<0>(parsed);
   auto& device = std::get<1>(parsed);
+  if (device && device->is_cuda()) {
+    device = c10::Device(at::DeviceType::NPU, device->index()); 
+  }
   auto& scalarType = std::get<2>(parsed);
   auto non_blocking = std::get<3>(parsed);
   auto copy = std::get<4>(parsed);
