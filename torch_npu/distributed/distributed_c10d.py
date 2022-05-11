@@ -72,7 +72,7 @@ __all__ = [
     "isend", "irecv", "send", "recv", "P2POp", "batch_isend_irecv", "broadcast", "all_reduce",
     "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
-    "_get_default_group"
+    "_get_default_group", "_get_global_rank"
 ]
 
 # Some reduce ops are not supported by complex numbers and will result in an error.
