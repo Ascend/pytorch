@@ -12,6 +12,8 @@
 #include <c10/core/DeviceType.h>
 #include <c10/util/Exception.h>
 #include "torch_npu/csrc/utils/LazyInit.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/npu/Stream.h"
 
 namespace torch_npu {
 namespace utils {
@@ -172,12 +174,26 @@ static PyObject * THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* k
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
+{
+  HANDLE_TH_ERRORS
+  PyObject *_tensor, *_stream;
+  if (!PyArg_ParseTuple(args, "OO", &_tensor, &_stream)) {
+    throw torch::TypeError("record_stream useage: tensor.record_stream(stream)");
+  }
+  auto& self_ = reinterpret_cast<THPVariable*>(_tensor)->cdata;
+  c10_npu::NPUCachingAllocator::recordStream(self_.storage().data_ptr(), c10_npu::NPUStream::unpack(((THNPStream*)_stream)->cdata));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 // autograd methods on torch._C
 static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"npu", castPyCFunctionWithKeywords(THPVariable_npu), METH_VARARGS | METH_KEYWORDS, NULL},
   {"to", castPyCFunctionWithKeywords(THPVariable_to), METH_VARARGS | METH_KEYWORDS, NULL},
   {"type", castPyCFunctionWithKeywords(THPVariable_type), METH_VARARGS | METH_KEYWORDS, NULL},
   {"is_npu", castPyCFunctionWithKeywords(THPVariable_is_npu), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
   {nullptr, nullptr, 0, nullptr}
 };
 
