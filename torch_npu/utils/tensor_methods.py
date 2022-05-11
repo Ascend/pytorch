@@ -77,6 +77,9 @@ def _is_npu(self):
     warnings.warn(warning_str.format("is_npu"))
     return torch_npu._C.is_npu(self)
 
+def _record_stream(self, *args, **kwargs):
+    warnings.warn(warning_str.format("_record_stream"))
+    return torch_npu._C.record_stream(self, *args, **kwargs)
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
@@ -90,3 +93,4 @@ def add_tensor_methods():
     torch.Tensor.type = _type
     torch.Tensor.to = _to
     torch.Tensor.is_npu = _is_npu
+    torch.Tensor.record_stream = _record_stream

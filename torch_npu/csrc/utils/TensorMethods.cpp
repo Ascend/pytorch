@@ -32,5 +32,16 @@ std::tuple<at::Tensor, c10::optional<at::Device>, c10::optional<at::ScalarType>,
   }
 }
 
+void InitNPUWithIndex(c10::DeviceIndex index) {
+  {
+    pybind11::gil_scoped_release no_gil;
+    auto status = c10_npu::NpuSysCtrl::GetInstance().Initialize((int)index);
+    if (status != c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+      throw python_error();
+    }
+  }
+  torch_npu::utils::npu_lazy_init();
+}
+
 }
 }
