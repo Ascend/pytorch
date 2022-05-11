@@ -14,12 +14,15 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/Stream.h"
+#include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 namespace torch_npu {
 namespace utils {
 
 
 std::tuple<at::Tensor, c10::optional<at::Device>, c10::optional<at::ScalarType>, bool, bool, c10::optional<at::MemoryFormat>> parse_to_conversion(torch::PythonArgs& r, bool allow_copy);
+
+void InitNPUWithIndex(c10::DeviceIndex index = -1);
 
 static at::Tensor dispatch_to(const at::Tensor & self, c10::Device device, bool non_blocking, bool copy, c10::optional<c10::MemoryFormat> optional_memory_format) {
   pybind11::gil_scoped_release no_gil;
@@ -60,7 +63,7 @@ static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwar
   auto device = c10::Device(at::DeviceType::NPU, local_device.index()); 
   auto opt_memory_format = r.memoryformatOptional(3);
   TORCH_CHECK(device.is_npu(), "Invalid device, must be npu device");
-  torch_npu::utils::npu_lazy_init();
+  InitNPUWithIndex(device.index());
   return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(2), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
 }
@@ -87,7 +90,7 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   auto opt_memory_format = std::get<5>(parsed);
   
   if (device && device->is_npu()) {
-    torch_npu::utils::npu_lazy_init();
+    InitNPUWithIndex(device->index());
   }
   if (!device && !scalarType && !copy && !opt_memory_format.has_value()) {
     Py_INCREF(self);
@@ -155,7 +158,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
     }
   }
   if (device.is_npu()) {
-    torch_npu::utils::npu_lazy_init();
+    InitNPUWithIndex(device.index());
   }
   return THPVariable_Wrap(dispatch_to(self_, device, scalar_type, r.toBool(1), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
