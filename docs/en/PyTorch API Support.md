@@ -1283,7 +1283,7 @@
 
 | No.| API                                      | NPU API Name                                  | Supported/Unsupported|
 | ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
-| 1    | torch.cuda.can_device_access_peer             | torch_npu.pnu.can_device_access_peer             | Unsupported      |
+| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer          | Unsupported      |
 | 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | Unsupported      |
 | 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | Supported      |
 | 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | Supported      |
@@ -1353,22 +1353,21 @@
 | 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | Unsupported      |
 | 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | Unsupported      |
 | 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | Unsupported      |
-| 71   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | Unsupported      |
-| 72   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | Unsupported      |
-| 73   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | Unsupported      |
-| 74   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | Unsupported      |
-| 75   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | Unsupported      |
-| 76   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | Unsupported      |
-| 77   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | Unsupported      |
-| 78   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | Unsupported      |
-| 79   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | Unsupported      |
-| 80   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | Unsupported      |
-| 81   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | Unsupported      |
-| 82   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | Unsupported      |
-| 83   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | Unsupported      |
-| 84   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | Unsupported      |
-| 85   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | Unsupported      |
-| 86   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | Unsupported      |
+| 71 | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | Unsupported      |
+| 72  | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | Unsupported      |
+| 73  | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | Unsupported      |
+| 74  | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | Unsupported      |
+| 75  | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | Unsupported      |
+| 76  | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | Unsupported      |
+| 77  | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | Unsupported      |
+| 78  | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | Unsupported      |
+| 79  | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | Unsupported      |
+| 80  | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | Unsupported      |
+| 81  | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | Unsupported      |
+| 82  | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | Unsupported      |
+| 83  | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | Unsupported      |
+| 84  | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | Unsupported      |
+| 85  | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | Unsupported      |
 
 The **torch_npu.npu.set_device()** API can be used to specify the device only at the starting position of the program by using **set_device**. The device cannot be specified for multiple times or switched by using **with torch_npu.npu.device(id)**.
 

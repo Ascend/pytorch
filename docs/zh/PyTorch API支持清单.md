@@ -1283,7 +1283,7 @@
 
 | 序号 | API名称                                       | npu对应API名称                                   | 是否支持 |
 | ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
-| 1    | torch.cuda.can_device_access_peer             | torch_npu.pnu.can_device_access_peer             | 否       |
+| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer             | 否       |
 | 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | 否       |
 | 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | 是       |
 | 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | 是       |
@@ -1353,22 +1353,21 @@
 | 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | 否       |
 | 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | 否       |
 | 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | 否       |
-| 71   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | 否       |
-| 72   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | 否       |
-| 73   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | 否       |
-| 74   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | 否       |
-| 75   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | 否       |
-| 76   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | 否       |
-| 77   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | 否       |
-| 78   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | 否       |
-| 79   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | 否       |
-| 80   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | 否       |
-| 81   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | 否       |
-| 82   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | 否       |
-| 83   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | 否       |
-| 84   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | 否       |
-| 85   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | 否       |
-| 86   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | 否       |
+| 71   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | 否       |
+| 72   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | 否       |
+| 73   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | 否       |
+| 74   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | 否       |
+| 75   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | 否       |
+| 76   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | 否       |
+| 77   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | 否       |
+| 78   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | 否       |
+| 79   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | 否       |
+| 80   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | 否       |
+| 81   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | 否       |
+| 82   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | 否       |
+| 83   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | 否       |
+| 84   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | 否       |
+| 85   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | 否       |
 
 torch_npu.npu.set_device()接口只支持在程序开始的位置通过set_device进行指定，不支持多次指定和with torch_npu.npu.device(id)方式的device切换
 
