@@ -24,7 +24,7 @@
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "c10/npu/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 
 namespace at_npu
 {

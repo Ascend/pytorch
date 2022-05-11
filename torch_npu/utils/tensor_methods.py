@@ -52,21 +52,26 @@ def one_(self):
     warnings.warn(warning_str.format("one_"))
     return torch_npu.one_(self)
 
+
 def npu_confusion_transpose(self, perm, shape, transpose_first):
     warnings.warn(warning_str.format("npu_confusion_transpose"))
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
+
 
 def _npu(self, *args, **kwargs):
     warnings.warn(warning_str.format("npu"))
     return torch_npu._C.npu(self, *args, **kwargs)
 
+
 def _type(self, *args, **kwargs):
     warnings.warn(warning_str.format("type"))
     return torch_npu._C.type(self, *args, **kwargs)
 
+
 def _to(self, *args, **kwargs):
     warnings.warn(warning_str.format("to"))
     return torch_npu._C.to(self, *args, **kwargs)
+
 
 def _is_npu(self):
     warnings.warn(warning_str.format("is_npu"))

@@ -33,7 +33,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> apply_adam_out_npu_nocheck(
     at::Tensor& m_out,
     at::Tensor& v_out) {
   OpCommand cmd;
-  cmd.Name("ApplyAdam")
+  cmd.Name("ApplyAdamD")
      .Input(var_out)
      .Input(m_out)
      .Input(v_out)
@@ -44,7 +44,9 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> apply_adam_out_npu_nocheck(
      .Input(beta2, var_out.scalar_type())
      .Input(epsilon, var_out.scalar_type())
      .Input(grad)
-     .Output(var_out);
+     .Output(var_out)
+     .Output(m_out)
+     .Output(v_out);
   if (use_locking != c10::nullopt) {
     cmd.Attr("use_locking", bool(use_locking));
   }

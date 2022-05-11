@@ -28,7 +28,8 @@ __all__ = [
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
     "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork",
-    "global_step_inc", "set_start_fuzz_compile_step"
+    "global_step_inc", "set_start_fuzz_compile_step", "FloatTensor", "IntTensor",
+    "DoubleTensor", "LongTensor", "ShortTensor", "CharTensor", "ByteTensor"
 ]
 
 import torch
@@ -51,5 +52,6 @@ from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, profileConfig, global_step_inc,
             set_start_fuzz_compile_step)
+from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
