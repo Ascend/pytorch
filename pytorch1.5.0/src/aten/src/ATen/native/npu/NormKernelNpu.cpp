@@ -53,24 +53,15 @@ Tensor& norm_out_npu_nocheck(
   if (outputSize.empty()){
     outputSize.push_back(1);
   }
-  Tensor resultTemp = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
   Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, fp32Self.options());
   auto pvalue = calculate_p(p);
   OpCommand cmd1;
-  cmd1.Name("LpNormReduce")
+  cmd1.Name("LpNorm")
       .Input(fp32Self)
-      .Output(resultTemp)
+      .Output(result)
       .Attr("p", pvalue)
       .Attr("axes", dim)
       .Attr("keepdim", keepdim)
-      .Attr("epsilon", static_cast<float>(0))
-      .Run();
-
-  OpCommand cmd2;
-  cmd2.Name("LpNormUpdate")
-      .Input(resultTemp)
-      .Output(result)
-      .Attr("p", pvalue)
       .Attr("epsilon", static_cast<float>(0))
       .Run();
   // trans dtype for output
@@ -120,6 +111,7 @@ Tensor& norm_out_npu(
 
   return out;
 }
+
 // norm.ScalarOpt_dim_dtype
 Tensor norm_npu(
     const Tensor& self,

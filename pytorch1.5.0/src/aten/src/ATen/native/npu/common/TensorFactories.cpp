@@ -34,7 +34,6 @@
 #include <c10/npu/NPUGraphContextManager.h>
 #include <c10/npu/NPURunMode.h>
 #include <ATen/native/npu/contiguous/ContiguousOpt.h>
-#include "ATen/native/npu/common/FormatCastHelper.h"
 
 #include <algorithm>
 #include <cctype>
@@ -542,11 +541,7 @@ Tensor clone_npu(const Tensor& src, c10::optional<c10::MemoryFormat> format) {
     // clone with base formats
     auto baseSelf =
         OpPreparation::ApplyTensorWithSizes(src.sizes(), src.options());
-    Tensor baseSrc = src;
-    if (!FormatHelper::IsBaseFormatType(src)) {
-      baseSrc = FormatCastHelper::ApplyBaseFormatTensorBy(src);
-    }
-    copy_d2d_dtype_baseformat(baseSelf, baseSrc, false);
+    copy_d2d_dtype(baseSelf, src, false);
     return baseSelf;
   }
 }
