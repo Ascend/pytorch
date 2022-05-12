@@ -520,18 +520,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      elif sha != 'Unknown':
          if sha is None:
              sha = get_sha(pytorch_root)
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp patch/torch/csrc/autograd/functions/tensor.cpp
---- pytorch-v1.8.1/torch/csrc/autograd/functions/tensor.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/functions/tensor.cpp	2022-03-07 18:32:03.104343370 +0800
-@@ -26,7 +26,7 @@
-       at::DeviceGuard device_guard(src_device);
-       // TODO: What if !grad.is_cuda(), but src_device is CUDA?
-       // This code is kind of weirdly asymmetric.
--      if (grad.is_cuda() && grad.device() != src_device) {
-+    if ((grad.is_cuda() || grad.is_npu()) && grad.device() != src_device) {
-         grad_inputs[1] = grad.to(
-             src_options,
-             /*non_blocking=*/false,
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp patch/torch/csrc/utils/tensor_new.cpp
 --- pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp	2022-03-05 10:10:10.000000000 +0800
 +++ patch/torch/csrc/utils/tensor_new.cpp	2022-05-05 14:32:51.351071624 +0800
@@ -569,3 +557,14 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
          c10::DispatchKey::XPU,
          " but got: ",
          dispatch_key);
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp patch/torch/csrc/utils/tensor_types.cpp
+--- pytorch-v1.8.1/torch/csrc/utils/tensor_types.cpp	2022-03-05 10:10:10.000000000 +0800
++++ patch/torch/csrc/utils/tensor_types.cpp	2022-05-12 12:30:03.511818090 +0800
+@@ -19,6 +19,7 @@
+   switch (backend) {
+     case at::Backend::CPU: return "torch";
+     case at::Backend::CUDA: return "torch.cuda";
++    case at::Backend::NPU: return "torch.npu";
+     case at::Backend::XPU: return "torch.xpu";
+     case at::Backend::SparseCPU: return "torch.sparse";
+     case at::Backend::SparseCUDA: return "torch.cuda.sparse";
