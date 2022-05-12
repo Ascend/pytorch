@@ -641,7 +641,7 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
             BaseTy.Tensor: 'Tensor',
             BaseTy.int: 'int64_t',
             BaseTy.float: 'double',
-            BaseTy.str: 'c10::string_view'
+            BaseTy.str: 'std::string'
         }
         if t.name in base_dict:
             return base_dict[t.name]
