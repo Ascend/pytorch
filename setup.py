@@ -277,7 +277,7 @@ if build_mode not in ['clean']:
 # Setup include directories folders.
 include_directories = [
     BASE_DIR,
-    os.path.join(BASE_DIR, 'torch_npu/csrc/aten'),
+    os.path.join(BASE_DIR, 'patch/include'),
     os.path.join(BASE_DIR, 'third_party/hccl/inc'),
     os.path.join(BASE_DIR, 'third_party/acl/inc')
 ]
