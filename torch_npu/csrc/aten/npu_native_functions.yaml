@@ -316,6 +316,11 @@ supported:
   - div.out
   - div.Scalar
   - div_.Scalar
+  - div.Tensor_mode
+  - div_.Tensor_mode
+  - div.out_mode
+  - div.Scalar_mode
+  - div_.Scalar_mode
   - divide.Tensor
   - divide_.Tensor
   - divide.out

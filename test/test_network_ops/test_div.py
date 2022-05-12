@@ -118,6 +118,63 @@ class TestDiv(TestCase):
                                                           [npu_input1, npu_input2], torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def cpu_op_exec_mode(self, input1, input2, mode):
+        output = torch.div(input1, input2, rounding_mode=mode)
+        return output
+
+    def npu_op_exec_mode(self, input1, input2, mode):
+        output = torch.div(input1, input2, rounding_mode=mode)
+        return output.cpu()
+
+    def npu_op_exec_mode_out(self, input1, input2, output, mode):
+        torch.div(input1, input2, rounding_mode=mode, out=output)
+        return output.cpu()
+
+    def npu_op_exec_mode_inp(self, input1, input2, mode):
+        input1.div_(input2, rounding_mode=mode)
+        return input1.cpu()
+
+    def test_div_tensor_mode(self):
+        shape_format = [
+            [[np.float32, 0, (20, 16)], [np.float32, 0, (16)], [np.float32, 0, (20, 16)], 'floor'],
+            [[np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], 'trunc'],
+            [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (16)], [np.float16, 0, (2, 20, 16)], 'trunc'],
+            [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (2, 20, 16)], 'floor'],
+            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], 'true'],
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item[1], 1, 100)
+            # div
+            cpu_output = self.cpu_op_exec_mode(cpu_input1, cpu_input2, item[3])
+            npu_output = self.npu_op_exec_mode(npu_input1, npu_input2, item[3])
+            self.assertRtolEqual(cpu_output, npu_output)
+            # div_out
+            cpu_out, npu_out = create_common_tensor(item[2], 1, 100)
+            npu_output_out = self.npu_op_exec_mode_out(npu_input1, npu_input2, npu_out, item[3])
+            self.assertRtolEqual(cpu_output, npu_output_out)
+            # div_
+            npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
+            self.assertRtolEqual(cpu_output, npu_output_inp)
+    
+    def test_div_scalar_mode(self):
+        shape_format = [
+            [[np.float32, 0, (20, 16)], 15.9, 'floor'],
+            [[np.float32, 0, (20, 16)], 17.2, 'trunc'],
+            [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
+            [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
+            [[np.float16, 0, (3, 20, 16)], -45.3, 'true'],
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item[0], 1, 100)
+            # div
+            cpu_output = self.cpu_op_exec_mode(cpu_input, item[1], item[2])
+            npu_output = self.npu_op_exec_mode(npu_input, item[1], item[2])
+            self.assertRtolEqual(cpu_output, npu_output)
+            # div_
+            npu_output_inp = self.npu_op_exec_mode_inp(npu_input, item[1], item[2])
+            self.assertRtolEqual(cpu_output, npu_output_inp)
+
 
 if __name__ == "__main__":
     run_tests()

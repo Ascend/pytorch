@@ -36,7 +36,7 @@ at::Tensor& floor_divide_out_scalar_npu(const at::Tensor& self, at::Scalar other
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_ND,
+      CalcuOpUtil::get_tensor_npu_format(self),
       result.scalar_type(),
       outputSize);
 
@@ -50,7 +50,7 @@ at::Tensor& NPUNativeFunctions::floor_divide_out(const at::Tensor& self, const a
   OpPreparation::CheckOut(
       {self, other},
       result,
-      ACL_FORMAT_ND,
+      CalcuOpUtil::get_tensor_npu_format(self),
       result.scalar_type(),
       outputSize);
   // executing the NPU operator
