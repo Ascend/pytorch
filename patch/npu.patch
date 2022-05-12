@@ -468,41 +468,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      return DeviceType::CPU;
    } else if (tid == DispatchKey::CUDA) {
      return DeviceType::CUDA;
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/setup.py patch/setup.py
---- pytorch-v1.8.1/setup.py	2022-03-05 10:10:10.000000000 +0800
-+++ patch/setup.py	2022-05-10 16:41:28.213285304 +0800
-@@ -901,6 +901,7 @@
-                 'include/caffe2/**/*.h',
-                 'include/torch/*.h',
-                 'include/torch/csrc/*.h',
-+                'include/torch/csrc/generic/*.h',
-                 'include/torch/csrc/api/include/torch/*.h',
-                 'include/torch/csrc/api/include/torch/data/*.h',
-                 'include/torch/csrc/api/include/torch/data/dataloader/*.h',
-@@ -940,6 +941,10 @@
-                 'include/torch/csrc/jit/tensorexpr/*.h',
-                 'include/torch/csrc/onnx/*.h',
-                 'include/torch/csrc/utils/*.h',
-+                'include/torch/csrc/tensor/*.h',
-+                'include/torch/csrc/distributed/c10d/*.h',
-+                'include/torch/csrc/distributed/rpc/*.h',
-+                'include/torch/csrc/distributed/autograd/**/*.h',
-                 'include/pybind11/*.h',
-                 'include/pybind11/detail/*.h',
-                 'include/TH/*.h*',
-@@ -952,6 +957,12 @@
-                 'include/THH/*.cuh',
-                 'include/THH/*.h*',
-                 'include/THH/generic/*.h',
-+                # TODO(ascend): the following two acl directories should be removed after the NPU API is enhanced.
-+                'include/third_party/acl/inc/acl/*.h',
-+                'include/third_party/acl/inc/acl/ops/*.h',
-+                'include/third_party/acl/inc/ge/*.h',
-+                'include/third_party/acl/inc/graph/*.h',
-+                'include/third_party/acl/inc/op_proto/*.h',
-                 'share/cmake/ATen/*.cmake',
-                 'share/cmake/Caffe2/*.cmake',
-                 'share/cmake/Caffe2/public/*.cmake',
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/generate_torch_version.py patch/tools/generate_torch_version.py
 --- pytorch-v1.8.1/tools/generate_torch_version.py	2022-03-05 10:10:10.000000000 +0800
 +++ patch/tools/generate_torch_version.py	2022-03-07 18:32:03.076343192 +0800
