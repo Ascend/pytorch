@@ -15,7 +15,7 @@
 
 import torch
 from torch._tensor_str import _Formatter as SrcFormatter
-from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffixes
+from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffixes, get_summarized_data
 from torch.overrides import has_torch_function_unary, handle_torch_function
 
 class _Formatter(SrcFormatter):
