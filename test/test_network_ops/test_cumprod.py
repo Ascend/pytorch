@@ -21,22 +21,30 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestCumprod(TestCase):
 
-    def cpu_op_exec(self,input1, dim):
+    def cpu_op_exec(self, input1, dim):
         output = torch.cumprod(input1, dim)
         output = output.numpy()
         return output
 
-    def npu_op_exec(self,input1, dim):
+    def npu_op_exec(self, input1, dim):
         output = torch.cumprod(input1, dim)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_exec_out(self,input1, input2, dim):
+    def npu_op_exec_out(self, input1, input2, dim):
         torch.cumprod(input1, dim, out=input2)
         output = input2.to("cpu")
         output = output.numpy()
         return output
+    
+    def cpu_op_exec_inp(self, input1, dim):
+        input1.cumprod_(dim)
+        return input1.numpy()
+    
+    def npu_op_exec_inp(self, input1, dim):
+        input1.cumprod_(dim)
+        return input1.cpu().numpy()
 
     def test_cumprod_common_shape_format(self):
         shape_format = [
@@ -48,6 +56,10 @@ class TestCumprod(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, dim)
             npu_output = self.npu_op_exec(npu_input1, dim)
             self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_output_inp = self.cpu_op_exec_inp(cpu_input1, dim)
+            npu_output_inp = self.npu_op_exec_inp(npu_input1, dim)
+            self.assertRtolEqual(cpu_output_inp, npu_output_inp)
 
     def test_cumprod_out_common_shape_format(self):
         shape_format = [
