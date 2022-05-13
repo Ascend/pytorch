@@ -61,11 +61,6 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
 // GE Environment Initialize, return Status: SUCCESS, FAILED
  NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
-
-    if (init_flag_ && device_id != -1 && device_id_ != device_id) {
-        throw std::runtime_error("NPU current device index must equal to dst index, but got current index is "
-                                    + std::to_string(device_id_) + ", dst index is " + std::to_string(device_id));
-    }
     if (init_flag_) {
         return INIT_SUCC;
     }
