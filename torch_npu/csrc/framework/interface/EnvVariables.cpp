@@ -59,14 +59,14 @@ REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
   aclmdlSetDump(val.c_str()); 
 })
 
-REGISTER_OPTION_HOOK(fuzzycompileswitch, [](const std::string &val) {
+REGISTER_OPTION_HOOK(dynamicCompileswitch, [](const std::string &val) {
   if (val == "enable") {
     AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
   } else {
     AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
   }
 })
-REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, fuzzycompileswitch, "disable", "enable")
+REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, dynamicCompileswitch, "disable", "enable")
 
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string &val) {
   aclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());

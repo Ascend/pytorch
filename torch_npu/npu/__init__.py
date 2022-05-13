@@ -28,8 +28,9 @@ __all__ = [
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
     "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork",
-    "global_step_inc", "set_start_fuzz_compile_step", "FloatTensor", "IntTensor",
-    "DoubleTensor", "LongTensor", "ShortTensor", "CharTensor", "ByteTensor"
+    "set_dynamic_mode", "get_current_dynamic_mode", "FloatTensor", "IntTensor",
+    "DoubleTensor", "LongTensor", "ShortTensor", "CharTensor", "ByteTensor",
+    "set_mm_bmm_format_nd", "get_mm_bmm_format_nd" 
 ]
 
 import torch
@@ -50,8 +51,8 @@ from .streams import Stream, Event
 from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
-            prof_start, prof_stop, prof_finalize, profileConfig, global_step_inc,
-            set_start_fuzz_compile_step)
+            prof_start, prof_stop, prof_finalize, profileConfig, set_dynamic_mode, get_current_dynamic_mode,
+            set_mm_bmm_format_nd, get_mm_bmm_format_nd)
 from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile

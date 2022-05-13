@@ -19,12 +19,16 @@ import os
 import torch_npu._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
-__all__ = ["set_option", "global_step_inc", "set_start_fuzz_compile_step", "set_aoe", "profile", "prof_init",  
-            "prof_start", "prof_stop", "iteration_start", "iteration_end", "prof_finalize", "profileConfig"]
+__all__ = ["set_option", "set_dynamic_mode", "get_current_dynamic_mode", "set_aoe", "profile", "prof_init",
+            "prof_start", "prof_stop", "iteration_start", "iteration_end", "prof_finalize", "profileConfig",
+            "set_mm_bmm_format_nd", "get_current_dynamic_mode"]
 
 def set_option(option):
     if not isinstance(option, dict):
         raise TypeError("npu option must be a dict.")
+    
+    if option.get("MM_BMM_ND_ENABLE") is "enable":
+        set_mm_bmm_format_nd()
 
     for option_name, option_value in option.items():
         option[option_name] = str(option_value)
@@ -45,24 +49,15 @@ def finalize_dump():
     option = {"mdldumpswitch": "disable"}
     torch_npu._C._npu_setOption(option)
 
-_GLOBAL_STEP = 0
-_START_FUZZ_COMPILE_STEP = 1
-def global_step_inc():
-    global _GLOBAL_STEP
-    _GLOBAL_STEP += 1
-
-    option = {"fuzzycompileswitch": "enable" if _GLOBAL_STEP >= _START_FUZZ_COMPILE_STEP \
-        else "disable"}
+_DYNAMIC_MODE=False
+def set_dynamic_mode(dynamic_mode=False):
+    global _DYNAMIC_MODE
+    _DYNAMIC_MODE = dynamic_mode
+    option = {"dynamicCompileswitch": "enable" if _DYNAMIC_MODE is True else "disable"}
     torch_npu._C._npu_setOption(option)
 
-def set_start_fuzz_compile_step(step):
-    if not isinstance(step, int):
-        raise TypeError("step must be a int, but got ", type(step))
-    
-    global _START_FUZZ_COMPILE_STEP
-    _START_FUZZ_COMPILE_STEP = step
-    option = {"fuzzycompileswitch": "disable"}
-    torch_npu._C._npu_setOption(option)
+def get_current_dynamic_mode():
+    return _DYNAMIC_MODE
 
 def set_aoe(dump_path):
     if not os.path.exists(dump_path):
@@ -72,6 +67,27 @@ def set_aoe(dump_path):
             raise ValueError("the path of '%s' is invaild."%(dump_path))
     option = {"autotune": "enable", "autotunegraphdumppath": dump_path}
     torch_npu._C._npu_setOption(option)
+
+"""
+This global flag control mm and bmm use ND format to compute, if the flag is True,
+we use ND format for mm and bmm in Linear module
+
+useage:
+```
+option = {}
+option["MM_BMM_ND_ENABLE"] = "enable"
+torch.npu.set_option(option)
+```
+
+Default: False
+"""
+_MM_BMM_ND_ENABLE = False
+def set_mm_bmm_format_nd():
+    global _MM_BMM_ND_ENABLE
+    _MM_BMM_ND_ENABLE = True
+
+def get_mm_bmm_format_nd():
+    return _MM_BMM_ND_ENABLE
 
 class npuEvent(object):
     def __init__(self):    
