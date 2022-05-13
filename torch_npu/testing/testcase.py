@@ -23,6 +23,8 @@ torch.testing._internal.common_npu.py can freely initialize NPU context when imp
 from collections import OrderedDict
 from contextlib import contextmanager
 from numbers import Number
+from unittest.result import TestResult
+from unittest.util import strclass
 
 import sys
 import os
@@ -39,7 +41,7 @@ import numpy as np
 from torch._six import string_classes, inf
 
 from torch_npu.testing.common_utils import set_npu_device, is_iterable, iter_indices, IS_WINDOWS
-
+from torch_npu.testing.common_utils import PERF_TEST_ENABLE, PerfBaseline
 
 def run_tests():
     argv = [sys.argv[0]]
@@ -494,3 +496,27 @@ class TestCase(expecttest.TestCase):
             stderr=subprocess.PIPE,
             env=env)
         return pipes.communicate()[1].decode('ascii')
+
+    def run(self, result=None):
+        # run test to precompile operators
+        super(TestCase, self).run(result)
+        
+        if PERF_TEST_ENABLE:
+            performanceResult = TestResult()
+            startTime = time.perf_counter()
+            super(TestCase, self).run(performanceResult)
+            stopTime = time.perf_counter()
+            runtime = stopTime - startTime
+
+            if len(performanceResult.errors) == len(performanceResult.failures) == 0:
+                methodId = strclass(self.__class__) + "." + self._testMethodName)
+                baseline = PerfBaseline.get_baseline(methodId)
+
+                if baseline and runtime > baseline*1.2:
+                        errMsg = "Performance test failed. Performance baseline: "
+                                + str(baseline) + "s, current time: " + str(runtime) + "s"
+                        perfErr = (self.failureException, self.failureException(errMsg), None)
+                        self._feedErrorsToResult(result, [(self, perfErr)])
+
+                if baseline is None or runtime < baseline*0.9:
+                    PerfBaseline.set_baseline(methodId, runtime)
