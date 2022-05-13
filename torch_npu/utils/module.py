@@ -84,7 +84,7 @@ def to(self, *args, **kwargs):
 def cast_weight(self, device):
 
     def _format_cast(module, class_name):
-        if issubclass(class_name, torch.nn.Linear):
+        if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
         if issubclass(class_name, (torch.nn.BatchNorm3d, torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
