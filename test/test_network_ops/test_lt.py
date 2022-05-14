@@ -163,10 +163,6 @@ class TestLt(TestCase):
             scalar = np.random.uniform(0, 100)
             cpu_input1, npu_input1 = create_common_tensor(item, 0, 100)
             cpu_input2, npu_input2 = create_common_tensor(item, 0, 100)
-            if cpu_input1.dtype == torch.float16:
-                cpu_input1 = cpu_input1.to(torch.float32)
-            if cpu_input2.dtype == torch.float16:
-                cpu_input2 = cpu_input2.to(torch.float32)
             cpu_output_scalar = self.cpu_op_exec_scalar(cpu_input1, scalar)
             npu_output_scalar = self.npu_op_exec_scalar(npu_input1, scalar)
             cpu_output_inp_scalar = self.cpu_op_inplace_exec_scalar(cpu_input2, scalar)
