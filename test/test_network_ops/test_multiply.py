@@ -43,12 +43,15 @@ class TestMultiply(TestCase):
         return input3
     
     def cpu_inp_op_exec(self, input1, input2):
-        input1 *= input2
-        return input1
+        input1.multiply_(input2)
+        output = input1.numpy()
+        return output
     
     def npu_inp_op_exec(self, input1, input2):
-        input1 *= input2
-        return input1.cpu()
+        input1.multiply_(input2)
+        output = input1.to("cpu")
+        output = output.numpy()
+        return output
 
     def test_multiply_shape_format_fp16(self):
         format_list = [0, 3, 4, 29]
@@ -118,7 +121,10 @@ class TestMultiply(TestCase):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(cpu_input1, 0.5)
         npu_output = self.npu_op_exec(npu_input1, 0.5)
+        cpu_output_scalar = self.cpu_inp_op_exec(cpu_input1, 2)
+        npu_output_scalar = self.npu_inp_op_exec(npu_input1, 2)
         self.assertRtolEqual(cpu_output, npu_output)
+        self.assertRtolEqual(cpu_output_scalar, npu_output_scalar)
     
     def test_multiply_inp_shape_format_bool(self):
         format_list = [0, 3, 4, 29]
