@@ -41,7 +41,7 @@ namespace at_npu
     {
 
       // executing the NPU operator
-      if (other.dim() == 0 && !other.is_npu())
+      if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other))
       {
         div_scalar_out_npu(self, other.item(), result);
       }

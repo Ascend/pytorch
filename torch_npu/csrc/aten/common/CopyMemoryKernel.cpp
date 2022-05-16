@@ -28,7 +28,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
-  AT_ASSERT(src.is_npu(), "copy_memory_ only support npu tensor");
+  AT_ASSERT(at_npu::key::isDeviceTensor(src), "copy_memory_ only support npu tensor");
   AT_ASSERT(
       src.dtype() == self.dtype(),
       "input tensors of copy_memory_ should have same dtype");

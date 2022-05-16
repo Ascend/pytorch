@@ -30,11 +30,13 @@ at::Tensor matmul_opt_npu(
   at::NoNamesGuard guard;
   auto has_out = out_opt.has_value();
   at::Tensor out = out_opt.value_or(at::Tensor());
-  if (tensor1.is_npu() && tensor2.is_npu() && 
-    tensor1.scalar_type() == at::kHalf && tensor2.scalar_type() == at::kHalf && 
-    at_npu::native::env::CheckBmmV2Enable()) {
-      auto res = matmul_by_bmmV2(tensor1, tensor2);
-      return has_out ? out.set_(res) : res;
+  if (at_npu::key::isDeviceTensor(tensor1) &&
+      at_npu::key::isDeviceTensor(tensor2) &&
+      tensor1.scalar_type() == at::kHalf &&
+      tensor2.scalar_type() == at::kHalf &&
+      at_npu::native::env::CheckBmmV2Enable()) {
+    auto res = matmul_by_bmmV2(tensor1, tensor2);
+    return has_out ? out.set_(res) : res;
   }
   auto dim_tensor1 = tensor1.dim();
   auto dim_tensor2 = tensor2.dim();

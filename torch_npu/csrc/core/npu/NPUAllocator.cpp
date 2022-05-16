@@ -114,7 +114,7 @@ struct DefaultNPUAllocator final : at::Allocator {
   ~DefaultNPUAllocator() override {}
   at::DataPtr allocate(size_t nbytes) const override {
     void* data = alloc_npu(nbytes);
-    return {data, data, &free_npu, at::Device(c10::DeviceType::NPU)};
+    return {data, data, &free_npu, at::Device(at_npu::key::NativeDeviceType)};
   }
 
   at::DeleterFnPtr raw_deleter() const override {
@@ -123,11 +123,11 @@ struct DefaultNPUAllocator final : at::Allocator {
 };
 
 at::Allocator* GetNPUAllocator() {
-  return GetAllocator(c10::DeviceType::NPU);
+  return GetAllocator(at_npu::key::NativeDeviceType);
 }
 
 void SetNPUAllocator(at::Allocator* alloc) {
-  SetAllocator(c10::DeviceType::NPU, alloc);
+  SetAllocator(at_npu::key::NativeDeviceType, alloc);
 }
 
 // Global default NPU Allocator

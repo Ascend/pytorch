@@ -664,10 +664,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   if (usedDeviceIdxs_.empty()) {
     auto numNPUs = c10_npu::device_count();
     int16_t deviceIdx = static_cast<int16_t>(rank_ % std::max(static_cast<int>(numNPUs), 1));
-    devices.push_back(at::Device(at::DeviceType::NPU, deviceIdx));
+    devices.push_back(at::Device(at_npu::key::NativeDeviceType, deviceIdx));
   } else {
     for (auto usedDeviceIdx : usedDeviceIdxs_) {
-      devices.push_back(at::Device(at::DeviceType::NPU, usedDeviceIdx));
+      devices.push_back(at::Device(at_npu::key::NativeDeviceType, usedDeviceIdx));
     }
   }
 
@@ -679,7 +679,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
     npuGuard.set_index(device.index());
     barrierTensors.push_back(at::empty(
         {1},
-        at::TensorOptions().device(at::DeviceType::NPU).dtype(at::kFloat)));
+        at::TensorOptions().device(at_npu::key::NativeDeviceType).dtype(at::kFloat)));
   }
 
   auto work = allreduce(barrierTensors);

@@ -22,6 +22,7 @@
 #include <c10/core/Allocator.h>
 #include <c10/util/Logging.h>
 #include <c10/util/numa.h>
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 C10_DECLARE_bool(caffe2_report_npu_memory_usage);
 C10_DECLARE_bool(caffe2_npu_allocator_do_zero_fill);

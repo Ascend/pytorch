@@ -60,9 +60,9 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
   at::Tensor otherInput = (other.dtype() == at::ScalarType::Bool) ? other.to(at::ScalarType::Int) : other;
   result = (result.dtype() == at::ScalarType::Bool) ? result.to(at::ScalarType::Int) : result;
 
-  if (otherInput.dim() == 0 && !otherInput.is_npu()) {
+  if (otherInput.dim() == 0 && !at_npu::key::isDeviceTensor(otherInput)) {
     NPUNativeFunctions::bitwise_xor_out(selfInput, otherInput.item(), result);
-  } else if (selfInput.dim() == 0 && !selfInput.is_npu()) {
+  } else if (selfInput.dim() == 0 && !at_npu::key::isDeviceTensor(selfInput)) {
     NPUNativeFunctions::bitwise_xor_out(otherInput, selfInput.item(), result);
   } else {
     // executing the NPU operator

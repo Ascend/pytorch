@@ -51,7 +51,7 @@ at::Tensor& fills_out_npu(at::Tensor& result, at::Tensor& self, at::Scalar value
 }
 
 at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other) {
-  if (other.dim() == 0 && !other.is_npu()) {
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     fills_out_npu(self, self, other.item());
   } else {
     fill_out_npu(self, self, other);

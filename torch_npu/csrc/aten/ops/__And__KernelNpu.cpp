@@ -49,9 +49,9 @@ at::Tensor& and_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
-  if (other.dim() == 0 && !other.is_npu()) {
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     and_out_npu_nocheck(self, other.item(),result);
-  } else if (self.dim() == 0 && !self.is_npu()) {
+  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
     and_out_npu_nocheck(other, self.item(),result);
   } else {
     OpCommand cmd;

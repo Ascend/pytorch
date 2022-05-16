@@ -235,7 +235,7 @@ NPUStream NPUStream_fromInternals(const LeakyStreamInternals* ptr) {
       NPUStream::UNCHECKED,
       c10::Stream(
           c10::Stream::UNSAFE,
-          c10::Device(c10::DeviceType::NPU, ptr->device_index),
+          c10::Device(at_npu::key::NativeDeviceType, ptr->device_index),
           NPUStream_getStreamId(ptr)));
 }
 } // namespace

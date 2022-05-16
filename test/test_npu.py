@@ -478,6 +478,50 @@ class TestNpu(TestCase):
         del t
         t = torch.FloatTensor([1]).pin_memory()
         self.assertEqual(list(npu_tensor), [1])
+    
+    def test_function_torch_empty_and_to(self):
+        x = torch.empty((2, 3), dtype=torch.float16, device='npu')
+        x_int32 = x.to(torch.int32)
+        res = x_int32 + 1
+
+    def test_function_npu(self):
+        x = torch.empty((2, 3), dtype=torch.float16, device='cpu')
+        x_npu = x.npu()
+        res = x_npu + 1
+
+    def test_function_torch_empty_with_format(self):
+        x = torch.empty_with_format((2, 3), dtype=torch.float32, device='npu')
+        res = x + 1
+    
+    def test_function_torch_empty_like(self):
+        x = torch.empty((2, 3), dtype=torch.float32, device='npu')
+        x_like = torch.empty_like(x)
+        res = x_like + 1
+
+    def test_function_torch_empty_strided(self):
+        x = torch.empty_strided((2, 3), (1, 2), dtype=torch.int8, device='npu')
+    
+    def test_function_tensor_new_empty(self):
+        x = torch.ones(()).npu()
+        x_new_empty = x.new_empty((2, 3), dtype=torch.float16, device='npu')
+        res = x_new_empty + 1
+
+    def test_function_tensor_new_empty_strided(self):
+        x = torch.ones(()).npu()
+        x_new = x.new_empty_strided([2, 3], [3, 1], dtype=torch.float32, device='npu')
+        res = x_new + 1
+
+    def test_function_torch_device(self):
+        device1 = torch.device("npu:1")
+        device2 = torch.device("npu")
+        device3 = torch.device("npu", 2)
+        self.assertEqual(str(device1), "xla:1")
+        self.assertEqual(str(device2), "xla")
+        self.assertEqual(str(device3), "xla:2")
+
+    def test_function_tensor_data_npu():
+        x = torch.ones(())
+        x.data = x.data.npu()
 
 
 if __name__ == '__main__':

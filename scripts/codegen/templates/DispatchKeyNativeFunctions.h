@@ -15,11 +15,26 @@
 // limitations under the License.
 
 #pragma once
+#ifndef __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTOPNS__
+#define __SCRIPTS_CODEGEN_TEMPLATES_DISPATCHKEYNATIVEFUNCTOPNS__
 
-// ${generated_comment}
 
 #include <ATen/Tensor.h>
+#include <ATen/ATen.h>
+namespace at_npu {
+namespace key {
+static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
+static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::XLA;
+static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradXLA;
+static constexpr c10::Backend NativeBackend = c10::Backend::XLA;
 
+static bool isDeviceTensor(const at::Tensor &tensor) {
+  return tensor.is_xla();
+}
+} // namespace key
+} // namespace at_npu
+
+// ${generated_comment}
 namespace ${cpp_namespace} {
 
 struct ${class_name} {
@@ -28,3 +43,5 @@ ${dispatch_declarations}
 
 };
 }  // namespace ${cpp_namespace}
+
+#endif

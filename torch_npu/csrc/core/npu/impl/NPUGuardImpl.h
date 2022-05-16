@@ -8,6 +8,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>
@@ -18,17 +19,17 @@ namespace c10_npu {
 namespace impl {
 
 struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
-  static constexpr c10::DeviceType static_type = c10::DeviceType::NPU;
+  static constexpr c10::DeviceType static_type = at_npu::key::NativeDeviceType;
 
   NPUGuardImpl() {}
   explicit NPUGuardImpl(c10::DeviceType t) {
-    TORCH_INTERNAL_ASSERT(t == c10::DeviceType::NPU);
+    TORCH_INTERNAL_ASSERT(t == at_npu::key::NativeDeviceType);
   }
   c10::DeviceType type() const override {
-    return c10::DeviceType::NPU;
+    return at_npu::key::NativeDeviceType;
   }
   c10::Device exchangeDevice(c10::Device d) const override {
-    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::NPU);
+    TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
     c10::Device old_device = getDevice();
     if (old_device.index() != d.index()) {
       C10_NPU_CHECK(aclrtSetDevice(d.index()));
@@ -38,10 +39,10 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
   c10::Device getDevice() const override {
     int device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&device));
-    return c10::Device(c10::DeviceType::NPU, device);
+    return c10::Device(at_npu::key::NativeDeviceType, device);
   }
   void setDevice(c10::Device d) const override {
-    TORCH_INTERNAL_ASSERT(d.type() == c10::DeviceType::NPU);
+    TORCH_INTERNAL_ASSERT(d.type() == at_npu::key::NativeDeviceType);
     c10_npu::NpuSysCtrl::GetInstance().BackwardsInit();
   }
   void uncheckedSetDevice(c10::Device d) const noexcept override {

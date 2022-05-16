@@ -18,7 +18,19 @@
 
 namespace torch_npu {
 namespace utils {
+static const char* _backend_to_string_npu(const at::Backend& backend) {
+  switch (backend) {
+    case at::Backend::CPU: return "torch";
+    case at_npu::key::NativeBackend: return "torch.npu";
+    default: AT_ERROR("Unimplemented backend ", backend);
+  }
+}
 
+std::string _options_to_string_npu(const at::TensorOptions options) {
+  std::ostringstream ss;
+  ss << _backend_to_string_npu(options.backend()) << "." << toString(at::typeMetaToScalarType(options.dtype())) << "Tensor";
+  return ss.str();
+}
 
 std::tuple<at::Tensor, c10::optional<at::Device>, c10::optional<at::ScalarType>, bool, bool, c10::optional<at::MemoryFormat>> parse_to_conversion(torch::PythonArgs& r, bool allow_copy);
 
@@ -59,10 +71,10 @@ static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwar
   torch::ParsedArgs<4> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-  auto local_device = r.isNone(1) ? c10::Device(at::DeviceType::NPU) : r.device(1);
-  auto device = c10::Device(at::DeviceType::NPU, local_device.index()); 
+  auto local_device = r.isNone(1) ? c10::Device(at_npu::key::NativeDeviceType) : r.device(1);
+  auto device = c10::Device(at_npu::key::NativeDeviceType, local_device.index());
   auto opt_memory_format = r.memoryformatOptional(3);
-  TORCH_CHECK(device.is_npu(), "Invalid device, must be npu device");
+  TORCH_CHECK((device.type() == at_npu::key::NativeDeviceType), "Invalid device, must be npu device");
   InitNPUWithIndex(device.index());
   return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(2), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
@@ -85,14 +97,14 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   auto self_ = std::get<0>(parsed);
   auto& device = std::get<1>(parsed);
   if (device && device->is_cuda()) {
-    device = c10::Device(at::DeviceType::NPU, device->index()); 
+    device = c10::Device(at_npu::key::NativeDeviceType, device->index());
   }
   auto& scalarType = std::get<2>(parsed);
   auto non_blocking = std::get<3>(parsed);
   auto copy = std::get<4>(parsed);
   auto opt_memory_format = std::get<5>(parsed);
-  
-  if (device && device->is_npu()) {
+
+  if (device && (device->type() == at_npu::key::NativeDeviceType)) {
     InitNPUWithIndex(device->index());
   }
   if (!device && !scalarType && !copy && !opt_memory_format.has_value()) {
@@ -123,13 +135,12 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
   torch::ParsedArgs<4> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-
   if(r.has_torch_function()){
     return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
 
   if (r.isNone(1)) {
-    return THPUtils_packString(torch::utils::options_to_string(self_.options()));
+    return THPUtils_packString(_options_to_string_npu(self_.options()));
   }
   auto obj = r.pyobject(1);
   auto opt_memory_format = r.memoryformatOptional(3);
@@ -160,7 +171,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
       device = at::Device(device_type);
     }
   }
-  if (device.is_npu()) {
+  if ((device.type() == at_npu::key::NativeDeviceType)) {
     InitNPUWithIndex(device.index());
   }
   return THPVariable_Wrap(dispatch_to(self_, device, scalar_type, r.toBool(1), false, opt_memory_format));
@@ -176,7 +187,70 @@ static PyObject * THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* k
   torch::ParsedArgs<1> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
   auto self_ = r.tensor(0);
-  return torch::autograd::utils::wrap(self_.is_npu());
+  return torch::autograd::utils::wrap(at_npu::key::isDeviceTensor(self_));
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject * THPVariable_new_empty(PyObject* self_, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser(
+      {
+          "new_empty(Tensor self, IntArrayRef size, *, ScalarType dtype=None, "
+          "Layout layout=torch.strided, Device device=None, bool "
+          "pin_memory=False, bool requires_grad=False)",
+      },
+      true);
+  torch::ParsedArgs<7> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  auto self_ = r.tensor(0);
+  if (r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
+  }
+  const auto options = at::TensorOptions()
+      .dtype(r.scalartypeWithDefault(2, self_.scalar_type()))
+      .device(r.deviceWithDefault(4, self_.device()))
+      .layout(r.layoutWithDefault(3, c10::layout_from_backend(self_.options().backend())))
+      .requires_grad(r.toBool(6))
+      .pinned_memory(r.toBool(5));
+  auto dispatch_new_empty = [](at::Tensor & self, c10::IntArrayRef size, at::TensorOptions options) -> at::Tensor {
+    pybind11::gil_scoped_release no_gil;
+    return self.new_empty(size, options);
+  };
+  return torch::autograd::utils::wrap(dispatch_new_empty(self_, r.intlist(1), options).set_requires_grad(r.toBool(6)));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser(
+      {
+          "new_empty_strided(Tensor self, IntArrayRef size, IntArrayRef "
+          "stride, *, ScalarType dtype=None, Layout layout=torch.strided, "
+          "Device device=None, bool pin_memory=False, bool "
+          "requires_grad=False)",
+      },
+      true);
+  torch::ParsedArgs<8> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  auto self_ = r.tensor(0);
+  if (r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
+  }
+  const auto options = at::TensorOptions()
+      .dtype(r.scalartypeWithDefault(3, self_.scalar_type()))
+      .device(r.deviceWithDefault(5, self_.device()))
+      .layout(r.layoutWithDefault(4, c10::layout_from_backend(self_.options().backend())))
+      .requires_grad(r.toBool(7))
+      .pinned_memory(r.toBool(6));
+  auto dispatch_new_empty_strided = [](at::Tensor & self, c10::IntArrayRef size, c10::IntArrayRef stride, at::TensorOptions options) -> at::Tensor {
+    pybind11::gil_scoped_release no_gil;
+    return self.new_empty_strided(size, stride, options);
+  };
+  return torch::autograd::utils::wrap(dispatch_new_empty_strided(self_, r.intlist(1), r.intlist(2), options).set_requires_grad(r.toBool(7)));
+  Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
@@ -200,6 +274,8 @@ static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"type", castPyCFunctionWithKeywords(THPVariable_type), METH_VARARGS | METH_KEYWORDS, NULL},
   {"is_npu", castPyCFunctionWithKeywords(THPVariable_is_npu), METH_VARARGS | METH_KEYWORDS, NULL},
   {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
+  {"new_empty", castPyCFunctionWithKeywords(THPVariable_new_empty), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
   {nullptr, nullptr, 0, nullptr}
 };
 

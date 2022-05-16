@@ -56,7 +56,7 @@ tuple<at::Tensor, at::Tensor> softmax_cross_entropy_with_logits_impl_npu(
 at::Tensor softmax_cross_entropy_with_logits_npu(
     const at::Tensor& self,
     const at::Tensor& labels) {
-  TORCH_CHECK(self.device().type() == c10::DeviceType::NPU);
+  TORCH_CHECK(self.device().type() == at_npu::key::NativeDeviceType);
   return std::get<0>(softmax_cross_entropy_with_logits_impl_npu(self, labels));
 }
 
