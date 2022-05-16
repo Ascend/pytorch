@@ -12,6 +12,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "third_party/acl/inc/acl/acl_op.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 
 namespace c10_npu {
@@ -21,7 +22,7 @@ public:
   enum Unchecked { UNCHECKED };
 
   explicit NPUStream(c10::Stream stream) : stream_(stream) {
-    TORCH_CHECK(stream_.device_type() == c10::DeviceType::NPU);
+    TORCH_CHECK(stream_.device_type() == at_npu::key::NativeDeviceType);
   }
 
   explicit NPUStream(Unchecked, c10::Stream stream) : stream_(stream) {}
@@ -54,7 +55,7 @@ public:
   /// Get the full Device that this stream is associated with.  The Device
   /// is guaranteed to be a NPU device.
   c10::Device device() const {
-    return c10::Device(c10::DeviceType::NPU, device_index());
+    return c10::Device(at_npu::key::NativeDeviceType, device_index());
   }
 
   c10::StreamId id() const {

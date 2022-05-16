@@ -29,6 +29,7 @@
 #include <ATen/ATen.h>
 #include <torch/csrc/WindowsTorchApiMacro.h>
 #include <torch/csrc/autograd/profiler_utils.h>
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #ifndef _WIN32
 #include <ctime>
 #endif
@@ -249,7 +250,7 @@ struct  LegacyEvent {
         device.type() == c10::DeviceType::MKLDNN ||
         device.type() == c10::DeviceType::IDEEP) {
       cpu_memory_usage_ = alloc_size;
-    } else if (device.type() == c10::DeviceType::NPU) {
+    } else if (device.type() == at_npu::key::NativeDeviceType) {
         npu_memory_usage_ = alloc_size;
     }else {
       LOG(WARNING) << "Unsupported memory profiling device: " << device;

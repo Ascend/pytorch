@@ -142,7 +142,9 @@ def device_count():
 
 
 def set_device(device):
-    if isinstance(device, torch.device):
+    if isinstance(device, str) and 'npu' in device:
+        device = device.replace('npu', 'xla')
+    if isinstance(device, torch._C.device):
         torch_npu._C._npu_setDevice(device.index)
     elif torch.device(device) :
         torch_npu._C._npu_setDevice(torch.device(device).index)
@@ -174,8 +176,8 @@ def _get_device_index(device, optional=False):
         else:
             device = torch.device(device)
     device_idx = None
-    if isinstance(device, torch.device):
-        if device.type != 'npu':
+    if isinstance(device, str):
+        if not 'npu' in device:
             raise ValueError('Expected a npu device, but got: {}'.format(device))
         device_idx = device.index
     if isinstance(device, int):

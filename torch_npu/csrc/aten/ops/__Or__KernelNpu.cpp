@@ -48,9 +48,9 @@ at::Tensor& or___out_tensor_npu(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& other) {
-  if (other.dim() == 0 && !other.is_npu()) {
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     or___out_scalar_npu(result, self, other.item());
-  } else if (self.dim() == 0 && !self.is_npu()) {
+  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
     or___out_scalar_npu(result, other, self.item());
   } else {
 

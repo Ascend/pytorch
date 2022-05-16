@@ -26,7 +26,7 @@ void ScalarMemContext::ExecuteH2D(c10_npu::NPUStream stream) {
   C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
   npu_tensor_ = at::empty(
       {host_mem_valid_len_},
-      at::TensorOptions().device(at::kNPU, deviceIndex).dtype(at::kByte));
+      at::TensorOptions().device(at_npu::key::NativeDeviceType, deviceIndex).dtype(at::kByte));
 
   C10_NPU_CHECK(
       aclrtMemcpyAsync(

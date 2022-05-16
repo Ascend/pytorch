@@ -57,7 +57,7 @@ static PyObject * THPGenerator_pynew(PyTypeObject *type, PyObject *args, PyObjec
 
   if (device.type() == at::kCPU) {
     self->cdata = at::make_generator<CPUGeneratorImpl>();
-  } else if (device.type() == at::kNPU){
+  } else if (device.type() == at_npu::key::NativeDeviceType){
     self->cdata = at::make_generator<at_npu::NPUGeneratorImpl>(device.index());
   } else {
     AT_ERROR("Device type ", c10::DeviceTypeName(device.type()),

@@ -54,9 +54,9 @@ at::Tensor& bitwise_or_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-  if (other.dim() == 0 && !other.is_npu()) {
+  if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     NPUNativeFunctions::bitwise_or_out(self, other.item(), result);
-  } else if (self.dim() == 0 && !self.is_npu()) {
+  } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
     NPUNativeFunctions::bitwise_or_out(other, self.item(), result);
   } else {
     // executing the NPU operator

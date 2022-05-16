@@ -40,7 +40,7 @@ bool is_depthwise(
     const at::Tensor& weight,
     int64_t groups,
     bool transposed) {
-  return input.is_npu() && !transposed && input.ndimension() == 4 &&
+  return at_npu::key::isDeviceTensor(input) && !transposed && input.ndimension() == 4 &&
       input.size(1) == groups &&
       groups > 1 && // no point if there is only a single group
       weight.size(0) % input.size(1) ==

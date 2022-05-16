@@ -175,7 +175,7 @@ namespace at_npu
       int deviceIndex = 0;
       C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
       return cpuPinMemTensor.to(
-          c10::Device(c10::DeviceType::NPU, deviceIndex),
+          c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
           cpuPinMemTensor.scalar_type(),
           true,
           true);
@@ -300,7 +300,7 @@ namespace at_npu
     bool CalcuOpUtil::is_scalar_wrapped_to_tensor(const at::Tensor &tensor)
     {
       return tensor.unsafeGetTensorImpl()->is_wrapped_number() &&
-             (!tensor.is_npu());
+             (!at_npu::key::isDeviceTensor(tensor));
     }
 
     bool CalcuOpUtil::is_scalar_one(const c10::Scalar &scalar)
@@ -342,7 +342,7 @@ namespace at_npu
       if (npuTensorDesc.tensorDescType == NPUTensorDesc::TensorDescType::SCALAR ||
           (npuTensorDesc.tensorDescType ==
                NPUTensorDesc::TensorDescType::TENSOR_SCALAR &&
-           (!npuTensorDesc.tensor.is_npu()) &&
+           (!at_npu::key::isDeviceTensor(npuTensorDesc.tensor)) &&
            is_scalar_wrapped_to_tensor(npuTensorDesc.tensor)))
       {
         scalarDataType = npuTensorDesc.scalarType;
@@ -459,7 +459,7 @@ namespace at_npu
         else if (
             input[i].tensorDescType ==
                 NPUTensorDesc::TensorDescType::TENSOR_SCALAR &&
-            input[i].tensor.is_npu())
+            at_npu::key::isDeviceTensor(input[i].tensor))
         {
           at::Tensor *aclInput = &input[i].tensor;
           aclTensorInputDescArr[i] =

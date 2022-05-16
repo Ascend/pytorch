@@ -27,8 +27,8 @@ namespace torch_npu
 {
   NPUTensorImpl::NPUTensorImpl(c10::Storage &&storage, const caffe2::TypeMeta &data_type)
       : c10::TensorImpl(std::move(storage),
-                        c10::DispatchKeySet{c10::DispatchKey::NPU,
-                                            c10::DispatchKey::AutogradNPU},
+                        c10::DispatchKeySet{at_npu::key::NativeDispatchKey,
+                                            at_npu::key::NativeAutogradDispatchKey},
                         data_type)
   {
     is_non_overlapping_and_dense_ = false;

@@ -43,7 +43,7 @@ namespace at_npu
         c10::optional<c10::MemoryFormat> optional_memory_format)
     {
       auto device = device_or_default(device_opt);
-      if (!device.is_npu())
+      if (!(device.type() == at_npu::key::NativeDeviceType))
       {
         auto result = at::empty_like(self,
                                      dtype_opt,

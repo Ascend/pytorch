@@ -35,7 +35,7 @@ void GraphCommandImpl::AddInput(
     const string& desc_name,
     const string& real_dtype,
     const c10::optional<aclFormat>& sensitive_format) {
-  if (input.dim() == 0 && !input.is_npu()) {
+  if (input.dim() == 0 && !at_npu::key::isDeviceTensor(input)) {
     return AddZeroDimInput(input, desc_name);
   }
   if (GraphUtils::IsTensorWithoutNode(input)) {
@@ -74,7 +74,7 @@ void GraphCommandImpl::AddInput(
     ReduceScalarValue(input, type, offset);
     int deviceIndex = 0;
     C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
-    auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at::kNPU, deviceIndex).dtype(type));
+    auto npu_scalar_tensor = at::empty({}, at::TensorOptions(at_npu::key::NativeDeviceType, deviceIndex).dtype(type));
     GraphUtils::SetDataOp(npu_scalar_tensor.storage().unsafeGetStorageImpl());
     GraphUtils::RetainGraphDataTensor(npu_scalar_tensor);
     auto& cur_ir_value = GraphUtils::GetTensorIrValue(npu_scalar_tensor);

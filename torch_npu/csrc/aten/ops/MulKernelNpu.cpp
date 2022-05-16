@@ -47,11 +47,11 @@ namespace at_npu
 
     at::Tensor &mul_out_npu_nocheck(at::Tensor &result, const at::Tensor &self, const at::Tensor &other)
     {
-      if (other.dim() == 0 && !other.is_npu())
+      if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other))
       {
         muls_out_npu(result, self, other.item());
       }
-      else if (self.dim() == 0 && !self.is_npu())
+      else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self))
       {
         muls_out_npu(result, other, self.item());
       }
@@ -134,7 +134,7 @@ namespace at_npu
 
     at::Tensor &NPUNativeFunctions::mul_(at::Tensor &self, const at::Tensor &other)
     {
-      TORCH_CHECK(self.is_npu(), "Input1 must be NPU-Tensor");
+      TORCH_CHECK(at_npu::key::isDeviceTensor(self), "Input1 must be NPU-Tensor");
 
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};

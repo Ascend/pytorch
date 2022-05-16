@@ -84,11 +84,11 @@ namespace at_npu
         at::Scalar alpha)
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-      if (other.dim() == 0 && !other.is_npu())
+      if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other))
       {
         adds_out_npu_nocheck(result, self, other.item(), alpha);
       }
-      else if (self.dim() == 0 && !self.is_npu())
+      else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self))
       {
         adds_out_npu_nocheck(result, other, self.item(), alpha);
       }

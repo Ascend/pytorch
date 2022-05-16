@@ -139,7 +139,7 @@ namespace at_npu
                                          c10::optional<bool> pin_memory_opt,
                                          c10::optional<c10::MemoryFormat> memory_format_opt)
     {
-      AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
+      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -290,7 +290,7 @@ namespace at_npu
       else
       {
         // See Note [Explicit nullopt c10::MemoryFormat argument]
-        if (!options.device().is_npu())
+        if (options.backend() == at_npu::key::NativeBackend)
         {
           result = at::empty(
               self.sizes(), options.memory_format(memory_format), c10::nullopt);
@@ -335,7 +335,7 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
-      AT_ASSERT(c10::device_or_default(device_opt).type() == at::DeviceType::NPU);
+      AT_ASSERT(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType);
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -378,8 +378,8 @@ namespace at_npu
                                      const c10::TensorOptions &options,
                                      int64_t dst_format)
     {
-      AT_ASSERT(options.device().type() == at::DeviceType::NPU);
-      AT_ASSERT(options.backend() == at::Backend::NPU);
+      AT_ASSERT(options.device().type() == at_npu::key::NativeDeviceType);
+      AT_ASSERT(options.backend() == at_npu::key::NativeBackend);
       TORCH_CHECK(!options.pinned_memory(), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       static c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
@@ -709,14 +709,14 @@ namespace at_npu
     template <typename T>
     at::Tensor tensor_backend_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options)
     {
-      auto npu_tensor = tensor_npu(values, options.device(at::DeviceType::NPU));
+      auto npu_tensor = tensor_npu(values, options.device(at_npu::key::NativeDeviceType));
       return npu_tensor.to(options.device());
     }
 
 #define TENSOR(T, _1)                                                               \
   at::Tensor tensor_npu(c10::ArrayRef<T> values, const c10::TensorOptions &options) \
   {                                                                                 \
-    if (options.device().type() != at::DeviceType::NPU)                             \
+    if (options.device().type() != at_npu::key::NativeDeviceType)                             \
     {                                                                               \
       return tensor_backend_npu(values, options);                                   \
     }                                                                               \

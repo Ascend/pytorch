@@ -9,6 +9,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include <cstdint>
 #include <utility>
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace c10_npu {
 /*
@@ -49,7 +50,7 @@ struct NPUEvent {
 
   c10::optional<at::Device> device() const {
     if (is_created_) {
-      return at::Device(at::kNPU, device_index_);
+      return at::Device(at_npu::key::NativeDeviceType, device_index_);
     } else {
       return {};
     }

@@ -173,7 +173,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_dropout_with_byte_mask(
 
 at::Tensor NPUNativeFunctions::dropout_with_byte_mask(const at::Tensor& self, double p, bool train) {
   TORCH_CHECK(
-      self.is_npu(),
+      at_npu::key::isDeviceTensor(self),
       "dropout_with_byte_mask only supports device for NPU!");
   if (p == 0 || !train || self.numel() == 0) {
     return self;

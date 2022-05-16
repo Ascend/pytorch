@@ -292,7 +292,7 @@ struct THNCachingAllocator {
     block->allocated = false;
 
     c10::reportMemoryUsageToProfiler(
-        block, -block->size, c10::Device(c10::DeviceType::NPU, block->device));
+        block, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
 
     DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
@@ -1033,7 +1033,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   stats.increaseAllocated(block->size);
 
   c10::reportMemoryUsageToProfiler(
-      block, block->size, c10::Device(c10::DeviceType::NPU, device));
+      block, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
 
   update_stat_array(stats_.allocation, 1, stat_types);
   update_stat_array(stats_.allocated_bytes, block->size, stat_types);
@@ -1059,7 +1059,7 @@ struct NPUCachingAllocator : public c10::Allocator {
       caching_allocator.malloc(
           &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
     }
-    return {r, r, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
+    return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
     return &NPUCachingDeleter;
@@ -1079,9 +1079,9 @@ std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t si
       c10_npu::getCurrentNPUStreamNoWait(device));
 
   c10::DataPtr data_pre = {
-      ptr_pre, ptr_pre, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
+      ptr_pre, ptr_pre, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
   c10::DataPtr data_next = {
-      ptr_next, ptr_next, &NPUCachingDeleter, c10::Device(c10::DeviceType::NPU, device)};
+      ptr_next, ptr_next, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
   std::tuple<c10::DataPtr, c10::DataPtr> adjacent_dataptr =
       std::make_tuple(std::move(data_pre), std::move(data_next));
 
