@@ -26,7 +26,8 @@ NpuTensorDict = {
     "long": torch.LongTensor,
     "short": torch.ShortTensor,
     "byte": torch.ByteTensor,
-    "char": torch.CharTensor
+    "char": torch.CharTensor,
+    "half": torch.HalfTensor
 }
 
 def create_npu_float_tensor(*args, **kwargs):
@@ -43,3 +44,4 @@ LongTensor = functools.partial(create_npu_float_tensor, dtype="long")
 ShortTensor = functools.partial(create_npu_float_tensor, dtype="short")
 ByteTensor = functools.partial(create_npu_float_tensor, dtype="byte")
 CharTensor = functools.partial(create_npu_float_tensor, dtype="char")
+HalfTensor = functools.partial(create_npu_float_tensor, dtype="half")

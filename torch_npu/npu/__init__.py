@@ -30,7 +30,7 @@ __all__ = [
     "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork",
     "set_dynamic_mode", "get_current_dynamic_mode", "FloatTensor", "IntTensor",
     "DoubleTensor", "LongTensor", "ShortTensor", "CharTensor", "ByteTensor",
-    "set_mm_bmm_format_nd", "get_mm_bmm_format_nd" 
+    "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd"
 ]
 
 import torch
@@ -53,6 +53,6 @@ from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, profileConfig, set_dynamic_mode, get_current_dynamic_mode,
             set_mm_bmm_format_nd, get_mm_bmm_format_nd)
-from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor
+from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor, HalfTensor
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
