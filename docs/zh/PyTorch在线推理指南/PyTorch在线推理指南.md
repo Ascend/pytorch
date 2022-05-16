@@ -420,7 +420,7 @@ if __name__ == '__main__':
 
 3.  执行推理。
 
-    参考[环境变量配置](#环境变量配置md)设置环境变量，并执行命令：
+    参考[环境变量配置](https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/cv/classification/ResNet50_for_PyTorch/env_npu.sh)设置环境变量，并执行命令：
 
     ```
     python3 resnet50_infer_for_pytorch.py \
