@@ -26,8 +26,4 @@ void NpuRunMode::SetNpuRunMode(const ModeKind &mode) {
 ModeKind NpuRunMode::CurRunMode() {
   return cur_mode_;
 }
-
-bool NpuRunMode::IsGraphMode() {
-  return cur_mode_ == ModeKind::GRAPH_MODE;
-}
 } // namespace c10_npu

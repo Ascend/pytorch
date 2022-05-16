@@ -35,8 +35,8 @@ at::Tensor& index_select_out_npu_nocheck(
   cmd.Name("GatherV2")
       .Input(self)
       .Input(index)
-      .Input(dimVec, at::kInt)
-      .Output(result)    
+      .Input(dimVec)
+      .Output(result)
       .Run();
   return result;
 }

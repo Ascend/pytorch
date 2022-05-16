@@ -110,7 +110,7 @@ namespace at_npu
             "Unsupport data type: %s.", GetAtScalarTypeName(data_type).c_str());
         return kUnknownAclDataType;
       }
-      if (realDataType != "")
+      if (!realDataType.empty())
       {
         return STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP[realDataType];
       }

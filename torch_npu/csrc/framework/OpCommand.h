@@ -81,16 +81,10 @@ public:
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
       const string &realData = "");
 
-  OpCommand& InputWithoutContiguousGeneral(
-      const at::Tensor &input,
-      const string &descName = "",
-      const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
-      const string &realData = "");
-
   // Tensor Input which no need contiguous
   OpCommand& InputWithoutContiguous(const at::Tensor &input,
-                                  const string &descName = "",
-                                  const string &realData = "");
+                                    const string &descName = "",
+                                    const string &realData = "");
 
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
@@ -146,7 +140,7 @@ private:
   at::Tensor& CreateHostTensor(void *data, size_t size,
                               const c10::TensorOptions &options, at::ScalarType toType);
 
-  at::Tensor CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type);
+  at::Tensor& CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type);
 
   c10::SmallVector<at::Tensor, N> storage; // tensor's life cycle should maintain when Run() is called
   OpCommandImpls *aclCmds = nullptr; // owned

@@ -33,7 +33,7 @@ namespace at_npu
 
       OpCommand cmd;
       cmd.Name("MatMul")
-          .InputWithoutContiguousGeneral(contiguousSelf)
+          .InputWithoutContiguous(contiguousSelf)
           .Input(vecT)
           .Attr("transpose_x1", isSelfT)
           .Attr("transpose_x2", false)

@@ -78,10 +78,8 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
   at::Tensor contiguousResult =
       result.is_contiguous() ? result : result.contiguous();
 
-  auto self_desc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
-  auto mat2_desc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(mat2)->get_npu_desc();
+  const auto &self_desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(self);
+  const auto &mat2_desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(mat2);
   bool isSelfT_flex = is_transpose_last_two_dims_flex(self);
   bool isMat2T_flex = is_transpose_last_two_dims_flex(mat2);
   bool isSelfT_strict = is_transpose_last_two_dims_strict(self, isSelfT_flex);
@@ -143,16 +141,15 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
 at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
                                   const at::Tensor &mat2) {
   // calculate the output size
-  auto outputSize = mm_npu_output_size(self, mat2);
+  auto outputSize = {self.size(0), mat2.size(1)};
 
   // construct the output tensor of the NPU
   at::Tensor result;
 
-  auto options = self.options();
+  const auto &options = self.options();
 
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
-  if ((self.scalar_type() == at::ScalarType::Half) &&
-      !c10_npu::option::OptionsManager::CheckSwitchMMOutputEnable()) {
+  if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
     auto isAligin = [&]() {
       return (!(static_cast<uint64_t>(self.size(0)) & 0x0000000F)) &&
@@ -162,12 +159,13 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     };
     // There is a data trampling problem in non-aligned scenes. For the time
     // being, only aligned scenes are supported.
-    if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) &&
-        FormatHelper::IsBaseFormatType(mat2) && isAligin()) {
+    static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
+    if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
+        && mm_bmm_nd && isAligin()) {
       result = NPUNativeFunctions::empty_with_format(
           outputSize, optTypeMetaToScalarType(options.dtype_opt()),
           options.layout_opt(), options.device_opt(),
-          options.pinned_memory_opt(), 2);
+          options.pinned_memory_opt(), ACL_FORMAT_ND);
     } else {
       result = NPUNativeFunctions::empty_with_format(
           outputSize, optTypeMetaToScalarType(options.dtype_opt()),
@@ -178,7 +176,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     result = NPUNativeFunctions::empty_with_format(
         outputSize, optTypeMetaToScalarType(options.dtype_opt()),
         options.layout_opt(), options.device_opt(), options.pinned_memory_opt(),
-        2);
+        ACL_FORMAT_ND);
   }
 
   // calculate the output result of the NPU

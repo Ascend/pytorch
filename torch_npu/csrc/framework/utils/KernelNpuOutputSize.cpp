@@ -616,13 +616,6 @@ namespace at_npu
       return outputSize;
     }
 
-    c10::SmallVector<int64_t, SIZE> mm_npu_output_size(
-        const at::Tensor &self,
-        const at::Tensor &mat2)
-    {
-      return {self.size(0), mat2.size(1)};
-    }
-
     c10::SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
         const at::Tensor &input,
         const at::Tensor &weight,

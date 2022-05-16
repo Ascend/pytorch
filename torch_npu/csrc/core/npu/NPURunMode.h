@@ -30,7 +30,7 @@ class  NpuRunMode{
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();
-  static bool IsGraphMode();
+  static inline bool IsGraphMode() {return cur_mode_ == ModeKind::GRAPH_MODE;};
 
 private:
   static ModeKind cur_mode_;

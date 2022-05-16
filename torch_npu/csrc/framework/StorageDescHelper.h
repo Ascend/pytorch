@@ -33,7 +33,7 @@ namespace at_npu
       // sizes, strides in StorageDesc are same as those in MetaData
       static bool MetaDataAreMatch(const at::Tensor *tensor);
       // storage offset are match, the npu only support offset == 0
-      static bool OffsetAreMatch(const at::Tensor *tensor);
+      static inline bool OffsetAreMatch(const at::Tensor *tensor) {return tensor->storage_offset() == 0;};
 
       // helper function of transdata op.
       static bool IsSameDesc(const torch_npu::NPUStorageDesc &a, const torch_npu::NPUStorageDesc &b);
@@ -64,7 +64,7 @@ namespace at_npu
 
     private:
       // Get Part
-      static bool IsSameSize(c10::SmallVector<int64_t, 5> a, c10::IntArrayRef b);
+      static bool IsSameSize(const c10::SmallVector<int64_t, 5> &a, const c10::IntArrayRef &b);
       static int64_t GetMemorySize(const torch_npu::NPUStorageDesc &dst);
       // Set Part
       static torch_npu::NPUStorageDesc SetDesc(const caffe2::TypeMeta &dtype);

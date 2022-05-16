@@ -58,20 +58,17 @@ namespace at_npu
 
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, c10::IntArrayRef value)
     {
-      auto vec = value.vec();
-      aclopSetAttrListInt(attr, name.c_str(), vec.size(), vec.data());
+      aclopSetAttrListInt(attr, name.c_str(), value.size(), value.data());
     }
 
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value)
     {
-      auto vec = value.vec();
-      aclopSetAttrListFloat(attr, name.c_str(), vec.size(), vec.data());
+      aclopSetAttrListFloat(attr, name.c_str(), value.size(), value.data());
     }
 
     void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value)
     {
-      auto vec = value.vec();
-      aclopSetAttrListBool(attr, name.c_str(), vec.size(), vec.data());
+      aclopSetAttrListBool(attr, name.c_str(), value.size(), value.data());
     }
 
     void OpAttrMaker::Set(aclopAttr *attr, const string &name, c10::Scalar value)
@@ -391,11 +388,11 @@ namespace at_npu
 
     void OpCommandImpls::Push(OpCommandImpl *&ptr)
     {
-      offset += 1;
+      ++offset;
       if (objs.size() <= offset)
       {
         OpCommandImpl impl;
-        objs.emplace_back(impl);
+        objs.emplace_back(std::move(impl));
       }
       TORCH_CHECK(
           objs.size() > offset,

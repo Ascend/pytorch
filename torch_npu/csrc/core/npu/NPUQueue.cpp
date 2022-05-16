@@ -469,10 +469,6 @@ Repository::~Repository() {
   }
 }
 
-bool Repository::IsEmptyQueue() const {
-  return read_idx.idx == write_idx.idx;
-}
-
 bool Repository::IsFullQueue() const {
   return ((write_idx.idx + 1) % kQueueCapacity) == read_idx.idx;
 }
@@ -618,10 +614,6 @@ ReleaseQueue::~ReleaseQueue() {
     }
   }
   releaseManager().DeInit(datas);
-}
-
-bool ReleaseQueue::IsEmptyQueue() const {
-  return read_idx.idx == write_idx.idx;
 }
 
 bool ReleaseQueue::IsFullQueue() const {

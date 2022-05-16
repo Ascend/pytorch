@@ -26,13 +26,8 @@ namespace at_npu
 
     bool StorageDescHelper::MetaDataAreMatch(const at::Tensor *tensor)
     {
-      auto &desc = torch_npu::NPUBridge::GetNpuStorageImpl(*tensor)->npu_desc_;
+      auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(*tensor);
       return IsSameSize(desc.base_sizes_, tensor->sizes()) && IsSameSize(desc.base_strides_, tensor->strides());
-    }
-
-    bool StorageDescHelper::OffsetAreMatch(const at::Tensor *tensor)
-    {
-      return tensor->storage_offset() == 0;
     }
 
     // copy related
@@ -50,12 +45,12 @@ namespace at_npu
 
     bool StorageDescHelper::IsSameDesc(const at::Tensor &a, const at::Tensor &b)
     {
-      auto descA = torch_npu::NPUBridge::GetNpuStorageImpl(a)->npu_desc_;
-      auto descB = torch_npu::NPUBridge::GetNpuStorageImpl(b)->npu_desc_;
+      const auto &descA = torch_npu::NPUBridge::GetNpuStorageImplDesc(a);
+      const auto &descB = torch_npu::NPUBridge::GetNpuStorageImplDesc(b);
       return IsSameDesc(descA, descB);
     }
 
-    bool StorageDescHelper::IsSameSize(c10::SmallVector<int64_t, 5> a, c10::IntArrayRef b)
+    bool StorageDescHelper::IsSameSize(const c10::SmallVector<int64_t, 5> &a, const c10::IntArrayRef &b)
     {
       if (a.size() == b.size())
       {
@@ -83,7 +78,7 @@ namespace at_npu
       npuDesc.base_strides_ = new_stride;
 
       // 更新物理内存信息
-      auto physical_size = FormatHelper::GetStorageSizes(npuDesc);
+      const auto &physical_size = FormatHelper::GetStorageSizes(npuDesc);
       npuDesc.storage_sizes_ = physical_size;
     }
 
@@ -169,7 +164,7 @@ namespace at_npu
 
     int64_t StorageDescHelper::GetMemorySize(const torch_npu::NPUStorageDesc &desc)
     {
-      auto physical_size = FormatHelper::GetStorageSizes(desc);
+      const auto &physical_size = FormatHelper::GetStorageSizes(desc);
       return at::prod_intlist(physical_size);
     }
 
@@ -181,7 +176,7 @@ namespace at_npu
 
     int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format)
     {
-      auto physical_size = FormatHelper::GetStorageSizes(format, size);
+      const auto &physical_size = FormatHelper::GetStorageSizes(format, size);
       return at::prod_intlist(physical_size);
     }
 
