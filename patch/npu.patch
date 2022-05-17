@@ -127,17 +127,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +main "$@"
 \ No newline at end of file
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.cpp patch/c10/core/DispatchKey.cpp
---- pytorch-v1.8.1/c10/core/DispatchKey.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKey.cpp	2022-05-16 21:11:39.431429640 +0800
-@@ -6,7 +6,6 @@
-   switch (t) {
-     case DispatchKey::Undefined:
-       return "Undefined";
--
-     case DispatchKey::CPU:
-       return "CPU";
-     case DispatchKey::CUDA:
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h patch/c10/core/StorageImpl.h
 --- pytorch-v1.8.1/c10/core/StorageImpl.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/c10/core/StorageImpl.h	2022-04-28 18:51:47.202663489 +0800
@@ -167,17 +156,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      elif sha != 'Unknown':
          if sha is None:
              sha = get_sha(pytorch_root)
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/autograd/VariableTypeManual.cpp patch/torch/csrc/autograd/VariableTypeManual.cpp
---- pytorch-v1.8.1/torch/csrc/autograd/VariableTypeManual.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/autograd/VariableTypeManual.cpp	2022-05-16 21:11:39.431429640 +0800
-@@ -396,7 +396,6 @@
- }
- 
- TORCH_LIBRARY_IMPL(aten, Math, m) {
--  m.impl("set_data", torch::dispatch(DispatchKey::Math, TORCH_FN(VariableType::set_data)));
-   m.impl("data", torch::dispatch(DispatchKey::Math, TORCH_FN(VariableType::data)));
-   m.impl("is_leaf", torch::dispatch(DispatchKey::Math, TORCH_FN(VariableType::is_leaf)));
-   m.impl("output_nr", torch::dispatch(DispatchKey::Math, TORCH_FN(VariableType::output_nr)));
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp patch/torch/csrc/DynamicTypes.cpp
 --- pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp	2022-03-05 10:10:10.000000000 +0800
 +++ patch/torch/csrc/DynamicTypes.cpp	2022-05-16 21:11:39.431429640 +0800
