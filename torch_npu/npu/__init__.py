@@ -27,10 +27,10 @@ __all__ = [
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize", "profileConfig", "_in_bad_fork",
-    "set_dynamic_mode", "get_current_dynamic_mode", "FloatTensor", "IntTensor",
-    "DoubleTensor", "LongTensor", "ShortTensor", "CharTensor", "ByteTensor",
-    "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd"
+    "prof_start", "prof_stop", "prof_finalize",  "iteration_start", "iteration_end",
+    "profileConfig", "_in_bad_fork", "set_dynamic_mode", "get_current_dynamic_mode",
+    "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
+    "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd"
 ]
 
 import torch
@@ -51,7 +51,8 @@ from .streams import Stream, Event
 from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
-            prof_start, prof_stop, prof_finalize, profileConfig, set_dynamic_mode, get_current_dynamic_mode,
+            prof_start, prof_stop, prof_finalize, iteration_start, iteration_end, 
+            profileConfig, set_dynamic_mode, get_current_dynamic_mode,
             set_mm_bmm_format_nd, get_mm_bmm_format_nd)
 from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor, HalfTensor
 
