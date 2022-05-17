@@ -150,5 +150,102 @@ namespace at_npu
       return self;
     }
 
+    at::Tensor NPUNativeFunctions::div(
+        const at::Tensor& self, 
+        const at::Tensor& other,
+        std::string rounding_mode) {
+      if (rounding_mode == "floor") {
+        return NPUNativeFunctions::floor_divide(self, other);
+      }
+      at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
+      if (rounding_mode == "true") {
+        return true_div_res;
+      } else if (rounding_mode == "trunc") {
+        return NPUNativeFunctions::trunc(true_div_res);
+      }
+
+      TORCH_CHECK(false,
+          "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
+          "but found '", rounding_mode, "'");
+    }
+
+    at::Tensor& NPUNativeFunctions::div_(
+        at::Tensor& self, 
+        const at::Tensor& other,
+        std::string rounding_mode) {
+      if (rounding_mode == "floor") {
+        return NPUNativeFunctions::floor_divide_(self, other);
+      }
+      NPUNativeFunctions::div_(self, other);
+      if (rounding_mode == "true") {
+        return self;
+      } else if (rounding_mode == "trunc") {
+        return NPUNativeFunctions::trunc_(self);
+      }
+
+      TORCH_CHECK(false,
+          "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
+          "but found '", rounding_mode, "'");
+    }
+
+    at::Tensor& NPUNativeFunctions::div_out(
+        const at::Tensor& self, 
+        const at::Tensor& other,
+        std::string rounding_mode,
+        at::Tensor& result) {
+      TORCH_CHECK((rounding_mode == "true" || rounding_mode == "trunc" || rounding_mode == "floor"),
+          "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
+          "but found '", rounding_mode, "'");
+
+      if (rounding_mode == "floor") {
+        NPUNativeFunctions::floor_divide_out(self, other, result);
+        return result;
+      }
+      NPUNativeFunctions::div_out(self, other, result);
+      if (rounding_mode == "trunc") {
+        NPUNativeFunctions::trunc_(result);
+      }
+
+      return result;
+    }
+
+    at::Tensor NPUNativeFunctions::div(
+        const at::Tensor& self, 
+        at::Scalar other,
+        std::string rounding_mode) {
+      TORCH_CHECK((rounding_mode == "true" || rounding_mode == "trunc" || rounding_mode == "floor"),
+          "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
+          "but found '", rounding_mode, "'");
+
+      if (rounding_mode == "floor") {
+        return NPUNativeFunctions::floor_divide(self, other);
+      }
+      at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
+      if (rounding_mode == "true") {
+        return true_div_res;
+      } else if (rounding_mode == "trunc") {
+        return NPUNativeFunctions::trunc(true_div_res);
+      }
+    }
+
+    at::Tensor& NPUNativeFunctions::div_(
+        at::Tensor& self, 
+        at::Scalar other,
+        std::string rounding_mode) {
+      if (rounding_mode == "floor") {
+        return NPUNativeFunctions::floor_divide_(self, other);
+      }
+      NPUNativeFunctions::div_(self, other);
+      if (rounding_mode == "true") {
+        return self;
+      } else if (rounding_mode == "trunc") {
+        return NPUNativeFunctions::trunc_(self);
+      }
+
+      TORCH_CHECK(false,
+          "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
+          "but found '", rounding_mode, "'");
+    }
+
   } // namespace native
 } // namespace at_npu

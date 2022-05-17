@@ -52,10 +52,6 @@ class TestDivide(TestCase):
         cpu_input1, npu_input1 = create_dtype_tensor((2, 3, 4, 5), dtype)
         cpu_input2, npu_input2 = create_dtype_tensor((2, 3, 4, 5), dtype, no_zero=True)
         cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], dtype)
-
-        if dtype == torch.int:
-            cpu_output = np.floor_divide(cpu_input1.numpy(), cpu_input2.numpy())
-
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_divide_shape_format_fp16(self):
