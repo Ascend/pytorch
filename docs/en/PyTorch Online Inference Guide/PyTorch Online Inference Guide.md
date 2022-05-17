@@ -421,7 +421,7 @@ The following uses the ResNet-50 model as an example to describe how to perform 
 
 3.  Run inference.
 
-    Set environment variables (for how to set them, see [Environment Variable Configuration](#environment-variable-configurationmd)) and then run the following command:
+    Set environment variables (for how to set them, see [Environment Variable Configuration](https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/built-in/cv/classification/ResNet50_for_PyTorch/env_npu.sh)) and then run the following command:
 
     ```
     python3 resnet50_infer_for_pytorch.py \
