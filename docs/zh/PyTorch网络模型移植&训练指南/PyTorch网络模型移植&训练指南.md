@@ -1479,7 +1479,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
     for i in range(steps):
         if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
             if i == 10:  ## 在第10个step时，开始使能该功能
-                prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
+                torch_npu.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
                 torch_npu.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
             torch_npu.npu.iteration_start()  ## 进入每个step时打上开始标记
             train_one_step()
