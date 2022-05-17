@@ -70,10 +70,6 @@ def _type(self, *args, **kwargs):
 
 def _to(self, *args, **kwargs):
     warnings.warn(warning_str.format("to"))
-    if args and isinstance(args[0], str) and 'npu' in args[0]:
-        args = tuple([list(args)[0].replace('npu', 'xla')])
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
     return torch_npu._C.to(self, *args, **kwargs)
 
 
@@ -85,82 +81,6 @@ def _is_npu(self):
 def _record_stream(self, *args, **kwargs):
     warnings.warn(warning_str.format("_record_stream"))
     return torch_npu._C.record_stream(self, *args, **kwargs)
-
-
-def empty(self, *args, **kwargs):
-    warnings.warn(warning_str.format("empty"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.empty(self, *args, **kwargs)
-
-
-def empty_with_format(self, *args, **kwargs):
-    warnings.warn(warning_str.format("empty_with_format"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch_npu.empty_with_format(self, *args, **kwargs)
-
-
-def empty_strided(self, *args, **kwargs):
-    warnings.warn(warning_str.format("empty_strided"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.empty_strided(self, *args, **kwargs)
-
-
-def _new_empty(self, *args, **kwargs):
-    warnings.warn(warning_str.format("_new_empty"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch_npu._C.new_empty(self, *args, **kwargs)
-
-
-def _new_empty_strided(self, *args, **kwargs):
-    warnings.warn(warning_str.format("_new_empty_strided"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch_npu._C.new_empty_strided(self, *args, **kwargs)
-
-
-def device(self, *args, **kwargs):
-    if isinstance(self, str) and 'npu' in self:
-        self = self.replace('npu', 'xla')
-    return torch._C.device(self, *args, **kwargs)
-
-
-def logspace(*args, **kwargs):
-    warnings.warn(warning_str.format("logspace"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.logspace(*args, **kwargs)
-
-
-def tensor(*args, **kwargs):
-    warnings.warn(warning_str.format("tensor"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.tensor(*args, **kwargs)
-
-
-def ones_like(*args, **kwargs):
-    warnings.warn(warning_str.format("ones_like"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.ones_like(*args, **kwargs)
-
-
-def zeros(*args, **kwargs):
-    warnings.warn(warning_str.format("zeros"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.zeros(*args, **kwargs)
-
-
-def randn(*args, **kwargs):
-    warnings.warn(warning_str.format("randn"))
-    if kwargs and ('device' in kwargs) and kwargs['device'] == 'npu':
-        kwargs['device'] = 'xla'
-    return torch._C._VariableFunctions.randn(*args, **kwargs)
 
 
 def add_tensor_methods():
@@ -176,14 +96,3 @@ def add_tensor_methods():
     torch.Tensor.to = _to
     torch.Tensor.is_npu = _is_npu
     torch.Tensor.record_stream = _record_stream
-    torch.empty = empty
-    torch.empty_with_format = empty_with_format
-    torch.empty_strided = empty_strided
-    torch.Tensor.new_empty = _new_empty
-    torch.Tensor.new_empty_strided = _new_empty_strided
-    torch.device = device
-    torch.logspace = logspace
-    torch.tensor = tensor
-    torch.ones_like = ones_like
-    torch.zeros = zeros
-    torch.randn = randn

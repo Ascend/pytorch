@@ -23,13 +23,13 @@
 #include <ATen/ATen.h>
 namespace at_npu {
 namespace key {
-static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::XLA;
-static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::XLA;
-static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradXLA;
-static constexpr c10::Backend NativeBackend = c10::Backend::XLA;
+static constexpr c10::DeviceType NativeDeviceType = c10::DeviceType::NPU;
+static constexpr c10::DispatchKey NativeDispatchKey = c10::DispatchKey::NPU;
+static constexpr c10::DispatchKey NativeAutogradDispatchKey = c10::DispatchKey::AutogradNPU;
+static constexpr c10::Backend NativeBackend = c10::Backend::NPU;
 
 static bool isDeviceTensor(const at::Tensor &tensor) {
-  return tensor.is_xla();
+  return tensor.is_npu();
 }
 } // namespace key
 } // namespace at_npu

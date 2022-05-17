@@ -45,6 +45,7 @@ namespace {
 // NB: But not the private use ones; maybe the extension wants
 // to override it themselves!
 
-// (Ascend) TORCH_LIBRARY_IMPL
-
+TORCH_LIBRARY_IMPL(_, AutogradNPU, m) {
+  m.fallback(torch::CppFunction::makeFallthrough());
+}
 }
