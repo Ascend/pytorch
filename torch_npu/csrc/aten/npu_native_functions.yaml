@@ -1,4 +1,4 @@
-backend: XLA
+backend: NPU
 cpp_namespace: at_npu::native
 supported:
   - _cast_Byte

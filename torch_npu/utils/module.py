@@ -49,9 +49,6 @@ def npu(self, device=None):
 
 
 def to(self, *args, **kwargs):
-    if isinstance(args, tuple) and 'npu' in args[0]:
-        args = tuple([list(args)[0].replace('npu', 'xla')])
-
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
 
     if dtype is not None:
@@ -169,7 +166,7 @@ def ddp_forward(self, *inputs, **kwargs):
     if self.ddp_uneven_inputs_config.ddp_join_enabled:
         # Notify joined ranks whether they should sync in backwards pass or not.
         self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    if self.device_ids and self.device_type != "xla":
+    if self.device_ids and self.device_type != "npu":
         if len(self.device_ids) == 1:
             inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
             output = self.module(*inputs[0], **kwargs[0])
