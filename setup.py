@@ -230,19 +230,17 @@ def get_src_py_and_dst():
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
 
-    generated_head_files = glob.glob(
-        os.path.join(BASE_DIR, "torch_npu", 'csrc/core/npu/*.h'),
-        recursive=True)
+    header_files = [
+        "torch_npu/csrc/core/npu/*.h",
+        "torch_npu/csrc/core/npu/*/*.h",
+        "torch_npu/csrc/aten/*.h",
+        "third_party/acl/inc/*/*.h"
+    ]
+    glob_header_files = []
+    for regex_pattern in header_files:
+        glob_header_files += glob.glob(os.path.join(BASE_DIR, regex_pattern), recursive=True)
 
-    generated_head_files += glob.glob(
-        os.path.join(BASE_DIR, "torch_npu", 'csrc/core/npu/*/*.h'),
-        recursive=True)
-
-    generated_head_files += glob.glob(
-        os.path.join(BASE_DIR, "third_party", 'acl/inc/*/*.h'),
-        recursive=True)
-
-    for src in generated_head_files:
+    for src in glob_header_files:
         dst = os.path.join(
             os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/include/torch_npu"),
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
