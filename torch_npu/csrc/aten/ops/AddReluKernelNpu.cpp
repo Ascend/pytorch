@@ -25,8 +25,12 @@ at::Tensor &add_relu_out_nocheck(
     at::Scalar alpha,
     at::Tensor& result){
   at::Tensor addResult = NPUNativeFunctions::add(self, other, alpha);
-  result = NPUNativeFunctions::relu(addResult);
- return result;
+  OpCommand cmd;
+  cmd.Name("Relu")
+     .Input(addResult)
+     .Output(result)
+     .Run();
+  return result;
 }
 
 at::Tensor& NPUNativeFunctions::_add_relu_out(
