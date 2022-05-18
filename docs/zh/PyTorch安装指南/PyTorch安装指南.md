@@ -71,7 +71,8 @@
 
 #### 安装流程<a name="zh-cn_topic_0000001152776301_section1611810384557"></a>
 
-1.  以root或非root用户登录服务器。
+1. 以root或非root用户登录服务器。
+
 2.  依次执行如下命令安装PyTorch依赖环境。
 
     如果使用非root用户安装Python及其依赖，用户需要在本步骤中的每句命令结尾加上**--user**，命令示例为：**pip3.7 install pyyaml --user**
@@ -92,16 +93,19 @@
        git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
        ```
 
-   3.  在当前仓根目录“/pytorch”下获得原生Pytorch源代码并重命名为pytorch_v1.8.1。
+   2. 在当前仓根目录“/pytorch”下获得原生Pytorch 1.8.1源代码并重命名为pytorch_v1.8.1。
 
-       ```
-       //1.8.1版本
-       
-       cd  pytorch  #插件根目录
-       
-       git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
-       ```
-       
+      ```
+      //1.8.1版本
+      
+      cd  pytorch  #插件根目录
+      
+      git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
+      ```
+
+      >![](public_sys-resources/icon-note.gif) **说明：** 
+      >请用户关注PyTorch原生社区的安全板块与Issue板块，是否有安全相关修复，并根据社区更新进行及时修复。
+
    3. 运行如下命令，进入原生pytorch代码目录“pytorch_v1.8.1“，并获取PyTorch被动依赖代码。
 
       ```
