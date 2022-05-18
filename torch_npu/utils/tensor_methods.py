@@ -63,24 +63,39 @@ def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
 
 
-def _type(self, *args, **kwargs):
-    warnings.warn(warning_str.format("type"))
-    return torch_npu._C.type(self, *args, **kwargs)
-
-
-def _to(self, *args, **kwargs):
-    warnings.warn(warning_str.format("to"))
-    return torch_npu._C.to(self, *args, **kwargs)
-
-
 def _is_npu(self):
     warnings.warn(warning_str.format("is_npu"))
     return torch_npu._C.is_npu(self)
 
 
+def _type(self, *args, **kwargs):
+    return torch_npu._C.type(self, *args, **kwargs)
+
+
+def _to(self, *args, **kwargs):
+    return torch_npu._C.to(self, *args, **kwargs)
+
+
 def _record_stream(self, *args, **kwargs):
-    warnings.warn(warning_str.format("_record_stream"))
     return torch_npu._C.record_stream(self, *args, **kwargs)
+
+
+class NpuStorage(object):
+
+    def __init__(self, size):
+        self._size = size
+
+    def size(self):
+        return self._size
+
+
+storage_impl = torch.Tensor.storage
+
+def _storage(self):
+    if torch_npu._C.is_npu(self):
+        return NpuStorage(torch_npu.get_storage_size(self))
+
+    return storage_impl(self)
 
 
 def add_tensor_methods():
@@ -96,3 +111,4 @@ def add_tensor_methods():
     torch.Tensor.to = _to
     torch.Tensor.is_npu = _is_npu
     torch.Tensor.record_stream = _record_stream
+    torch.Tensor.storage = _storage
