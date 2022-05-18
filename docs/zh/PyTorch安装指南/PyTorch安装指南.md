@@ -93,7 +93,7 @@
        git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
        ```
 
-   2. 在当前仓根目录“/pytorch”下获得原生Pytorch 1.8.1源代码并重命名为pytorch_v1.8.1。
+   2. 在当前仓根目录“/pytorch”下获得原生PyTorch 1.8.1源代码并重命名为pytorch_v1.8.1。
 
       ```
       //1.8.1版本
@@ -104,7 +104,7 @@
       ```
 
       >![](public_sys-resources/icon-note.gif) **说明：** 
-      >请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关修复，并根据社区更新及时修复。
+      >请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关问题修复，并根据社区修复及时更新原生PyTorch代码。
 
    3. 运行如下命令，进入原生pytorch代码目录“pytorch_v1.8.1“，并获取PyTorch被动依赖代码。
 
