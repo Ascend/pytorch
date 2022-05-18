@@ -41,7 +41,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 git clone https://gitee.com/ascend/pytorch.git
 ```
 
-当前对应PyTorch 1.8.1版本。根据需求，在当前仓根目录“/pytorch”下获得原生Pytorch源代码并重命名为pytorch_v1.8.1。
+当前对应PyTorch 1.8.1版本。根据需求，在当前仓根目录“/pytorch”下获得原生Pytorch1.8.1源代码并重命名为pytorch_v1.8.1，请用户关注PyTorch原生社区的安全板块与Issue板块，是否有安全相关修复，并根据社区更新进行及时修复。
 
 ```sh
 //1.8.1版本
