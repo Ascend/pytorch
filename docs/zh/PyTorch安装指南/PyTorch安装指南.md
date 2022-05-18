@@ -104,11 +104,14 @@
         └── scripts                          # 编译构建目录
         ```
         
-    2.  在当前仓根目录“/pytorch“下获取原生PyTorch源代码。
+    2.  在当前仓根目录“/pytorch“下获取原生PyTorch 1.5.0源代码。
         
         ```
         git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
         ```
+        
+        >![](public_sys-resources/icon-note.gif) **说明：** 
+        >请用户关注PyTorch原生社区的安全板块与Issue板块，是否有安全相关修复，并根据社区更新进行及时修复。
     
 3.  运行如下命令，进入原生pytorch代码目录“pytorch“，并获取PyTorch被动依赖代码。
     
