@@ -47,7 +47,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 ## 获取原生PyTorch源代码和third_party代码
 
-在当前仓库根目录pytorch/下获取原生PyTorch1.5.0的源代码，请用户关注PyTorch原生社区的安全板块与Issue板块，是否有安全相关修复，并根据社区更新进行及时修复。
+在当前仓库根目录pytorch/下获取原生PyTorch1.5.0的源代码。请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关问题修复，并根据社区修复及时更新原生PyTorch代码。
 
 ```sh
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
