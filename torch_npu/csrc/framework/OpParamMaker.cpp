@@ -313,16 +313,7 @@ namespace at_npu
       }
     }
 
-    void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue) {
-      auto queueParam = static_cast<c10_npu::queue::QueueParas* >(ptr);
-      auto type = queueParam->paramType;
-      if (type == c10_npu::queue::COMPILE_AND_EXECUTE) {
-        auto cur_paras = static_cast<ExecuteParas* >(queueParam->paramVal);
-        cur_paras->Release();
-      }
-    }
-
-    void ReleaseFunc_(void* ptr, c10_npu::ReleaseQueue& releaseQueue)
+    void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue)
     {
       releaseQueue.PushToReleaseQueue(ptr);
     }
