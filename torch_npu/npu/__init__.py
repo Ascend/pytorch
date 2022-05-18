@@ -15,7 +15,7 @@
 # limitations under the License.
 
 __all__ = [
-    "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
+    "native_device", "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
     "synchronize", "device_count", "set_device", "current_device",
     "_get_device_index", "is_available", "device", "device_of",
     "stream", "current_stream", "default_stream", "init_dump",
@@ -35,6 +35,7 @@ __all__ = [
 
 import torch
 
+from .device import __device__ as native_device
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device,
                     _get_device_index, is_available, device, device_of,
