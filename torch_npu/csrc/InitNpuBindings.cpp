@@ -26,7 +26,7 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
-#include "torch_npu/csrc/Generator.h"
+#include "torch_npu/csrc/npu/Generator.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 
 PyObject* module;

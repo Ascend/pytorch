@@ -15,7 +15,8 @@
 #include <torch/csrc/autograd/generated/variable_factories.h>
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
-#include "torch_npu/csrc/Generator.h"
+#include "torch_npu/csrc/npu/Generator.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 using namespace at;
 using namespace torch;
