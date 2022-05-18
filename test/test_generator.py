@@ -26,7 +26,7 @@ class GeneratorTest(TestCase):
         self.assertEqual(gen.get_state(), torch.get_rng_state())
 
     def test_seed(self):
-        gen = torch_npu._C.Generator(torch_npu.npu.current_device())
+        gen = torch_npu._C.Generator("npu:" + str(torch_npu.npu.current_device()))
         gen.manual_seed(1234)
         self.assertEqual(gen.initial_seed(), 1234)
 
