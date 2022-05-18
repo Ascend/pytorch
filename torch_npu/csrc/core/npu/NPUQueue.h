@@ -41,7 +41,7 @@ class ReleaseQueue {
   RepoStatus GetStatus() const;
 
  private:
-  bool IsEmptyQueue() const;
+  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
   bool WriteToReleaseQueue(void* cur_paras);
   bool ReadFromReleaseQueue();
@@ -93,7 +93,7 @@ class Repository : public NPUQueueBase {
 
  private:
   void ReleaseResource();
-  bool IsEmptyQueue() const;
+  inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
   void EnableInterrupt(RepoRole role);
   void DisableInterrupt(RepoRole role);

@@ -68,14 +68,6 @@ OpCommand& OpCommand::Input(
       Contiguous(input), c10::ScalarType::Undefined, descName, realData);
 }
 
-OpCommand& OpCommand::InputWithoutContiguousGeneral(
-    const at::Tensor &input,
-    const string &descName,
-    const c10::optional<aclFormat> &sensitive_format,
-    const string &realData) {
-  return AddTensorInput(const_cast<at::Tensor &>(input), c10::ScalarType::Undefined, descName, realData);
-}
-
 OpCommand& OpCommand::InputWithoutContiguous(
     const at::Tensor &input,
     const string &descName,
@@ -108,7 +100,7 @@ OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
       auto true_type = commonType.has_value() ? commonType.value() : type;
       graphCmd.AddInput(input, true_type, compileType);
   )
-  auto scalarTensor = CreateScalarTensor(input, type);
+  const auto &scalarTensor = CreateScalarTensor(input, type);
   return AddHostTensorInput(scalarTensor, compileType);
 }
 
@@ -155,10 +147,10 @@ void OpCommand::Run() {
   aclCmds->Pop();
 }
 
-OpCommand& OpCommand::AddTensorInput(
-    at::Tensor &tensor,
-    at::ScalarType forceScaleType,
-    const string &descName, const string &realData) {
+OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
+                                     at::ScalarType forceScaleType,
+                                     const string &descName,
+                                     const string &realData) {
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
@@ -204,7 +196,7 @@ OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
 // 由于format_contiguous会生成新Tensor，为了保证其在生命周期内有效，故而放到对象中存储
 // 同下，CopyScalarToDevice也有同样问题
 at::Tensor& OpCommand::Contiguous(const at::Tensor &input) {
-  storage.emplace_back(NpuUtils::format_contiguous_add_copy_optimize(input));
+  storage.emplace_back(std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
   return storage.back();
 }
 
@@ -212,9 +204,7 @@ at::Tensor& OpCommand::CreateHostTensor(
     void *data, size_t size,
     const c10::TensorOptions &options,
     at::ScalarType toType) {
-  AT_ASSERT(options.dtype() == at::kLong);
   auto cpuTensor = at::empty(size, options);
-  AT_ASSERT(cpuTensor.is_contiguous());
   std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
   if (toType != at::kLong) {
     cpuTensor = cpuTensor.to(toType);
@@ -224,11 +214,12 @@ at::Tensor& OpCommand::CreateHostTensor(
   return storage.back();
 }
 
-at::Tensor OpCommand::CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type) {
+at::Tensor& OpCommand::CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type) {
   if (commonType.has_value()) {
     type = commonType.value();
   }
-  storage.emplace_back(scalar_to_tensor(scalar).to(type));
+  static const auto &option = at::device(at::kCPU);
+  storage.emplace_back(std::move(at::scalar_tensor(scalar, option.dtype(type))));
   return storage.back();
 }
 

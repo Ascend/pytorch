@@ -213,10 +213,6 @@ c10::SmallVector<int64_t, SIZE> lstm_npu_output_size(
     bool bidirectional,
     bool batch_first);
 
-c10::SmallVector<int64_t, SIZE> mm_npu_output_size(
-    const at::Tensor& self,
-    const at::Tensor& mat2);
-
 c10::SmallVector<int64_t, SIZE> nnpack_spatial_convolution_npu_output_size(
     const at::Tensor& input,
     const at::Tensor& weight,

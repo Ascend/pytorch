@@ -64,7 +64,7 @@ namespace at_npu
         return *this;
       }
 
-      AclTensorDescMaker &Create(
+      inline AclTensorDescMaker &Create(
           aclDataType dataType,
           c10::IntArrayRef dims,
           aclFormat format)
@@ -73,26 +73,26 @@ namespace at_npu
         return *this;
       }
 
-      AclTensorDescMaker &Create(aclDataType dataType, aclFormat format)
+      inline AclTensorDescMaker &Create(aclDataType dataType, aclFormat format)
       {
         desc = aclCreateTensorDesc(dataType, 0, nullptr, format);
         return *this;
       }
 
-      AclTensorDescMaker SetFormat(aclFormat format)
+      inline AclTensorDescMaker &SetFormat(aclFormat format)
       {
         aclSetTensorFormat(desc, format);
         return *this;
       }
 
-      AclTensorDescMaker SetPlacement(aclMemType memType)
+      inline AclTensorDescMaker &SetPlacement(aclMemType memType)
       {
         aclSetTensorPlaceMent(desc, memType);
         return *this;
       }
 
       template <unsigned int N>
-      AclTensorDescMaker &SetShape(const c10::SmallVector<int64_t, N> &dims)
+      inline AclTensorDescMaker &SetShape(const c10::SmallVector<int64_t, N> &dims)
       {
         aclSetTensorShape(desc, dims.size(), dims.data());
         return *this;
@@ -114,16 +114,15 @@ namespace at_npu
         return *this;
       }
 
-      AclTensorDescMaker &SetName(const string &name)
+      inline AclTensorDescMaker &SetName(const std::string &name)
       {
-        if (name != "")
-        {
+        if (!name.empty()) {
           aclSetTensorDescName(desc, name.c_str());
         }
         return *this;
       }
 
-      AclTensorDescMaker &SetConstAttr(c10::optional<at::Tensor> cpu_tensor)
+      inline AclTensorDescMaker &SetConstAttr(c10::optional<at::Tensor> cpu_tensor)
       {
         if (cpu_tensor.has_value() && cpu_tensor.value().defined())
         {
@@ -136,7 +135,7 @@ namespace at_npu
         return *this;
       }
 
-      aclTensorDesc *Get() const
+      inline aclTensorDesc *Get() const
       {
         return desc;
       }
@@ -183,7 +182,7 @@ namespace at_npu
 
       ~AclTensorBufferMaker() = default;
 
-      aclDataBuffer *Get() const
+      inline aclDataBuffer *Get() const
       {
         return ptr;
       }

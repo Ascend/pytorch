@@ -24,17 +24,14 @@ namespace native {
 at::Tensor& embedding_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& weight,
-    const at::Tensor& indices,
-    int64_t padding_idx,
-    bool scale_grad_by_freq,
-    bool sparse) {
+    const at::Tensor& indices) {
   c10::SmallVector<int64_t, N> dimVec = {0};
 
   OpCommand cmd;
   cmd.Name("GatherV2")
      .Input(weight)
      .Input(indices)
-     .Input(dimVec, at::kInt)
+     .Input(dimVec)
      .Output(result)    
      .Run();
 
@@ -58,8 +55,7 @@ at::Tensor NPUNativeFunctions::embedding(
       CalcuOpUtil::get_tensor_npu_format(weight));
 
   // calculate the output resugt of the NPU
-  embedding_out_npu_nocheck(
-      result, weight, indices, padding_idx, scale_grad_by_freq, sparse);
+  embedding_out_npu_nocheck(result, weight, indices);
   return result;
 }
 } // namespace native

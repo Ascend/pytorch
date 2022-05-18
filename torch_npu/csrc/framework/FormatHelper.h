@@ -26,7 +26,6 @@ namespace at_npu
 {
   namespace native
   {
-
     using baseFormatConverter = std::function<FormatShape(c10::IntArrayRef storage_dims, c10::IntArrayRef base_dims)>;
     // helper function of storage format
     class FormatHelper
@@ -51,7 +50,7 @@ namespace at_npu
       template <typename sizeType>
       static FormatShape GetStorageSizes(aclFormat format, sizeType ori_size);
       // GetStorageSizes used to calculate the storage sizes of op at npu device at different format.
-      static FormatShape GetStorageSizes(torch_npu::NPUStorageDesc desc);
+      static FormatShape GetStorageSizes(const torch_npu::NPUStorageDesc &desc);
 
     private:
       static bool IsPadded(aclFormat format);
