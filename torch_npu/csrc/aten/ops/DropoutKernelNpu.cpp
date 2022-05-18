@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -75,10 +76,14 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   at::IntArrayRef selfShape = isFuzzyCompile ? desc_.storage_sizes_ : self.sizes();
 
   OpCommand cmd;
-  // If either seed or seed2 are set to be non-zero, the random number generator
-  // is seeded by the given seed. Otherwise, it is seeded by a random seed.
-  int64_t seed = 0;
-  int64_t seed2 = 0;
+  // DropOutGenMask use seed and seed2 to generator a seed, like this:
+  //  seed2   seed
+  // 127~64   63~0
+  // so, we set seed2 = 0 to ensure the seed which user set is equal to the seed
+  // used by the operator DropOutGenMask
+  const auto &gen = at_npu::detail::getDefaultNPUGenerator();
+  const int64_t seed = static_cast<int64_t>(gen.current_seed());
+  const int64_t seed2 = 0;
   cmd.Name("DropOutGenMask")
       .Input(selfShape)
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
