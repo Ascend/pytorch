@@ -48,7 +48,7 @@ Tensor& sub_out_npu_nocheck(
     const Tensor& other,
     Scalar alpha) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-  if (other.dim() == 0) {
+  if (other.dim() == 0 && !other.is_npu()) {
     sub_out_npu(result, self, other.item(), alpha);
   } else {
     Tensor otherMulResult = other;

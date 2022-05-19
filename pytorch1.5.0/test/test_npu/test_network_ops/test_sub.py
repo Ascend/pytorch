@@ -209,6 +209,18 @@ class TestSub(TestCase):
         format_list = [-1, 0]
         shape_format = [[[np.int32, i, [256, 480, 14, 14]], [np.int32, i, []]] for i in format_list]
         self.sub_result(shape_format)
+
+    def test_sub_shape_format_scalar(self, device):
+        format_list = [-1, 0]
+        shape_format = [[[np.int32, i, [256, 480, 14, 14]], [np.int32, i, []]] for i in format_list]
+        sub_scalar = torch.tensor(1)
+        for item in shape_format:
+            cpu_input1_tensor, npu_input1_tensor = create_common_tensor(item[0], 0, 100)
+            cpu_output = torch.sub(cpu_input1_tensor, sub_scalar).numpy()
+            npu_output0 = torch.sub(npu_input1_tensor, sub_scalar).cpu().numpy()
+            npu_output1 = torch.sub(npu_input1_tensor, sub_scalar.npu()).cpu().numpy()
+            self.assertRtolEqual(cpu_output, npu_output0)
+            self.assertRtolEqual(cpu_output, npu_output1)
 '''
     # unsupport
     def test_sub_scalar_shape_format_fp16_1d(self, device):

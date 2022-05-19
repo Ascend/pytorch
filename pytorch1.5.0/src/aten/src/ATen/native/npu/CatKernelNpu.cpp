@@ -37,6 +37,9 @@ SmallVector<Tensor, N> cat_dest_tensor_list(TensorList tensors) {
   SmallVector<Tensor, N> dstTensorList;
   // pytorch supports empty tensors, which needs to be removed from the NPU.
   for (Tensor tensor : tensors) {
+    // ConcatD needs all input tensor have same dtype
+    TORCH_CHECK(tensors[0].scalar_type() == tensor.scalar_type(), "all inputs must have same dtype.")
+
     if (tensor.dim() == 1 && tensor.sizes()[0] == 0) {
       continue;
     }

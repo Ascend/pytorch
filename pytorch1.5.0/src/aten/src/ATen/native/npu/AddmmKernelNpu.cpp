@@ -48,6 +48,7 @@ Tensor addmm_npu(
     const Tensor& mat2,
     Scalar beta,
     Scalar alpha) {
+  TORCH_CHECK(self.scalar_type() == mat1.scalar_type(), "The input 0 and input 1 must have the same dtype.");
   // calculate the output size
   auto outputSize = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
 
@@ -69,6 +70,7 @@ Tensor& addmm_npu_(
     const Tensor& mat2,
     Scalar beta,
     Scalar alpha) {
+  TORCH_CHECK(self.scalar_type() == mat1.scalar_type(), "The input 0 and input 1 must have the same dtype.");
   SmallVector<Tensor, N> inputs = {self, mat1, mat2};
   SmallVector<Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);

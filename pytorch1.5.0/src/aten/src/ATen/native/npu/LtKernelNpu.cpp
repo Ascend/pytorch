@@ -25,7 +25,8 @@ Tensor& lt_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
   Tensor selfCast = self;
   Tensor otherCast = other;
   if(self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int
-      || self.dtype() == ScalarType::Bool || other.dtype() == ScalarType::Bool){
+      || self.dtype() == ScalarType::Bool || other.dtype() == ScalarType::Bool
+      || self.dtype() == ScalarType::Long || other.dtype() == ScalarType::Long){
     selfCast = self.to(ScalarType::Float);
     otherCast = other.to(ScalarType::Float);
   }
@@ -59,7 +60,7 @@ Tensor& lt_out_npu(Tensor& result, const Tensor& self, const Tensor& other) {
 
 Tensor& lt_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
   Tensor selfCast = self;
-  if(self.dtype() == ScalarType::Int || self.dtype() == ScalarType::Bool){
+  if(self.dtype() == ScalarType::Int || self.dtype() == ScalarType::Bool || self.dtype() == ScalarType::Long){
     selfCast = self.to(ScalarType::Float);
   }
   OpCommand cmd;
