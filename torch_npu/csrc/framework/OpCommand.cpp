@@ -13,18 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include <c10/util/Exception.h>
-#include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
 namespace at_npu {
 namespace native {
 
 OpCommand& OpCommand::Name(const string &name) {
+#ifdef USE_GRAPH_MODE    
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(graphCmd.SetName(name);)
+#endif
     aclCmd->SetName(name);
     return *this;
 }
@@ -32,8 +34,10 @@ OpCommand& OpCommand::Name(const string &name) {
 OpCommand& OpCommand::DynamicInputReg(
     DynamicInputRegFunc func,
     DyNumAndIndex num_and_index) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN(
     graphCmd.AddDynamicInputRegFunc(func, num_and_index);)
+#endif
 return *this;
 }
 
@@ -45,9 +49,11 @@ OpCommand& OpCommand::Expect(UnifiedResult unified_result) {
 }
 
 OpCommand& OpCommand::Input() {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput();
   )
+#endif
   return AddNoneTensor();
 }
 
@@ -56,6 +62,7 @@ OpCommand& OpCommand::Input(
     const string &descName,
     const c10::optional<aclFormat> &sensitive_format,
     const string &realData) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       auto contiguous_input = Contiguous(input);
       if (commonType.has_value() &&
@@ -64,6 +71,7 @@ OpCommand& OpCommand::Input(
       }
       graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
   )
+#endif
   return AddTensorInput(
       Contiguous(input), c10::ScalarType::Undefined, descName, realData);
 }
@@ -72,9 +80,11 @@ OpCommand& OpCommand::InputWithoutContiguous(
     const at::Tensor &input,
     const string &descName,
     const string &realData) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(input, descName, realData);
   )
+#endif
   if (input.storage_offset() != 0) {
     TORCH_WARN_ONCE(
         "[Check][offset] Check input storage_offset[%ld] = 0 failed, result is untrustworthy",
@@ -84,9 +94,11 @@ OpCommand& OpCommand::InputWithoutContiguous(
 }
 
 OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
+#endif
   at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
                                            dimListRef.size(),
                                            c10::TensorOptions(at::kCPU).dtype(at::kLong),
@@ -96,10 +108,12 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
     CompileType compileType) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       auto true_type = commonType.has_value() ? commonType.value() : type;
       graphCmd.AddInput(input, true_type, compileType);
   )
+#endif
   const auto &scalarTensor = CreateScalarTensor(input, type);
   return AddHostTensorInput(scalarTensor, compileType);
 }
@@ -118,6 +132,7 @@ OpCommand& OpCommand::Output(
     const string &descName,
     const c10::optional<aclFormat> &sensitive_format,
     const string &realType) {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       if (sensitive_format.has_value() &&
           FormatHelper::GetBaseFormat(output) != sensitive_format.value()) {
@@ -129,11 +144,14 @@ OpCommand& OpCommand::Output(
         output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
       }
   )
+#endif
   return AddOutput(output, realType);
 }
 
 void OpCommand::Run() {
+#ifdef USE_GRAPH_MODE  
   IF_GRAPH_MODE_THEN_RUN(return;)
+#endif
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);

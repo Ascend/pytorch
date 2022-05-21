@@ -19,9 +19,11 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
+#include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 
+
+#ifdef USE_GRAPH_MODE
 #define IF_GRAPH_MODE_THEN_RUN(...)            \
   do {                                         \
     if (c10_npu::NpuRunMode::IsGraphMode()) { \
@@ -36,6 +38,7 @@
       return *this;                              \
     }                                             \
   } while (false);
+#endif
 
 namespace at_npu {
 namespace native {
@@ -52,7 +55,9 @@ struct UnifiedResult {
 class OpCommand {
 public:
   OpCommand() {
+#ifdef USE_GRAPH_MODE    
     IF_GRAPH_MODE_THEN_RUN(return;)
+#endif
     aclCmds = OpCommandImpls::GetInstance();
     aclCmds->Push(aclCmd);
   }
@@ -107,9 +112,11 @@ public:
   // Attr
   template<typename dataType>
   OpCommand& Attr(const string &name, dataType value) {
+#ifdef USE_GRAPH_MODE    
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
         graphCmd.AddAttr<dataType>(name, value);
     )
+#endif
     aclCmd->AddAttr(name, value);
     return *this;
   }
@@ -145,7 +152,9 @@ private:
   c10::SmallVector<at::Tensor, N> storage; // tensor's life cycle should maintain when Run() is called
   OpCommandImpls *aclCmds = nullptr; // owned
   OpCommandImpl *aclCmd = nullptr;
+#ifdef USE_GRAPH_MODE  
   GraphCommandImpl graphCmd;
+#endif
 
   c10::optional<at::ScalarType> commonType = c10::nullopt;
   c10::optional<c10::IntArrayRef> commonShape = c10::nullopt;

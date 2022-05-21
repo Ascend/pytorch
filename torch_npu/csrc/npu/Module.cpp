@@ -39,10 +39,13 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/profiler/cann_profiling.h"
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
-#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
+
+#ifdef USE_GRAPH_MODE
+#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
+#endif
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -167,6 +170,7 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
   END_HANDLE_TH_ERRORS
 }
 
+#ifdef USE_GRAPH_MODE
 PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
@@ -203,6 +207,7 @@ PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   }
   END_HANDLE_TH_ERRORS
 }
+#endif
 
 PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
@@ -513,10 +518,12 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
+#ifdef USE_GRAPH_MODE    
     {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
+#endif
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},

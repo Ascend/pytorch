@@ -22,11 +22,14 @@
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+
+#ifdef USE_GRAPH_MODE
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#endif
 
 namespace at_npu {
 namespace native {
@@ -325,7 +328,9 @@ at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, b
     }
   } else {
     if (at_npu::key::isDeviceTensor(src)) {
+#ifdef USE_GRAPH_MODE      
       GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
+#endif
       copy_d2h(self, src, non_blocking);
     }
   }
