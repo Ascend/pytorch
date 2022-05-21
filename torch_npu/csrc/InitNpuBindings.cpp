@@ -20,7 +20,6 @@
 
 #include "torch_npu/csrc/npu/Event.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
-#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
@@ -28,6 +27,10 @@
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/npu/Generator.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
+
+#ifdef USE_GRAPH_MODE
+#include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
+#endif
 
 PyObject* module;
 
@@ -56,7 +59,9 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   // all of op tasks completed before device memory free.
   if (c10_npu::NpuSysCtrl::GetInstance().GetInitFlag()) {
     c10_npu::npuSynchronizeDevice();
+#ifdef USE_GRAPH_MODE    
     at_npu::native::GraphExecutor::GetInstance().Finalize();
+#endif
     THNPUCachingHostAllocator_emptyCache();
     c10_npu::NPUCachingAllocator::emptyCache();
     c10_npu::NpuSysCtrl::SysStatus status = c10_npu::NpuSysCtrl::GetInstance().Finalize();
