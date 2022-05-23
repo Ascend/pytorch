@@ -22,16 +22,19 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUTensorImpl.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
+#include "torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace torch_npu
 {
-  NPUTensorImpl::NPUTensorImpl(c10::Storage &&storage, const caffe2::TypeMeta &data_type)
+  NPUTensorImpl::NPUTensorImpl(c10::Storage &&storage,
+      const c10::intrusive_ptr<c10::StorageImpl> storage_impl, const caffe2::TypeMeta &data_type)
       : c10::TensorImpl(std::move(storage),
                         c10::DispatchKeySet{at_npu::key::NativeDispatchKey,
                                             at_npu::key::NativeAutogradDispatchKey},
                         data_type)
   {
     is_non_overlapping_and_dense_ = false;
+    _storage_impl = storage_impl;
   }
 
   void NPUTensorImpl::shallow_copy_from(const c10::intrusive_ptr<TensorImpl> &impl)
@@ -50,7 +53,7 @@ namespace torch_npu
       const c10::VariableVersion &version_counter,
       bool allow_tensor_metadata_change) const
   {
-    auto impl = c10::make_intrusive<NPUTensorImpl>(c10::Storage(this->storage()), this->data_type_);
+    auto impl = c10::make_intrusive<NPUTensorImpl>(c10::Storage(this->storage()), this->_storage_impl, this->data_type_);
     copy_tensor_metadata(
         this,
         impl.get(),
@@ -65,7 +68,7 @@ namespace torch_npu
       c10::VariableVersion &&version_counter,
       bool allow_tensor_metadata_change) const
   {
-    auto impl = c10::make_intrusive<NPUTensorImpl>(c10::Storage(this->storage()), this->data_type_);
+    auto impl = c10::make_intrusive<NPUTensorImpl>(c10::Storage(this->storage()), this->_storage_impl, this->data_type_);
     copy_tensor_metadata(
         this,
         impl.get(),
@@ -75,5 +78,7 @@ namespace torch_npu
     impl->refresh_contiguous();
     return impl;
   }
-
+  NPUTensorImpl::~NPUTensorImpl() {
+    this->_storage_impl.reset();
+  }
 }
