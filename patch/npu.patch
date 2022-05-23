@@ -1,53 +1,3 @@
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/autocast_mode.h patch/aten/src/ATen/autocast_mode.h
---- pytorch-v1.8.1/aten/src/ATen/autocast_mode.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/autocast_mode.h	2022-05-18 10:55:28.377055862 +0800
-@@ -5,7 +5,7 @@
- 
- namespace {
-   bool is_autocast_eligible(const Tensor& tensor) {
--    return (tensor.is_cuda() || tensor.is_xla()) && tensor.is_floating_point();
-+    return (tensor.is_cuda() || tensor.is_xla() || tensor.is_npu()) && tensor.is_floating_point();
-   }
- } // namespace
- 
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h patch/aten/src/ATen/templates/TensorBody.h
---- pytorch-v1.8.1/aten/src/ATen/templates/TensorBody.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/templates/TensorBody.h	2022-05-18 10:55:28.377055862 +0800
-@@ -342,6 +342,9 @@
- 
-   /// Returns if a `Tensor` has CUDA backend.
-   bool is_cuda() const;
-+  
-+  /// Returns if a `Tensor` has NPU backend.
-+  bool is_npu() const;
- 
-   /// Returns if a `Tensor` has XPU backend.
-   bool is_xpu() const;
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp patch/aten/src/ATen/templates/TensorMethods.cpp
---- pytorch-v1.8.1/aten/src/ATen/templates/TensorMethods.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/aten/src/ATen/templates/TensorMethods.cpp	2022-05-18 10:55:28.377055862 +0800
-@@ -81,6 +81,10 @@
-   return impl_->is_cuda();
- }
- 
-+bool Tensor::is_npu() const {
-+  return impl_->is_npu();
-+}
-+
- bool Tensor::is_xpu() const {
-   // NB: this is not a native function to avoid dispatching overhead.
-   return impl_->is_xpu();
-@@ -116,6 +120,10 @@
-   return self.is_cuda();
- }
- 
-+bool is_npu(Tensor self) {
-+  return self.is_npu();
-+}
-+
- bool is_xla(Tensor self) {
-     return self.is_xla();
- }
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/build.sh patch/build.sh
 --- pytorch-v1.8.1/build.sh	1970-01-01 08:00:00.000000000 +0800
 +++ patch/build.sh	2022-05-10 16:41:28.213285304 +0800
@@ -177,239 +127,17 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
 +
 +main "$@"
 \ No newline at end of file
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Backend.h patch/c10/core/Backend.h
---- pytorch-v1.8.1/c10/core/Backend.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Backend.h	2022-05-18 10:55:28.381055862 +0800
-@@ -45,6 +45,7 @@
-   QuantizedXPU,
-   Undefined,
-   MkldnnCPU,
-+  NPU,
-   NumOptions
- };
- 
-@@ -64,6 +65,8 @@
-       return Backend::SparseCUDA;
-     case Backend::SparseHIP:
-       return Backend::SparseHIP;
-+    case Backend::NPU:
-+      throw std::runtime_error("NPU is not support sparse tensor");
-     default:
-       throw std::runtime_error("Unknown backend");
-   }
-@@ -71,6 +74,8 @@
- 
- static inline Backend toDense(Backend b) {
-   switch (b) {
-+    case Backend::NPU:
-+      return Backend::NPU;
-     case Backend::CPU:
-       return Backend::CPU;
-     case Backend::CUDA:
-@@ -105,7 +110,9 @@
- }
- 
- static inline Backend dispatchKeyToBackend(DispatchKey t) {
--  if (t == DispatchKey::CPU || t == DispatchKey::AutogradCPU) {
-+  if (t == DispatchKey::NPU || t == DispatchKey::AutogradNPU) {
-+    return Backend::NPU;
-+  } else if (t == DispatchKey::CPU || t == DispatchKey::AutogradCPU) {
-     return Backend::CPU;
-   } else if (t == DispatchKey::CUDA || t == DispatchKey::AutogradCUDA) {
-     return Backend::CUDA;
-@@ -148,6 +155,8 @@
- 
- static inline DispatchKey backendToDispatchKey(Backend b) {
-   switch (b) {
-+    case Backend::NPU:
-+      return DispatchKey::NPUTensorId;
-     case Backend::CPU:
-       return DispatchKey::CPU;
-     case Backend::CUDA:
-@@ -189,6 +198,8 @@
- 
- static inline DeviceType backendToDeviceType(Backend b) {
-   switch (b) {
-+    case Backend::NPU:
-+      return DeviceType::NPU;
-     case Backend::CPU:
-       return DeviceType::CPU;
-     case Backend::CUDA:
-@@ -229,6 +240,8 @@
- 
- static inline Backend backendToCPU(Backend b) {
-   switch (b) {
-+    case Backend::NPU:
-+      return Backend::NPU;
-     case Backend::CPU:
-       return Backend::CPU;
-     case Backend::CUDA:
-@@ -340,6 +353,8 @@
- // TODO: This probably shouldn't actually be static inline
- static inline const char* toString(Backend b) {
-   switch (b) {
-+    case Backend::NPU:
-+      return "NPU";
-     case Backend::CPU:
-       return "CPU";
-     case Backend::CUDA:
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.cpp patch/c10/core/Device.cpp
---- pytorch-v1.8.1/c10/core/Device.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Device.cpp	2022-05-18 10:55:28.381055862 +0800
-@@ -46,6 +46,7 @@
-           {"msnpu", DeviceType::MSNPU},
-           {"xla", DeviceType::XLA},
-           {"vulkan", DeviceType::Vulkan},
-+		      {"npu", DeviceType::NPU},
-       }};
-   auto device = std::find_if(
-       types.begin(),
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/Device.h patch/c10/core/Device.h
---- pytorch-v1.8.1/c10/core/Device.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/Device.h	2022-05-18 10:55:28.381055862 +0800
-@@ -85,6 +85,11 @@
-   bool is_xpu() const noexcept {
-     return type_ == DeviceType::XPU;
-   }
-+  
-+  /// Return true if the device is of NPU type.
-+  bool is_npu() const noexcept {
-+    return type_ == DeviceType::NPU;
-+  }
- 
-   /// Return true if the device is of CPU type.
-   bool is_cpu() const noexcept {
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.cpp patch/c10/core/DeviceType.cpp
---- pytorch-v1.8.1/c10/core/DeviceType.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DeviceType.cpp	2022-05-18 10:55:28.381055862 +0800
-@@ -33,6 +33,8 @@
-       return lower_case ? "metal" : "METAL";
-     case DeviceType::XPU:
-       return lower_case ? "xpu" : "XPU";
-+	  case DeviceType::NPU:
-+      return lower_case ? "npu" : "NPU";
-     default:
-       AT_ERROR(
-           "Unknown device: ",
-@@ -68,6 +70,7 @@
-     case DeviceType::Vulkan:
-     case DeviceType::Metal:
-     case DeviceType::XPU:
-+	  case DeviceType::NPU:
-       return true;
-     default:
-       return false;
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DeviceType.h patch/c10/core/DeviceType.h
---- pytorch-v1.8.1/c10/core/DeviceType.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DeviceType.h	2022-05-18 10:55:28.381055862 +0800
-@@ -26,15 +26,17 @@
-   Vulkan = 10, // Vulkan
-   Metal = 11, // Metal
-   XPU = 12, // XPU
-+  NPU = 13, // NPU
-   // NB: If you add more devices:
-   //  - Change the implementations of DeviceTypeName and isValidDeviceType
-   //    in DeviceType.cpp
-   //  - Change the number below
--  COMPILE_TIME_MAX_DEVICE_TYPES = 13,
-+  COMPILE_TIME_MAX_DEVICE_TYPES = 14,
- };
- 
- constexpr DeviceType kCPU = DeviceType::CPU;
- constexpr DeviceType kCUDA = DeviceType::CUDA;
-+constexpr DeviceType kNPU = DeviceType::NPU;
- constexpr DeviceType kHIP = DeviceType::HIP;
- constexpr DeviceType kFPGA = DeviceType::FPGA;
- constexpr DeviceType kMSNPU = DeviceType::MSNPU;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.cpp patch/c10/core/DispatchKey.cpp
 --- pytorch-v1.8.1/c10/core/DispatchKey.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKey.cpp	2022-05-18 10:55:28.381055862 +0800
-@@ -6,7 +6,8 @@
++++ patch/c10/core/DispatchKey.cpp	2022-05-23 17:07:51.315875375 +0800
+@@ -6,7 +6,6 @@
    switch (t) {
      case DispatchKey::Undefined:
        return "Undefined";
 -
-+    case DispatchKey::NPU:
-+      return "NPU";
      case DispatchKey::CPU:
        return "CPU";
      case DispatchKey::CUDA:
-@@ -80,6 +81,8 @@
-       return "AutogradCUDA";
-     case DispatchKey::AutogradXLA:
-       return "AutogradXLA";
-+    case DispatchKey::AutogradNPU:
-+      return "AutogradNPU";
-     case DispatchKey::AutogradNestedTensor:
-       return "AutogradNestedTensor";
-     case DispatchKey::AutogradPrivateUse1:
-@@ -143,6 +146,8 @@
-       return DispatchKey::AutogradCUDA;
-     case DispatchKey::XLA:
-       return DispatchKey::AutogradXLA;
-+    case DispatchKey::NPU:
-+      return DispatchKey::AutogradNPU;
-     case DispatchKey::NestedTensor:
-       return DispatchKey::AutogradNestedTensor;
-     case DispatchKey::PrivateUse1:
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKey.h patch/c10/core/DispatchKey.h
---- pytorch-v1.8.1/c10/core/DispatchKey.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKey.h	2022-05-18 10:55:28.381055862 +0800
-@@ -114,6 +114,7 @@
-   // Here are reserved backends for user-defined backends, see Note [Private use
-   // DispatchKey]
-   // To see some example about how to use this, check out MSNPU
-+  NPU,
-   PrivateUse1,
-   PrivateUse2,
-   PrivateUse3,
-@@ -224,6 +225,7 @@
-   AutogradCPU,
-   AutogradCUDA,
-   AutogradXLA,
-+  AutogradNPU,
-   AutogradNestedTensor, // lives out of tree at
-                         // https://github.com/pytorch/nestedtensor
-   AutogradXPU,
-@@ -297,6 +299,7 @@
-   // be used
-   CPUTensorId = CPU,
-   CUDATensorId = CUDA,
-+  NPUTensorId = NPU,
-   PrivateUse1_PreAutograd = AutogradPrivateUse1,
-   PrivateUse2_PreAutograd = AutogradPrivateUse2,
-   PrivateUse3_PreAutograd = AutogradPrivateUse3,
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.cpp patch/c10/core/DispatchKeySet.cpp
---- pytorch-v1.8.1/c10/core/DispatchKeySet.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKeySet.cpp	2022-05-18 10:55:28.381055862 +0800
-@@ -11,6 +11,7 @@
-         DispatchKey::XLA,
-         DispatchKey::NestedTensor,
-         DispatchKey::XPU,
-+		    DispatchKey::NPU,
-         DispatchKey::PrivateUse1,
-         DispatchKey::PrivateUse2,
-         DispatchKey::PrivateUse3,
-@@ -48,6 +49,8 @@
-       return DispatchKeySet(DispatchKey::CUDA);
-     case DispatchKey::AutogradXLA:
-       return DispatchKeySet(DispatchKey::XLA);
-+    case DispatchKey::AutogradNPU:
-+      return DispatchKeySet(DispatchKey::NPU);
-     case DispatchKey::AutogradNestedTensor:
-       return DispatchKeySet(DispatchKey::NestedTensor);
-     case DispatchKey::AutogradXPU:
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/DispatchKeySet.h patch/c10/core/DispatchKeySet.h
---- pytorch-v1.8.1/c10/core/DispatchKeySet.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/DispatchKeySet.h	2022-05-18 10:55:28.381055862 +0800
-@@ -193,6 +193,7 @@
-     DispatchKey::AutogradCPU,
-     DispatchKey::AutogradCUDA,
-     DispatchKey::AutogradXLA,
-+    DispatchKey::AutogradNPU,
-     DispatchKey::AutogradNestedTensor,
-     DispatchKey::AutogradXPU,
-     DispatchKey::AutogradPrivateUse1,
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/StorageImpl.h patch/c10/core/StorageImpl.h
 --- pytorch-v1.8.1/c10/core/StorageImpl.h	2022-03-05 10:10:10.000000000 +0800
 +++ patch/c10/core/StorageImpl.h	2022-04-28 18:51:47.202663489 +0800
@@ -422,52 +150,6 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
   public:
    struct use_byte_size_t {};
  
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorImpl.h patch/c10/core/TensorImpl.h
---- pytorch-v1.8.1/c10/core/TensorImpl.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/TensorImpl.h	2022-05-18 10:55:28.381055862 +0800
-@@ -508,6 +508,10 @@
-         key_set_.has(DispatchKey::SparseCUDA) ||
-         key_set_.has(DispatchKey::QuantizedCUDA);
-   }
-+  
-+  bool is_npu() const {
-+    return key_set_.has(DispatchKey::NPU);
-+  }
- 
-   bool is_xpu() const {
-     // NB: This method is not virtual and avoid dispatches for performance
-@@ -997,7 +1001,7 @@
-    */
-   inline bool has_compatible_shallow_copy_type(DispatchKeySet from) {
-     auto is_dense = [](DispatchKeySet ts) {
--      return ts.has(DispatchKey::CPU) || ts.has(DispatchKey::CUDA) ||
-+      return ts.has(DispatchKey::NPU) || ts.has(DispatchKey::CPU) || ts.has(DispatchKey::CUDA) ||
-           ts.has(DispatchKey::HIP) || ts.has(DispatchKey::XPU);
-     };
-     auto is_sparse = [](DispatchKeySet ts) {
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/c10/core/TensorOptions.h patch/c10/core/TensorOptions.h
---- pytorch-v1.8.1/c10/core/TensorOptions.h	2022-03-05 10:10:10.000000000 +0800
-+++ patch/c10/core/TensorOptions.h	2022-05-18 10:55:28.381055862 +0800
-@@ -595,6 +595,8 @@
-       case Layout::Strided: {
-         const auto dtype_ = dtype_or_default(dtype);
-         switch (device_.type()) {
-+          case DeviceType::NPU:
-+            return DispatchKey::NPU;
-           case DeviceType::CPU: {
-             if (isQIntType(dtype_)) {
-               return DispatchKey::QuantizedCPU;
-@@ -665,7 +667,9 @@
- // We deliberately ignore handling AutogradCPU/CUDA/XLA... keys to
- // avoid adding asymmetry in device <--> Autograd dispatch key mapping.
- inline DeviceType computeDeviceType(DispatchKey tid) {
--  if (tid == DispatchKey::CPU) {
-+  if (tid == DispatchKey::NPU) {
-+    return DeviceType::NPU;
-+  } else if (tid == DispatchKey::CPU) {
-     return DeviceType::CPU;
-   } else if (tid == DispatchKey::CUDA) {
-     return DeviceType::CUDA;
 diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/tools/generate_torch_version.py patch/tools/generate_torch_version.py
 --- pytorch-v1.8.1/tools/generate_torch_version.py	2022-03-05 10:10:10.000000000 +0800
 +++ patch/tools/generate_torch_version.py	2022-03-07 18:32:03.076343192 +0800
@@ -485,40 +167,17 @@ diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py
      elif sha != 'Unknown':
          if sha is None:
              sha = get_sha(pytorch_root)
-diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp patch/torch/csrc/utils/tensor_new.cpp
---- pytorch-v1.8.1/torch/csrc/utils/tensor_new.cpp	2022-03-05 10:10:10.000000000 +0800
-+++ patch/torch/csrc/utils/tensor_new.cpp	2022-05-18 10:55:28.385055863 +0800
-@@ -32,6 +32,7 @@
- using at::IntArrayRef;
- using at::kCPU;
- using at::kCUDA;
-+using at::kNPU;
- using at::kLong;
- using at::Scalar;
- using at::ScalarType;
-@@ -47,6 +48,8 @@
- 
- Backend backendToBackendOfDeviceType(Backend b, DeviceType d) {
-   switch (d) {
-+    case DeviceType::NPU:
-+      return Backend::NPU;
-     case DeviceType::CPU:
-       return backendToCPU(b);
-     case DeviceType::CUDA:
-@@ -341,6 +344,7 @@
-             dispatch_key == c10::DispatchKey::CUDA ||
-             dispatch_key == c10::DispatchKey::HIP ||
-             dispatch_key == c10::DispatchKey::XLA ||
-+            dispatch_key == c10::DispatchKey::NPU ||
-             dispatch_key == c10::DispatchKey::XPU,
-         "new(): expected DispatchKey: ",
-         c10::DispatchKey::CPU,
-@@ -351,6 +355,8 @@
-         " or ",
-         c10::DispatchKey::XLA,
-         " or ",
-+		    c10::DispatchKey::NPU,
-+        " or ",
-         c10::DispatchKey::XPU,
-         " but got: ",
-         dispatch_key);
+diff -Nur '--exclude=.git*' '--exclude=OWNERS' '--exclude=access_control_test.py' '--exclude=third_party' '--exclude=README*' -Nur pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp patch/torch/csrc/DynamicTypes.cpp
+--- pytorch-v1.8.1/torch/csrc/DynamicTypes.cpp	2022-03-05 10:10:10.000000000 +0800
++++ patch/torch/csrc/DynamicTypes.cpp	2022-05-23 17:07:51.315875375 +0800
+@@ -62,8 +62,8 @@
+     const caffe2::TypeMeta dtype) {
+   at::ScalarType scalarType = at::typeMetaToScalarType(dtype);
+   auto attype = &at::getDeprecatedTypeProperties(
+-      at::dispatchKeyToBackend(c10::computeDispatchKey(scalarType, c10::nullopt, storage.device_type())),
+-      scalarType);
++    at::dispatchKeyToBackend(c10::computeDispatchKey(scalarType, c10::nullopt, storage.device_type())),
++    scalarType);
+   auto it = attype_to_py_storage_type.find(attype);
+   if (it != attype_to_py_storage_type.end()) {
+     return it->second;
