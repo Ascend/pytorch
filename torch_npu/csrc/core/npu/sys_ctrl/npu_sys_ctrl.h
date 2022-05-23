@@ -28,12 +28,10 @@ public:
         INIT_FAILED,
         CREATE_SESS_SUCC,
         CREATE_SESS_FAILED,
-#ifdef USE_GRAPH_MODE        
         ADD_GRAPH_SUCC,
         ADD_GRAPH_FAILED,
         RUN_GRAPH_SUCC,
         RUN_GRAPH_FAILED,
-#endif
         FINALIZE_SUCC,
         FINALIZE_FAILED,
     };

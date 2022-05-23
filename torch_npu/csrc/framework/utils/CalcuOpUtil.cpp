@@ -20,6 +20,7 @@
 #include <c10/util/Exception.h>
 #include <ATen/record_function.h>
 
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
@@ -32,10 +33,6 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
-
-#ifdef USE_GRAPH_MODE
-#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
-#endif
 
 namespace at_npu
 {
@@ -191,9 +188,7 @@ namespace at_npu
         size_t src_size,
         aclrtMemcpyKind kind)
     {
-#ifdef USE_GRAPH_MODE      
       GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
-#endif
       void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
             dst.second * dst.first.itemsize();
       void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +

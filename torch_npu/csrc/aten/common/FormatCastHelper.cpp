@@ -67,12 +67,9 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
       // ND->NCHW->NCHW
       // then FE get task : NCHW/NCHW -> NCHW/NC1HWC0 and NCHW/NCHW -> NCHW/NZ
 
-#ifdef USE_GRAPH_MODE
       if (c10_npu::NpuRunMode::IsGraphMode() && src_base_format == ACL_FORMAT_ND) {
         return true;
       }
-#endif
-
       // recover: dst base format -> dst format
       format_cast_as_base_format(src, src_base_format);
       return true;

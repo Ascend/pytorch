@@ -23,18 +23,14 @@ namespace c10_npu {
 enum class ModeKind : uint8_t {
   DEFAULT_MODE = 0,
   SINGLE_OP_MODE = DEFAULT_MODE,
-#ifdef USE_GRAPH_MODE  
   GRAPH_MODE,
-#endif
 };
 
 class  NpuRunMode{
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();
-#ifdef USE_GRAPH_MODE  
   static inline bool IsGraphMode() {return cur_mode_ == ModeKind::GRAPH_MODE;};
-#endif
 
 private:
   static ModeKind cur_mode_;
