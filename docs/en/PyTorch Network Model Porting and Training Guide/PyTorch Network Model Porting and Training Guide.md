@@ -1563,6 +1563,7 @@ In addition to the preceding advantages, the mixed precision module Apex adapted
 
 -   During mixed precision calculation, Apex calculates the grad of the model. You can enable combine\_grad to accelerate these operations. Set the  **combine\_grad**  parameter of the amp.initialize\(\) interface to  **True**.
 -   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with  **apex.optimizers.\***  \(**\***  indicates the optimizer name, for example,  **NpuFusedSGD**\).
+-   The adapted apex optimizes the affinity of the Ascend AI processor for data parallel training, supports the use of fused grad for acceleration, while maintaining the consistency of computational logic. This function can be turned on by turning on the **combine_ddp** switch, that is, setting the amp.initialize interface parameter **combine_ddp** to **True** and turning off DistributedDataParallel.
 
 #### Supported Features
 
