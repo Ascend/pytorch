@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 project(TORCHNPU CXX C)
 
-option(USE_GRAPH_MODE "enable graph mode" OFF)
-
-if(USE_GRAPH_MODE)
-  add_definitions(-DUSE_GRAPH_MODE=1)
-endif()
-
 set(LINUX TRUE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 # set(CMAKE_VERBOSE_MAKEFILE ON)

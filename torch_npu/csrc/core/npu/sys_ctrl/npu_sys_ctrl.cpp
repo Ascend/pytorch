@@ -92,9 +92,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   std::map<ge::AscendString, ge::AscendString> config = {
       {ge::AscendString(ge::OPTION_EXEC_DEVICE_ID),
        ge::AscendString(npu_device_id.data())},
-#ifdef USE_GRAPH_MODE      
       {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
-#endif
       {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
       {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
       {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
