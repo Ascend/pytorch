@@ -379,13 +379,14 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_direc_packseq(
     TensorList params, bool hasBiases,
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
-  int64_t t_size = batchSizes.numel();
+  int64_t bs = batchSizes[0].item().toLong();
+  int64_t t_size = data.size(0)/bs;
   if (t_size == 0) {
     AT_ERROR("lstm_onelayer_direc_packseq: t_size is zero!");
   }
 
   // T * B **
-  Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
+  Tensor input = data.reshape({t_size, bs, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;
@@ -424,13 +425,14 @@ std::tuple<Tensor, Tensor, Tensor> lstm_onelayer_bidirec_packseq(
     TensorList params, bool hasBiases,
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
-  int64_t t_size = batchSizes.numel();
+  int64_t bs = batchSizes[0].item().toLong();
+  int64_t t_size = data.size(0)/bs;
   if (t_size == 0) {
     AT_ERROR("lstm_onelayer_bidirec_packseq: t_size is zero!");
   }
 
   // T * B **
-  Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
+  Tensor input = data.reshape({t_size, bs, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;
@@ -473,13 +475,14 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_direc_packseq(
     TensorList params, bool hasBiases,
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
-  int64_t t_size = batchSizes.numel();
+  int64_t bs = batchSizes[0].item().toLong();
+  int64_t t_size = data.size(0)/bs;
   if (t_size == 0) {
     AT_ERROR("lstm_double_layer_direc_packseq: t_size is zero!");
   }
 
   // T * B **
-  Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
+  Tensor input = data.reshape({t_size, bs, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;
@@ -522,11 +525,12 @@ std::tuple<Tensor, Tensor, Tensor> lstm_double_layer_bidirec_packseq(
     TensorList params, bool hasBiases,
     int64_t numLayers, double dropoutP, bool train, bool bidirectional) {
   // length of T axis
-  int64_t t_size = batchSizes.numel();
+  int64_t bs = batchSizes[0].item().toLong();
+  int64_t t_size = data.size(0)/bs;
   TORCH_CHECK(t_size > 0, "batchSizes can not be empty.");
   
   // T * B **
-  Tensor input = data.reshape({t_size, data.size(0)/t_size, data.size(1)});
+  Tensor input = data.reshape({t_size, bs, data.size(1)});
 
   // batch_first is false
   bool batchFirst = false;

@@ -18,6 +18,7 @@ import torch
 import numpy as np
 import sys
 import copy
+from torch import _VF
 from common_utils import TestCase, run_tests
 from common_device_type import dtypes, instantiate_device_type_tests
 from util_test import create_common_tensor
@@ -359,6 +360,36 @@ class TestLstm(TestCase):
             
             self.assertRtolEqual(pade_outputs.detach().numpy(), 
                 pade_outputs_npu.cpu().detach().numpy(), prec=1.e-4)
+    
+    def test_lstm_case_in_controlgan(self, device):
+        cpu_x = torch.ones(8, 18, 300)
+        npu_x = cpu_x.npu()
+        y = torch.LongTensor([17, 14, 13, 13, 13, 12, 12, 12])
+
+        cpu_emb = _VF._pack_padded_sequence(cpu_x, y, True)
+        npu_emb = _VF._pack_padded_sequence(npu_x, y, True)
+
+        hx1 = torch.rand(2, 8, 128)
+        hx2 = torch.rand(2, 8, 128)
+        w1 = torch.rand(512, 300)
+        w2 = torch.rand(512, 128)
+        w3 = torch.rand(512)
+        w4 = torch.rand(512)
+        w5 = torch.rand(512, 300)
+        w6 = torch.rand(512, 128)
+        w7 = torch.rand(512)
+        w8 = torch.rand(512)
+        cpu_hx = (hx1, hx2)
+        cpu_weight = (w1, w2, w3, w4, w5, w6, w7, w8)
+        npu_hx = (hx1.npu(), hx2.npu())
+        npu_weight = (w1.npu(), w2.npu(), w3.npu(), w4.npu(), w5.npu(), w6.npu(), w7.npu(), w8.npu())
+
+        cpu_lstm_out = _VF.lstm(cpu_emb[0], cpu_emb[1], cpu_hx, cpu_weight, True, 1, 0.5, False, True)
+        try:
+            npu_lstm_out = _VF.lstm(npu_emb[0], npu_emb[1], npu_hx, npu_weight, True, 1, 0.5, False, True)
+        except:
+            print("lstm cannot supports this case on npu.")
+            sys.exit(-1)
             
 instantiate_device_type_tests(TestLstm, globals(), except_for='cpu')
 if __name__ == "__main__":
