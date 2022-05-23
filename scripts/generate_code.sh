@@ -41,6 +41,7 @@ mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
 python3 -m codegen.gen_python_functions  \
   --output_dir="$NDIR/torch_npu/csrc/aten/" \
   --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
+  --native_yaml="$NDIR/scripts/codegen/native_functions.yaml" \
   --template_path="$NDIR/scripts/codegen/templates"
 
 if [ $? -ne 0 ]; then

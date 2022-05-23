@@ -38,6 +38,7 @@
 #include <utility>
 
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/utils/LazyInit.h"
 
 using at::Tensor;
 using at::Device;
@@ -62,9 +63,14 @@ namespace torch_npu { namespace autograd {
 
 static PyObject* THPVariableFunctionsModule = NULL;
 
+const std::string npu_device_str = "npu";
+const std::string default_device_str = "cuda";
+
 // generated forward declarations start here
 
 ${py_forwards}
+
+${py_device_forwards}
 
 // Wrapper converts a raised TypeError into returning NotImplemented
 // Used to implement binary arithmetic operators
@@ -79,11 +85,349 @@ static PyObject * TypeError_to_NotImplemented_(PyObject* self, PyObject* args, P
   return ret;
 }
 
+
+inline Tensor dispatch_arange(Scalar end, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::arange_out(result, end);
+}
+
+inline Tensor dispatch_arange(Scalar end, const TensorOptions& options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::arange(end, options);
+}
+
+inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::arange_out(result, start, end, step);
+}
+
+inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, const TensorOptions& options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::arange(start, end, step, options);
+}
+
+inline static PyObject * npu_device_prase(PyObject* obj) {
+  try {
+    if (obj) {
+      std::string device_str = THPUtils_unpackString(obj);
+      device_str = device_str.replace(device_str.find(npu_device_str), npu_device_str.length(), default_device_str);
+      obj = THPUtils_internString(device_str);
+    }
+    return obj;
+  } catch(...) {
+    return obj;
+  }
+
+}
+
+static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser({
+    "arange(Scalar end, *, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool pin_memory=False, bool requires_grad=False)",
+    "arange(Scalar start, Scalar end, Scalar step=1, *, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool pin_memory=False, bool requires_grad=False)",
+      }, true);
+
+  torch::ParsedArgs<9> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+
+  if(r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
+  }
+
+  if (r.idx == 0) {
+    r.args[4] = npu_device_prase(r.args[4]);
+    auto local_device = r.device(4);
+    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    if (r.isNone(1)) {
+      auto end = r.scalar(0);
+      // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
+      c10::optional<ScalarType> scalarType = r.scalartypeOptional(2);
+      const auto options = TensorOptions()
+          .dtype(scalarType)
+          .device(device)
+          .layout(r.layout(3))
+          .requires_grad(r.toBool(6))
+          .pinned_memory(r.toBool(5));
+      return torch::autograd::utils::wrap(dispatch_arange(end, options));
+    } else {
+      TORCH_CHECK(!r.toBool(5), " `pin_memory` and `out` parameters are incompatible");
+      check_out_type_matches(r.tensor(1), r.scalartype(2), r.isNone(2), r.layout(3),
+                             device, r.isNone(4));
+      return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.tensor(1)).set_requires_grad(r.toBool(6)));
+    }
+  } else if (r.idx == 1) {
+    r.args[6] = npu_device_prase(r.args[6]);
+    auto local_device = r.device(6);
+    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    if (r.isNone(3)) {
+      auto start = r.scalar(0);
+      auto end = r.scalar(1);
+      auto step = r.scalar(2);
+      // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
+      c10::optional<ScalarType> scalarType = r.scalartypeOptional(4);
+      const auto options = TensorOptions()
+          .dtype(scalarType)
+          .device(device)
+          .layout(r.layout(5))
+          .requires_grad(r.toBool(8))
+          .pinned_memory(r.toBool(7));
+      return torch::autograd::utils::wrap(dispatch_arange(start, end, step, options));
+    } else {
+      TORCH_CHECK(!r.toBool(7), " `pin_memory` and `out` parameters are incompatible");
+      check_out_type_matches(r.tensor(3), r.scalartype(4), r.isNone(4), r.layout(5), device, r.isNone(6));
+      return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.scalar(1), r.scalar(2), r.tensor(3)).set_requires_grad(r.toBool(8)));
+    }
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  OptionalDeviceGuard device_guard(at::device_of(result));
+  return at::range_out(result, start, end, step);
+}
+
+inline Tensor dispatch_range(Scalar start, Scalar end, Scalar step, const TensorOptions& options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  DeviceGuard device_guard(options.device());
+  return torch::range(start, end, step, options);
+}
+
+static PyObject * THPVariable_range(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser({
+    "range(Scalar start, Scalar end, Scalar step=1, *, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool requires_grad=False)",
+  });
+
+  torch::ParsedArgs<8> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  r.args[6] = npu_device_prase(r.args[6]);
+  auto local_device = r.device(6);
+  auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+  if (r.idx == 0) {
+    auto ret = PyErr_WarnEx(
+        PyExc_UserWarning,
+        "torch.range is deprecated and will be removed in a future release "
+        "because its behavior is inconsistent with Python's range builtin. "
+        "Instead, use torch.arange, which produces values in [start, end).",
+        1);
+    if (ret != 0) throw python_error();
+    if (r.isNone(3)) {
+      const auto options = TensorOptions()
+          .dtype(r.scalartype(4))
+          .device(device)
+          .layout(r.layout(5))
+          .requires_grad(r.toBool(7));
+      return torch::autograd::utils::wrap(dispatch_range(r.scalar(0), r.scalar(1), r.scalar(2), options));
+    } else {
+      check_out_type_matches(r.tensor(3), r.scalartype(4), r.isNone(4),
+                             r.layout(5), device, r.isNone(6));
+      return torch::autograd::utils::wrap(dispatch_range(r.scalar(0), r.scalar(1), r.scalar(2), r.tensor(3)).set_requires_grad(r.toBool(7)));
+    }
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+inline Tensor dispatch_full(
+    IntArrayRef size,
+    Scalar fill_val,
+    const TensorOptions& options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return at::full(size, fill_val, options);
+}
+
+inline Tensor dispatch_full(
+    IntArrayRef size,
+    Scalar fill_val,
+    c10::optional<DimnameList> names,
+    const TensorOptions& options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return at::full(size, fill_val, names, options);
+}
+
+inline Tensor dispatch_full(
+    IntArrayRef size,
+    Scalar fill_val,
+    Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::full_out(result, size, fill_val);
+}
+
+static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwargs) {
+  HANDLE_TH_ERRORS
+
+  static torch::PythonArgParser parser({
+    "full(IntArrayRef size, Scalar fill_value, *, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool pin_memory=False, bool requires_grad=False)",
+    "full(IntArrayRef size, Scalar fill_value, *, DimnameList names=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool pin_memory=False, bool requires_grad=False)",
+      }, true);
+
+  // Acquires (common) arguments
+  torch::ParsedArgs<8> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+
+  if(r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
+  }
+
+  auto size = r.intlist(0);
+  auto fill_val = r.scalar(1);
+  r.args[5] = npu_device_prase(r.args[5]);
+  auto local_device = r.device(5);
+  auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+  const auto options = TensorOptions{}
+      .dtype(r.scalartypeOptional(3))
+      .layout(r.layout(4))
+      .device(device)
+      .pinned_memory(r.toBool(6));
+
+  if (r.idx == 0) {
+    // full
+    if (r.isNone(2)) {
+      return torch::autograd::utils::wrap(dispatch_full(size, fill_val, options).set_requires_grad(r.toBool(7)));
+    }
+
+    // full.out
+    // Validates out tensor and other kwargs
+    auto result = r.tensor(2);
+    TORCH_CHECK(!r.toBool(6), " `pin_memory` and `out` parameters are incompatible");
+    check_out_type_matches(result, r.scalartype(3), r.isNone(3), r.layout(4), device, r.isNone(5));
+
+    return torch::autograd::utils::wrap(dispatch_full(size, fill_val, result).set_requires_grad(r.toBool(7)));
+  } else if (r.idx == 1) {
+    // full.names
+    if (r.isNone(2)) {
+      return torch::autograd::utils::wrap(dispatch_full(size, fill_val, c10::nullopt, options).set_requires_grad(r.toBool(7)));
+    }
+
+    // Converts from c10::optional<std:vector...> to c10::optional<ArrayRef...>
+    auto raw_names = r.toDimnameListOptional(2);
+    c10::optional<DimnameList> names(*raw_names);
+    return torch::autograd::utils::wrap(dispatch_full(size, fill_val, names, options).set_requires_grad(r.toBool(7)));
+  }
+
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+inline Tensor dispatch_randint(int64_t high, IntArrayRef size, c10::optional<Generator> generator, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::randint_out(result, high, size, generator);
+}
+inline Tensor dispatch_randint(int64_t high, IntArrayRef size, c10::optional<Generator> generator, const TensorOptions & options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::randint(high, size, generator, options);
+}
+inline Tensor dispatch_randint(int64_t high, IntArrayRef size, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::randint_out(result, high, size);
+}
+inline Tensor dispatch_randint(int64_t high, IntArrayRef size, const TensorOptions & options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::randint(high, size, options);
+}
+inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, c10::optional<Generator> generator, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::randint_out(result, low, high, size, generator);
+}
+inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, c10::optional<Generator> generator, const TensorOptions & options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::randint(low, high, size, generator, options);
+}
+inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, Tensor result) {
+  pybind11::gil_scoped_release no_gil;
+  return at::randint_out(result, low, high, size);
+}
+inline Tensor dispatch_randint(int64_t low, int64_t high, IntArrayRef size, const TensorOptions & options) {
+  torch_npu::utils::maybe_initialize_npu(options);
+  pybind11::gil_scoped_release no_gil;
+  return torch::randint(low, high, size, options);
+}
+
+static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser({
+    "randint(int64_t high, IntArrayRef size, *, Generator generator=None, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool requires_grad=False)",
+    "randint(int64_t low, int64_t high, IntArrayRef size, *, Generator generator=None, Tensor out=None, ScalarType dtype=None, Layout layout=torch.strided, Device device=None, bool requires_grad=False)",
+      }, false);
+
+  torch::ParsedArgs<9> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+
+  if(r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableFunctionsModule, "torch");
+  }
+
+  if (r.idx == 0) {
+    r.args[6] = npu_device_prase(r.args[6]);
+    auto local_device = r.device(6);
+    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    if (r.isNone(3)) {
+      auto high = r.toInt64(0);
+      auto size = r.intlist(1);
+      auto generator = r.generator(2);
+      // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
+      auto dtype = r.scalartypeWithDefault(4, at::ScalarType::Long);
+      const auto options = TensorOptions()
+          .dtype(dtype)
+          .device(device)
+          .layout(r.layout(5))
+          .requires_grad(r.toBool(7));
+      return torch::autograd::utils::wrap(dispatch_randint(high, size, generator, options));
+    } else {
+      check_out_type_matches(r.tensor(3), r.scalartype(4), r.isNone(4),
+                             r.layout(5), device, r.isNone(6));
+      return torch::autograd::utils::wrap(dispatch_randint(r.toInt64(0), r.intlist(1), r.generator(2), r.tensor(3)).set_requires_grad(r.toBool(7)));
+    }
+  } else if (r.idx == 1) {
+    r.args[7] = npu_device_prase(r.args[7]);
+    auto local_device = r.device(7);
+    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    if (r.isNone(4)) {
+      auto low = r.toInt64(0);
+      auto high = r.toInt64(1);
+      auto size = r.intlist(2);
+      auto generator = r.generator(3);
+      // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
+      auto dtype = r.scalartypeWithDefault(5, at::ScalarType::Long);
+
+      const auto options = TensorOptions()
+          .dtype(dtype)
+          .device(device)
+          .layout(r.layout(6))
+          .requires_grad(r.toBool(8));
+      return torch::autograd::utils::wrap(dispatch_randint(low, high, size, generator, options));
+    } else {
+      check_out_type_matches(r.tensor(4), r.scalartype(5), r.isNone(5), r.layout(6), device, r.isNone(7));
+      return torch::autograd::utils::wrap(dispatch_randint(r.toInt64(0), r.toInt64(1), r.intlist(2), r.generator(3), r.tensor(4)).set_requires_grad(r.toBool(8)));
+    }
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 // XXX: ops that are bound here are not exposed to the C++ api nor the JIT.
 // Any new ops added here should be accompanied with a comment why they are not
 // being registered through native_functions.yaml, and be tagged cpp / JIT
 static PyMethodDef torch_functions[] = {
+  {"arange", castPyCFunctionWithKeywords(THPVariable_arange), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
+  {"full", castPyCFunctionWithKeywords(THPVariable_full), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
+  {"randint", castPyCFunctionWithKeywords(THPVariable_randint), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
+  {"range", castPyCFunctionWithKeywords(THPVariable_range), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   ${py_method_defs}
+  ${py_device_method_defs}
   {NULL}
 };
 
@@ -150,5 +494,7 @@ void initTorchFunctions(PyObject* module) {
 // generated methods start here
 
 ${py_methods}
+
+${py_device_methods}
 
 }} // namespace torch_npu::autograd
