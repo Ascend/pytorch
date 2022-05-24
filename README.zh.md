@@ -38,6 +38,10 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 当前支持pytorch 1.5.0和1.8.1的版本。根据需求，在当前仓库根目录pytorch/下获取原生PyTorch的源代码
 
 ```sh
+//昇腾Pytorch
+git clone -b 2.0.3.tr5 https://gitee.com/ascend/pytorch.git
+cd  pytorch
+
 // 1.5.0 版本
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 // 1.8.1 版本
