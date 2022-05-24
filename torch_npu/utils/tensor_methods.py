@@ -167,6 +167,12 @@ def randn(*args, **kwargs):
     return torch._C._VariableFunctions.randn(*args, **kwargs)
 
 
+def full(*args, **kwargs):
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
+    return torch._C._VariableFunctions.full(*args, **kwargs)
+
+
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -192,3 +198,4 @@ def add_tensor_methods():
     torch.ones_like = ones_like
     torch.zeros = zeros
     torch.randn = randn
+    torch.full = full
