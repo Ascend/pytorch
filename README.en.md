@@ -26,12 +26,13 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend Auxiliary Software
 
-| AscendPyTorch Version | CANN Version | Supported PyTorch Version |
-| :-------------------- | :----------- | :------------------------ |
-| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               |
-| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               |
-| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               |
-| 3.0.rc1               | CANN 5.0.4   | 1.5.0.post5, 1.8.1.rc1    |
+| AscendPyTorch Version | CANN Version | Supported PyTorch Version | Gitee Branch   |
+| :-------------------- | :----------- | :------------------------ | -------------- |
+| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               | 2.0.2.tr5      |
+| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               | 2.0.3.tr5      |
+| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               | 2.0.4.tr5      |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.5.0.post5               | v1.5.0-3.0.rc1 |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.8.1.rc1                 | v1.8.1-3.0.rc1 |
 
 # Method of Use - Full Code Generation and Compilation
 
