@@ -1949,6 +1949,7 @@ custom:
   - func: npu_apply_adam.out(Scalar beta1_power, Scalar beta2_power, Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, bool? use_locking, bool? use_nesterov, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   - func: npu_deformable_conv2dbk(Tensor input, Tensor grad_output, Tensor offset_out, Tensor weight, Tensor offset, int[2] kernel_size, int[] stride, int[] padding, int[] dilation=[1,1,1,1], int groups=1, int deformable_groups=1, bool modulated=True) -> (Tensor, Tensor, Tensor, Tensor)
   - func: npu_giou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> (Tensor, Tensor)
+  - func: npu_diou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> (Tensor, Tensor)
   - func: npu_iou(Tensor bboxes, Tensor gtboxes, int mode=0) -> Tensor
   - func: npu_nms_v4(Tensor self, Tensor scores, Scalar max_output_size, Tensor iou_threshold, Tensor scores_threshold, bool pad_to_max_output_size=False) -> (Tensor, Tensor)
   - func: npu_pad(Tensor input, int[] paddings) -> Tensor
@@ -1992,6 +1993,7 @@ custom_autograd:
   - func: npu_min.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_deformable_conv2d(Tensor input, Tensor weight, Tensor offset, Tensor? bias, int[2] kernel_size, int[] stride, int[] padding, int[] dilation=[1,1,1,1], int groups=1, int deformable_groups=1, bool modulated=True) -> (Tensor, Tensor)
   - func: npu_giou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+  - func: npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
   - func: npu_lstm(Tensor input, Tensor weight, Tensor bias, Tensor seqMask, Tensor h, Tensor c, bool has_biases, int num_layers, float dropout, bool train, bool bidirectional, bool batch_first, bool flagSeq, bool direction) -> Tensor[]
     variants: function
   - func: _dropout_with_byte_mask(Tensor self, float p) -> (Tensor, Tensor)
