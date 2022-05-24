@@ -126,10 +126,9 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_cell_backward_np
   auto grad_h = gradh.defined() ? gradh : at::zeros(inh.sizes(), h.options());
   auto grad_c = gradc.defined() ? gradc : at::zeros(inc.sizes(), c.options());
 
-  lstm_cell_backward_nocheck_npu(grad_input, grad_wx, grad_wh, grad_bias, grad_ht, grad_ct, grad_y, grad_h, grad_c, 
-                                  input, w_x, w_h, inh, inc, y, h, c, i, j, f, o, tanhc);
+  lstm_cell_backward_nocheck_npu(grad_input, grad_wx, grad_wh, grad_bias, grad_ht, grad_ct, 
+      grad_y, grad_h, grad_c, input, w_x, w_h, inh, inc, y, h, c, i, j, f, o, tanhc);
   return std::tie(grad_input, grad_wx, grad_wh, grad_bias, grad_ht, grad_ct);
-  
 }
 } // namespace native 
 } // namespace at

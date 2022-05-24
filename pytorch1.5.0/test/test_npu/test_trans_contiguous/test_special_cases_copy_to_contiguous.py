@@ -18,6 +18,7 @@ import numpy as np
 
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch.testing._internal.common_device_type import instantiate_device_type_tests
+from util_test import create_common_tensor
 
 os.environ["COMBINED_ENABLE"] = "1"  # Open combined-view cases optimization
 
@@ -28,7 +29,7 @@ class TestSpecialCasesCopyToContiguous(TestCase):
         shape_format = [
             [i, j] for i in dtype_list for j in index_list
         ]
-        for item in shape_format: 
+        for item in shape_format:
             np_input = np.zeros(40).astype(item[0])
             cpu_input = torch.from_numpy(np_input)
             cpu_out = cpu_input
@@ -36,7 +37,20 @@ class TestSpecialCasesCopyToContiguous(TestCase):
             npu_out = cpu_input.npu()
             npu_out[:item[1]] = 1
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())
-           
+    
+    def test_select_broadcast_at_same_axis_copy_contiguous(self, device):
+        dtype_list = [np.float16, np.float32]
+        format_list = [0, 3, 29]
+        shape_list = [[1, 81, 96, 96]]
+        shape_format = [
+            [i, j, k] for i in dtype_list for j in format_list for k in shape_list
+        ]
+        for item in shape_format:
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
+            cpu_out = torch.as_strided(cpu_input, (1, 32, 96, 96), (746496, 0, 96, 1), 737280).clone()
+            npu_out = torch.as_strided(npu_input, (1, 32, 96, 96), (746496, 0, 96, 1), 737280).clone()
+            self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy()) 
+      
                 
 instantiate_device_type_tests(TestSpecialCasesCopyToContiguous, globals(), except_for='cpu')
 if __name__ == "__main__":
