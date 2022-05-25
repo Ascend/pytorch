@@ -26,12 +26,13 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend Auxiliary Software
 
-| AscendPyTorch Version | CANN Version | Supported PyTorch Version |
-| :-------------------- | :----------- | :------------------------ |
-| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               |
-| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               |
-| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               |
-| 3.0.rc1               | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1    |
+| AscendPyTorch Version | CANN Version | Supported PyTorch Version | Gitee Branch   |
+| :-------------------- | :----------- | :------------------------ | -------------- |
+| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               | 2.0.2.tr5      |
+| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               | 2.0.2.tr5      |
+| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               | 2.0.2.tr5      |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.5.0.post5               | v1.5.0-3.0.rc1 |
+| 3.0.rc1               | CANN 5.1.RC1 | 1.8.1.rc1                 | v1.8.1-3.0.rc1 |
 
 # Installation Method
 
@@ -40,7 +41,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 Download the plugin code.
 
 ```sh
-git clone https://gitee.com/ascend/pytorch.git
+git clone -b v1.8.1-3.0.rc1 https://gitee.com/ascend/pytorch.git
 ```
 
 Code in the current repository is PyTorch 1.8.1. Obtain the native Pytorch source code from the root directory **/pytorch** of the current repository and rename it to **pytorch_v1.8.1**.

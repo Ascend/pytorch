@@ -25,12 +25,13 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend配套软件
 
-| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 |
-| :------------ | :----------- | :----------- |
-| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1 |
+| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee 分支名称 |
+| :------------ | :----------- | :----------- | ------------- |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1       | v1.8.1-3.0.rc1 |
 
 # 安装方式
 
@@ -38,7 +39,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 下载插件代码
 ```sh
-git clone https://gitee.com/ascend/pytorch.git
+git clone -b v1.8.1-3.0.rc1  https://gitee.com/ascend/pytorch.git
 ```
 
 当前对应PyTorch 1.8.1版本。根据需求，在当前仓根目录“/pytorch”下获得原生Pytorch源代码并重命名为pytorch_v1.8.1。
