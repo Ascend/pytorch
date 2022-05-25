@@ -1221,9 +1221,7 @@ def dispatch_lambda_exprs(
                 f'{f.func}: incomplete tensor options args: {tensor_options_args_names}')
 
         inits.append(f'''\
-_r.args[{arg_parser_outputs['device'].index}] = npu_device_prase(_r.args[{arg_parser_outputs['device'].index}]); 
-auto local_device = {arg_parser_outputs['device'].expr};
-auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+auto device = npu_device_prase(_r.args[{arg_parser_outputs['device'].index}]);
 const auto options = TensorOptions()
     .dtype({arg_parser_outputs['dtype'].expr})
     .device(device)

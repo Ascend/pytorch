@@ -21,18 +21,11 @@
 
 
 import argparse
-from importlib.resources import open_binary
 import re
 from collections import defaultdict, namedtuple
 from typing import Dict, Optional, List, Tuple, Set, Sequence, Callable
 
 import yaml
-try:
-    # use faster C loader if available
-    from yaml import CLoader as Loader
-except ImportError:
-    from yaml import Loader  # type: ignore
-
 from codegen.code_template import CodeTemplate
 from codegen.api import cpp
 from codegen.api.python import (PythonSignature,
@@ -636,29 +629,18 @@ def emit_single_dispatch(
 
         # dispatch lambda signature
         name = cpp.name(f.func)
-        if custom:
-            lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
-                                       dispatch_lambda_args(ps, f, True)))
-        else:
-            lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
-                                       dispatch_lambda_args(ps, f, False)))
-
+        lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
+                                    dispatch_lambda_args(ps, f, custom)))
         lambda_return = dispatch_lambda_return_str(f)
 
         # dispatch lambda body
         record_func_define = cpp_record_func(f, custom=custom)
         dispatch_callee = cpp_dispatch_target(f, custom=custom)
-        if custom:
-            dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=True))
-        else:
-            dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=False))
+        dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
 
         # from arg parser outputs to dispatch lambda arguments
         parser_outputs = arg_parser_output_exprs(ps, f)
-        if custom:
-            lambda_arg_exprs = dispatch_lambda_exprs(ps, f, True)
-        else:
-            lambda_arg_exprs = dispatch_lambda_exprs(ps, f, False)
+        lambda_arg_exprs = dispatch_lambda_exprs(ps, f, custom)
         inits = '\n'.join(lambda_arg_exprs.inits)
         lambda_args = ', '.join(lambda_arg_exprs.exprs)
 
@@ -695,12 +677,6 @@ return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad
 
     return go(f)
 
-class LineLoader(Loader):
-    def construct_mapping(self, node, deep=False):  # type: ignore
-        mapping = super().construct_mapping(node, deep=deep)  # type: ignore
-        # Add 1 so line numbering starts at 1
-        mapping['__line__'] = node.start_mark.line + 1
-        return mapping
 # Parse native_functions.yaml into a sequence of NativeFunctions
 def parse_native_yaml(path: str) -> List[NativeFunction]:
     from io import StringIO

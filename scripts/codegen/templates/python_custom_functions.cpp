@@ -64,7 +64,7 @@ namespace torch_npu { namespace autograd {
 static PyObject* THPVariableFunctionsModule = NULL;
 
 const std::string npu_device_str = "npu";
-const std::string default_device_str = "cuda";
+const std::string default_device_str = "xla";
 
 // generated forward declarations start here
 
@@ -108,18 +108,27 @@ inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, const Tenso
   return torch::arange(start, end, step, options);
 }
 
-inline static PyObject * npu_device_prase(PyObject* obj) {
-  try {
-    if (obj) {
-      std::string device_str = THPUtils_unpackString(obj);
+inline static at::Device npu_device_prase(PyObject* obj) {
+  if (!obj) {
+    return at::Device(c10::backendToDeviceType(c10::dispatchKeyToBackend(torch::tensors::get_default_dispatch_key())));
+  }
+  if (THPUtils_checkLong(obj)) {
+    const auto device_index = THPUtils_unpackLong(obj);
+    TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+    return at::Device(at_npu::key::NativeDeviceType, device_index);
+  }
+  if (THPUtils_checkString(obj)) {
+    std::string device_str = THPUtils_unpackString(obj);
+    if (device_str.find(npu_device_str) != std::string::npos) {
       device_str = device_str.replace(device_str.find(npu_device_str), npu_device_str.length(), default_device_str);
-      obj = THPUtils_internString(device_str);
     }
-    return obj;
-  } catch(...) {
-    return obj;
+    return at::Device(device_str);
   }
 
+  if (THPDevice_Check(obj)) {
+    const auto device = reinterpret_cast<THPDevice*>(obj);
+    return device->device;
+  }
 }
 
 static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* kwargs)
@@ -138,9 +147,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
   }
 
   if (r.idx == 0) {
-    r.args[4] = npu_device_prase(r.args[4]);
-    auto local_device = r.device(4);
-    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    auto device  = npu_device_prase(r.args[4]);
     if (r.isNone(1)) {
       auto end = r.scalar(0);
       // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
@@ -159,9 +166,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
       return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.tensor(1)).set_requires_grad(r.toBool(6)));
     }
   } else if (r.idx == 1) {
-    r.args[6] = npu_device_prase(r.args[6]);
-    auto local_device = r.device(6);
-    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    auto device = npu_device_prase(r.args[6]);
     if (r.isNone(3)) {
       auto start = r.scalar(0);
       auto end = r.scalar(1);
@@ -207,9 +212,7 @@ static PyObject * THPVariable_range(PyObject* self, PyObject* args, PyObject* kw
 
   torch::ParsedArgs<8> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-  r.args[6] = npu_device_prase(r.args[6]);
-  auto local_device = r.device(6);
-  auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+  auto device = npu_device_prase(r.args[6]);
   if (r.idx == 0) {
     auto ret = PyErr_WarnEx(
         PyExc_UserWarning,
@@ -280,9 +283,7 @@ static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwa
 
   auto size = r.intlist(0);
   auto fill_val = r.scalar(1);
-  r.args[5] = npu_device_prase(r.args[5]);
-  auto local_device = r.device(5);
-  auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+  auto device = npu_device_prase(r.args[5]);
   const auto options = TensorOptions{}
       .dtype(r.scalartypeOptional(3))
       .layout(r.layout(4))
@@ -371,9 +372,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
   }
 
   if (r.idx == 0) {
-    r.args[6] = npu_device_prase(r.args[6]);
-    auto local_device = r.device(6);
-    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    auto device = npu_device_prase(r.args[6]);
     if (r.isNone(3)) {
       auto high = r.toInt64(0);
       auto size = r.intlist(1);
@@ -392,9 +391,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
       return torch::autograd::utils::wrap(dispatch_randint(r.toInt64(0), r.intlist(1), r.generator(2), r.tensor(3)).set_requires_grad(r.toBool(7)));
     }
   } else if (r.idx == 1) {
-    r.args[7] = npu_device_prase(r.args[7]);
-    auto local_device = r.device(7);
-    auto device = local_device.is_cuda() ? c10::Device(at_npu::key::NativeDeviceType, local_device.index()) : local_device;
+    auto device = npu_device_prase(r.args[7]);
     if (r.isNone(4)) {
       auto low = r.toInt64(0);
       auto high = r.toInt64(1);
