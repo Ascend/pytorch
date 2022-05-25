@@ -19,9 +19,9 @@ import os
 import torch_npu._C
 # this file is used to enhance the npu frontend API by set_option or other.
 
-__all__ = ["set_option", "set_dynamic_mode", "get_current_dynamic_mode", "set_aoe", "profile", "prof_init",
+__all__ = ["set_option", "set_compile_mode", "set_aoe", "profile", "prof_init",
             "prof_start", "prof_stop", "iteration_start", "iteration_end", "prof_finalize", "profileConfig",
-            "set_mm_bmm_format_nd", "get_current_dynamic_mode"]
+            "set_mm_bmm_format_nd"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -49,15 +49,9 @@ def finalize_dump():
     option = {"mdldumpswitch": "disable"}
     torch_npu._C._npu_setOption(option)
 
-_DYNAMIC_MODE=False
-def set_dynamic_mode(dynamic_mode=False):
-    global _DYNAMIC_MODE
-    _DYNAMIC_MODE = dynamic_mode
-    option = {"dynamicCompileswitch": "enable" if _DYNAMIC_MODE is True else "disable"}
+def set_compile_mode(jit_compile=True):
+    option = {"dynamicCompileswitch": "enable" if jit_compile is False else "disable"}
     torch_npu._C._npu_setOption(option)
-
-def get_current_dynamic_mode():
-    return _DYNAMIC_MODE
 
 def set_aoe(dump_path):
     if not os.path.exists(dump_path):
