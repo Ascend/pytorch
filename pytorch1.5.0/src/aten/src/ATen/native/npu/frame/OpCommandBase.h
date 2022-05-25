@@ -341,7 +341,7 @@ class OpCommandBase {
     if (commonType.has_value()) {
       type = commonType.value();
     }
-    storage.emplace_back(at::scalar_tensor(scalar, at::device(at::kCPU).dtype(type)));
+    storage.emplace_back(scalar_to_tensor(scalar).to(type));
     return storage.back();
   }
   SmallVector<Tensor, N> storage; // tensor's life cycle should maintain when Run() is called

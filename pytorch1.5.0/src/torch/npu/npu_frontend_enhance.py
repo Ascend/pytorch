@@ -16,11 +16,12 @@
 
 import os
 import torch._C
+import warnings
 # this file is used to enhance the npu frontend API by set_option or other.
 
 __all__ = ["set_option", "set_dump", "set_aoe", "init_dump", "finalize_dump", "global_step_inc",
             "set_start_fuzz_compile_step", "prof_init", "prof_start", "prof_stop", "prof_finalize",
-            "iteration_start", "iteration_end", "profile", "profileConfig"]
+            "iteration_start", "iteration_end", "profile", "profileConfig", "set_compile_mode"]
 
 def set_option(option):
     if not isinstance(option, dict):
@@ -63,6 +64,9 @@ def set_aoe(dump_path):
 _GLOBAL_STEP = 0
 _START_FUZZ_COMPILE_STEP = 1
 def global_step_inc():
+    warnings.warn((
+        "torch.npu.global_step_inc is deprecated and will be removed in a future "
+        "release. Please use torch.npu.set_compile_mode(jit_compile=False) instead"))
     global _GLOBAL_STEP
     _GLOBAL_STEP += 1
 
@@ -79,6 +83,9 @@ def set_start_fuzz_compile_step(step):
     option = {"fuzzycompileswitch": "disable"}
     torch._C._npu_setOption(option)
 
+def set_compile_mode(jit_compile=True):
+    option = {"fuzzycompileswitch": "enable" if jit_compile is False else "disable"}
+    torch._C._npu_setOption(option)
 
 class npuEvent(object):
     def __init__(self):    

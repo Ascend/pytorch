@@ -26,9 +26,9 @@ using namespace at::native::npu;
 
 /*****************************************
 Function: is_transpose_last_two_dims_flex
-Description: 
+Description:
   Flexible transpose judgement for view+transpose+Matmul, i.e.,
-  tensors with dim=2 and base_size_.size=n can also be Matmul directly! 
+  tensors with dim=2 and base_size_.size=n can also be Matmul directly!
 Return:
   True--Cases are flex transposed(flex transpose=strict transpose+view
     transpose), which can be refreshed as a input transposed tensor proceed to Matmul:
@@ -128,7 +128,7 @@ Tensor& mm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
       bool pass = false;
       return std::tie(pass, contiguousMat2);
   };
-  
+
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("MatMul")
@@ -156,11 +156,17 @@ Tensor& mm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
 
 Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   // calculate the output size
-  auto outputSize = mm_npu_output_size(self, mat2); 
-  
+  const static int SPLIT_K_MULTI = 8;
+  auto outputSize = mm_npu_output_size(self, mat2);
+  auto k_dim = self.size(1);
+  bool split_k_dtype_correct =
+      self.dtype() == ScalarType::Half && mat2.dtype() == ScalarType::Half;
+  bool split_k_condition = k_dim >= SPLIT_K_MULTI * std::max(self.size(0), mat2.size(1));
+  bool split_k = split_k_dtype_correct && split_k_condition;
   // construct the output tensor of the NPU
+  Tensor result_tmp;
   Tensor result;
-  
+  Tensor mat2_tmp = mat2;
   // TODO(ASCEND): 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == ScalarType::Half) && !c10::npu::OptionsManager::CheckSwitchMMOutputEnable()) {
     // check is 16-algined with high-performance
@@ -173,16 +179,26 @@ Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
     if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) &&
         FormatHelper::IsBaseFormatType(mat2) && isAligin()) {
-      result = at::empty_with_format(outputSize, self.options());
+      if (split_k) {
+        result_tmp = at::empty_with_format(outputSize, self.options().dtype(ScalarType::Float), ACL_FORMAT_FRACTAL_NZ);
+      } else {
+        result_tmp = at::empty_with_format(outputSize, self.options());
+      }
     } else {
-      result = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+      if (split_k) {
+        mat2_tmp = mat2.npu_format_cast(ACL_FORMAT_FRACTAL_NZ);
+        result_tmp = at::empty_with_format(outputSize, self.options().dtype(ScalarType::Float), ACL_FORMAT_FRACTAL_NZ);
+      } else {
+        result_tmp = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+      }
     }
   } else {
-    result = at::empty_with_format(outputSize, self.options());
+    result_tmp = at::empty_with_format(outputSize, self.options());
   }
 
   // calculate the output result of the NPU
-  mm_out_npu(result, self, mat2);
+  mm_out_npu(result_tmp, self, mat2_tmp);
+  result = split_k ? result_tmp.npu_dtype_cast(ScalarType::Half) : result_tmp;
   return result;
 }
 

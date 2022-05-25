@@ -65,7 +65,6 @@ Tensor& bmm_out_npu(Tensor& result, const Tensor& self, const Tensor& mat2) {
 Tensor bmm_npu(const Tensor& self, const Tensor& mat2) {
   // calculate the output size
   auto outputSize = {self.size(0), self.size(1), mat2.size(2)};
-
   // construct the output tensor of the NPU
   Tensor result;
 
@@ -79,19 +78,18 @@ Tensor bmm_npu(const Tensor& self, const Tensor& mat2) {
              (!(static_cast<uint64_t>(mat2.size(2)) & 0x0000000F));
     };
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
-    if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) && 
-        FormatHelper::IsBaseFormatType(mat2) && isAligin() ) {
+    if (env::CheckMmBmmNDEnable() && FormatHelper::IsBaseFormatType(self) &&
+        FormatHelper::IsBaseFormatType(mat2) && isAligin()) {
       result = at::empty_with_format(outputSize, self.options());
     } else {
-      result = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+      result = at::empty_with_format(
+          outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
     }
   } else {
     result = at::empty_with_format(outputSize, self.options(), ACL_FORMAT_ND);
   }
-
   // calculate the output result of the NPU
   bmm_out_npu(result, self, mat2);
-
   return result;
 }
 } // namespace native

@@ -76,5 +76,5 @@ class TestReplicationPad2d(TestCase):
 
 instantiate_device_type_tests(TestReplicationPad2d, globals(), except_for="cpu")
 if __name__ == "__main__":
-    torch.npu.global_step_inc()
+    torch.npu.set_compile_mode(jit_compile=False)
     run_tests()
