@@ -17,7 +17,7 @@
 from typing import Union, Sequence, List, Optional
 
 from codegen.model import (Argument, FunctionSchema, Return,
-                           SelfArgument, TensorOptionsArguments, Type,
+                           SelfArgument, TensorOptionsArguments, Type, UseC10Dispatcher,
                            assert_never)
 
 from codegen.api.types import (ArgName, BaseCType, Binding,
@@ -53,10 +53,6 @@ def argumenttype_type(t: Type, *, mutable: bool, binds: ArgName) -> NamedCType:
             return NamedCType(binds, ConstRefCType(tensor_type))
     elif str(t) == 'Tensor?[]':
         return NamedCType(binds, ConstRefCType(ListCType(OptionalCType(BaseCType(tensorT)))))
-    elif str(t) == 'Scalar':
-        return NamedCType(binds, ConstRefCType(BaseCType(scalarT)))
-    elif str(t) == 'Scalar?':
-        return NamedCType(binds, ConstRefCType(OptionalCType(BaseCType(scalarT))))
     return cpp.argumenttype_type(t, mutable=mutable, binds=binds)
 
 def returns_type(rs: Sequence[Return]) -> CType:
@@ -124,4 +120,15 @@ def arguments(func: FunctionSchema) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     args.extend(func.arguments.non_out)
     args.extend(func.arguments.out)
+    return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]
+
+def native_arguments(func: FunctionSchema, dispatch: UseC10Dispatcher) -> List[Binding]:
+    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
+    if dispatch is UseC10Dispatcher.full:
+        args.extend(func.arguments.non_out)
+        args.extend(func.arguments.out)
+    else:
+        args.extend(func.arguments.out)
+        args.extend(func.arguments.non_out)
+
     return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]

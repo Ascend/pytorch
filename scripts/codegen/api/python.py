@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -708,7 +708,7 @@ def signature(f: NativeFunction, *, method: bool = False, pyi: bool = False) -> 
         _input_kwargs = tuple(map(argument, filter(lambda a: a.name in kwarg_only_set, args)))
         _outputs = tuple(map(argument, filter(lambda a: a.name in out_arg_set, args)))
         return _input_args, _input_kwargs, _outputs
-    
+
     input_args, input_kwargs, outputs = get_args(f, method)
     # Reintroduce the scattered fields of TensorOptions for Python.
     # Compared to the cpp counterpart, the python arguments have new property
