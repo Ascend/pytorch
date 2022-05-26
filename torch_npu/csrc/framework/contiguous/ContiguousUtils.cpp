@@ -49,13 +49,14 @@ void ContiguousTensorDesc::find_match_optimization_cases() {
   for (auto i = 0; i < sizes_.size(); i++) {
     if (strides_[i] == 0) {
       opt_cases_.emplace_back("broadcast");
-      // (Ascend):Combined_opt cannot process broadcast+x.]
+      return;
     }
   }
 
   for (auto i = 0; i < strides_.size() - 1; i++) {
     if (strides_[i] < strides_[i + 1]) {
       opt_cases_.emplace_back("permute");
+      return;
     }
   }
 
@@ -64,6 +65,7 @@ void ContiguousTensorDesc::find_match_optimization_cases() {
     opt_cases_.emplace_back("slice");
     opt_cases_.emplace_back("select");
     opt_cases_.emplace_back("indexing");
+    return;
   }
 }
 
