@@ -15,6 +15,7 @@
 
 from .module import apply_module_patch
 from .tensor_methods import add_tensor_methods
+from .torch_funcs import add_torch_funcs
 from .serialization import save, load
 from ._tensor_str import add_str_methods
 from .dataloader import add_dataloader_method
