@@ -63,11 +63,18 @@ void GraphExecutor::RunGraph(
   aclrtStream cal_stream =
       const_cast<aclrtStream>(c10_npu::getCurrentNPUStream().stream());
 
-  auto ret = session_->RunGraphWithStreamAsync(graph_id,
-                                               cal_stream,
-                                               inputs.tensors,
-                                               outputs.tensors);
-  TORCH_CHECK(ret == 0, "Run Graph Failed!");
+  auto start_time = std::chrono::steady_clock::now();
+  C10_NPU_CHECK(session_->RunGraphWithStreamAsync(graph_id,
+                                                  cal_stream,
+                                                  inputs.tensors,
+                                                  outputs.tensors));
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::steady_clock::now() - start_time);
+  if (verbose_) {
+    NPU_LOGI("RunGraph Time: duration = %.3f ms",static_cast<double>(duration.count()) *
+                                                 std::chrono::microseconds::period::num /
+                                                 std::chrono::milliseconds::period::den);
+  }
 }
 
 void GraphExecutor::ConstructAndExecuteGraph() {
@@ -99,11 +106,18 @@ void GraphExecutor::ConstructAndExecuteGraph() {
     ge::Graph graph(kPytorchGraphName);
     graph.SetInputs(GetInputOps()).SetOutputs(GetOutputOps());
 
-    TORCH_CHECK(
-        session_->AddGraph(cur_graph_id, graph) == 0, "AddGraph failed!");
+    C10_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
     graph_id = cur_graph_id;
   } else {
     cur_graph_id = cached_graph_id.value();
+  }
+
+  size_t input_number = inputs.tensors.size();
+  size_t output_number = outputs.tensors.size();
+  if (verbose_) {
+    string is_cache = cached_graph_id.has_value() ? "true" : "false";
+    NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
+             cur_graph_id, is_cache.c_str(), input_number, output_number);
   }
 
   RunGraph(cur_graph_id, inputs, outputs);

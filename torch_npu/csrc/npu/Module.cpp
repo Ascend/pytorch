@@ -167,9 +167,11 @@ PyObject * THNPModule_setStream_wrap(PyObject *self, PyObject *obj)
   END_HANDLE_TH_ERRORS
 }
 
-PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* arg) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
+  bool verbose = THPUtils_unpackBool(arg);
+  at_npu::native::GraphExecutor::GetInstance().SetVerbose(verbose);
   c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::GRAPH_MODE);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
@@ -513,7 +515,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_getCurrentStream", (PyCFunction)THNPModule_getCurrentStream_wrap, METH_O, nullptr},
     {"_npu_getDefaultStream", (PyCFunction)THNPModule_getDefaultStream_wrap, METH_O, nullptr},
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
-    {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_O, nullptr},
     {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
