@@ -218,8 +218,7 @@ at::Tensor& OpCommand::CreateScalarTensor(const c10::Scalar &scalar, at::ScalarT
   if (commonType.has_value()) {
     type = commonType.value();
   }
-  static const auto &option = at::device(at::kCPU);
-  storage.emplace_back(std::move(at::scalar_tensor(scalar, option.dtype(type))));
+  storage.emplace_back(scalar_to_tensor(scalar).to(type));
   return storage.back();
 }
 
