@@ -170,7 +170,7 @@ def ddp_forward(self, *inputs, **kwargs):
     if self.ddp_uneven_inputs_config.ddp_join_enabled:
         # Notify joined ranks whether they should sync in backwards pass or not.
         self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    if self.device_ids and not torch_npu.is_npu(self):
+    if self.device_ids and self.device_type != torch_npu.npu.native_device:
         if len(self.device_ids) == 1:
             inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
             output = self.module(*inputs[0], **kwargs[0])
