@@ -15,6 +15,7 @@
 
 #include "GraphExecutor.h"
 
+#include <Python.h>
 #include <ATen/ATen.h>
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/framework/graph/util/ATenGeBridge.h"
@@ -120,7 +121,15 @@ void GraphExecutor::ConstructAndExecuteGraph() {
              cur_graph_id, is_cache.c_str(), input_number, output_number);
   }
 
-  RunGraph(cur_graph_id, inputs, outputs);
+  // Release GIL to avoid deadlocks.
+  if (PyGILState_Check()) {
+    Py_BEGIN_ALLOW_THREADS
+    RunGraph(cur_graph_id, inputs, outputs);
+    Py_END_ALLOW_THREADS
+  } else {
+    RunGraph(cur_graph_id, inputs, outputs);
+  }
+
   ScalarMemContext::GetContext().Reset();
   ResetGraphOutputs();
   if (!cached_graph_id.has_value()) {
