@@ -62,7 +62,7 @@ def _npu(self, *args, **kwargs):
     warnings.warn(warning_str.format("npu"))
     return torch_npu._C.npu(self, *args, **kwargs)
 
-
+@property
 def _is_npu(self):
     warnings.warn(warning_str.format("is_npu"))
     return torch_npu._C.is_npu(self)
