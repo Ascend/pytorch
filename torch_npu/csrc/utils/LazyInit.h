@@ -14,6 +14,10 @@ static bool isNPUDevice(const at::TensorOptions& options) {
     return options.device().type() == at_npu::key::NativeDeviceType;
 }
 
+static bool isNPUDevice(const at::Device& device) {
+  return device.type() == at_npu::key::NativeDeviceType;
+}
+
 static void maybe_initialize_npu(const at::TensorOptions& options) {
   if (isNPUDevice(options)) {
     {
@@ -26,6 +30,27 @@ static void maybe_initialize_npu(const at::TensorOptions& options) {
       }
     }
     torch_npu::utils::npu_lazy_init();
+  }
+}
+
+static void maybe_initialize_npu(const at::Device& device) {
+  if (isNPUDevice(device)) {
+    {
+      pybind11::gil_scoped_release no_gil;
+      c10_npu::NpuSysCtrl::SysStatus status =
+          c10_npu::NpuSysCtrl::GetInstance().Initialize(device.index());
+      if (status !=
+          c10_npu::NpuSysCtrl::SysStatus::INIT_SUCC) {
+        throw python_error();
+      }
+    }
+    torch_npu::utils::npu_lazy_init();
+  }
+}
+
+static void maybe_initialize_npu(const c10::optional<at::Device>& device) {
+  if (device) {
+    maybe_initialize_npu(*device);
   }
 }
 

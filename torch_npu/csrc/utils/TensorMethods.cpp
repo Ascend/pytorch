@@ -12,7 +12,7 @@ std::tuple<at::Tensor, c10::optional<at::Device>, c10::optional<at::ScalarType>,
   if (r.idx == 0) {
     if (!allow_copy && !r.isNone(4))
       throw std::runtime_error(".to() does not accept copy argument");
-    return std::make_tuple(r.tensor(0), r.deviceOptional(1), r.scalartypeOptional(2), r.toBool(3), r.toBool(4), r.memoryformatOptional(5));
+    return std::make_tuple(r.tensor(0), at_npu::key::parse_npu_device_optional(r.args[1]), r.scalartypeOptional(2), r.toBool(3), r.toBool(4), r.memoryformatOptional(5));
   } else if (r.idx == 1) {
     if (!allow_copy && !r.isNone(4))
       throw std::runtime_error(".to() does not accept copy argument");

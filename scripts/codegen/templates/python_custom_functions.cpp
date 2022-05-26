@@ -63,9 +63,6 @@ namespace torch_npu { namespace autograd {
 
 static PyObject* THPVariableFunctionsModule = NULL;
 
-const std::string npu_device_str = "npu";
-const std::string default_device_str = "xla";
-
 // generated forward declarations start here
 
 ${py_forwards}
@@ -108,28 +105,6 @@ inline Tensor dispatch_arange(Scalar start, Scalar end, Scalar step, const Tenso
   return torch::arange(start, end, step, options);
 }
 
-inline static at::Device npu_device_prase(PyObject* obj) {
-  if (!obj) {
-    return at::Device(c10::backendToDeviceType(c10::dispatchKeyToBackend(torch::tensors::get_default_dispatch_key())));
-  }
-  if (THPUtils_checkLong(obj)) {
-    const auto device_index = THPUtils_unpackLong(obj);
-    TORCH_CHECK(device_index >= 0, "Device index must not be negative");
-    return at::Device(at_npu::key::NativeDeviceType, device_index);
-  }
-  if (THPUtils_checkString(obj)) {
-    std::string device_str = THPUtils_unpackString(obj);
-    if (device_str.find(npu_device_str) != std::string::npos) {
-      device_str = device_str.replace(device_str.find(npu_device_str), npu_device_str.length(), default_device_str);
-    }
-    return at::Device(device_str);
-  }
-
-  if (THPDevice_Check(obj)) {
-    const auto device = reinterpret_cast<THPDevice*>(obj);
-    return device->device;
-  }
-}
 
 static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* kwargs)
 {
@@ -147,7 +122,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
   }
 
   if (r.idx == 0) {
-    auto device  = npu_device_prase(r.args[4]);
+    auto device  = at_npu::key::parse_npu_device(r.args[4]);
     if (r.isNone(1)) {
       auto end = r.scalar(0);
       // NOTE: r.scalartype(X) gives the default dtype if r.isNone(X)
@@ -166,7 +141,7 @@ static PyObject * THPVariable_arange(PyObject* self, PyObject* args, PyObject* k
       return torch::autograd::utils::wrap(dispatch_arange(r.scalar(0), r.tensor(1)).set_requires_grad(r.toBool(6)));
     }
   } else if (r.idx == 1) {
-    auto device = npu_device_prase(r.args[6]);
+    auto device = at_npu::key::parse_npu_device(r.args[6]);
     if (r.isNone(3)) {
       auto start = r.scalar(0);
       auto end = r.scalar(1);
@@ -212,7 +187,7 @@ static PyObject * THPVariable_range(PyObject* self, PyObject* args, PyObject* kw
 
   torch::ParsedArgs<8> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-  auto device = npu_device_prase(r.args[6]);
+  auto device = at_npu::key::parse_npu_device(r.args[6]);
   if (r.idx == 0) {
     auto ret = PyErr_WarnEx(
         PyExc_UserWarning,
@@ -283,7 +258,7 @@ static PyObject * THPVariable_full(PyObject* self, PyObject* args, PyObject* kwa
 
   auto size = r.intlist(0);
   auto fill_val = r.scalar(1);
-  auto device = npu_device_prase(r.args[5]);
+  auto device = at_npu::key::parse_npu_device(r.args[5]);
   const auto options = TensorOptions{}
       .dtype(r.scalartypeOptional(3))
       .layout(r.layout(4))
@@ -372,7 +347,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
   }
 
   if (r.idx == 0) {
-    auto device = npu_device_prase(r.args[6]);
+    auto device = at_npu::key::parse_npu_device(r.args[6]);
     if (r.isNone(3)) {
       auto high = r.toInt64(0);
       auto size = r.intlist(1);
@@ -391,7 +366,7 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
       return torch::autograd::utils::wrap(dispatch_randint(r.toInt64(0), r.intlist(1), r.generator(2), r.tensor(3)).set_requires_grad(r.toBool(7)));
     }
   } else if (r.idx == 1) {
-    auto device = npu_device_prase(r.args[7]);
+    auto device = at_npu::key::parse_npu_device(r.args[7]);
     if (r.isNone(4)) {
       auto low = r.toInt64(0);
       auto high = r.toInt64(1);
@@ -415,10 +390,58 @@ static PyObject * THPVariable_randint(PyObject* self_, PyObject* args, PyObject*
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THPVariable_tensor(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  if (kwargs && PyDict_Check(kwargs) && PyDict_Contains(kwargs, THPUtils_internString("device"))) {
+    PyObject* obj = PyDict_GetItem(kwargs, THPUtils_internString("device"));
+    auto device = at_npu::key::parse_npu_device(obj);
+    torch_npu::utils::maybe_initialize_npu(device);
+    PyDict_SetItem(kwargs, THPUtils_internString("device"), THPDevice_New(device));
+  }
+  return THPVariable_Wrap(torch::utils::tensor_ctor(torch::tensors::get_default_dispatch_key(), torch::tensors::get_default_scalar_type(), args, kwargs));
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject *THPVariable_new_device(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser({
+    "Device(Device device)",
+    "Device(std::string type, int64_t? index=-1)"
+  });
+  torch::ParsedArgs<2> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  if (r.idx == 0) {
+    auto device = at_npu::key::parse_npu_device(r.args[0]);
+    return THPDevice_New(device);
+  } else if (r.idx == 1) {
+    auto as_device = at_npu::key::parse_npu_device(r.args[0]);  // this works, because device can take strings
+    auto device_type = r.string(0);
+    if (as_device.has_index()) {
+      throw std::runtime_error("type (string) must not include an index because index "
+                                "was passed explicitly: " + device_type);
+    }
+    int32_t device_index = -1;
+    if (!r.isNone(1)) {
+      device_index = r.toInt64(1);
+      // -1 is allowed in ATen/C++, to mean the default device, but not in
+      // Python.
+      TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+    }
+    at::Device device(as_device.type(), device_index);
+    return THPDevice_New(device);
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 // XXX: ops that are bound here are not exposed to the C++ api nor the JIT.
 // Any new ops added here should be accompanied with a comment why they are not
 // being registered through native_functions.yaml, and be tagged cpp / JIT
 static PyMethodDef torch_functions[] = {
+  {"tensor", castPyCFunctionWithKeywords(THPVariable_tensor), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
+  {"new_device", castPyCFunctionWithKeywords(THPVariable_new_device), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"arange", castPyCFunctionWithKeywords(THPVariable_arange), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"full", castPyCFunctionWithKeywords(THPVariable_full), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"randint", castPyCFunctionWithKeywords(THPVariable_randint), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},

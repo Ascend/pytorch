@@ -17,10 +17,15 @@
 import torch
 import torch_npu
 
+
+
 def add_torch_funcs():
+    torch.device = torch_npu.new_device
+    torch.tensor = torch_npu.tensor
     torch.full = torch_npu.full
     torch.randint = torch_npu.randint
     torch.range = torch_npu.range
     torch.arange = torch_npu.arange
+    torch.empty_with_format = torch_npu.empty_with_format
 
 ${device_methods_def_py}
