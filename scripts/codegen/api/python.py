@@ -1047,7 +1047,7 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
             BaseTy.float: 'toDouble',
-            BaseTy.str: 'stringView'
+            BaseTy.str: 'string'
         }
         if t.name in [BaseTy.Tensor, BaseTy.Stream, BaseTy.Storage,
                       BaseTy.Scalar, BaseTy.Dimname]:
@@ -1221,13 +1221,14 @@ def dispatch_lambda_exprs(
                 f'{f.func}: incomplete tensor options args: {tensor_options_args_names}')
 
         inits.append(f'''\
+auto device = npu_device_prase(_r.args[{arg_parser_outputs['device'].index}]);
 const auto options = TensorOptions()
     .dtype({arg_parser_outputs['dtype'].expr})
-    .device({arg_parser_outputs['device'].expr})
+    .device(device)
     .layout({arg_parser_outputs['layout'].expr})
     .requires_grad({arg_parser_outputs['requires_grad'].expr})
     .pinned_memory({arg_parser_outputs['pin_memory'].expr});
-torch::utils::maybe_initialize_cuda(options);
+torch_npu::utils::maybe_initialize_npu(options);
 ''')
         lambda_args_exprs['options'] = 'options'
 

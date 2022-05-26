@@ -26,10 +26,7 @@
       ##__VA_ARGS__)
 #define NPU_LOGI(fmt, ...)         \
   printf(                          \
-      "[INFO]%s,%s:%u:" #fmt "\n", \
-      __FUNCTION__,                \
-      __FILE__,                    \
-      __LINE__,                    \
+      "[INFO]:" #fmt "\n",         \
       ##__VA_ARGS__)
 
 #ifdef USE_NPU_LOG

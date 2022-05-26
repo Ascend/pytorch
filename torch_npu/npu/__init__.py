@@ -15,7 +15,7 @@
 # limitations under the License.
 
 __all__ = [
-    "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
+    "native_device", "is_initialized", "_lazy_call", "_lazy_init", "init", "set_dump",
     "synchronize", "device_count", "set_device", "current_device",
     "_get_device_index", "is_available", "device", "device_of",
     "stream", "current_stream", "default_stream", "init_dump",
@@ -28,13 +28,14 @@ __all__ = [
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
     "prof_start", "prof_stop", "prof_finalize",  "iteration_start", "iteration_end",
-    "profileConfig", "_in_bad_fork", "set_dynamic_mode", "get_current_dynamic_mode",
+    "profileConfig", "_in_bad_fork", "set_compile_mode",
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd"
 ]
 
 import torch
 
+from .device import __device__ as native_device
 from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     synchronize, device_count, set_device, current_device,
                     _get_device_index, is_available, device, device_of,
@@ -52,8 +53,7 @@ from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, iteration_start, iteration_end, 
-            profileConfig, set_dynamic_mode, get_current_dynamic_mode,
-            set_mm_bmm_format_nd, get_mm_bmm_format_nd)
+            profileConfig, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd)
 from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor, HalfTensor
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile

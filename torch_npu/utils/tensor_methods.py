@@ -62,7 +62,7 @@ def _npu(self, *args, **kwargs):
     warnings.warn(warning_str.format("npu"))
     return torch_npu._C.npu(self, *args, **kwargs)
 
-
+@property
 def _is_npu(self):
     warnings.warn(warning_str.format("is_npu"))
     return torch_npu._C.is_npu(self)
@@ -73,6 +73,10 @@ def _type(self, *args, **kwargs):
 
 
 def _to(self, *args, **kwargs):
+    if args and isinstance(args[0], str) and 'npu' in args[0]:
+        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
     return torch_npu._C.to(self, *args, **kwargs)
 
 
@@ -98,6 +102,36 @@ def _storage(self):
     return storage_impl(self)
 
 
+def empty_with_format(self, *args, **kwargs):
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
+    return torch_npu.empty_with_format(self, *args, **kwargs)
+
+
+def _new_empty(self, *args, **kwargs):
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
+    return torch_npu._C.new_empty(self, *args, **kwargs)
+
+
+def _new_empty_strided(self, *args, **kwargs):
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
+    return torch_npu._C.new_empty_strided(self, *args, **kwargs)
+
+
+def device(self, *args, **kwargs):
+    if isinstance(self, str) and 'npu' in self:
+        self = self.replace('npu', torch_npu.npu.native_device)
+    return torch._C.device(self, *args, **kwargs)
+
+
+def tensor(*args, **kwargs):
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
+    return torch._C._VariableFunctions.tensor(*args, **kwargs)
+
+
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
     torch.Tensor.npu_format_cast = npu_format_cast
@@ -112,3 +146,8 @@ def add_tensor_methods():
     torch.Tensor.is_npu = _is_npu
     torch.Tensor.record_stream = _record_stream
     torch.Tensor.storage = _storage
+    torch.empty_with_format = empty_with_format
+    torch.Tensor.new_empty = _new_empty
+    torch.Tensor.new_empty_strided = _new_empty_strided
+    torch.device = device
+    torch.tensor = tensor

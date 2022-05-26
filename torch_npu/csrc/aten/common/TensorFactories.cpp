@@ -129,7 +129,7 @@ namespace at_npu
       at::AutoNonVariableTypeMode non_var_type_mode(true);
       auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
       at::native::fill_(result, s);
-      return result.to("npu");
+      return result.to(at::device(at_npu::key::NativeDeviceType));
     }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,

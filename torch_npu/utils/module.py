@@ -49,6 +49,10 @@ def npu(self, device=None):
 
 
 def to(self, *args, **kwargs):
+    if args and isinstance(args[0], str) and 'npu' in args[0]:
+        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
+    if kwargs and kwargs.get("device", None) == 'npu':
+        kwargs['device'] = torch_npu.npu.native_device
     device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
 
     if dtype is not None:
@@ -70,7 +74,7 @@ def to(self, *args, **kwargs):
             with torch.no_grad():
                 self.cast_weight(device)
             if is_graph_mode:
-                torch_npu.npu.enable_graph_mode();
+                torch_npu.npu.enable_graph_mode()
 
     def convert(t):
         if convert_to_format is not None and t.dim() == 4:
@@ -119,7 +123,7 @@ def cast_weight(self, device):
             module.v_proj_weight.data = module.v_proj_weight.data.to(device)
             module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
-    if device is None or "npu" not in str(device):
+    if device is None or torch_npu.npu.native_device not in str(device):
         return
 
     current_class = self.__class__
@@ -166,7 +170,7 @@ def ddp_forward(self, *inputs, **kwargs):
     if self.ddp_uneven_inputs_config.ddp_join_enabled:
         # Notify joined ranks whether they should sync in backwards pass or not.
         self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    if self.device_ids and self.device_type != "npu":
+    if self.device_ids and self.device_type != torch_npu.npu.native_device:
         if len(self.device_ids) == 1:
             inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
             output = self.module(*inputs[0], **kwargs[0])
