@@ -23,7 +23,7 @@ namespace native {
 
 const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 
-bool NPUNativeFunctions::_amp_foreach_non_finite_check_(const at::Tensor& scaled_grad) {
+bool NPUNativeFunctions::_amp_foreach_non_finite_check_(at::TensorList scaled_grads) {
     TORCH_WARN_ONCE("Non finite check on NPU device!");
 
     auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
@@ -32,8 +32,10 @@ bool NPUNativeFunctions::_amp_foreach_non_finite_check_(const at::Tensor& scaled
 
     auto result = float_status[0].item().to<bool>();
 
-    auto ans_clear = NPUNativeFunctions::npu_clear_float_status(float_status);
-
+    if(result == true) {
+        auto ans_clear = NPUNativeFunctions::npu_clear_float_status(float_status);
+    }
+    
     return result;
 }
 
@@ -49,7 +51,7 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
         return;
     }
 
-    if (NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads[0]) == 0) {
+    if (NPUNativeFunctions::_amp_foreach_non_finite_check_(scaled_grads) == 0) {
         auto expected_device = scaled_grads[0].device();
         auto expected_dtype = scaled_grads[0].dtype();
         for (auto t : scaled_grads) {
@@ -63,10 +65,6 @@ void NPUNativeFunctions::_amp_foreach_non_finite_check_and_unscale_(at::TensorLi
     } else {
         found_inf.add_(1);
     }
-
-    auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
-    at::Tensor float_status = at::zeros({FLOAT_STATUS_OP_DIMS_SIZE}, options);
-    at::Tensor result = NPUNativeFunctions::npu_clear_float_status(float_status);
 }
 }
 }
