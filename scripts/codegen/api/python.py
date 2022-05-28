@@ -1170,17 +1170,17 @@ def dispatch_lambda_exprs(
     # 1. special inits/unpacking to provide binding exprs for lambda arguments.
     for a in ps.arguments(skip_tensor_options=not faithful):
         name = a.name
-        arg_parser_expr = arg_parser_outputs[a.name].expr
+        arg_parser_expr = arg_parser_outputs[a.name]
 
         if has_toptions and name == 'self':
             # TODO: why this needs to be special case?
             inits.extend([
-                f'auto self = {arg_parser_expr};',
+                f'auto self = {arg_parser_expr.expr};',
             ])
             lambda_args_exprs[name] = name
         elif isinstance(a, PythonOutArgument) and len(a.outputs) > 1 and f.func.is_out_fn():
             inits.extend([
-                f'auto out = {arg_parser_expr};',
+                f'auto out = {arg_parser_expr.expr};',
             ])
             for i, out_arg in enumerate(a.outputs):
                 lambda_args_exprs[out_arg.name] = f'out[{i}]'
@@ -1191,14 +1191,18 @@ def dispatch_lambda_exprs(
             # optional<vector<T>>, which cannot be implicitly converted to
             # optional<ArrayRef<T>>. One needs to unwrap the optional and rewrap.
             inits.extend([
-                f'auto __{name} = {arg_parser_expr};',
+                f'auto __{name} = {arg_parser_expr.expr};',  
                 (f'c10::optional<DimnameList> {name} = __{name} ?'
                  + f' c10::make_optional(DimnameList(__{name}.value())) : c10::nullopt;'),
             ])
             lambda_args_exprs[name] = name
         else:
             # default case - directly using PythonArgParser output expr
-            lambda_args_exprs[name] = arg_parser_expr
+            if name == "device":
+                lambda_args_exprs[name] = str("at_npu::key::parse_npu_device(_r.args[" + 
+                                                str(arg_parser_expr.index) + "])")
+            else:
+                lambda_args_exprs[name] = arg_parser_expr.expr
 
     # method's self is passed directly to python binding, rather than parsed
     if ps.method:
@@ -1221,7 +1225,7 @@ def dispatch_lambda_exprs(
                 f'{f.func}: incomplete tensor options args: {tensor_options_args_names}')
 
         inits.append(f'''\
-auto device = npu_device_prase(_r.args[{arg_parser_outputs['device'].index}]);
+auto device = at_npu::key::parse_npu_device(_r.args[{arg_parser_outputs['device'].index}]);
 const auto options = TensorOptions()
     .dtype({arg_parser_outputs['dtype'].expr})
     .device(device)

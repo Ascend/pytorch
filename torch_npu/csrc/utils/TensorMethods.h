@@ -15,6 +15,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/npu/Stream.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace torch_npu {
 namespace utils {
@@ -75,7 +76,7 @@ static PyObject * THPVariable_npu(PyObject* self, PyObject* args, PyObject* kwar
   auto device = c10::Device(at_npu::key::NativeDeviceType, local_device.index());
   auto opt_memory_format = r.memoryformatOptional(3);
   TORCH_CHECK((device.type() == at_npu::key::NativeDeviceType), "Invalid device, must be npu device");
-  InitNPUWithIndex(device.index());
+  maybe_initialize_npu(device);
   return THPVariable_Wrap(dispatch_to(self_, device, r.toBool(2), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
 }
@@ -96,17 +97,12 @@ static PyObject * THPVariable_to(PyObject* self, PyObject* args, PyObject* kwarg
   auto parsed = torch_npu::utils::parse_to_conversion(r, true);
   auto self_ = std::get<0>(parsed);
   auto& device = std::get<1>(parsed);
-  if (device && device->is_cuda()) {
-    device = c10::Device(at_npu::key::NativeDeviceType, device->index());
-  }
   auto& scalarType = std::get<2>(parsed);
   auto non_blocking = std::get<3>(parsed);
   auto copy = std::get<4>(parsed);
   auto opt_memory_format = std::get<5>(parsed);
 
-  if (device && (device->type() == at_npu::key::NativeDeviceType)) {
-    InitNPUWithIndex(device->index());
-  }
+  maybe_initialize_npu(device);
   if (!device && !scalarType && !copy && !opt_memory_format.has_value()) {
     Py_INCREF(self);
     return THPVariable_Wrap(self_);
@@ -171,9 +167,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
       device = at::Device(device_type);
     }
   }
-  if ((device.type() == at_npu::key::NativeDeviceType)) {
-    InitNPUWithIndex(device.index());
-  }
+  maybe_initialize_npu(device);
   return THPVariable_Wrap(dispatch_to(self_, device, scalar_type, r.toBool(1), false, opt_memory_format));
   END_HANDLE_TH_ERRORS
 }
@@ -191,7 +185,7 @@ static PyObject * THPVariable_is_npu(PyObject* self, PyObject* args, PyObject* k
   END_HANDLE_TH_ERRORS
 }
 
-static PyObject * THPVariable_new_empty(PyObject* self_, PyObject* args, PyObject* kwargs)
+static PyObject * THPVariable_new_empty(PyObject* self, PyObject* args, PyObject* kwargs)
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser(
@@ -207,9 +201,11 @@ static PyObject * THPVariable_new_empty(PyObject* self_, PyObject* args, PyObjec
   if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
+  auto device = at_npu::key::parse_npu_device_with_default(r.args[4], self_.device());
+  maybe_initialize_npu(device);
   const auto options = at::TensorOptions()
       .dtype(r.scalartypeWithDefault(2, self_.scalar_type()))
-      .device(r.deviceWithDefault(4, self_.device()))
+      .device(device)
       .layout(r.layoutWithDefault(3, c10::layout_from_backend(self_.options().backend())))
       .requires_grad(r.toBool(6))
       .pinned_memory(r.toBool(5));
@@ -239,9 +235,11 @@ static PyObject * THPVariable_new_empty_strided(PyObject* self_, PyObject* args,
   if (r.has_torch_function()) {
     return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
   }
+  auto device = at_npu::key::parse_npu_device_with_default(r.args[5], self_.device());
+  maybe_initialize_npu(device);
   const auto options = at::TensorOptions()
       .dtype(r.scalartypeWithDefault(3, self_.scalar_type()))
-      .device(r.deviceWithDefault(5, self_.device()))
+      .device(device)
       .layout(r.layoutWithDefault(4, c10::layout_from_backend(self_.options().backend())))
       .requires_grad(r.toBool(7))
       .pinned_memory(r.toBool(6));

@@ -633,6 +633,12 @@ def emit_single_dispatch(
                                     dispatch_lambda_args(ps, f, custom)))
         lambda_return = dispatch_lambda_return_str(f)
 
+        # device init
+        if custom and ("Device" in str(f.func)):
+            init_npu_device = f"torch_npu::utils::maybe_initialize_npu(device);"
+        else:
+            init_npu_device = f"//"
+
         # dispatch lambda body
         record_func_define = cpp_record_func(f, custom=custom)
         dispatch_callee = cpp_dispatch_target(f, custom=custom)
@@ -654,6 +660,7 @@ def emit_single_dispatch(
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
+  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
   {dispatch_callee}({dispatch_args});
@@ -668,6 +675,7 @@ Py_RETURN_NONE;
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
+  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
   {record_func_define}
   return {dispatch_callee}({dispatch_args});
