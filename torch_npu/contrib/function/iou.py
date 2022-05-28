@@ -140,6 +140,105 @@ def npu_giou(boxes1,
     return out
 
 
+def npu_diou(boxes1, 
+             boxes2, 
+             trans=True, 
+             is_cross=False, 
+             mode=0,
+             ):
+    """ Applies an NPU based DIOU operation.
+
+    Taking into account the distance between the targets, 
+    the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
+
+    Compute Function:
+    iou = overlap_area / union_area
+    diou = iou - p * p(b,bgt) / c * c
+    
+    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively, 
+    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance 
+    of the smallest closure region that can contain both the predicted box and the ground-truth box.
+
+    .. note::
+
+    Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
+    need to back propagation, please ensure your parameter is correct!
+        
+    Examples::
+    >>> box1 = torch.randn(4, 32)
+    >>> box1.requires_grad = True
+    >>> box2 = torch.randn(4, 32)
+    >>> box2.requires_grad = True
+    >>> diou = npu_diou(box1, box2) # (1, 32)
+    >>> l = diou.sum()
+    >>> l.backward()
+
+    Args:
+        boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+        boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+        trans (Bool): Whether there is an offset
+        is_cross (Bool): Whether there is a cross operation between box1 and box2.
+        mode (int):  Select the calculation mode of diou.
+
+    Returns:
+        Tensor: IoU, sized [1, n].
+
+    .. Paper: https://arxiv.org/pdf/1911.08287.pdf
+    """
+
+    out = torch_npu.npu_diou(boxes1, boxes2, trans, is_cross, mode)
+
+    return out
+
+def npu_ciou(boxes1, 
+             boxes2,
+             trans=True, 
+             is_cross=False, 
+             mode=0,
+             ):
+    """ Applies an NPU based CIOU operation.
+
+    A penalty item is added on the basis of DIoU, and CIoU is proposed
+
+    Compute Function:
+    iou = overlap_area / union_area
+    ciou = 1 - iou + p * p(b,bgt) / c * c + αv
+
+    Among them, b and bgt represent the center points of the predicted frame and the real frame, respectively, 
+    and ρ represents the Euclidean distance between the two center points. c represents the diagonal distance 
+    of the smallest closure region that can contain both the predicted box and the ground-truth box. α is the 
+    weight function, v is used to measure the similarity of the aspect ratio.
+    
+    .. note::
+        Util now, ciou only support is_cross==False, atan_sub_flag==True.
+        
+    Examples::
+    >>> box1 = torch.randn(4, 32)
+    >>> box1.requires_grad = True
+    >>> box2 = torch.randn(4, 32)
+    >>> box2.requires_grad = True
+    >>> ciou = npu_ciou(box1, box2) # (1, 32)
+    >>> l = ciou.sum()
+    >>> l.backward()
+
+    Args:
+        boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+        boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+        trans (Bool): Whether there is an offset
+        is_cross (Bool): Whether there is a cross operation between box1 and box2.
+        mode (int):  Select the calculation mode of diou.
+        atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
+
+    Returns:
+        Tensor: IoU, sized [1, n].
+
+    """
+
+    out = torch_npu.npu_ciou(boxes1, boxes2, trans, is_cross, mode, True)
+
+    return out
+
+
 if __name__ == "__main__":
     torch.npu.set_device(0)
 
