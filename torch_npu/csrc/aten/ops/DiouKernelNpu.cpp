@@ -67,12 +67,6 @@ at::Tensor diou_npu(
     bool trans,
     bool is_cross,
     int64_t mode) {
-  TORCH_CHECK(trans && !is_cross &&  mode == 0,
-      "diou backward only support trans==True, ",
-      "is_cross==False, ",
-      "mode==0('iou') current version ",
-      "if you need to back propagation, ",
-      "please ensure your parameter is correct!");
   // Op need form of [n, 4], but pass should be [4, n];
   // Note: temp avoid! it'll be removed while op deal with fp16 issue!
   at::Tensor selfCp = self;
@@ -125,12 +119,6 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_diou_backward(
     bool trans,
     bool is_cross,
     int64_t mode){
-  TORCH_CHECK(trans && !is_cross &&  mode == 0,
-      "diou backward only support trans==True, ",
-      "is_cross==False, ",
-      "mode==0('iou') current version ",
-      "if you need to back propagation, ",
-      "please ensure your parameter is correct!");
   // Op need form of [n] grad
   // Note: temp avoid! it'll be remove while op deal with fp16 issue!
   at::Tensor gradCp = at::squeeze(grad, 0);
