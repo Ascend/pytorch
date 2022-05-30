@@ -246,6 +246,24 @@ def get_src_py_and_dst():
             os.path.relpath(src, os.path.join(BASE_DIR, "torch_npu")))
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         ret.append((src, dst))
+
+    torch_header_files = [
+        "*/*.h",
+        "*/*/*.h",
+        "*/*/*/*.h",
+        "*/*/*/*/*.h",
+        "*/*/*/*/*/*.h"
+    ]
+    torch_glob_header_files = []
+    for regex_pattern in torch_header_files:
+        torch_glob_header_files += glob.glob(os.path.join(BASE_DIR, "patch/include", regex_pattern), recursive=True)
+
+    for src in torch_glob_header_files:
+        dst = os.path.join(
+            os.path.join(BASE_DIR, f"build/{get_build_type()}/packages/torch_npu/include"),
+            os.path.relpath(src, os.path.join(BASE_DIR, "patch/include")))
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        ret.append((src, dst))
     return ret
 
 
