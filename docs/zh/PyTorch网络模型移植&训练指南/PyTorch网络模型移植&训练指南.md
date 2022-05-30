@@ -1843,10 +1843,11 @@ with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True
 
 1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
 
-2. 切换至如上图./result路径后，执行脚本。
+2. 切换至如上图./result/PROF_XXX路径后，执行脚本。
 
    ```
    /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ### 具体路径请根据实际安装路径修改，并设置环境变量
    ```
 
    - output：原始数据路径。
