@@ -36,66 +36,27 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 ## 编译安装PyTorch和昇腾插件
 
-下载插件代码
-```sh
-git clone https://gitee.com/ascend/pytorch.git
-```
-
-当前对应PyTorch 1.8.1版本。根据需求，在当前仓根目录“/pytorch”下获得原生PyTorch1.8.1源代码并重命名为pytorch_v1.8.1。请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关问题修复，并根据社区修复及时更新原生PyTorch代码。
-
-```sh
-//1.8.1版本
-
-cd  pytorch  #插件根目录
-
-git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
-```
-
-运行如下命令，进入原生pytorch代码目录“pytorch_v1.8.1“，并获取PyTorch被动依赖代码。
+首先安装官方torch包，然后编译安装插件
 
 ```
-cd  pytorch_v1.8.1
-git submodule sync
-git submodule update --init --recursive
-```
-
-完成且没有报错之后就生成了PyTorch及其依赖的三方代码，然后将Patch打入PyTorch源码并编译。
-
-```sh
-cd ../patch
-bash apply_patch.sh ../pytorch_v1.8.1
-cd ../pytorch_v1.8.1
-指定python版本编包方式：
-bash build.sh --python=3.7
-或
-bash build.sh --python=3.8
-或
-bash build.sh --python=3.9
-```
-
-然后安装pytorch/pytorch_v1.8.1/dist下生成的torch包，接下来编译安装插件
-
-```
-cd dist
-pip3 install --upgrade torch-1.8.1+ascend.rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install torch==1.8.1
 ```
 编译生成pytorch插件的二进制安装包。
 
 ```
-cd ../../ci    #进入插件根目录
-指定python版本编包方式：
-bash build.sh --python=3.7
-或
-bash build.sh --python=3.8
-或
-bash build.sh --python=3.9
+git clone https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载代码，进入插件根目录
+# 指定python版本编包方式：
+bash ci/build.sh --python=3.7
+# 或
+bash ci/build.sh --python=3.8
+# 或
+bash ci/build.sh --python=3.9
 ```
 
 然后安装pytorch/dist下生成的插件torch_npu包
 
 ```
-cd ../dist
-pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 ```
 
 
