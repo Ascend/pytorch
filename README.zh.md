@@ -25,22 +25,23 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # Ascend配套软件
 
-| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 |
-| :------------ | :----------- | :----------- |
-| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1 |
+| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
+| :------------ | :----------- | :----------- | ------------- |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
 
 # 安装方式
 
 ## 编译安装PyTorch和昇腾插件
 
 首先安装官方torch包，然后编译安装插件
-
-```
+```sh
 pip3 install torch==1.8.1
 ```
+
 编译生成pytorch插件的二进制安装包。
 
 ```
