@@ -41,7 +41,7 @@ void GraphCommandImpl::AddInput(
   if (GraphUtils::IsTensorWithoutNode(input)) {
     if (!input.storage().data()) {
       auto storage_impl = input.storage().unsafeGetStorageImpl();
-      size_t n_bytes = storage_impl->nbytes();
+      size_t n_bytes = GraphUtils::GetTensorCapacity(storage_impl);
       auto data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(n_bytes);
       storage_impl->set_data_ptr(std::move(data_ptr));
     }

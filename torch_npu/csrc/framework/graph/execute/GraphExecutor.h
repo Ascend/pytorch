@@ -99,7 +99,8 @@ public:
 
   static ge::Tensor PrepareInputTensor(
       const c10::StorageImpl* const storage,
-      const ge::TensorDesc& desc);
+      const ge::TensorDesc& desc,
+      size_t capacity);
 
   static ge::Tensor PrepareOutputTenosr(
       c10::StorageImpl* storage,
