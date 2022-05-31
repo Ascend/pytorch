@@ -1,5 +1,4 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -54,15 +53,16 @@ def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeF
 
 def transfer_ret_of_wrapper_func_to_xla(sig: DispatcherSignature, func_call: str) -> str:
     ret_code = ''
+    backend = "XLA"
     if sig.func.kind() == SchemaKind.functional:
         if sig.returns_type().cpp_type() == 'at::Tensor':
-            ret_code = f"return {func_call}.toBackend(Backend::XLA);"
+            ret_code = f"return {func_call}.toBackend(Backend::{backend});"
         elif sig.returns_type().cpp_type() == '::std::vector<at::Tensor>':
             ret_code += f"""\
 auto cpu_ret = {func_call};
   ::std::vector<at::Tensor> ret_xla(cpu_ret.size());
   ::std::transform(cpu_ret.begin(), cpu_ret.end(), ret_xla.rbegin(),
-                 [](const Tensor & temp) {{return temp.toBackend(Backend::XLA); }});
+                 [](const Tensor & temp) {{return temp.toBackend(Backend::{backend}); }});
   return ret_xla;
             """
         elif type(sig.returns_type()) == BaseCType:
@@ -73,7 +73,7 @@ auto cpu_ret = {func_call};
             for i, e in enumerate(sig.returns_type().elems):
                 assert e.cpp_type() == 'at::Tensor' or type(e) == BaseCppType, f'do not support cur type {e.cpp_type()}'
                 if str(e.type) == 'at::Tensor':
-                    ret_code += f"auto xla_tuple_ele_{i} = ::std::get<{i}>(cpu_ret).toBackend(Backend::XLA); \n  "
+                    ret_code += f"auto xla_tuple_ele_{i} = ::std::get<{i}>(cpu_ret).toBackend(Backend::{backend}); \n  "
                     tuple_ele_names.append(f"xla_tuple_ele_{i}")
                 else:
                     ret_code += f"const auto & tuple_ele_{i} = ::std::get<{i}>(cpu_ret); \n  "

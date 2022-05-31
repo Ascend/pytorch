@@ -32,7 +32,6 @@ import codegen.dest as dest
 import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
 
-
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
                          dispatch_key: DispatchKey,
@@ -280,41 +279,9 @@ def error_on_cpu_kernels(
     for native_f in expected_backend_native_funcs:
         expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
 
-    default_op_name = ['tan.out', 'tan', 'tan_', 'tanh.out', 'tanh', 'tanh_',
-                       'trunc.out', 'trunc', 'trunc_', 'neg.out', 'neg', 'neg_',
-                       'exp2.out', 'exp2', 'exp2_', 'acos', 'acos.out', 'asin',
-                       'asin.out', 'atan', 'atan.out', 'angle', 'exp',
-                       'exp.out', 'expm1', 'expm1.out', 'erf', 'erfc', 'erfinv',
-                       'log', 'log.out', 'log10', 'log1p', 'log1p.out', 'log2',
-                       'log2.out', 'digamma', 'reciprocal', 'rsqrt', 'sin',
-                       'cos', 'round.out', 'digamma.out', 'reciprocal.out',
-                       'rsqrt.out', 'sin.out', 'cos.out', 'sinc', 'sinh',
-                       'cosh', 'acosh', 'asinh', 'atanh', 'sigmoid', 'tan',
-                       'lgamma', 'sinc.out', 'sinh.out', 'cosh.out',
-                       'acosh.out', 'asinh_out', 'atanh.out', 'sqrt.out',
-                       'sigmoid.out']
-    for index in list(backend_indices[DispatchKey.CompositeExplicitAutograd].index.keys()):
-        if str(index) not in default_op_name:
-            backend_indices[DispatchKey.CompositeExplicitAutograd].index.pop(index, None)
-
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
         for func in funcs:
             backend_indices[DispatchKey.CPU].index.pop(func.func.name, None)
-            backend_indices[DispatchKey.Math].index.pop(func.func.name, None)
-            backend_indices[DispatchKey.CompositeExplicitAutograd].index.pop(func.func.name, None)
-
-    expected_cpu_op_names: List[OperatorName] = \
-        list(backend_indices[DispatchKey.CPU].index.keys())
-    expected_cpu_native_funcs: List[NativeFunction] = \
-        [f for f in native_functions if f.func.name in expected_cpu_op_names]
-    expected_cpu_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
-    for native_f in expected_cpu_native_funcs:
-        expected_cpu_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
-
-    for expected_name, funcs in expected_cpu_kernel_name_counts.items():
-        for func in funcs:
-            backend_indices[DispatchKey.Math].index.pop(func.func.name, None)
-            backend_indices[DispatchKey.CompositeExplicitAutograd].index.pop(func.func.name, None)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate backend stub files')
@@ -385,7 +352,6 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
 
         dispatch_key = 'XLA'
         native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"\n'
-        native_func_header += f'#include <ATen/LegacyTHFunctionsCPU.h>'
         fm.write_with_template(f'RegisterCPU.cpp', 'RegisterDispatchKey.cpp', lambda: {
             'external_backend_headers': native_func_header,
             'namespaced_headers': '',
@@ -395,8 +361,6 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
             'dispatch_namespaced_definitions': list(concat_map(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
-                    backend_indices[DispatchKey.Math],
-                    backend_indices[DispatchKey.CompositeExplicitAutograd],
                     Target.NAMESPACED_DEFINITION,
                     selector,
                     rocm=False,
@@ -407,8 +371,6 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
             'dispatch_anonymous_definitions': list(concat_map(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
-                    backend_indices[DispatchKey.Math],
-                    backend_indices[DispatchKey.CompositeExplicitAutograd],
                     Target.ANONYMOUS_DEFINITION,
                     selector,
                     rocm=False,
@@ -419,8 +381,6 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
             'dispatch_registrations': list(concat_map(
                 dest.RegisterDispatchKeyCPU(
                     backend_indices[DispatchKey.CPU],
-                    backend_indices[DispatchKey.Math],
-                    backend_indices[DispatchKey.CompositeExplicitAutograd],
                     Target.REGISTRATION,
                     selector,
                     rocm=False,

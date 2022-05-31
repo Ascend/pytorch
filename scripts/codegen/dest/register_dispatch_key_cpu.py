@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import itertools
 import textwrap
 
@@ -43,97 +42,6 @@ from codegen.selective_build.selector import SelectiveBuilder
 from codegen.api.types import (BaseCType, TupleCType, BaseCppType)
 from .utils import transfer_args_of_wrapper_func_to_cpu, transfer_ret_of_wrapper_func_to_xla
 
-def gen_create_out_helper(backend_index: BackendIndex) -> List[str]:
-    if backend_index.dispatch_key == DispatchKey.Meta:
-        # TODO: dedupe this with below
-        core = """
-if (strides.empty()) {
-    return at::empty(sizes, options.device(at::kMeta));
-} else {
-    return at::empty_strided(sizes, strides, options.device(at::kMeta));
-}
-"""
-    else:
-        expanded_topts = "optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(), " \
-            "options.device_opt(), options.pinned_memory_opt()"
-        empty_init = ""
-        if backend_index.dispatch_key == DispatchKey.CPU:
-            empty_impl = "at::native::empty_cpu"
-            empty_strided_impl = "at::native::empty_strided_cpu"
-        elif backend_index.dispatch_key == DispatchKey.CUDA:
-            empty_init = "globalContext().lazyInitCUDA();"
-            empty_impl = "at::native::empty_cuda"
-            empty_strided_impl = "at::native::empty_strided_cuda"
-        elif backend_index.dispatch_key == DispatchKey.CompositeExplicitAutograd:
-            empty_impl = "at::empty"
-            empty_strided_impl = "at::empty_strided"
-        else:
-            return []
-        core = f"""
-  {empty_init}
-  if (strides.empty()) {{
-      return {empty_impl}(sizes, {expanded_topts}, options.memory_format_opt());
-  }} else {{
-      // TODO: assert options.memory_format_opt() is nullopt (debug only?)
-      return {empty_strided_impl}(sizes, strides, {expanded_topts});
-  }}
-"""
-    return [f"""
-Tensor create_out(IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {{
-{core}
-}}
-"""]
-
-
-def gen_resize_out_helper(backend_index: BackendIndex) -> List[str]:
-    return ["""
-void resize_out(const Tensor &out, IntArrayRef sizes, IntArrayRef strides, const TensorOptions &options) {
-  TORCH_CHECK(options.dtype() == out.dtype(),
-      "Expected out tensor to have dtype ", options.dtype(), ", but got ", out.dtype(), " instead");
-  TORCH_CHECK(options.device() == out.device(),
-      "Expected out tensor to have device ", options.device(), ", but got ", out.device(), " instead");
-  const bool resized = at::native::resize_output(out, sizes);
-  // Only restride if a resize occurred; otherwise we ignore the (advisory)
-  // strides from the meta function and directly use the output tensor's
-  // preexisting strides
-  if (resized) {
-    if (!strides.empty()) {
-      TORCH_INTERNAL_ASSERT(!options.memory_format_opt().has_value());
-      at::native::as_strided_(out, sizes, strides);
-    } else if (options.memory_format_opt().has_value()) {
-      out.unsafeGetTensorImpl()->empty_tensor_restride(*options.memory_format_opt());
-    }
-  }
-}
-"""]
-
-def gen_check_inplace_helper(backend_index: BackendIndex) -> List[str]:
-    return ["""
-void check_inplace(const Tensor &self, IntArrayRef sizes, const TensorOptions &options) {
-  // These checks are needed on those operators that:
-  //   1) don't use 'TensorIterator' (e.g. 'addmm' and 'baddbmm')
-  //   2) have particular typing rules (e.g. 'cumsum' and 'cumprod')
-  // For other operators (e.g. 'add'), 'TensorIterator' already checks
-  // these things separately.
-  TORCH_CHECK(options.dtype() == self.dtype(),
-      "Bad in-place call: ",
-      "input tensor dtype ", self.dtype(), " and output tensor dtype ", options.dtype(), " should match");
-  TORCH_CHECK(options.device() == self.device(),
-      "Bad in-place call: ",
-      "input tensor device ", self.device(), " and output tensor device ", options.device(), " should match");
-  TORCH_CHECK(sizes == self.sizes(),
-      "Bad in-place call: ",
-      "input tensor size ", self.sizes(), " and output tensor size ", sizes, " should match");
-}
-"""]
-
-
-def gen_registration_helpers(backend_index: BackendIndex) -> List[str]:
-    return [
-        *gen_create_out_helper(backend_index),
-        *gen_resize_out_helper(backend_index),
-        *gen_check_inplace_helper(backend_index)
-    ]
 # Generates Register{dispatch}.cpp (e.g., RegisterCPU.cpp).
 #
 #   - The primary function of this file is to register all of the
@@ -155,8 +63,6 @@ def gen_registration_helpers(backend_index: BackendIndex) -> List[str]:
 @dataclass(frozen=True)
 class RegisterDispatchKeyCPU:
     backend_index: BackendIndex
-    backend_math_index: BackendIndex
-    backend_complex_index: BackendIndex
 
     target: Union[
         Literal[Target.ANONYMOUS_DEFINITION],
@@ -288,10 +194,6 @@ class RegisterDispatchKeyCPU:
 
             if self.backend_index.has_kernel(f):
                 current_backend_index = self.backend_index
-            elif self.backend_math_index.has_kernel(f):
-                current_backend_index = self.backend_math_index
-            elif self.backend_complex_index.has_kernel(f):
-                current_backend_index = self.backend_complex_index
             else:
                 return None
 
