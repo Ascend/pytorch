@@ -1043,7 +1043,8 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
     def unpack_base(t, has_default):
         base_dict = {
             BaseTy.ScalarType: 'scalartypeWithDefault' if has_default else 'scalartype',
-            BaseTy.Device: 'deviceWithDefault' if has_default else 'device',
+            BaseTy.Device: 'at_npu::key::parse_npu_device_with_default' if has_default 
+                            else 'at_npu::key::parse_npu_device',
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
             BaseTy.float: 'toDouble',
@@ -1128,7 +1129,10 @@ def arg_parser_output_expr(
     has_default = a.default_init is not None
     unpack_method = arg_parser_unpack_method(a.type, has_default)
     default = f', {a.default_init}' if has_default else ''
-    expr = f'_r.{unpack_method}({arg_index}{default})'
+    if a.name == "device":
+        expr = f'{unpack_method}(_r.args[{arg_index}]{default})'
+    else:
+        expr = f'_r.{unpack_method}({arg_index}{default})'
 
     return PythonArgParserOutputExpr(
         name=a.name,
@@ -1225,10 +1229,9 @@ def dispatch_lambda_exprs(
                 f'{f.func}: incomplete tensor options args: {tensor_options_args_names}')
 
         inits.append(f'''\
-auto device = at_npu::key::parse_npu_device(_r.args[{arg_parser_outputs['device'].index}]);
 const auto options = TensorOptions()
     .dtype({arg_parser_outputs['dtype'].expr})
-    .device(device)
+    .device({arg_parser_outputs['device'].expr})
     .layout({arg_parser_outputs['layout'].expr})
     .requires_grad({arg_parser_outputs['requires_grad'].expr})
     .pinned_memory({arg_parser_outputs['pin_memory'].expr});
