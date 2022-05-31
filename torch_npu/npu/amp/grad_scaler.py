@@ -25,6 +25,7 @@ from torch.cuda.amp.grad_scaler import _MultiDeviceReplicator, OptState, _refres
 from torch.cuda.amp.grad_scaler import GradScaler as Cuda_GradScaler
 
 import torch_npu
+from torch_npu.npu import get_npu_overflow_flag, clear_npu_overflow_flag
 from .common import amp_definitely_not_available
 
 
@@ -172,7 +173,7 @@ class GradScaler(Cuda_GradScaler):
             assert self._dist_overflow_count is not None
 
         if self._dynamic and not self._clear_overflow_flag:
-            GradScaler.clear_npu_overflow_flag()
+            clear_npu_overflow_flag()
             self._clear_overflow_flag = True
 
         # Short-circuit for the common case.
@@ -235,7 +236,7 @@ class GradScaler(Cuda_GradScaler):
 
         with torch.no_grad():
             if self._dynamic:
-                self._has_overflow = GradScaler.get_npu_overflow_flag()
+                self._has_overflow = get_npu_overflow_flag()
             self._sync_dist_overflow_count()
             per_device_found_inf_tensor = per_device_found_inf.get(found_inf.device)
             if self._has_overflow:
@@ -363,20 +364,6 @@ class GradScaler(Cuda_GradScaler):
 
         super(GradScaler, self).load_state_dict(state_dict)
         self._dynamic = state_dict["dynamic"]
-
-    @staticmethod
-    def get_npu_overflow_flag():
-        float_status = torch.zeros(8).npu()
-        result = torch_npu.npu_get_float_status(float_status)
-        if (float_status.cpu()[0] != 0):
-            return True
-        else:
-            return False
-
-    @staticmethod
-    def clear_npu_overflow_flag():
-        float_status = torch.zeros(8).npu()
-        result = torch_npu.npu_clear_float_status(float_status)
 
     def _sync_dist_overflow_count(self):
         if self._dynamic and self._dist_initialized:
