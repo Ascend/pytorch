@@ -19,7 +19,21 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestArange(TestCase):
-    def test_arange(self, device="npu"):
+    def test_arange_default(self):
+        shape_format = [
+            [0, 100, 2],
+            [1, 100, 1],
+            [5, 100, 3],
+        ]
+
+        for item in shape_format:
+            cpu_output_default = torch.arange(item[0], item[1], item[2],
+                device="cpu").numpy()
+            npu_output_default = torch.arange(item[0], item[1], item[2],
+                device="npu").cpu().numpy()
+            self.assertRtolEqual(cpu_output_default, npu_output_default)
+
+    def test_arange(self):
         shape_format = [
             [0, 100, 2, torch.float32],
             [1, 100, 1, torch.int32],
@@ -33,7 +47,7 @@ class TestArange(TestCase):
                 device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_arange_out(self, device="npu"):
+    def test_arange_out(self):
         shape_format = [
             [0, 100, 1, torch.float32, [np.float32, 0, [10]]],
             [1, 100, 2, torch.int32, [np.int32, 0, [20]]],

@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::arange(
 
   // check start == end
   if (set_to_integral_dtype) {
-    option = option.dtype(at::ScalarType::Int);
+    option = option.dtype(at::ScalarType::Long);
   }
   at::Tensor result_check = OpPreparation::ApplyTensorWithFormat({0}, option, ACL_FORMAT_ND);
 
