@@ -50,6 +50,35 @@ Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& 
   return result;
 }
 
+Tensor& bernoulli_cust_npu_nocheck(Tensor& result, const Tensor& self, double p) {
+  auto original_stream = c10::npu::getCurrentNPUStream();
+  {
+      auto self_ = at::empty_like(self);
+      c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
+      OpCommand cmd;
+      cmd.Name("BernoulliCust")
+        .Input(self_)
+        .Input(Scalar(p), ScalarType::Float)
+        .Output(result)
+        .Run();
+  }
+  c10::npu::NPUCachingAllocator::recordStream(result.storage().data_ptr(), original_stream);
+
+  return result;
+}
+
+Tensor& bernoulli_cust_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& p) {
+  OpCommand cmd;
+  cmd.Name("BernoulliCust")
+    .Input(self)
+    .Input(p)
+    .Output(result)
+    .Run();
+
+  return result;
+}
+
+
 Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
   OpPreparation::CheckMemory({self}, {self});
   ScalarType selfType = self.scalar_type();
@@ -89,6 +118,54 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
     NpuUtils::format_fresh_view(self, result);
   } else {
     bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32);
+    self.copy_(selfFp32);
+  }
+
+  if(self.scalar_type() != selfType){
+    self = self.to(ScalarType::Half);
+  }
+  return self;
+}
+
+Tensor& bernoulli_cust_npu_(Tensor& self, double p, Generator* gen) {
+  OpPreparation::CheckMemory({self}, {self});
+  ScalarType selfType = self.scalar_type();
+  Tensor selfFp32 = self;
+  if (self.scalar_type() == ScalarType::Half) {
+    selfFp32 = self.to(ScalarType::Float);
+  }
+
+  if (!NpuUtils::check_match(&self)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
+    Tensor result = bernoulli_cust_npu_nocheck(contiguousSelf, contiguousSelf, p);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+    bernoulli_cust_npu_nocheck(selfFp32, selfFp32, p);
+    self.copy_(selfFp32);
+  }
+
+  if(self.scalar_type() != selfType){
+    self = self.to(ScalarType::Half);
+  }
+  return self;
+}
+
+Tensor& bernoulli_cust_npu_(Tensor& self, const Tensor& p, Generator* gen) {
+  OpPreparation::CheckMemory({self}, {self});
+  ScalarType selfType = self.scalar_type();
+  Tensor selfFp32 = self;
+  Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
+  if (self.scalar_type() == ScalarType::Half) {
+    selfFp32 = self.to(ScalarType::Float);
+    pFp32 = p.to(ScalarType::Float);
+  }
+
+  if (!NpuUtils::check_match(&self)) {
+    Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
+    Tensor result = bernoulli_cust_npu_nocheck(contiguousSelf, contiguousSelf, pFp32);
+    NpuUtils::format_fresh_view(self, result);
+  } else {
+    bernoulli_cust_npu_nocheck(selfFp32, selfFp32, pFp32);
     self.copy_(selfFp32);
   }
 
