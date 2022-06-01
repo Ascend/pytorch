@@ -330,3 +330,15 @@ def set_dump(cfg_file):
 def finalize_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_finalizeDump()
+
+def get_npu_overflow_flag():
+    float_status = torch.zeros(8).npu()
+    result = torch_npu.npu_get_float_status(float_status)
+    if (float_status.cpu()[0] != 0):
+        return True
+    else:
+        return False
+
+def clear_npu_overflow_flag():
+    float_status = torch.zeros(8).npu()
+    result = torch_npu.npu_clear_float_status(float_status)
