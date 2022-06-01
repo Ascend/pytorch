@@ -76,7 +76,7 @@ Tensor arange_npu(
 
   // check start == end
   Tensor result_check = set_to_integral_dtype
-      ? at::empty_with_format({0}, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
+      ? at::empty_with_format({0}, options.dtype(at::ScalarType::Long), ACL_FORMAT_ND)
       : at::empty_with_format({0}, options, ACL_FORMAT_ND);
   if (start_value == end_value) {
     return result_check;
@@ -89,7 +89,7 @@ Tensor arange_npu(
   SmallVector<int64_t, SIZE> outputSize = {size_value};
 
   Tensor result = set_to_integral_dtype
-      ? at::empty_with_format(outputSize, options.dtype(at::ScalarType::Int), ACL_FORMAT_ND)
+      ? at::empty_with_format(outputSize, options.dtype(at::ScalarType::Long), ACL_FORMAT_ND)
       : at::empty_with_format(outputSize, options, ACL_FORMAT_ND);
 
   if(options.dtype() == at::kHalf) {

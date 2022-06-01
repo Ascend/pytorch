@@ -33,6 +33,20 @@ class TestArange(TestCase):
             npu_output = torch.arange(item[0], item[1], item[2], dtype=item[3],
                 device="npu").cpu().numpy()
             self.assertRtolEqual(cpu_output, npu_output)
+    
+    def test_arange_default(self, device):
+        shape_format = [
+            [0, 100, 2],
+            [1, 100, 1],
+            [5, 100, 3],
+        ]
+
+        for item in shape_format:
+            cpu_output_default = torch.arange(item[0], item[1], item[2], 
+                device="cpu").numpy()
+            npu_output_default = torch.arange(item[0], item[1], item[2], 
+                device="npu").cpu().numpy()
+            self.assertRtolEqual(cpu_output_default, npu_output_default)
 
     def test_arange_out(self, device):
         shape_format = [
