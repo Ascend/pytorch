@@ -277,8 +277,9 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
         graph_desc.graph_value.GetRealDtype());
 
     if (data_node.value()->GetOpType() == kDataNodeType) {
+      size_t tensor_capacity = GraphUtils::GetTensorCapacity(input_storages[index]);
       ge::Tensor ge_tensor =
-          PrepareInputTensor(input_storages[index], tensor_desc);
+          PrepareInputTensor(input_storages[index], tensor_desc, tensor_capacity);
       input_infos.tensors.push_back(std::move(ge_tensor));
     }
     hash_t topo_hash =
@@ -303,7 +304,7 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
       // only the length of the out queue is increased, nothing else.
       if ((output_storage->data() == nullptr) &&
           (!graph_desc.graph_value.GetScalarMemOffset().has_value())) {
-        size_t nbytes = output_storage->nbytes();
+        size_t nbytes = GraphUtils::GetTensorCapacity(output_storage);
         auto data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(nbytes);
         output_storage->set_data_ptr(std::move(data_ptr));
       }
@@ -329,10 +330,11 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
 
 ge::Tensor GraphExecutor::PrepareInputTensor(
     const c10::StorageImpl* const storage,
-    const ge::TensorDesc& desc) {
+    const ge::TensorDesc& desc,
+    size_t capacity) {
   torch_npu::NpuGraphDesc& graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(const_cast<c10::StorageImpl*>(storage))->get_mutable_npu_graph_desc();
   auto device_ptr = storage->data();
-  size_t nbytes = storage->nbytes();
+  size_t nbytes = capacity;
   auto addr_offset = graph_desc.graph_value.GetScalarMemOffset();
   if (addr_offset.has_value()) {
     device_ptr = ScalarMemContext::GetContext().GetDeviceMemBuffer() + addr_offset.value();
@@ -347,7 +349,7 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
   TORCH_CHECK(
       graph_desc.graph_value.HashNode(),
       "graph desc in storage must have node");
-  size_t nbytes = storage->nbytes();
+  size_t nbytes = GraphUtils::GetTensorCapacity(storage);
   c10::DataPtr data_ptr;
 
   // In the case of in-place operator

@@ -16,6 +16,7 @@
 
 from functools import wraps
 
+import logging
 import inspect
 import itertools
 import torch
@@ -73,6 +74,16 @@ def instantiate_tests(arg=None, **kwargs):
 
     return wrapper(arg)
 
+def graph_mode(func):
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    logging.info("graph mode on")
+    def wrapper(*args, **kw):
+        logging.info("runing: {}".format(func.__name__))
+        torch.npu.enable_graph_mode()
+        func(*args, **kw)
+        logging.info("graph mode off")
+        torch.npu.disable_graph_mode()
+    return wrapper
 
 class Dtypes(object):
 

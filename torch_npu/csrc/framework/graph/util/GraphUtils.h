@@ -33,6 +33,8 @@ public:
 
   static hash_t GetTensorIrValueHash(const at::Tensor& tensor);
 
+  static size_t GetTensorCapacity(c10::StorageImpl* storage);
+
   static void SetTensorIrValue(c10::StorageImpl* storage, const Value& value);
   static void SetTensorIrValue(const at::Tensor& tensor, const Value& value);
 

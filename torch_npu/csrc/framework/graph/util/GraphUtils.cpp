@@ -28,6 +28,12 @@ hash_t GraphUtils::GetTensorIrValueHash(const at::Tensor& tensor) {
   return GetTensorIrValue(tensor).GetValueHash();
 }
 
+size_t GraphUtils::GetTensorCapacity(c10::StorageImpl* storage) {
+  auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(storage)->get_npu_desc();
+  size_t nbytes = at::prod_intlist(npu_desc.storage_sizes_) * npu_desc.data_type_.itemsize();
+  return nbytes;
+}
+
 void GraphUtils::SetTensorIrValue(c10::StorageImpl* storage, const Value& value) {
   TORCH_CHECK(storage != nullptr, "Storage is null");
   auto& npu_graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(storage)->get_mutable_npu_graph_desc();
