@@ -1348,35 +1348,39 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h3 id="调测过程md">调测过程</h3>
 
--   **[总体思路](#总体思路md)**  
+-   ### [总体思路](#总体思路)
 
--   **[采集训练过程相关数据](#采集训练过程相关数据md)**  
+-   ### [Profiling数据采集](#Profiling数据采集)
 
--   **[host侧性能优化](#host侧性能优化md)**  
-
--   **[训练过程性能优化](#训练过程性能优化md)**  
+-   ### [训练过程性能优化](#训练过程性能优化)  
 
 
-<h4 id="总体思路md">总体思路</h4>
+总体思路
+<div id="1总体思路"> </div>
 
 1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
-2.  当吞吐量指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
-    -   算子瓶颈，在某个算子上执行过慢。
-    -   copy瓶颈，非连续转连续时进行copy带来的瓶颈。
-    -   框架瓶颈，由于算子格式转换带来了额外操作。
-    -   编译瓶颈，由于shape或属性来回变化造成反复编译。
+2.  当性能指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
+    -   算子瓶颈，模型中某些算子（包括拷贝/格式转换原因）执行慢。
+    -   编译瓶颈，由于shape或属性不断变化造成反复编译。
+    -   模型训练中数据集加载或者预处理流程带来的性能瓶颈。
+
 
 3.  针对以上制约性能瓶颈的原因进行分析与优化。
 
-<h4 id="采集训练过程相关数据md">采集训练过程相关数据</h4>
+对于上述最后一项因数据集加载或者预处理流程带来的性能瓶颈，一般通过修改服务器的配置、对于数据集为视频图像类可以安装高性能Pillow和OpenCV库进行优化，详细步骤查看[host侧性能优化](#host侧性能优化md)；
+而对于算子和编译造成瓶颈，请参考[采集训练过程相关数据](#采集训练过程相关数据)。同时，也可以采集算子OP_INFO，查看模型中所有调用的算子信息，通过调用顺序和调用关系可以定位是否因格式导致插入了多余的transdata导致的性能瓶颈，transdata主要用于数据类型和格式转换。
 
-**Profiling数据采集**<a name="section141471611314"></a>
+Profiling数据采集
+<div id="Profiling数据采集"> </div>
 
-当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。Profiling数据采集分为PyTorch层面和CANN层面的采集，PyTorch层面采集的是PyTorch API的数据，CANN层面采集的是TBE算子的数据。
+当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。基于NPU的pytorch在模型训练时，算子典型的执行流程是，算子通过pytorch框架多次分发后，调用ACL接口，然后在CANN层经过编译、GE/FE等模块的处理后，最终在NPU上计算执行，整个流程和调用栈较深。在ACL接口之前，调用栈和流程都是pytorch框架内，而在ACL接口之后，所有的流程全部在CANN内（基础软件包，通过so方式调用）。因此针对这一系列的流程，我们提供了三种不同层次的profiling方式，可以侧重记录不同层面的性能数据，分别是pytorch profiling、cann profiling和E2E profling。pytorch profiling功能是继承自原生pytorch的功能，主要记录了pytorch框架层面的算子在多次分发中调用栈的耗时信息，而对于算子在CANN内的流程，只能作为一整块展示，无法详细展示内部流程。cann profiling则是仅针对cann层内算子执行流程来记录性能信息，主要功能是分析算子在NPU设备上的执行性能，可以清晰看出算子在不同shape/format下耗时信息；而E2E profiling则将pytorch层面和CANN层面的性能数据结合起来，可以端到端地分析模型性能瓶颈所在，其展示的性能数据分模块展示，其在pytorch层面的数据与pytorch profiling的数据基本一致，而在CANN 层面展示的数据分为GE/ACL/RunTime/AI CPU/Device等多个模块，可以从整体上分析模型性能瓶颈。三种profiling的关系如下图所示，注意E2E profiling并不完全为pytorch和cann profiling的叠加。采集算子OP_INFO则是通过日志信息，获取模型中所有调用到的算子信息，一般用于确认模型中是否有插入多余的transdata（主要用于数据类型和格式转换）。
 
-请参见以下方式进行profiling数据的获取，并根据实际情况选择需要的数据采集方式。
+![](figures/profiler.png)
 
-- PyTorch层面Profiling数据采集。
+下面介绍如何在模型中采集三种profiling类型的数据和采集算子OP_INFO。
+
+PyTorch Profiling数据采集
+
   1. 获取chrome\_trace文件。
 
      使用profile接口对原始代码的loss计算和优化过程进行改造。
@@ -1451,7 +1455,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
         在Chrome浏览器中打开chrome\_trace结果文件，可查看简洁的算子性能信息。
 
-- CANN层面Profiling数据采集。
+CANN Profiling数据采集
 
   1.  获取性能数据文件。
 
@@ -1490,8 +1494,102 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
                 torch_npu.npu.prof_finalize()
     ```
 
+ E2E profiling数据采集
 
-**获取算子信息OP\_INFO**<a name="section15654162853114"></a>
+1. 获取性能数据文件
+
+添加with语句使能E2E prof功能
+
+```
+with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
+
+     model_train()
+```
+
+- profiler_result_path表示prof结果保存路径，默认为当前路径。
+- use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
+
+（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
+
+2. 解析性能数据
+
+通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
+
+a. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
+
+b. 切换至如上图./result/PROF_XXX路径后，执行脚本。
+
+   ```
+   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ### 具体路径请根据实际安装路径修改，并设置环境变量
+   ```
+
+   - output：原始数据路径。
+
+c. 运行完成后，在原始数据路径下输出timeline目录。如下图：
+
+   ![](figures/2.png)
+
+d. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
+
+   浏览器进入chrome://tracing/。
+
+   点击load，上传文件查看。
+
+      <img src="figures/chrometracing.png" style="zoom:80%;" />
+
+   内容示例如下图：
+
+   <img src="figures/3.png" style="zoom:80%;" />
+
+   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
+
+3. E2E profiling高级设置
+E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
+
+```
+with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
+
+
+# ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
+
+
+# ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
+
+
+# ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
+
+
+# ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
+
+# ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
+
+# ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
+
+# ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
+
+其中，aiCoreMetricsType的取值和定义如下，默认为0：
+
+# ACL_AICORE_ARITHMETIC_UTILIZATION = 0：表示各种计算类指标占比统计，包括采集项mac_fp16_ratio、mac_int8_ratio、vec_fp32_ratio、vec_fp16_ratio、vec_int32_ratio、vec_misc_ratio
+
+# ACL_AICORE_PIPE_UTILIZATION = 1：表示计算单元和搬运单元耗时占比，包括采集项vec_ratio、mac_ratio、scalar_ratio、mte1_ratio、mte2_ratio、mte3_ratio、icache_miss_rate
+
+# ACL_AICORE_MEMORY_BANDWIDTH = 2：表示外部内存读写类指令占比，包括采集项ub_read_bw、ub_write_bw、l1_read_bw、l1_write_bw、l2_read_bw、l2_write_bw、main_mem_read_bw、main_mem_write_bw
+
+# ACL_AICORE_L0B_AND_WIDTH ：表示内部内存读写类指令占比，包括采集项scalar_ld_ratio、scalar_st_ratio、l0a_read_bw、l0a_write_bw、l0b_read_bw、l0b_write_bw、l0c_read_bw、l0c_write_bw
+
+# ACL_AICORE_RESOURCE_CONFLICT_RATIO ：表示流水线队列类指令占比，包括采集项vec_bankgroup_cflt_ratio、vec_bank_cflt_ratio、vec_resc_cflt_ratio、mte1_iq_full_ratio、mte2_iq_full_ratio、mte3_iq_full_ratio、cube_iq_full_ratio、vec_iq_full_ratio、iq_full_ratio
+
+# ACL_AICORE_NONE = 0xFF：表示不采集
+
+```
+
+获取算子信息OP\_INFO
 
 网络模型最终是以OP执行的，通过OPInfo日志，我们可以获取实际执行时的算子及其属性。通过get\_ascend\_op\_info.py脚本获取。
 
@@ -1560,18 +1658,14 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 <h4 id="host侧性能优化md">host侧性能优化</h4>
 
--   **[概述](#概述-0md)**  
+-   ### [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)
 
--   **[修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)**  
+-   ### [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)
 
--   **[修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)**  
+-   ### [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)
 
--   **[安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)**  
+-   ### [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)
 
--   **[（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)**  
-
-
-<h5 id="概述-0md">概述</h5>
 
 在进行PyTorch模型迁移训练时，部分网络模型会出现FPS较低、性能不达标的情况。可以考虑对服务器进行以下优化尝试提高训练性能。
 
@@ -1579,9 +1673,10 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 -   安装高性能pillow库。
 -   （可选）安装指定版本OpenCV库。
 
-<h5 id="修改CPU性能模式（X86服务器）md">修改CPU性能模式（X86服务器）</h5>
+修改CPU性能模式（X86服务器）
+<div id="修改CPU性能模式X86服务器md"> </div>
 
-**设置电源策略为高性能模式**<a name="section18832114453814"></a>
+***设置电源策略为高性能模式***
 
 提升网络性能需要在X86服务器BIOS设置中将电源策略设为高性能模式，具体操作如下。
 
@@ -1686,7 +1781,8 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
-<h5 id="修改CPU性能模式（ARM服务器）md">修改CPU性能模式（ARM服务器）</h5>
+修改CPU性能模式ARM服务器
+ <div id="修改CPU性能模式ARM服务器md"> </div>
 
 **设置电源策略为高性能模式**<a name="section18832114453814"></a>
 
@@ -1766,14 +1862,15 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
     ```
 
 
-<h5 id="（可选）安装指定版本OpenCV库md">（可选）安装指定版本OpenCV库</h5>
-
+（可选）安装指定版本OpenCV库md <div id="可选安装指定版本OpenCV库md"> </div>
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
 1.  获取源码：[获取地址](https://opencv.org/releases/)。
 2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
-<h4 id="训练过程性能优化md">训练过程性能优化</h4>
+训练过程性能优化
+ <div id="训练过程性能优化"> </div>
+
 
 **算子瓶颈优化**<a name="section8727652134111"></a>
 
@@ -1816,104 +1913,6 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
     -   解决方案：减少编译或不需要编译该算子。
     -   优化算子编译配置请参见[编译选项设置](#编译选项设置md)。
 
-### 端到端性能工具（E2E prof）使用说明
-
-#### E2E prof工具介绍
-
-E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获取到的框架层面数据和算子性能数据统一集成，实现端到端的模型和算子性能分析工具。
-
-#### E2E prof使用教程
-
-添加with语句使能E2E prof功能
-
-```
-with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
-
-     model_train()
-```
-
-- profiler_result_path表示prof结果保存路径，默认为当前路径。
-- use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
-
-（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
-
-#### E2E prof结果解析
-
-通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
-
-1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
-
-2. 切换至如上图./result/PROF_XXX路径后，执行脚本。
-
-   ```
-   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
-   ### 具体路径请根据实际安装路径修改，并设置环境变量
-   ```
-
-   - output：原始数据路径。
-
-3. 运行完成后，在原始数据路径下输出timeline目录。如下图：
-
-   ![](figures/2.png)
-
-4. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
-
-   1. 浏览器进入chrome://tracing/。
-
-   2. 点击load，上传文件查看。
-
-      <img src="figures/chrometracing.png" style="zoom:80%;" />
-
-   内容示例如下图：
-
-   <img src="figures/3.png" style="zoom:80%;" />
-
-   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
-
-#### E2E prof高级设置
-E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
-
-```
-with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
-                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
-                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
-                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
-                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
-                        aiCoreMetricsType=0)):
-```
-
-- ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
-
-
-- ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
-
-
-- ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
-
-
-- ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
-
-- ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
-
-- ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
-
-- ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
-
-其中，aiCoreMetricsType的取值和定义如下，默认为0：
-
-- ACL_AICORE_ARITHMETIC_UTILIZATION = 0：表示各种计算类指标占比统计，包括采集项mac_fp16_ratio、mac_int8_ratio、vec_fp32_ratio、vec_fp16_ratio、vec_int32_ratio、vec_misc_ratio
-
-- ACL_AICORE_PIPE_UTILIZATION = 1：表示计算单元和搬运单元耗时占比，包括采集项vec_ratio、mac_ratio、scalar_ratio、mte1_ratio、mte2_ratio、mte3_ratio、icache_miss_rate
-
-- ACL_AICORE_MEMORY_BANDWIDTH = 2：表示外部内存读写类指令占比，包括采集项ub_read_bw、ub_write_bw、l1_read_bw、l1_write_bw、l2_read_bw、l2_write_bw、main_mem_read_bw、main_mem_write_bw
-
-- ACL_AICORE_L0B_AND_WIDTH ：表示内部内存读写类指令占比，包括采集项scalar_ld_ratio、scalar_st_ratio、l0a_read_bw、l0a_write_bw、l0b_read_bw、l0b_write_bw、l0c_read_bw、l0c_write_bw
-
-- ACL_AICORE_RESOURCE_CONFLICT_RATIO ：表示流水线队列类指令占比，包括采集项vec_bankgroup_cflt_ratio、vec_bank_cflt_ratio、vec_resc_cflt_ratio、mte1_iq_full_ratio、mte2_iq_full_ratio、mte3_iq_full_ratio、cube_iq_full_ratio、vec_iq_full_ratio、iq_full_ratio
-
-- ACL_AICORE_NONE = 0xFF：表示不采集
-
-​    
 
 ### 亲和库
 
