@@ -202,7 +202,7 @@ class SingleViewCopyToContiguous(TestCase):
                     True, "memory_repoint is not called!")
             else:
                 # refresh storage desc after transdata
-                self.assertEqual(check_operators_in_prof(['TransData'], prof), \
+                self.assertEqual(check_operators_in_prof(['Identity'], prof), \
                     True, "TransData is not called!")
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
