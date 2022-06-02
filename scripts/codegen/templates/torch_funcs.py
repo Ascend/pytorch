@@ -18,6 +18,10 @@ import torch
 import torch_npu
 
 
+def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
+    # (Ascend) Disable extension of torch.jit.script
+    return obj
+
 def add_torch_funcs():
     torch.tensor = torch_npu.tensor
     torch.full = torch_npu.full
@@ -25,5 +29,6 @@ def add_torch_funcs():
     torch.range = torch_npu.range
     torch.arange = torch_npu.arange
     torch.empty_with_format = torch_npu.empty_with_format
+    torch.jit.script = jit_script
 
 ${device_methods_def_py}
