@@ -30,20 +30,16 @@ public:
     c10::SmallVector<int64_t, 5> sizes;
     if (can_use_permute(src_desc, perm, sizes)) {
       RECORD_FUNCTION("npuTranspose", std::vector<c10::IValue>({src}));
-      // create contiguous tensor for npu transpose
-      at::Tensor temp_src = at::empty(sizes, src.options());
-      temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
-                    temp_src.strides());
-      auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_;
-      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.base_sizes_ =
-          temp_src.sizes();
-      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.base_strides_ =
-          temp_src.strides();
-      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_.storage_sizes_ =
-          temp_src.sizes();
+      // Refresh src Tensor to match output self Tensor
+      auto src_desc_stored = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
+      auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
+      src_desc.base_sizes_ = sizes;
+      src_desc.base_strides_ = StorageDescHelper::ComputeStrideFromShape(
+          static_cast<FormatShape>(sizes));
+      src_desc.storage_sizes_ = sizes;
 
-      NPUNativeFunctions::npu_transpose_out(temp_src, perm, self);
-      torch_npu::NPUBridge::GetNpuStorageImpl(temp_src)->npu_desc_ = npu_desc;
+      NPUNativeFunctions::npu_transpose_out(src, perm, self);
+      src_desc = src_desc_stored;
       return true;
     }
     return false;
@@ -67,6 +63,12 @@ private:
     c10::SmallVector<int64_t, MAX_DIM> indexes;
     for (auto i = 0; i < src_desc.sizes_.size(); i++) {
       indexes.emplace_back(i);
+    }
+
+    // After permute or reshape+permute, the total amount of data remains
+    // unchanged.
+    if (at::prod_intlist(view_sizes) != at::prod_intlist(base_sizes)) {
+      return false;
     }
 
     // Reorder axes of shape and stride in descending order
@@ -100,27 +102,30 @@ private:
       return false;
     }
 
-    // Could be permute or squeeze/unsqueeze + permute
-    auto view_sizes_squeeze = view_sizes;
-    auto view_strides_squeeze = view_strides;
-    squeeze_shape_and_stride(view_sizes_squeeze, view_strides_squeeze);
-    auto base_sizes_squeeze = base_sizes;
-    auto base_strides_squeeze = base_strides;
-    squeeze_shape_and_stride(base_sizes_squeeze, base_strides_squeeze);
-    bool dim_equal =
-        (view_sizes_squeeze.size() == base_sizes_squeeze.size()) &&
-        (view_strides_squeeze.size() == base_strides_squeeze.size());
-    if (!dim_equal) {
-      NPU_LOGD("After squeezing, reordered shape and base shape do not match, "
-               "and permute pattern cannot be used.");
-      return false;
-    }
-    for (auto i = 0; i < view_sizes_squeeze.size(); i++) {
-      if ((view_sizes_squeeze[i] != base_sizes_squeeze[i]) ||
-          (view_strides_squeeze[i]) != base_strides_squeeze[i]) {
-        NPU_LOGD("After squeezing, reordered shape and base shape do not "
-                 "match, and permute pattern cannot be used.");
+    if (c10_npu::NpuRunMode::IsGraphMode()) {
+      // Could be permute or squeeze/unsqueeze + permute
+      auto view_sizes_squeeze = view_sizes;
+      auto view_strides_squeeze = view_strides;
+      squeeze_shape_and_stride(view_sizes_squeeze, view_strides_squeeze);
+      auto base_sizes_squeeze = base_sizes;
+      auto base_strides_squeeze = base_strides;
+      squeeze_shape_and_stride(base_sizes_squeeze, base_strides_squeeze);
+      bool dim_equal =
+          (view_sizes_squeeze.size() == base_sizes_squeeze.size()) &&
+          (view_strides_squeeze.size() == base_strides_squeeze.size());
+      if (!dim_equal) {
+        NPU_LOGD(
+            "After squeezing, reordered shape and base shape do not match, "
+            "and permute pattern cannot be used.");
         return false;
+      }
+      for (auto i = 0; i < view_sizes_squeeze.size(); i++) {
+        if ((view_sizes_squeeze[i] != base_sizes_squeeze[i]) ||
+            (view_strides_squeeze[i]) != base_strides_squeeze[i]) {
+          NPU_LOGD("After squeezing, reordered shape and base shape do not "
+                   "match, and permute pattern cannot be used.");
+          return false;
+        }
       }
     }
 

@@ -32,7 +32,7 @@ namespace at_npu
       c10::SmallVector<int64_t, N> permVec = array_to_small_vector(perm);
       OpCommand cmd;
       cmd.Name("Transpose")
-          .Input(self)
+          .InputWithoutContiguous(self)
           .Input(perm)
           .Output(result)
           .Run();

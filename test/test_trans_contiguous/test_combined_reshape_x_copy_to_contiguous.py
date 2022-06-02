@@ -42,7 +42,7 @@ class CombinedReshapeXCopyToContiguous(TestCase):
                     .view(npu_input.size(0) * npu_input.size(1), npu_input.size(2), npu_input.size(3)) \
                     .transpose(0, 1) \
                     .contiguous()
-            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), \
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), \
                 True, "Error operators called!")
             cpu_out1 = cpu_input \
                 .view(cpu_input.size(0) * cpu_input.size(1), cpu_input.size(2), cpu_input.size(3)) \
@@ -56,7 +56,7 @@ class CombinedReshapeXCopyToContiguous(TestCase):
                     .permute(1, 0, 2, 3) \
                     .view(npu_input.size(1), npu_input.size(0), npu_input.size(2)*npu_input.size(3)) \
                     .contiguous()
-            self.assertEqual(check_operators_in_prof(['npuMatch', 'npuTranspose'], prof), \
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof), \
                 True, "Error operators called!")
             cpu_out2 = cpu_input \
                 .permute(1, 0, 2, 3) \

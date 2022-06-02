@@ -183,7 +183,7 @@ class SingleViewCopyToContiguous(TestCase):
             cpu_input = torch.tensor([1.0]).to(item[0])
             npu_input = torch_npu.npu_format_cast(cpu_input.npu(), item[1])
 
-            match_case = (item[1] == 2)
+            match_case = (item[1] == 2 or item[1] == 29)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input[0].clone()
             if match_case:
@@ -203,7 +203,7 @@ class SingleViewCopyToContiguous(TestCase):
             else:
                 # refresh storage desc after transdata
                 self.assertEqual(check_operators_in_prof(['Identity'], prof), \
-                    True, "TransData is not called!")
+                    True, "Identity is not called!")
             cpu_out2 = cpu_input[0] + 1
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
 

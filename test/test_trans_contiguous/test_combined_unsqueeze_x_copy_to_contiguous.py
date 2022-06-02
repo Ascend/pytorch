@@ -112,7 +112,36 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
                 True, "Error operators called!")
             cpu_out2 = cpu_input.select(1,1).unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+
+    def test_unsqueeze_unfold_copy_contiguous(self, device="npu"):
+        dtype_list4 = [np.float16, np.float32]
+        format_list4 = [-1]
+        shape_list4 = [
+                      [4, 2, 4],
+                      ]
+        shape_format = [
+            [i, j, k] for i in dtype_list4 for j in format_list4 for k in shape_list4
+        ]
     
+        for item in shape_format: 
+            cpu_input, npu_input = create_common_tensor(item, 0, 100)
+            # case 1: unsqueeze+unfold:size==step ==> can be optimized as reshape+permute
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out1 = npu_input.unsqueeze(1).unfold(0,2,2).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof),\
+                True, "Error operators called!")
+            self.assertEqual(check_operators_in_prof(['npuTranspose'], prof),\
+                True, "Error operators called!")
+            cpu_out1 = cpu_input.unsqueeze(1).unfold(0,2,2).contiguous()
+            self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
+            # case 2: unfold+unsqueeze: size!=step ==> cannot be optimized
+            with torch.autograd.profiler.profile(use_npu=True) as prof:
+                npu_out2 = npu_input.unfold(2,2,3).unsqueeze(1).contiguous()
+            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['npuCombined']),\
+                True, "Error operators called!") 
+            cpu_out2 = cpu_input.unfold(2,2,3).unsqueeze(1).contiguous()
+            self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
+
     def test_unsqueeze_strideslice_copy_contiguous(self, device="npu"):
         dtype_list5 = [np.float16, np.float32]
         format_list5 = [-1]

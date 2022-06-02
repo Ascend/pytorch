@@ -66,41 +66,6 @@ void copy_d2d_last_method(
 }
 
 // the dst and src are same format now
-// the dst and src are base format now
-// the dst and src maybe non-contiguous
-void copy_d2d_dtype_baseformat(
-    at::Tensor& self,
-    const at::Tensor& src,
-    bool non_blocking) {
-  if (!self.is_contiguous()) {
-    // Contiguous/discontiguous source tensor copy to discontiguous self tensor
-    return copy_d2d_last_method(self, src, true, non_blocking);
-  }
-
-  if (!src.is_contiguous()) {
-    // Discontiguous source tensor copy to contiguous self tensor
-    if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src)) {
-      // Optimized trans-contiguous method
-      return;
-    } else {
-      // General trans-contiguous method
-      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
-      return;
-    }
-  } else {
-    // Contiguous source tensor copy to contiguous self tensor
-    int64_t numel = self.numel();
-    if (numel == src.numel()) {
-      RECORD_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
-      NPU_LOGD("copy contiguous tensor inside device");
-      return copy_d2d_by_memcpy(self, src, numel);
-    }
-  }
-  // such as discontiguous tensor copy to unmatched tensor
-  copy_d2d_last_method(self, src, true, non_blocking);
-}
-
-// the dst and src are same format now
 void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   // Note: Src & Self have the same format.
   if (try_to_optimize_copy_with_any_format(self, src)) {
@@ -298,6 +263,41 @@ void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) 
     return;
   }
   copy_d2d_dtype_format(self, src, non_blocking);
+}
+
+// the dst and src are same format now
+// the dst and src are base format now
+// the dst and src maybe non-contiguous
+void copy_d2d_dtype_baseformat(
+    at::Tensor& self,
+    const at::Tensor& src,
+    bool non_blocking) {
+  if (!self.is_contiguous()) {
+    // Contiguous/discontiguous source tensor copy to discontiguous self tensor
+    return copy_d2d_last_method(self, src, true, non_blocking);
+  }
+
+  if (!src.is_contiguous()) {
+    // Discontiguous source tensor copy to contiguous self tensor
+    if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src)) {
+      // Optimized trans-contiguous method
+      return;
+    } else {
+      // General trans-contiguous method
+      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      return;
+    }
+  } else {
+    // Contiguous source tensor copy to contiguous self tensor
+    int64_t numel = self.numel();
+    if (numel == src.numel()) {
+      RECORD_FUNCTION("d2dCopyAsync", std::vector<c10::IValue>({src}));
+      NPU_LOGD("copy contiguous tensor inside device");
+      return copy_d2d_by_memcpy(self, src, numel);
+    }
+  }
+  // such as discontiguous tensor copy to unmatched tensor
+  copy_d2d_last_method(self, src, true, non_blocking);
 }
 
 bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& src) {
