@@ -1834,7 +1834,7 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 ##### Copy Bottleneck Optimization
 
 1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collection).
-2.  Analyze the Profile data to obtain the execution time of  **D2DCopywithStreamSynchronize**,  **PTCopy**, or  **format\_contiguous**  in the entire network.
+2.  Analyze the Profile data to obtain the execution time of **format\_contiguous**,  **AsStrided**, or  **PTCopy**  in the entire network.
 3.  If the execution takes a long time, use either of the following methods to solve the problem:
     -   Method 1 \(workaround\): Replace view operators with compute operators. In PyTorch, view operators cause conversion from non-contiguous tensors to contiguous tensors. The optimization idea is to replace view operators with compute operators. Common view operators include view, permute, and transpose operators. For more view operators, go to  [https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html).
     -   Method 2 \(solution\): Accelerate the operation of converting non-contiguous tensors to contiguous tensors.

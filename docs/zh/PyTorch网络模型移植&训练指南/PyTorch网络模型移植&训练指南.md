@@ -1786,7 +1786,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 **copy瓶颈优化**<a name="section219718193717"></a>
 
 1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#采集训练过程相关数据md)。
-2.  分析Profiling数据分析整网中的D2DCopywithStreamSynchronize/PTCopy/format\_contiguous的耗时。
+2.  分析Profiling数据分析整网中的format\_contiguous/AsStrided/PTCopy的耗时。
 3.  若发现耗时较大，则需参照以下两种方案解决。
     -   方案一：（规避方案）PyTorch中View类型框架类算子会导致非连续转连续操作。优化思路为尽量使用计算类算子代替View类框架算子，常见的View类框架算子如View、Permute、Transpose等。更多View类框架算子可参考[https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html)。
     -   方案二：（解决方案）加速转连续操作。
