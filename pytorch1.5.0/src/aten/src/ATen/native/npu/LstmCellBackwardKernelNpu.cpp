@@ -118,7 +118,7 @@ std::tuple<Tensor, Tensor, Tensor, Tensor, Tensor, Tensor> lstm_cell_backward_np
   Tensor grad_input = OpPreparation::ApplyTensor(input);
   Tensor grad_wx = OpPreparation::ApplyTensor(w_x);
   Tensor grad_wh = OpPreparation::ApplyTensor(w_h);
-  Tensor grad_bias = OpPreparation::ApplyTensor(input, outputSize);
+  Tensor grad_bias = OpPreparation::ApplyTensor(i, outputSize);
   Tensor grad_ht = OpPreparation::ApplyTensor(inh);
   Tensor grad_ct = OpPreparation::ApplyTensor(inc);
 

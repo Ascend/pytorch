@@ -35,13 +35,19 @@ class TestLstmCellBackward(TestCase):
     def lstm_cell_backward_result(self, item):
         cpu_lstm = torch.nn.LSTMCell(input_size=item[1], hidden_size=item[2])
         npu_lstm = copy.deepcopy(cpu_lstm).npu()
-        input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
-        h0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float32)
-        c0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float32)
 
-        cpu_input1 = torch.from_numpy(input1)
-        cpu_h0 = torch.from_numpy(h0)
-        cpu_c0 = torch.from_numpy(c0)
+        cpu_lstm.bias_ih.data = cpu_lstm.bias_ih.half().float()
+        cpu_lstm.bias_hh.data = cpu_lstm.bias_hh.half().float()
+        cpu_lstm.weight_ih.data = cpu_lstm.weight_ih.half().float()
+        cpu_lstm.weight_hh.data = cpu_lstm.weight_hh.half().float()
+
+        input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16)
+        h0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
+        c0=np.random.uniform(0, 1, (item[0][1][0], item[2])).astype(np.float16)
+
+        cpu_input1 = torch.from_numpy(input1).float()
+        cpu_h0 = torch.from_numpy(h0).float()
+        cpu_c0 = torch.from_numpy(c0).float()
 
         npu_input1 = torch.from_numpy(input1.astype(item[0][0])).npu()
         npu_h0 = torch.from_numpy(h0.astype(item[0][0])).npu()
@@ -58,6 +64,7 @@ class TestLstmCellBackward(TestCase):
         npu_h0.requires_grad_(True)
         npu_c0.requires_grad_(True)
         npu_input1.requires_grad_(True)
+
         npu_lstm.weight_ih.requires_grad_(True)
         npu_lstm.weight_hh.requires_grad_(True)
         npu_lstm.bias_ih.requires_grad_(True)
@@ -65,7 +72,7 @@ class TestLstmCellBackward(TestCase):
 
         cpu_output_h, cpu_output_c = cpu_lstm(cpu_input1, (cpu_h0, cpu_c0))
         npu_output_h, npu_output_c = npu_lstm(npu_input1, (npu_h0, npu_c0))
-        input2 = torch.randn(item[0][1][0], item[2]) 
+        input2 = torch.randn(item[0][1][0], item[2]).half().float() 
         cpu_output_h.backward(input2)
         npu_output_h.backward(input2.npu())
 
@@ -103,16 +110,16 @@ class TestLstmCellBackward(TestCase):
 
     def test_lstm_cell_db(self, device):
         for item in self.shape_format:   
-            _, _ , cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
+            _, nout , cpu_lstm, npu_lstm = self.lstm_cell_backward_result(item)
             cpu_db_ih = cpu_lstm.bias_ih.grad
             cpu_db_hh = cpu_lstm.bias_hh.grad
             npu_db_ih = npu_lstm.bias_ih.grad
             npu_db_hh = npu_lstm.bias_hh.grad  
             # error in accuracy
-            if npu_db_ih.dtype == torch.float:
+            if nout[0].dtype == torch.float:
                 continue
-            self.assertRtolEqual(cpu_db_ih.numpy(), npu_db_ih.cpu().to(torch.float).numpy(), prec=1.e-3)    
-            self.assertRtolEqual(cpu_db_hh.numpy(), npu_db_hh.cpu().to(torch.float).numpy(), prec=1.e-3)    
+            self.assertRtolEqual(cpu_db_ih.numpy(), npu_db_ih.cpu().to(torch.float).numpy(), prec=0.006)    
+            self.assertRtolEqual(cpu_db_hh.numpy(), npu_db_hh.cpu().to(torch.float).numpy(), prec=0.006)    
 
     def test_lstm_cell_dw(self, device):
         for item in self.shape_format:   
