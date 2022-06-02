@@ -21,12 +21,12 @@ import re
 import shutil
 import subprocess
 import sys
-import site
+import traceback
 import platform
 
-from sysconfig import get_paths
 import distutils.ccompiler
 import distutils.command.clean
+from sysconfig import get_paths
 from distutils.version import LooseVersion
 from distutils.command.build_py import build_py
 from setuptools.command.build_ext import build_ext
@@ -92,13 +92,14 @@ def _get_build_mode():
             return sys.argv[i]
 
 
-def get_package_dir():
-    if '--user' in sys.argv:
-        package_dir = site.getusersitepackages()
-    else:
-        py_version = f'{sys.version_info.major}.{sys.version_info.minor}'
-        package_dir = f'{sys.prefix}/lib/python{py_version}/site-packages'
-    return package_dir
+def get_pytorch_dir():
+    try:
+        import torch
+        return os.path.dirname(os.path.abspath(torch.__file__))
+    except Exception:
+        _, _, exc_traceback = sys.exc_info()
+        frame_summary = traceback.extract_tb(exc_traceback)[-1]
+        return os.path.dirname(frame_summary.filename)
 
 
 def generate_bindings_code(base_dir):
@@ -123,14 +124,14 @@ def CppExtension(name, sources, *args, **kwargs):
     r'''
     Creates a :class:`setuptools.Extension` for C++.
     '''
-    package_dir = get_package_dir()
+    pytorch_dir = get_pytorch_dir()
     temp_include_dirs = kwargs.get('include_dirs', [])
-    temp_include_dirs.append(os.path.join(package_dir, 'torch/include'))
-    temp_include_dirs.append(os.path.join(package_dir, 'torch/include/torch/csrc/api/include'))
+    temp_include_dirs.append(os.path.join(pytorch_dir, 'include'))
+    temp_include_dirs.append(os.path.join(pytorch_dir, 'include/torch/csrc/api/include'))
     kwargs['include_dirs'] = temp_include_dirs
 
     temp_library_dirs = kwargs.get('library_dirs', [])
-    temp_library_dirs.append(os.path.join(package_dir, 'torch/lib'))
+    temp_library_dirs.append(os.path.join(pytorch_dir, 'lib'))
     temp_library_dirs.append(os.path.join(BASE_DIR, "third_party/acl/libs"))
     kwargs['library_dirs'] = temp_library_dirs
 
@@ -192,7 +193,7 @@ class CPPLibBuild(build_clib, object):
             '-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=' + os.path.abspath(output_lib_path),
             '-DTORCHNPU_INSTALL_LIBDIR=' + os.path.abspath(output_lib_path),
             '-DPYTHON_INCLUDE_DIR=' + get_paths()['include'],
-            '-DPYTORCH_INSTALL_DIR=' + os.path.join(get_package_dir(), "torch")]
+            '-DPYTORCH_INSTALL_DIR=' + get_pytorch_dir()]
 
         build_args = ['-j', str(multiprocessing.cpu_count())]
 
