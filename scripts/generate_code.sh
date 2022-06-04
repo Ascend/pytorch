@@ -36,8 +36,6 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
-
 python3 -m codegen.gen_python_functions  \
   --output_dir="$NDIR/torch_npu/csrc/aten/" \
   --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
@@ -46,5 +44,8 @@ python3 -m codegen.gen_python_functions  \
 
 if [ $? -ne 0 ]; then
   echo "Failed to generate python bindings."
+  mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
   exit 1
 fi
+
+mv -f codegen/native_functions.yaml_bk codegen/native_functions.yaml
