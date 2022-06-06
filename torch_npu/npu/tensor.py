@@ -30,18 +30,26 @@ NpuTensorDict = {
     "half": torch.HalfTensor
 }
 
-def create_npu_float_tensor(*args, **kwargs):
+def create_npu_tensor(*args, **kwargs):
     device = kwargs.pop("device", "npu")
     dtype = kwargs.pop("dtype", None)
     assert dtype and dtype in NpuTensorDict
     return NpuTensorDict[dtype](*args, **kwargs).to(device)
 
 
-FloatTensor = functools.partial(create_npu_float_tensor, dtype="float")
-IntTensor = functools.partial(create_npu_float_tensor, dtype="int")
-DoubleTensor = functools.partial(create_npu_float_tensor, dtype="double")
-LongTensor = functools.partial(create_npu_float_tensor, dtype="long")
-ShortTensor = functools.partial(create_npu_float_tensor, dtype="short")
-ByteTensor = functools.partial(create_npu_float_tensor, dtype="byte")
-CharTensor = functools.partial(create_npu_float_tensor, dtype="char")
-HalfTensor = functools.partial(create_npu_float_tensor, dtype="half")
+FloatTensor = functools.partial(create_npu_tensor, dtype="float")
+FloatTensor.type = torch.FloatTensor.type
+IntTensor = functools.partial(create_npu_tensor, dtype="int")
+IntTensor.type = torch.IntTensor.type
+DoubleTensor = functools.partial(create_npu_tensor, dtype="double")
+DoubleTensor.type = torch.DoubleTensor.type
+LongTensor = functools.partial(create_npu_tensor, dtype="long")
+LongTensor.type = torch.LongTensor.type
+ShortTensor = functools.partial(create_npu_tensor, dtype="short")
+ShortTensor.type = torch.ShortTensor.type
+ByteTensor = functools.partial(create_npu_tensor, dtype="byte")
+ByteTensor.type = torch.ByteTensor.type
+CharTensor = functools.partial(create_npu_tensor, dtype="char")
+CharTensor.type = torch.CharTensor.type
+HalfTensor = functools.partial(create_npu_tensor, dtype="half")
+HalfTensor.type = torch.HalfTensor.type

@@ -14,10 +14,14 @@
 # limitations under the License.
 
 import sys
+import builtins
+import inspect
 import types
 import atexit
-import torch
 
+from builtins import isinstance as builtin_isinstance
+
+import torch
 import torch_npu
 import torch_npu.npu
 import torch_npu.npu.amp
@@ -30,6 +34,28 @@ from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_fu
      serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method
 
 from .version import __version__ as __version__
+
+
+NPU_TENSOR = set([
+    "FloatTensor", "IntTensor", "DoubleTensor",
+    "LongTensor", "ShortTensor", "CharTensor", "ByteTensor", "HalfTensor"])
+
+def _isinstance(obj, class_or_tuple):
+    try:
+        return builtin_isinstance(obj, class_or_tuple)
+    except TypeError as e:
+        if hasattr(obj, "type") and callable(obj.type) and inspect.getfullargspec(obj.type).args == ['self']:
+            type_str = str(obj.type())
+            tensor_type = type_str.split('.')[-1]
+            class_tuple = (class_or_tuple, ) if type(class_or_tuple) != tuple else class_or_tuple
+            if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
+                return eval(type_str) in class_tuple
+        if eval("torch.device") == class_or_tuple:
+            return builtin_isinstance(obj, torch._C.device)
+        raise e
+
+builtins.isinstance = _isinstance
+
 
 __all__ = []
 
