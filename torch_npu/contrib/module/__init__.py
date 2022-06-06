@@ -20,6 +20,8 @@ from .deform_conv import ModulatedDeformConv, DCNv2
 from .activations import Mish, SiLU, Swish
 from .bidirectional_lstm import BiLSTM
 from .ps_roi_pooling import PSROIPool
+from .ensemble_dropout import NpuFairseqDropout
+from .multihead_attention import MultiheadAttention
 
 __all__ = [
     "ChannelShuffle",
@@ -33,4 +35,6 @@ __all__ = [
     "PSROIPool",
     "SiLU",
     "Swish",
+    "NpuFairseqDropout",
+    "MultiheadAttention",
 ]
