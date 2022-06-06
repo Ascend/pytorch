@@ -4251,3 +4251,17 @@ return result
 
 查询出被系统防火墙阻截的集合通信端口，并开放相应端口。
 
+<h4 id="在进行模型分布式训练时遇到报错-RuntimeError-connect()-timed-outmd">在进行模型分布式训练时遇到报错“RuntimeError：HCCL\(\) error.”</h4>
+
+**现象描述**<a name="section1785905019184"></a>
+
+![输入图片说明](../../en/PyTorch%20Network%20Model%20Porting%20and%20Training%20Guide/figures/HCCL.jpg)
+
+**可能原因**<a name="zh-cn_topic_0175549220_section169499490501"></a>
+
+模型进行分布式训练时，不同设备进程在集合通信初始化之前由于其他因素会导致执行不同步。可以根据实际设备表现情况，对建链等待时间进行设置。
+
+**处理方法**<a name="section8970834202112"></a>
+
+export HCCL_CONNECT_TIMEOUT=time, 
+time默认值为120s ，取值范围为[120, 7200]
