@@ -39,7 +39,7 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 首先安装官方torch包，然后编译安装插件
 ```sh
-pip3 install torch==1.8.1
+pip3 install torch==1.8.1+cpu
 ```
 
 编译生成pytorch插件的二进制安装包。
