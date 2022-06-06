@@ -407,27 +407,32 @@ static PyObject *THPVariable_new_device(PyObject* self, PyObject* args, PyObject
 {
   HANDLE_TH_ERRORS
   static torch::PythonArgParser parser({
-    "Device(Device device)",
-    "Device(std::string type, int64_t? index=-1)"
+    "Device(std::string type, int64_t? index=-1)",
+    "Device(Device device)"
   });
   torch::ParsedArgs<2> parsed_args;
   auto r = parser.parse(args, kwargs, parsed_args);
-  if (r.idx == 0) {
+  if (r.idx == 1) {
     auto device = at_npu::key::parse_npu_device(r.args[0]);
     return THPDevice_New(device);
-  } else if (r.idx == 1) {
+  } else if (r.idx == 0) {
     auto as_device = at_npu::key::parse_npu_device(r.args[0]);  // this works, because device can take strings
     auto device_type = r.string(0);
-    if (as_device.has_index()) {
-      throw std::runtime_error("type (string) must not include an index because index "
-                                "was passed explicitly: " + device_type);
-    }
     int32_t device_index = -1;
     if (!r.isNone(1)) {
       device_index = r.toInt64(1);
       // -1 is allowed in ATen/C++, to mean the default device, but not in
       // Python.
       TORCH_CHECK(device_index >= 0, "Device index must not be negative");
+    }
+    if (as_device.has_index()) {
+      if (device_index != -1) {
+        throw std::runtime_error("type (string) including an index but not equal to index: " 
+                                  + device_type + ", argument index = " + std::to_string(device_index));
+      } else {
+        device_index = as_device.index();
+      }
+
     }
     at::Device device(as_device.type(), device_index);
     return THPDevice_New(device);
