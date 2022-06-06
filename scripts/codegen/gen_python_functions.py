@@ -696,12 +696,21 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
     es = yaml.safe_load(f_str)
     assert isinstance(es, list)
     rs: List[NativeFunction] = []
+    with_device_base_operator = set()
+
     for e in es:
         funcs = e.get('func')
-        if "Device" not in funcs:
-            continue
         with context(lambda: f'in {path}:\n  {funcs}'):
             func, m = NativeFunction.from_yaml(e)
+            if "Device" in funcs:
+                with_device_base_operator.add(func.func.name.name.base)
+
+    for e in es:
+        funcs = e.get('func')
+        with context(lambda: f'in {path}:\n  {funcs}'):
+            func, m = NativeFunction.from_yaml(e)
+            if func.func.name.name.base not in with_device_base_operator:
+                continue
             func.variants.discard(Variant.method)
             rs.append(func)
     return rs
