@@ -35,7 +35,6 @@ from setuptools import setup, distutils, Extension
 from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VERSION = '1.8.1rc2'
 
@@ -167,6 +166,9 @@ class Clean(distutils.command.clean.clean):
         # It's an old-style class in Python 2.7...
         distutils.command.clean.clean.run(self)
 
+        os.remove('torch_npu/csrc/aten/RegisterCPU.cpp')
+        os.remove('torch_npu/csrc/aten/RegisterNPU.cpp')
+        os.remove('torch_npu/csrc/aten/RegisterAutogradNPU.cpp')
 
 class CPPLibBuild(build_clib, object):
     def run(self):

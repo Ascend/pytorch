@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -31,7 +31,6 @@ from codegen.context import native_function_manager
 import codegen.dest as dest
 import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
-
 
 # Create backend_indices map for func retrieval with the key of each func we supported.
 def create_backend_index(backend_ops: List[str],
@@ -265,6 +264,25 @@ but expected {expected_overload_count} kernel(s). The expected function schemas 
     if unsupported_ops_list != "":
         print(f"Unsupported Ops List:\n{unsupported_ops_list}")
 
+def error_on_cpu_kernels(
+        native_functions: Sequence[NativeFunction],
+        backend_indices: Dict[DispatchKey, BackendIndex],
+        backend_key: DispatchKey,
+        autograd_key: DispatchKey,
+) -> None:
+
+    expected_backend_op_names: List[OperatorName] = \
+        list(backend_indices[backend_key].index.keys()) + list(backend_indices[autograd_key].index.keys())
+    expected_backend_native_funcs: List[NativeFunction] = \
+        [f for f in native_functions if f.func.name in expected_backend_op_names]
+    expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
+    for native_f in expected_backend_native_funcs:
+        expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
+
+    for expected_name, funcs in expected_backend_kernel_name_counts.items():
+        for func in funcs:
+            backend_indices[DispatchKey.CPU].index.pop(func.func.name, None)
+
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate backend stub files')
     parser.add_argument(
@@ -328,6 +346,48 @@ def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[st
                 lambda f: dest.compute_native_function_declaration(f, backend_indices[backend_dispatch_key]),
                 grouped_native_functions
             ))),
+        })
+
+        error_on_cpu_kernels(native_functions, backend_indices, backend_key, autograd_key)
+
+        dispatch_key = 'XLA'
+        native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"\n'
+        fm.write_with_template(f'RegisterCPU.cpp', 'RegisterDispatchKey.cpp', lambda: {
+            'external_backend_headers': native_func_header,
+            'namespaced_headers': '',
+            'DispatchKey': dispatch_key,
+            'dispatch_namespace': dispatch_key.lower(),
+            'dispatch_helpers': dest.gen_registration_helpers(backend_indices[DispatchKey.CPU]),
+            'dispatch_namespaced_definitions': list(concat_map(
+                dest.RegisterDispatchKeyCPU(
+                    backend_indices[DispatchKey.CPU],
+                    Target.NAMESPACED_DEFINITION,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'NPUNativeFunctions'),
+                grouped_native_functions
+            )),
+            'dispatch_anonymous_definitions': list(concat_map(
+                dest.RegisterDispatchKeyCPU(
+                    backend_indices[DispatchKey.CPU],
+                    Target.ANONYMOUS_DEFINITION,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'NPUNativeFunctions'),
+                    grouped_native_functions
+            )),
+            'dispatch_registrations': list(concat_map(
+                dest.RegisterDispatchKeyCPU(
+                    backend_indices[DispatchKey.CPU],
+                    Target.REGISTRATION,
+                    selector,
+                    rocm=False,
+                    cpp_namespace=cpp_namespace,
+                    class_method_name=f'NPUNativeFunctions'),
+                grouped_native_functions
+            )),
         })
 
         for dispatch_key in [backend_dispatch_key, autograd_dispatch_key]:
