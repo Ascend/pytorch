@@ -40,6 +40,24 @@ class NpuMNIST(nn.Module):
     x = self.fc2(x)
     return F.log_softmax(x, dim=1)
 
+class WN(torch.nn.Module):
+    """
+    This is the WaveNet like layer for the affine coupling.  The primary difference
+    from WaveNet is the convolutions need not be causal.  There is also no dilation
+    size reset.  The dilation only doubles on each layer
+    """
+    def __init__(self, n_in_channels, n_channels):
+        super(WN, self).__init__()
+        self.n_channels = n_channels
+        start = torch.nn.Conv2d(n_in_channels, n_channels, 1)
+        start = torch.nn.utils.weight_norm(start, name='weight')
+        self.start = start
+
+    def forward(self, forward_input):
+        audio, spect = forward_input
+        audio = self.start(torch.unsqueeze(audio, -1)).squeeze_(-1)
+        return audio
+
 class TestSerialization(TestCase):
     '''
     The saved data is transferred to PyTorch CPU device before being saved, so a
@@ -54,6 +72,22 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path, map_location="npu:0")
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
+    
+    def test_save_string(self):
+        x = dict(ds_version='0.6.0+0b40f54')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertExpectedInline(str(x), str(x_loaded))
+    
+    def test_save_torch_size(self):
+        x = torch.randn(2, 3).size()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(x, path)
+            x_loaded = torch.load(path)
+            self.assertExpectedInline(str(x), str(x_loaded))
 
     def test_save_tuple(self):
         x = torch.randn(5).npu()
@@ -91,6 +125,14 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             model = NpuMNIST().npu()
+            torch.save(model, path)
+            loaded_model = torch.load(path)
+            self.assertExpectedInline(str(model), str(loaded_model))
+            
+    def test_serialization_weight_norm(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            model = WN(2, 4).npu()
             torch.save(model, path)
             loaded_model = torch.load(path)
             self.assertExpectedInline(str(model), str(loaded_model))
