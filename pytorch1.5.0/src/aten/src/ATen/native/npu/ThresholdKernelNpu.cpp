@@ -26,13 +26,12 @@ Tensor& threshold_out_npu(
     Scalar threshold,
     Scalar value) {
   OpCommand cmd;
-  cmd.Name("ThresholdV2D")
+  cmd.Name("ThresholdV2")
       .Input(self)
+      .Input(threshold, self.scalar_type())
+      .Input(value, self.scalar_type())
       .Output(result)
-      .Attr("threshold", threshold)
-      .Attr("value", value)
       .Run();
-
   return result;
 }
 
