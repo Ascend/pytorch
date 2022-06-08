@@ -43,7 +43,7 @@ std::tuple<at::Tensor&, at::Tensor&> batch_norm_gather_stats_with_counts_npu_imp
   at::IntArrayRef axes({0});
   at::Tensor countsTensor;
   countsTensor = NPUNativeFunctions::npu_dtype_cast(counts, meanCp.scalar_type());
-  at::Tensor countsTensorT = NPUNativeFunctions::npu_transpose(countsTensor.unsqueeze(-1), {0, 1});
+  at::Tensor countsTensorT = countsTensor.unsqueeze(-1);
   at::Tensor countsTensorBroadcast = NPUNativeFunctions::npu_broadcast(countsTensorT, invstd.sizes());
   at::Tensor countsAllSum = OpPreparation::ApplyTensorWithSizes({1, dimC}, meanCp.options());
   OpCommand cmd1;
