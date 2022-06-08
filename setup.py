@@ -100,8 +100,8 @@ def get_package_dir():
     return package_dir
 
 
-def generate_bindings_code(base_dir):
-    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh')]
+def generate_bindings_code(base_dir, verbose):
+    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh'), verbose]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -267,11 +267,11 @@ class PythonPackageBuild(build_py, object):
             self.copy_file(src, dst)
         super(PythonPackageBuild, self).finalize_options()
 
-
+to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
-    generate_bindings_code(BASE_DIR)
+    generate_bindings_code(BASE_DIR, to_cpu)
     build_stub(BASE_DIR)
 
 # Setup include directories folders.
