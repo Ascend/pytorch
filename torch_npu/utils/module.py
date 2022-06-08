@@ -18,7 +18,7 @@ import warnings
 import logging
 import torch
 import torch_npu
-
+from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
@@ -270,6 +270,70 @@ def pad_packed_sequence(sequence, batch_first=False, padding_value=0.0, total_le
         return padded_output.index_select(batch_dim, unsorted_indices), lengths[unsorted_indices]
     return padded_output, lengths
 
+def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
+    # currently only NPU or GPU input is supported
+    if (not input1.is_cuda) and (not input1.is_npu):
+        raise ValueError('SyncBatchNorm expected input tensor to be on NPU or GPU')
+
+    self._check_input_dim(input1)
+
+    # exponential_average_factor is set to self.momentum
+    # (when it is available) only so that it gets updated
+    # in ONNX graph when this node is exported to ONNX.
+    if self.momentum is None:
+        exponential_average_factor = 0.0
+    else:
+        exponential_average_factor = self.momentum
+
+    if self.training and self.track_running_stats:
+        assert self.num_batches_tracked is not None
+        self.num_batches_tracked = self.num_batches_tracked + 1
+        if self.momentum is None:  # use cumulative moving average
+            exponential_average_factor = 1.0 / self.num_batches_tracked.item()
+        else:  # use exponential moving average
+            exponential_average_factor = self.momentum
+
+    r"""
+    Decide whether the mini-batch stats should be used for normalization rather than the buffers.
+    Mini-batch stats are used in training mode, and in eval mode when buffers are None.
+    """
+    if self.training:
+        bn_training = True
+    else:
+        bn_training = (self.running_mean is None) and (self.running_var is None)
+
+    r"""
+    Buffers are only updated if they are to be tracked and we are in training mode. Thus they only need to be
+    passed when the update should occur (i.e. in training mode when they are tracked), or when buffer stats are
+    used for normalization (i.e. in eval mode when buffers are not None).
+    """
+    # If buffers are not to be tracked, ensure that they won't be updated
+    assert self.running_mean is None or isinstance(self.running_mean, torch.Tensor)
+    assert self.running_var is None or isinstance(self.running_var, torch.Tensor)
+    running_mean = self.running_mean if not self.training or self.track_running_stats else None
+    running_var = self.running_var if not self.training or self.track_running_stats else None
+
+    need_sync = bn_training
+    if need_sync:
+        process_group = torch.distributed.group.WORLD
+        if self.process_group:
+            process_group = self.process_group
+        world_size = torch.distributed.get_world_size(process_group)
+        need_sync = world_size > 1
+
+    # fallback to framework BN when synchronization is not necessary
+    if not need_sync:
+        return F.batch_norm(
+            input1, running_mean, running_var, self.weight, self.bias,
+            bn_training, exponential_average_factor, self.eps)
+    else:
+        if not self.ddp_gpu_size:
+            raise AttributeError('SyncBatchNorm is only supported within torch.nn.parallel.DistributedDataParallel')
+
+        assert bn_training
+        return sync_batch_norm.apply(
+            input1, self.weight, self.bias, running_mean, running_var,
+            self.eps, exponential_average_factor, process_group, world_size)
 
 def apply_module_patch():
     torch.nn.Module.npu = npu
@@ -279,3 +343,4 @@ def apply_module_patch():
     torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
+    torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
