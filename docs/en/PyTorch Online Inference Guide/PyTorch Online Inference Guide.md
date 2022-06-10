@@ -18,7 +18,7 @@ In this way, PyTorch-based inference apps can be directly ported to the  Ascend 
 
 Ascend 910 AI Processor
 
-Ascend 710 AI Processor
+Ascend 310P AI Processor
 
 <h2 id="basic-workflowmd">Basic Workflow</h2>
 
@@ -595,5 +595,4 @@ Perform the following steps as the  **root**  user.
 
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >Skip this step if you do not the compilation environment with GCC upgraded.
-
 
