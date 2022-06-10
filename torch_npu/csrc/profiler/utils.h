@@ -31,6 +31,23 @@ std::unordered_map<std::string, c10::IValue> saveExtraArgs(const at::RecordFunct
 uint64_t computeFlops(const std::string &op_name, 
     const std::unordered_map<std::string, c10::IValue> &extra_args);
 
+class NPURecordFunction {
+public:
+  NPURecordFunction(bool enable_ = false) : enable(enable_) {
+    if (NPURecordFunction::use_npu_simple) {
+      at::enableRecordFunction(enable);
+    }
+  }
+
+  ~NPURecordFunction(){
+    if (NPURecordFunction::use_npu_simple) {
+      at::enableRecordFunction(!enable);
+    }
+  }
+  bool enable = false;
+  static bool use_npu_simple;
+};
+
 }
 }
 
