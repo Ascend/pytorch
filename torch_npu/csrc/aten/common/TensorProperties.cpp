@@ -16,17 +16,12 @@
 #include <ATen/ATen.h>
 
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor contiguous_npu(const at::Tensor& self, c10::MemoryFormat memory_format);
-
-at::Tensor contiguous_npu(const at::Tensor & self) {
-  return contiguous_npu(self, c10::MemoryFormat::Contiguous);
-}
-
-at::Tensor contiguous_npu(const at::Tensor& self, c10::MemoryFormat memory_format) {
+at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFormat memory_format) {
   if (self.is_contiguous(memory_format)) {
     return self;
   }
@@ -34,7 +29,6 @@ at::Tensor contiguous_npu(const at::Tensor& self, c10::MemoryFormat memory_forma
   TORCH_CHECK(
       memory_format != c10::MemoryFormat::Preserve,
       "preserve memory format is unsupported by the contiguous operator");
-
   return self.clone();
 }
 
