@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/npu/Generator.h"
+#include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 
 PyObject* module;
@@ -118,6 +119,8 @@ PyObject* initModule(){
 
   torch_npu::autograd::initTorchFunctions(module);
 
+  RegisterNPUDeviceProperties(module);
+  BindGetDeviceProperties(module);
   return module;
   END_HANDLE_TH_ERRORS
 }
