@@ -195,6 +195,27 @@ Ubuntu环境
 apt install libopenblas-dev
 ```
 
+## 容器中未挂载device问题
+
+在容器中运行脚本出现NPU相关ERROR。由于启动容器实例时，未挂载device参数，导致无法正常启动实例。
+
+![](figures/FAQ.png)
+
+请用户参考以下命令，重启容器。
+
+```sh
+docker run -it --ipc=host \
+--device=/dev/davinciX \
+--device=/dev/davinci_manager \
+--device=/dev/devmm_svm \
+--device=/dev/hisi_hdc \
+-v /usr/local/Ascend/driver/{lib64,include,tools}
+-v /usr/local/dcmi
+-v /usr/local/bin/npu-smi
+```
+
+
+
 # 版本说明
 
 版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
