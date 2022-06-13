@@ -65,13 +65,13 @@ def get_cmake_command():
         return cmake_command
     cmake3 = which('cmake3')
     cmake = which('cmake')
-    if cmake3 is not None and _get_version(cmake3) >= LooseVersion("3.13.0"):
+    if cmake3 is not None and _get_version(cmake3) >= LooseVersion("3.12.0"):
         cmake_command = 'cmake3'
         return cmake_command
-    elif cmake is not None and _get_version(cmake) >= LooseVersion("3.13.0"):
+    elif cmake is not None and _get_version(cmake) >= LooseVersion("3.12.0"):
         return cmake_command
     else:
-        raise RuntimeError('no cmake or cmake3 with version >= 3.13.0 found')
+        raise RuntimeError('no cmake or cmake3 with version >= 3.12.0 found')
 
 
 def get_build_type():
