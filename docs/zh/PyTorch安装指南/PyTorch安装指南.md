@@ -332,7 +332,7 @@
     1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b 3.0.rc1 https://gitee.com/ascend/apex.git
         ```
 
         下载的源码主要目录结构如下所示：
