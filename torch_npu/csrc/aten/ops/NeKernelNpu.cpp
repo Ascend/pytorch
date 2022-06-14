@@ -21,13 +21,7 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& ne_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& other) {
-  at::Tensor selfCast = self;
-  at::Tensor otherCast = other;
-  if(self.dtype() == at::ScalarType::Int || other.dtype() == at::ScalarType::Int){
-    selfCast = self.to(at::ScalarType::Float);
-    otherCast = other.to(at::ScalarType::Float);
-  }
-  auto unified_result = OpPreparation::comparison_op_check(result, selfCast, otherCast, true);
+  auto unified_result = OpPreparation::comparison_op_check(result, self, other, true);
   if(self.scalar_type() == at::kLong) {
     TORCH_WARN_ONCE("The oprator of ne is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
@@ -35,8 +29,8 @@ at::Tensor& ne_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, const
   OpCommand cmd;
   cmd.Name("NotEqual")
     .Expect(unified_result)
-    .Input(selfCast)
-    .Input(otherCast)
+    .Input(self)
+    .Input(other)
     .Output(result)
     .Run();
 
@@ -44,18 +38,14 @@ at::Tensor& ne_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, const
 }
 
 at::Tensor& ne_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::Scalar other) {
-  at::Tensor selfCast = self;
-  if(self.dtype() == at::ScalarType::Int){
-    selfCast = self.to(at::ScalarType::Float);
-  }
   if(self.scalar_type() == at::kLong) {
     TORCH_WARN_ONCE("The oprator of ne is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
   }
   OpCommand cmd;
   cmd.Name("NotEqual")
-    .Input(selfCast)
-    .Input(other, selfCast.scalar_type())
+    .Input(self)
+    .Input(other, self.scalar_type())
     .Output(result)
     .Run();
 

@@ -49,6 +49,20 @@ class TestNe(TestCase):
         output = input3.to("cpu")
         output = output.numpy()
         return output
+    
+    def test_ne_shape_format_int32(self):
+        dtype_list = [np.int32]
+        format_list = [0, 3]
+        shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
+        shape_format = [
+            [d, i, j] for d in dtype_list for i in format_list for j in shape_list
+        ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
+            cpu_input2, npu_input2 = create_common_tensor(item, 1, 100)
+            cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
+            npu_output = self.npu_op_exec(npu_input1, npu_input2)            
+            self.assertEqual(cpu_output, npu_output)
 
     def test_ne_shape_format_fp32(self):
         dtype_list = [np.float32]
