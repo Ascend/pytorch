@@ -313,11 +313,11 @@ After the software packages are installed, configure environment variables to us
     (1) Run the following command to obtain the Apex source code adapted to Ascend AI Processors:
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b master https://gitee.com/ascend/apex.git
         ```
-
+    
         The directory structure of the downloaded source code is as follows:
-
+    
         ```
         apex
         │ ├─patch             # Directory of the patch adapted to Ascend AI Processors
@@ -334,9 +334,9 @@ After the software packages are installed, configure environment variables to us
         cd apex
         git clone https://github.com/NVIDIA/apex.git
         ```
-
+    
         After the native Apex source code is downloaded, the main directory structure of the code is as follows:
-
+    
         ```
         apex
         │ ├─apex              # Directory for storing the native Apex code
@@ -365,7 +365,7 @@ After the software packages are installed, configure environment variables to us
         cd ../scripts
         bash gen.sh
         ```
-
+        
         The full code adapted to Ascend AI Processors is generated in the **apex/apex** directory.
 
     (2) Go to the full code directory **apex/apex**, and compile and generate the binary installation package of Apex.
@@ -374,7 +374,7 @@ After the software packages are installed, configure environment variables to us
         cd ../apex
         python3 setup.py --cpp_ext --npu_float_status bdist_wheel
         ```
-
+        
         The Python version must be the same as that used by PyTorch. The generated binary package is stored in the current **dist** directory, that is, **apex/apex/dist**.
 
 4.  Install Apex.

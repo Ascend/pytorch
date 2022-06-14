@@ -3405,7 +3405,7 @@ Using NPU custom operator to replace the native writing method to improve perfor
 - Examples：
 
   ```
-   >>> training = True
+      >>> training = True
       >>> dropout = nn.DropoutWithByteMask(0.1)
       >>> npu_input1 = torch.rand(96, 12, 384, 384).half().npu()
       >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
@@ -3441,7 +3441,7 @@ Taking into account the distance between the targets,the overlap rate of the dis
 - Examples：
 
   ```
-  >>> box1 = torch.randn(4, 32)
+      >>> box1 = torch.randn(4, 32)
       >>> box1.requires_grad = True
       >>> box2 = torch.randn(4, 32)
       >>> box2.requires_grad = True
@@ -3476,7 +3476,7 @@ Applies an NPU based CIOU operation.
 - Examples：
 
   ```
-  >>> box1 = torch.randn(4, 32)
+      >>> box1 = torch.randn(4, 32)
       >>> box1.requires_grad = True
       >>> box2 = torch.randn(4, 32)
       >>> box2.requires_grad = True
