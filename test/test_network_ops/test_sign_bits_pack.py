@@ -35,10 +35,10 @@ class TestLess(TestCase):
         
     def test_sign_bits_pack(self):
         shape_format = [
-                        [[np.float16, (16,)], 2],
+                        [[np.float16, (17,)], 1],
                         [[np.float32, (8,)], 1],
                         [[np.float32, (32,)], 1],
-                         [[np.float32, (32,)], 2],
+                         [[np.float32, (33,)], 1],
                         [[np.float32, (16,)], 2]                
                         ]
 
@@ -48,7 +48,7 @@ class TestLess(TestCase):
             cpu_output = self.cpu_op_exec(input1, item[1])
             npu_output = self.npu_op_exec(npu_input1, item[1])
            
-            self.assertRtolEqual(cpu_output.astype(item[0][0]), npu_output.astype(item[0][0]))
+            self.assertRtolEqual(cpu_output, npu_output)
 
     
 if __name__ == "__main__":
