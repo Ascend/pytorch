@@ -182,6 +182,12 @@ class OpCommandBase {
     return AddHostTensorInput(scalarTensor, compileType);
   }
 
+  Derived& InputScalarToNPUTensor(
+      const Scalar& input,
+      const ScalarType type) {
+    return AddScalarInput(input, type);
+  }
+
   Derived& Input(const string& str) {
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(str);

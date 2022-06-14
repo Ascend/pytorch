@@ -37,13 +37,25 @@ Tensor& stride_copy_out_npu_nocheck(
   E2E_RECORD_FUNCTION("npuAsStrided");
   // Set the offset of input discontiguous tensor to be 0.
   // The accurate offset would be provided as a attr to op. 
-  NpuStorageOffsetGuard guard_input(const_cast<Tensor &>(self));
   OpCommand cmd;
+  if (c10::npu::NpuRunMode::IsGraphMode()) {
+    NpuStorageOffsetGuard guard_input(const_cast<Tensor &>(self));
+    cmd.Name("AsStrided")
+        .InputWithoutContiguous(self)
+        .Input(shape)
+        .Input(stride)
+        .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+        .Output(result)
+        .Run();
+    return result;
+  }
+  // (Ascend) Fix multi-compiling of asstrided op by wrapping attr storage_offset as a NPU Tensor instead of GE Const node.
+  // If GE Data node can pass vaule of storage_offset to op, we can switch storage_offset to Data node finally.
   cmd.Name("AsStrided")
       .InputWithoutContiguous(self)
       .Input(shape)
       .Input(stride)
-      .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
       .Output(result)
       .Run();
   return result;
