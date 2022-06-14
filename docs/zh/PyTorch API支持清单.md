@@ -3381,4 +3381,151 @@ Rotate Bounding Box Encoding.
                 [-88.4375]]], device='npu:0', dtype=torch.float16)
     ```
 
+
+## 亲和库
+
+>   **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
+
+Using NPU custom operator to replace the native writing method to improve performance
+
+- Args：
+
+  - training (bool): Whether it is training mode.
+  - dropout (nn.Module): the dropout layer
+  - attn_mask (Tensor): the attention mask.
+  - attn_scores (Tensor): the raw attention scores
+  - attn_head_size (float): the head size
+  - p (float): probability of an element to be zeroed
+  - dim (int): A dimension along which softmax will be computed.
+
+- Returns：
+
+  torch.Tensor: The result of the mask operation
+
+- Examples：
+
+  ```
+   >>> training = True
+      >>> dropout = nn.DropoutWithByteMask(0.1)
+      >>> npu_input1 = torch.rand(96, 12, 384, 384).half().npu()
+      >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
+      >>> alpha = 0.125
+      >>> axis = -1
+      >>> output = fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
+  ```
+
+## 
+
+>   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0,):
+
+Applies an NPU based DIOU operation.
+
+Taking into account the distance between the targets,the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
+
+- Notes:
+
+  Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args：
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  -  mode (int):  Select the calculation mode of diou.
+
+- Returns：
+
+  torch.Tensor: The result of the mask operation
+
+- Examples：
+
+  ```
+  >>> box1 = torch.randn(4, 32)
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32)
+      >>> box2.requires_grad = True
+      >>> diou = npu_diou(box1, box2) # (1, 32)
+      >>> l = diou.sum()
+      >>> l.backward()
+  ```
+
+>   **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0,):
+
+Applies an NPU based CIOU operation.
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Notes:
+
+   Util now, ciou only support is_cross==False, atan_sub_flag==True.
+
+- Args：
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  -  mode (int):  Select the calculation mode of diou.
+  - atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
+
+- Returns：
+
+  torch.Tensor: The result of the mask operation
+
+- Examples：
+
+  ```
+  >>> box1 = torch.randn(4, 32)
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32)
+      >>> box2.requires_grad = True
+      >>> ciou = npu_ciou(box1, box2) # (1, 32)
+      >>> l = ciou.sum()
+      >>> l.backward()
+  ```
+
+>   **class** **NpuFairseqDropout**(torch.nn.Dropout):
+
+FairseqDropout using on npu device
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Notes:
+
+   Util now, ciou only support is_cross==False, atan_sub_flag==True.
+
+- Args：
+  -  p (float): probability of an element to be zeroed.
+  - module_name (string): the name of the model
+
+>   **class** **MultiheadAttention**(nn.Module):
+
+Multi-headed attention.
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Args：
+
+  - embed_dim (int): Total dimension of the model.
+
+  - num_heads (int): Number of parallel attention heads. 
+
+  - kdim(int): Total number of features for keys. Default: None
+
+  - vdim(int): Total number of features for values. Default: None
+
+  - dropout (float): Dropout probability 
+
+  - bias (bool):  If specified, adds bias to input / output projection layers. Default: True.
+
+  - add_bias_kv (bool): If specified, adds bias to the key and value sequences at dim=0. Default: False.
+
+  - add_zero_attn (bool): If specified, adds a new batch of zeros to the key and value sequences at dim=1. 
+                                  Default: False.
+
+  - self_attention (bool): Calculate your own attention score. Default: False.
+
+  - encoder_decoder_attention (bool): The input is the output of the encoder and the self-attention output of the decoder, where the self-attention of the encoder is used as the key and value, and the self-attention of the decoder is used as the query. Default: False.
+
     
