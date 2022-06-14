@@ -294,7 +294,7 @@ export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请
     1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b 2.0.2.tr5 https://gitee.com/ascend/apex.git
         ```
 
         下载的源码主要目录结构如下所示：
