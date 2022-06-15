@@ -150,7 +150,7 @@ When setting up the environment for PyTorch model development and running, you c
         bash build.sh --python=3.8
         or
         bash build.sh --python=3.9    # PyTorch 1.5 does not support build and installation using Python 3.9.
-
+        
         ```
 
         Specify the Python version in the environment for build. The generated binary package is stored in the current dist directory  **pytorch/pytorch/dist**.
@@ -339,7 +339,7 @@ After the software packages are installed, configure environment variables to us
     1.  Run the following command to obtain the Apex source code adapted to Ascend AI Processors:
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b 2.0.4.tr5 https://gitee.com/ascend/apex.git
         ```
 
         The directory structure of the downloaded source code is as follows:
