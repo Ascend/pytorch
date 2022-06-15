@@ -294,7 +294,7 @@ export HCCL_IF_IP="1.1.1.1"  # 1.1.1.1 is the NIC IP address of the host. Change
     1.  Run the following command to obtain the Apex source code adapted to Ascend AI Processors:
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b 2.0.2.tr5 https://gitee.com/ascend/apex.git
         ```
 
         The directory structure of the downloaded source code is as follows:
