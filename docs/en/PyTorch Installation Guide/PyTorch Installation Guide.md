@@ -329,7 +329,7 @@ After the software packages are installed, configure environment variables to us
     1.  Run the following command to obtain the Apex source code adapted to Ascend AI Processors:
 
         ```
-        git clone https://gitee.com/ascend/apex.git
+        git clone -b 2.0.3.tr5 https://gitee.com/ascend/apex.git
         ```
 
         The directory structure of the downloaded source code is as follows:
