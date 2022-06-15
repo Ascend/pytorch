@@ -35,14 +35,13 @@ at::Tensor& sign_bits_pack_npu_nocheck(
 }
 
 at::Tensor NPUNativeFunctions::npu_sign_bits_pack(const at::Tensor& self, int64_t size) {
-  TORCH_CHECK(self.dim() == 1 && self.numel()%(size*8) == 0,
-      "input must be one-dimensional and size of input can be divisible by size*8");
+  TORCH_CHECK(self.dim() == 1, "input must be one-dimensional");
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Half || self.scalar_type() == at::ScalarType::Float,
       "all only supports torch.float16 and torch.float32 dtypes");
+  auto ysize = (self.numel() + 7) / 8;
+  TORCH_CHECK(size != 0 && ysize % size == 0, "all must be divisible by size");
+  at::Tensor result = OpPreparation::ApplyTensor({size, ysize / size}, self.options().dtype(at::kByte), self);
   
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensor({size, self.numel()/(size*8)}, self.options().dtype(at::kByte), self);
-
   // calculate the output result of the NPU
   sign_bits_pack_npu_nocheck(result, self, size);
 
