@@ -21,13 +21,7 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& other) {
-  Tensor selfCast = self;
-  Tensor otherCast = other;
-  if(self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int){
-    selfCast = self.to(ScalarType::Float);
-    otherCast = other.to(ScalarType::Float);
-  }
-  auto unified_result = OpPreparation::comparison_op_check(result, selfCast, otherCast, true);
+  auto unified_result = OpPreparation::comparison_op_check(result, self, other, true);
   if(self.scalar_type() == at::kLong) {
     TORCH_WARN_ONCE("The oprator of ne is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
@@ -35,8 +29,8 @@ Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
   OpCommand cmd;
   cmd.Name("NotEqual")
     .Expect(unified_result)
-    .Input(selfCast)
-    .Input(otherCast)
+    .Input(self)
+    .Input(other)
     .Output(result)   
     .Run();
   
@@ -44,18 +38,14 @@ Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
 }
 
 Tensor& ne_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
-  Tensor selfCast = self;
-  if(self.dtype() == ScalarType::Int){
-    selfCast = self.to(ScalarType::Float);
-  }
   if(self.scalar_type() == at::kLong) {
     TORCH_WARN_ONCE("The oprator of ne is executed, Currently High Accuracy but Low Performance OP with 64-bit has been used,"
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
   }
   OpCommand cmd;
   cmd.Name("NotEqual")
-    .Input(selfCast)
-    .Input(other, selfCast.scalar_type())
+    .Input(self)
+    .Input(other, self.scalar_type())
     .Output(result)   
     .Run();
 
@@ -92,6 +82,7 @@ Tensor& ne_out_npu(Tensor& result, const Tensor& self, Scalar other) {
 Tensor ne_npu(const Tensor& self, const Tensor& other) {
   Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
+  
   // calculate the output size
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
 
