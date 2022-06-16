@@ -40,6 +40,7 @@ class OpAttrMaker {
   static void Set(aclopAttr* attr, const string& name, at::ArrayRef<float> value);
   static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
   static void Set(aclopAttr* attr, const string& name, Scalar value);
+  static void Set(aclopAttr* attr, const string& name, ScalarType value);
   static void Set(
       aclopAttr* attr,
       const string& name,

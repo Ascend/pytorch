@@ -160,9 +160,12 @@ Tensor mm_npu(const Tensor& self, const Tensor& mat2) {
   auto outputSize = mm_npu_output_size(self, mat2);
   auto k_dim = self.size(1);
   bool split_k_dtype_correct =
-      self.dtype() == ScalarType::Half && mat2.dtype() == ScalarType::Half;
+      (self.dtype() == ScalarType::Half) && (mat2.dtype() == ScalarType::Half);
+  bool split_k_format_correct =
+      (FormatHelper::GetFormat(self) == ACL_FORMAT_ND) &&
+      (FormatHelper::GetFormat(mat2) == ACL_FORMAT_ND);
   bool split_k_condition = k_dim >= SPLIT_K_MULTI * std::max(self.size(0), mat2.size(1));
-  bool split_k = split_k_dtype_correct && split_k_condition;
+  bool split_k = split_k_dtype_correct && split_k_format_correct && split_k_condition;
   // construct the output tensor of the NPU
   Tensor result_tmp;
   Tensor result;

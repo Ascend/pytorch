@@ -18,7 +18,7 @@
 
 #include <ATen/native/npu/utils/CalcuOpUtil.h>
 #include <ATen/native/npu/utils/NpuUtils.h>
-
+#include <ATen/native/npu/graph/util/ATenGeBridge.h>
 #include <ATen/ATen.h>
 #include <c10/npu/NPUGraph.h>
 namespace at {
@@ -102,6 +102,16 @@ public:
     float val = CalcuOpUtil::get_scalar_float_value(value);
     node->AddExtInfo(
         NodeExtInfoType::ATTR_TYPE_FLOAT, std::make_pair(attr_name, val));
+    node->UpdateNodeHash(val);
+  }
+  
+  static void SetAttr(
+    const string& attr_name,
+    const c10::ScalarType& value,
+    NodePtr node) {
+    ge::DataType val = ATenGeBridge::GetGeDType(value);
+    node->AddExtInfo(
+        NodeExtInfoType::ATTR_TYPE_DATATYPE, std::make_pair(attr_name, val));
     node->UpdateNodeHash(val);
   }
 };
