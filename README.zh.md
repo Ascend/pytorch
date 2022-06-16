@@ -68,7 +68,6 @@ pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
 在当前仓库根目录中执行设置环境变量脚本
 
 ```
-cd ../
 source env.sh
 ```
 
@@ -194,6 +193,49 @@ Ubuntu环境
 ```sh
 apt install libopenblas-dev
 ```
+
+## 容器中未挂载device问题
+
+在容器中运行脚本出现NPU相关ERROR。由于启动容器实例时，未挂载device参数，导致无法正常启动实例。
+
+![](figures/FAQ.png)
+
+请用户参考以下命令，重启容器。
+
+```sh
+docker run -it --ipc=host \
+--device=/dev/davinciX \
+--device=/dev/davinci_manager \
+--device=/dev/devmm_svm \
+--device=/dev/hisi_hdc \
+-v /usr/local/Ascend/driver \
+-v /usr/local/dcmi \
+-v /usr/local/bin/npu-smi \
+${镜像名称}:{tag} \
+/bin/bash
+```
+
+参数说明：
+
+/dev/davinciX：NPU设配，X是芯片物理ID号例如davinci0。
+
+/dev/davinci_manager：管理设备。
+
+/dev/devmm_svm：管理设备。
+
+/dev/hisi_hdc：管理设备。
+
+/usr/local/Ascend/driver：驱动目录。
+
+/usr/local/dcmi：DCMI目录。
+
+/usr/local/bin/npu-smi：npu-smi工具。
+
+${镜像名称}:{tag}：镜像名称与版本号。
+
+
+
+
 
 # 版本说明
 
