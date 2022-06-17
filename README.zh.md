@@ -1,16 +1,30 @@
 # AscendPyTorch
+<h2 id="简介md">简介</h2>
 
+本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译相关模块。
 
-# 项目简介
-本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。
+<h2 id="md">前提条件</h2>
 
-# 编译/执行约束
+- 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
 
-gcc版本: 7.3.0（只在编译场景要求）
+- 需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。（仅编译环境要求）
 
-cmake版本：3.12.0以上版本（只在编译场景要求）
+- 需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。（仅编译环境要求）
 
-python版本：3.7.5、3.8.x、3.9.x（PyTorch1.5不支持python3.9.x）
+- 需安装python版本为3.7.5、3.8、3.9，需注意torch1.5版本不支持python3.9编译安装（与官方保持一致），仅torch1.8.1版本支持python版本3.9进行编译安装。
+
+-   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下：
+    -   Ubuntu系统
+
+        ```
+        apt-get install git
+        ```
+        
+    -   CentOS系统
+    
+        ```
+        yum install git
+
 
 # 系统依赖库
 
@@ -22,9 +36,7 @@ yum install -y cmake zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel g
 
 apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake dos2unix libopenblas-dev
 
-
 # Ascend配套软件
-
 | AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
 | :------------ | :----------- | :----------- | ------------- |
 | 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
@@ -35,17 +47,27 @@ apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev
 
 # 安装方式
 
+## 安装Pytorch依赖环境
+
+如果使用非root用户安装，用户需要在本步骤的每句命令后加**--user**，示例如：pip3 install pyyaml --user。
+
+```sh
+pip3 install pyyaml
+pip3 install wheel
+```
+
 ## 编译安装PyTorch和昇腾插件
 
 首先安装官方torch包，然后编译安装插件
+
 ```sh
-pip3 install torch==1.8.1
+pip3 install torch==1.8.1+cpu
 ```
 
 编译生成pytorch插件的二进制安装包。
 
 ```
-git clone https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载代码，进入插件根目录
+git clone -b master https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
 # 或
@@ -89,6 +111,109 @@ export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开
 export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下有不同的性能表现。可选
 ```
 
+**表 1**  环境变量说明
+<a name="zh-cn_topic_0000001152616261_table42017516135"></a>
+<table><thead align="left"><tr id="zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001152616261_p51981251161315"></a>配置项</p>
+</th>
+<th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001152616261_p9198135114133"></a>说明</p>
+</th>
+</tr>
+</thead>
+<tbody><tr id="zh-cn_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p688241953218"><a name="zh-cn_topic_0000001152616261_p688241953218"></a><a name="zh-cn_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001152616261_p1888291915322"></a>动态库的查找路径，参考上述举例配置。</p>
+<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>若训练所在系统环境需要升级gcc（例如CentOS、Debian和BClinux系统），则<span class="parmname" id="parmname795020446318"><a name="parmname795020446318"></a><a name="parmname795020446318"></a>“LD_LIBRARY_PATH”</span>配置项处动态库查找路径需要添加<span class="filepath" id="zh-cn_topic_0256062644_filepath115819811512"><a name="zh-cn_topic_0256062644_filepath115819811512"></a><a name="zh-cn_topic_0256062644_filepath115819811512"></a>“${install_path}/lib64”</span>，其中<span class="filepath" id="zh-cn_topic_0256062644_filepath195951574421"><a name="zh-cn_topic_0256062644_filepath195951574421"></a><a name="zh-cn_topic_0256062644_filepath195951574421"></a>“{install_path}”</span>为gcc升级安装路径。请参见<a href="#安装7-3-0版本gccmd#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li9745165315131">5</a>。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16195185523019"><a name="zh-cn_topic_0000001152616261_p16195185523019"></a><a name="zh-cn_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p19637083322"><a name="zh-cn_topic_0000001152616261_p19637083322"></a><a name="zh-cn_topic_0000001152616261_p19637083322"></a>Python搜索路径，参考上述举例配置。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row2954102119329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p195452113218"><a name="zh-cn_topic_0000001152616261_p195452113218"></a><a name="zh-cn_topic_0000001152616261_p195452113218"></a>PATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p964914893211"><a name="zh-cn_topic_0000001152616261_p964914893211"></a><a name="zh-cn_topic_0000001152616261_p964914893211"></a>可执行程序的查找路径，参考上述举例配置。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row58592816294"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p1886016892913"><a name="zh-cn_topic_0000001152616261_p1886016892913"></a><a name="zh-cn_topic_0000001152616261_p1886016892913"></a>ASCEND_OPP_PATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p28608892915"><a name="zh-cn_topic_0000001152616261_p28608892915"></a><a name="zh-cn_topic_0000001152616261_p28608892915"></a>算子根目录，参考上述举例配置。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row144592037903"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p104601373014"><a name="zh-cn_topic_0000001152616261_p104601373014"></a><a name="zh-cn_topic_0000001152616261_p104601373014"></a>OPTION_EXEC_EXTERN_PLUGIN_PATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1046013716017"><a name="zh-cn_topic_0000001152616261_p1046013716017"></a><a name="zh-cn_topic_0000001152616261_p1046013716017"></a>算子信息库路径。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row16184379493"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p131851873492"><a name="zh-cn_topic_0000001152616261_p131851873492"></a><a name="zh-cn_topic_0000001152616261_p131851873492"></a>ASCEND_AICPU_PATH</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p181851575497"><a name="zh-cn_topic_0000001152616261_p181851575497"></a><a name="zh-cn_topic_0000001152616261_p181851575497"></a>aicpu算子包路径。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p2034724894619"><a name="zh-cn_topic_0000001152616261_p2034724894619"></a><a name="zh-cn_topic_0000001152616261_p2034724894619"></a>TASK_QUEUE_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p53477489462"><a name="zh-cn_topic_0000001152616261_p53477489462"></a><a name="zh-cn_topic_0000001152616261_p53477489462"></a>使用异步任务下发，异步调用acl接口。建议开启，开启设置为1。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
+<a name="ul928845132310"></a><a name="ul928845132310"></a><ul id="ul928845132310"><li>0：开启白名单，无需校验HCCL通信白名单。</li><li>1：关闭白名单，需校验HCCL通信白名单。</li></ul>
+<p id="zh-cn_topic_0000001152616261_p5809162416201"><a name="zh-cn_topic_0000001152616261_p5809162416201"></a><a name="zh-cn_topic_0000001152616261_p5809162416201"></a>缺省值为0，默认开启白名单。</p>
+</td>
+</tr>
+<tr id="zh-cn_topic_0000001152616261_row0671137162115"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4671203792114"><a name="zh-cn_topic_0000001152616261_p4671203792114"></a><a name="zh-cn_topic_0000001152616261_p4671203792114"></a>HCCL_IF_IP</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1822165982114"><a name="zh-cn_topic_0000001152616261_p1822165982114"></a><a name="zh-cn_topic_0000001152616261_p1822165982114"></a>配置HCCL的初始化通信网卡IP。</p>
+<a name="ul2676102292415"></a><a name="ul2676102292415"></a><ul id="ul2676102292415"><li>ip格式为点分十进制。</li><li>暂只支持host网卡。</li></ul>
+<p id="zh-cn_topic_0000001152616261_p1167163719217"><a name="zh-cn_topic_0000001152616261_p1167163719217"></a><a name="zh-cn_topic_0000001152616261_p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡（网卡名字字典序升序排列）&gt;docker 网卡 &gt; local网卡</p>
+</td>
+</tr>
+<tr id="row743212132309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p17433111312307"><a name="p17433111312307"></a><a name="p17433111312307"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p6433151393018"><a name="p6433151393018"></a><a name="p6433151393018"></a>（可选）设置是否开启日志打屏。</p>
+<a name="ul760201917473"></a><a name="ul760201917473"></a><ul id="ul760201917473"><li>0：表示采用日志的默认输出方式。</li><li>1：表示日志打屏显示。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row19237171814300"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p14238161893019"><a name="p14238161893019"></a><a name="p14238161893019"></a>ASCEND_GLOBAL_LOG_LEVEL</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p223841810303"><a name="p223841810303"></a><a name="p223841810303"></a>设置应用类日志的全局日志级别。</p>
+<a name="ul175714586453"></a><a name="ul175714586453"></a><ul id="ul175714586453"><li>0：对应DEBUG级别。</li><li>1：对应INFO级别。</li><li>2：对应WARNING级别。</li><li>3：对应ERROR级别。</li><li>4：对应NULL级别，不输出日志。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row1348192313303"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1734815235305"><a name="p1734815235305"></a><a name="p1734815235305"></a>ASCEND_GLOBAL_EVENT_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p12348202373018"><a name="p12348202373018"></a><a name="p12348202373018"></a>设置应用类日志是否开启Event日志。</p>
+<a name="ul416352114610"></a><a name="ul416352114610"></a><ul id="ul416352114610"><li>0：不开启Event日志。</li><li>1：开启Event日志。</li><li>其他值为非法值。</li></ul>
+</td>
+</tr>
+<tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1（PyTorch1.8.1不支持该环境变量）。</p>
+</td>
+</tr>
+<tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1。</p>
+</td>
+</tr>
+<tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1。</p>
+</td>
+</tr>
+<tr id="row27481914203518"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p674813144357"><a name="p674813144357"></a><a name="p674813144357"></a>DYNAMIC_OP</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p974891414353"><a name="p974891414353"></a><a name="p974891414353"></a>（可选）算子实现，ADD和MUL算子在不同场景下有不同的性能表现。默认不设置。</p>
+</td>
+</tr>
+<tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。</p>
+</td>
+</tr>
+</tbody>
+</table>
 
 ## 执行单元测试脚本
 
@@ -98,6 +223,105 @@ export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下�
 cd test/test_network_ops/
 python3 test_div.py
 ```
+
+# 安装混合精度模块
+
+## 前提条件<a name="zh-cn_topic_0000001106176190_section3225481020"></a>
+
+1. 请确保运行环境中适配昇腾AI处理器的PyTorch框架能正常使用。
+2. 编译安装Apex前，需参见[配置环境变量](#配置环境变量md)配置好编译过程依赖的环境变量。
+3. 需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
+
+   - Ubuntu系统
+
+     ```
+     apt-get install patch
+     apt-get install git
+     ```
+
+   - CentOS系统
+
+     ```
+     yum install patch
+     yum install git
+     ```
+
+## 安装流程<a name="zh-cn_topic_0000001106176190_section11880164819567"></a>
+
+1. 以root或非root用户登录服务器。
+
+2. 获取apex源代码。
+
+   1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
+
+       ```
+       git clone -b master https://gitee.com/ascend/apex.git
+       ```
+       下载的源码主要目录结构如下所示：
+
+       ```
+       apex
+       │ ├─patch             # 昇腾AI处理器适配补丁目录
+       │    ├─npu.patch
+       │ ├─scripts           # 编译构建目录
+       │    ├─gen.sh
+       │ ├─src               # 源码目录
+       │ ├─tests              # 测试用例存放目录
+       ```
+   2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
+       ```
+       cd apex
+       git clone https://github.com/NVIDIA/apex.git
+       ```
+       下载原生apex源码后，代码主要目录结构如下所示：
+       ```
+       apex
+       │ ├─apex              # 原生apex代码目录
+       │ ├─patch             # 昇腾AI处理器适配补丁目录
+       │    ├─npu.patch
+       │ ├─scripts           # 编译构建目录
+       │    ├─gen.sh
+       │ ├─src               # 源码目录
+       │ ├─tests              # 测试用例存放目录
+       ```
+   3.  进入原生apex代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
+       ```
+       cd apex
+       git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
+       ```
+
+   >![](figures/icon-note.gif) **说明：** 
+   >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
+
+3. 编译生成适配昇腾AI处理器的apex安装包。
+   1.  进入“apex/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
+       ```
+       cd ../scripts
+       bash gen.sh
+       ```
+       将在"apex/apex"目录中生成适配昇腾AI处理器的全量代码。
+   2.  进入适配后的全量代码目录，即“apex/apex“目录，编译生成apex的二进制安装包。
+       ```
+       cd ../apex
+       python3 setup.py --cpp_ext --npu_float_status bdist_wheel
+       ```
+       Python版本需与PyTorch使用的Python一致，生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
+
+4. <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
+   进入“apex/apex/dist“文件夹目录，执行如下命令安装。
+   ```
+   cd dist
+   pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
+   ```
+
+   **\{arch\}**表示架构信息，为aarch64或x86\_64。
+
+   >![](figures/icon-note.gif) **说明：** 
+   >若对环境中的Apex进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[4. 安装apex。](#zh-cn_topic_0000001106176190_li425495374416)可以通过执行如下命令查询环境上是否已安装PyTorch。
+   >**pip3 list | grep apex**
+
+
+
 
 # 文档
 
@@ -128,15 +352,105 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 
+# 参考信息
 
+<h3 id="CMake安装方法md">CMake安装方法</h3>
+CMake版本升级为3.12.1的方法。
+
+1. 获取Cmake软件包。
+
+   ```
+   wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz --no-check-certificate
+   ```
+2. 解压并进入软件包目录。
+   ```
+   tar -xf cmake-3.12.1.tar.gz
+   cd cmake-3.12.1/
+   ```
+3. 执行配置、编译和安装命令。
+   ```
+   ./configure --prefix=/usr/local/cmake
+   make && make install
+   ```
+4. 设置软连接。
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+5. 执行如下命令验证是否安装成功。
+   ```
+   cmake --version
+   ```
+   如显示“cmake version 3.12.1”则表示安装成功。
+<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
+以下步骤请在root用户下执行。
+
+1.  下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
+2.  安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
+    ```
+    sudo rm -rf /tmp/*
+    ```
+3.  安装依赖（以CentOS和Ubuntu系统为例）。
+    -   CentOS执行如下命令安装。
+        ```
+        yum install bzip2    
+        ```
+    -   Ubuntu执行如下命令安装。
+        ```
+        apt-get install bzip2    
+        ```
+4.  编译安装gcc。
+    1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
+        ```
+        tar -zxvf gcc-7.3.0.tar.gz
+        ```
+    2.  进入解压后的文件夹，执行如下命令下载gcc依赖包：
+        ```
+        cd gcc-7.3.0
+        ./contrib/download_prerequisites
+        ```
+        如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
+        ```
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+        ```
+        下载好上述依赖包后，重新执行以下命令：
+        ```
+        ./contrib/download_prerequisites
+        ```
+
+        如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+
+    3.  <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
+
+        ```
+        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+        make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
+        make install    
+        ```
+        >![](figures/icon-notice.gif) **须知：** 
+        >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
+
+5.  配置环境变量。
+    当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
+    ```
+    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+    ```
+    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+    >![](figures/icon-note.gif) **说明：** 
+    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 # FAQ
 
 ## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
 
 pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
 
+```
 pip3 install pyyaml
+
 pip3 install typing_extensions
+```
 
 安装成功后，注意需要执行make clean在执行bash build.sh进行编译，否则可能因缓存出现未知编译错误。
 
@@ -144,15 +458,19 @@ pip3 install typing_extensions
 
 开发态:
 
+```
 cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+```
 
 用户态:
 
+```
 cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
 pip3 install --upgrade te-0.4.0-py3-none-any.whl
+```
 
 
 
@@ -160,11 +478,15 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 cmake官网下载linux版本安装（当前3.18.0）
 
-1. 使用yum命令安装： yum install -y cmake==3.18.0
+1. 使用yum命令安装： 
+
+   ```
+   yum install -y cmake==3.18.0
+   ```
 
 2. 下载cmake sh脚本安装：（参考cmake官网）
 
-   X86_64环境推荐脚本安装: cmake-3.18.2-Linux-x86_64.sh
+   X86_64环境推荐脚本安装：cmake-3.18.2-Linux-x86_64.sh
 
    
 
@@ -233,7 +555,14 @@ ${镜像名称}:{tag} \
 
 ${镜像名称}:{tag}：镜像名称与版本号。
 
+## 安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配
 
+安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
+![](figures/zh-cn_image_0000001190081735.png)
+
+安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
+
+对实际结果无影响，无需处理。
 
 
 
