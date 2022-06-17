@@ -73,17 +73,6 @@ def wrapper_hccl(fn):
     return decorated
 
 
-def wrapper_tensor_type(fn):
-    @wraps(fn)
-    def decorated(*args, **kwargs):
-        output = fn(*args, **kwargs)
-        if isinstance(output, str):
-            output = output.replace('torch.npu.', 'torch.cuda.')
-        return output
-
-    return decorated
-
-
 def patch_cuda():
     patchs = [['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp]]
     torch_npu._apply_patches(patchs)
@@ -130,7 +119,6 @@ def init():
     device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
     torch.cuda.DoubleTensor = torch.npu.FloatTensor
-    torch.Tensor.type = wrapper_tensor_type(torch.Tensor.type)
 
     # torch.nn.Module.*
     device_wrapper(torch.nn.Module, torch_module_fn_white_list)
