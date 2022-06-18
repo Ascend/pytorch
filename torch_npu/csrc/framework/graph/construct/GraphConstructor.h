@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
+#include "torch_npu/csrc/framework/graph/util/ATenGeBridge.h"
 #include <ATen/ATen.h>
 
 namespace at_npu {
@@ -96,6 +97,16 @@ public:
     float val = CalcuOpUtil::get_scalar_float_value(value);
     node->AddExtInfo(
         NodeExtInfoType::ATTR_TYPE_FLOAT, std::make_pair(attr_name, val));
+    node->UpdateNodeHash(val);
+  }
+
+  static void SetAttr(
+    const string& attr_name,
+    const c10::ScalarType& value,
+    NodePtr node) {
+    ge::DataType val = ATenGeBridge::GetGeDType(value);
+    node->AddExtInfo(
+        NodeExtInfoType::ATTR_TYPE_DATATYPE, std::make_pair(attr_name, val));
     node->UpdateNodeHash(val);
   }
 };
