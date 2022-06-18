@@ -26,15 +26,28 @@ import torch_npu
 DEFAULT_PROTOCOL = 2
 
 def to_cpu(data):
+    if isinstance(data, string_classes):
+        return data
+
+    if isinstance(data, torch.Tensor):
+        return data.cpu()
+
+    if isinstance(data, nn.Module):
+        return copy.deepcopy(data).cpu()
+
+    if isinstance(data, argparse.Namespace):
+        dict_obj = vars(data)
+        return argparse.Namespace(**to_cpu(dict_obj))
+
     if isinstance(data, container_abcs.Sequence):
-        copy_data = type(data)([None] * len(data))
+        copy_data = list([None] * len(data))
         for i, value in enumerate(data):
             if isinstance(value, tuple):
                 list_value = list(value)
                 cpu_list_value = to_cpu(list_value)
-                copy_data[i] = tuple(cpu_list_value)
+                copy_data[i] = type(value)(cpu_list_value)
             elif isinstance(value, string_classes):
-                continue
+                copy_data[i] = value
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 copy_data[i] = to_cpu(value)
             elif isinstance(value, torch.Tensor):
@@ -43,7 +56,7 @@ def to_cpu(data):
                 copy_data[i] = copy.deepcopy(value).cpu()
             else:
                 copy_data[i] = value
-        return copy_data
+        return type(data)(copy_data)
 
     if isinstance(data, container_abcs.Mapping):
         copy_data = type(data)()
@@ -51,7 +64,7 @@ def to_cpu(data):
             if isinstance(value, tuple):
                 list_value = list(value)
                 cpu_list_value = to_cpu(list_value)
-                copy_data[key] = tuple(cpu_list_value)
+                copy_data[key] = type(value)(cpu_list_value)
             elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
                 copy_data[key] = to_cpu(value)
             elif isinstance(value, torch.Tensor):
@@ -62,13 +75,8 @@ def to_cpu(data):
                 copy_data[key] = value
         return copy_data
 
-    if isinstance(value, torch.Tensor):
-        return data.cpu()
-
-    if isinstance(value, nn.Module):
-        return copy.deepcopy(value).cpu()
-
     return data
+
 
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=False):
     """Saves the input data into a file.
@@ -85,30 +93,8 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     path: The destination file for the data saving operation. all the writes from 
     the same host will override each other.
     """
+    se.save(to_cpu(obj), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
-    if isinstance(obj, torch.Tensor):
-        cpu_obj = obj.cpu()
-        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
-
-    elif isinstance(obj, tuple):
-        list_obj = list(obj)
-        cpu_obj = tuple(to_cpu(list_obj))
-        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
-
-    elif isinstance(obj, (container_abcs.Sequence, container_abcs.Mapping)):
-        cpu_obj = to_cpu(obj)
-        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
-    
-    elif isinstance(obj, nn.Module):
-        se.save(copy.deepcopy(obj).cpu(), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
-    
-    elif isinstance(obj, argparse.Namespace):
-        dict_obj = vars(obj)
-        cpu_obj = argparse.Namespace(**to_cpu(dict_obj))
-        se.save(cpu_obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
-        
-    else:
-        se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
 def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     """Loads data previously saved with the `save()` API.
