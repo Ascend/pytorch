@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -32,7 +32,7 @@ Tensor& avg_pool2d_backward_out_npu(
     bool ceil_mode,
     bool count_include_pad,
     c10::optional<int64_t> divisor_override) {
-    
+
   TORCH_CHECK(kernel_size.size() == 1 || kernel_size.size() == 2,
       "avg_pool2d: kernel_size must either be a single int, or a tuple of two ints");
   if (kernel_size.size() == 1) {
@@ -43,23 +43,20 @@ Tensor& avg_pool2d_backward_out_npu(
   TORCH_CHECK(stride.empty() || stride.size() == 1 || stride.size() == 2,
       "avg_pool2d: stride must either be omitted, a single int, or a tuple of two ints");
   stride = stride.empty() ? kernel_size : stride;
-  
+
   TORCH_CHECK(padding.size() == 1 || padding.size() == 2,
       "avg_pool2d: padding must either be a single int, or a tuple of two ints");
   if (padding.size() == 1) {
     SmallVector<int64_t, SIZE> paddings = {padding[0], padding[0]};
     padding = IntArrayRef(paddings);
   }
-  
+
   const int64_t ndim = self.ndimension();
 
   TORCH_CHECK((ndim == 3 || ndim == 4),
       "non-empty 3D or 4D (batch mode) tensor expected for input");
 
   TORCH_CHECK(!divisor_override.has_value() || divisor_override.value() != 0, "divisor must be not zero");
-
-  Tensor orig_input_shape_cpu = from_blob((void*)self.sizes().data(), {self.dim()}, at::kLong).to(at::kInt);
-  Tensor orig_input_shape_npu = CalcuOpUtil::copy_tensor_host_to_device(orig_input_shape_cpu);
 
   // constructs the attr of the NPUAttrDesc
   // required attr
@@ -71,9 +68,9 @@ Tensor& avg_pool2d_backward_out_npu(
   }
   SmallVector<int64_t, N> kernelSize = {1, 1, kernel_size[0], kernel_size[1]};
   SmallVector<int64_t, N> stridesSize = {1, 1, strideH, strideW};
-  
+
   // optional attr
-  string padding_mode = "CALCULATED"; 
+  string padding_mode = "CALCULATED";
   SmallVector<int64_t, N> pads = {padding[0], padding[0], padding[1], padding[1]};
   string format = "NCHW";
   bool pooling = false;
@@ -82,7 +79,7 @@ Tensor& avg_pool2d_backward_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("AvgPoolV2Grad")
-     .InputPair(orig_input_shape_npu, orig_input_shape_cpu)
+     .Input(self.sizes())
      .Input(grad_output)
      .Output(grad_input)
      .Attr("ksize", kernelSize)

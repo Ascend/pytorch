@@ -24,21 +24,6 @@ namespace native {
 namespace npu {
 
 // OpCommand Part
-OpCommand& OpCommand::InputPair(const Tensor& npu_input, const Tensor& cpu_input) {
-  IF_GRAPH_MODE_THEN_RUN(
-      Tensor tmp_cpu_input = cpu_input;
-      if (tmp_cpu_input.scalar_type() != at::kLong) {
-          tmp_cpu_input = tmp_cpu_input.to(at::kLong);
-      }
-      auto cpu_shape =
-          IntArrayRef(reinterpret_cast<int64_t*>(tmp_cpu_input.data_ptr()),
-                      tmp_cpu_input.numel());
-      graphCmd.AddInput(cpu_shape, cpu_input.scalar_type());
-      return *this;
-  )
-  return AddTensorInput(Contiguous(npu_input), ScalarType::Undefined, "", "", cpu_input);
-}
-
 OpCommand& OpCommand::Inputs(const TensorList& inputs) {
   for (auto& input : inputs) {
     this->Input(input);
