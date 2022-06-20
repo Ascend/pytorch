@@ -1195,7 +1195,7 @@
 | 75   | torch.nn.functional.pairwise_distance                 | 是                          |
 | 76   | torch.nn.functional.cosine_similarity                 | 是                          |
 | 77   | torch.nn.functional.pdist                             | 是                          |
-| 78   | torch.nn.functional.binary_cross_entropy              | 是                          |
+| 78   | torch.nn.functional.binary_cross_entropy              | 是（参数y仅支持y=1,y=0）    |
 | 79   | torch.nn.functional.binary_cross_entropy_with_logits  | 是                          |
 | 80   | torch.nn.functional.poisson_nll_loss                  | 是                          |
 | 81   | torch.nn.functional.cosine_embedding_loss             | 是                          |
@@ -3381,8 +3381,9 @@ Rotate Bounding Box Encoding.
                 [-88.4375]]], device='npu:0', dtype=torch.float16)
     ```
 
-
 ## 亲和库
+
+以下亲和库适用于PyTorch 1.8.1版本。
 
 >   **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
 
@@ -3411,12 +3412,12 @@ Using NPU custom operator to replace the native writing method to improve perfor
       >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
       >>> alpha = 0.125
       >>> axis = -1
-      >>> output = fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
+      >>> output = torch_npu.contrib.function.fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
   ```
 
-## 
+ 
 
->   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0,):
+>   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
 
 Applies an NPU based DIOU operation.
 
@@ -3441,16 +3442,17 @@ Taking into account the distance between the targets,the overlap rate of the dis
 - Examples：
 
   ```
-      >>> box1 = torch.randn(4, 32)
+      >>> box1 = torch.randn(4, 32).npu
       >>> box1.requires_grad = True
-      >>> box2 = torch.randn(4, 32)
+      >>> box2 = torch.randn(4, 32).npu
       >>> box2.requires_grad = True
-      >>> diou = npu_diou(box1, box2) # (1, 32)
+      >>> ciou = torch_npu.contrib.function.npu_diou(box1, box2) 
       >>> l = diou.sum()
       >>> l.backward()
   ```
+  
 
->   **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0,):
+>   **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
 
 Applies an NPU based CIOU operation.
 
@@ -3458,7 +3460,7 @@ Applies an NPU based CIOU operation.
 
 - Notes:
 
-   Util now, ciou only support is_cross==False, atan_sub_flag==True.
+   Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
 
 - Args：
 
@@ -3476,11 +3478,11 @@ Applies an NPU based CIOU operation.
 - Examples：
 
   ```
-      >>> box1 = torch.randn(4, 32)
+      >>> box1 = torch.randn(4, 32).npu
       >>> box1.requires_grad = True
-      >>> box2 = torch.randn(4, 32)
+      >>> box2 = torch.randn(4, 32).npu
       >>> box2.requires_grad = True
-      >>> ciou = npu_ciou(box1, box2) # (1, 32)
+      >>> ciou = torch_npu.contrib.function.npu_ciou(box1, box2) 
       >>> l = ciou.sum()
       >>> l.backward()
   ```
@@ -3489,12 +3491,6 @@ Applies an NPU based CIOU operation.
 
 FairseqDropout using on npu device
 
- A penalty item is added on the basis of DIoU, and CIoU is proposed.
-
-- Notes:
-
-   Util now, ciou only support is_cross==False, atan_sub_flag==True.
-
 - Args：
   -  p (float): probability of an element to be zeroed.
   - module_name (string): the name of the model
@@ -3502,8 +3498,6 @@ FairseqDropout using on npu device
 >   **class** **MultiheadAttention**(nn.Module):
 
 Multi-headed attention.
-
- A penalty item is added on the basis of DIoU, and CIoU is proposed.
 
 - Args：
 
@@ -3528,4 +3522,8 @@ Multi-headed attention.
 
   - encoder_decoder_attention (bool): The input is the output of the encoder and the self-attention output of the decoder, where the self-attention of the encoder is used as the key and value, and the self-attention of the decoder is used as the query. Default: False.
 
+  - q_noise(float): amount of Quantization Noise.
+  
+  - qn_block_size(int): size of the blocks for subsequent quantization with iPQ.
+  
     

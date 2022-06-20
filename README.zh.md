@@ -6,35 +6,17 @@
 <h2 id="md">前提条件</h2>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-
-- 需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。（仅编译环境要求）
-
-- 需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。（仅编译环境要求）
-
-- 需安装python版本为3.7.5、3.8、3.9，需注意torch1.5版本不支持python3.9编译安装（与官方保持一致），仅torch1.8.1版本支持python版本3.9进行编译安装。
-
--   需确保环境中已安装git工具，以Ubuntu和CentOS系统为例，命令如下：
-    -   Ubuntu系统
-
-        ```
-        apt-get install git
-        ```
-        
-    -   CentOS系统
-    
-        ```
-        yum install git
-
+- 需安装python版本为3.7.5、3.8、3.9。
 
 # 系统依赖库
 
 ## CentOS & EulerOS
 
-yum install -y cmake zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas
+yum install -y cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0
 
 ## Ubuntu
 
-apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake dos2unix libopenblas-dev
+apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git 
 
 # Ascend配套软件
 | AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
@@ -58,7 +40,7 @@ pip3 install wheel
 
 ## 编译安装PyTorch和昇腾插件
 
-首先安装官方torch包，然后编译安装插件
+首先安装官方torch包，然后编译安装插件。（ARM架构CPU安装，请参见第一条FAQ）
 
 ```sh
 pip3 install torch==1.8.1+cpu
@@ -224,103 +206,22 @@ cd test/test_network_ops/
 python3 test_div.py
 ```
 
-# 安装混合精度模块
+# 安装混合精度模块（可选）
 
-## 前提条件<a name="zh-cn_topic_0000001106176190_section3225481020"></a>
+AscendPyTorch1.8.1集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex)进行编译安装Apex模块。
 
-1. 请确保运行环境中适配昇腾AI处理器的PyTorch框架能正常使用。
-2. 编译安装Apex前，需参见[配置环境变量](#配置环境变量md)配置好编译过程依赖的环境变量。
-3. 需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
+- AMP
+  - 动态loss scale：动态计算loss scale的值并判断是否溢出。
+  - 不支持tensor融合功能。
 
-   - Ubuntu系统
+- APEX
 
-     ```
-     apt-get install patch
-     apt-get install git
-     ```
+  - O1配置模式：Conv，Matmul等使用float16精度计算，其他如softmax、BN使用float32精度。
+  - O2配置模式：除BN使用float32精度外，其他部分使用float16精度。
+  - 静态loss scale：静态设置参数确保混合精度训练收敛。
+  - 动态loss scale：动态计算loss scale的值并判断是否溢出。
 
-   - CentOS系统
-
-     ```
-     yum install patch
-     yum install git
-     ```
-
-## 安装流程<a name="zh-cn_topic_0000001106176190_section11880164819567"></a>
-
-1. 以root或非root用户登录服务器。
-
-2. 获取apex源代码。
-
-   1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
-
-       ```
-       git clone -b master https://gitee.com/ascend/apex.git
-       ```
-       下载的源码主要目录结构如下所示：
-
-       ```
-       apex
-       │ ├─patch             # 昇腾AI处理器适配补丁目录
-       │    ├─npu.patch
-       │ ├─scripts           # 编译构建目录
-       │    ├─gen.sh
-       │ ├─src               # 源码目录
-       │ ├─tests              # 测试用例存放目录
-       ```
-   2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
-       ```
-       cd apex
-       git clone https://github.com/NVIDIA/apex.git
-       ```
-       下载原生apex源码后，代码主要目录结构如下所示：
-       ```
-       apex
-       │ ├─apex              # 原生apex代码目录
-       │ ├─patch             # 昇腾AI处理器适配补丁目录
-       │    ├─npu.patch
-       │ ├─scripts           # 编译构建目录
-       │    ├─gen.sh
-       │ ├─src               # 源码目录
-       │ ├─tests              # 测试用例存放目录
-       ```
-   3.  进入原生apex代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
-       ```
-       cd apex
-       git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
-       ```
-
-   >![](figures/icon-note.gif) **说明：** 
-   >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
-
-3. 编译生成适配昇腾AI处理器的apex安装包。
-   1.  进入“apex/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
-       ```
-       cd ../scripts
-       bash gen.sh
-       ```
-       将在"apex/apex"目录中生成适配昇腾AI处理器的全量代码。
-   2.  进入适配后的全量代码目录，即“apex/apex“目录，编译生成apex的二进制安装包。
-       ```
-       cd ../apex
-       python3 setup.py --cpp_ext --npu_float_status bdist_wheel
-       ```
-       Python版本需与PyTorch使用的Python一致，生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
-
-4. <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
-   进入“apex/apex/dist“文件夹目录，执行如下命令安装。
-   ```
-   cd dist
-   pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
-   ```
-
-   **\{arch\}**表示架构信息，为aarch64或x86\_64。
-
-   >![](figures/icon-note.gif) **说明：** 
-   >若对环境中的Apex进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[4. 安装apex。](#zh-cn_topic_0000001106176190_li425495374416)可以通过执行如下命令查询环境上是否已安装PyTorch。
-   >**pip3 list | grep apex**
-
-
+  
 
 
 # 文档
@@ -352,95 +253,37 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 
-# 参考信息
-
-<h3 id="CMake安装方法md">CMake安装方法</h3>
-CMake版本升级为3.12.1的方法。
-
-1. 获取Cmake软件包。
-
-   ```
-   wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz --no-check-certificate
-   ```
-2. 解压并进入软件包目录。
-   ```
-   tar -xf cmake-3.12.1.tar.gz
-   cd cmake-3.12.1/
-   ```
-3. 执行配置、编译和安装命令。
-   ```
-   ./configure --prefix=/usr/local/cmake
-   make && make install
-   ```
-4. 设置软连接。
-   ```
-   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
-   ```
-5. 执行如下命令验证是否安装成功。
-   ```
-   cmake --version
-   ```
-   如显示“cmake version 3.12.1”则表示安装成功。
-<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
-以下步骤请在root用户下执行。
-
-1.  下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
-2.  安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
-    ```
-    sudo rm -rf /tmp/*
-    ```
-3.  安装依赖（以CentOS和Ubuntu系统为例）。
-    -   CentOS执行如下命令安装。
-        ```
-        yum install bzip2    
-        ```
-    -   Ubuntu执行如下命令安装。
-        ```
-        apt-get install bzip2    
-        ```
-4.  编译安装gcc。
-    1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
-        ```
-        tar -zxvf gcc-7.3.0.tar.gz
-        ```
-    2.  进入解压后的文件夹，执行如下命令下载gcc依赖包：
-        ```
-        cd gcc-7.3.0
-        ./contrib/download_prerequisites
-        ```
-        如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
-        ```
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
-        ```
-        下载好上述依赖包后，重新执行以下命令：
-        ```
-        ./contrib/download_prerequisites
-        ```
-
-        如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
-
-    3.  <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
-
-        ```
-        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
-        make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
-        make install    
-        ```
-        >![](figures/icon-notice.gif) **须知：** 
-        >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
-
-5.  配置环境变量。
-    当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
-    ```
-    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
-    ```
-    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
-    >![](figures/icon-note.gif) **说明：** 
-    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 # FAQ
+
+## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch1.8.1，需要使用源码编译安装。
+
+下载PyTorch v1.8.1源码包。
+
+```
+git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.8.1
+```
+
+进入源码包获取被动依赖代码。
+
+```
+cd pytorch_v1.8.1
+git submoudule sync
+git submoudule update --init --recursive 
+```
+
+执行编译安装。
+
+```
+python3 setup.py install
+```
+
+## 在PIP设置为华为源时，安装requirments.txt中的typing依赖后，会导致python环境错误。
+
+在PIP设置为华为源时，需打开requirments.txt文件，删除typing依赖，再执行命令。
+
+```
+pip3 install -r requirments.txt
+```
 
 ## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
 
@@ -472,33 +315,139 @@ pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
+## 命令行安装cmake依赖时提示找不到包、编译cmake报错版本过低，可使用安装脚本或源码编译安装。
+
+下载安装脚本安装cmake。（参考cmake官网）
+
+​		X86_64环境推荐脚本安装：cmake-3.12.0-Linux-x86_64.sh
 
 
-## 编译cmake报错版本过低
+部分源下载cmake时会提示无法找到包，需要使用源码编译安装。
 
-cmake官网下载linux版本安装（当前3.18.0）
-
-1. 使用yum命令安装： 
+1. 获取Cmake软件包。
 
    ```
-   yum install -y cmake==3.18.0
+   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
    ```
 
-2. 下载cmake sh脚本安装：（参考cmake官网）
+2. 解压并进入软件包目录。
 
-   X86_64环境推荐脚本安装：cmake-3.18.2-Linux-x86_64.sh
+   ```
+   tar -xf cmake-3.12.0.tar.gz
+   cd cmake-3.12.0/
+   ```
 
-   
+3. 执行配置、编译和安装命令。
 
-## GCC版本问题切换问题
+   ```
+   ./configure --prefix=/usr/local/cmake
+   make && make install
+   ```
+
+4. 设置软连接。
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+5. 执行如下命令验证是否安装成功。
+
+   ```
+   cmake --version
+   ```
+
+   如显示“cmake version 3.12.0”则表示安装成功。
+
+## 命令行安装gcc依赖时提示找不到包、编译时gcc报错问题
+
+部分源下载gcc时会提示无法找到包，需要使用源码编译安装。
+
+以下步骤请在root用户下执行。
+
+1. 下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
+
+2. 安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
+
+   ```
+   sudo rm -rf /tmp/*
+   ```
+
+3. 安装依赖（以CentOS和Ubuntu系统为例）。
+
+   - CentOS执行如下命令安装。
+
+     ```
+     yum install bzip2    
+     ```
+
+   - Ubuntu执行如下命令安装。
+
+     ```
+     apt-get install bzip2    
+     ```
+
+4. 编译安装gcc。
+
+   1. 进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
+
+      ```
+      tar -zxvf gcc-7.3.0.tar.gz
+      ```
+
+   2. 进入解压后的文件夹，执行如下命令下载gcc依赖包：
+
+      ```
+      cd gcc-7.3.0
+      ./contrib/download_prerequisites
+      ```
+
+      如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
+
+      ```
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+      ```
+
+      下载好上述依赖包后，重新执行以下命令：
+
+      ```
+      ./contrib/download_prerequisites
+      ```
+
+      如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+
+   3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
+
+      ```
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
+      make install    
+      ```
+
+      >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-notice.gif) **须知：** 
+      >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
+
+
+5. 配置环境变量。
+
+   当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
+
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
+
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+
+   >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-note.gif) **说明：** 
+   >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
 目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
 
 gcc, g++,c++(--version 必须是7.3.0)
 
 libstdc++->libstdc++.so.6.0.24(7.3.0)
-
-
 
 ## 找不到libblas.so问题
 
