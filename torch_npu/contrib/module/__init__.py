@@ -22,6 +22,7 @@ from .bidirectional_lstm import BiLSTM
 from .ps_roi_pooling import PSROIPool
 from .ensemble_dropout import NpuFairseqDropout
 from .multihead_attention import MultiheadAttention
+from .fusedcolorjitter import FusedColorJitter
 
 __all__ = [
     "ChannelShuffle",
@@ -37,4 +38,5 @@ __all__ = [
     "Swish",
     "NpuFairseqDropout",
     "MultiheadAttention",
+    "FusedColorJitter",
 ]
