@@ -390,6 +390,20 @@ class TestAdd(TestCase):
         npu_output = npu_output.to("cpu")
         self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_add_scalar_check_5d_5d_match(self, device="npu"):
+        ca = torch.randn(4)
+        cb = ca.view(2, 2).transpose(1, 0)
+        na = ca.npu()
+        nb = cb.npu()
+        caout = torch.add(ca, 1)
+        cbout = torch.add(cb, 1)
+        naout = torch.add(na, 1)
+        nbout = torch.add(nb, 1)
+        naout = naout.to("cpu")
+        nbout = nbout.to("cpu")
+        self.assertRtolEqual(caout, naout)
+        self.assertRtolEqual(cbout, nbout)
+
 
 if __name__ == "__main__":
     run_tests()
