@@ -31,7 +31,7 @@ namespace at_npu
       OpCommand cmd;
       cmd.Name("BroadcastTo")
           .Input(self)
-          .Input(size, at::kInt)
+          .Input(size)
           .Output(result)
           .Run();
       return result;
