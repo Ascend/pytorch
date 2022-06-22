@@ -267,8 +267,8 @@ git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.
 
 ```
 cd pytorch_v1.8.1
-git submoudule sync
-git submoudule update --init --recursive 
+git submodule sync
+git submodule update --init --recursive 
 ```
 
 执行编译安装。
