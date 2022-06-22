@@ -107,22 +107,28 @@ namespace at_npu
           attrValue.data());
     }
 
-    void OpCommandImpl::Run()
-    {
+    void OpCommandImpl::Run(
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor) {
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
       if (PyGILState_Check()) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS
-        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
         Py_END_ALLOW_THREADS
       } else {
-        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
       }
     }
 
-    aclError OpCommandImpl::InnerRun(string name, AclExecParam &params)
-    {
+    aclError OpCommandImpl::InnerRun(
+        string name, 
+        AclExecParam &params, 
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor) {
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -155,19 +161,45 @@ namespace at_npu
             TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
           }
         }
-        ret = aclopCompileAndExecute(
-            name.c_str(),
-            inputSize,
-            params.inDesc.data(),
-            params.inBuffer.data(),
-            outputSize,
-            params.outDesc.data(),
-            params.outBuffer.data(),
-            params.attr,
-            ACL_ENGINE_SYS,
-            ACL_COMPILE_SYS,
-            NULL,
-            stream);
+        if (!sync) {
+          ret = aclopCompileAndExecute(
+              name.c_str(),
+              inputSize,
+              params.inDesc.data(),
+              params.inBuffer.data(),
+              outputSize,
+              params.outDesc.data(),
+              params.outBuffer.data(),
+              params.attr,
+              ACL_ENGINE_SYS,
+              ACL_COMPILE_SYS,
+              NULL,
+              stream);
+        } else {
+          int64_t dimSize;
+          ret = aclopCompileAndExecuteV2(
+              name.c_str(),
+              inputSize,
+              const_cast<aclTensorDesc**>(params.inDesc.data()),
+              const_cast<aclDataBuffer**>(params.inBuffer.data()),
+              outputSize,
+              const_cast<aclTensorDesc**>(params.outDesc.data()),
+              params.outBuffer.data(),
+              params.attr,
+              ACL_ENGINE_SYS,
+              ACL_COMPILE_SYS,
+              NULL,
+              stream);
+
+          for (size_t i = 0; i < sync_index.size(); i++) {
+            c10::SmallVector<int64_t, N> real_shape;
+            for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
+              C10_NPU_CHECK(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
+              real_shape.emplace_back(dimSize);
+            }
+            outputTensor[sync_index[i]].resize_(real_shape);
+          }
+        }
         ++index;
       } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
       if (reset_flag)
