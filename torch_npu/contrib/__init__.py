@@ -16,7 +16,7 @@ from .function import npu_iou, npu_ptiou, npu_giou, npu_diou, npu_ciou, npu_mult
      npu_batched_multiclass_nms, npu_single_level_responsible_flags, npu_fast_condition_index_put, \
      npu_bbox_coder_encode_yolo, npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy 
 from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
-     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish
+     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, MultiheadAttention, FusedColorJitter
 
 __all__ = [
     # from function
