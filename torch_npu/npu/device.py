@@ -14,3 +14,4 @@
 # limitations under the License.
 
 __device__ = 'xla'
+__npu_device__ = 'npu'

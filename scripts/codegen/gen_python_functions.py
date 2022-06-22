@@ -218,21 +218,36 @@ def create_python_device_bindings(
 ) -> None:
     """Generates Python bindings to ATen functions"""
     py_device_method_defs: List[str] = []
+    device_methods_def_py_dispatch: List[str] = []
 
     grouped = group_filter_overloads(pairs, pred)
 
     PY_DEVICE_METHOD_DEF = CodeTemplate("""\
-    torch.${name} = torch_npu.${name}
+    torch.${name} = _${name}
+""")
+
+    PY_DEVICE_METHOD_DEF_DISPATCH = CodeTemplate("""\
+
+@torch_device_guard
+def _${name}(*args, **kwargs):
+    return torch_npu.${name}(*args, **kwargs)
+
 """)
 
     def method_device_def(name):
         return PY_DEVICE_METHOD_DEF.substitute(name=name)
 
+    def method_device_def_dispatch(name):
+        return PY_DEVICE_METHOD_DEF_DISPATCH.substitute(name=name)
+
     for name in sorted(grouped.keys(), key=lambda x: str(x)):
         py_device_method_defs.append(method_device_def(name))
+        device_methods_def_py_dispatch.append(method_device_def_dispatch(name))
+        
 
     fm.write_with_template(filename, filename, lambda: {
         'device_methods_def_py': py_device_method_defs,
+        'device_methods_def_py_dispatch': device_methods_def_py_dispatch
     })
 
     def query_methods(filepath):
@@ -248,7 +263,6 @@ def create_python_device_bindings(
     if len(device_methods) != len(set(device_methods)):
         raise RuntimeError("In device methods file " + 
                     str(fm.install_dir + filename) + " has multi-definition function.")
-
 
 def load_signatures(
     native_functions: List[NativeFunction],
