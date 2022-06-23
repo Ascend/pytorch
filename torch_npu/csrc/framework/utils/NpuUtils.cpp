@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {

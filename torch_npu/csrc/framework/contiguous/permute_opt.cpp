@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -198,6 +199,7 @@ private:
   }
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
+    IF_GRAPH_MODE_THEN_RUN(return;)
     for (auto i = 0; i < shape.size(); i++) {
       if (shape[i] == 1) {
         shape.erase(shape.begin() + i);

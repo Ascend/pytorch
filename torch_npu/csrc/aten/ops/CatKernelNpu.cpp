@@ -17,12 +17,27 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <third_party/acl/inc/op_proto/split_combination_ops.h>
 
 namespace at_npu
 {
   namespace native
   {
 
+    namespace 
+    {
+    template <typename ge_op_type>
+    at_npu::native::DynamicInputRegFunc concat_func =
+        [](DyNumAndIndex num_and_index,
+          std::string op_name) -> ge::OperatorPtr 
+          {
+            auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
+            ge_op->create_dynamic_input_byindex_x(
+                num_and_index.front().first, num_and_index.front().second);
+            return ge_op;
+          };
+    }
+    
     c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(at::TensorList tensors)
     {
       c10::SmallVector<at::Tensor, N> dstTensorList;
@@ -118,17 +133,32 @@ namespace at_npu
       int64_t input_number = 0;
       OpCommand cmd;
       cmd.Name("ConcatD");
+
+      // In graph mode, if all of input tensors are null numel,
+      // these null tensors should be passed to ConcatD as inputs.
+      // Otherwise, an error will be reported when infershape.
+      bool tensors_empty_in_graph_mode = false;
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        tensors_empty_in_graph_mode = true;
+        for (int i = 0; i < inputTensors.size(); i++) {
+          if (inputTensors[i].numel() != 0) {
+            tensors_empty_in_graph_mode = false;
+            break;
+          }
+        }
+      }
+      input_number = 0;
       for (int i = 0; i < inputTensors.size(); i++)
       {
-        if (inputTensors[i].numel() == 0)
+        if (inputTensors[i].numel() != 0 || tensors_empty_in_graph_mode)
         {
-          continue;
+          string inputName = "x" + std::to_string(input_number++);
+          cmd.Input(inputTensors[i], inputName);
         }
-        string inputName = "x" + std::to_string(input_number++);
-        cmd.Input(inputTensors[i], inputName);
       }
 
-      cmd.Output(result)
+      cmd.DynamicInputReg(concat_func<ge::op::ConcatD>, {{input_number, 0}})
+          .Output(result)
           .Attr("N", input_number)
           .Attr("concat_dim", dim)
           .Run();

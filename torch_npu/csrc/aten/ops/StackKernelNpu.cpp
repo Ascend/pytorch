@@ -16,9 +16,20 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <third_party/acl/inc/op_proto/split_combination_ops.h>
 
 namespace at_npu {
 namespace native {
+
+namespace {
+at_npu::native::DynamicInputRegFunc stack_func =
+    [](DyNumAndIndex num_and_index, std::string op_name) -> ge::OperatorPtr {
+      auto ge_op = std::make_shared<ge::op::Pack>(op_name.c_str());
+      ge_op->create_dynamic_input_byindex_x(
+          num_and_index.front().first, num_and_index.front().second);
+      return ge_op;
+    };
+}
 
 at::SmallVector<int64_t, SIZE> stack_npu_output_size(
     at::TensorList tensors,
@@ -38,10 +49,12 @@ at::SmallVector<int64_t, SIZE> stack_npu_output_size(
 
 at::Tensor& stack_out_npu_nocheck(at::TensorList tensors, int64_t dim, at::Tensor& result) {
   auto inputTensors = CalcuOpUtil::ConvertTensorListToSmallVector(tensors);
+  auto dynamic_num = inputTensors.size();
 
   OpCommand cmd;
-  cmd.Name("Pack");
-  for (int i = 0; i < inputTensors.size(); i++) {
+  cmd.Name("Pack")
+      .DynamicInputReg(stack_func, {{dynamic_num, 0}});
+  for (int i = 0; i < dynamic_num; i++) {
     string inputName = "x" + std::to_string(i);
     cmd.Input(inputTensors[i],inputName);
   }
