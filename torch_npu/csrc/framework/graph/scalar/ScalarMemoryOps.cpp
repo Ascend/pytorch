@@ -8,7 +8,7 @@ namespace native {
 void ScalarMemContext::Init() {
   cpu_tensor_ = at::empty(
       {HOST_MEM_INIT_SIZE},
-      at::TensorOptions().pinned_memory(true).device(at::kCPU).dtype(at::kByte));
+      at::TensorOptions().pinned_memory(false).device(at::kCPU).dtype(at::kByte)).pin_memory();
   host_mem_valid_len_ = 0;
   inited_ = true;
 }
@@ -51,7 +51,7 @@ void ScalarMemContext::CheckForExpand(uint32_t input_valid_len) {
   uint32_t expand_tensor_size = tmp_tensor.nbytes() + HOST_MEM_INIT_SIZE;
   cpu_tensor_ = at::empty(
       {expand_tensor_size},
-      at::TensorOptions().pinned_memory(true).device(at::kCPU).dtype(at::kByte));
+      at::TensorOptions().pinned_memory(false).device(at::kCPU).dtype(at::kByte)).pin_memory();
 
   C10_NPU_CHECK(
       aclrtMemcpy(

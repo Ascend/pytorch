@@ -27,6 +27,7 @@
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
@@ -288,6 +289,14 @@ void copy_d2d_dtype_baseformat(
       return;
     }
   } else {
+    if (c10_npu::NpuRunMode::IsGraphMode()) {
+      // In graph mode, in order to identify and call the corresponding npu operators,
+      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
+      OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
+      if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src, contiguous_opt_cases)) {
+        return;
+      }
+    }
     // Contiguous source tensor copy to contiguous self tensor
     int64_t numel = self.numel();
     if (numel == src.numel()) {

@@ -21,6 +21,9 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -50,6 +53,8 @@ void copy_kernel_npu(
     const at::Tensor& src,
     bool non_blocking) {
   RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
+  // In graph mode, PTcopy will be supported in the future
+  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
   const int64_t HEAD_FLAG = 0x6461656800000000;
   const int64_t FIXED_LEN =
       9; // head, len, version, two tensors' numel, offset and strides lens
@@ -98,8 +103,26 @@ void copy_kernel_npu(
 // so: caller should make sure that the storage size of src and dst are reasonable.
 void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSize) {
   int64_t size = exceptSize;
+  auto dst_mem_size = StorageDescHelper::GetMemorySize(dst);
   if (exceptSize == 0) {
-    size = StorageDescHelper::GetMemorySize(dst);
+    size = dst_mem_size;
+  }
+
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    if (dst_mem_size != size ||
+        dst_mem_size != StorageDescHelper::GetMemorySize(src)) {
+      // In graph mode, using PTcopy to copy part data of src.
+      copy_kernel_npu(dst, src, true);
+      return;
+    }
+
+    // In graph mode, using identity to copy whole data of src.
+    OpCommand cmd;
+    cmd.Name("Identity")
+        .InputWithoutContiguous(src)
+        .Output(dst)
+        .Run();
+    return;
   }
 
   if(!dst.data_ptr()) {
