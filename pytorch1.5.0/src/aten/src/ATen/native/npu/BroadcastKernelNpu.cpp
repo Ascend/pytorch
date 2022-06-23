@@ -27,17 +27,10 @@ Tensor& broadcast_out_npu(
     const Tensor& self,
     IntArrayRef size) {
   // executing the NPU operator
-  int value = size.size();
-  vector<int> tmp_vector = {};
-  for (int i = 0; i < value; i++){
-    tmp_vector.emplace_back(size[i]);
-  }
-  Tensor shapeCpuTensor = from_blob((void*)tmp_vector.data(), {value}, at::kInt);
-  Tensor shapeNpuTensor = CalcuOpUtil::copy_tensor_host_to_device(shapeCpuTensor);
   OpCommand cmd;
   cmd.Name("BroadcastTo")
       .Input(self)
-      .InputPair(shapeNpuTensor, shapeCpuTensor)
+      .Input(size)
       .Output(result)
       .Run();
   return result;

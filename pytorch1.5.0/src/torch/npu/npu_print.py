@@ -68,7 +68,7 @@ class NpuTensorManager(object):
 def npu_lazy_print(args):
     if not torch.npu.is_graph_mode():
         print(args)
-    if isinstance(args, torch.Tensor):
+    elif isinstance(args, torch.Tensor):
         torch.npu_enque_tensor([args], str(args))
     elif isinstance(args, list):
         for t in args:

@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -28,18 +28,10 @@ Tensor& affine_grid_generator_npu_nocheck(
     const Tensor& theta,
     IntArrayRef size,
     bool align_corners) {
-  int value = size.size();
-  vector<int> tmp_vector = {};
-  for (int i = 0; i < value; i++) {
-    tmp_vector.emplace_back(size[i]);
-  }
-  Tensor sizeTensor_cpu = from_blob((void*)tmp_vector.data(), {value}, at::kInt);
-  Tensor sizeTensor_npu = CalcuOpUtil::copy_tensor_host_to_device(sizeTensor_cpu);
-
   OpCommand cmd;
   cmd.Name("AffineGrid")
       .Input(theta)
-      .InputPair(sizeTensor_npu, sizeTensor_cpu)
+      .Input(size, at::kInt)
       .Output(result)
       .Attr("align_corners", align_corners)
       .Run();
@@ -51,7 +43,7 @@ Tensor affine_grid_generator_npu(
     const Tensor& theta,
     IntArrayRef size,
     bool align_corners) {
-  TORCH_CHECK(size.size() == 4 || size.size() == 5, 
+  TORCH_CHECK(size.size() == 4 || size.size() == 5,
       "AffineGridGenerator needs 4d or 5d size(input).");
   // calculate the output size
   SmallVector<int64_t, SIZE> outputSize = { };
@@ -65,8 +57,8 @@ Tensor affine_grid_generator_npu(
   Tensor result = OpPreparation::ApplyTensor(theta, outputSize);
   // calculate the output result of the NPU
   affine_grid_generator_npu_nocheck(
-      result, 
-      theta, 
+      result,
+      theta,
       size,
       align_corners);
 
