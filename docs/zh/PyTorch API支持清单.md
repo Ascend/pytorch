@@ -3442,9 +3442,9 @@ Taking into account the distance between the targets,the overlap rate of the dis
 - Examples：
 
   ```
-      >>> box1 = torch.randn(4, 32).npu
+      >>> box1 = torch.randn(4, 32).npu()
       >>> box1.requires_grad = True
-      >>> box2 = torch.randn(4, 32).npu
+      >>> box2 = torch.randn(4, 32).npu()
       >>> box2.requires_grad = True
       >>> ciou = torch_npu.contrib.function.npu_diou(box1, box2) 
       >>> l = diou.sum()
@@ -3478,9 +3478,9 @@ Applies an NPU based CIOU operation.
 - Examples：
 
   ```
-      >>> box1 = torch.randn(4, 32).npu
+      >>> box1 = torch.randn(4, 32).npu()
       >>> box1.requires_grad = True
-      >>> box2 = torch.randn(4, 32).npu
+      >>> box2 = torch.randn(4, 32).npu()
       >>> box2.requires_grad = True
       >>> ciou = torch_npu.contrib.function.npu_ciou(box1, box2) 
       >>> l = ciou.sum()
