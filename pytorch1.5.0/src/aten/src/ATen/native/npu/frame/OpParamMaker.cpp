@@ -73,10 +73,6 @@ void OpAttrMaker::Set(aclopAttr* attr, const string& name, Scalar value) {
   aclopSetAttrFloat(attr, name.c_str(), val);
 }
 
-void OpAttrMaker::Set(aclopAttr* attr, const string& name, ScalarType value) {
-  aclDataType val = CalcuOpUtil::convert_to_acl_data_type(value);
-  aclopSetAttrDataType(attr, name.c_str(), val);
-}
 
 void OpAttrMaker::Set(
     aclopAttr* attr,
