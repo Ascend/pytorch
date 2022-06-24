@@ -64,50 +64,68 @@ Tensor& all_out_npu(
 Tensor all_npu(const Tensor& self, int64_t dim, bool keepdim) {
   TORCH_CHECK(self.scalar_type() == ScalarType::Bool || self.scalar_type() == ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
+  Tensor selfCopy = self;
+  if(selfCopy.scalar_type() == ScalarType::Byte){
+    selfCopy = selfCopy.npu_dtype_cast(ScalarType::Bool);
+  }
   if (self.numel() == 0) {
-    Tensor res = at::empty_with_format({}, self.options().dtype(kInt), CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(ScalarType::Bool);
+    Tensor res = OpPreparation::ApplyTensorWithFormat(
+        {},
+        self.options().dtype(kInt), 
+        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(self.scalar_type());
     return res;
   }
 
   // calculate the output size
   IntArrayRef dims(dim);
-  auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
+  auto outputSize = reduce_ops_npu_output_size(selfCopy, dims, keepdim);
 
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, selfCopy.options(), CalcuOpUtil::get_tensor_npu_format(selfCopy));
 
   // calculate the output result of the NPU
-  all_out_npu_nocheck(result, self, {dim}, keepdim);
-
+  all_out_npu_nocheck(result, selfCopy, {dim}, keepdim);
+  if(self.scalar_type() == ScalarType::Byte){
+    result = result.npu_dtype_cast(ScalarType::Byte);
+  }
   return result;
 }
 
 Tensor all_npu(const Tensor& self) {
   TORCH_CHECK(self.scalar_type() == ScalarType::Bool || self.scalar_type() == ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
+  Tensor selfCopy = self;
+  if(selfCopy.scalar_type() == ScalarType::Byte){
+    selfCopy = selfCopy.npu_dtype_cast(ScalarType::Bool);
+  }
+
   if (self.numel() == 0) {
-    Tensor res = at::empty_with_format(
+    Tensor res = OpPreparation::ApplyTensorWithFormat(
         {}, 
         self.options().dtype(kInt), 
-        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(ScalarType::Bool);
+        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(self.scalar_type());
     return res;
   }
 
   // calculate the output size
   IntArrayRef dims;
-  auto outputSize = reduce_ops_npu_output_size(self, dims, false);
+  auto outputSize = reduce_ops_npu_output_size(selfCopy, dims, false);
   
   // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, selfCopy.options(), CalcuOpUtil::get_tensor_npu_format(selfCopy));
 
   // calculate the output result of the NPU
   all_out_npu_nocheck(
       result,
-      self,
-      CalcuOpUtil::get_dimlist_for_tensor(self),
+      selfCopy,
+      CalcuOpUtil::get_dimlist_for_tensor(selfCopy),
       false);
+
+  if(self.scalar_type() == ScalarType::Byte){
+    result = result.npu_dtype_cast(ScalarType::Byte);
+  }
 
   return result;
 }
