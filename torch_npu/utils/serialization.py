@@ -74,7 +74,7 @@ def to_cpu(data):
             elif isinstance(value, torch.Tensor):
                 copy_data[key] = value.cpu()
             elif isinstance(value, nn.Module):
-                if torch_npu._C.is_npu(next(data.parameters())):
+                if torch_npu._C.is_npu(next(value.parameters())):
                     setattr(value, "mark_npu", True)
                 copy_data[key] = value.cpu()
             else:
