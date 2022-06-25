@@ -32,7 +32,7 @@ struct NPUEvent {
         C10_NPU_CHECK(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
         C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
-    } catch (...) {}
+    } catch (...) {}   // No throw.
   }
 
   NPUEvent(const NPUEvent&) = delete;
