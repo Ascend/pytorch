@@ -610,12 +610,6 @@
   npu_dispatch:
     NPU: bernoulli_npu_
 
-- func: bernoulli_cust_.float(Tensor(a!) self, float p=0.5, *, Generator? generator=None) -> Tensor(a!)
-  variants: method
-  supports_named_tensor: True
-  npu_dispatch_only:
-    NPU: bernoulli_cust_npu_
-
 # This out-of-place version isn't used explicitly, but needed by jit.
 # There is no default valid on `p` here because it would introduce ambiguity
 # with `bernoulli(Tensor self, *, Generator? generator=None)` declaration.
@@ -3738,6 +3732,8 @@
   dispatch:
     CPU: unique_consecutive_cpu
     CUDA: unique_consecutive_cuda
+  npu_dispatch:
+    NPU: unique_consecutive_npu
 
 - func: unique_dim_consecutive(Tensor self, int dim, bool return_inverse=False, bool return_counts=False) -> (Tensor, Tensor, Tensor)
   variants: function

@@ -260,7 +260,7 @@ class OpCommandImpl {
     }
   }
 
-  void Run();
+  void Run(bool sync, SmallVector<int64_t, N> &output_sync_index, SmallVector<Tensor, N> &output_sync_tensor);
 
   void releaseSource(bool no_blocking = true) {
     if (no_blocking) {
@@ -314,7 +314,13 @@ class OpCommandImpl {
     }
   }
 
-  aclError InnerRun(string name, AclExecParam& params);
+  aclError InnerRun(
+    string name, 
+    AclExecParam& params, 
+    bool sync, 
+    SmallVector<int64_t, N> &output_sync_index, 
+    SmallVector<Tensor, N> &output_sync_tensor
+  );
 
  private:
   string opName;
