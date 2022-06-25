@@ -503,7 +503,7 @@ ACL_FUNC_VISIBILITY aclError aclSetTensorDynamicInput(aclTensorDesc *desc, const
 ACL_FUNC_VISIBILITY void aclAppLog(aclLogLevel logLevel, const char *func, const char *file, uint32_t line,
     const char *fmt, ...);
 
-ACL_FUNC_VISIBILITY const char *aclrtGetSocName();
+
 ACL_FUNC_VISIBILITY aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type);
 
 #define ACL_APP_LOG(level, fmt, ...) \

@@ -47,7 +47,7 @@
 
 struct NPUDeviceProp {
   std::string name;
-  size_t totalGlobalMem;
+  size_t totalGlobalMem = 0;
 };
 NPUDeviceProp prop;
 void RegisterNPUDeviceProperties(PyObject* module) {
@@ -64,13 +64,17 @@ void RegisterNPUDeviceProperties(PyObject* module) {
 }
 
 NPUDeviceProp* GetDeviceProperties(int64_t deviceid) {
-  // Todo: future will change prop as vector to display different devices
-  std::string device_name;
+  const char* device_name;
   size_t device_free;
   size_t device_total;
-  device_name = aclrtGetSocName();
+  device_name = c10_npu::acl::AclrtGetSocName();
+  if (device_name == nullptr) {
+    prop.name = " ";
+    NPU_LOGE("NPU get device name fail.");
+  } else {
+    prop.name = std::string(device_name);
+  }
   C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
-  prop.name = device_name;
   prop.totalGlobalMem = device_total;
   return &prop;
 }

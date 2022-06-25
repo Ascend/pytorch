@@ -156,18 +156,18 @@ def current_device():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_getDevice()
 
-def get_device_name(deviceid: int):
-    if deviceid < 0 or deviceid >= device_count():
+def get_device_name(device_id: int):
+    if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
-    device_prop = torch_npu._C._npu_getDeviceProperties(deviceid)
+    device_prop = torch_npu._C._npu_getDeviceProperties(device_id)
     return device_prop.name
 
-def get_device_properties(deviceid: int):
-    if deviceid < 0 or deviceid >= device_count():
+def get_device_properties(device_id: int):
+    if device_id < 0 or device_id >= device_count():
         raise AssertionError("Invalid device id")
     torch_npu.npu._lazy_init()
-    return torch_npu._C._npu_getDeviceProperties(deviceid)
+    return torch_npu._C._npu_getDeviceProperties(device_id)
 
 def _get_device_index(device, optional=False):
     r"""Gets the device index from :attr:`device`, which can be a torch.device
