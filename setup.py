@@ -90,6 +90,7 @@ def _get_build_mode():
         if not sys.argv[i].startswith('-'):
             return sys.argv[i]
 
+    raise RuntimeError("Run setup.py without build mode.")
 
 def get_pytorch_dir():
     try:

@@ -836,8 +836,7 @@ struct THNCachingAllocator {
     DeviceStats_& stats_ = get_stats_for_device_(temp_block->device);
     StatTypes stat_types;
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(
-        get_stat_type_for_pool(*(temp_block->pool)))] = true;
+    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(temp_block->pool)))] = true;
     update_stat_array(stats_.allocation, -1, {stat_types});
     update_stat_array(stats_.allocated_bytes, -temp_block->size, {stat_types});
     update_stat_array(stats_.active, -1, {stat_types});

@@ -200,7 +200,8 @@ private:
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
     IF_GRAPH_MODE_THEN_RUN(return;)
-    for (auto i = 0; i < shape.size(); i++) {
+    auto shape_size = shape.size();
+    for (auto i = 0; i < shape_size; i++) {
       if (shape[i] == 1) {
         shape.erase(shape.begin() + i);
         stride.erase(stride.begin() + i);

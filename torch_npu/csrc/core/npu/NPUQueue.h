@@ -32,7 +32,7 @@ enum RepoStatus {
 const int N = 32;
 
 class ReleaseQueue {
- public:
+public:
   ReleaseQueue() = default;
   ~ReleaseQueue();
   void PushToReleaseQueue(void* cur_paras);
@@ -40,7 +40,7 @@ class ReleaseQueue {
   void InitReleaseQueue();
   RepoStatus GetStatus() const;
 
- private:
+private:
   inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
   bool WriteToReleaseQueue(void* cur_paras);
@@ -48,11 +48,11 @@ class ReleaseQueue {
   void SetStatus(RepoStatus desired);
   void ChangeStatus(RepoStatus expected, RepoStatus desired);
 
- private:
+private:
   void* datas = nullptr;
   std::thread releaser;
 
- private:
+private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
@@ -60,7 +60,7 @@ class ReleaseQueue {
 };
 
 class NPUQueueBase {
- public:
+public:
   virtual ~NPUQueueBase() {}
   virtual RepoStatus GetStatus() const = 0;
   virtual void SetStatus(RepoStatus desired) = 0;
@@ -79,7 +79,7 @@ public:
 };
 
 class Repository : public NPUQueueBase {
- public:
+public:
   Repository() = default;
   ~Repository() override;
   RepoStatus GetStatus() const override;
@@ -91,7 +91,7 @@ class Repository : public NPUQueueBase {
   void InitRepo(c10::DeviceIndex device_id) override;
   bool CheckInit() const override;
 
- private:
+private:
   void ReleaseResource();
   inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
@@ -101,7 +101,7 @@ class Repository : public NPUQueueBase {
   bool WriteQueue(void* cur_paras);
   bool ReadQueue();
 
- private:
+private:
   void* datas = nullptr;
   std::thread consumer;
   int efd_read;
@@ -109,7 +109,7 @@ class Repository : public NPUQueueBase {
   int efd_empty;
   c10::DeviceIndex device_idx;
 
- private:
+private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;

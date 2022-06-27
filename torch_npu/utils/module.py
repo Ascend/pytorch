@@ -17,8 +17,11 @@ from statistics import mode
 import warnings
 import logging
 import torch
-import torch_npu
+
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
+
+import torch_npu
+
 
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
