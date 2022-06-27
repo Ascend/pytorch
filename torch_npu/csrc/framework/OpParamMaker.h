@@ -303,7 +303,7 @@ namespace at_npu
         }
   }
 
-      void Run();
+      void Run(bool sync, c10::SmallVector<int64_t, N> &sync_index, c10::SmallVector<at::Tensor, N> &outputTensor);
 
       void releaseSource(bool no_blocking = true)
       {
@@ -364,7 +364,13 @@ namespace at_npu
         }
       }
 
-      aclError InnerRun(string name, AclExecParam &params);
+      aclError InnerRun(
+        string name, 
+        AclExecParam &params, 
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor
+      );
 
     private:
       string opName;

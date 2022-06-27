@@ -93,6 +93,12 @@ ACL_FUNC_VISIBILITY aclError aclopCompileAndExecute(const char *opType,
     const aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
     const char *opPath, aclrtStream stream);
 
+ACL_FUNC_VISIBILITY aclError aclopCompileAndExecuteV2(const char *opType,
+    int numInputs, aclTensorDesc *inputDesc[], aclDataBuffer *inputs[],
+    int numOutputs, aclTensorDesc *outputDesc[], aclDataBuffer *outputs[],
+    aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
+    const char *opPath, aclrtStream stream);
+
 /**
  * @ingroup AscendCL
  * @brief set compile option
