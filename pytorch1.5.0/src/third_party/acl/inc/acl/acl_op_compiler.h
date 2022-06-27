@@ -95,6 +95,32 @@ ACL_FUNC_VISIBILITY aclError aclopCompileAndExecute(const char *opType,
 
 /**
  * @ingroup AscendCL
+ * @brief compile and execute op
+ *
+ * @param opType [IN]           op type
+ * @param numInputs [IN]        number of inputs
+ * @param inputDesc [IN]        pointer to array of input tensor descriptions
+ * @param inputs [IN]           pointer to array of input buffers
+ * @param numOutputs [IN]       number of outputs
+ * @param outputDesc [IN]       pointer to array of output tensor descriptions
+ * @param outputs [IN]          pointer to array of outputs buffers
+ * @param attr [IN]             pointer to instance of aclopAttr.
+ *                              may pass nullptr if the op has no attribute
+ * @param engineType [IN]       engine type
+ * @param compileFlag [IN]      compile flag
+ * @param opPath [IN]           path of op
+ * @param stream [IN]           stream handle
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclopCompileAndExecuteV2(const char *opType,
+    int numInputs, aclTensorDesc *inputDesc[], aclDataBuffer *inputs[],
+    int numOutputs, aclTensorDesc *outputDesc[], aclDataBuffer *outputs[],
+    aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
+    const char *opPath, aclrtStream stream);
+
+/**
+ * @ingroup AscendCL
  * @brief set compile option
  *
  * @param aclCompileOpt [IN]      compile option

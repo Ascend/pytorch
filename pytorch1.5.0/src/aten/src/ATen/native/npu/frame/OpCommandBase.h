@@ -213,14 +213,23 @@ class OpCommandBase {
             output = output.npu_dtype_cast(commonType.value());
         }
         )
+    output_sync_tensor.emplace_back(output);
     return AddOutput(output, realType);
+  }
+
+  Derived& Sync(SmallVector<int64_t, N> &output_sync_idx) {
+    if (!output_sync_idx.empty()) {
+      sync = true;
+    }
+    output_sync_index = output_sync_idx;
+    return static_cast<Derived&>(*this);
   }
 
   void Run() {
     IF_GRAPH_MODE_THEN_RUN(
       graphCmd.Run();
       return;)
-    if (c10::npu::OptionsManager::CheckQueueEnable()) {
+    if (c10::npu::OptionsManager::CheckQueueEnable() && !sync) {
       ExecuteParas execParams;
       aclCmd->ExportParams(execParams);
       c10::npu::queue::QueueParas params(
@@ -230,9 +239,9 @@ class OpCommandBase {
       c10::npu::enCurrentNPUStream(&params);
       aclCmd->releaseSource(false);
     } else {
-      aclCmd->Run();
+      aclCmd->Run(sync, output_sync_index, output_sync_tensor);
       aclCmd->releaseSource();
-    }
+    } 
     aclCmds->Pop();
   }
 
@@ -362,6 +371,10 @@ class OpCommandBase {
   c10::optional<IntArrayRef> commonShape = c10::nullopt;
   bool resultTypeDefined = false;
 
+  bool sync = false;
+  SmallVector<int64_t, N> output_sync_index;
+  SmallVector<Tensor, N> output_sync_tensor;
+  
 }; // class OpCommandBase
 
 } // namespace npu
