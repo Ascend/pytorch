@@ -1468,7 +1468,7 @@ CANN Profiling数据采集
           optimizer.zero_grad()
           optimizer.step()
       ```
-      其中config参数用于配置需要获取CANN的性能数据种类，设置方法见[E2E prof高级设置](#E2E prof高级设置)中的config参数说明。
+      其中config参数用于配置需要获取CANN的性能数据种类，设置方法见[E2E prof高级设置](#E2E)中的config参数说明。
       >![](public_sys-resources/icon-note.gif) **说明：** 
       >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
@@ -1544,7 +1544,7 @@ d. timeline路径下为解析得到的性能数据，可以通过chrome://tracin
 
    该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
 
-3. E2E profiling高级设置
+3. E2E profiling高级设置<a name="E2E"></a>
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
 
 ```
