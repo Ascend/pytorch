@@ -64,13 +64,21 @@ Tensor& all_out_npu(
 Tensor all_npu(const Tensor& self, int64_t dim, bool keepdim) {
   TORCH_CHECK(self.scalar_type() == ScalarType::Bool || self.scalar_type() == ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
+   TORCH_CHECK(dim >= -(self.dim()) && dim < self.dim(),
+       "The value of dim must be greater than or equal to -self.dim() and less than self.dim()");
   Tensor selfCopy = self;
   if(selfCopy.scalar_type() == ScalarType::Byte){
     selfCopy = selfCopy.npu_dtype_cast(ScalarType::Bool);
   }
   if (self.numel() == 0) {
+    SmallVector<int64_t, N> outputSize;
+    for(int64_t i = 0; i < self.dim(); i++){
+        if(dim != i){
+            outputSize.emplace_back(self.size(i));
+        }
+    }
     Tensor res = OpPreparation::ApplyTensorWithFormat(
-        {},
+        outputSize,
         self.options().dtype(kInt), 
         CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(self.scalar_type());
     return res;

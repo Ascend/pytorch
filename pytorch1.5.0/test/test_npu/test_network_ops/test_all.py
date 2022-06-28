@@ -103,6 +103,15 @@ class TestAll(TestCase):
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_out0.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_out1.astype(np.int32))
 
+    def test_all_tensor_numel_0(self, device):
+        ca = torch.rand(1, 2, 0, 3, 4).bool()
+        na = ca.npu()
+        cout = ca.all(2)
+        nout = na.all(2)
+        cout = cout.numpy()
+        nout = nout.to("cpu").numpy()
+        self.assertRtolEqual(cout, nout)
+
 
 instantiate_device_type_tests(TestAll, globals(), except_for="cpu")
 if __name__ == "__main__":

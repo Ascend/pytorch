@@ -173,7 +173,7 @@ aclError OpCommandImpl::InnerRun(
           stream);
     } else {
       int64_t dimSize;
-      ret = aclopCompileAndExecuteV2(
+      ret = AclopCompileAndExecuteV2(
           name.c_str(),
           inputSize,
           const_cast<aclTensorDesc**>(params.inDesc.data()),
