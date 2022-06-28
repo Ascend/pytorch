@@ -102,6 +102,10 @@ def _storage(self):
 
 @torch_device_guard
 def _new_empty(self, *args, **kwargs):
+    if isinstance(args[0], int):
+        list_args = list(args)
+        list_args[0] = (list_args[0], )
+        args = tuple(list_args)
     return torch_npu._C.new_empty(self, *args, **kwargs)
 
 
