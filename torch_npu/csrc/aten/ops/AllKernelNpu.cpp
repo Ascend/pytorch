@@ -62,8 +62,19 @@ at::Tensor& NPUNativeFunctions::all_out(
 at::Tensor NPUNativeFunctions::all(const at::Tensor& self, int64_t dim, bool keepdim) {
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
+  TORCH_CHECK(dim >= -(self.dim()) && dim < self.dim(),
+      "The value of dim must be greater than or equal to -self.dim() and less than self.dim()");
   if (self.numel() == 0) {
-    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(at::kInt), self).fill_(1).to(at::ScalarType::Bool); 
+    c10::SmallVector<int64_t, N> outputSize;
+    for(int64_t i = 0; i < self.dim(); i++){
+        if(dim != i){
+            outputSize.emplace_back(self.size(i));
+        }
+    }
+    at::Tensor res = OpPreparation::ApplyTensor(
+        outputSize,
+        self.options().dtype(at::kInt),
+        self).fill_(1).to(at::ScalarType::Bool);
     return res;
   }
 
