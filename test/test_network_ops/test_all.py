@@ -37,7 +37,7 @@ class TestAll(TestCase):
         output = output.numpy()
         return output
 
-    def test_all_shape_format(self, device="npu"):
+    def test_all_shape_format(self):
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024], [2, 0, 2]]
         for item in shape_list:
             cpu_input, npu_input = self.create_bool_tensor(item, 0, 1)
@@ -71,7 +71,7 @@ class TestAll(TestCase):
         output1 = output1.to("cpu").numpy()
         return output0, output1
 
-    def test_alld_shape_format(self, device="npu"):
+    def test_alld_shape_format(self):
         shape_list = [[1024], [32, 1024], [32, 8, 1024], [128, 32, 8, 1024]]
         for item in shape_list:
             cpu_input, npu_input = self.create_bool_tensor(item, 0, 1)
@@ -81,6 +81,15 @@ class TestAll(TestCase):
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_output.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_out0.astype(np.int32))
             self.assertRtolEqual(cpu_output.astype(np.int32), npu_out1.astype(np.int32))
+
+    def test_all_tensor_numel_0(self):
+        ca = torch.rand(1, 2, 0, 3, 4).bool()
+        na = ca.npu()
+        cout = ca.all(2)
+        nout = na.all(2)
+        cout = cout.numpy()
+        nout = nout.to("cpu").numpy()
+        self.assertRtolEqual(cout, nout)
 
 
 if __name__ == "__main__":
