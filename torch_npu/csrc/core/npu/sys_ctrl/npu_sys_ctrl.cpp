@@ -1,3 +1,18 @@
+// Copyright (c) 2022 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "npu_sys_ctrl.h"
 #include <Python.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -124,7 +139,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   }
 
   // set default compile cache mode and dir for users to improve op compile time
-  // set option has been moved to plugin, wait to be decoupled
+  MakeCompileCacheDirAndSetOption();
 
   return INIT_SUCC;
 }
@@ -148,13 +163,13 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
 
     this->RegisterReleaseFn([=]() ->void {
-        c10_npu::NPUEventManager::GetInstance().ClearEvent();
-        auto stream = c10_npu::getCurrentNPUStream();
-        (void)aclrtDestroyStream(stream);
-        C10_NPU_CHECK(ge::GEFinalize());
-        C10_NPU_CHECK(aclrtResetDevice(device_id_));
-        C10_NPU_CHECK(aclFinalize());
-    }, ReleasePriority::PriorityLast);
+          c10_npu::NPUEventManager::GetInstance().ClearEvent();
+          auto stream = c10_npu::getCurrentNPUStream();
+          (void)aclrtDestroyStream(stream);
+          C10_NPU_CHECK(ge::GEFinalize());
+          C10_NPU_CHECK(aclrtResetDevice(device_id_));
+          C10_NPU_CHECK(aclFinalize());
+        }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
 

@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <c10/util/Exception.h>
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -127,24 +128,33 @@ OpCommand& OpCommand::Output(
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
         output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
-      }
+      } 
   )
+  outputTensor.emplace_back(output);
   return AddOutput(output, realType);
 }
 
 void OpCommand::Run() {
   IF_GRAPH_MODE_THEN_RUN(return;)
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
   } else {
-    aclCmd->Run();
+    aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
-  }
+  } 
   aclCmds->Pop();
+}
+
+OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
+  sync_index = index;
+  if (!index.empty()) {
+    sync = true;
+  }
+  return *this;
 }
 
 OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,

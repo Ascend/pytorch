@@ -50,7 +50,6 @@ void AddPyMethodDefs(std::vector<PyMethodDef>& vector, PyMethodDef* methods)
 
 PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
 {
-  HANDLE_TH_ERRORS
   // cudaFree is blocking and will synchronize across all kernels executing
   // on the current device, while aclrtFree Free device memory immediately.
   // aclrtSynchronizeDevice should be called before aclrtFree to ensure that
@@ -67,7 +66,6 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
       fprintf(stdout, "THPModule_npu_shutdown success.\n");
     }
   }
-  END_HANDLE_TH_ERRORS
   Py_RETURN_NONE;
 }
 
@@ -92,7 +90,6 @@ static std::vector<PyMethodDef> methods;
 extern "C"
 
 PyObject* initModule(){
-  HANDLE_TH_ERRORS
   at::internal::lazy_init_num_threads();
 
   AddPyMethodDefs(methods, TorchNpuMethods);
@@ -122,7 +119,6 @@ PyObject* initModule(){
   RegisterNPUDeviceProperties(module);
   BindGetDeviceProperties(module);
   return module;
-  END_HANDLE_TH_ERRORS
 }
 
 PyMODINIT_FUNC PyInit__C(void){

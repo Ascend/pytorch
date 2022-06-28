@@ -40,6 +40,8 @@ static constexpr auto kMatSize = "mat_size";
 static constexpr auto kMat1Size = "mat1_size";
 static constexpr auto kMat2Size = "mat2_size";
 
+bool NPURecordFunction::use_npu_simple = false;
+
 static bool validateInput(const std::string &op_name, size_t min_size,
     const std::vector<c10::IValue>& inputs,
     const std::vector<int>& should_be_tensor) {

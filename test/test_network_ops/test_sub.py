@@ -19,11 +19,9 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import instantiate_tests, graph_mode
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
-
-@instantiate_tests
 class TestSub(TestCase):
 
     def cpu_op_exec(self, input1, input2):

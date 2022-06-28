@@ -1,4 +1,4 @@
-# PyTorch算子开发指南
+# PyTorch 算子开发指南
 -   [简介](#简介md)
 -   [算子开发流程](#算子开发流程md)
 -   [算子开发准备](#算子开发准备md)
@@ -48,10 +48,10 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
     **图 1**  PyTorch框架下的算子适配流程<a name="zh-cn_topic_0000001105032530_fig1981905141719"></a>  
     ![](figures/PyTorch框架下的算子适配流程.png "PyTorch框架下的算子适配流程")
 
-
 **表 1**  算子开发步骤详解
 
 <a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_table131083578318"></a>
+
 <table><thead align="left"><tr id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_row210905703113"><th class="cellrowborder" valign="top" width="6.811326262527976%" id="mcps1.2.5.1.1"><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p41091857143113"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p41091857143113"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p41091857143113"></a>序号</p>
 </th>
 <th class="cellrowborder" valign="top" width="17.865135740001946%" id="mcps1.2.5.1.2"><p id="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p1710955713112"><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p1710955713112"></a><a name="zh-cn_topic_0000001105032530_zh-cn_topic_0228422310_p1710955713112"></a>步骤</p>
@@ -120,6 +120,9 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 </tr>
 </tbody>
 </table>
+
+
+
 
 <h2 id="算子开发准备md">算子开发准备</h2>
 
@@ -789,7 +792,6 @@ pip3.7 install torchvision --no-deps
     python3.7 test_add.py > test_log.txt
     ```
 
-
 <h3 id="为什么我实现的-自定义TBE算子-无法调用到md">为什么我实现的“自定义TBE算子”无法调用到？</h3>
 
 #### 现象描述<a name="zh-cn_topic_0000001125736795_zh-cn_topic_0175549220_section197270431505"></a>
@@ -829,15 +831,16 @@ pip3.7 install torchvision --no-deps
         至此步骤，不应该有错误，屏幕应该输出 "add" 中增加的日志打印。若出错，请完成代码清理排查，保证无新开发的代码影响测试。
 
     3.  将新开发的“自定义TBE算子”合并到"cann"中，在对应的在算子入口增加日志打印，作为运行标识。
-    4.  完成上面的"cann"编译、安装，调用“python3.7.5 test\_add.py”进行测试。
+    4. 完成上面的"cann"编译、安装，调用“python3.7.5 test\_add.py”进行测试。
 
-        >![](public_sys-resources/icon-note.gif) **说明：** 
-        >根据Ascend的设计逻辑，用户开发安装的“custom”算子包优先级高于“built-in”的内置算子包，在运行加载时，会优先加载调度“custom”包中的算子。过程中，若解析“custom”中的算子信息文件失败，则会跳过“custom”算子包，不加载调度任何“custom”算子包中的任何算子。
-        >-   若此步骤出错，或屏幕未输出 "add" 中增加的日志打印，则说明新开发的“自定义TBE算子”有错误，影响了“自定义算子包”的加载，建议**优先排查新开发的“自定义TBE算子”中的“算子信息定义”是否正确**。
-        >-   若此步骤正确，至少说明  **新开发的“自定义TBE算子”中的“算子信息定义”不影响运行**。
-
+       >![](public_sys-resources/icon-note.gif) **说明：** 
+       >根据Ascend的设计逻辑，用户开发安装的“custom”算子包优先级高于“built-in”的内置算子包，在运行加载时，会优先加载调度“custom”包中的算子。过程中，若解析“custom”中的算子信息文件失败，则会跳过“custom”算子包，不加载调度任何“custom”算子包中的任何算子。
+       >
+       >-   若此步骤出错，或屏幕未输出 "add" 中增加的日志打印，则说明新开发的“自定义TBE算子”有错误，影响了“自定义算子包”的加载，建议**优先排查新开发的“自定义TBE算子”中的“算子信息定义”是否正确**。
+       >-   若此步骤正确，至少说明  **新开发的“自定义TBE算子”中的“算子信息定义”不影响运行**。
+    
     5.  调用“python3.7.5 xxx\_testcase.py”进行测试；
-
+    
         >![](public_sys-resources/icon-note.gif) **说明：** 
         >-   若屏幕正常输出新开发的“自定义TBE算子”中增加的日志打印，则至少说明调度到了新开发的算子。
         >-   若屏幕未输出新开发的“自定义TBE算子”中增加的日志打印，则问题可能出现在“PyTorch适配”中，需要排查这一部分的实现代码，较多的可能会出现在“XxxxKernelNpu.cpp”中的输入、输出未能正确适配。

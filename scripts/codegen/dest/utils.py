@@ -21,9 +21,11 @@ from codegen.api.signature import DispatcherSignature, NativeSignature
 from codegen.model import SchemaKind, NativeFunction
 from codegen.api.native import native_arguments
 
+backend = None
+
 def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeFunction) -> Tuple[str, List[str]]:
     convert: str = f"// Convert args to cpu in order to use at::native kernel \n  " \
-                   f"TORCH_WARN_ONCE(\"Cur kernel: {sig.func.name} is running on cpu.\"); \n  "
+                   f"std::cout << \"Cur kernel: {sig.func.name} is running on cpu.\" << std::endl; \n  "
     args_names: List[str] = []
     args = native_arguments(sig.func, func.use_c10_dispatcher)
     for arg in args:
@@ -53,7 +55,6 @@ def transfer_args_of_wrapper_func_to_cpu(sig: DispatcherSignature, func: NativeF
 
 def transfer_ret_of_wrapper_func_to_xla(sig: DispatcherSignature, func_call: str) -> str:
     ret_code = ''
-    backend = "XLA"
     if sig.func.kind() == SchemaKind.functional:
         if sig.returns_type().cpp_type() == 'at::Tensor':
             ret_code = f"return {func_call}.toBackend(Backend::{backend});"

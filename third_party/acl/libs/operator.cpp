@@ -154,4 +154,8 @@ Operator& Operator::SetAttr(const char* name, const Tensor& attr_value) {
   return op;
 }
 
+Operator& Operator::SetAttr(const char* name, const ge::DataType& attr_value){
+  return op;
+}
+
 } // namespace ge

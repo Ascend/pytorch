@@ -41,6 +41,7 @@
 #include <ATen/record_function.h>
 #include <torch/csrc/jit/frontend/source_range.h>
 #include "torch_npu/csrc/profiler/utils.h"
+#include "torch_npu/csrc/profiler/utils.h"
 
 namespace torch_npu {
 namespace profiler{
@@ -443,8 +444,7 @@ struct  ProfilerConfig {
 
   void init_npu_simple() {
     if (state == ProfilerState::NPU) {
-      // at::DisableRecordFunction::use_npu_simple = use_npu_simple;
-      return;
+      torch_npu::profiler::NPURecordFunction::use_npu_simple = use_npu_simple;
     }
   }
   // Returns IValues corresponding to ProfilerConfig struct, to be used for

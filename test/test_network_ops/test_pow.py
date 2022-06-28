@@ -19,11 +19,10 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.decorator import instantiate_tests, graph_mode
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-@instantiate_tests
 class TestPow(TestCase):
     def cpu_op_exec(self, input1, input2):
         output = torch.pow(input1, input2)
@@ -123,74 +122,74 @@ class TestPow(TestCase):
 
     # scalar_tensor-------------------------------------------------------
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp16_1d(self):
+    def test_pow_shape_format_scalar_tensor_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp32_1d(self):
+    def test_pow_shape_format_scalar_tensor_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp16_2d(self):
+    def test_pow_shape_format_scalar_tensor_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp32_2d(self):
+    def test_pow_shape_format_scalar_tensor_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp16_3d(self):
+    def test_pow_shape_format_scalar_tensor_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_scalar_tensor_fp32_3d(self):
+    def test_pow_shape_format_scalar_tensor_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
         self.pow_result_scalar_tensor(shape_format)
 
     # tensor_scalar-----------------------------------------------------------
     @graph_mode
-    def test_pow_shape_format_tensor_scala_fp16_1d(self):
+    def test_pow_shape_format_tensor_scala_fp16_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float16, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_tensor_scalar_fp32_1d(self):
+    def test_pow_shape_format_tensor_scalar_fp32_1d(self, device):
         format_list = [-1, 0, 3]
         shape_format = [[np.float32, i, [18]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_tensor_scala_fp16_2d(self):
+    def test_pow_shape_format_tensor_scala_fp16_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_tensor_scalar_fp32_2d(self):
+    def test_pow_shape_format_tensor_scalar_fp32_2d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_tensor_scala_fp16_3d(self):
+    def test_pow_shape_format_tensor_scala_fp16_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float16, i, [18, 64, 128]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)
 
     @graph_mode
-    def test_pow_shape_format_tensor_scalar_fp32_3d(self):
+    def test_pow_shape_format_tensor_scalar_fp32_3d(self, device):
         format_list = [-1, 0, 3, 29]
         shape_format = [[np.float32, i, [18, 64, 128]] for i in format_list]
         self.pow_result_tensor_scalar_(shape_format)

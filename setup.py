@@ -65,13 +65,13 @@ def get_cmake_command():
         return cmake_command
     cmake3 = which('cmake3')
     cmake = which('cmake')
-    if cmake3 is not None and _get_version(cmake3) >= LooseVersion("3.13.0"):
+    if cmake3 is not None and _get_version(cmake3) >= LooseVersion("3.12.0"):
         cmake_command = 'cmake3'
         return cmake_command
-    elif cmake is not None and _get_version(cmake) >= LooseVersion("3.13.0"):
+    elif cmake is not None and _get_version(cmake) >= LooseVersion("3.12.0"):
         return cmake_command
     else:
-        raise RuntimeError('no cmake or cmake3 with version >= 3.13.0 found')
+        raise RuntimeError('no cmake or cmake3 with version >= 3.12.0 found')
 
 
 def get_build_type():
@@ -90,6 +90,7 @@ def _get_build_mode():
         if not sys.argv[i].startswith('-'):
             return sys.argv[i]
 
+    raise RuntimeError("Run setup.py without build mode.")
 
 def get_pytorch_dir():
     try:
@@ -101,8 +102,8 @@ def get_pytorch_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def generate_bindings_code(base_dir):
-    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh')]
+def generate_bindings_code(base_dir, verbose):
+    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh'), verbose]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -286,11 +287,11 @@ class PythonPackageBuild(build_py, object):
             self.copy_file(src, dst)
         super(PythonPackageBuild, self).finalize_options()
 
-
+to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
     # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
-    generate_bindings_code(BASE_DIR)
+    generate_bindings_code(BASE_DIR, to_cpu)
     build_stub(BASE_DIR)
 
 # Setup include directories folders.

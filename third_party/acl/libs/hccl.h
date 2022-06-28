@@ -55,11 +55,11 @@ typedef enum tagHcclResult {
 typedef void *hcclComm_t;
 typedef void *rtStream_t;
 
-hcclResult_t hcclCommInitUniqueId(hcclComm_t* comm, u32 nranks, hcclUniqueId commId, u32 myrank);
-hcclResult_t hcclGetUniqueId(hcclUniqueId* id);
-hcclResult_t hcclAllReduce(void *inputPtr, void *outputPtr, u64 count, hcclDataType_t dataType,
+hcclResult_t HcclCommInitUniqueId(hcclComm_t* comm, u32 nranks, hcclUniqueId commId, u32 myrank);
+hcclResult_t HcclGetUniqueId(hcclUniqueId* id);
+hcclResult_t HcclAllReduce(void *inputPtr, void *outputPtr, u64 count, hcclDataType_t dataType,
                                   hcclRedOp_t op, hcclComm_t comm, rtStream_t stream);
-hcclResult_t hcclBroadcast(void *ptr, u64 count, hcclDataType_t dataType, u32 root, hcclComm_t comm,
+hcclResult_t HcclBroadcast(void *ptr, u64 count, hcclDataType_t dataType, u32 root, hcclComm_t comm,
                                   rtStream_t stream);
-hcclResult_t hcclCommDestroy(hcclComm_t comm);
+hcclResult_t HcclCommDestroy(hcclComm_t comm);
 }
