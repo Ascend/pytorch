@@ -19,6 +19,7 @@ import logging
 import torch
 
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
+from torch_npu.utils.tensor_methods import torch_device_guard
 
 import torch_npu
 
@@ -50,7 +51,7 @@ def npu(self, device=None):
             torch_npu.npu.enable_graph_mode()
     return self._apply(lambda t: t.npu(device))
 
-
+@torch_device_guard
 def to(self, *args, **kwargs):
     if args and isinstance(args[0], str) and 'npu' in args[0]:
         args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
@@ -173,7 +174,8 @@ def ddp_forward(self, *inputs, **kwargs):
     if self.ddp_uneven_inputs_config.ddp_join_enabled:
         # Notify joined ranks whether they should sync in backwards pass or not.
         self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    if self.device_ids and self.device_type != torch_npu.npu.native_device:
+    # Note: module.device_type was builded from device.type("npu") inside Class Module
+    if self.device_ids and self.device_type != torch_npu.npu.npu_device:
         if len(self.device_ids) == 1:
             inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
             output = self.module(*inputs[0], **kwargs[0])
