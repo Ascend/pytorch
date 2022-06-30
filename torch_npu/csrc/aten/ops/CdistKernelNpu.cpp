@@ -33,7 +33,7 @@ at::Tensor NPUNativeFunctions::_cdist_forward(
   // Since double is not supported in NPU, the type of P needs to be converted from double to float.
   float p_float;
   if (std::isinf(p)) {
-    p_float = std::numeric_limits<float>::infinity();
+    p_float = -1;
   }
   else {
     TORCH_CHECK(p <= std::numeric_limits<float>::max(), "npu dose not support float64" );
