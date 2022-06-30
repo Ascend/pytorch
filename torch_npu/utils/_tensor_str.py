@@ -14,10 +14,13 @@
 # limitations under the License.
 
 import torch
-import torch_npu
+
 from torch._tensor_str import _Formatter as SrcFormatter
 from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffixes, get_summarized_data
 from torch.overrides import has_torch_function_unary, handle_torch_function
+
+import torch_npu
+
 
 class _Formatter(SrcFormatter):
     def __init__(self, tensor):
