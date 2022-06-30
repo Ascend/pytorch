@@ -15,7 +15,6 @@
 #include <c10/util/Exception.h>
 
 #include "GraphConstructor.h"
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 
@@ -42,8 +41,7 @@ void GraphCommandImpl::AddInput(
     if (!input.storage().data()) {
       auto storage_impl = input.storage().unsafeGetStorageImpl();
       size_t n_bytes = GraphUtils::GetTensorCapacity(storage_impl);
-      auto data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(n_bytes);
-      storage_impl->set_data_ptr(std::move(data_ptr));
+      GraphUtils::SetDataPtrAndNbytes(storage_impl, n_bytes);
     }
     GraphUtils::SetDataOp(input.storage().unsafeGetStorageImpl());
   }

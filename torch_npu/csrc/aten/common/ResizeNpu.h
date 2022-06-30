@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
@@ -126,5 +127,70 @@ static void resize_nd_npu(
   }
   resize_impl_npu_(self, sizes, strides);
 }
+
+static inline void checkInBoundsForStorage(
+    c10::IntArrayRef size,
+    c10::IntArrayRef stride,
+    int64_t storage_offset,
+    const caffe2::TypeMeta data_type,
+    const c10::Storage& new_storage) {
+  int64_t storage_size_bytes =
+      at::detail::computeStorageNbytes(size, stride, data_type.itemsize());
+  int64_t storage_offset_bytes = storage_offset * data_type.itemsize();
+  if (storage_size_bytes == 0) {
+    // NB: (a tensor with arbitrary 0 dims)'s storage can have any numel.
+    return;
+  }
+
+  int64_t new_storage_size_bytes;
+  if (c10_npu::NpuRunMode::IsGraphMode()){
+    new_storage_size_bytes = at::prod_intlist(size) * data_type.itemsize();
+  } else {
+    new_storage_size_bytes = new_storage.nbytes();
+  }
+  
+  TORCH_CHECK(
+      storage_size_bytes + storage_offset_bytes <= new_storage_size_bytes,
+      "setStorage: sizes ",
+      size,
+      ", strides ",
+      stride,
+      ","
+      " storage offset ",
+      storage_offset,
+      ", and itemsize ",
+      data_type.itemsize(),
+      " requiring a storage size of ",
+      storage_size_bytes,
+      " are out of bounds for storage of size ",
+      new_storage_size_bytes);
+}
+
+inline void setStrided(
+    const at::Tensor& self, 
+    c10::IntArrayRef size, 
+    c10::IntArrayRef stride, 
+    int64_t storage_offset) {
+  TORCH_CHECK(size.size() == stride.size(), "mismatch in length of strides and shape");
+  auto* self_ = self.unsafeGetTensorImpl();
+  checkInBoundsForStorage(
+      size, stride, storage_offset, self_->dtype(), self_->storage());
+
+  /* storage offset */
+  TORCH_CHECK(storage_offset >= 0, "Tensor: invalid storage offset ", storage_offset);
+  self_->set_storage_offset(storage_offset);
+
+  /* size and stride */
+  if (self_->sizes() == size && self_->strides() == stride) {
+    return;
+  }
+  for (auto val : stride) {
+    TORCH_CHECK(val >= 0,
+                "as_strided: Negative strides are not supported at the moment, "
+                "got strides: ", stride);
+  }
+  self_->set_sizes_and_strides(size, stride);
+}
+
 } // namespace native
 } // namespace at_npu
