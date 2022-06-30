@@ -197,7 +197,7 @@ struct NPUStreamGuard {
     return guard_.original_device();
   }
 
- private:
+private:
   c10::impl::InlineStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 };
 
