@@ -1,212 +1,112 @@
 # PyTorch安装指南
--   [简介](#简介md)
--   [手动编译安装](#手动编译安装md)
-    -   [前提条件](#前提条件md)
-    -   [安装PyTorch框架](#安装PyTorch框架md)
-    -   [配置环境变量](#配置环境变量md)
-    -   [安装混合精度模块](#安装混合精度模块md)
--   [参考信息](#参考信息md)
-    -   [CMake安装方法](#CMake安装方法md)
-    -   [安装7.3.0版本gcc](#安装7-3-0版本gccmd)
-    -   [安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)
-<h2 id="简介md">简介</h2>
 
-用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块。 
+- [简介](#简介)
 
-**图 1**  环境准备流程图<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
+- [系统依赖库](#系统依赖库)
 
+- [Ascend配套软件](#Ascend配套软件)
 
-![](figures/210926103326800.png)
+- [安装方式](#安装方式)
 
-<h2 id="手动编译安装md">手动编译安装</h2>
+- [运行](#运行)
+- [安装混合精度模块（可选）](#安装混合精度模块（可选）)
+- [FAQ](#FAQ)
+- [版本说明](#版本说明)
 
--   **[前提条件](#前提条件md)**  
+# 简介<a name="简介"></a>
 
--   **[安装PyTorch框架](#安装PyTorch框架md)**  
+本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译相关模块。
 
--   **[配置环境变量](#配置环境变量md)**  
-
--   **[安装混合精度模块](#安装混合精度模块md)**  
-
-
-<h3 id="前提条件md">前提条件</h3>
-
-#### 前提条件<a name="zh-cn_topic_0000001105856382_zh-cn_topic_0275872734_section108914373254"></a>
+<h2 id="md">前提条件</h2>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-
-| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 |
-| :------------ | :----------- | :----------- |
-| 3.0.2 | CANN 5.0.2 | 1.5.0.post2 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1 |
-
-- 需安装3.12.0以上版本的CMake，安装方法请参考[CMake安装方法](#CMake安装方法md)。
-
-- 需确保已安装7.3.0以上版本的gcc，7.3.0版本gcc具体安装及使用方式请参考[安装7.3.0版本gcc](#安装7-3-0版本gccmd)。
-
 - 需安装python版本为3.7.5、3.8、3.9。
 
-- 需注意torch1.5版本不支持python3.9编译安装（与官方保持一致），仅torch1.8.1版本支持python版本3.9进行编译安装。
+# 系统依赖库<a name="系统依赖库"></a>
 
--   需确保环境中已安装patch、git工具，以Ubuntu和CentOS系统为例，命令如下：
-    -   Ubuntu系统
+## CentOS & EulerOS
 
-        ```
-        apt-get install patch
-        apt-get install git
-        ```
+yum install -y cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0
 
-    -   CentOS系统
+## Ubuntu
 
-        ```
-        yum install patch
-        yum install git
-        ```
+apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git 
 
+# Ascend配套软件<a name="Ascend配套软件"></a>
 
+| AscendPyTorch版本 | CANN版本     | 支持PyTorch版本 | Gitee分支名称  |
+| :---------------- | :----------- | :-------------- | -------------- |
+| 2.0.2             | CANN 5.0.2   | 1.5.0.post2     | 2.0.2.tr5      |
+| 2.0.3             | CANN 5.0.3   | 1.5.0.post3     | 2.0.3.tr5      |
+| 2.0.4             | CANN 5.0.4   | 1.5.0.post4     | 2.0.4.tr5      |
+| 3.0.rc1           | CANN 5.1.RC1 | 1.5.0.post5     | v1.5.0-3.0.rc1 |
+| 3.0.rc1           | CANN 5.1.RC1 | 1.8.1.rc1       | v1.8.1-3.0.rc1 |
 
-<h3 id="安装PyTorch框架md">安装PyTorch框架</h3>
+# 安装方式<a name="安装方式"></a>
 
-#### 安装流程<a name="zh-cn_topic_0000001152776301_section1611810384557"></a>
+## 安装Pytorch依赖环境
 
-1. 以root或非root用户登录服务器。
+如果使用非root用户安装，用户需要在本步骤的每句命令后加**--user**，示例如：pip3 install pyyaml --user。
 
-2.  依次执行如下命令安装PyTorch依赖环境。
+```sh
+pip3 install pyyaml
+pip3 install wheel
+```
 
-    如果使用非root用户安装Python及其依赖，用户需要在本步骤中的每句命令结尾加上**--user**，命令示例为：**pip3.7 install pyyaml --user**
+## 编译安装PyTorch和昇腾插件
 
-    ```
-    pip3 install pyyaml
-    pip3 install wheel
-    ```
+首先安装官方torch包，然后编译安装插件。（ARM架构CPU安装，请参见第一条FAQ）
 
-3. 获取PyTorch源代码。
+```sh
+#x86_64
+pip3 install torch==1.8.1+cpu #安装cpu版本PyTorch 下载地址：（https://download.pytorch.org/whl/torch）
 
-   1.  运行如下命令，获取适配昇腾AI处理器的PyTorch源代码，并切换到所需的分支。
+#aarch64
+#社区未提供arm架构cpu安装包，请参见FAQ第一条，使用源码编译安装pytorch
+```
 
-       ```
-       git clone https://gitee.com/ascend/pytorch.git
-       # 默认是master分支，master分支时pytorch1.8.1版本，若需要其他分支请使用git checkout 命令切换
-       cd pytorch
-       git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
-       ```
+编译生成pytorch插件的二进制安装包。
 
-   2. 在当前仓根目录“/pytorch”下获得原生PyTorch 1.8.1源代码并重命名为pytorch_v1.8.1。
+```
+git clone -b master https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
+# 指定python版本编包方式：
+bash ci/build.sh --python=3.7
+# 或
+bash ci/build.sh --python=3.8
+# 或
+bash ci/build.sh --python=3.9
+```
 
-      ```
-      //1.8.1版本
-      
-      cd  pytorch  #插件根目录
-      
-      git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
-      ```
+然后安装pytorch/dist下生成的插件torch_npu包
 
-      >![](public_sys-resources/icon-note.gif) **说明：** 
-      >请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关问题修复，并根据社区修复及时更新原生PyTorch代码。
-
-   3. 运行如下命令，进入原生pytorch代码目录“pytorch_v1.8.1“，并获取PyTorch被动依赖代码。
-
-      ```
-      cd  pytorch_v1.8.1
-      git submodule sync
-      git submodule update --init --recursive
-      ```
-
-   >![](public_sys-resources/icon-note.gif) **说明：** 
-   >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。 下载完成之后若没有报错，即生成了PyTorch及其依赖的第三方代码。
-
-4.  编译生成适配昇腾AI处理器的PyTorch安装包。
-    1. 将patch打入Pytorch源码并编译。
-
-       ```
-       cd ../patch
-       bash apply_patch.sh ../pytorch_v1.8.1
-       cd ../pytorch_v1.8.1
-       指定python版本编包方式:
-       bash build.sh --python=3.7
-       或
-       bash build.sh --python=3.8
-       或
-       bash build.sh --python=3.9
-       ```
-    
-       安装当前dist目录（pytorch/pytorch_v1.8.1/dist）下生成的torch包。
-    
-       ```
-       cd dist
-       pip3 install --upgrade torch-1.8.1+ascend.rc1-cp37-cp37m-linux_{arch}.whl  #**\{arch\}**表示架构信息，为aarch64或x86\_64。
-       ```
-    
-    3.  编译生成pytorch插件的二进制安装包。
-    
-        ```
-        cd ../../ci    #进入插件根目录
-        指定python版本编包方式：
-        bash build.sh --python=3.7
-        或
-        bash build.sh --python=3.8
-        或
-        bash build.sh --python=3.9
-        ```
-        
-        请指定环境中python版本进行编译。生成的二进制包在当前的dist目录下，即“pytorch/dist”文件夹目录下。
-    
-5.  <a name="zh-cn_topic_0000001152776301_li49671667141"></a>安装PyTorch插件。
-
-    进入“pytorch/dist“文件夹目录，执行如下命令安装torch_npu包。
-
-    ```
-    cd ../dist
-    pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
-    ```
-    
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >若对环境中的PyTorch插件进行升级时，需要先卸载环境中已安装的PyTorch插件软件包再执行[5. 安装PyTorch插件。](#zh-cn_topic_0000001152776301_li49671667141)可以通过执行如下命令查询环境上是否已安装PyTorch插件。
-    >**pip3 list | grep torch-npu**
+```
+pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+```
 
 
-<h3 id="配置环境变量md">配置环境变量</h3>
+# 运行<a name="运行"></a>
 
-安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。相关环境变量介绍参见[表1](#zh-cn_topic_0000001152616261_table42017516135)。
+## 运行环境变量
 
-1.  配置运行环境变量，在适配昇腾AI处理器的PyTorch源代码根目录中运行如下命令。
+在当前仓库根目录中执行设置环境变量脚本
 
-    ```
-    cd ../
-    source env.sh
-    ```
+```
+source env.sh
+```
 
-2.  请依据实际场景，选择合适的HCCL初始化方式，并配置相应环境变量。
 
-    ```
-    # 场景一：单机场景
-    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-    # 场景二：多机场景。
-    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-    export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
-    ```
+## 自定义环境变量
 
-3.  （可选）NPU场景下配置功能或性能环境变量。默认为不开启。
+可选的环境变量可能会对运行的模型产生影响:
 
-    ```
-    export DYNAMIC_COMPILE_ENABLE=1  # 动态shape特性功能，针对shape变化场景，可选，开启设置为1（PyTorch1.8.1不支持该环境变量）
-    export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
-    export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
-    export DYNAMIC_OP="ADD#MUL" # 算子实现，ADD和MUL算子在不同场景下有不同的性能表现。可选
-    ```
-    
-4.  （可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。
-
-    ```
-    # unset GOMP_CPU_AFFINITY
-    ```
-
+```
+export COMBINED_ENABLE=1 # 非连续两个算子组合类场景优化，可选，开启设置为1
+export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
+```
 
 **表 1**  环境变量说明
-
 <a name="zh-cn_topic_0000001152616261_table42017516135"></a>
+
 <table><thead align="left"><tr id="zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001152616261_p51981251161315"></a>配置项</p>
 </th>
 <th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001152616261_p9198135114133"></a>说明</p>
@@ -244,11 +144,6 @@
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p181851575497"><a name="zh-cn_topic_0000001152616261_p181851575497"></a><a name="zh-cn_topic_0000001152616261_p181851575497"></a>aicpu算子包路径。</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p2034724894619"><a name="zh-cn_topic_0000001152616261_p2034724894619"></a><a name="zh-cn_topic_0000001152616261_p2034724894619"></a>TASK_QUEUE_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p53477489462"><a name="zh-cn_topic_0000001152616261_p53477489462"></a><a name="zh-cn_topic_0000001152616261_p53477489462"></a>使用异步任务下发，异步调用acl接口。建议开启，开启设置为1。</p>
-</td>
-</tr>
 <tr id="zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
@@ -281,11 +176,6 @@
 <a name="ul416352114610"></a><a name="ul416352114610"></a><ul id="ul416352114610"><li>0：不开启Event日志。</li><li>1：开启Event日志。</li><li>其他值为非法值。</li></ul>
 </td>
 </tr>
-<tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>（可选）动态shape特性功能，针对shape变化场景，开启设置为1（PyTorch1.8.1不支持该环境变量）。</p>
-</td>
-</tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续两个算子组合类场景优化，开启设置为1。</p>
@@ -294,11 +184,6 @@
 <tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1。</p>
-</td>
-</tr>
-<tr id="row27481914203518"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p674813144357"><a name="p674813144357"></a><a name="p674813144357"></a>DYNAMIC_OP</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p974891414353"><a name="p974891414353"></a><a name="p974891414353"></a>（可选）算子实现，ADD和MUL算子在不同场景下有不同的性能表现。默认不设置。</p>
 </td>
 </tr>
 <tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
@@ -311,243 +196,295 @@
 
 
 
-<h3 id="安装混合精度模块md">安装混合精度模块</h3>
 
-#### 前提条件<a name="zh-cn_topic_0000001106176190_section3225481020"></a>
+## 执行单元测试脚本
 
-1.  请确保运行环境中适配昇腾AI处理器的PyTorch框架能正常使用。
-2.  编译安装Apex前，需参见[配置环境变量](#配置环境变量md)配置好编译过程依赖的环境变量。
+验证运行, 输出结果OK
 
-#### 安装流程<a name="zh-cn_topic_0000001106176190_section11880164819567"></a>
+```shell
+cd test/test_network_ops/
+python3 test_div.py
+```
 
-1.  以root或非root用户登录服务器。
-2.  获取apex源代码。
+# 安装混合精度模块（可选）<a name="安装混合精度模块（可选）"></a>
 
-    1.  运行如下命令，获取适配昇腾AI处理器的apex源代码。
+AscendPyTorch1.8.1集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex)进行编译安装Apex模块。
 
-        ```
-        git clone -b master https://gitee.com/ascend/apex.git
-        ```
+- AMP
 
-        下载的源码主要目录结构如下所示：
+  - 动态loss scale：动态计算loss scale的值并判断是否溢出。
+  - 不支持tensor融合功能。
 
-        ```
-        apex
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─tests              # 测试用例存放目录
-        ```
+- APEX
 
-    2.  运行如下命令，进入“apex“目录，并获取原生apex源代码。
-
-        ```
-        cd apex
-        git clone https://github.com/NVIDIA/apex.git
-        ```
-
-        下载原生apex源码后，代码主要目录结构如下所示：
-
-        ```
-        apex
-        │ ├─apex              # 原生apex代码目录
-        │ ├─patch             # 昇腾AI处理器适配补丁目录
-        │    ├─npu.patch
-        │ ├─scripts           # 编译构建目录
-        │    ├─gen.sh
-        │ ├─src               # 源码目录
-        │ ├─tests              # 测试用例存放目录
-        ```
-
-    3.  进入原生apex代码目录，即“apex/apex“目录。切换至commitid为4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a的代码分支。
-
-        ```
-        cd apex
-        git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
-        ```
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >受网络波动影响，源码获取时间可能较长，下载过程中请耐心等待。
-
-3.  编译生成适配昇腾AI处理器的apex安装包。
-    1.  进入“apex/scripts“文件夹，执行转换脚本，生成适配昇腾AI处理器的全量代码。
-
-        ```
-        cd ../scripts
-        bash gen.sh
-        ```
-
-        将在"apex/apex"目录中生成适配昇腾AI处理器的全量代码。
-
-    2.  进入适配后的全量代码目录，即“apex/apex“目录，编译生成apex的二进制安装包。
-
-        ```
-        cd ../apex
-        python3 setup.py --cpp_ext --npu_float_status bdist_wheel
-        ```
-
-        Python版本需与PyTorch使用的Python一致，生成的二进制包在当前的dist目录下，即“apex/apex/dist”文件夹目录下。
-
-4.  <a name="zh-cn_topic_0000001106176190_li425495374416"></a>安装apex。
-
-    进入“apex/apex/dist“文件夹目录，执行如下命令安装。
-
-    ```
-    cd dist
-    pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
-    ```
-    
-    **\{arch\}**表示架构信息，为aarch64或x86\_64。
-    
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >若对环境中的Apex进行升级时，需要先卸载环境中已安装的PyTorch软件包再执行[4. 安装apex。](#zh-cn_topic_0000001106176190_li425495374416)可以通过执行如下命令查询环境上是否已安装PyTorch。
-    >**pip3 list | grep apex**
+  - O1配置模式：Conv，Matmul等使用float16精度计算，其他如softmax、BN使用float32精度。
+  - O2配置模式：除BN使用float32精度外，其他部分使用float16精度。
+  - 静态loss scale：静态设置参数确保混合精度训练收敛。
+  - 动态loss scale：动态计算loss scale的值并判断是否溢出。
 
 
-<h2 id="参考信息md">参考信息</h2>
+# FAQ<a name="FAQ"></a>
 
--   **[CMake安装方法](#CMake安装方法md)**  
+## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch1.8.1，需要使用源码编译安装。
 
--   **[安装7.3.0版本gcc](#安装7-3-0版本gccmd)**  
+下载PyTorch v1.8.1源码包。
 
--   **[安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配](#安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md)**  
+```
+git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.8.1
+```
+
+进入源码包获取被动依赖代码。
+
+```
+cd pytorch_v1.8.1
+git submodule sync
+git submodule update --init --recursive 
+```
+
+执行编译安装。
+
+```
+python3 setup.py install
+```
+
+## 在PIP设置为华为源时，安装requirments.txt中的typing依赖后，会导致python环境错误。
+
+在PIP设置为华为源时，需打开requirments.txt文件，删除typing依赖，再执行命令。
+
+```
+pip3 install -r requirments.txt
+```
+
+## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
+
+pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
+
+```
+pip3 install pyyaml
+
+pip3 install typing_extensions
+```
+
+安装成功后，注意需要执行make clean在执行bash build.sh进行编译，否则可能因缓存出现未知编译错误。
+
+## 运行遇到找不到te问题
+
+开发态:
+
+```
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+```
+
+用户态:
+
+```
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
+```
+
+## 命令行安装cmake依赖时提示找不到包、编译cmake报错版本过低，可使用安装脚本或源码编译安装。
+
+下载安装脚本安装cmake。（参考cmake官网）
+
+​		X86_64环境推荐脚本安装：cmake-3.12.0-Linux-x86_64.sh
 
 
-<h3 id="CMake安装方法md">CMake安装方法</h3>
+部分源下载cmake时会提示无法找到包，需要使用源码编译安装。
 
-CMake版本升级为3.12.1的方法
+1. 获取Cmake软件包。
 
-1.  获取Cmake软件包。
+   ```
+   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
+   ```
 
-    ```
-    wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz --no-check-certificate
-    ```
+2. 解压并进入软件包目录。
 
-2.  解压并进入软件包目录。
+   ```
+   tar -xf cmake-3.12.0.tar.gz
+   cd cmake-3.12.0/
+   ```
 
-    ```
-    tar -xf cmake-3.12.1.tar.gz
-    cd cmake-3.12.1/
-    ```
+3. 执行配置、编译和安装命令。
 
-3.  执行配置、编译和安装命令。
+   ```
+   ./configure --prefix=/usr/local/cmake
+   make && make install
+   ```
 
-    ```
-    ./configure --prefix=/usr/local/cmake
-    make && make install
-    ```
+4. 设置软连接。
 
-4.  设置软连接。
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
 
-    ```
-    ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
-    ```
+5. 执行如下命令验证是否安装成功。
 
-5.  执行如下命令验证是否安装成功。
+   ```
+   cmake --version
+   ```
 
-    ```
-    cmake --version
-    ```
+   如显示“cmake version 3.12.0”则表示安装成功。
 
-    如显示“cmake version 3.12.1”则表示安装成功。
+## 命令行安装gcc依赖时提示找不到包、编译时gcc报错问题
 
-
-<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
+部分源下载gcc时会提示无法找到包，需要使用源码编译安装。
 
 以下步骤请在root用户下执行。
 
-1.  下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
-2.  安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
+1. 下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
 
-    ```
-    sudo rm -rf /tmp/*
-    ```
+2. 安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
 
-3.  安装依赖（以CentOS和Ubuntu系统为例）。
-    -   CentOS执行如下命令安装。
+   ```
+   sudo rm -rf /tmp/*
+   ```
 
-        ```
-        yum install bzip2    
-        ```
+3. 安装依赖（以CentOS和Ubuntu系统为例）。
 
-    -   Ubuntu执行如下命令安装。
+   - CentOS执行如下命令安装。
 
-        ```
-        apt-get install bzip2    
-        ```
+     ```
+     yum install bzip2    
+     ```
 
-4.  编译安装gcc。
-    1.  进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
+   - Ubuntu执行如下命令安装。
 
-        ```
-        tar -zxvf gcc-7.3.0.tar.gz
-        ```
+     ```
+     apt-get install bzip2    
+     ```
 
-    2.  进入解压后的文件夹，执行如下命令下载gcc依赖包：
+4. 编译安装gcc。
 
-        ```
-        cd gcc-7.3.0
-        ./contrib/download_prerequisites
-        ```
+   1. 进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
 
-        如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
+      ```
+      tar -zxvf gcc-7.3.0.tar.gz
+      ```
 
-        ```
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
-        ```
+   2. 进入解压后的文件夹，执行如下命令下载gcc依赖包：
 
-        下载好上述依赖包后，重新执行以下命令：
+      ```
+      cd gcc-7.3.0
+      ./contrib/download_prerequisites
+      ```
 
-        ```
-        ./contrib/download_prerequisites
-        ```
+      如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
 
-        如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+      ```
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+      ```
 
-    3.  <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
+      下载好上述依赖包后，重新执行以下命令：
 
-        ```
-        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
-        make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
-        make install    
-        ```
+      ```
+      ./contrib/download_prerequisites
+      ```
 
-        >![](public_sys-resources/icon-notice.gif) **须知：** 
-        >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
+      如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
 
+   3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 
-5.  配置环境变量。
+      ```
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
+      make install    
+      ```
 
-    当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
-
-    ```
-    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
-    ```
-
-    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
-
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
+      >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-notice.gif) **须知：** 
+      >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
 
 
-<h3 id="安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配md">安装“torch-\*.whl ”提示“torch 1.5.0xxxx”与“torchvision”所依赖的版本不匹配</h3>
+5. 配置环境变量。
 
-#### 现象描述<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section197270431505"></a>
+   当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
+
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
+
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+
+   >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-note.gif) **说明：** 
+   >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
+
+目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
+
+gcc, g++,c++(--version 必须是7.3.0)
+
+libstdc++->libstdc++.so.6.0.24(7.3.0)
+
+## 找不到libblas.so问题
+
+环境缺少openblas库，需要安装openblas库
+
+Centos，EulerOS环境
+
+```sh
+yum -y install openblas
+```
+
+Ubuntu环境
+
+```sh
+apt install libopenblas-dev
+```
+
+## 容器中未挂载device问题
+
+在容器中运行脚本出现NPU相关ERROR。由于启动容器实例时，未挂载device参数，导致无法正常启动实例。
+
+![](D:\projects\pzrpytorch\pytorch\figures\FAQ.png)
+
+请用户参考以下命令，重启容器。
+
+```sh
+docker run -it --ipc=host \
+--device=/dev/davinciX \
+--device=/dev/davinci_manager \
+--device=/dev/devmm_svm \
+--device=/dev/hisi_hdc \
+-v /usr/local/Ascend/driver \
+-v /usr/local/dcmi \
+-v /usr/local/bin/npu-smi \
+${镜像名称}:{tag} \
+/bin/bash
+```
+
+参数说明：
+
+/dev/davinciX：NPU设配，X是芯片物理ID号例如davinci0。
+
+/dev/davinci_manager：管理设备。
+
+/dev/devmm_svm：管理设备。
+
+/dev/hisi_hdc：管理设备。
+
+/usr/local/Ascend/driver：驱动目录。
+
+/usr/local/dcmi：DCMI目录。
+
+/usr/local/bin/npu-smi：npu-smi工具。
+
+${镜像名称}:{tag}：镜像名称与版本号。
+
+## 安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
-
-![](figures/zh-cn_image_0000001190081735.png)
-
-#### 可能原因<a name="zh-cn_topic_0000001105856364_zh-cn_topic_0175549220_section169499490501"></a>
+![](D:\projects\pzrpytorch\pytorch\figures\zh-cn_image_0000001190081735.png)
 
 安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
 
-#### 处理方法<a name="zh-cn_topic_0000001105856364_section108142031907"></a>
-
 对实际结果无影响，无需处理。
 
+
+
+# 版本说明<a name='版本说明'></a>
+
+版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
