@@ -70,6 +70,6 @@ aclprofConfig * AclProfilingCreateConfig(
     aclprofAicoreEvents *aicoreEvents,
     uint64_t dataTypeConfig);
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
-
+const char *AclrtGetSocName();
 } // namespace acl
 } // namespace c10_npu
