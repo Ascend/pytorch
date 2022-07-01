@@ -38,10 +38,7 @@ apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev lib
 获取适配昇腾AI处理器的PyTorch源代码（即当前仓库代码），并切换到所需的分支。
 
    ```
-   git clone https://gitee.com/ascend/pytorch.git
-   # 当前master分支为pytorch 1.8.1版本，需要1.5.0版本请使用git checkout 命令切换到v1.5.0对应版本分支
-   cd pytorch
-   git checkout -b v1.5.0 remotes/origin/v1.5.0
+   git clone -b v1.5.0 https://gitee.com/ascend/pytorch.git
    ```
 
 ## 获取原生PyTorch源代码和third_party代码
@@ -49,6 +46,7 @@ apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev lib
 在当前仓库根目录pytorch/下获取原生PyTorch1.5.0的源代码。请关注PyTorch原生社区的安全板块与Issue板块是否有安全相关问题修复，并根据社区修复及时更新原生PyTorch代码。
 
 ```sh
+cd pytorch
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 ```
 
