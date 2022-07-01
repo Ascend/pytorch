@@ -68,7 +68,7 @@ pip3 install torch==1.8.1+cpu #安装cpu版本PyTorch 下载地址：（https://
 编译生成pytorch插件的二进制安装包。
 
 ```
-git clone -b master https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
+git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
 # 或
