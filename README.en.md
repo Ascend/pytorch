@@ -117,19 +117,11 @@ source env.sh
 
 ## Customize environment variables.
 
-The following environment variables are function classes used in NPU scenarios or environment variables that can improve performance:
-
-```
-export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to **1**.
-```
-
 The following are optional environment variables that may affect running models:
 
 ```
-export DYNAMIC_COMPILE_ENABLE=1  # Dynamic shape feature. This environment variable is optional for shape change scenarios. To enable it, set its value to **1**.
-export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to **1**.
+export COMBINED_ENABLE=1 # (Optional) Performance optimization of discontiguous tensors to contiguous tensors. To enable this function, set the value to be **1**. When operator AsStrided has been called many times inside the model, pytorch users could open this environment variable to obtain higher performance.
 export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.
-export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. Optional
 ```
 
 
@@ -236,6 +228,18 @@ Ubuntu
 ```sh
 apt install libopenblas-dev
 ```
+
+
+
+## Warning of duplicate registration of _has_compatible_shallow_copy_type
+
+
+
+As shown in the following figure, this warning raised from shallow copy of `Tensor.set_data`. As a judgement function of shallow copy, `_has_compatible_shallow_copy_type` does not support NPU Tensors. So we re-register this API in our PyTorch extension(torch_npu) to enable shallow copy.
+
+Note that this warning has no negative impact on the accuracy or performance of  models, so PyTorch users can ignore it.
+
+![输入图片说明](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
 
 # Release Notes
 
