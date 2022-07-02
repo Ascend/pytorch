@@ -95,8 +95,6 @@ Tensor conv2d_npu(
     return result;
   }
 
-  bool isFuzzyCompile = env::CheckFuzzyEnable();
-
   // calculate the output size
   int64_t N = input.size(0);
   int64_t H = input.size(2);
@@ -108,8 +106,7 @@ Tensor conv2d_npu(
   int64_t Wo = (W + 2 * padding[1] - dilation[1] * (kernel_size[1] - 1) - 1) / stride[1] + 1;
   SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensorWithFormat(
-      input, outputSize, isFuzzyCompile ? ACL_FORMAT_NCHW : ACL_FORMAT_NC1HWC0);
+  Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NC1HWC0);
   // calculate the output result of the NPU
   conv2d_out_npu(
       result, input, weight, bias, stride, padding, dilation, groups);
