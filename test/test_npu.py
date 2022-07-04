@@ -515,9 +515,9 @@ class TestNpu(TestCase):
         device1 = torch.device("npu:1")
         device2 = torch.device("npu")
         device3 = torch.device("npu", 2)
-        self.assertEqual(str(device1), f"{torch_npu.npu.native_device}:1")
-        self.assertEqual(str(device2), torch_npu.npu.native_device)
-        self.assertEqual(str(device3), f"{torch_npu.npu.native_device}:2")
+        self.assertEqual(str(device1), f"device(type='{torch_npu.npu.npu_device}', index=1)")
+        self.assertEqual(str(device2), f"device(type='{torch_npu.npu.npu_device}', index=None)")
+        self.assertEqual(str(device3), f"device(type='{torch_npu.npu.npu_device}', index=2)")
 
     def test_function_tensor_data_npu(self):
         x = torch.ones(())
