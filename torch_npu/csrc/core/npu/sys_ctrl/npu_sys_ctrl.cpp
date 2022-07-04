@@ -133,10 +133,7 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
   }
 
-  auto ge_ret = ge::GEInitialize(config);
-  if (ge_ret != ge::SUCCESS) {
-    AT_ERROR("GE init failed!");
-  }
+  C10_NPU_CHECK(ge::GEInitialize(config));
 
   // set default compile cache mode and dir for users to improve op compile time
   MakeCompileCacheDirAndSetOption();
