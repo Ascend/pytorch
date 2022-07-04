@@ -146,10 +146,7 @@ C10_API NpuSysCtrl::SysStatus NpuSysCtrl::Initialize(int device_id) {
       config.emplace(HCOM_OPTIONS.data(), "1");
     }
 
-    auto ge_ret = ge::GEInitialize(config);
-    if (ge_ret != ge::SUCCESS) {
-        AT_ERROR("GE init failed!");
-    }
+    C10_NPU_CHECK(ge::GEInitialize(config));
 
     // set default compile cache mode and dir for users to improve op compile time
     MakeCompileCacheDirAndSetOption();
