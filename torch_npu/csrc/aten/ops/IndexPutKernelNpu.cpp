@@ -25,22 +25,12 @@ namespace native {
 at::Tensor& index_put_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
-    const at::TensorList& indices,
+    std::vector<at::Tensor> allDefinedIndices,
+    at::SmallVector<int64_t, N> masks,
     const at::Tensor& value,
     bool accumulate) {
   if (value.numel() == 0) {
     return result;
-  }
-
-  at::SmallVector<int64_t, N> masks;
-  std::vector<at::Tensor> allDefinedIndices;
-  for (int64_t i = 0; i < indices.size(); i++) {
-    if (indices[i].defined()) {
-      masks.emplace_back(1);
-      allDefinedIndices.emplace_back(indices[i]);
-    } else {
-      masks.emplace_back(0);
-    }
   }
   
   auto masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
@@ -95,7 +85,16 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
     const bool accumulate,
     const bool unsafe) {
   at::native::checkIndexTensorTypes(indices);
-  auto indices_cast = at::native::expandTensors(self, indices);
+  at::SmallVector<int64_t, N> masks;
+  std::vector<at::Tensor> allDefinedIndices;
+  for (int64_t i = 0; i < indices.size(); i++) {
+    if (indices[i].has_value()) {
+      masks.emplace_back(1);
+      allDefinedIndices.emplace_back(std::move(*indices[i]));
+    } else {
+      masks.emplace_back(0);
+    }
+  }
   
   OpPreparation::CastBackToOriFormat(self);
   at::Tensor valueCopy = value;
@@ -105,10 +104,10 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);
     at::Tensor result = index_put_nocheck(
-        contiguousSelf, contiguousSelf, indices_cast, valueCopy, accumulate);
+        contiguousSelf, contiguousSelf, allDefinedIndices, masks, valueCopy, accumulate);
     self.copy_(result);
   } else {
-    index_put_nocheck(selfCopy, selfCopy, indices_cast, valueCopy, accumulate);
+    index_put_nocheck(selfCopy, selfCopy, allDefinedIndices, masks, valueCopy, accumulate);
     self.copy_(selfCopy);
   }
   return self;
