@@ -87,10 +87,15 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
   at::native::checkIndexTensorTypes(indices);
   at::SmallVector<int64_t, N> masks;
   std::vector<at::Tensor> allDefinedIndices;
-  for (int64_t i = 0; i < indices.size(); i++) {
-    if (indices[i].has_value()) {
-      masks.emplace_back(1);
-      allDefinedIndices.emplace_back(std::move(*indices[i]));
+  for (c10::optional<at::Tensor> index_opt : indices) {
+    if (index_opt.has_value()) {
+      at::Tensor index = std::move(*index_opt);
+      if (index.defined()) {
+        allDefinedIndices.emplace_back(index);
+        masks.emplace_back(1);
+      } else {
+        masks.emplace_back(0);
+      }
     } else {
       masks.emplace_back(0);
     }
