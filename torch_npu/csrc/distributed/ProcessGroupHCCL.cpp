@@ -29,6 +29,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/distributed/HcclCompile.h"
 
 namespace c10d_npu {
 namespace {
@@ -757,4 +758,68 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
     int /* unused */) {
   throw std::runtime_error("ProcessGroupHCCL does not support recv");
 }
+
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
+    at::Tensor& outputTensor,
+    at::Tensor& inputTensor,
+    std::vector<int64_t>& outputSplitSizes,
+    std::vector<int64_t>& inputSplitSizes,
+    const c10d::AllToAllOptions& opts){
+  std::vector<at::Tensor> inputTensors = {inputTensor};
+  std::vector<at::Tensor> outputTensors = {outputTensor};
+  int ranks = getSize();
+  uint64_t index = inputTensor.numel() / ranks;
+  if (outputSplitSizes.empty()) {
+    for (int i = 0; i < ranks; i++) {
+      inputSplitSizes.push_back(index);
+      outputSplitSizes.push_back(index);
+    }
+  }
+  
+  int inputSize = inputSplitSizes.size();
+  int outSize = outputSplitSizes.size();
+  uint64_t inputCounts[inputSize];
+  uint64_t inputSpl[inputSize];
+  uint64_t outputCounts[outSize];
+  uint64_t outputSpl[outSize];
+
+  inputSpl[0] = 0;
+  outputSpl[0] = 0;
+  for (int i = 0; i < outSize; i++) {
+    outputCounts[i] = outputSplitSizes[i];
+    if(i > 0){
+        outputSpl[i] = outputSpl[i-1] + outputCounts[i-1];
+    }
+  }
+  for (int i = 0; i < inputSize; i++) {
+    inputCounts[i] = inputSplitSizes[i];
+    if (i > 0) {
+        inputSpl[i] = inputSpl[i-1] + inputCounts[i-1];
+    }
+  }
+
+  check_npu_tensors(inputTensors);
+  check_npu_tensors(outputTensors);
+  return collective(
+      inputTensors,
+      outputTensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclAlltoAllV", std::vector<c10::IValue>({input}));
+        return hcclAlltoAllV(
+            input.data_ptr(),
+            inputCounts,
+            inputSpl,
+            getHcclDataType(input.scalar_type()),
+            output.data_ptr(),
+            outputCounts,
+            outputSpl,
+            getHcclDataType(output.scalar_type()),
+            comm,
+            stream.stream());
+      });
+}
+
 } // namespace c10d_npu

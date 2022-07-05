@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import IntEnum, unique
-
 import os
-import unittest
 import torch
-import torch.distributed as c10d
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import torch_npu
@@ -31,6 +27,7 @@ class HcclSendRecvDistTest(TestCase):
     def _init_dist_hccl(cls, rank, world_size):
         os.environ['MASTER_ADDR'] = '127.0.0.1'
         os.environ['MASTER_PORT'] = '29500'
+        os.environ['HCCL_WHITELIST_DISABLE'] = '1'
         torch_npu.npu.set_device(rank)
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist
@@ -39,6 +36,7 @@ class HcclSendRecvDistTest(TestCase):
     def _init_pg_hccl(cls, rank, world_size):
         os.environ['MASTER_ADDR'] = '127.0.0.1'
         os.environ['MASTER_PORT'] = '29500'
+        os.environ['HCCL_WHITELIST_DISABLE'] = '1'
         torch_npu.npu.set_device(rank)
         dist.init_process_group(backend='hccl', world_size=world_size, rank=rank)
         return dist.new_group([0, 1])
@@ -59,7 +57,7 @@ class HcclSendRecvDistTest(TestCase):
             c2p.put((src, res.cpu()))
 
     @classmethod 
-    def _test_send_recv_process(
+    def _test_send_recv_group(
             cls, rank, shared_tensors, world_size, init_pg, c2p, p2c):
         pg = init_pg(rank, world_size)
         tag = 1
@@ -117,9 +115,9 @@ class HcclSendRecvDistTest(TestCase):
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_dist_hccl)
 
-    def test_send_recv_hccl_process(self):
+    def test_send_recv_hccl_group(self):
         self._test_multiprocess(
-            HcclSendRecvDistTest._test_send_recv_process,
+            HcclSendRecvDistTest._test_send_recv_group,
             torch.randn(2, 2),
             HcclSendRecvDistTest._init_pg_hccl)
 
