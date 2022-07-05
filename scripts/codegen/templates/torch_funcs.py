@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy
 import torch
 import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard, device
@@ -66,6 +67,17 @@ def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
     return obj
 
 
+def _as_tensor(*args, **kwargs):
+    if kwargs and "device" in kwargs:
+        dst_device = kwargs.get("device")
+        if "npu" in str(dst_device):
+            if isinstance(args[0], numpy.ndarray):
+                return torch.from_numpy(args[0]).to(dst_device)
+            else:
+                return args[0].to(dst_device)
+    return torch._C._VariableFunctions.as_tensor(*args, **kwargs)
+
+
 ${device_methods_def_py_dispatch}
 
 def add_torch_funcs():
@@ -78,5 +90,6 @@ def add_torch_funcs():
     torch.empty_with_format = _empty_with_format
     torch.npu_dropout_gen_mask = _npu_dropout_gen_mask
     torch.jit.script = jit_script
+    torch.as_tensor = _as_tensor
 
 ${device_methods_def_py}
