@@ -151,10 +151,31 @@ class TestCreationOps(TestCase):
         self.assertRtolEqual(cpu_output3.numpy(), npu_output3.cpu().numpy())
      
     def test_as_tensor(self):
+        # numpy ndarray to cpu/npu tensor
         a = np.array([1, 2, 3])
         cpu_output = torch.as_tensor(a, device=torch.device('cpu'))
-        npu_output = torch.as_tensor(a, device=device)
-        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+        npu_output1 = torch.as_tensor(a, device="npu:0")
+        npu_output2 = torch.as_tensor(a, device="npu")
+        npu_output3 = torch.as_tensor(a, device=torch.device("npu"))
+        self.assertRtolEqual(cpu_output.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_output.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_output.numpy(), npu_output3.cpu().numpy())
+        
+        # cpu tesor to npu tensor
+        a = np.array([1, 2, 3])
+        cpu_input = torch.as_tensor(a, device=torch.device('cpu'))
+        npu_output1 = torch.as_tensor(cpu_input, device="npu:0")
+        npu_output2 = torch.as_tensor(cpu_input, device="npu")
+        npu_output3 = torch.as_tensor(cpu_input, device=torch.device("npu"))
+        self.assertRtolEqual(cpu_input.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_input.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_input.numpy(), npu_output3.cpu().numpy())
+
+        # npu tesor to cpu tensor
+        a = np.array([1, 2, 3])
+        npu_input = torch.as_tensor(a, device=torch.device('npu'))
+        cpu_output = torch.as_tensor(npu_input, device="cpu")
+        self.assertRtolEqual(cpu_output.numpy(), npu_input.cpu().numpy())
     
     def test_as_strided(self):
         x = torch.randn(3, 3, device='npu:0')
