@@ -6,7 +6,7 @@
 <h2 id="md">前提条件</h2>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-- 需安装python版本为3.7.5、3.8、3.9。
+- Python支持版本为3.7.5、3.8、3.9。
 
 # 系统依赖库
 
@@ -26,6 +26,8 @@ apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev lib
 | 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
 | 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
 | 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
 
 # 安装方式
 
@@ -44,7 +46,7 @@ pip3 install wheel
 
 ```sh
 #x86_64
-pip3 install torch==1.8.1+cpu #安装cpu版本PyTorch 下载地址：（https://download.pytorch.org/whl/torch）
+pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
 #aarch64
 #社区未提供arm架构cpu安装包，请参见FAQ第一条，使用源码编译安装pytorch
@@ -62,7 +64,7 @@ bash ci/build.sh --python=3.8
 bash ci/build.sh --python=3.9
 ```
 
-然后安装pytorch/dist下生成的插件torch_npu包
+然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
 pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
@@ -216,13 +218,17 @@ pip3 install typing_extensions
 开发态:
 
 ```
-cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64  #{arch}为架构名称
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
 用户态:
 
 ```
-cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64  #{arch}为架构名称
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -231,14 +237,16 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ## 命令行安装cmake依赖时提示找不到包、编译cmake报错版本过低，可使用安装脚本或源码编译安装。
 
-下载安装脚本安装cmake。（参考cmake官网）
+方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境推荐脚本安装：cmake-3.12.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+
+​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
 
 
-部分源下载cmake时会提示无法找到包，需要使用源码编译安装。
+方法二：使用源码编译安装。
 
-1. 获取Cmake软件包。
+1. 获取cmake软件包。
 
    ```
    wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
@@ -330,7 +338,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       ./contrib/download_prerequisites
       ```
 
-      如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+      如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，需删除。
 
    3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 

@@ -20,7 +20,7 @@
 <h2 id="md">前提条件</h2>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-- 需安装python版本为3.7.5、3.8、3.9。
+- Python支持版本为3.7.5、3.8、3.9。
 
 # 系统依赖库<a name="系统依赖库"></a>
 
@@ -41,6 +41,8 @@ apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev lib
 | 2.0.4             | CANN 5.0.4   | 1.5.0.post4     | 2.0.4.tr5      |
 | 3.0.rc1           | CANN 5.1.RC1 | 1.5.0.post5     | v1.5.0-3.0.rc1 |
 | 3.0.rc1           | CANN 5.1.RC1 | 1.8.1.rc1       | v1.8.1-3.0.rc1 |
+| 3.0.rc2           | CANN 5.1.RC2 | 1.5.0.post6     | v1.5.0-3.0.rc2 |
+| 3.0.rc2           | CANN 5.1.RC2 | 1.8.1.rc2       | v1.8.1-3.0.rc2 |
 
 # 安装方式<a name="安装方式"></a>
 
@@ -55,11 +57,11 @@ pip3 install wheel
 
 ## 编译安装PyTorch和昇腾插件
 
-首先安装官方torch包，然后编译安装插件。（ARM架构CPU安装，请参见第一条FAQ）
+首先安装官方torch包，然后编译安装插件。
 
 ```sh
 #x86_64
-pip3 install torch==1.8.1+cpu #安装cpu版本PyTorch 下载地址：（https://download.pytorch.org/whl/torch）
+pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
 #aarch64
 #社区未提供arm架构cpu安装包，请参见FAQ第一条，使用源码编译安装pytorch
@@ -77,7 +79,7 @@ bash ci/build.sh --python=3.8
 bash ci/build.sh --python=3.9
 ```
 
-然后安装pytorch/dist下生成的插件torch_npu包
+然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
 pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
@@ -100,7 +102,7 @@ source env.sh
 可选的环境变量可能会对运行的模型产生影响:
 
 ```
-export COMBINED_ENABLE=1 # 非连续转连续二级推导优化，可选，开启设置为1。当模型中有大量AsStrided高耗时算子被调用时，可以尝试开启此优化以获得潜在的device执行效率的提升。但是Host下发性能存在下降风险。
+export COMBINED_ENABLE=1 # 非连续转连续二级推导优化，可选，开启设置为1。当模型中有大量AsStrided高耗时算子被调用时，可以尝试开启此优化以获得潜在的device执行效率的提升。
 export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
 ```
 
@@ -202,13 +204,17 @@ pip3 install typing_extensions
 开发态:
 
 ```
-cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64  #{arch}为架构名称
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
 用户态:
 
 ```
-cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64  #{arch}为架构名称
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -217,12 +223,14 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ## 命令行安装cmake依赖时提示找不到包、编译cmake报错版本过低，可使用安装脚本或源码编译安装。
 
-下载安装脚本安装cmake。（参考cmake官网）
+方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境推荐脚本安装：cmake-3.12.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+
+​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
 
 
-部分源下载cmake时会提示无法找到包，需要使用源码编译安装。
+方法二：使用源码编译安装。
 
 1. 获取Cmake软件包。
 
@@ -316,7 +324,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       ./contrib/download_prerequisites
       ```
 
-      如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+      如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，需删除。
 
    3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 
@@ -326,7 +334,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       make install    
       ```
 
-      >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-notice.gif) **须知：** 
+      >![](public_sys-resources/icon-notice.gif) **须知：** 
       >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
 
 
@@ -369,7 +377,7 @@ apt install libopenblas-dev
 
 在容器中运行脚本出现NPU相关ERROR。由于启动容器实例时，未挂载device参数，导致无法正常启动实例。
 
-![](D:\projects\pzrpytorch\pytorch\figures\FAQ.png)
+![](figures/FAQ.png)
 
 请用户参考以下命令，重启容器。
 
@@ -407,12 +415,17 @@ ${镜像名称}:{tag}：镜像名称与版本号。
 ## 安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
-![](D:\projects\pzrpytorch\pytorch\figures\zh-cn_image_0000001190081735.png)
+![](figures/zh-cn_image_0000001190081735.png)
 
 安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
 
 对实际结果无影响，无需处理。
 
+## import torch_npu 显示_has_compatible_shallow_copy_type重复注册warning问题
+
+warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因是PyTorch插件化解耦后，`_has_compatible_shallow_copy_type`缺乏对NPU Tensor的浅拷贝判断支持，因此需要重新注册`_has_compatible_shallow_copy_type`。
+
+该warning不影响模型的精度和性能，可以忽略。
 
 
 # 版本说明<a name='版本说明'></a>
