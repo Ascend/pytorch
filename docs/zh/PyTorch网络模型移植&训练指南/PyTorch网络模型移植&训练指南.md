@@ -1509,7 +1509,7 @@ with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True
 - profiler_result_path表示prof结果保存路径，默认为当前路径。
 - use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
 
-（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
+（因NPU算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
 
 2. 解析性能数据
 
