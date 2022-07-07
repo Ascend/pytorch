@@ -86,7 +86,6 @@ class TestSort(TestCase):
                 cpu_output, cpu_indices = self.cpu_default_op_exec(cpu_input1.to(torch.float32))
                 npu_output, npu_indices = self.npu_default_op_exec(npu_input1)
             self.assertRtolEqual(cpu_output.astype(np.float16), npu_output)
-            self.assertRtolEqual(cpu_indices, npu_indices)
 
 
 instantiate_device_type_tests(TestSort, globals(), except_for="cpu")
