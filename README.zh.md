@@ -7,17 +7,17 @@
 <h3 id="前提条件md">前提条件</h3>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-- python版本：3.7.5、3.8。
+- Python支持版本：3.7.5、3.8。
 
 # 系统依赖库
 
 ## CentOS & EulerOS
 
-yum install -y cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0
+yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
 
 ## Ubuntu
 
-apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git
+apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
 
 
 # Ascend配套软件
@@ -29,13 +29,15 @@ apt-get install -y gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev lib
 | 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
 | 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
 | 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
 
 # 安装方式
 
 ## 安装PyTorch依赖环境
 
 
-获取适配昇腾AI处理器的PyTorch源代码（即当前仓库代码），并切换到所需的分支。
+获取适配昇腾AI处理器的PyTorch源代码（即当前仓库代码）。
 
    ```
    git clone -b v1.5.0 https://gitee.com/ascend/pytorch.git
@@ -134,17 +136,7 @@ source env.sh
 ```
 
 
-## 自定义环境变量
 
-依据实际场景，选择合适的HCCL初始化方式，并配置相应环境变量：
-
-```
-# 场景一：单机场景    
-    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-# 场景二：多机场景。
-    export HCCL_WHITELIST_DISABLE=1  # 关闭HCCL通信白名单
-    export HCCL_IF_IP="1.1.1.1"  # “1.1.1.1”为示例使用的host网卡IP，请根据实际修改。需要保证使用的网卡IP在集群内是互通的。
-```
 
 可选的环境变量可能会对运行的模型产生影响:
 
@@ -168,20 +160,6 @@ export TASK_QUEUE_ENABLE=1 # 使用异步任务下发，异步调用acl接口，
 <th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001152616261_p9198135114133"></a>说明</p>
 </td>
 </tr>
-<tr id="zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p952814428206"><a name="zh-cn_topic_0000001152616261_p952814428206"></a><a name="zh-cn_topic_0000001152616261_p952814428206"></a>配置在使用HCCL时是否开启通信白名单。</p>
-<a name="ul928845132310"></a><a name="ul928845132310"></a><ul id="ul928845132310"><li>0：开启白名单，无需校验HCCL通信白名单。</li><li>1：关闭白名单，需校验HCCL通信白名单。</li></ul>
-<p id="zh-cn_topic_0000001152616261_p5809162416201"><a name="zh-cn_topic_0000001152616261_p5809162416201"></a><a name="zh-cn_topic_0000001152616261_p5809162416201"></a>缺省值为0，默认开启白名单。</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row0671137162115"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4671203792114"><a name="zh-cn_topic_0000001152616261_p4671203792114"></a><a name="zh-cn_topic_0000001152616261_p4671203792114"></a>HCCL_IF_IP</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1822165982114"><a name="zh-cn_topic_0000001152616261_p1822165982114"></a><a name="zh-cn_topic_0000001152616261_p1822165982114"></a>配置HCCL的初始化通信网卡IP。</p>
-<a name="ul2676102292415"></a><a name="ul2676102292415"></a><ul id="ul2676102292415"><li>ip格式为点分十进制。</li><li>暂只支持host网卡。</li></ul>
-<p id="zh-cn_topic_0000001152616261_p1167163719217"><a name="zh-cn_topic_0000001152616261_p1167163719217"></a><a name="zh-cn_topic_0000001152616261_p1167163719217"></a>缺省时，按照以下优先级选定host通信网卡名：docker/local以外网卡（网卡名字字典序升序排列）&gt;docker 网卡 &gt; local网卡</p>
-</td>
-</tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>（可选）非连续转连续二级推导优化，可选，开启设置为1。当模型中有大量AsStrided高耗时算子被调用时，可以尝试开启此优化以获得潜在的device执行效率的提升。</p>
@@ -196,14 +174,9 @@ export TASK_QUEUE_ENABLE=1 # 使用异步任务下发，异步调用acl接口，
 </td>
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1。 </p>
 </td>
-</tr>
-<tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>（可选）当系统为openEuler及其继承操作系统时，如UOS，需设置此命令，取消CPU绑核。</p>
-</td>
-</tr>
 </tbody>
 </table>
+
 
 ## 执行单元测试脚本
 
@@ -293,13 +266,17 @@ pip3 install typing_extensions
 开发态:
 
 ```
-cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64 #{arch}为架构名称。
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
 用户态:
 
 ```
-cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64 #{arch}为架构名称
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -310,11 +287,12 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ## 命令行安装cmake依赖时提示找不到包、编译cmake报错版本过低，可使用安装脚本或源码编译安装。
 
-下载安装脚本安装cmake。（参考cmake官网）
+方法一：下载安装脚本安装cmake。（参考cmake官网）
 
- X86_64环境推荐脚本安装：cmake-3.12.0-Linux-x86_64.sh
+ X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+ aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
 
-部分源下载cmake时会提示无法找到包，需要使用源码编译安装。
+方法二：使用源码编译安装。
 
 1. 获取Cmake软件包。
 
@@ -410,7 +388,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       ./contrib/download_prerequisites
       ```
 
-      如果上述命令校验失败，需要确保依赖包为一次性下载成功，无重复下载现象。
+      如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，需删除。
 
    3. 执行配置、编译和安装命令：
 
@@ -422,7 +400,11 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
       > ![img](figures/icon-notice.gif) **须知：** 其中“--prefix“参数用于指定linux_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux_gcc7.3.0“。
 
+目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
 
+gcc, g++,c++(--version 必须是7.3.0)
+
+libstdc++->libstdc++.so.6.0.24(7.3.0)
 
 ## 找不到libblas.so问题
 
