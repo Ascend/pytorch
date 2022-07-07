@@ -23,7 +23,11 @@ from torch_npu.utils.device_guard import torch_device_guard, device
 def _device(*args, **kwargs):
     new_device = torch_npu.new_device(*args, **kwargs)
     if new_device.type == torch.npu.native_device:
-        return device(type=torch_npu.npu.npu_device, index=new_device.index)
+        new_device_index = new_device.index
+        if not new_device_index:
+            # torch.device("npu") has no index, so we set it to be 0
+            new_device_index = 0
+        return device(type=torch_npu.npu.npu_device, index=new_device_index)
     return new_device
 
 
