@@ -24,17 +24,26 @@
 <h3 id="前提条件md">前提条件</h3>
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
-- Python支持版本：3.7.5、3.8。
+- Python支持版本为3.7.5、3.8。
 
 # 系统依赖库<a name="系统依赖库"></a>
 
 ## CentOS & EulerOS
 
-yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
+yum install -y  patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
+
+yum install -y gcc==7.3.0 cmake==3.12.0
 
 ## Ubuntu
 
-apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
+apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
+
+apt-get install -y gcc==7.3.0 cmake==3.12.0
+
+
+
+>![](public_sys-resources/icon-note.gif) **说明：** 
+>若安装gcc与cmake依赖命令报错，请参考FAQ使用源码安装。
 
 
 # Ascend配套软件<a name="Ascend配套软件"></a>
@@ -204,7 +213,7 @@ python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 ```
 # 安装混合精度模块（可选）<a name="安装混合精度模块（可选）"></a>
 
-请用户根据以下功能需要选择使用，若需要安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex/tree/v1.5.0/)进行编译安装Apex模块。
+请用户根据以下功能需要选择使用，若需要安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex/tree/v1.5.0-3.0.rc2/)进行编译安装Apex模块。
 
 - APEX
   - O1配置模式：Conv，Matmul等使用float16精度计算，其他如softmax、BN使用float32精度。
@@ -277,8 +286,30 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法一：下载安装脚本安装cmake。（参考cmake官网）
 
- X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
- aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
+​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+
+​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
+
+1. 执行命令。
+
+   ```
+   ./cmake-3.12.0-Linux-{arch}.sh #{arch}为架构名称
+   ```
+
+2. 设置软连接。
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+3. 执行如下命令验证是否安装成功。
+
+   ```
+   cmake --version
+   ```
+
+   如显示“cmake version 3.12.0”则表示安装成功。
+
 
 方法二：使用源码编译安装。
 
@@ -324,7 +355,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 以下步骤请在root用户下执行。
 
-1. 下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://gitee.com/link?target=https%3A%2F%2Fmirrors.tuna.tsinghua.edu.cn%2Fgnu%2Fgcc%2Fgcc-7.3.0%2Fgcc-7.3.0.tar.gz)。
+1. 下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
 
 2. 安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
 
@@ -378,7 +409,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
       如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，需删除。
 
-   3. 执行配置、编译和安装命令：
+   3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 
       ```
       ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
@@ -386,11 +417,31 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       make install    
       ```
 
-      > ![img](public_sys-resources/icon-notice.gif) **须知：** 其中“--prefix“参数用于指定linux_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux_gcc7.3.0“。
+      > ![img](public_sys-resources/icon-notice.gif) **须知：** 
+      >其中“--prefix“参数用于指定linux_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux_gcc7.3.0“。
 
-目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
+   4. 修改软连接。
 
-gcc, g++,c++(--version 必须是7.3.0)
+         ```
+      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ```
+
+   5.配置环境变量。
+
+   当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
+
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
+
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
+
+若存在pytorch编译不过，请检查软连接的库是否正确。
 
 libstdc++->libstdc++.so.6.0.24(7.3.0)
 
@@ -432,6 +483,4 @@ python -c "import torchvision"
 
 
 
-# 版本说明
-
-版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
+版本说明请参阅[ReleseNote](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/RELEASENOTE/RELEASENOTE.md)
