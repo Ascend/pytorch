@@ -1585,17 +1585,33 @@ def all_to_all_single(output_tensor,
     _check_single_tensor(input_tensor, "input")
     output_split_sizes = [] if output_split_sizes is None else output_split_sizes
     input_split_sizes = [] if input_split_sizes is None else input_split_sizes
+    input_format = torch.get_npu_format(input_tensor)
+    output_format = torch.get_npu_format(output_tensor)
+    judge_format = input_format != 0 and  input_format != 2
+
+    if input_format != output_format:
+        raise RuntimeError("Input and output formats should be the same!")
+    in_tensor = input_tensor
+    out_tensor = output_tensor
+    if judge_format:
+        in_tensor = torch.npu_format_cast(input_tensor, 2)
+        out_tensor = torch.npu_format_cast(output_tensor, 2)
 
     if group is None:
         default_pg = _get_default_group()
-        work = default_pg.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
+        work = default_pg.alltoall_base(out_tensor, in_tensor, output_split_sizes, input_split_sizes, opts)
     else:
-        work = group.alltoall_base(output_tensor, input_tensor, output_split_sizes, input_split_sizes, opts)
-
+        work = group.alltoall_base(out_tensor, in_tensor, output_split_sizes, input_split_sizes, opts)
+    
     if async_op:
-        return work
+        if judge_format:
+            raise RuntimeError("This format can't be operated asynchronously, please convert to ND or NCHW!")
+        else:
+            return work
     else:
         work.wait()
+        if judge_format:
+            output_tensor.copy_(out_tensor)
 
 def all_to_all(output_tensor_list,
                input_tensor_list,
