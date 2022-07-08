@@ -12,11 +12,21 @@
 
 ## CentOS & EulerOS
 
-yum install -y  patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
+yum install -y  patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
+
+yum install -y gcc==7.3.0 cmake==3.12.0
 
 ## Ubuntu
 
-apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
+apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
+apt-get install -y gcc==7.3.0 cmake==3.12.0
+
+
+
+>![](figures/icon-note.gif) **说明：** 
+>若安装gcc与cmake依赖命令报错，请参考FAQ使用源码安装。
+
+
 
 # Ascend配套软件
 | AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
@@ -55,7 +65,9 @@ pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，
 编译生成pytorch插件的二进制安装包。
 
 ```
-git clone -b master https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
+# 下载master分支代码，进入插件根目录
+git clone -b master https://gitee.com/ascend/pytorch.git 
+cd pytorch    
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
 # 或
@@ -67,9 +79,13 @@ bash ci/build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
 ```
 
+下载torchvision。
+```
+pip3 install torchvision==0.9.1
+```
 
 # 运行
 
@@ -243,6 +259,26 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
 
+1. 执行命令。
+
+   ```
+   ./cmake-3.12.0-Linux-{arch}.sh #{arch}为架构名称
+   ```
+
+2. 设置软连接。
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+3. 执行如下命令验证是否安装成功。
+
+   ```
+   cmake --version
+   ```
+
+   如显示“cmake version 3.12.0”则表示安装成功。
+
 
 方法二：使用源码编译安装。
 
@@ -348,11 +384,18 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       make install    
       ```
 
-      >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-notice.gif) **须知：** 
+      >![](figures/icon-notice.gif) **须知：** 
       >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
 
+   4. 修改软连接。
 
-5. 配置环境变量。
+         ```
+      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ```
+
+   5.配置环境变量。
 
    当用户执行训练时，需要用到gcc升级后的编译环境，因此要在训练脚本中配置环境变量，通过如下命令配置。
 
@@ -362,12 +405,11 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
    其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
 
-   >![](D:\projects\pzrpytorch\pytorch\docs\zh\PyTorch安装指南\public_sys-resources\icon-note.gif) **说明：** 
+   >![](figures/icon-note.gif) **说明：** 
    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
-目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
+若存在pytorch编译不过，请检查软连接的库是否正确。
 
-gcc, g++,c++(--version 必须是7.3.0)
 
 libstdc++->libstdc++.so.6.0.24(7.3.0)
 
@@ -444,6 +486,13 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 待NPU 设备号合入社区或者后续Pytorch版本`_has_compatible_shallow_copy_type`注册方式发生变动，该warning会被解决。
 
 ![输入图片说明](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
+
+## 在编译torch_npu的目录进入python引用torch_npu报错问题
+
+验证torch_npu的引入，请切换至其他目录进行，在编译目录执行会提示如下错误。
+
+
+<img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
 # 版本说明
 
