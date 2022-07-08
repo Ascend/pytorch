@@ -26,11 +26,20 @@
 
 ## CentOS & EulerOS
 
-yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
+yum install -y  patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
+
+yum install -y gcc==7.3.0 cmake==3.12.0
 
 ## Ubuntu
 
-apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
+apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
+
+apt-get install -y gcc==7.3.0 cmake==3.12.0
+
+
+
+>![](public_sys-resources/icon-note.gif) **说明：** 
+>若安装gcc与cmake依赖命令报错，请参考FAQ使用源码安装。
 
 # Ascend配套软件
 | AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
@@ -69,7 +78,9 @@ pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，
 编译生成pytorch插件的二进制安装包。
 
 ```
-git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git & cd pytorch    # 下载master分支代码，进入插件根目录
+# 下载对应分支代码，进入插件根目录
+git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git 
+cd pytorch    
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
 # 或
@@ -81,10 +92,12 @@ bash ci/build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
 ```
-
-
+下载torchvision。
+```
+pip3 install torchvision==0.9.1
+```
 # 运行<a name="运行"></a>
 
 ## 运行环境变量
@@ -135,7 +148,7 @@ python3 test_div.py
 
 # 安装混合精度模块（可选）<a name="安装混合精度模块（可选）"></a>
 
-AscendPyTorch1.8.1集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex)进行编译安装Apex模块。
+AscendPyTorch1.8.1集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex/tree/v1.8.1-3.0.rc2/)进行编译安装Apex模块。
 
 - AMP
 
@@ -199,7 +212,7 @@ pip3 install typing_extensions
 开发态:
 
 ```
-cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64 #{arch}为架构名称。
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64  #{arch}为架构名称。
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -209,7 +222,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 用户态:
 
 ```
-cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64 #{arch}为架构名称。
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64  #{arch}为架构名称。
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -222,6 +235,27 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 ​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
 ​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
+
+1. 执行命令。
+
+   ```
+   ./cmake-3.12.0-Linux-{arch}.sh #{arch}为架构名称
+   ```
+
+2. 设置软连接。
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+3. 执行如下命令验证是否安装成功。
+
+   ```
+   cmake --version
+   ```
+
+   如显示“cmake version 3.12.0”则表示安装成功。
+
 
 方法二：使用源码编译安装。
 
@@ -317,7 +351,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       ./contrib/download_prerequisites
       ```
 
-      如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，请删除。
+      如果命令校验失败，需要确认上述依赖包在文件夹中的唯一性，无重复下载，若存在重复的依赖包，需删除。
 
    3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 
@@ -330,6 +364,13 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
       >![](public_sys-resources/icon-notice.gif) **须知：** 
       >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
 
+   4. 修改软连接。
+
+         ```
+      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ```
 
 5. 配置环境变量。
 
@@ -344,9 +385,8 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    >![](public_sys-resources/icon-note.gif) **说明：** 
    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
-目前存在测试环境从GCC4.8.5 切换到 GCC7.3.0。这个过程容易出现错误导致pytorch编译不过，以下是需要软连接的库
+若存在pytorch编译不过，请检查软连接的库是否正确。
 
-gcc, g++,c++(--version 必须是7.3.0)
 
 libstdc++->libstdc++.so.6.0.24(7.3.0)
 
@@ -408,7 +448,7 @@ ${镜像名称}:{tag}：镜像名称与版本号。
 ## 安装-torch--whl-提示-torch-1-5-0xxxx-与-torchvision-所依赖的版本不匹配
 
 安装“torch-\*.whl”时，提示"ERROR：torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible"。
-![](D:\projects\pzrpytorch\pytorch\figures\zh-cn_image_0000001190081735.png)
+![](figures/zh-cn_image_0000001190081735.png)
 
 安装torch时，会自动触发torchvision进行依赖版本检查，环境中安装的torchvision版本为0.6.0，检查时发现我们安装的torch-\*.whl的版本号与要求的1.5.0不一致，所以提示报错，但实际安装成功 。
 
@@ -424,6 +464,14 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 
 ![输入图片说明](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
 
+## 在编译torch_npu的目录进入python引用torch_npu报错问题
+
+验证torch_npu的引入，请切换至其他目录进行，在编译目录执行会提示如下错误。
+
+<img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
+
+
+
 # 版本说明<a name='版本说明'></a>
 
-版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
+版本说明请参阅[ReleseNote](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/RELEASENOTE/RELEASENOTE.md)
