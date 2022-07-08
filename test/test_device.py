@@ -26,7 +26,6 @@ class TestDevice(TestCase):
             device_types = [
                             "npu",
                             "npu:"+str(device_id),
-                            torch.device("npu"),
                             torch.device("npu:"+str(device_id)),
                             torch.device("npu:"+str(device_id)).type,
                             npu_device
