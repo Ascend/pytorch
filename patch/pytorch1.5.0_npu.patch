@@ -8831,7 +8831,7 @@ diff -Nur '--exclude=.git*' '--exclude=.jenkins' '--exclude=android' '--exclude=
 +    set (CMAKE_CXX_FLAGS "-fstack-protector-all -Wl,-z,relro,-z,now,-s,-z,noexecstack -fPIE -pie ${CMAKE_CXX_FLAGS}")
 +    set (CXXFLAGS "-fstack-protector-all -Wl,-z,relro,-z,now,-s,-z,noexecstack -fPIE -pie ${CXXFLAGS}")
 +  endif()
-+    set (CMAKE_SKIP_RPATH TRUE)
++    #set (CMAKE_SKIP_RPATH TRUE)
 +    add_definitions(-DUSE_NPU=1)
 +endif()
 +
