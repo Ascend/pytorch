@@ -1,137 +1,34 @@
 # PyTorch Network Model Porting and Training Guide
 
-- [PyTorch Network Model Porting and Training Guide](#pytorch-network-model-porting-and-training-guide)
-  - [Overview](#overview)
-    - [Solution Features and Advantages](#solution-features-and-advantages)
-  - [Restrictions and Limitations](#restrictions-and-limitations)
-  - [Porting Process](#porting-process)
-  - [Quick Start](#quick-start)
-    - [Introduction](#introduction)
-    - [Model Selection](#model-selection)
-    - [Model Porting Evaluation](#model-porting-evaluation)
-    - [Environment Setup](#environment-setup)
-    - [Model Porting](#model-porting)
-      - [Single-Device Training Porting](#single-device-training-porting)
-      - [Single-Server Multi-Device Training Modification](#single-server-multi-device-training-modification)
-    - [Model Training](#model-training)
-  - [Model Porting Evaluation](#model-porting-evaluation-1)
-  - [Environment Setup](#environment-setup-1)
-  - [Model Porting](#model-porting-1)
-    - [Tool-Facilitated](#tool-facilitated)
-      - [Introduction](#introduction-1)
-        - [Overview](#overview-1)
-        - [Model Support](#model-support)
-        - [System Requirement](#system-requirement)
-        - [Environment Setup](#environment-setup-2)
-      - [Instructions](#instructions)
-        - [Command-line Options](#command-line-options)
-        - [Customizing a Rule File](#customizing-a-rule-file)
-        - [Performing Conversion](#performing-conversion)
-      - [Result Analysis](#result-analysis)
-    - [Manual](#manual)
-      - [Single-Device Training Model Porting](#single-device-training-model-porting)
-      - [Multi-Device Training Model Porting](#multi-device-training-model-porting)
-      - [PyTorch-related API Replacement](#pytorch-related-api-replacement)
-    - [Mixed Precision](#mixed-precision)
-      - [Overview](#overview-2)
-      - [Supported Features](#supported-features)
-      - [Integrating Mixed Precision Module Into the PyTorch Model](#integrating-mixed-precision-module-into-the-pytorch-model)
-    - [Usage of PyTorch 1.8.1 AMP on NPUs](#usage-of-pytorch-181-amp-on-npus)
-      - [Overview](#overview-3)
-      - [AMP Application Scenarios](#amp-application-scenarios)
-      - [Usage of AMP on NPUs](#usage-of-amp-on-npus)
-      - [Precautions](#precautions)
-  - [Model Training](#model-training-1)
-  - [Performance Analysis and Optimization](#performance-analysis-and-optimization)
-    - [Prerequisites](#prerequisites)
-    - [Commissioning Process](#commissioning-process)
-      - [Overall Guideline](#overall-guideline)
-      - [Training Data Collection](#training-data-collection)
-        - [Profile Data Collection](#profile-data-collection)
-        - [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info)
-      - [Host-side Performance Optimization](#host-side-performance-optimization)
-        - [Overview](#overview-4)
-        - [Changing the CPU Performance Mode (x86 Server)](#changing-the-cpu-performance-mode-x86-server)
-          - [Setting the Power Policy to High Performance](#setting-the-power-policy-to-high-performance)
-          - [Setting the CPU Mode to Performance](#setting-the-cpu-mode-to-performance)
-        - [Changing the CPU Performance Mode (ARM Server)](#changing-the-cpu-performance-mode-arm-server)
-          - [Setting the Power Policy to High Performance](#setting-the-power-policy-to-high-performance-1)
-        - [Installing the High-Performance Pillow Library (x86 Server)](#installing-the-high-performance-pillow-library-x86-server)
-        - [(Optional) Installing the OpenCV Library of the Specified Version](#optional-installing-the-opencv-library-of-the-specified-version)
-      - [Training Performance Optimization](#training-performance-optimization)
-        - [Operator Bottleneck Optimization](#operator-bottleneck-optimization)
-        - [Copy Bottleneck Optimization](#copy-bottleneck-optimization)
-        - [Framework Bottleneck Optimization](#framework-bottleneck-optimization)
-        - [Compilation Bottleneck Optimization](#compilation-bottleneck-optimization)
-    - [E2E Performance Tool (E2E prof) Instructions](#e2e-performance-tool-e2e-prof-instructions)
-      - [Introduction](#introduction-2)
-      - [Usage Tutorial](#usage-tutorial)
-      - [Result Parsing](#result-parsing)
-      - [Advanced Settings](#advanced-settings)
-    - [Affinity Library](#affinity-library)
-      - [Source](#source)
-      - [Functions](#functions)
-    - [AOE Instructions](#aoe-instructions)
-      - [Introduction to AOE](#introduction-to-aoe)
-      - [AOE Usage](#aoe-usage)
-      - [Precautions](#precautions-1)
-      - [Performance Verification](#performance-verification)
-  - [Precision Commissioning](#precision-commissioning)
-    - [Prerequisites](#prerequisites-1)
-    - [Commissioning Process](#commissioning-process-1)
-      - [Overall Guideline](#overall-guideline-1)
-      - [Precision Tuning Methods](#precision-tuning-methods)
-        - [**Environment Setup**](#environment-setup-3)
-        - [Model Operator Precision Comparison](#model-operator-precision-comparison)
-        - [Single-Operator Overflow/Underflow Detection](#single-operator-overflowunderflow-detection)
-        - [Mapping Between IR and TBE Operators](#mapping-between-ir-and-tbe-operators)
-        - [Mapping Between NPU and GPU Operators.](#mapping-between-npu-and-gpu-operators)
-  - [Model Saving and Conversion](#model-saving-and-conversion)
-    - [Introduction](#introduction-3)
-    - [Saving a Model](#saving-a-model)
-    - [Exporting an ONNX Model](#exporting-an-onnx-model)
-      - [Introduction](#introduction-4)
-      - [Using the .pth or .pt File to Export the ONNX Model](#using-the-pth-or-pt-file-to-export-the-onnx-model)
-      - [Using the .pth.tar File to Export the ONNX Model](#using-the-pthtar-file-to-export-the-onnx-model)
-  - [Samples](#samples)
-    - [ShuffleNet Model Optimization](#shufflenet-model-optimization)
-      - [Obtaining Samples](#obtaining-samples)
-        - [How to Obtain](#how-to-obtain)
-        - [Directory Structure](#directory-structure)
-      - [Model Evaluation](#model-evaluation)
-      - [Porting the Network](#porting-the-network)
-      - [Commissioning the Network](#commissioning-the-network)
-        - [Forward check](#forward-check)
-        - [Entire Network Check](#entire-network-check)
-        - [Python Optimization Details](#python-optimization-details)
-  - [References](#references)
-    - [Single-Operator Sample Building](#single-operator-sample-building)
-    - [Single-Operator Dump Method](#single-operator-dump-method)
-      - [Collecting Dump Data](#collecting-dump-data)
-      - [Viewing Overflowed Data](#viewing-overflowed-data)
-      - [Parse the dump file of an overflow operator.](#parse-the-dump-file-of-an-overflow-operator)
-    - [Common Environment Variables](#common-environment-variables)
-    - [dump op Method](#dump-op-method)
-    - [Compile Option Settings](#compile-option-settings)
-    - [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730)
-    - [HDF5 Compilation and Installation](#hdf5-compilation-and-installation)
-  - [FAQs](#faqs)
-    - [FAQs About Software Installation](#faqs-about-software-installation)
-    - [FAQs About Model and Operator Running](#faqs-about-model-and-operator-running)
-    - [FAQs About Model Commissioning](#faqs-about-model-commissioning)
-    - [FAQs About Other Operations](#faqs-about-other-operations)
-    - [FAQs About Distributed Model Training](#faqs-about-distributed-model-training)
+-   [Overview](#Overviewmd)
+-   [Restrictions and Limitations](#Restrictions-and-Limitationsmd)
+-   [Porting Process](#Porting-Processmd)
+-   [Quick Start](#Quick-Startmd)
+-   [Model Porting Evaluation](#Model-Porting-Evaluationmd)
+-   <a href="#Environment Setupmd">Environment Setup</a>
+-   <a href="#Model Portingmd">Model Porting</a>
+-   <a href="#Model Trainingmd">Model Training</a>
+-   <a href="#Performance Optimization and Analysismd">Performance Optimization and Analysis</a>
+-   <a href="#Precision Commissioningmd">Precision Commissioning</a>
+-   <a href="#Model Saving and Conversionmd">Model Saving and Conversion</a>
+-   [ShuffleNet Model Optimization](#ShuffleNet-Model-Optimizationmd)
+-   [References](#Referencesmd)
+-   <a href="#FAQsmd">FAQs</a>
+    -   [FAQs About Software Installation](#faqs-about-software-installationmd)
+    -   [FAQs About Model and Operator Running](#faqs-about-model-and-operator-runningmd)
+    -   [FAQs About Model Commissioning](#faqs-about-model-commissioningmd)
+    -   [FAQs About Other Operations](#faqs-about-other-operationsmd)
+    -   [FAQs About Distributed Model Training](#faqs-about-distributed-model-trainingmd)
 
-
-## Overview
+## <h2 id="Overviewmd">Overview</h2>
 
 Currently, the solution of adapting to the Ascend AI Processor is an online solution.
 
 ### Solution Features and Advantages
 
-The acceleration of the Ascend AI Processor is implemented by calling various operators (OP-based). That is, the AscendCL is used to call one or more D affinity operators to replace the original GPU-based implementation.  [Figure 1](#fig2267112413239)  shows the logical model of the implementation.
+The acceleration of the Ascend AI Processor is implemented by calling various operators (OP-based). That is, the AscendCL is used to call one or more D affinity operators to replace the original GPU-based implementation.  [Figure 1](#123)  shows the logical model of the implementation.
 
-**Figure  1**  Logical model 
+**Figure  1**  Logical model<a name="123"></a>
 
 
 ![](figures/pytorch适配逻辑结构图-优化.png)
@@ -144,7 +41,7 @@ Currently, the main reasons for selecting the online adaptation solution are as 
 4.  It has good scalability. During the streamlining process, only the development and implementation of related compute operators are involved for new network types or structures. Framework operators, reverse graph building, and implementation mechanisms can be reused.
 5.  The usage and style are the same as those of the GPU-based implementation. During online adaptation, you only need to specify the device as the Ascend AI Processor in Python and device operations to develop, train, and debug the network in PyTorch using the Ascend AI Processor. You do not need to pay attention to the underlying details of the Ascend AI Processor. In this way, you can minimize the modification and complete porting with low costs.
 
-## Restrictions and Limitations
+## <h2 id="Restrictions-and-Limitationsmd">Restrictions and Limitations</h2>
 
 -   In the  **infershape**  phase, operators do not support unknown shape inference.
 -   Only the float16 operator can be used for cube computing.
@@ -157,11 +54,11 @@ Currently, the main reasons for selecting the online adaptation solution are as 
     -   Allocation at only 1, 2, 4, or 8 processors is supported.
     -   Only the int8, int32, float16, and float32 data types are supported.
 
-## Porting Process
+## <h2 id="Porting-Processmd">Porting Process</h2>
 
 Model porting refers to moving models that have been implemented in the open-source community to an Ascend AI Processor.  [Figure 2](#fig759451810422)  shows the model porting process.
 
-**Figure  2**  Porting process 
+**Figure  2**  Porting process<a name="fig759451810422"></a>  
 ![](figures/porting-process.png "porting-process")
 
 **Table  1**  Porting process
@@ -179,7 +76,7 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row53492016112717"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p133501716132719"><a name="p133501716132719"></a><a name="p133501716132719"></a>Model porting evaluation</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>For details, see <a href="#model-porting-evaluationmd">Model Porting Evaluation</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p113504168278"><a name="p113504168278"></a><a name="p113504168278"></a>For details, see <a href="#Model-Porting-Evaluationmd">Model Porting Evaluation</a>.</p>
 </td>
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>Operator development</p>
@@ -189,17 +86,17 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>Environment setup</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>For details, see <a href="#environment-setupmd">Environment Setup</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1156712323811"><a name="p1156712323811"></a><a name="p1156712323811"></a>For details, see <a href="#Environment Setupmd">Environment Setup</a>.</p>
 </td>
 </tr>
 <tr id="row43031317489"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p14304131711817"><a name="p14304131711817"></a><a name="p14304131711817"></a>Model porting</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>For details, see <a href="#model-portingmd">Model Porting</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p53043171687"><a name="p53043171687"></a><a name="p53043171687"></a>For details, see <a href="#Model Portingmd">Model Porting</a>.</p>
 </td>
 </tr>
 <tr id="row10695931399"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p186956311094"><a name="p186956311094"></a><a name="p186956311094"></a>Model training</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>For details, see <a href="#model-trainingmd">Model Training</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p10696123117914"><a name="p10696123117914"></a><a name="p10696123117914"></a>For details, see <a href="#Model Trainingmd">Model Training</a>.</p>
 </td>
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>Error analysis</p>
@@ -209,17 +106,17 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>Performance analysis and optimization</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>For details, see <a href="#performance-analysis-and-optimizationmd">Performance Optimization and Analysis</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>For details, see <a href="#Performance Optimization and Analysismd">Performance Optimization and Analysis</a>.</p>
 </td>
 </tr>
 <tr id="row94308194435"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p74301019144319"><a name="p74301019144319"></a><a name="p74301019144319"></a>Precision commissioning</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>For details, see <a href="#precision-commissioningmd">Precision Commissioning</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>For details, see <a href="#Precision Commissioningmd">Precision Commissioning</a>.</p>
 </td>
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>Model saving and conversion</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>For details, see <a href="#model-saving-and-conversionmd">Model Saving and Conversion</a> and "ATC Tool Instructions" in the <span id="ph98735134233"><a name="ph98735134233"></a><a name="ph98735134233"></a><em id="en-us_topic_0000001135865460_i17706223113013_1"><a name="en-us_topic_0000001135865460_i17706223113013_1"></a><a name="en-us_topic_0000001135865460_i17706223113013_1"></a>CANN Auxiliary Development Tool User Guide </em></span>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>For details, see <a href="#Model Saving and Conversionmd">Model Saving and Conversion</a> and "ATC Tool Instructions" in the <span id="ph98735134233"><a name="ph98735134233"></a><a name="ph98735134233"></a><em id="en-us_topic_0000001135865460_i17706223113013_1"><a name="en-us_topic_0000001135865460_i17706223113013_1"></a><a name="en-us_topic_0000001135865460_i17706223113013_1"></a>CANN Auxiliary Development Tool User Guide </em></span>.</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>Application software development</p>
@@ -229,13 +126,13 @@ Model porting refers to moving models that have been implemented in the open-sou
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQs</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>Describes how to prepare the environment, port models, commission models, and resolve other common problems. For details, see <a href="#faqsmd">FAQs</a>.</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>Describes how to prepare the environment, port models, commission models, and resolve other common problems. For details, see <a href="#FAQsmd">FAQs</a>.</p>
 </td>
 </tr>
 </tbody>
 </table>
 
-## Quick Start
+## <h2 id="Quick-Startmd">Quick Start</h2>
 
 ### Introduction
 
@@ -806,7 +703,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** **dist-backend** must be set to **hccl** to support distributed training on Ascend AI devices.
 
-## Model Porting Evaluation
+## <h2 id="Model-Porting-Evaluationmd">Model Porting Evaluation</h2>
 
 1. When selecting models, select authoritative PyTorch models as benchmarks, including but not limited to PyTorch ([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)), facebookresearch ([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)), and open-mmlab ([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)).
 
@@ -815,11 +712,11 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
     >![](public_sys-resources/icon-note.gif) **NOTE:** 
     >You can also port the model and training script to the Ascend AI Processor for training to view the error information. For details about how to port the model and training script, see the following sections. Generally, a message is displayed, indicating that an operator (the first operator that is not supported) cannot run in the backend of the Ascend AI Processor. Environment Setup
 
-## Environment Setup
+## <h2 id="Environment Setupmd">Environment Setup</h2>
 
 Refer to the  *[PyTorch Installation Guide](https://gitee.com/ascend/pytorch/blob/master/docs/en/PyTorch%20Installation%20Guide/PyTorch%20Installation%20Guide.md)* to install PyTorch and the mixed precision module, and configure required environment variables.
 
-## Model Porting
+## <h2 id="Model Portingmd">Model Porting</h2>
 
 ### Tool-Facilitated
 
@@ -832,9 +729,9 @@ The Ascend platform provides a script conversion tool to enable you to port trai
 Ascend NPU is an up-and-comer in the AI computing field, but most training and online inference scripts are based on GPUs. Due to the architecture differences between NPUs and GPUs, GPU-based training and online inference scripts cannot be directly used on NPUs. The script conversion tool provides an automated method for converting GPU-based scripts into NPU-based scripts, reducing the learning cost and workload of manual script migration, thereby improving the migration efficiency.
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
->-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
->-   The original scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
->-   For scripts in  [Table 3](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
+>-   msFmkTransplt provides suggestions and converts scripts by the adaptation rules, significantly accelerating script migration and reducing development workload. The scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  can be directly executed after being converted. The conversion results of other scripts are for reference only. You need to perform adaptation based on the site requirements.
+>-   The original scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613)  must be executed in the GPU environment and based on Python 3.
+>-   For scripts in  [Table 2](#en-us_topic_0000001133095885_table4705239194613), the execution logic after conversion is the same as that before conversion.
 >-   This script conversion tool only supports the conversion of PyTorch training scripts.
 
 ##### Model Support
@@ -853,7 +750,7 @@ Set up the development environment by referring to the *[CANN Software Installat
 
 ##### Command-line Options
 
-**Table  3**  Command-line options
+**Table  2**  Command-line options<a name="en-us_topic_0000001133095885_table4705239194613"></a>
 
 <table><thead align="left"><tr id="en-us_topic_0000001086713630_row175811919124014"><th class="cellrowborder" valign="top" width="22.35%" id="mcps1.2.4.1.1"><p id="en-us_topic_0000001086713630_p155823194404"><a name="en-us_topic_0000001086713630_p155823194404"></a><a name="en-us_topic_0000001086713630_p155823194404"></a>Option</p>
 </th>
@@ -934,7 +831,7 @@ An example of a custom conversion rule is as follows:
 }
 ```
 
-**Table  4**  Options
+**Table  3**  Options
 
 <table><thead align="left"><tr id="en-us_topic_0000001086713630_row20236153212276"><th class="cellrowborder" valign="top" width="30%" id="mcps1.2.3.1.1"><p id="en-us_topic_0000001086713630_p13236113220275"><a name="en-us_topic_0000001086713630_p13236113220275"></a><a name="en-us_topic_0000001086713630_p13236113220275"></a>Option</p>
 </th>
@@ -1080,9 +977,9 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
 
 #### PyTorch-related API Replacement
 
-1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 5](#table1922064517344)  lists the supported device-related APIs.
+1.  To enable the Ascend AI Processor to use the capabilities of the PyTorch framework, the native PyTorch framework needs to be adapted at the device layer. The APIs related to the CPU and CUDA need to be replaced for external presentation. During network porting, some device-related APIs need to be replaced with the APIs related to the Ascend AI Processor.  [Table 4](#table1922064517344)  lists the supported device-related APIs.
 
-    **Table  5**  Device-related APIs
+    **Table  4**  Device-related APIs<a name="table1922064517344"></a>
 
     <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>Original PyTorch API</p>
     </th>
@@ -1211,7 +1108,7 @@ For details, see [Single-Server Multi-Device Training Modification](#single-serv
     
 2.  When building or porting a network, you need to create tensors of specified data types. The following table lists the tensors created on the Ascend AI Processor.
 
-    **Table  6**  Tensor-related APIs
+    **Table  5**  Tensor-related APIs
 
     <table><thead align="left"><tr id="row1926554133710"><th class="cellrowborder" valign="top" width="50.349999999999994%" id="mcps1.2.3.1.1"><p id="p797211564811"><a name="p797211564811"></a><a name="p797211564811"></a>GPU tensor</p>
     </th>
@@ -1289,15 +1186,15 @@ However, the mixed precision training is limited by the precision range expresse
 
 In addition to the preceding advantages, the mixed precision module Apex adapted to Ascend AI Processors can improve computing performance. Details are described as follows:
 
--   During mixed precision calculation, Apex calculates the grad of the model. You can enable combine\_grad to accelerate these operations. Set the  **combine\_grad**  parameter of the amp.initialize\(\) interface to  **True**.
--   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with  **apex.optimizers.*** (* indicates the optimizer name, for example,  **NpuFusedSGD**).
--   The adapted apex optimizes the affinity of the Ascend AI processor for data parallel training, supports the use of fused grad for acceleration, while maintaining the consistency of computational logic. This function can be turned on by turning on the **combine_ddp** switch, that is, setting the amp.initialize interface parameter **combine_ddp** to **True** and turning off DistributedDataParallel.
+-   During mixed precision calculation, Apex calculates the grad of the model. You can enable **combine_grad** to accelerate the calculation. Specifically, set the combine_grad parameter of the **amp.initialize()** interface to **True**.
+-   After the adaptation, Apex optimizes optimizers, such as adadelta, adam, sgd, and lamb to adapt them to Ascend AI Processors. As a result, the obtained NPU-based fusion optimizers are consistent with the native algorithms, but the calculation speed is faster. You only need to replace the original optimizer with **apex.optimizers.*** (* indicates the optimizer name, for example, **NpuFusedSGD**).
+-  After the adaptation, Apex is optimized to adapt to Ascend AI Processors in the parallel data processing scenario. It supports acceleration with combined grad and maintains the compute logic consistency. To enable this function, set **combine_ddp** in the **amp.initialize()** interface to True and disable **DistributedDataParallel**. 
 
 #### Supported Features
 
-[Table 7](#table10717173813332)  describes the functions and optimization of the mixed precision module.
+[Table 6](#table10717173813332)  describes the functions and optimization of the mixed precision module.
 
-**Table  7**  Functions of the mixed precision module
+**Table  6**  Functions of the mixed precision module<a name="table10717173813332"></a>
 
 <table><thead align="left"><tr id="row371716385333"><th class="cellrowborder" valign="top" width="32.269999999999996%" id="mcps1.2.3.1.1"><p id="p13717163815333"><a name="p13717163815333"></a><a name="p13717163815333"></a>Function</p>
 </th>
@@ -1393,19 +1290,21 @@ The PyTorch 1.8.1 framework supports only the preceding four scenarios. For deta
 
 1. In PyTorch 1.8.1, AMP is implemented by using decorators. During training and test, **with Autocast()** needs to be added to convert the arguments of the model into FP16. If **with Autocast()** is not added, the arguments are still FP32. In the case of an extreme batch size, the memory is insufficient.
 2. PyTorch 1.8.1 AMP does not support tensor fusion.
-## Model Training
+
+## <h2 id="Model Trainingmd">Model Training</h2>
 
 After the training scripts are ported, set environment variables by following the instructions in  [Environment Variable Configuration](#en-us_topic_0000001144082004md)  and run the  **python3** _xxx_  command to train a model. For details, see  [Script Execution](#script-executionmd).
 
 >![](public_sys-resources/icon-note.gif) **NOTE:** 
 >When running the  **python3** _xxx_  command, create a soft link between Python 3 and the installation path of Python that matches the current PyTorch version.
 
-## Performance Analysis and Optimization
+## <h2 id="Performance Optimization and Analysismd">Performance Optimization and Analysis</h2>
+
 
 ### Prerequisites
 
 1.  Modify the open-source code to ensure that the model can run properly, including data preprocessing, forward propagation, loss calculation, mixed precision, back propagation, and parameter update. For details, see [Samples](#samples).
-2.  During model porting, check whether the model can run properly and whether the existing operators can meet the requirements. If no operator meets the requirements, develop an adapted operator. For details, see the  _PyTorch Operator Development Guide_.
+2.  During model porting, check whether the model can run properly and whether the existing operators can meet the requirements. If an operator does not meet the requirements, develop an adapted operator. For details, see the  _PyTorch Operator Development Guide_.
 3.  Prioritize the single-device function, and then enable the multi-device function.
 
 ### Commissioning Process
@@ -1413,28 +1312,33 @@ After the training scripts are ported, set environment variables by following th
 #### Overall Guideline
 
 1.  Check whether the throughput meets the expected requirements based on the training execution result.
-2.  If the throughput does not meet requirements, you need to find out the causes of the performance bottleneck. Possible causes are as follows:
-    -   Operator bottleneck: The execution of an operator is too slow.
-    -   Copy bottleneck: The bottleneck is caused by the copy operation during converting non-contiguous tensors to contiguous tensors.
-    -   Framework bottleneck: Additional operations are required due to operator format conversion.
-    -   Compilation bottleneck: Repeated compilation is caused by the changes of shape or attributes.
+2.  If the performance does not meet requirements, find out the causes of the performance bottlenecks. Possible causes are as follows:
+    -   Operator bottleneck: Some operators in the model are executed slowly because of copy, format conversion, and many other operations.
+    -   Compilation bottleneck: Repeated compilation is caused by constant changes of shapes or attributes.
+    -   Performance bottleneck caused by dataset loading or preprocessing in model training.
 
-3.  Analyze the preceding causes of performance bottlenecks and optimize the performance.
 
-#### Training Data Collection
+3.  Analyze the preceding causes of performance bottlenecks and optimize the performance.  
 
-##### Profile Data Collection
+To eliminate the performance bottleneck caused by dataset loading or preprocessing, you can modify the server configuration. If the dataset contains only videos or images, you can install the high-performance Pillow and OpenCV libraries for optimization. For details, see [Host-side Performance Optimization](#host-side-performance-optimizationa-namehost-side-performance-optimizationa). To eliminate bottlenecks caused by operators and compilation, follow instructions in [Profile Data Collection](#profile-data-collectiona-nameprofile-data-collectiona). In addition, you can collect operator **OP_INFO** to view information about all called operators in the model. With the call sequence and relationship, you can determine whether the performance bottleneck is caused by the insertion of redundant TransData due to format conversion. (TransData is mainly used for data type and format conversion.)
 
-During model training, if the throughput does not meet requirements, you can collect profile data generated during the training process to analyze which step and which operator cause the performance consumption. The profile data is collected at the PyTorch layer (PyTorch API data) and CANN layer (TBE operator data).
+
+##### Profile Data Collection<a name="Profile Data Collection"></a>
+
+During model training, if the throughput does not meet requirements, you can collect profile data generated during the training process to analyze which step and which operator cause the performance consumption. In model training on NPU-based PyTorch, the typical operator execution procedure is as follows: 1. PyTorch distributes an operator for multiple times. 2. The operator calls the ACL API. 3. CANN compiles the operator and GE/FE processes the operator. 4. The NPU computes and executes the operator. The entire procedure and call stack are deep. Before the ACL API call, the call stack and processes are in the PyTorch framework. After the call, all processes are in CANN. (The basic software package of CANN is called by calling the SO library). Therefore, three Profiling modes are provided to record profile data at different layers: PyTorch Profiling, CANN Profiling, and E2E Profiling. The PyTorch Profiling function is inherited from the native PyTorch. It records the time consumption of the call stack during multiple distributions of operators at the PyTorch framework layer. The processes of the operators in CANN can only be displayed as an entire block without any internal details. CANN Profiling records only performance information about operator execution at the CANN layer. It analyzes the operator execution performance on the NPU device and clearly shows the time consumption of each operator in different shapes and formats. E2E Profiling combines the profile data at the PyTorch and CANN layers to analyze performance bottlenecks in an end-to-end manner. It displays the profile data by module. The data at the PyTorch layer is basically the same as that in PyTorch Profiling, and the data at the CANN layer is divided into multiple modules, such as GE, ACL, Runtime, AI CPU, and Device, which can be used to analyze the overall model performance bottlenecks. The following figure shows the relationship between the three Profiling modes. Note that E2E Profiling is not really the combination of PyTorch Profiling and CANN Profiling. The **OP_INFO** is collected by logs. It is used to obtain information about all operators called in the model to check whether unnecessary TransData (mainly used for data type and format conversion) is inserted into the model.
+
+![](https://gitee.com/yanhuiling/pytorch/raw/v1.8.1-3.0.rc2/docs/en/PyTorch%20Network%20Model%20Porting%20and%20Training%20Guide/figures/profile-data-collection.PNG)  
+
+The following describes how to collect **OP_INFO** and data in the three Profiling modes.
 
 Select a collection mode based on the site requirements and perform the following steps to collect the profile data.
 
--   Profile data collection at the PyTorch layer
-    1. Obtain the  **chrome\_trace**  file.
+Data Collection in PyTorch Profiling  
 
-        Use the profile API to reconstruct the loss calculation and optimization process of the original code.
+1. Obtain the  **chrome\_trace**  file.  
+Use the profile API to reconstruct the loss calculation and optimization process of the original code.
 
-        ```
+      
         # Use the profile API adapted to Ascend-PyTorch. You are advised to run only one step.
         with torch.autograd.profiler.profile(use_npu=True) as prof:
             out = model(input_tensor)
@@ -1447,24 +1351,24 @@ Select a collection mode based on the site requirements and perform the followin
         # Export the chrome_trace file to a specified path.
         output_path = '/home/HwHiAiUser/profile_data.json'
         prof.export_chrome_trace(output_path)
-        ```
+     
 
-    2.  After the execution is successful, print the profiling result.
+2.  After the execution is successful, print the profiling result.
     
-        The printed result includes the CPU and NPU time consumption. For details, see Table 8.
+    The printed result includes the CPU and NPU time consumption. For details, see [Table 7](#234).
         
-        <a name='Table 8 Profiling result field'>**Table 8** Profiling result fields</a>
+    Table 7 Profiling result fields<a name="234"></a>
         
-        | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
-        | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
+    | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
+    | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
         
-    3. View the **chrome_trace** file.
+3. View the **chrome_trace** file.
     
-        To view the **chrome_trace** file, access **chrome://tracing** in the Chrome browser, drag the file in the blank space. You can press **W**, **A**, **S**, or **D** to zoom in, zoom out, or move the profiling result.
+    To view the **chrome_trace** file, access **chrome://tracing** in the Chrome browser, drag the file in the blank space. You can press **W**, **A**, **S**, or **D** to zoom in, zoom out, or move the profiling result.
     
-    4. Other profiling functions are as follows.
+4. Other profiling functions are as follows.
     
-        - Obtain the shape information of the input tensor of an operator.
+    - Obtain the shape information of the input tensor of an operator.
     
           ```python
           # Add the record_shapes parameter to obtain the shape information of the input tensor.
@@ -1473,9 +1377,9 @@ Select a collection mode based on the site requirements and perform the followin
           print(prof)
           ```
     
-          The `Input Shape` information of each operator is added to the printed result.
+        The `Input Shape` information of each operator is added to the printed result.
     
-        - Obtain the memory information of the NPU in use.
+    - Obtain the memory information of the NPU in use.
     
           ```python
           # Add the profile parameter to obtain the memory usage of the operators.
@@ -1484,32 +1388,30 @@ Select a collection mode based on the site requirements and perform the followin
           print(prof)
           ```
     
-          The `CPU Mem`, `Self CPU Mem`, `NPU Mem`, and `Self NPU Mem` information of each operator is added to the printed result.
+        The `CPU Mem`, `Self CPU Mem`, `NPU Mem`, and `Self NPU Mem` information of each operator is added to the printed result.
     
-          >![](public_sys-resources/icon-note.gif) **NOTE:**  
-          >
-          >This function is supported only by PyTorch 1.8 or later.
+        >![](public_sys-resources/icon-note.gif) **NOTE:**  
+        >
+        >This function is supported only by PyTorch 1.8 or later.
     
-        - Obtain a simplified operator performance report.
+    - Obtain a simplified operator performance report.
     
-          This function prints only the operator information at the bottom layer of each operator stack, simplifying the analysis result.
-    
-          ```python
+        This function prints only the operator information at the bottom layer of each operator stack, simplifying the analysis result.
+
           # Add the use_npu_simple parameter to obtain the simplified operator performance report.
           with torch.autograd.profiler.profile(use_npu=True, use_npu_simple=True) as prof:
               # Add the model calculation process.
           # Export the chrome_trace file to a specified path.
           output_path = '/home/HwHiAiUser/profile_data.json'
           prof.export_chrome_trace(output_path)
-          ```
+         
     
-          Open the **chrome_trace** result file in the Chrome browser to view the simplified operator performance report.
+        Open the **chrome_trace** result file in the Chrome browser to view the simplified operator performance report.
 
+Data Collection in CANN Profiling  
+1.  Obtain the profile data file.
 
--   Profile data collection at the CANN layer
-    1.  Obtain the profile data file.
-
-        ```
+        
         profiler_result_path  = "/home/profiling_data"     # folder for storing the profile data. Specify it based on the site requirements.
         with torch_npu.npu.profile(profiler_result_path, config): Generally, only one step needs to be performed. You can retain the default config.
             out = model(input_tensor)
@@ -1517,17 +1419,19 @@ Select a collection mode based on the site requirements and perform the followin
             loss.backward()
             optimizer.zero_grad()
             optimizer.step()
-        ```
+      
 
-        >![](public_sys-resources/icon-note.gif) **NOTE:** 
-        >The **config** parameter is used to configure the types of CANN profile data that need to be obtained. For details about the setting method, see the **config** description in [Advanced Settings](#advanced-settings).
-        When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
+The **config** parameter is used to configure the types of the CANN profile data to be obtained. For details, see the description of the parameter in the [E2E Profiling Advanced Settings](#Advanced-Settings).
 
-    2.  Parse the profile data file.
+>![](public_sys-resources/icon-note.gif) **NOTE:** 
+When obtaining the profile data file, deliver  **model**,  **input\_tensor**, and  **target**  to the NPU.
 
-        For details, see "Profiling Instructions > Advanced Features (All Profiling Modes and Items) > Data Parsing and Export" in the *CANN Auxiliary Development Tool User Guide*.
-    3.  Refer to the advanced usage.
+2.  Parse the profile data file.
 
+    For details, see "Profiling Instructions > Advanced Features (All Profiling Modes and Items) > Data Parsing and Export" in the *CANN Auxiliary Development Tool User Guide*.  
+ 3.  Refer to the advanced usage.
+
+    
     The PyTorch framework runs in single-operator mode and cannot distinguish step information. If multiple steps are executed in the WITH statement, the data obtained through Profiling is multiple steps connected. The data of one step cannot be distinguished from the prof diagram. Therefore, to distinguish step information, advanced APIs are provided. See the following example:
     ```
     for i in range(steps):
@@ -1542,8 +1446,100 @@ Select a collection mode based on the site requirements and perform the followin
                 torch_npu.npu.prof_stop()
                 torch_npu.npu.prof_finalize()
     ```
+Data Collection in E2E Profiling
 
-##### Obtaining Operator Information (OP_INFO)
+1. Obtain the profile data file.
+
+Add the **with** statement to enable the E2E Profiling function.
+
+```
+with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
+
+     model_train()
+```
+
+- **profiler_result_path** indicates the path for storing the Profiling results. If no path is specified, the current path is used by default.
+- **use_e2e_profiler** indicates whether to enable the E2E Profiling function. The default value is False, indicating that only the CANN Profiling function is enabled.
+
+(NPU operators can be executed only after compilation. To ensure data accuracy, you are advised to perform 10 steps first, and then start the E2E Profiling operation after the tenth step. Generally, only one or two steps are required for Profiling.)
+
+2. Parse the profile data.
+
+The data obtained by the E2E Profiling tool is raw data, which can be viewed only after being parsed.
+
+a. Use the path in the tutorial as an example. The tool creates a folder in the **profiler_result_path** directory to save the raw data.  
+
+![](figures/1.png)
+
+b. Switch to the **./result/PROF_XXX** directory in the preceding figure and run the script.
+
+   ```
+   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ### Change the path according to the actual installation path and set the environment variables.
+   ```
+
+   - **output** indicates the path of the raw data.
+
+c. After the running is complete, find the **timeline** directory generated in the raw data path. See the following figure.
+
+   ![](figures/2.png)
+
+d. In **chrome://tracing/**, open the parsed profile data file in the **timeline** path.
+
+   Open a browser and enter **chrome://tracing/** in the address box.
+
+   Click **Load** to upload the file.
+
+      <img src="figures/chrometracing.png" style="zoom:80%;" />
+
+   An example is provided as follows:
+
+   <img src="figures/3.png" style="zoom:80%;" />
+
+   The window shown in the preceding figure is divided into four layers in a top-down order. The first layer (MsprofTx) contains the PyTorch framework data, the second layer (AscendCL) contains the ACL data, the third layer (Task Scheduler) contains the device data, and the fourth layer (AI CPU) contains the AI CPU data.
+
+3. The E2E Profiling tool obtains data at all of the preceding layers by default. The process of obtaining data also affects the performance. If a large amount of profile data is obtained, it may not be used as a reference. Therefore, the E2E Profiling tool provides configurable options for fine-grained control of obtaining only some data at the layers.<a name="Advanced-Settings"></a>
+
+```
+with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                        aiCoreMetricsType=0)):
+
+
+# ACL_PROF_ACL_API: collects profile data of AscendCL APIs. The default value is True.
+
+# ACL_PROF_TASK_TIME: collects the execution time of AI Core operators. The default value is True.
+
+# ACL_PROF_AICORE_METRICS: collects AI Core performance metrics. Only the metrics configured in aicore_metrics are valid. The default value is True.
+
+# ACL_PROF_AICPU: 0x0008, collects traces of AI CPU tasks, including the start and end of each task. The default value is True.
+
+# ACL_PROF_L2CACHE: collects L2 Cache data. The data causes Profiling result expansion. The default value is False.
+
+# ACL_PROF_HCCL_TRACE: collects HCCL data. The default value is True.
+
+# ACL_PROF_TRAINING_TRACE: collects iteration trace data, which records the forward and backward propagation steps of a model. The default value is False.
+
+The values of aiCoreMetricsType are defined as follows. The default value is 0.
+
+# ACL_AICORE_ARITHMETIC_UTILIZATION = 0: percentages of arithmetic throughput, including metrics mac_fp16_ratio, mac_int8_ratio, vec_fp32_ratio, vec_fp16_ratio, vec_int32_ratio, and vec_misc_ratio
+
+# ACL_AICORE_PIPE_UTILIZATION = 1: percentages of time taken by the compute units and MTEs, including metrics vec_ratio, mac_ratio, scalar_ratio, mte1_ratio, mte2_ratio, mte3_ratio, and icache_miss_rate
+
+# ACL_AICORE_MEMORY_BANDWIDTH = 2: percentages of external memory read/write instructions, including metrics ub_read_bw, ub_write_bw, l1_read_bw, l1_write_bw, l2_read_bw, l2_write_bw, main_mem_read_bw, and main_mem_write_bw
+
+# ACL_AICORE_L0B_AND_WIDTH: percentages of internal memory read/write instructions, including scalar_ld_ratio, scalar_st_ratio, l0a_read_bw, l0a_write_bw, l0b_read_bw, l0b_write_bw, l0c_read_bw, and l0c_write_bw.
+
+# ACL_AICORE_RESOURCE_CONFLICT_RATIO: percentages of pipeline queue instructions, including vec_bankgroup_cflt_ratio, vec_bank_cflt_ratio, vec_resc_cflt_ratio, mte1_iq_full_ratio, mte2_iq_full_ratio, mte3_iq_full_ratio, cube_iq_full_ratio, vec_iq_full_ratio, and iq_full_ratio.
+
+# ACL_AICORE_NONE = 0xFF: Profiling disabled
+
+```  
+
+##### Obtaining Operator Information (**OP_INFO**)
 
 The network model is executed as an operator (OP). The OPInfo log can be used to obtain the operator and its attributes during the actual execution. Obtain the information by running the  **get_ascend_op_info.py**  script.
 
@@ -1610,7 +1606,7 @@ The network model is executed as an operator (OP). The OPInfo log can be used to
 
 6.  Analyze the extra tasks in TaskInfo, especially transdata.
 
-#### Host-side Performance Optimization
+#### Host-side Performance Optimization<a name="Host-side Performance Optimization"></a>
 
 ##### Overview
 
@@ -1628,26 +1624,26 @@ To improve network performance, you need to set the power policy to high perform
 
 1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 3](#fig15869135420288).
 
-    **Figure  3**  Remote console
+    **Figure  3**  Remote console<a name="fig15869135420288"></a>
 
     ![](figures/remote-console.png "remote-console")
 
 2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001144241932.png). The startup item drop-down list is displayed, as shown in  [Figure 4](#fig744814574243).
 
-    **Figure  4**  Startup item tool
+    **Figure  4**  Startup item tool<a name="fig744814574243"></a>
 
     ![](figures/startup-item-tool.png "startup-item-tool")
 
 3.  In the drop-down list, choose, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190201999.png)  on the toolbar to restart the server.
 4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Socket Configuration**. See  [Figure 5](#fig4546303814).
 
-    **Figure  5**  Socket Configuration
+    **Figure  5**  Socket Configuration<a name="fig4546303814"></a>
 
     ![](figures/socket-configuration.png "socket-configuration")
 
 5.  On the  **Advanced Power Mgmt. Configuration**  page displayed, set  **Power Policy**  to  **Performance**, See  [Figure 6](#fig15501111014442).
 
-    **Figure  6**  Setting the power policy
+    **Figure  6**  Setting the power policy<a name="fig15501111014442"></a>
 
     ![](figures/setting-the-power-policy.png "setting-the-power-policy")
 
@@ -1657,15 +1653,15 @@ To improve network performance, you need to set the power policy to high perform
 
 Perform the following steps as the  **root**  user:
 
-1.  Run the following command to check the current CPU mode:
+1.  Run the following command to check the current CPU mode:<a name="li158435131344"></a>
 
     ```
     cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
     ```
 
-    After the preceding command is run, the current CPU mode is displayed. For details, see  [Table 1](#table354392019384). If the current CPU mode is not performance, perform the following operations to set the CPU mode to performance: Otherwise, skip this step.
+    After the preceding command is run, the current CPU mode is displayed. For details, see  [Table 8](#table354392019384). If the current CPU mode is not performance, perform the following operations to set the CPU mode to performance: Otherwise, skip this step.
 
-    **Table  1**  CPU mode
+    **Table  8**  CPU mode<a name="table354392019384"></a>
 
     <table><thead align="left"><tr id="row16543172093819"><th class="cellrowborder" valign="top" width="30.819999999999997%" id="mcps1.2.3.1.1"><p id="p2526552113912"><a name="p2526552113912"></a><a name="p2526552113912"></a>Governor</p>
     </th>
@@ -1738,26 +1734,26 @@ Some models that have demanding requirements on the CPUs on the host, for exampl
 
 1.  Log in to the iBMC WebUI, start the virtual console, and select  **HTML5 Integrated Remote Console**, as shown in  [Figure 7](#fig15869135420288).
 
-    **Figure  7**  Remote console
+    **Figure  7**  Remote console<a name="fig15869135420288"></a>
 
     ![](figures/remote-console-0.png "remote-console-0")
 
 2.  On the virtual toolbar, click the startup item tool  ![](figures/en-us_image_0000001190202013.png). The startup item drop-down list is displayed, as shown in  [Figure 8](#fig744814574243).
 
-    **Figure  8**  Startup item tool
+    **Figure  8**  Startup item tool<a name="fig744814574243"></a>
 
     ![](figures/startup-item-tool-1.png "startup-item-tool-1")
 
 3.  In the drop-down list, select  **BIOS Setup**, and click  ![](figures/en-us_image_0000001190081877.png)  on the toolbar to restart the server.
 4.  After the system restarts, the BIOS configuration screen is displayed. Choose  **Advanced**  \>  **Performance Config**. See  [Figure 9](#fig4546303814).
 
-    **Figure  9**  Performance Config
+    **Figure  9**  Performance Config<a name="fig4546303814"></a>
 
     ![](figures/performance-config.png "performance-config")
 
 5.  On the  **Performance Config**  page, set  **Power Policy**  to  **Performance**. See  [Figure 10](#fig15501111014442).
 
-    **Figure  10**  Setting the power policy 
+    **Figure  10**  Setting the power policy <a name="fig15501111014442"></a>
 
     ![](figures/setting-the-power-policy-2.png "setting-the-power-policy-2")
 
@@ -1824,7 +1820,7 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 
 ##### Operator Bottleneck Optimization
 
-1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collection).
+1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collectiona-nameprofile-data-collectiona).
 2.  Analyze the profile data to obtain the time-consuming operator.
 3.  See [Single-Operator Sample Building](#single-operator-sample-building) to build the single-operator sample of the time-consuming operator, and compare the execution time of a single-operator sample on the CPU and GPU. If the performance is insufficient, use either of the following methods to solve the problem:
     -   Workaround: Use other efficient operators with the same semantics.
@@ -1833,8 +1829,8 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 
 ##### Copy Bottleneck Optimization
 
-1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collection).
-2.  Analyze the Profile data to obtain the execution time of **format\_contiguous**,  **AsStrided**, or  **PTCopy**  in the entire network.
+1.  Obtain the profile data during training. For details, see [Profile Data Collection](#profile-data-collectiona-nameprofile-data-collectiona).
+2.  Analyze the Profile data to obtain the execution time of  **format_contiguous**,  **AsStrided**, or  **PTCopy**  in the entire network.
 3.  If the execution takes a long time, use either of the following methods to solve the problem:
     -   Method 1 \(workaround\): Replace view operators with compute operators. In PyTorch, view operators cause conversion from non-contiguous tensors to contiguous tensors. The optimization idea is to replace view operators with compute operators. Common view operators include view, permute, and transpose operators. For more view operators, go to  [https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html).
     -   Method 2 \(solution\): Accelerate the operation of converting non-contiguous tensors to contiguous tensors.
@@ -1842,7 +1838,7 @@ If the model depends on OpenCV, you are advised to install OpenCV 3.4.10 to ensu
 
 ##### Framework Bottleneck Optimization
 
-1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-op_info).
+1.  Obtain the operator information (OP_INFO) during the training. For details, see [Obtaining Operator Information (OP_INFO)](#obtaining-operator-information-opinfo).
 2.  Analyze the specifications and calling relationship of operators in OP\_INFO to check whether redundant operators are inserted. Pay special attention to check whether transdata is proper.
 3.  Solution: Specify the initialization format of some operators to eliminate cast operators.
 4.  In  **pytorch/torch_npu/utils/module.py**, specify the operator initialization format in  **cast\_weight**, as shown in the following figure.
@@ -1863,89 +1859,6 @@ The format setting principle is as follows:
     -   Solution: Reduce compilation or do not compile the operator.
     -   For details about how to optimize the operator compilation configuration, see [Compile Option Settings](#compile-option-settings).
 
-### E2E Performance Tool (E2E prof) Instructions
-
-#### Introduction
-
-The E2E prof tool integrates the framework-layer data obtained by the Profiling tool of PyTorch and the operator profile data obtained by the CANN prof tool to implement end-to-end model and operator performance analysis.
-
-#### Usage Tutorial
-
-Add the following with statement to enable the E2E prof function.
-
-```
-with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
-
-     model_train()
-```
-
-- **profiler_result_path** indicates the path for storing the prof results. If no path is specified, the current path is used by default.
-- **use_e2e_profiler** indicates whether to enable the E2E prof function. The default value is **False**, indicating that only the CANN prof function is enabled.
-
-(The NUP operator can be executed only after compilation. To ensure data accuracy, you are advised to run it for 10 steps first, and then perform the E2E prof operation. Generally, only one or two steps are required for profiling.)
-
-#### Result Parsing
-
-The results obtained by using the E2E prof tool are raw data, which can be viewed only after being parsed.
-
-1. Use the path in the tutorial as an example. The tool creates a folder in the *profiler_result_path* directory to save the raw data.
-
-   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/1.png)
-
-2. Switch to the **./result** directory in the preceding figure and run the following script:
-
-   ```
-   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
-   ```
-
-   - **output**: indicates the path of the raw data.
-
-3. After the running is complete, find the **timeline** directory in the raw data path. See the following figure.
-
-   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/2.png)
-
-4. The **timeline** directory stores the parsed profile data, which can be opened in **chrome://tracing/**.
-
-   1. Open a browser and enter **chrome://tracing/** in the address box.
-
-   2. Click **Load** to upload the file.
-
-      ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/chrometracing.png)
-   An example is provided as follows:
-
-   ![](https://gitee.com/ascend/pytorch/raw/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/figures/3.png)
-
-   This example contains four layers from top to bottom. The first layer (MsprofTx) contains the PyTorch framework data, the second layer (AscendCL) contains the AscendCL data, the third layer (Task Scheduler) contains the device data, and the fourth layer (AI CPU) contains the AI CPU data.
-
-#### Advanced Settings
-
-By default, the E2E prof tool can obtain all of the preceding data. However, the process of obtaining data affects the performance. If a large amount of data is obtained, the profile data cannot be used as a reference. Therefore, the E2E prof tool provides configurable options for fine-grained control over obtaining data of specified layers.
-
-```
-with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
-                        config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
-                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
-                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
-                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
-                        aiCoreMetricsType=0)):
-```
-
--   **ACL_PROF_ACL_API**: collects profile data of AscendCL APIs. The default value is **True**.
--   **ACL_PROF_TASK_TIME**: collects the execution time of AI Core operators. The default value is **True**.
--   **ACL_PROF_AICORE_METRICS**: collects the AI Core performance metrics. Only those configured in **aicore_metrics** are valid. The default value is **True**.
--   **ACL_PROF_AICPU**: 0x0008, collects traces of AI CPU tasks, including the start and end of each task. The default value is **True**.
--   **ACL_PROF_L2CACHE**: collects L2 cache data. The default value is **True**.
--   **ACL_PROF_HCCL_TRACE**: collects HCCL data. The default value is **True**.
--   **ACL_PROF_TRAINING_TRACE**: collects iteration traces, which record the forward and backward propagation steps of a model. The default value is **False**.
-
-The values of **aiCoreMetricsType** are defined as follows. The default value is **0**.
-
-- **ACL_AICORE_ARITHMETIC_UTILIZATION     = 0**: percentages of arithmetic     throughput, including metrics **mac_fp16_ratio**,     **mac_int8_ratio**, **vec_fp32_ratio**, **vec_fp16_ratio**, **vec_int32_ratio**, and **vec_misc_ratio**
-- **ACL_AICORE_PIPE_UTILIZATION =     1**: percentages of time taken     by the compute units and MTEs, including metrics **vec_ratio**, **mac_ratio**,     **scalar_ratio**, **mte1_ratio**, **mte2_ratio**, **mte3_ratio**,     and **icache_miss_rate**
-- **ACL_AICORE_MEMORY_BANDWIDTH =     2**: percentages of external     memory read/write instructions, including metrics **ub_read_bw**, **ub_write_bw**,     **l1_read_bw**, **l1_write_bw**, **l2_read_bw**, **l2_write_bw**,     **main_mem_read_bw**, and **main_mem_write_bw**
-- **ACL_AICORE_L0B_AND_WIDTH**: percentages of internal     memory read/write instructions, including **scalar_ld_ratio**, **scalar_st_ratio**,     **l0a_read_bw**, **l0a_write_bw**, **l0b_read_bw**, **l0b_write_bw**,     **l0c_read_bw**, and **l0c_write_bw**.
-- **ACL_AICORE_RESOURCE_CONFLICT_RATIO**: percentages of pipeline     stall instructions, including **vec_bankgroup_cflt_ratio**,     **vec_bank_cflt_ratio**, **vec_resc_cflt_ratio**, **mte1_iq_full_ratio**, **mte2_iq_full_ratio**, **mte3_iq_full_ratio**, **cube_iq_full_ratio**, **vec_iq_full_ratio**, and **iq_full_ratio**.
-- **ACL_AICORE_NONE = 0xFF**: Profiling disabled
 
 ### Affinity Library
 
@@ -2069,7 +1982,7 @@ For an NPU device, the input parameters (such as the shape and format) of each o
 
 After the tuning is complete, restore the code, run the model, and check whether the model/operator performance is improved.
 
-## Precision Commissioning
+## <h2 id="Precision Commissioningmd">Precision Commissioning</h2>
 
 ### Prerequisites  
 Currently, PyTorch 1.8.1 does not support this function.  
@@ -2392,7 +2305,7 @@ You can also commission the network model precision by analyzing the entire netw
         print("[grad]: "+name, module.grad)
     ```
 
-## Model Saving and Conversion
+## <h2 id="Model Saving and Conversionmd">Model Saving and Conversion</h2>
 
 ### Introduction
 
@@ -2568,7 +2481,7 @@ if __name__ == "__main__":
 
 ## Samples
 
-### ShuffleNet Model Optimization
+### <h3 id="ShuffleNet-Model-Optimizationmd">ShuffleNet Model Optimization</h3>
 
 #### Obtaining Samples
 
@@ -2609,7 +2522,7 @@ For details about how to commission the network, see [Commissioning Process](#co
 
 The forward check record table is as follows:
 
-**Table  1**  Forward check
+**Table  9**  Forward check
 
 <table><thead align="left"><tr id="row5326170182016"><th class="cellrowborder" valign="top" width="6.419999999999999%" id="mcps1.2.5.1.1"><p id="p113266011202"><a name="p113266011202"></a><a name="p113266011202"></a>No.</p>
 </th>
@@ -2681,7 +2594,7 @@ The details are as follows:
 
 The record table of the entire network check is as follows:
 
-**Table  2**  Entire network check
+**Table  10**  Entire network check
 
 <table><thead align="left"><tr id="row487985710248"><th class="cellrowborder" valign="top" width="6.419999999999999%" id="mcps1.2.5.1.1"><p id="p10879125714244"><a name="p10879125714244"></a><a name="p10879125714244"></a>No.</p>
 </th>
@@ -3097,7 +3010,7 @@ for group in [2, 4, 8]:
             return out
     ```
 
-## References
+## <h2 id="Referencesmd">References</h2>
 
 ### Single-Operator Sample Building
 
@@ -3520,7 +3433,7 @@ Perform the following steps as the  **root**  user.
     ```
 
 
-## FAQs
+## <h2 id="FAQsmd">FAQs</h2>
 
 
 -   **[FAQs About Software Installation](#faqs-about-software-installationmd)**  
@@ -3534,7 +3447,7 @@ Perform the following steps as the  **root**  user.
 -   **[FAQs About Distributed Model Training](#faqs-about-distributed-model-trainingmd)**  
 
 
-### FAQs About Software Installation
+### <h3 id="faqs-about-software-installationmd">FAQs About Software Installation</h3>
 
 
 -   **[pip3.7 install Pillow==5.3.0 Installation Failed](#pip3-7-install-pillow-5-3-0-installation-failedmd)**  
@@ -3563,7 +3476,7 @@ Run the following commands to install the dependencies:
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
 
-### FAQs About Model and Operator Running
+### <h3 id="faqs-about-model-and-operator-runningmd">FAQs About Model and Operator Running</h3>
 
 
 -   **[What Do I Do If the Error Message "RuntimeError: ExchangeDevice:" Is Displayed During Model or Operator Running?](#what-do-i-do-if-the-error-message-runtimeerror-exchangedevice-is-displayed-during-model-or-operatormd)**  
@@ -3922,7 +3835,7 @@ A public API is called.
 
 The error information does not affect the training function and performance and can be ignored.
 
-### FAQs About Model Commissioning
+### <h3 id="faqs-about-model-commissioningmd">FAQs About Model Commissioning</h3>
 
 
 -   **[What Do I Do If the Error Message "RuntimeError: malloc:/..../pytorch/c10/npu/NPUCachingAllocator.cpp:293 NPU error, error code is 500000." Is Displayed During Model Commissioning?](#what-do-i-do-if-the-error-message-runtimeerror-malloc-pytorch-c10-npu-npucachingallocator-cpp-293-npmd)**  
@@ -4004,7 +3917,7 @@ In the preceding figure, the error path is  **.../code/pytorch/torch/\_\_init\_\
 
 Switch to another directory to run the script.
 
-### FAQs About Other Operations
+### <h3 id="faqs-about-other-operationsmd">FAQs About Other Operations</h3>
 
 
 -   **[What Do I Do If an Error Is Reported During CUDA Stream Synchronization?](#what-do-i-do-if-an-error-is-reported-during-cuda-stream-synchronizationmd)**  
@@ -4193,11 +4106,13 @@ The script is as follows:
    model.load_state_dict(state_dict)
 ```
 
-### FAQs About Distributed Model Training
+### <h3 id="faqs-about-distributed-model-trainingmd">FAQs About Distributed Model Training</h3>
 
 -   **[What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd)**  
 
 -   **[What Do I Do If the Error Message "RuntimeError: connect\(\) timed out." Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect-timed-out-is-displayed-during-distributed-mmd)**  
+
+-   **[What Do I Do If The Error Message "RuntimeError: HCCL\(\) error" Is Displayed During Distributed Model Training?](#what-do-i-do-if-the-error-message-runtimeerror-connect()-timed-out-is-displayed-during-distributed-mmd)**  
 
 
 <h4 id="what-do-i-do-if-the-error-message-host-not-found-is-displayed-during-distributed-model-trainingmd">What Do I Do If the Error Message "host not found." Is Displayed During Distributed Model Training?</h4>
@@ -4227,4 +4142,21 @@ During distributed model training, the system firewall may block the communicati
 ##### Solution
 
 Query the HCCL port that is blocked by the system firewall and enable the port.
+
+<h4 id="What-Do-I-Do-If-The-Error-Message-RuntimeError-CCL\(\)-error-Is-Displayed-During Distributed-Model-Training?">What Do I Do If The Error Message "RuntimeError: HCCL\(\) error" Is Displayed During Distributed Model Training?"</h4>
+
+##### Symptom
+
+![](figures/HCCL.jpg)
+
+##### Possible Causes
+
+
+During distributed model training, different device processes may be executed asynchronously due to specific factors before HCCL is initialized. You can set the link setup waiting time based on the actual device performance.
+
+##### Solution
+
+export HCCL_CONNECT_TIMEOUT=time
+
+The default value of **time** is **120**, in seconds.The value range is [120, 7200].
 
