@@ -223,6 +223,12 @@
 
 请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/2.0.2.tr5/docs/zh/PyTorch安装指南/PyTorch安装指南.md)进行PyTorch相关运行环境搭建。
 
+### 硬件支持
+
+aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
+
+X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
+
 <h2 id="配置环境变量">配置环境变量</h2>
 
 安装完软件包后，需要配置环境变量才能正常使用昇腾PyTorch。建议构建启动脚本，例如构建set\_env.sh脚本，使用source set\_env.sh配置当前窗口的环境变量。set\_env.sh脚本内容如下（以root用户安装，安装路径为默认路径为例）。
