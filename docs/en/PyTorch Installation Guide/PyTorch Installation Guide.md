@@ -1,296 +1,126 @@
 # PyTorch Installation Guide
 
-- [PyTorch Installation Guide](#pytorch-installation-guide)
-  - [Overview](#overview)
-  - [Manual Build and Installation](#manual-build-and-installation)
-    - [Prerequisites](#prerequisites)
-    - [Installing the PyTorch Framework](#installing-the-pytorch-framework)
-    - [Configuring Environment Variables](#configuring-environment-variables)
-    - [Installing the Mixed Precision Module](#installing-the-mixed-precision-module)
-  - [References](#references)
-    - [Installing CMake](#installing-cmake)
-    - [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730)
-    - [What to Do If "-torch-1-5-0xxxx-" and "-torchvision-" Do Not Match When-torch--whl- Is Installed?](#what-to-do-if-torch-1-5-0xxxx-and-torchvision-do-not-match-when-torch-whl-is-installed)
-## Overview
+- [Overview](#overviewa-nameoverviewa)
 
-When setting up the environment for PyTorch model development and running, you can manually build and install the modules adapted to the PyTorch framework on a server.
+- [System Dependencies](#system-dependenciesa-namesystem-dependenciesa)
 
-**Figure 1** Environment setup process<a name="zh-cn_topic_0000001119176876_fig1938918396117"></a>  
+- [Ascend Auxiliary Software](#ascend-auxiliary-softwarea-nameascend-auxiliary-softwarea)
 
+- [Installation Methods](#installation-methodsa-nameinstallation-methodsa)
 
-![](figures/210926103326800.png)
+- [Running](#runninga-namerunninga)
+- [(Optional) Installing the Mixed Precision Module](#optional-installing-the-mixed-precision-modulea-nameoptional-installing-the-mixed-precision-modulea)
+- [FAQs](#faqsa-namefaqsa)
+- [Version Descriptio](#version-descriptiona-nameversion-descriptiona)
 
-## Manual Build and Installation
-### Prerequisites
-#### Prerequisites
+# Overview<a name="Overview"></a>
+
+This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors. When setting up the environments for PyTorch model development and operating, developers can manually compile related modules on servers.
+
+## Prerequisites
 
 - The development or operating environment of CANN has been installed. For details, see the *CANN Software Installation Guide*.
+- Python 3.7.5, 3.8, and 3.9 are supported.
 
-| AscendPyTorch Version | CANN Version | Supported PyTorch Version |
-| :------------ | :----------- | :----------- |
-| 3.0.2 | CANN 5.0.2 | 1.5.0.post2 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5, 1.8.1.rc1 |
+# System Dependencies<a name="System-Dependencies"></a>
 
-- CMake 3.12.0 or later has been installed. For details about how to install CMake, see [Installing CMake](#installing-cmake).
+## CentOS & EulerOS
 
-- GCC 7.3.0 or later has been installed. For details about how to install and use GCC 7.3.0, see [How Do I Install GCC 7.3.0?](#how-do-i-install-gcc-730).
+yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
 
-- Python 3.7.5, 3.8, or 3.9 has been installed.
+## Ubuntu
 
-- Note that PyTorch 1.5 does not support Python 3.9 build and installation. Only Torch 1.8.1 supports Python 3.9 build and installation.
+apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
 
--   The Patch and Git tools have been installed in the environment. To install the tools for Ubuntu and CentOS, run the following commands:
-    -   Ubuntu
+# Ascend Auxiliary Software<a name="Ascend-Auxiliary-Software"></a>
 
-        ```
-        apt-get install patch
-        apt-get install git
-        ```
+| AscendPyTorch Version| CANN Version| Supported PyTorch Version| Gitee Branch|
+| :------------ | :----------- | :----------- | ------------- |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
 
-    -   CentOS:
+# Installation Methods<a name="Installation-Methods"></a>
 
-        ```
-        yum install patch
-        yum install git
-        ```
+## Install the PyTorch environment dependencies.
 
+If you install dependencies as a non-root user, add **--user** at the end of each command in this step, for example, **pip3 install pyyaml --user**.
 
+```sh
+pip3 install pyyaml
+pip3 install wheel
+```
 
-### Installing the PyTorch Framework
+## Compile and install the PyTorch and Ascend plugin.
 
-#### Installation Process
+Install the official torch package, and then compile and install the plugin.
 
-1.  Log in to the server as the **root** user or a non-root user.
-2.  Run the following commands in sequence to install the PyTorch dependencies.
+```sh
+#x86_64
+pip3 install torch==1.8.1+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
 
-    If you install Python and its dependencies as a non-root user, add **--user** at the end of each command in this step. Example command: **pip3.7 install pyyaml --user**.
+#AArch64
+#The community does not provide the CPU installation package of the ARM architecture. For details, see the first FAQ to compile and install PyTorch using the source code.
+```
 
-    ```
-    pip3 install pyyaml
-    pip3 install wheel
-    ```
+Compile and generate the binary installation package of the PyTorch plugin.
 
-3. Obtain the PyTorch source code.
+```
+git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git & cd pytorch    # Download code of the master branch and go to the root directory of the plugin.
+# Specify the Python version packaging mode:
+bash ci/build.sh --python=3.7
+# or
+bash ci/build.sh --python=3.8
+# or
+bash ci/build.sh --python=3.9
+```
 
-   1.  Run the following commands to obtain the PyTorch source code adapted to Ascend AI Processors and switch to the required branch:
+Install the **torch_npu** package generated in the **pytorch/dist** directory. ***{arch}*** indicates the architecture name.
 
-       ```
-       git clone https://gitee.com/ascend/pytorch.git
-       # By default, the master branch (PyTorch 1.8.1) is used. If another branch is required, run the git checkout command to switch to that branch.
-       cd pytorch
-       git checkout -b v1.8.1-3.0.rc1 remotes/origin/v1.8.1-3.0.rc1
-       ```
-
-   3.  Obtain the native PyTorch source code from the root directory **/pytorch** of the current repository and rename it **pytorch_v1.8.1**.
-
-       ```
-       // Version 1.8.1
-       
-       cd  pytorch  # Root directory of the plugin
-       
-       git clone -b  v1.8.1 --depth=1 https://github.com/pytorch/pytorch.git  pytorch_v1.8.1
-       ```
-       
-   3. Run the following commands to go to the native PyTorch source code directory **pytorch_v1.8.1** and obtain the PyTorch passive dependency code:
-
-      ```
-      cd  pytorch_v1.8.1
-      git submodule sync
-      git submodule update --init --recursive
-      ```
-
-   >![](public_sys-resources/icon-note.gif) **NOTE:**
-   >Due to network fluctuation, it may take a long time to obtain the source code. If no error is reported after the download is complete, the PyTorch and third-party code on which PyTorch depends are generated.
-
-4.  Generate the PyTorch installation package adapted to Ascend AI Processors.
-    1. Add the patch to the PyTorch source code and build it.
-
-       ```
-       cd ../patch
-       bash apply_patch.sh ../pytorch_v1.8.1
-       cd ../pytorch_v1.8.1
-       Specify the Python version packaging mode:
-       bash build.sh --python=3.7
-       Or
-       bash build.sh --python=3.8
-       Or
-       bash build.sh --python=3.9
-       ```
-    
-       Install the **torch** package generated in the dist directory (**pytorch/pytorch_v1.8.1/dist**).
-    
-       ```
-       cd dist
-       pip3 install --upgrade torch-1.8.1+ascend.rc1-cp37-cp37m-linux_{arch}.whl  #**\{arch\}** indicates the architecture, which can be **aarch64** or **x86\_64**.
-       ```
-    
-    3.  Build and generate the binary installation package of the PyTorch plugin.
-    
-        ```
-        cd ../../ci    # Access the root directory of the plugin.
-        Specify the Python version packaging mode:
-        bash build.sh --python=3.7
-        Or
-        bash build.sh --python=3.8
-        Or
-        bash build.sh --python=3.9
-        ```
-        
-        Specify the Python version in the environment for build. The generated binary package is stored in the current dist directory **pytorch/dist**.
-    
-5.  Install the PyTorch plugin.
-
-    Go to the **pytorch/dist** directory and run the following command to install the **torch_npu** package:
-
-    ```
-    cd ../dist
-    pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
-    ```
-    
-    >![](public_sys-resources/icon-note.gif) **NOTE:**
-    >To upgrade the PyTorch plugin in the environment, uninstall the PyTorch plugin software package installed in the environment and then perform [5. Install the PyTorch plugin.](#zh-cn_topic_0000001152776301_li49671667141) Run the following command to check whether the PyTorch plugin has been installed:
-    >**pip3 list | grep torch-npu**
+```
+pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+```
 
 
-### Configuring Environment Variables
+# Running<a name="Running"></a>
 
-After the software packages are installed, configure environment variables to use Ascend PyTorch. For details about the environment variables, see [Table 1](#zh-cn_topic_0000001152616261_table42017516135).
+## Execute environment variables.
 
-1.  Configure the operating environment variables by running the following command in the **root** directory of the PyTorch source code adapted to Ascend AI Processors:
+Run the script for setting environment variables in the root directory of the current repository.
 
-    ```
-    cd ../
-    source env.sh
-    ```
-
-2.  Select a proper HCCL initialization mode based on the actual scenario and configure the corresponding environment variables.
-
-    ```
-    # Scenario 1: Single-node scenario
-    export HCCL_WHITELIST_DISABLE=1 # Disable the HCCL trustlist.
-    # Scenario 2: Multi-node scenario
-    export HCCL_WHITELIST_DISABLE=1 # Disable the HCCL trustlist.
-    export HCCL_IF_IP="1.1.1.1" # Replace 1.1.1.1 with the actual NIC IP address of the host. Ensure that the NIC IP addresses in use can communicate with each other in the cluster.  
-    ```
-
-3.  (Optional) Configure function or performance environment variables in the NPU scenario. The variables are disabled by default.
-
-    ```
-    export DYNAMIC_COMPILE_ENABLE=1  # (Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to **1**. (PyTorch 1.8.1 does not support this environment variable.)
-    export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to **1**.
-    export ACL_DUMP_DATA=1 # Operator data dump function, which is used for debugging. This environment variable is optional. To enable it, set its value to **1**.
-    export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. This parameter is optional.
-    ```
-    
-4.  (Optional) If the system is openEuler or its inherited OS, such as UOS, run the following command to cancel CPU core binding.
-
-    ```
-    # unset GOMP_CPU_AFFINITY
-    ```
+```
+source env.sh
+```
 
 
+## Customize environment variables.
+
+The following are optional environment variables that may affect running models:
+
+```
+export COMBINED_ENABLE=1 # (Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to **1**. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency.
+export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.
+```
 **Table 1** Description of environment variables
-
 <a name="zh-cn_topic_0000001152616261_table42017516135"></a>
+
 <table><thead align="left"><tr id="zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001152616261_p51981251161315"></a>Environment Variable</p>
 </th>
 <th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001152616261_p9198135114133"></a>Description</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001152616261_row6882121917329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p688241953218"><a name="zh-cn_topic_0000001152616261_p688241953218"></a><a name="zh-cn_topic_0000001152616261_p688241953218"></a>LD_LIBRARY_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1888291915322"><a name="zh-cn_topic_0000001152616261_p1888291915322"></a><a name="zh-cn_topic_0000001152616261_p1888291915322"></a>Dynamic library search path. Set this variable based on the preceding example.</p>
-<p id="p1292181892120"><a name="p1292181892120"></a><a name="p1292181892120"></a>If you need to upgrade GCC in OSs such as CentOS, Debian, and BC-Linux, add <strong id="b6163826603"><a name="b6163826603"></a><a name="b6163826603"></a><em id="i161631926505"><a name="i161631926505"></a><a name="i161631926505"></a>${install_path}</em>/lib64</strong> to the <span class="parmname" id="parmname161637265015"><a name="parmname161637265015"></a><a name="parmname161637265015"></a><b>LD_LIBRARY_PATH</b></span> variable of the dynamic library search path. Replace <em id="i01649261704"><a name="i01649261704"></a><a name="i01649261704"></a><strong id="b1216317261109"><a name="b1216317261109"></a><a name="b1216317261109"></a>{install_path}</strong></em> with the GCC installation path. For details, see <a href="#how-do-i-install-gcc-7-3-0md#en-us_topic_0000001135347812_en-us_topic_0000001173199577_en-us_topic_0000001172534867_en-us_topic_0276688294_li9745165315131"> step 5</a>.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row16194175523010"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16195185523019"><a name="zh-cn_topic_0000001152616261_p16195185523019"></a><a name="zh-cn_topic_0000001152616261_p16195185523019"></a>PYTHONPATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p19637083322"><a name="en-us_topic_0000001152616261_p19637083322"></a><a name="en-us_topic_0000001152616261_p19637083322"></a>Python search path. Set this variable based on the preceding example.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row2954102119329"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p195452113218"><a name="zh-cn_topic_0000001152616261_p195452113218"></a><a name="zh-cn_topic_0000001152616261_p195452113218"></a>PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p964914893211"><a name="zh-cn_topic_0000001152616261_p964914893211"></a><a name="zh-cn_topic_0000001152616261_p964914893211"></a>Executable program search path. Set this variable based on the preceding example.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row58592816294"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p1886016892913"><a name="zh-cn_topic_0000001152616261_p1886016892913"></a><a name="zh-cn_topic_0000001152616261_p1886016892913"></a>ASCEND_OPP_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p28608892915"><a name="zh-cn_topic_0000001152616261_p28608892915"></a><a name="zh-cn_topic_0000001152616261_p28608892915"></a>Operator root directory. Set this variable based on the preceding example.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row144592037903"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p104601373014"><a name="zh-cn_topic_0000001152616261_p104601373014"></a><a name="zh-cn_topic_0000001152616261_p104601373014"></a>OPTION_EXEC_EXTERN_PLUGIN_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p1046013716017"><a name="zh-cn_topic_0000001152616261_p1046013716017"></a><a name="zh-cn_topic_0000001152616261_p1046013716017"></a>Path of the operator information library.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row16184379493"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p131851873492"><a name="zh-cn_topic_0000001152616261_p131851873492"></a><a name="zh-cn_topic_0000001152616261_p131851873492"></a>ASCEND_AICPU_PATH</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p181851575497"><a name="zh-cn_topic_0000001152616261_p181851575497"></a><a name="zh-cn_topic_0000001152616261_p181851575497"></a>Path of the AI CPU OPP.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row234714854615"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p2034724894619"><a name="zh-cn_topic_0000001152616261_p2034724894619"></a><a name="zh-cn_topic_0000001152616261_p2034724894619"></a>TASK_QUEUE_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p53477489462"><a name="en-us_topic_0000001152616261_p53477489462"></a><a name="en-us_topic_0000001152616261_p53477489462"></a>Whether to asynchronously deliver tasks and call the ACL APIs. You are advised to set this parameter to <strong id="en-us_topic_0000001152616261_b186701714141819"><a name="en-us_topic_0000001152616261_b186701714141819"></a><a name="en-us_topic_0000001152616261_b186701714141819"></a>1</strong> to enable this function.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row1680820246202"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4809112415207"><a name="zh-cn_topic_0000001152616261_p4809112415207"></a><a name="zh-cn_topic_0000001152616261_p4809112415207"></a>HCCL_WHITELIST_DISABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p952814428206"><a name="en-us_topic_0000001152616261_p952814428206"></a><a name="en-us_topic_0000001152616261_p952814428206"></a>Whether to enable the communication trustlist when the HCCL is used.</p>
-<a name="ul928845132310"></a><a name="ul928845132310"></a><ul id="ul928845132310"><li><strong id="b12793231525"><a name="b12793231525"></a><a name="b12793231525"></a>0</strong>: enable the trustlist. The HCCL communication trustlist does not need to be verified.</li><li><strong id="b1146142619212"><a name="b1146142619212"></a><a name="b1146142619212"></a>1</strong>: disable the trustlist. The HCCL communication trustlist needs to be verified.</li></ul>
-<p id="en-us_topic_0000001152616261_p5809162416201"><a name="en-us_topic_0000001152616261_p5809162416201"></a><a name="en-us_topic_0000001152616261_p5809162416201"></a>The default value is <strong id="en-us_topic_0000001152616261_b1270332516435"><a name="en-us_topic_0000001152616261_b1270332516435"></a><a name="en-us_topic_0000001152616261_b1270332516435"></a>0</strong>, indicating that the trustlist is enabled by default.</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001152616261_row0671137162115"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p4671203792114"><a name="zh-cn_topic_0000001152616261_p4671203792114"></a><a name="zh-cn_topic_0000001152616261_p4671203792114"></a>HCCL_IF_IP</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p1822165982114"><a name="en-us_topic_0000001152616261_p1822165982114"></a><a name="en-us_topic_0000001152616261_p1822165982114"></a>IP address of the NIC for initializing communication in the HCCL.</p>
-<a name="ul2676102292415"></a><a name="ul2676102292415"></a><ul id="ul2676102292415"><li>The IP address is in dotted decimal notation.</li><li>Currently, only the host NIC is supported.</li></ul>
-<p id="en-us_topic_0000001152616261_p1167163719217"><a name="en-us_topic_0000001152616261_p1167163719217"></a><a name="en-us_topic_0000001152616261_p1167163719217"></a>By default, the host communication NICs are selected in the following sequence: NICs other than Docker/local NICs (in ascending alphabetical order of NIC names) &gt; Docker NICs &gt; local NICs.</p>
-</td>
-</tr>
-<tr id="row743212132309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p17433111312307"><a name="p17433111312307"></a><a name="p17433111312307"></a>ASCEND_SLOG_PRINT_TO_STDOUT</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p6433151393018"><a name="p6433151393018"></a><a name="p6433151393018"></a>(Optional) Whether to enable the log printing function.</p>
-<a name="ul760201917473"></a><a name="ul760201917473"></a><ul id="ul760201917473"><li><strong id="b1955232216215"><a name="b1955232216215"></a><a name="b1955232216215"></a>0</strong>: uses the default log output mode.</li><li><strong id="b22913272211"><a name="b22913272211"></a><a name="b22913272211"></a>1</strong>: prints the logs to the screen.</li><li>Other values: invalid</li></ul>
-</td>
-</tr>
-<tr id="row19237171814300"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p14238161893019"><a name="p14238161893019"></a><a name="p14238161893019"></a>ASCEND_GLOBAL_LOG_LEVEL</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p223841810303"><a name="p223841810303"></a><a name="p223841810303"></a>Sets the global log level of app logs.</p>
-<a name="ul175714586453"></a><a name="ul175714586453"></a><ul id="ul175714586453"><li><strong id="b94698561835"><a name="b94698561835"></a><a name="b94698561835"></a>0</strong>: DEBUG</li><li><strong id="b1612516597314"><a name="b1612516597314"></a><a name="b1612516597314"></a>1</strong>: INFO</li><li><strong id="b82051911547"><a name="b82051911547"></a><a name="b82051911547"></a>2</strong>: WARNING</li><li><strong id="b04351021945"><a name="b04351021945"></a><a name="b04351021945"></a>3</strong>: ERROR</li><li><strong id="b116153316418"><a name="b116153316418"></a><a name="b116153316418"></a>4</strong>: NULL (no log output)</li><li>Other values: invalid</li></ul>
-</td>
-</tr>
-<tr id="row1348192313303"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1734815235305"><a name="p1734815235305"></a><a name="p1734815235305"></a>ASCEND_GLOBAL_EVENT_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p12348202373018"><a name="p12348202373018"></a><a name="p12348202373018"></a>Whether to enable event logging for apps.</p>
-<a name="ul416352114610"></a><a name="ul416352114610"></a><ul id="ul416352114610"><li><strong id="b425610311940"><a name="b425610311940"></a><a name="b425610311940"></a>0</strong>: disabled</li><li><strong id="b198984321741"><a name="b198984321741"></a><a name="b198984321741"></a>1</strong>: enabled</li><li>Other values: invalid</li></ul>
-</td>
-</tr>
-<tr id="row17878184693015"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1878194683016"><a name="p1878194683016"></a><a name="p1878194683016"></a>DYNAMIC_COMPILE_ENABLE</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p1887894620304"><a name="p1887894620304"></a><a name="p1887894620304"></a>(Optional) Dynamic shape feature, which is used when the shape changes. To enable this function, set the value to <strong id="b11281447194117"><a name="b11281447194117"></a><a name="b11281447194117"></a>1</strong>. (PyTorch 1.8.1 does not support this environment variable.)</p>
 </td>
 </tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>(Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to <strong id="b19824817612"><a name="b19824817612"></a><a name="b19824817612"></a>1</strong>.</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>(Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to 1. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency. However, the host delivery performance may deteriorate.</p>
 </td>
 </tr>
 <tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>(Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to <strong id="b1861154419918"><a name="b1861154419918"></a><a name="b1861154419918"></a>1</strong>.</p>
-</td>
-</tr>
-<tr id="row27481914203518"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p674813144357"><a name="p674813144357"></a><a name="p674813144357"></a>DYNAMIC_OP</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p974891414353"><a name="p974891414353"></a><a name="p974891414353"></a>(Optional) Operator implementation. The performance of the ADD and MUL operators varies depending on the scenarios. This parameter is not set by default.</p>
-</td>
-</tr>
-<tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>unset GOMP_CPU_AFFINITY</p>
-</td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="en-us_topic_0000001152616261_p0711356152317"><a name="en-us_topic_0000001152616261_p0711356152317"></a><a name="en-us_topic_0000001152616261_p0711356152317"></a>(Optional) If the system is openEuler or its inherited OS, such as UOS, run this command to cancel CPU core binding.</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>(Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to 1.</p>
 </td>
 </tr>
 </tbody>
@@ -298,234 +128,306 @@ After the software packages are installed, configure environment variables to us
 
 
 
-### Installing the Mixed Precision Module
+## Run the unit test script.
 
-#### Prerequisites
+Verify the running. The output is **OK**.
 
-1.  Ensure that the PyTorch framework adapted to Ascend AI Processors in the operating environment can be used properly.
-2.  Before building and installing Apex, you have configured the environment variables on which the build depends. See [Configuring Environment Variables](#configuring-environment-variables).
+```shell
+cd test/test_network_ops/
+python3 test_div.py
+```
 
-#### Installation Process
+# (Optional) Installing the Mixed Precision Module<a name="(Optional) Installing the Mixed Precision Module"></a>
 
-1.  Log in to the server as the **root** user or a non-root user.
-2.  Obtain the Apex source code.
+AscendPyTorch 1.8.1 integrates the AMP module and can be used for training with mixed precision. The differences between the AMP module and the Apex module are as follows. You can select a desired module. For details about how to compile and install the Apex module, see the related [**README.en**](https://gitee.com/ascend/apex) file.
 
-    (1) Run the following command to obtain the Apex source code adapted to Ascend AI Processors:
+- AMP
 
-        ```
-        git clone -b master https://gitee.com/ascend/apex.git
-        ```
-    
-        The directory structure of the downloaded source code is as follows:
-    
-        ```
-        apex
-        │ ├─patch             # Directory of the patch adapted to Ascend AI Processors
-        │    ├─npu.patch
-        │ ├─scripts           # Build and create a directory.
-        │    ├─gen.sh
-        │ ├─src               # Source code directory
-        │ ├─tests              # Directory for storing test cases
-        ```
+  - Dynamic loss scale: The loss scale value is dynamically calculated to determine whether overflow occurs.
+  - Tensor fusion is not supported.
 
-    (2) Run the following commands to go to the **apex** directory and obtain the native Apex source code:
+- Apex
 
-        ```
-        cd apex
-        git clone https://github.com/NVIDIA/apex.git
-        ```
-    
-        After the native Apex source code is downloaded, the main directory structure of the code is as follows:
-    
-        ```
-        apex
-        │ ├─apex              # Directory for storing the native Apex code
-        │ ├─patch             # Directory of the patch adapted to Ascend AI Processors
-        │    ├─npu.patch
-        │ ├─scripts           # Build and create a directory.
-        │    ├─gen.sh
-        │ ├─src               # Source code directory
-        │ ├─tests              # Directory for storing test cases
-        ```
-
-    (3) Go to the native Apex code directory, that is, **apex/apex**. Switch to the code branch whose commit ID is 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a.
-
-        ```
-        cd apex
-        git checkout 4ef930c1c884fdca5f472ab2ce7cb9b505d26c1a
-        ```
-
-    >![](public_sys-resources/icon-note.gif) **NOTE:**
-    >Due to network fluctuation, it may take a long time to obtain the source code.
-
-3.  Generate the Apex installation package adapted to Ascend AI Processors.
-    (1) Go to the **apex/scripts** directory and run the conversion script to generate full code adapted to Ascend AI Processors.
-
-        ```
-        cd ../scripts
-        bash gen.sh
-        ```
-        
-        The full code adapted to Ascend AI Processors is generated in the **apex/apex** directory.
-
-    (2) Go to the full code directory **apex/apex**, and compile and generate the binary installation package of Apex.
-
-        ```
-        cd ../apex
-        python3 setup.py --cpp_ext --npu_float_status bdist_wheel
-        ```
-        
-        The Python version must be the same as that used by PyTorch. The generated binary package is stored in the current **dist** directory, that is, **apex/apex/dist**.
-
-4.  Install Apex.
-
-    Go to the **apex/apex/dist** directory and run the following command to install Apex:
-
-    ```
-    cd dist
-    pip3 install --upgrade apex-0.1+ascend-cp37-cp37m-linux_{arch}.whl
-    ```
-    
-    *\{arch\}* indicates the architecture information, which can be **aarch64** or **x86\_64**.
-    
-    >![](public_sys-resources/icon-note.gif) **NOTE:**
-    >To upgrade the Apex in the environment, uninstall the PyTorch software package installed in the environment and then perform [4. Install Apex.](#zh-cn_topic_0000001106176190_li425495374416) Run the following command to check whether PyTorch has been installed:
-    >**pip3 list | grep apex**
-
-## References
-
-### Installing CMake
-
-Procedure for upgrading CMake to 3.12.1
-
-1.  Obtain the CMake software package.
-
-    ```
-    wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz --no-check-certificate
-    ```
-
-2.  Decompress the package and go to the software package directory.
-
-    ```
-    tar -xf cmake-3.12.1.tar.gz
-    cd cmake-3.12.1/
-    ```
-
-3.  Run the configuration, compilation, and installation commands.
-
-    ```
-    ./configure --prefix=/usr/local/cmake
-    make && make install
-    ```
-
-4.  Set the soft link.
-
-    ```
-    ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
-    ```
-
-5.  Run the following command to check whether CMake has been installed:
-
-    ```
-    cmake --version
-    ```
-
-    If the message "cmake version 3.12.1" is displayed, the installation is successful.
+  - O1 configuration mode: Conv and Matmul use the float16 precision for computing, and Softmax and BN use float32.
+  - O2 configuration mode: BN uses the float32 precision for computing, and others use float16.
+  - Static loss scale: Parameters are statically set to ensure the convergence of training with mixed precision.
+  - Dynamic loss scale: The loss scale value is dynamically calculated to determine whether overflow occurs.
 
 
-### How Do I Install GCC 7.3.0?
+# FAQs<a name="FAQs"></a>
+
+## When the CPU architecture is ARM, PyTorch 1.8.1 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.8.1.
+
+Download the PyTorch 1.8.1 source package.
+
+```
+git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.8.1
+```
+
+Access the source package to obtain the passive dependency code.
+
+```
+cd pytorch_v1.8.1
+git submodule sync
+git submodule update --init --recursive 
+```
+
+Compile and install PyTorch 1.8.1.
+
+```
+python3 setup.py install
+```
+
+## When PIP is set to the Huawei source, a Python environment error occurs after the typing dependency in the **requirements.txt** file is installed.
+
+When PIP is set to the Huawei source, open the **requirements.txt** file, delete the typing dependency, and then run the following command:
+
+```
+pip3 install -r requirments.txt
+```
+
+## The error message "no module named yaml/typing_extensions." is displayed when **bash build.sh** is run during compilation.
+
+PyTorch compilation depends on the YAML and typing_extensions libraries, which need to be manually installed.
+
+```
+pip3 install pyyaml
+
+pip3 install typing_extensions
+```
+
+After the installation is successful, run **make clean** and then **bash build.sh** to perform compilation. Otherwise, an unknown compilation error may occur due to the cache.
+
+## TE cannot be found during running.
+
+Development state:
+
+```
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64 # {arch} is the architecture name.
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
+```
+
+User state:
+
+```
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64 # {arch} is the architecture name.
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
+```
+
+## During CMake installation through the CLI, an error is reported indicating that the package cannot be found. During CMake compilation, another error is reported indicating that the version is too early. In this cause, you can use the installation script or source code to compile and install CMake.
+
+Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
+
+​		x86_64 environment: cmake-3.12.0-Linux-x86_64.sh
+​		AArch64 environment: cmake-3.12.0-Linux-aarch64.sh
+
+Method 2: Use the source code to compile and install.
+
+1. Obtain the CMake software package.
+
+   ```
+   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
+   ```
+
+2. Decompress the package and go to the software package directory.
+
+   ```
+   tar -xf cmake-3.12.0.tar.gz
+   cd cmake-3.12.0/
+   ```
+
+3. Run the configuration, compilation, and installation commands.
+
+   ```
+   ./configure --prefix=/usr/local/cmake
+   make && make install
+   ```
+
+4. Set the soft link.
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+5. Run the following command to check whether CMake has been installed:
+
+   ```
+   cmake --version
+   ```
+
+   If the message "cmake version 3.12.0" is displayed, the installation is successful.
+
+## During GCC installation through the CLI, an error is reported indicating that the package cannot be found. During GCC compilation, another error is reported.
+
+When downloading GCC from some sources, you may be prompted by an error message indicating that the package cannot be found. In this case, use the source code to compile and install GCC.
 
 Perform the following steps as the **root** user.
 
-1.  Download **gcc-7.3.0.tar.gz** from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
-2.  GCC installation requires adequate temporary space. Run the following command to clear the **/tmp** directory in advance:
+1. Download **gcc-7.3.0.tar.gz** from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
 
-    ```
-    sudo rm -rf /tmp/*
-    ```
+2. GCC installation requires adequate temporary space. Run the following command to clear the **/tmp** directory in advance:
 
-3.  Install the dependency package. (CentOS and Ubuntu are used as examples.)
-    -   For CentOS, run the following command:
+   ```
+   sudo rm -rf /tmp/*
+   ```
 
-        ```
-        yum install bzip2    
-        ```
+3. Install the dependency package. (CentOS and Ubuntu are used as examples.)
 
-    -   For Ubuntu, run the following command:
+   - For CentOS, run the following command:
 
-        ```
-        apt-get install bzip2    
-        ```
+     ```
+     yum install bzip2    
+     ```
 
-4.  Build and install GCC.
-    1.  Go to the directory where the source package **gcc-7.3.0.tar.gz** is located and run the following command to decompress it:
+   - For Ubuntu, run the following command:
 
-        ```
-        tar -zxvf gcc-7.3.0.tar.gz
-        ```
+     ```
+     apt-get install bzip2    
+     ```
 
-    2.  Go to the extracted directory and run the following command to download the GCC dependency packages:
+4. Compile and install GCC.
 
-        ```
-        cd gcc-7.3.0
-        ./contrib/download_prerequisites
-        ```
+   1. Go to the directory where the source package **gcc-7.3.0.tar.gz** is located and run the following command to decompress it:
 
-        If an error is reported during the command execution, run the following commands in the **gcc-7.3.0/** directory to download the dependency packages:
+      ```
+      tar -zxvf gcc-7.3.0.tar.gz
+      ```
 
-        ```
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
-        wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
-        ```
+   2. Go to the extracted directory and download the GCC dependency packages:
 
-        After the preceding dependencies are downloaded, run the following command again:
+      ```
+      cd gcc-7.3.0
+      ./contrib/download_prerequisites
+      ```
 
-        ```
-        ./contrib/download_prerequisites
-        ```
+      If an error is reported during the command execution, run the following commands in the **gcc-7.3.0/** directory to download the dependency packages:
 
-        If the validation fails, check whether the dependency packages are downloaded more than once.
+      ```
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+      ```
 
-    3.  Run the configuration, build, and installation commands.
+      After the preceding dependencies are downloaded, run the following command again:
 
-        ```
-        ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
-        make -j15    # Check the number of CPUs by running **grep -w processor /proc/cpuinfo|wc -l**. In this example, the number is 15.
-        make install    
-        ```
+      ```
+      ./contrib/download_prerequisites
+      ```
 
-        >![](public_sys-resources/icon-notice.gif) **NOTICE:** 
-        >The **--prefix** option is used to specify the **linux\_gcc7.3.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr**, which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux\_gcc7.3.0**.
+      If the verification fails, check whether there are duplicate dependency packages in the folder. If yes, delete duplicate ones.
 
+   3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>Run the configuration, compilation, and installation commands.
 
-5.  Set the environment variable.
+      ```
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      make -j15    # Check the number of CPUs by running **grep -w processor /proc/cpuinfo|wc -l**. In this example, the number is 15. You can set the parameters as required.
+      make install    
+      ```
 
-    Training must be performed in the compilation environment with GCC upgraded. If you want to run training, configure the following environment variable in your training script:
-
-    ```
-    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
-    ```
-
-    **${install_path}** indicates the GCC 7.3.0 installation path configured in [3](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/gcc7.3.0/**.
-
-    >![](public_sys-resources/icon-note.gif) **NOTE:**
-    >Skip this step if you do not need to use the compilation environment with GCC upgraded.
+      >![](public_sys-resources/icon-notice.gif) **NOTICE:**
+      >The **--prefix** option is used to specify the **linux\_gcc7.3.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr,** which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux\_gcc7.3.0**.
 
 
-### What to Do If "-torch-1-5-0xxxx-" and "-torchvision-" Do Not Match When-torch--whl- Is Installed?
+5. Configure environment variables.
 
-#### Symptom
+   Training must be performed in the compilation environment with GCC upgraded. If you want to run training, configure the following environment variable in your training script:
 
-During the installation of **torch-\*.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
 
-![](figures/zh-cn_image_0000001190081735.png)
+   **${install_path}** indicates the GCC 7.3.0 installation path configured in [3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/gcc7.3.0/**.
 
-#### Possible Causes
+   >![](public_sys-resources/icon-note.gif) **NOTE:**
+   >Skip this step if you do not need to use the compilation environment with GCC upgraded.
+
+When the test environment is switched from GCC 4.8.5 to GCC 7.3.0, errors may occur and the PyTorch compilation fails. The following lists the libraries that require soft connections:
+
+gcc, g++, c++ (The version must be 7.3.0.)
+
+libstdc++->libstdc++.so.6.0.24(7.3.0)
+
+## libblas.so cannot be found.
+
+The OpenBLAS library is missing in the environment. You need to install it.
+
+CentOS and EulerOS
+
+```sh
+yum -y install openblas
+```
+
+Ubuntu
+
+```sh
+apt install libopenblas-dev
+```
+
+## No device is mounted to the container.
+
+An NPU-related error is reported when a script is run in the container. The **device** parameter is not set before container instance startup. As a result, the instance cannot be started.
+
+![](figures/FAQ.png)
+
+Run the following command to restart the container:
+
+```sh
+docker run -it --ipc=host \
+--device=/dev/davinciX \
+--device=/dev/davinci_manager \
+--device=/dev/devmm_svm \
+--device=/dev/hisi_hdc \
+-v /usr/local/Ascend/driver \
+-v /usr/local/dcmi \
+-v /usr/local/bin/npu-smi \
+${image name}:{tag} \
+/bin/bash
+```
+
+Parameter description:
+
+**/dev/davinci*X***: NPU device. *X* is the physical ID of the chip, for example, **davinci0**.
+
+**/dev/davinci_manager**: management device
+
+**/dev/devmm_svm**: management device
+
+**/dev/hisi_hdc**: management device
+
+**/usr/local/Ascend/driver**: driver directory
+
+**/usr/local/dcmi**: DCMI directory
+
+**/usr/local/bin/npu-smi**: npu-smi tool
+
+**$*{image name}:{tag}***: image name and version
+
+## An error is displayed during installation of -torch--whl-, indicating that -torch-1-5-0xxxx- and -torchvision- versions do not match.
+
+During installation of **torch-\*.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.
+![](https://gitee.com/ascend/pytorch/raw/v1.8.1-3.0.rc2/figures/zh-cn_image_0000001190081735.png)
 
 When the PyTorch is installed, the version check is automatically triggered. The version of the torchvision installed in the environment is 0.6.0. During the check, it is found that the version of the **torch-\*.whl** is inconsistent with the required version 1.5.0. As a result, an error message is displayed, but the installation is successful.
 
-#### Solution
+This problem does not affect the actual result, and no action is required.
 
-This problem has no impact on the actual result, and no action is required.
+## When you run **import torch_npu**, if "_has_compatible_shallow_copy_type" is output, a warning about a repeated registration error is displayed.
+
+The warning is triggered by the shallow copy operation of **Tensor.set_data**, as shown in the following figure. The main cause is that after the PyTorch plugin is decoupled, `_has_compatible_shallow_copy_type` cannot detect shallow copy of NPU tensors. You need to register `_has_compatible_shallow_copy_type` again.
+
+This error can be ignored because it does not affect the model accuracy and performance.
+
+It will be resolved after the NPU's device ID is incorporated into the community or the `_has_compatible_shallow_copy_type` registration mode is changed in a later PyTorch version.
+
+![Input Image Description](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
+
+# Version Description<a name='Version Description'></a>
+
+For details, see [Release Notes](https://gitee.com/ascend/pytorch/tree/master/docs/en/RELEASENOTE).
