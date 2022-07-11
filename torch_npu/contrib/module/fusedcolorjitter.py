@@ -15,9 +15,10 @@
 
 import random
 from math import sin, cos, pi
+import numbers
 import numpy as np
 from PIL import Image
-from torchvision.transforms import ColorJitter
+import torch
 
 
 class FusedColorJitterApply(object):
@@ -72,6 +73,14 @@ class FusedColorJitterApply(object):
 
     def apply_image_transform(self, img, transform_matrix, transform_offset):
         H, W, C = img.shape
+        if C != 3:
+            if C == 4:
+                img = img[:, :, :3]
+            elif C == 1:
+                img = img.repeat(3, axis=-1)
+            else:
+                raise ('Unknow format using.. Currnet shape is {}'.format(img.shape))
+            H, W, C = img.shape
         img = np.matmul(img.reshape(-1, 3), transform_matrix) + transform_offset
         return img.reshape(H, W, C)
 
@@ -97,7 +106,7 @@ class FusedColorJitterApply(object):
         return img
 
 
-class FusedColorJitter(ColorJitter):
+class FusedColorJitter(torch.nn.Module):
     """Randomly change the brightness, contrast, saturation and hue of an image.
 
     Unlike the native torchvision.transforms.ColorJitter,
@@ -125,9 +134,49 @@ class FusedColorJitter(ColorJitter):
 
     """
 
-    def __init__(self, brightness=0., contrast=0., saturation=0., hue=0.):
-        super().__init__(brightness, contrast, saturation, hue)
+    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):
+        super().__init__()
+        self.brightness = self._check_input(brightness, 'brightness')
+        self.contrast = self._check_input(contrast, 'contrast')
+        self.saturation = self._check_input(saturation, 'saturation')
+        self.hue = self._check_input(hue, 'hue', center=0, bound=(-0.5, 0.5),
+                                     clip_first_on_zero=False)
+
         self.transformer = FusedColorJitterApply(brightness, contrast, saturation, hue)
 
-    def __call__(self, img):
+    @torch.jit.unused
+    def _check_input(self, value, name, center=1, bound=(0, float('inf')), clip_first_on_zero=True):
+        if isinstance(value, numbers.Number):
+            if value < 0:
+                raise ValueError("If {} is a single number, it must be non negative.".format(name))
+            value = [center - float(value), center + float(value)]
+            if clip_first_on_zero:
+                value[0] = max(value[0], 0.0)
+        elif isinstance(value, (tuple, list)) and len(value) == 2:
+            if not bound[0] <= value[0] <= value[1] <= bound[1]:
+                raise ValueError("{} values should be between {}".format(name, bound))
+        else:
+            raise TypeError("{} should be a single number or a list/tuple with length 2.".format(name))
+
+        # if value is 0 or (1., 1.) for brightness/contrast/saturation
+        # or (0., 0.) for hue, do nothing
+        if value[0] == value[1] == center:
+            value = None
+        return value
+
+    def forward(self, img):
         return self.transformer(img)
+
+    def __repr__(self):
+        format_string = self.__class__.__name__ + '('
+        format_string += 'brightness={0}'.format(self.brightness)
+        format_string += ', contrast={0}'.format(self.contrast)
+        format_string += ', saturation={0}'.format(self.saturation)
+        format_string += ', hue={0})'.format(self.hue)
+        return format_string
+
+
+if __name__ == '__main__':
+    image = Image.fromarray(torch.randint(0, 256, size=(224, 224, 3)).numpy().astype(np.uint8))
+    fcj = FusedColorJitter(0.1, 0.1, 0.1, 0.1)
+    image = fcj(image)
