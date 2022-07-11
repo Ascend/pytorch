@@ -160,6 +160,12 @@ ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 
 参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
 
+### 硬件支持
+
+aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
+
+X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
+
 ### 模型迁移
 
 在main.py训练脚本的基础上进行修改，实现模型的单卡训练和单机多卡训练迁移。
@@ -4263,4 +4269,4 @@ return result
 **处理方法**<a name="section8970834202112"></a>
 
 export HCCL_CONNECT_TIMEOUT=time, 
-time默认值为120s ，取值范围为[120, 7200]
+time默认值为120s ，取值范围为[120, 7200]2
