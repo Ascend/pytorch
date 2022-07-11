@@ -546,6 +546,12 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 详情请参考《CANN 软件安装指南》安装开发环境。
 
+##### 硬件支持
+
+aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
+
+X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
+
 <h4 id="操作指南md">操作指南</h4>
 
 ##### 参数说明<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
