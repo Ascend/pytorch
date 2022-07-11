@@ -1,61 +1,58 @@
 # AscendPyTorch
 
 
-# Project Introduction
+<h1 id="introductionmd">Introduction</h1>
+This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors. When setting up the environment for model development and running under PyTorch, you can manually build and install modules adapted to the PyTorch framework on a server.
 
-This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors.
+<h3 id="prerequisitesmd">Prerequisites</h3>
 
-# Compilation/Execution Constraints
-
-GCC version: 7.3.0 (required only in compilation scenarios)
-
-CMake version: 3.12.0 or later (required only in compilation scenarios)
-
-Python version: 3.7.5 or 3.8.x
+- The development or operating environment of CANN has been installed. For details, see the *CANN Software Installation Guide*.
+- Python version: 3.7.5 or 3.8
 
 # System Dependencies
 
 ## CentOS & EulerOS
 
-yum install -y cmake zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas
+yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
 
 ## Ubuntu
 
-apt-get install -y gcc g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake dos2unix libopenblas-dev
+apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
 
 
 # Ascend Auxiliary Software
 
-| AscendPyTorch Version | CANN Version | Supported PyTorch Version | Gitee Branch   |
-| :-------------------- | :----------- | :------------------------ | -------------- |
-| 2.0.2                 | CANN 5.0.2   | 1.5.0.post2               | 2.0.2.tr5      |
-| 2.0.3                 | CANN 5.0.3   | 1.5.0.post3               | 2.0.3.tr5      |
-| 2.0.4                 | CANN 5.0.4   | 1.5.0.post4               | 2.0.4.tr5      |
-| 3.0.rc1               | CANN 5.1.RC1 | 1.5.0.post5               | v1.5.0-3.0.rc1 |
-| 3.0.rc1               | CANN 5.1.RC1 | 1.8.1.rc1                 | v1.8.1-3.0.rc1 |
+| AscendPyTorch Version| CANN Version| Supported PyTorch Version| Gitee Branch|
+| :------------ | :----------- | :----------- | ------------ |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
 
-# Method of Use - Full Code Generation and Compilation
+# Installation Methods
 
-## Obtain the PyTorch source code patch that adapts to the Ascend AI Processors.
+## Installing the PyTorch Environment Dependencies
 
-Obtain the PyTorch source code (from the current repository) that adapts to Ascend AI Processors and switch to the required branch.
+
+Obtain the PyTorch source code (from the current repository) that adapts to Ascend AI Processors.
 
    ```
-git clone https://gitee.com/ascend/pytorch.git
-# The current master branch is PyTorch 1.8.1. If PyTorch 1.5.0 is required, run the **git checkout** command to switch to the branch for version 1.5.0.
-cd pytorch
-git checkout -b v1.5.0-3.0.rc1 remotes/origin/v1.5.0-3.0.rc1
+   git clone -b v1.5.0-3.0.rc2 https://gitee.com/ascend/pytorch.git
    ```
 
-## Obtain the native PyTorch source code and third-party code.
+## Obtaining the Native PyTorch Source Code and Third-Party Code
 
-Obtain the native PyTorch source code from the root directory **/pytorch** of the current repository.
+Obtain the native PyTorch 1.5.0 source code from the root directory **/pytorch** of the current repository. Check whether there are fixed security-related issues in the Security and Issues categories in the PyTorch native repository. Update the native PyTorch code if there are any fixes.
 
 ```sh
+cd pytorch
 git clone -b v1.5.0 --depth=1 https://github.com/pytorch/pytorch.git
 ```
 
-Go to the **pytorch/pytorch/** directory and obtain the passive dependency code of PyTorch. (It takes a long time to obtain the code.)
+Go to the **pytorch/pytorch/** directory and obtain the passive dependency code of PyTorch. It takes a long time to obtain the code.
 
 ```sh
 cd pytorch
@@ -63,23 +60,23 @@ git submodule sync
 git submodule update --init --recursive
 ```
 
-If no error is reported after the preceding operations are complete, the PyTorch and third-party code on which PyTorch depends is generated.
+If no error is reported, the PyTorch and third-party code on which PyTorch depends is generated.
 
-## Generate the full PyTorch code that adapts to the Ascend AI Processors.
+## Generating Full PyTorch Code That Adapts to Ascend AI Processors
 
-Go to the **pytorch/scripts** directory and run the script based on the selected version. (Note: The downloaded native PyTorch source code must match the following version. Otherwise, an error may occur.)
+Go to the **pytorch/scripts** directory and run the script of the selected version. (Note: The downloaded native PyTorch source code must match the following version. Otherwise, an error may occur.)
 
 ```sh
 cd ../scripts/
 bash gen.sh
 ```
 
-The full code adapted to NPUs is generated in the **pytorch/pytorch/** directory.
+The full code adapted to the NPU is generated in the **pytorch/pytorch/** directory.
 
 
-## Install the Python dependency.
+## Installing the Python Dependency Library
 
-Go to the **pytorch/pytorch/** directory and install the Python dependency.
+Go to the **pytorch/pytorch/** directory and install the Python dependency library.
 
 ```python3
 cd ../pytorch
@@ -87,7 +84,7 @@ pip3 install -r requirements.txt
 ```
 
 
-## Compile the binary package of Torch.
+## Compiling Torch Binary Package
 
 In the **pytorch/pytorch/** directory, run the following command:
 
@@ -103,9 +100,7 @@ bash build.sh --python=3.8
 
 The generated binary package is in the **pytorch/pytorch/dist/** directory.
 
-# Installation
-
-### (Version 1.5.0 is used as an example. The same rule applies to version 1.8.1.)
+## Installing PyTorch
 
 **x86_64:**
 
@@ -131,7 +126,7 @@ pip3 install --upgrade torch-1.5.0+ascend-cp37-cp37m-linux_aarch64.whl
 
 # Running
 
-## Execute environment variables.
+## Executing Environment Variables
 
 Run the script for setting environment variables in the **pytorch/pytorch/** directory.
 
@@ -141,37 +136,65 @@ source env.sh
 ```
 
 
-## Customize environment variables.
-
-The following environment variables are function classes used in NPU scenarios or environment variables that can improve performance:
-
-```
-export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to **1**.
-export PTCOPY_ENABLE=1 # Use the PTCopy operator mode to accelerate continuous rotation and copy. You are advised to enable this environment variable and set its value to **1**.
-```
-
 The following are optional environment variables that may affect running models:
 
 ```
-export DYNAMIC_COMPILE_ENABLE=1  # Dynamic shape feature. This environment variable is optional for shape change scenarios. To enable it, set its value to **1**.
-export COMBINED_ENABLE=1 # (Optional) Optimizes the scenario where two inconsecutive operators are combined. To enable this function, set the value to **1**.
-export TRI_COMBINED_ENABLE=1 # Optimization of scenarios where three inconsecutive operators are combined. This environment variable is optional. To enable it, set its value to **1**.
+
+export COMBINED_ENABLE=1 # (Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to **1**. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency.
 export ACL_DUMP_DATA=1 # (Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.
-export DYNAMIC_OP="ADD#MUL" # Operator implementation. The ADD and MUL operators have different performance in different scenarios. Optional
+export TASK_QUEUE_ENABLE=1 # Delivered by an asynchronous task to asynchronously call the ACL interface. You are advised to enable this environment variable and set its value to **1**.
+
 ```
+If the system is openEuler or its inherited OS, such as UOS, run the following command to cancel CPU core binding.
 
+    ```
+    # unset GOMP_CPU_AFFINITY
+    ```
+**Table 1** Description of environment variables
 
-## Run the unit test script.
+<a name="zh-cn_topic_0000001152616261_table42017516135"></a>
+<table><thead align="left"><tr id="zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001152616261_p51981251161315"></a>Environment Variable</p>
+</th>
+<th class="cellrowborder" valign="top" width="44.519999999999996%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001152616261_p9198135114133"><a name="zh-cn_topic_0000001152616261_p9198135114133"></a><a name="zh-cn_topic_0000001152616261_p9198135114133"></a>Description</p>
+</td>
+</tr>
+<tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>(Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to **1**. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency.</p>
+</td>
+</tr>
+<tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>(Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.</p>
+</td>
+</tr>
+<tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>TASK_QUEUE_ENABLE</p>
+</td>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>(Optional) Use asynchronous task delivery to asynchronously invoke the ACL interface. To enable this function, set it to **1** (recommended default setting).</p>
+</td>
+</tbody>
+</table>
 
-Verify the execution. The output result is OK.
+## Running the Unit Test Script
+
+Verify the running. The output is **OK**.
+
 
 ```shell
 // Select a test script that matches the preceding version. The following uses the 1.5.0 version as an example.
 cd ../
 python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 ```
+<h3 id="installing a mixed precision modulemd">(Optional) Installing a Mixed Precision Module</h3>
+Select the APEX module based on the following functions. For details about how to build and install the APEX module, see the [README.en](https://gitee.com/ascend/apex/tree/v1.5.0/).
 
-# Documentation
+- APEX
+  - O1 configuration mode: Conv and Matmul use the float16 precision for computing, and Softmax and BN use float32.
+  - O2 configuration mode: BN uses the float32 precision for computing, and others use float16.
+  - Static loss scale: Parameters are statically set to ensure the convergence of training with mixed precision.
+  - Dynamic loss scale: The loss scale value is dynamically calculated to determine whether overflow occurs.
+
+# Document
 
 For more details about the installation guide, model porting and training/inference tutorials, and API list, see [User Documents](https://gitee.com/ascend/pytorch/tree/master/docs/en).
 
@@ -183,25 +206,34 @@ We sincerely welcome you to join discussions in the community and contribute you
 
 The version branches of AscendPyTorch have the following maintenance phases:
 
-| **Status**        | **Duration**  | **Description**                                              |
-| ----------------- | ------------- | ------------------------------------------------------------ |
-| Planning          | 1 - 3 months  | Plan features.                                               |
-| Development       | 3 months      | Develop features.                                            |
-| Maintained        | 6 - 12 months | Allow the incorporation of all resolved issues and release the version. |
-| Unmaintained      | 0 - 3 months  | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released. |
-| End Of Life (EOL) | N/A           | Do not accept any modification to a branch.                  |
+| **Status**      | **Duration**   | **Description**                                         |
+|-------------|---------------|--------------------------------------------------|
+| Planning    | 1 - 3 months  | Plan features.                    |
+| Development | 3 months      | Develop features.                 |
+| Maintained  | 6 - 12 months | Allow the incorporation of all resolved issues and release the version.|
+| Unmaintained| 0 - 3 months  | Allow the incorporation of all resolved issues. No dedicated maintenance personnel are available. No version will be released.                                                |
+| End Of Life (EOL) |  N/A |  Do not accept any modification to a branch.   |
 
 # Maintenance Status of Existing Branches
 
-| **Branch Name** | **Status** | **Launch Date** | **Subsequent Status**                  | **EOL Date** |
-| --------------- | ---------- | --------------- | -------------------------------------- | ------------ |
-| **v2.0.2**      | Maintained | 2021-07-29      | Unmaintained <br> 2022-07-29 estimated |              |
-| **v2.0.3**      | Maintained | 2021-10-15      | Unmaintained <br> 2022-10-15 estimated |              |
-| **v2.0.4**      | Maintained | 2022-01-15      | Unmaintained <br> 2023-01-15 estimated |              |
-| **v3.0.rc1**    | Maintained | 2022-04-10      | Unmaintained <br> 2023-04-10 estimated |              |
-
+| **Branch Name**| **Status** | **Launch Date**         | **Subsequent Status**                          | **EOL Date**|
+|------------|--------------|----------------------|----------------------------------------|------------|
+| **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
+| **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
+| **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
+| **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 
 # FAQ
+
+## When PIP is set to the Huawei source, a Python environment error occurs after the typing dependency in the **requirements.txt** file is installed.
+
+When PIP is set to the Huawei source, open the **requirements.txt** file, delete the typing dependency, and then run the following command:
+
+```
+pip3 install -r requirments.txt
+```
+
+
 
 ## The **libhccl.so** cannot be found by **import torch**.
 
@@ -231,13 +263,17 @@ After the installation is successful, run **make clean** and then **bash build.s
 Development state:
 
 ```
-cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/ascend-toolkit/latest/{arch}-linux/lib64 # {arch} is the architecture name.
+
+pip3 install --upgrade topi-0.4.0-py3-none-any.whl
+
+pip3 install --upgrade te-0.4.0-py3-none-any.whl
 ```
 
 User state:
 
 ```
-cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64
+cd /urs/local/Ascend/nnae/latest/{arch}-linux/lib64 # {arch} is the architecture name.
 
 pip3 install --upgrade topi-0.4.0-py3-none-any.whl
 
@@ -246,25 +282,120 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 
 
-## An error message is reported during CMake compilation, indicating that the version is too early.
+## During CMake installation through the CLI, an error is reported indicating that the package cannot be found. During CMake compilation, another error is reported indicating that the version is too early. In this cause, you can use the installation script or source code to compile and install CMake.
 
-Download the Linux version from the CMake official website and install it. (The current version is 3.18.0.)
+Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
 
-1. Run the **yum install -y cmake==3.18.0** command to install it.
+ x86_64 environment: cmake-3.12.0-Linux-x86_64.sh
+ AArch64 environment: cmake-3.12.0-Linux-aarch64.sh
 
-2. Download the **cmake sh** script and install it. (For details, see the CMake official website.)
+Method 2: Use the source code to build and install.
 
-   Recommended script in the x86_64 environment: **cmake-3.18.2-Linux-x86_64.sh**
+1. Obtain the CMake software package.
 
-   
+   ```
+   wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
+   ```
 
-## GCC version switch errors occur.
+2. Decompress the package and go to the software package directory.
 
-When the test environment is switched from GCC 4.8.5 to GCC 7.3.0, errors may occur and the PyTorch compilation fails. The following lists the libraries that require soft connections:
+   ```
+   tar -xf cmake-3.12.0.tar.gz
+   cd cmake-3.12.0/
+   ```
 
-gcc, g++, c++ (The version must be 7.3.0.)
+3. Run the configuration, compilation, and installation commands.
 
-libstdc++->libstdc++.so.6.0.24(7.3.0)
+   ```
+   ./configure --prefix=/usr/local/cmake
+   make && make install
+   ```
+
+4. Set the soft link.
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+5. Run the following command to check whether CMake has been installed:
+
+   ```
+   cmake --version
+   ```
+
+   If the message "cmake version 3.12.0" is displayed, the installation is successful.
+
+
+
+## During GCC installation through the CLI, an error is reported indicating that the package cannot be found. During GCC compilation, another error is reported.
+
+When downloading GCC from some sources, you may be prompted by an error message indicating that the package cannot be found. In this case, use the source code to build and install GCC.
+
+Perform the following steps as the **root** user.
+
+1. Download gcc-7.3.0.tar.gz from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://gitee.com/link?target=https %3A %2F %2Fmirrors.tuna.tsinghua.edu.cn %2Fgnu %2Fgcc %2Fgcc-7.3.0%2Fgcc-7.3.0.tar.gz).
+
+2. GCC installation requires adequate temporary space. Run the following command to clear the **/tmp** directory in advance:
+
+   ```
+   sudo rm -rf /tmp/*
+   ```
+
+3. Install the dependency package. (CentOS and Ubuntu are used as examples.)
+
+   - For CentOS, run the following command:
+
+     ```
+     yum install bzip2    
+     ```
+
+   - For Ubuntu, run the following command:
+
+     ```
+     apt-get install bzip2    
+     ```
+
+4. Build and install GCC.
+
+   1. Go to the directory where the source package **gcc-7.3.0.tar.gz** is located and run the following command to decompress it:
+
+      ```
+      tar -zxvf gcc-7.3.0.tar.gz
+      ```
+
+   2. Go to the extracted directory and download the GCC dependency packages:
+
+      ```
+      cd gcc-7.3.0
+      ./contrib/download_prerequisites
+      ```
+
+      If an error is reported during the command execution, run the following commands in the **gcc-7.3.0/** directory to download the dependency packages:
+
+      ```
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz
+      wget http://gcc.gnu.org/pub/gcc/infrastructure/isl-0.16.1.tar.bz2
+      ```
+
+      After the preceding dependencies are downloaded, run the following command again:
+
+      ```
+      ./contrib/download_prerequisites
+      ```
+
+      If the verification fails, check whether there are duplicate dependency packages in the folder. If yes, delete duplicate ones.
+
+   3. Run the following commands for configuration, build, and installation.
+
+      ```
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      make -j15    # Check the number of CPUs by running **grep -w processor /proc/cpuinfo|wc -l**. In this example, the number is 15. You can set the parameters as required.
+      make install    
+      ```
+
+      > ![img](figures/icon-notice.gif) **Note**: The **--prefix** parameter specifies the installation path of linux_gcc7.3.0. Set this parameter to the actual path. But do not set it to **/usr/local** or **/usr**, which conflict with the default GCC installed by the system using the source code and thus damage the original GCC compilation environment. In this example, the installation path is set to **/usr/local/linux_gcc7.3.0**.
 
 
 
@@ -288,7 +419,7 @@ apt install libopenblas-dev
 
 ## torchvision fails to be installed using pip in the Arm environment.
 
-The source code can be used for installation. (You need to install the Ascend pytorch first and configure environment variables using **env.sh**.)
+The source code can be used for installation. (You need to install the AscendPyTorch first and configure environment variables using **env.sh**.)
 
 ```
 git clone -b v0.6.0 https://github.com/pytorch/vision.git 
@@ -306,6 +437,6 @@ If no error is reported, the installation is successful.
 
 
 
-# Release Notes
+# Version Description
 
 For details, see [Release Notes](https://gitee.com/ascend/pytorch/tree/master/docs/en/RELEASENOTE).
