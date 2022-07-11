@@ -264,13 +264,13 @@ bool Repository::NeedNotify(RepoRole role) const {
 }
 
 bool Repository::WriteQueue(void* cur_paras) {
+  std::lock_guard<std::mutex> lock(mu_enqueue);
   QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
   if (IsFullQueue()) {
     QUEUE_DEBUG("queue is full");
     return false;
   }
 
-  std::lock_guard<std::mutex> lock(mu_enqueue);
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
   manager().Copy(datas, write_idx.idx, cur_paras, queueLen);
   __sync_synchronize();
