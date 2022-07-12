@@ -34,7 +34,6 @@ tuple<Tensor&, Tensor&> sort_out_npu_no_transpose(
      .Output(indices)
      .Attr("axis", dim)
      .Attr("descending", descending)
-     .Attr<int64_t>("_keep_dtype", 1)
      .Run();
 
   return std::tie(values, indices);
