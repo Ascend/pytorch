@@ -709,12 +709,12 @@ The training can be started manually or using the shell script.
      3. Open the **/etc/hosts** file on each server and add the corresponding IP address and host name of the server to the first line of the file. If the file already contains the IP address and host name, skip this step. The following is an example of the content to be added:
 
         ```
-        10.90.140.199 ubuntu
+        xxx.xxx.xxx.111 ubuntu
         ```
 
-        In the preceding content, **10.90.140.199** is the IP address of the server, and **ubuntu** is the host name.
+        In the preceding content, **xxx.xxx.xxx.111** is the IP address of the server, and **ubuntu** is the host name.
 
-     4. Run the following commands on the first server to generate a public key (Assume that the IP address of the first server is **10.90.140.199**.):
+     4. Run the following commands on the first server to generate a public key (Assume that the IP address of the first server is **xxx.xxx.xxx.111**.):
 
         ```
         cd ~/.ssh/                       # If the directory does not exist, run the ssh localhost command first.
@@ -742,7 +742,7 @@ The training can be started manually or using the shell script.
       6. Run the following commands on each of the other servers to copy the public key of the first server to each of the other servers:
          
             cd ~/.ssh/
-                  scp root@10.90.140.199:~/.ssh/authorized_keys ./
+                  scp root@xxx.xxx.xxx.111:~/.ssh/authorized_keys ./
          
       7. Run the following command on each server to test password-free login:
          
@@ -750,7 +750,7 @@ The training can be started manually or using the shell script.
             ssh User name@IP address
          ```
          
-         For example, run the **ssh root@10.90.140.231** command to log in to the server whose IP address is 10.90.140.231 from the first server whose IP address is 10.90.140.199 without a password.
+         For example, run the **ssh root@xxx.xxx.xxx.222** command to log in to the server whose IP address is xxx.xxx.xxx.222 from the first server whose IP address is xxx.xxx.xxx.111 without a password.
          
          If information similar to the following is displayed, the login without a password is successful.
          
@@ -770,7 +770,7 @@ The training can be started manually or using the shell script.
          
          ```
             logout
-            Connection to 10.90.140.231 closed.
+            Connection to xxx.xxx.xxx.222 closed.
          ```
    3. Use Open MPI to start model training.
   
