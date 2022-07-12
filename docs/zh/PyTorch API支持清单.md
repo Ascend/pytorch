@@ -40,9 +40,9 @@
 | 36   | torch.heaviside               |                   否                   |
 | 37   | torch.cat                     |                   是                   |
 | 38   | torch.chunk                   |                   是                   |
-| 39   | torch.column_stack            |                   否                   |
-| 40   | torch.dstack                  |                   否                   |
-| 41   | torch.hstack                  |                   否                   |
+| 39   | torch.column_stack            |                   是                   |
+| 40   | torch.dstack                  |                   是                   |
+| 41   | torch.hstack                  |                   是                   |
 | 42   | torch.gather                  |                   是                   |
 | 43   | torch.index_select            |                   是                   |
 | 44   | torch.masked_select           |                   是                   |
@@ -62,7 +62,7 @@
 | 58   | torch.t                       |                   是                   |
 | 59   | torch.take                    |                   是                   |
 | 60   | torch.tensor_split            |                   否                   |
-| 61   | torch.tile                    |                   否                   |
+| 61   | torch.tile                    |                   是                   |
 | 62   | torch.transpose               |                   是                   |
 | 63   | torch.unbind                  |                   是                   |
 | 64   | torch.unsqueeze               |                   是                   |
@@ -119,23 +119,23 @@
 | 序号 | API名称                                | 是否支持                                    |
 | ---- | -------------------------------------- | ------------------------------------------- |
 | 1    | torch.abs                              | 是                                          |
-| 2    | torch.absolute                         | 否                                          |
+| 2    | torch.absolute                         | 是                                          |
 | 3    | torch.acos                             | 是                                          |
 | 4    | torch.arccos                           | 否                                          |
-| 5    | torch.acosh                            | 否                                          |
-| 6    | torch.arccosh                          | 否                                          |
+| 5    | torch.acosh                            | 是                                          |
+| 6    | torch.arccosh                          | 是                                          |
 | 7    | torch.add                              | 是                                          |
 | 8    | torch.addcdiv                          | 是                                          |
 | 9    | torch.addcmul                          | 是                                          |
 | 10   | torch.angle                            | 否                                          |
 | 11   | torch.asin                             | 是                                          |
-| 12   | torch.arcsin                           | 否                                          |
-| 13   | torch.asinh                            | 否                                          |
-| 14   | torch.arcsinh                          | 否                                          |
+| 12   | torch.arcsin                           | 是                                          |
+| 13   | torch.asinh                            | 是                                          |
+| 14   | torch.arcsinh                          | 是                                          |
 | 15   | torch.atan                             | 是                                          |
 | 16   | torch.arctan                           | 否                                          |
-| 17   | torch.atanh                            | 否                                          |
-| 18   | torch.arctanh                          | 否                                          |
+| 17   | torch.atanh                            | 是                                          |
+| 18   | torch.arctanh                          | 是                                          |
 | 19   | torch.atan2                            | 是                                          |
 | 20   | torch.bitwise_not                      | 是                                          |
 | 21   | torch.bitwise_and                      | 是                                          |
@@ -143,14 +143,14 @@
 | 23   | torch.bitwise_xor                      | 是                                          |
 | 24   | torch.ceil                             | 是                                          |
 | 25   | torch.clamp                            | 是                                          |
-| 26   | torch.clip                             | 否                                          |
+| 26   | torch.clip                             | 是                                          |
 | 27   | torch.conj                             | 否                                          |
 | 28   | torch.copysign                         | 否                                          |
 | 29   | torch.cos                              | 是                                          |
 | 30   | torch.cosh                             | 是                                          |
 | 31   | torch.deg2rad                          | 否                                          |
 | 32   | torch.div                              | 是                                          |
-| 33   | torch.divide                           | 否                                          |
+| 33   | torch.divide                           | 是                                          |
 | 34   | torch.digamma                          | 否                                          |
 | 35   | torch.erf                              | 是                                          |
 | 36   | torch.erfc                             | 是                                          |
@@ -160,7 +160,7 @@
 | 40   | torch.expm1                            | 是                                          |
 | 41   | torch.fake_quantize_per_channel_affine | 否                                          |
 | 42   | torch.fake_quantize_per_tensor_affine  | 否                                          |
-| 43   | torch.fix                              | 否                                          |
+| 43   | torch.fix                              | 是                                          |
 | 44   | torch.float_power                      | 否                                          |
 | 45   | torch.floor                            | 是                                          |
 | 46   | torch.floor_divide                     | 是                                          |
@@ -179,18 +179,18 @@
 | 59   | torch.logical_and                      | 是                                          |
 | 60   | torch.logical_not                      | 是                                          |
 | 61   | torch.logical_or                       | 是                                          |
-| 62   | torch.logical_xor                      | 是                                          |
+| 62   | torch.logical_xor                      | 否                                          |
 | 63   | torch.logit                            | 否                                          |
 | 64   | torch.hypot                            | 否                                          |
 | 65   | torch.i0                               | 否                                          |
 | 66   | torch.igamma                           | 否                                          |
 | 67   | torch.igammac                          | 否                                          |
 | 68   | torch.mul                              | 是                                          |
-| 69   | torch.multiply                         | 否                                          |
+| 69   | torch.multiply                         | 是                                          |
 | 70   | torch.mvlgamma                         | 否                                          |
 | 71   | torch.nan_to_num                       | 否                                          |
 | 72   | torch.neg                              | 是                                          |
-| 73   | torch.negative                         | 否                                          |
+| 73   | torch.negative                         | 是                                          |
 | 74   | torch.nextafter                        | 否                                          |
 | 75   | torch.polygamma                        | 否                                          |
 | 76   | torch.pow                              | 是                                          |
@@ -210,12 +210,12 @@
 | 90   | torch.sqrt                             | 是                                          |
 | 91   | torch.square                           | 是                                          |
 | 92   | torch.sub                              | 是                                          |
-| 93   | torch.subtract                         | 否                                          |
+| 93   | torch.subtract                         | 是                                          |
 | 94   | torch.tan                              | 是                                          |
 | 95   | torch.tanh                             | 是                                          |
 | 96   | torch.true_divide                      | 是                                          |
 | 97   | torch.trunc                            | 是                                          |
-| 98   | torch.xlogy                            | 否                                          |
+| 98   | torch.xlogy                            | 是                                          |
 | 99   | torch.argmax                           | 是                                          |
 | 100  | torch.argmin                           | 是                                          |
 | 101  | torch.amax                             | 否                                          |
@@ -228,7 +228,7 @@
 | 108  | torch.logsumexp                        | 是                                          |
 | 109  | torch.mean                             | 是                                          |
 | 110  | torch.median                           | 是                                          |
-| 111  | torch.namedian                         | 否                                          |
+| 111  | torch.nanmedian                        | 否                                          |
 | 112  | torch.mode                             | 否                                          |
 | 113  | torch.norm                             | 是                                          |
 | 114  | torch.nansum                           | 否                                          |
@@ -239,7 +239,7 @@
 | 119  | torch.std_mean                         | 是                                          |
 | 120  | torch.sum                              | 是                                          |
 | 121  | torch.unique                           | 是                                          |
-| 122  | torch.unique_consecutive               | 否                                          |
+| 122  | torch.unique_consecutive               | 是                                          |
 | 123  | torch.var                              | 否                                          |
 | 124  | torch.var_mean                         | 否                                          |
 | 125  | torch.count_nonzero                    | 否                                          |
@@ -248,9 +248,9 @@
 | 128  | torch.eq                               | 是                                          |
 | 129  | torch.equal                            | 是                                          |
 | 130  | torch.ge                               | 是                                          |
-| 131  | torch.greater_qual                     | 否                                          |
+| 131  | torch.greater_equal                    | 是                                          |
 | 132  | torch.gt                               | 是                                          |
-| 133  | torch.greater                          | 否                                          |
+| 133  | torch.greater                          | 是                                          |
 | 134  | torch.isclose                          | 否                                          |
 | 135  | torch.isfinite                         | 是                                          |
 | 136  | torch.isinf                            | 是                                          |
@@ -260,15 +260,15 @@
 | 140  | torch.isreal                           | 否                                          |
 | 141  | torch.kthvalue                         | 是                                          |
 | 142  | torch.le                               | 是                                          |
-| 143  | torch.less_qual                        | 否                                          |
+| 143  | torch.less_equal                       | 是                                          |
 | 144  | torch.lt                               | 是                                          |
-| 145  | torch.less                             | 否                                          |
+| 145  | torch.less                             | 是                                          |
 | 146  | torch.maximum                          | 否                                          |
 | 147  | torch.minimum                          | 否                                          |
 | 148  | torch.fmax                             | 否                                          |
 | 149  | torch.fmin                             | 否                                          |
 | 150  | torch.ne                               | 是                                          |
-| 151  | torch.not_equal                        | 否                                          |
+| 151  | torch.not_equal                        | 是                                          |
 | 152  | torch.sort                             | 是                                          |
 | 153  | torch.topk                             | 是                                          |
 | 154  | torch.msort                            | 否                                          |
@@ -1432,6 +1432,12 @@ torch_npu.npu.set_device()接口只支持在程序开始的位置通过set_devic
 | 55   | torch_npu.npu_linear                            |
 | 56   | torch_npu.npu_bert_apply_adam                   |
 | 57   | torch_npu.npu_giou                              |
+| 58   | torch_npu.npu_ciou                              |
+| 59   | torch_npu.npu_ciou_backward                     |
+| 60   | torch_npu.npu_diou                              |
+| 61   | torch_npu.npu_diou_backward                     |
+| 62   | torch_npu.npu_sign_bits_pack                    |
+| 63   | torch_npu.npu_sign_bits_unpack                  |
 
 详细算子接口说明：
 
@@ -3381,6 +3387,128 @@ Rotate Bounding Box Encoding.
                 [-88.4375]]], device='npu:0', dtype=torch.float16)
     ```
 
+>   torch_npu.npu_ciou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> Tensor
+
+Applies an NPU based CIOU operation.
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Notes:
+
+  Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args：
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  - mode (int):  Select the calculation mode of diou.
+  - atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
+
+- Returns：
+
+  torch.Tensor: The result of the mask operation
+
+- Examples：
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_ciou(box1, box2) 
+      >>> l = ciou.sum()
+      >>> l.backward()
+  ```
+
+>   torch_npu.npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+
+Applies an NPU based DIOU operation.
+
+Taking into account the distance between the targets,the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
+
+- Notes:
+
+  Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args：
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  - mode (int):  Select the calculation mode of diou.
+
+- Returns：
+
+  torch.Tensor: The result of the mask operation
+
+- Examples：
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_diou(box1, box2) 
+      >>> l = diou.sum()
+      >>> l.backward()
+  ```
+
+  >    torch_npu.npu_sign_bits_pack(Tensor self, int size) -> Tensor
+
+  one-bit Adam pack of float into uint8.
+
+  - Args：
+
+    - x(Tensor) - A floats Tensor in 1D.
+    - size(Number) - A required int. First dimension of output tensor when reshaping.
+
+    - constraints：
+
+      Size needs to be divisible by output of packing floats. If size of x is divisible by 8, size of output is (size of x) / 8;
+      otherwise, size of output is (size of x // 8) + 1, -1 float values will be added to fill divisibility, at little endian positions.
+      910 and 710 chips support input type float32 and float16, 310 chips only supports input type float16.
+
+  - Examples：
+
+    ```
+        >>>a = torch.tensor([5,4,3,2,0,-1,-2, 4,3,2,1,0,-1,-2],dtype=torch.float32).npu()
+        >>>b = torch_npu.sign_bits_pack(a, 2)
+        >>>b
+        >>>tensor([[159],[15]], device='npu:0')
+        >>>(binary form of 159 is ob10011111, corresponds to 4, -2, -1, 0, 2, 3, 4, 5 respectively)
+    ```
+
+
+  >    torch_npu.sign_bits_unpack(x, dtype, size) -> Tensor
+
+  one-bit Adam unpack of uint8 into float.
+
+  - Args：
+
+    - x(Tensor) - A uint8 Tensor in 1D.
+    - dtype(Number) - A required int. 1 sets float16 as output, 0 sets float32 as output.
+    - size(Number) - A required int. First dimension of output tensor when reshaping.
+
+  - constraints：
+
+    Size needs to be divisible by output of unpacking uint8s. Size of output is (size of x) * 8;
+
+  - Examples：
+
+    ```
+        >>>a = torch.tensor([159, 15], dtype=torch.uint8).npu()
+        >>>b = torch_npu.sign_bits_unpack(a, 0, 2)
+        >>>b
+        >>>tensor([[1., 1., 1., 1., 1., -1., -1., 1.],
+        >>>[1., 1., 1., 1., -1., -1., -1., -1.]], device='npu:0')
+    (binary form of 159 is ob00001111)
+    ```
+
+    
+
 ## 亲和库
 
 以下亲和库适用于PyTorch 1.8.1版本。
@@ -3414,8 +3542,6 @@ Using NPU custom operator to replace the native writing method to improve perfor
       >>> axis = -1
       >>> output = torch_npu.contrib.function.fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
   ```
-
- 
 
 >   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
 
