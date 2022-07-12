@@ -18,22 +18,6 @@ import torch
 import torch._C as _C
 import torch_npu
 
-def _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride):
-    t = torch.tensor([0], dtype=storage.dtype).to(storage.device)
-    return t.npu_set_(storage, storage_offset, npu_format, size, stride)
-
-def _rebuild_tensor_v2(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_format=2):
-    if storage.device.type == 'npu':
-        tensor = _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride)
-    else:
-        tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
-    tensor.requires_grad = requires_grad
-    # NB: This line exists only for backwards compatibility; the
-    # general expectation is that backward_hooks is an empty
-    # OrderedDict.  See Note [Don't serialize hooks]
-    tensor._backward_hooks = backward_hooks
-    return tensor
-
 class _StorageBase(torch.storage._StorageBase):
     _cdata: Any
     is_cuda: bool = False
@@ -146,5 +130,4 @@ def is_storage(obj):
     return type(obj) in torch._storage_classes
 
 def add_storage_methods():
-    torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
     torch.is_storage = is_storage
