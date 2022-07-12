@@ -118,8 +118,7 @@ export COMBINED_ENABLE=1 # 非连续转连续二级推导优化，可选，开�
 export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开启设置为1
 ```
 
-**表 1**  环境变量说明
-<a name="zh-cn_topic_0000001152616261_table42017516135"></a>
+**表 1**  环境变量说明<a name="zh-cn_topic_0000001152616261_table42017516135"></a>
 
 <table><thead align="left"><tr id="zh-cn_topic_0000001152616261_row16198951191317"><th class="cellrowborder" valign="top" width="55.48%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001152616261_p51981251161315"><a name="zh-cn_topic_0000001152616261_p51981251161315"></a><a name="zh-cn_topic_0000001152616261_p51981251161315"></a>配置项</p>
 </th>
@@ -136,6 +135,9 @@ export ACL_DUMP_DATA=1 # 算子数据dump功能，调试时使用，可选，开
 <td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>（可选）算子数据dump功能，调试时使用，开启设置为1。</p>
 </td>
 </tr>
+</table>
+
+
 
 ## 执行单元测试脚本
 
@@ -233,7 +235,8 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法一：下载安装脚本安装cmake。（参考cmake官网）
 
-​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh
+​		X86_64环境脚本安装：cmake-3.12.0-Linux-x86_64.sh 
+
 ​		aarch64环境脚本安装：cmake-3.12.0-Linux-aarch64.sh
 
 1. 执行命令。
