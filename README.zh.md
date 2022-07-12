@@ -387,9 +387,9 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    4. 修改软连接。
 
          ```
-      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
-      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
-      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ln -s ${install_path}/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/bin/c++ /usr/bin/c++
       ```
 
 5. 配置环境变量。
@@ -400,7 +400,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
    ```
 
-   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/linux_gcc7.3.0/“。
 
    >![](figures/icon-note.gif) **说明：** 
    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
