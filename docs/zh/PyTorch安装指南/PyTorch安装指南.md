@@ -21,7 +21,7 @@
 
 本项目开发了PyTorch Adapter插件，用于昇腾适配PyTorch框架，为使用PyTorch框架的开发者提供昇腾AI处理器的超强算力。用户在准备相关环境进行基于PyTorch框架模型的开发、运行时，可以选择在服务器中手动编译安装PyTorch框架相关模块。
 
-<h3 id="前提条件md">前提条件</h3>
+## 前提条件
 
 - 需完成CANN开发或运行环境的安装，具体操作请参考《CANN 软件安装指南》。
 - Python支持版本为3.7.5、3.8。
@@ -313,7 +313,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 方法二：使用源码编译安装。
 
-1. 获取Cmake软件包。
+1. 获取cmake软件包。
 
    ```
    wget https://cmake.org/files/v3.12/cmake-3.12.0.tar.gz --no-check-certificate
@@ -423,9 +423,9 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    4. 修改软连接。
 
          ```
-      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
-      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
-      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ln -s ${install_path}/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/bin/c++ /usr/bin/c++
       ```
 
    5.配置环境变量。
@@ -436,7 +436,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
    ```
 
-   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/linux_gcc7.3.0/“。
 
    >![](public_sys-resources/icon-note.gif) **说明：** 
    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
