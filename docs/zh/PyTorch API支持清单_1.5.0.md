@@ -181,7 +181,7 @@
 | 71   | torch.std_mean           | 是                                          |
 | 72   | torch.sum                | 是                                          |
 | 73   | torch.unique             | 是                                          |
-| 74   | torch.unique_consecutive | 否                                          |
+| 74   | torch.unique_consecutive | 是                                          |
 | 75   | torch.var                | 否                                          |
 | 76   | torch.var_mean           | 否                                          |
 | 77   | torch.allclose           | 是                                          |
