@@ -21,9 +21,19 @@ import torch
 import torch.nn as nn
 import torch.serialization as se
 from torch._six import container_abcs, string_classes
-import torch_npu
+
 
 DEFAULT_PROTOCOL = 2
+
+
+def module_to_cpu(module):
+    cpu_module = copy.deepcopy(module).cpu()
+    for attr in dir(cpu_module):
+        attr_item = getattr(cpu_module, attr)
+        if isinstance(attr_item, torch.Tensor):
+            setattr(cpu_module, attr, attr_item.cpu())
+    return cpu_module
+
 
 def to_cpu(data):
     if isinstance(data, string_classes):
@@ -33,7 +43,7 @@ def to_cpu(data):
         return data.cpu()
 
     if isinstance(data, nn.Module):
-        return copy.deepcopy(data).cpu()
+        return module_to_cpu(data)
 
     if isinstance(data, argparse.Namespace):
         dict_obj = vars(data)
@@ -53,7 +63,7 @@ def to_cpu(data):
             elif isinstance(value, torch.Tensor):
                 copy_data[i] = value.cpu()
             elif isinstance(value, nn.Module):
-                copy_data[i] = copy.deepcopy(value).cpu()
+                copy_data[i] = module_to_cpu(value)
             else:
                 copy_data[i] = value
         return type(data)(copy_data)
@@ -70,7 +80,7 @@ def to_cpu(data):
             elif isinstance(value, torch.Tensor):
                 copy_data[key] = value.cpu()
             elif isinstance(value, nn.Module):
-                copy_data[key] = copy.deepcopy(value).cpu()
+                copy_data[key] = module_to_cpu(value)
             else:
                 copy_data[key] = value
         return copy_data
