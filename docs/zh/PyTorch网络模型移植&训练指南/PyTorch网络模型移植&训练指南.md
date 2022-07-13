@@ -172,7 +172,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
 
 在main.py训练脚本的基础上进行修改，实现模型的单卡训练和单机多卡训练迁移。
 
-#### 单卡训练迁移
+#### 单卡训练迁移<a name="单卡训练修改"></a>
 
 1. 在main.py脚本中导入torch.npu模块。
 
@@ -316,7 +316,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
        main()
    ```
 
-#### 单机多卡训练修改
+#### 单机多卡训练修改<a name="单机多卡训练修改"></a>
 
 1. main.py增加头文件以支持基于PyTorch框架的模型在昇腾910 AI处理器上训练及进行混合精度训练。
 
@@ -665,6 +665,604 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
             # if torch.cuda.is_available():
             #     target = target.cuda(args.gpu, non_blocking=True)
     ```
+
+#### 添加分布式（8P）训练
+
+##### mp.spawn启动方式
+
+1. 导入依赖
+
+   ```python
+   import torch.nn.parallel
+   import torch.distributed as dist
+   import torch.multiprocessing as mp
+   ```
+
+   torch.nn.parallel用于调用模型并行接口
+
+   torch.distributed用于调用初始化进程组接口
+
+   torch.multiprocessing用于调用多个进程接口
+
+   上述参数设置增加以下参数，包括指定参与训练的昇腾910 AI处理器需要的参数 。
+
+2. 若源码中已有该参数则不用添加
+
+   ```python
+   parser.add_argument('--addr', default='127.0.0.1', type=str, help='master addr')
+   parser.add_argument('--port', default='29688', type=str, help='master port')
+   parser.add_argument('--world-size', default=1, type=int,
+                       help='number of nodes for distributed training')
+   parser.add_argument('--rank', default=0, type=int,
+                       help='node rank for distributed training')
+   parser.add_argument('--dist-url', default='env://', type=str,
+                       help='url used to set up distributed training')
+   parser.add_argument('--dist-backend', default='hccl', type=str,
+                       help='distributed backend')
+   parser.add_argument('--multiprocessing-distributed', action='store_true',
+                       help='Use multi-processing distributed training to launch '
+                            'N processes per node, which has N NPUs. This is the '
+                            'fastest way to use PyTorch for either single node or '
+                            'multi node data parallel training')
+   ```
+
+   --addr和--port用于多进程之间通信
+
+   --multiprocessing-distributed用于判断是否使用分布式训练
+
+   --world-size、--rank、--dist-url、--dist-backend为下面初始化进程组接口所需参数
+
+3. 获取训练服务器可用device数、设置地址和端口号、拉起多进程
+
+   代码位置：main.py文件中的主函数main（文件名以及函数名根据具体模型而定,下同）
+
+   由于昇腾AI处理器初始化进程组时init_method 只支持env:// （即环境变量初始化方式），所以在初始化前需要配置MASTER_ADDR、MASTER_PORT等参数
+
+   修改前：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       ngpus_per_node = torch.cuda.device_count()
+       main_worker(args.gpu, ngpus_per_node，args)
+   ```
+
+   修改后：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       os.environ['MASTER_ADDR'] = args.addr 
+       os.environ['MASTER_PORT'] = args.port
+       ngpus_per_node = torch.npu.device_count()
+       if args.multiprocessing_distributed:
+           mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
+       else:
+           # Simply call main_worker function
+           main_worker(args.gpu, ngpus_per_node，args)
+   ```
+
+   其中mp.spawn第一个参数为模型主函数名称，根据具体模型具体修改。
+
+4. 添加分布式逻辑
+
+   1）初始化进程组
+
+   代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = gpu
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+   ```
+
+   修改后：
+
+   mp.spawn多进程拉起main_worker后，第一个参数gpu自动获得device号（0 ~ ngpus_per_node - 1）
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = gpu
+       if args.gpu is not None:
+           print("Use NPU: {} for training".format(args.gpu))
+       if args.multiprocessing_distributed:
+           # For multiprocessing distributed training, rank needs to be the
+           # global rank among all the processes
+           args.rank = args.rank * ngpus_per_node + args.gpu
+           args.world_size = ngpus_per_node * args.world_size
+           args.batch_size = int(args.batch_size / ngpus_per_node)
+           dist.init_process_group(backend=args.dist_backend, 
+                                   init_method=args.dist_url,
+                                   world_size=args.world_size, 
+                                   rank=args.rank)
+   ```
+
+   在8P分布式情况下传入的batch_size一般为单P的8倍，所以需要对batch_size进行处理，以保证8P分布式每张卡的batch_size和单P保持一致；同样地，为了保证精度，8P分布式情况下传入的学习率也应该为单P时的8倍，但模型中不需要对学习率再做处理。
+
+   2）数据集切分和模型并行
+
+   数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将drop_last设置为True；train_sampler存在时train_loader的shuffle参数不可为True，因此shuffle须设置为train_sampler is None。
+
+   代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True)
+   ```
+
+   修改后：
+
+   ```python
+   train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) if args.multiprocessing_distributed else None
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True,
+   				shuffle=(train_sampler is None),
+   				sampler=train_sampler,
+   				drop_last=True)
+   ```
+
+   找到模型定义处
+
+   修改前：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   ```
+
+   修改后：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   model = model.to('npu:{}'.format(args.gpu))
+   if args.multiprocessing_distributed:
+   	model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+   ```
+
+   3）设置当前的epoch，为了让不同的结点之间保持同步
+
+    代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+   修改后：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       if args.multiprocessing_distributed:
+           train_sampler.set_epoch(epoch)
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+5. 拉起训练
+
+   其余所需参数未列举
+
+   ```python
+   python3 main.py
+   	  	--rank 0
+           --world-size 1 
+           --dist-url 'env://'
+           --dist-backend 'hccl'
+           --multiprocessing-distribute
+   ```
+
+   
+
+##### Python命令启动方式
+
+1. 导入依赖
+
+   ```python
+   import torch.nn.parallel
+   import torch.distributed as dist
+   ```
+
+   torch.nn.parallel用于调用模型并行接口
+
+   torch.distributed用于调用初始化进程组接口
+
+2. 参数设置增加以下参数，包括指定参与训练的昇腾910 AI处理器需要的参数
+
+   若源码中已有该参数则不用添加
+
+   ```python
+   parser.add_argument("--local_rank", default=-1, type=int)
+   parser.add_argument('--addr', default='127.0.0.1', type=str, help='master addr')
+   parser.add_argument('--port', default='29688', type=str, help='master port')
+   parser.add_argument('--world-size', default=1, type=int,
+                       help='number of nodes for distributed training')
+   parser.add_argument('--rank', default=0, type=int,
+                       help='node rank for distributed training')
+   parser.add_argument('--dist-url', default='env://', type=str,
+                       help='url used to set up distributed training')
+   parser.add_argument('--dist-backend', default='hccl', type=str,
+                       help='distributed backend')
+   parser.add_argument('--multiprocessing-distributed', action='store_true',
+                       help='Use multi-processing distributed training to launch '
+                            'N processes per node, which has N NPUs. This is the '
+                            'fastest way to use PyTorch for either single node or '
+                            'multi node data parallel training')
+   ```
+
+   --local_rank用于自动获取device号
+
+   --addr和--port用于多进程之间通信
+
+   --multiprocessing-distributed用于判断是否使用分布式训练
+
+   --world-size、--rank、--dist-url、--dist-backend为下面初始化进程组接口所需参数
+
+3. 获取训练服务器可用device数、设置地址和端口号
+
+   代码位置：main.py文件中的主函数main（文件名以及函数名根据具体模型而定,下同）
+
+   由于昇腾AI处理器初始化进程组时init_method 只支持env:// （即环境变量初始化方式），所以在初始化前需要配置MASTER_ADDR、MASTER_PORT等参数。
+
+   修改前：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       ngpus_per_node = torch.cuda.device_count()
+       main_worker(args.gpu, ngpus_per_node, args)
+   ```
+
+   修改后：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       os.environ['MASTER_ADDR'] = args.addr 
+       os.environ['MASTER_PORT'] = args.port
+       ngpus_per_node = torch.npu.device_count()
+       main_worker(args.gpu, ngpus_per_node, args)
+   ```
+
+4. 添加分布式逻辑
+
+   1）初始化进程组
+
+   代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = gpu
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+   ```
+
+   修改后：
+
+   任务拉起后，local_rank自动获得device号
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = args.local_rank
+       if args.gpu is not None:
+           print("Use NPU: {} for training".format(args.gpu))
+       if args.multiprocessing_distributed:
+           # For multiprocessing distributed training, rank needs to be the
+           # global rank among all the processes
+           args.rank = args.rank * ngpus_per_node + args.gpu
+           args.world_size = ngpus_per_node * args.world_size
+           args.batch_size = int(args.batch_size / ngpus_per_node)
+           dist.init_process_group(backend=args.dist_backend, 
+                                   init_method=args.dist_url,
+                                   world_size=args.world_size, 
+                                   rank=args.rank)
+   ```
+
+   在8P分布式情况下传入的batch_size一般为单P的8倍，所以需要对batch_size进行处理，以保证8P分布式每张卡的batch_size和单P保持一致；同样地，为了保证精度，8P分布式情况下传入的学习率也应该为单P时的8倍，但模型中不需要对学习率再做处理。
+
+   2）数据集切分和模型并行
+
+   数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将drop_last设置为True；train_sampler存在时train_loader的shuffle参数不可为True，因此shuffle须设置为train_sampler is None。
+
+   代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True)
+   ```
+
+   修改后：
+
+   ```python
+   train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) if args.multiprocessing_distributed else None
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True,
+   				shuffle=(train_sampler is None),
+   				sampler=train_sampler,
+   				drop_last=True)
+   ```
+
+   找到模型定义处
+
+   修改前：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   ```
+
+   修改后：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   model = model.to('npu:{}'.format(args.gpu))
+   if args.multiprocessing_distributed:
+   	model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+   ```
+
+   3）设置当前的epoch，为了让不同的结点之间保持同步
+
+    代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+   修改后：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       if args.multiprocessing_distributed:
+           train_sampler.set_epoch(epoch)
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+5. 拉起训练
+
+   其余所需参数未列举
+
+   ```python
+   python3 main.py
+   	  	--rank 0
+           --world-size 1 
+           --dist-url 'env://'
+           --dist-backend 'hccl'
+           --multiprocessing-distribute
+   ```
+
+   
+
+##### Shell脚本方式
+
+1. 导入依赖
+
+   ```python
+   import torch.nn.parallel
+   import torch.distributed as dist
+   ```
+
+   torch.nn.parallel用于调用模型并行接口
+
+   torch.distributed用于调用初始化进程组接口
+
+2. 参数设置增加以下参数，包括指定参与训练的昇腾910 AI处理器需要的参数
+
+   若源码中已有该参数则不用添加
+
+   ```python
+   parser.add_argument('--addr', default='127.0.0.1', type=str, help='master addr')
+   parser.add_argument('--port', default='29688', type=str, help='master port')
+   parser.add_argument('--world-size', default=1, type=int,
+                       help='number of nodes for distributed training')
+   parser.add_argument('--rank', default=0, type=int,
+                       help='node rank for distributed training')
+   parser.add_argument('--dist-url', default='env://', type=str,
+                       help='url used to set up distributed training')
+   parser.add_argument('--dist-backend', default='hccl', type=str,
+                       help='distributed backend')
+   parser.add_argument('--multiprocessing-distributed', action='store_true',
+                       help='Use multi-processing distributed training to launch '
+                            'N processes per node, which has N NPUs. This is the '
+                            'fastest way to use PyTorch for either single node or '
+                            'multi node data parallel training')
+   ```
+
+   --addr和--port用于多进程之间通信
+
+   --multiprocessing-distributed用于判断是否使用分布式训练
+
+   --world-size、--rank、--dist-url、--dist-backend为下面初始化进程组接口所需参数
+
+3. 获取训练服务器可用device数、设置地址和端口号
+
+   代码位置：main.py文件中的主函数main**（**文件名以及函数名根据具体模型而定**,下同）**
+
+   由于昇腾AI处理器初始化进程组时init_method 只支持env:// （即环境变量初始化方式），所以在初始化前需要配置MASTER_ADDR、MASTER_PORT等参数
+
+   修改前：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       ngpus_per_node = torch.cuda.device_count()
+       main_worker(args.gpu, ngpus_per_node，args)
+   ```
+
+   修改后：
+
+   ```python
+   def main():
+       args = parser.parse_args()
+       os.environ['MASTER_ADDR'] = args.addr 
+       os.environ['MASTER_PORT'] = args.port
+       ngpus_per_node = torch.npu.device_count()
+       main_worker(args.gpu, ngpus_per_node，args)
+   ```
+
+4. 添加分布式逻辑
+
+   1）初始化进程组
+
+   代码位置：main.py文件中的main_worker
+
+   修改前**：**
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = gpu
+       if args.gpu is not None:
+           print("Use GPU: {} for training".format(args.gpu))
+   ```
+
+   修改后：
+
+   在shell脚本中循环传入LOCAL_RANK变量作为指定的device
+
+   ```python
+   def main_worker(gpu, ngpus_per_node, args):
+       global best_acc1
+       args.gpu = int(os.environ['LOCAL_RANK'])
+       if args.gpu is not None:
+           print("Use NPU: {} for training".format(args.gpu))
+       if args.multiprocessing_distributed:
+           # For multiprocessing distributed training, rank needs to be the
+           # global rank among all the processes
+           args.rank = args.rank * ngpus_per_node + args.gpu
+           args.world_size = ngpus_per_node * args.world_size
+           args.batch_size = int(args.batch_size / ngpus_per_node)
+           dist.init_process_group(backend=args.dist_backend, 
+                                   init_method=args.dist_url,
+                                   world_size=args.world_size, 
+                                   rank=args.rank)
+   ```
+
+   在8P分布式情况下传入的batch_size一般为单P的8倍，所以需要对batch_size进行处理，以保证8P分布式每张卡的batch_size和单P保持一致；同样地，为了保证精度，8P分布式情况下传入的学习率也应该为单P时的8倍，但模型中不需要对学习率再做处理
+
+   2）数据集切分和模型并行
+
+   数据加载器，结合了数据集和取样器，并且可以提供多个线程处理数据集。由于当前仅支持固定shape下的训练，数据流中剩余的样本数可能小于batch大小，因此需要将drop_last设置为True；train_sampler存在时train_loader的shuffle参数不可为True，因此shuffle须设置为train_sampler is None
+
+   代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True)
+   ```
+
+   修改后：
+
+   ```python
+   train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset) if args.multiprocessing_distributed else None
+   train_loader = torch.utils.data.DataLoader(
+       			train_dataset, 
+       			batch_size=args.batch_size, 
+       			num_workers=args.workers, 
+       			pin_memory=True,
+   				shuffle=(train_sampler is None),
+   				sampler=train_sampler,
+   				drop_last=True)
+   ```
+
+   找到模型定义处
+
+   修改前：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   ```
+
+   修改后：
+
+   ```python
+   print("=> creating model '{}'".format(args.arch))
+   model = models.__dict__[args.arch]()
+   model = model.to('npu:{}'.format(args.gpu))
+   if args.multiprocessing_distributed:
+   	model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+   ```
+
+   3）设置当前的epoch，为了让不同的结点之间保持同步
+
+    代码位置：main.py文件中的main_worker
+
+   修改前：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+   修改后：
+
+   ```python
+   for epoch in range(args.start_epoch, args.epochs):
+       if args.multiprocessing_distributed:
+           train_sampler.set_epoch(epoch)
+       adjust_learning_rate(optimizer, epoch, args)
+   ```
+
+5. 拉起训练
+
+   新建shell脚本
+
+   ```python
+   RANK_ID_START=0
+   WORLD_SIZE=8
+   for((RANK_ID=$RANK_ID_START;RANK_ID<$((WORLD_SIZE+RANK_ID_START));RANK_ID++));
+   do
+   	echo "Device ID: $RANK_ID"
+   	export LOCAL_RANK=$RANK_ID
+   	
+   	python3 main.py
+   	  	--rank 0
+           --world-size 1 
+           --dist-url 'env://'
+           --dist-backend 'hccl'
+           --multiprocessing-distribute
+   done
+   wait
+   ```
+
+   
+
+
 
 ### 模型训练
 
@@ -1269,7 +1867,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
     target = target.to(CALCULATE_DEVICE)
 ```
 
-更多迁移细节请参见[单P训练修改](#单P训练修改md)。
+更多迁移细节请参见[单卡训练修改](#单卡训练修改)。
 
 <h4 id="多P训练模型迁移md">多P训练模型迁移</h4>
 
@@ -1295,7 +1893,7 @@ def main():
           lr_scheduler)
 ```
 
-更多迁移细节请参见[分布式训练修改](#分布式训练修改md)。
+更多迁移细节请参见[单机多卡训练修改](#单机多卡训练修改)。
 
 <h4 id="PyTorch接口替换md">PyTorch接口替换</h4>
 
@@ -2847,7 +3445,7 @@ if __name__ == "__main__":
 
 <h4 id="网络迁移md">网络迁移</h4>
 
-训练脚本迁移请参见[单P训练修改](#单P训练修改md)和[分布式训练修改](#分布式训练修改md)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
+训练脚本迁移请参见[单卡训练修改](#单卡训练修改)和[单机多卡训练修改](#单机多卡训练修改)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
 
 <h4 id="网络调测md">网络调测</h4>
 
