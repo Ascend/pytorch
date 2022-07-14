@@ -1293,7 +1293,7 @@
 | 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | Supported      |
 | 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | Unsupported      |
 | 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | Unsupported      |
-| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | Supported      |
+| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | Unsupported |
 | 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | Unsupported      |
 | 13   | torch.cuda.init                               | torch_npu.npu.init                               | Supported      |
 | 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | Unsupported      |
