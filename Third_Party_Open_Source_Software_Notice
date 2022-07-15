@@ -1,0 +1,101 @@
+OPEN SOURCE SOFTWARE NOTICE
+
+Please note we provide an open source software notice along with this product and/or this product firmware (in the following just “this product”). The open source software licenses are granted by the respective right holders. And the open source licenses prevail all other license information with regard to the respective open source software contained in the product, including but not limited to End User Software Licensing Agreement. This notice is provided on behalf of Huawei Technologies Co. Ltd. and any of its local subsidiaries which may have provided this product to you in your local country.
+
+Warranty Disclaimer
+THE OPEN SOURCE SOFTWARE IN THIS PRODUCT IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL, BUT WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. SEE THE APPLICABLE LICENSES FOR MORE DETAILS.
+
+Copyright Notice and License Texts
+
+Software: pytorch 1.8.1
+Copyright notice: 
+Copyright 2005, Google Inc.
+Copyright (c) 2011-2013 NYU
+Copyright (c) 2008 - 2012 The Khronos Group Inc.
+Copyright (c) 2007-2017 Free Software Foundation, Inc.
+Copyright (c) 2011-2019 Stephan Brumme
+Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020 Python Software Foundation
+Copyright (c) Facebook, Inc. and its affiliates
+Copyright (c) 2014 Indiana University
+Copyright (c) 2007-2009 Scientific Computing and Imaging Institute, University of Utah
+Copyright 2015 The Gemmlowp Authors
+Copyright (c) 2017-2020 Advanced Micro Devices, Inc.
+Copyright (c) 2008-2012 The Khronos Group Inc.
+Copyright (c) 2014-2017 The Regents of the University of California (Regents)
+Copyright (c) 2010 ActiveState Software Inc.
+Copyright 2019 Kakao Brain
+Copyright (c) 2017-2018 Facebook Inc.
+Copyright (c) 2017 Microsoft
+Copyright (c) 2006 The Android Open Source Project
+Copyright (c) 2016-present, Facebook Inc.
+Copyright (c) 2015 Google Inc.
+Copyright (c) 2017 The Android Open Source Project
+Copyright (c) 2018 Marat Dukhan
+Copyright (c) 2017-present, Facebook, Inc.
+Copyright (c) 2018 MathInf GmbH, Thomas Viehmann
+Copyright (c) 2014-2015 The Khronos Group Inc.
+Copyright (c) 2008-2015 The Khronos Group Inc.
+Copyright (c) 2015, 2016 the respective contributors
+Copyright 2006, Google Inc.
+Copyright (c) Facebook Inc. and Microsoft Corporation
+Copyright (c) 2017 Georgia Institute of Technology
+Copyright (c) 2016 Facebook Inc.
+Copyright (c) PyTorch contributors
+copyright 2019, Torch
+Copyright (c) 2013 Eddy Petrisor
+Copyright (c) 2006, Laurent Montel, <montel@kde.org>
+Copyright Python Software Foundation
+Copyright (c) 2015 Yangqing Jia
+Copyright (c) 2016-present, Facebook, Inc.
+Copyright (c) 2001-2002 Enthought, Inc. 2003-2019, SciPy Developers
+Copyright (c) 2003-2017 Josef Weidendorfer
+Copyright (c) 2014-2017, the respective contributors
+Copyright (c) 2000-2017 Julian Seward
+Copyright (c) 2014, The Regents of the University of California (Regents)
+Copyright (c) 1994 Hewlett-Packard Company
+Copyright 2013-2014 RAD Game
+copyright 2019 The TensorFlow Authors
+Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
+Copyright (c) Edward Z. Yang <ezyang@mit.edu>
+Copyright (c) 2016-2017, ARM Limited and Contributors
+Copyright (c) 2011-2014 Idiap Research Institute
+Copyright (c) 2008-2013 The Khronos Group Inc.
+Copyright (c) 2001-2014 Python Software Foundation
+Copyright (c) 2005-2010 ActiveState Software Inc.
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2018, Steven Moshier
+Copyright (c) 2018-present, Facebook, Inc.
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2012-2014 Deepmind Technologies
+Copyright 2015 Google Inc.
+Copyright 2016 Facebook
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2014, 2015, the respective contributors
+Copyright (c) 2005-2017, NumPy Developers
+Copyright (c) 2016 Microsoft
+Copyright (c) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura
+Copyright (c) 2016, NVIDIA CORPORATION
+Copyright Michael Park, 2015-2017
+Copyright 2005 Robert Kern (robert.kern@gmail.com)
+Copyright (c) 2013, 2014, 2015, the respective contributors
+Copyright (c) 2014, the respective contributors
+Copyright 2019-2020 Kakao Brain
+Copyright 2004-present Facebook
+Copyright (c) 1996-1998 Silicon Graphics Computer Systems, Inc.
+Copyright (c) 2015-2017 The Khronos Group Inc.
+Copyright (c) 2016- Facebook, Inc
+Copyright 2016 Martin Raiber
+Copyright (c) 2006 Idiap Research Institute
+Copyright (c) 2011 - 2012 Andrzej Krzemienski
+Copyright (c) 2014- Facebook, Inc
+Copyright Malte Skarupke 2017
+Copyright 2013 Conrad Steenberg <conrad.steenberg@gmail.com>
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc.
+Copyright (c) 2001-2019 Free Software Foundation, Inc.
+Copyright (c) 2008 - 2009 NVIDIA Corporation
+Copyright (c) 2014, 2015, The Regents of the University of California (Regents)
+Copyright (c) 2012 Giovanni Garberoglio Interdisciplinary Laboratory for Computational Science (LISC) Fondazione Bruno Kessler and University of Trento
+Copyright (c) 2010-2017 Benjamin Peterson
+
+License: BSD 3-Clause License
+Please see above.
