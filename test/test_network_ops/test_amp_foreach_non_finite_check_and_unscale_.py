@@ -46,35 +46,19 @@ class Test_AmpForeachNonFiniteCheckAndUnscale_(TestCase):
         input1 = input1.numpy()
         return input1
 
+
     def test_AmpForeachNonFiniteCheckAndUnscale_float32_case1(self, device='npu'):
-        input1, input2, input3 = self.generate_data(0, 100, (4, 3), np.float32, 1.5)
-        cpu_output = self.cpu_op_exec(input1, input2, input3)
-        npu_output = self.npu_op_exec(input1, input2, input3)
-        self.assertRtolEqual(cpu_output, npu_output)
+        params = [(0, 100, (4, 3), np.float32, 1.5),
+                  (0, 100, (2, 5, 6), np.float32, 3.7),
+                  (0, 100, (5, 7), np.float32, 1.9),
+                  (0, 100, (2, 8, 1), np.float32, 3.2)
+                  ]
+        for param in params:
+            input1, input2, input3 = self.generate_data(*param)
+            cpu_output = self.cpu_op_exec(input1, input2, input3)
+            npu_output = self.npu_op_exec(input1, input2, input3)
+            self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_AmpForeachNonFiniteCheckAndUnscale_float32_case2(self, device='npu'):
-        input1, input2, input3 = self.generate_data(0, 100, (2, 5, 6), np.float32, 3.7)
-        cpu_output = self.cpu_op_exec(input1, input2, input3)
-        npu_output = self.npu_op_exec(input1, input2, input3)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-    def test_AmpForeachNonFiniteCheckAndUnscale_float16_case1(self, device='npu'):
-        input1, input2, input3 = self.generate_data(0, 100, (5, 7), np.float16, 1.9)
-        input1 = input1.to(torch.float32)
-        input2 = input2.to(torch.float32)
-        input3 = input3.to(torch.float32)
-        cpu_output = self.cpu_op_exec(input1, input2, input3)
-        npu_output = self.npu_op_exec(input1, input2, input3)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-    def test_AmpForeachNonFiniteCheckAndUnscale_float16_case2(self, device='npu'):
-        input1, input2, input3 = self.generate_data(0, 100, (2, 8, 1), np.float16, 3.2)
-        input1 = input1.to(torch.float32)
-        input2 = input2.to(torch.float32)
-        input3 = input3.to(torch.float32)
-        cpu_output = self.cpu_op_exec(input1, input2, input3)
-        npu_output = self.npu_op_exec(input1, input2, input3)
-        self.assertRtolEqual(cpu_output, npu_output)
 
 if __name__ == '__main__':
     run_tests()
