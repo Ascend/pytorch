@@ -19,6 +19,7 @@ yum install -y gcc==7.3.0 cmake==3.12.0
 ## Ubuntu
 
 apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
+
 apt-get install -y gcc==7.3.0 cmake==3.12.0
 
 
@@ -184,6 +185,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
+| **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |            |
 
 # FAQ
 
