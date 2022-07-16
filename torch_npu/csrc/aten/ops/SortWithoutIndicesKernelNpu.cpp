@@ -58,13 +58,13 @@ at::Tensor& NPUNativeFunctions::npu_sort_v2_out(
       perm.emplace_back(i);
     }
     std::swap(perm[dim], perm[lastDim]);
-    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
+    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
 
     auto outputSize = transpose_npu_output_size(result, perm);
     at::Tensor transposeResult = OpPreparation::ApplyTensor(result, outputSize);
 
     sort_without_indices_no_transpose(transposeResult, transposeSelf, lastDim, descending);
-    NPUNativeFunctions::npu_transpose_out(transposeResult, perm, result);
+    NPUNativeFunctions::npu_transpose_out(transposeResult, perm, true, result);
   } else {
     if (!NpuUtils::check_match(&result)) {
       at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
@@ -94,13 +94,13 @@ at::Tensor NPUNativeFunctions::npu_sort_v2(
       perm.emplace_back(i);
     }
     std::swap(perm[dim], perm[lastDim]);
-    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
+    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
 
     auto outputSize = transpose_npu_output_size(result, perm);
     at::Tensor transposeResult = OpPreparation::ApplyTensor(result, outputSize);
 
     sort_without_indices_no_transpose(transposeResult, transposeSelf, lastDim, descending);
-    NPUNativeFunctions::npu_transpose_out(transposeResult, perm, result);
+    NPUNativeFunctions::npu_transpose_out(transposeResult, perm, true, result);
   } else {
     sort_without_indices_no_transpose(result, self, dim, descending);
   }

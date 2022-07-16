@@ -1862,11 +1862,9 @@ autograd:
   - elu_
 
 custom:
-  - func: npu_transpose_to_contiguous(Tensor self) -> Tensor
+  - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
     variants: function, method
-  - func: npu_transpose(Tensor self, int[] perm) -> Tensor
-    variants: function, method
-  - func: npu_transpose.out(Tensor self, int[] perm, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_transpose.out(Tensor self, int[] perm, bool require_contiguous=True, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_broadcast(Tensor self, int[] size) -> Tensor
     variants: function, method
   - func: npu_broadcast.out(Tensor self, int[] size, *, Tensor(a!) out) -> Tensor(a!)

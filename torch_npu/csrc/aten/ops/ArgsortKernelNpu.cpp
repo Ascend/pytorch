@@ -53,7 +53,7 @@ at::Tensor& argsort_out_npu_nocheck(
   }
   std::swap(perm[dim], perm[lastDim]);
 
-  at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
+  at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
   auto outputSize = transpose_npu_output_size(values, perm);
   at::Tensor transposeValues = OpPreparation::ApplyTensor(
       values,
@@ -65,7 +65,7 @@ at::Tensor& argsort_out_npu_nocheck(
   argsort_out_npu_no_transpose(
       transposeValues, transposeIndices, transposeSelf, lastDim, descending);
 
-  NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
+  NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, true, indices);
   
   // indices dtype transform to Int64
   indices = NPUNativeFunctions::npu_dtype_cast(indices, at::kLong);

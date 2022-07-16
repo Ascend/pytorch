@@ -39,7 +39,7 @@ public:
           static_cast<FormatShape>(sizes));
       src_desc.storage_sizes_ = sizes;
 
-      NPUNativeFunctions::npu_transpose_out(src, perm, self);
+      NPUNativeFunctions::npu_transpose_out(src, perm, false, self);
       src_desc = src_desc_stored;
       return true;
     }
