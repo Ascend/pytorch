@@ -50,7 +50,7 @@ at::Tensor& roll_transpose(
     perm.emplace_back(i);
   }
   std::swap(perm[axis], perm[firstDim]);
-  at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
+  at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
   auto outputSize = transpose_npu_output_size(result, perm);
   at::Tensor transposeResult = OpPreparation::ApplyTensorWithFormat(
       outputSize,
@@ -61,7 +61,7 @@ at::Tensor& roll_transpose(
   at::IntArrayRef dim_now = at::IntArrayRef(dim);
   at::IntArrayRef shift_now = at::IntArrayRef(shift_bak);
   roll_out_npu_no_transpose(transposeResult, transposeSelf, shift_now, dim_now);
-  NPUNativeFunctions::npu_transpose_out(transposeResult, perm, result);
+  NPUNativeFunctions::npu_transpose_out(transposeResult, perm, true, result);
   return result;
 }
 
