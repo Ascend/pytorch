@@ -1669,13 +1669,14 @@ Change the format of a npu tensor.
     29
     ```
 
-> torch_npu.npu_transpose(self, perm) -> Tensor
+> torch_npu.npu_transpose(self, perm, bool require_contiguous=True) -> Tensor
 
 Returns a view of the original tensor with its dimensions permuted, and make the result contiguous.
 
 - Parameters:
   - **self** (Tensor) - the input tensor
   - **perm** (ListInt) - The desired ordering of dimensions
+  - **require_contiguous** (bool) - Used to specify whether trans-contiguous of self is needed.
 
 - Constraints:
 

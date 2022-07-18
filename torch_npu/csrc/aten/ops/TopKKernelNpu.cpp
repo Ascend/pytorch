@@ -63,7 +63,7 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
     std::swap(perm[dim], perm[lastDim]);
 
     // construct the output tensor of the NPU
-    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);
+    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
     auto outputSize = transpose_npu_output_size(values, perm);
     at::Tensor transposeValue = OpPreparation::ApplyTensor(values, outputSize);
     at::Tensor transposeIndices = OpPreparation::ApplyTensor(indices, outputSize);
@@ -75,8 +75,8 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
         lastDim,
         largest,
         sorted);
-    NPUNativeFunctions::npu_transpose_out(transposeValue, perm, values);
-    NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
+    NPUNativeFunctions::npu_transpose_out(transposeValue, perm, true, values);
+    NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, true, indices);
   } else {
     topk_out_npu_no_transpose(
         values, indices, self, k, lastDim, largest, sorted);
