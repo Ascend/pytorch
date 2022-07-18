@@ -71,7 +71,7 @@ namespace at_npu
       cmd.Name("Add")
           .Input(self)
           .Input(at::Scalar(value), self.scalar_type())
-          .Output(result, real_type)
+          .Output(result, "", c10::nullopt, real_type)
           .Run();
 
       return result;
@@ -117,7 +117,7 @@ namespace at_npu
           cmd.Name("Add")
               .Input(self)
               .Input(other)
-              .Output(result, real_type)
+              .Output(result, "", c10::nullopt, real_type)
               .Run();
         }
         else

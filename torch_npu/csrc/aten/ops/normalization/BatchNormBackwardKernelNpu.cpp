@@ -43,10 +43,10 @@ tuple<at::Tensor&, at::Tensor&> batch_norm_backward_training_update_nocheck(
   cmd.Name(name)
       .Input(grad_out, "grads", format)
       .Input(self, "x", format)
-      .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-      .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-      .Output(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
-      .Output(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
+      .Input(save_mean, "batch_mean", format)
+      .Input(save_invstd, "batch_variance", format)
+      .Output(grad_weight, "diff_scale", format)
+      .Output(grad_bias, "diff_offset", format)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
@@ -74,12 +74,12 @@ at::Tensor& batch_norm_backward_training_reduce_nocheck(
   cmd.Name(name)
       .Input(grad_out, "grads", format)
       .Input(self, "x", format)
-      .Input(grad_weight, "diff_scale", ACL_FORMAT_NCHW)
-      .Input(grad_bias, "diff_offset", ACL_FORMAT_NCHW)
-      .Input(weight, "scale", ACL_FORMAT_NCHW)
-      .Input(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-      .Input(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-      .Output(grad_input, "y", ACL_FORMAT_NCHW)
+      .Input(grad_weight, "diff_scale", format)
+      .Input(grad_bias, "diff_offset", format)
+      .Input(weight, "scale", format)
+      .Input(save_mean, "batch_mean", format)
+      .Input(save_invstd, "batch_variance", format)
+      .Output(grad_input, "y", format)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
@@ -101,10 +101,10 @@ at::Tensor& batch_norm_backward_infer_nocheck(
     double eps)  {
   OpCommand cmd;
   cmd.Name("BNInferGrad")
-      .Input(grad_out)
-      .Input(weight)
-      .Input(running_var)
-      .Output(grad_input)
+      .Input(grad_out, "grads", ACL_FORMAT_NCHW)
+      .Input(weight, "scale", ACL_FORMAT_NCHW)
+      .Input(running_var, "batch_variance", ACL_FORMAT_NCHW)
+      .Output(grad_input, "x_backprop", ACL_FORMAT_NCHW)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
   

@@ -37,6 +37,9 @@ Matmul: [1] 2-2-t(strict transpose); [2] 2-n-view+t(view transpose).
   False--Tensor is not transposed, proceed to format_contiguous.
 *****************************************/
 bool is_transpose_last_two_dims_flex(const at::Tensor &tensor) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   if (tensor.dim() != 2) {
     return false;
   }
@@ -54,6 +57,9 @@ bool is_transpose_last_two_dims_flex(const at::Tensor &tensor) {
 // Pick out strict-transpose tensors from flex-transpose tensors.
 bool is_transpose_last_two_dims_strict(const at::Tensor &tensor,
                                        bool is_transpose_flex) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   auto base_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)
                         ->get_npu_desc()
                         .base_sizes_;

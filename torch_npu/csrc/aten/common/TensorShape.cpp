@@ -33,6 +33,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/ResizeNpu.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 
@@ -97,7 +98,7 @@ at::Tensor NPUNativeFunctions::as_strided(
       c10::Storage(dst.storage()),
       dst.key_set(),
       dst.dtype());
-  at::native::setStrided(result, size, stride, storage_offset);
+    setStrided(result, size, stride, storage_offset);
   return result;
 }
 
