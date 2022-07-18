@@ -52,7 +52,7 @@ void NPUNativeFunctions::_cummin_helper(const at::Tensor& self, at::Tensor& valu
       }
       std::swap(perm[dim], perm[firstDim]);
       
-      at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm);      
+      at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);      
       auto outputSize = transpose_npu_output_size(values, perm);      
       at::Tensor transposeValue = OpPreparation::ApplyTensor(self, outputSize);
       at::Tensor transposeIndices = OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kInt), self); 
@@ -60,8 +60,8 @@ void NPUNativeFunctions::_cummin_helper(const at::Tensor& self, at::Tensor& valu
       cummin_out_npu_nocheck(transposeValue, transposeIndices, transposeSelf, firstDim);
       // Indices must to be long
       transposeIndices = transposeIndices.to(at::kLong);
-      NPUNativeFunctions::npu_transpose_out(transposeValue, perm, values);
-      NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
+      NPUNativeFunctions::npu_transpose_out(transposeValue, perm, true, values);
+      NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, true, indices);
     } else {
       at::Tensor valuesTemp = OpPreparation::ApplyTensor(self);
       at::Tensor indicesTemp = OpPreparation::ApplyTensor(self, self.options().dtype(at::kInt)); 
