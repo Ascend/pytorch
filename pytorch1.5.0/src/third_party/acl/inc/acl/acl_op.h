@@ -218,6 +218,23 @@ ACL_FUNC_VISIBILITY aclError aclopSetAttrListListInt(
 
 /**
  * @ingroup AscendCL
+ * @brief set an attribute. the type of the attribute is DataType
+ *
+ * @param attr [IN]        pointer to the instance of aclopAttr
+ * @param attrName [IN]    attribute name
+ * @param numLists [IN]    number of lists
+ * @param numValues [IN]   pointer to number of values of each list
+ * @param values [IN]      pointer to values
+ * @retval ACL_ERROR_NONE The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclopSetAttrDataType(
+    aclopAttr* attr,
+    const char* attrName,
+    aclDataType values);
+
+/**
+ * @ingroup AscendCL
  * @brief Load and execute the specified operator asynchronously
  *
  * @par Restriction
