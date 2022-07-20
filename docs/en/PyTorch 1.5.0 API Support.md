@@ -488,7 +488,7 @@
 | 182  | torch.Tensor.log1p_                    | Supported             |
 | 183  | torch.Tensor.log2                      | Supported             |
 | 184  | torch.Tensor.log2_                     | Supported             |
-| 185  | torch.Tensor.log_normal_               | Supported             |
+| 185  | torch.Tensor.log_normal_               | Unsupported           |
 | 186  | torch.Tensor.logsumexp                 | Supported             |
 | 187  | torch.Tensor.logical_and               | Supported             |
 | 188  | torch.Tensor.logical_and_              | Supported             |

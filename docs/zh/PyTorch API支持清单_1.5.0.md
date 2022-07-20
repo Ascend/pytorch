@@ -488,7 +488,7 @@
 | 182  | torch.Tensor.log1p_                    | 是       |
 | 183  | torch.Tensor.log2                      | 是       |
 | 184  | torch.Tensor.log2_                     | 是       |
-| 185  | torch.Tensor.log_normal_               | 是       |
+| 185  | torch.Tensor.log_normal_               | 否       |
 | 186  | torch.Tensor.logsumexp                 | 是       |
 | 187  | torch.Tensor.logical_and               | 是       |
 | 188  | torch.Tensor.logical_and_              | 是       |
