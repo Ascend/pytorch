@@ -17,8 +17,49 @@
 import torch
 from . import _lazy_init, _lazy_call, device_count, current_device
 
-__all__ = ['manual_seed', 'manual_seed_all',
+__all__ = ['get_rng_state', 'set_rng_state',
+           'manual_seed', 'manual_seed_all',
            'seed', 'seed_all', 'initial_seed']
+
+
+def get_rng_state(device='npu'):
+    r"""Returns the random number generator state of the specified NPU as a ByteTensor.
+
+    Args:
+        device (torch.device or int, optional): The device to return the RNG state of.
+            Default: ``'npu'`` (i.e., ``torch.device('npu')``, the current NPU device).
+
+    .. warning::
+        This function eagerly initializes NPU.
+    """
+    _lazy_init()
+    device = torch.device(device)
+    idx = device.index
+    if idx is None:
+        idx = current_device()
+    default_generator = torch.npu.default_generators[idx]
+    return default_generator.get_state()
+
+
+def set_rng_state(new_state, device='npu'):
+    r"""Sets the random number generator state of the specified NPU.
+
+    Args:
+        new_state (torch.ByteTensor): The desired state
+        device (torch.device or int, optional): The device to set the RNG state.
+            Default: ``'npu'`` (i.e., ``torch.device('npu')``, the current NPU device).
+    """
+    new_state_copy = new_state.clone(memory_format=torch.contiguous_format)
+    device = torch.device(device)
+
+    def cb():
+        idx = device.index
+        if idx is None:
+            idx = current_device()
+        default_generator = torch.npu.default_generators[idx]
+        default_generator.set_state(new_state_copy)
+
+    _lazy_call(cb)
 
 
 def manual_seed(seed):

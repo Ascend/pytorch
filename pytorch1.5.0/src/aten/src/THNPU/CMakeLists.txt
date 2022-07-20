@@ -6,9 +6,11 @@ PARENT_SCOPE)
 
 set(ATen_NPU_SRCS ${ATen_NPU_SRCS}
   ${CMAKE_CURRENT_SOURCE_DIR}/THNPUCachingHostAllocator.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/THNPUTensorRandom.cpp
   PARENT_SCOPE)
 
 INSTALL(FILES
           THNPU.h
           THNPUCachingHostAllocator.h
+          THNPUTensorRandom.h
           DESTINATION "${ATEN_INSTALL_INCLUDE_SUBDIR}/THNPU")
