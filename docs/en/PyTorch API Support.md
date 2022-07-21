@@ -4,9 +4,9 @@
 | ---- | ----------------------------- | :------------------------------------: |
 | 1    | torch.is_tensor               |                   Supported                  |
 | 2    | torch.is_storage              |                   Supported                  |
-| 3    | torch.is_complex              | Supported (The judgment is supported, but the complex number is not supported by the current hardware.)|
+| 3    | torch.is_complex              | Supported. The judgment is supported, but the complex number is not supported by the current hardware.|
 | 4    | torch.is_floating_point       |                   Supported                  |
-| 5    | torch.is_nonzero              |                   Unsupported                  |
+| 5    | torch.is_nonzero              |                   Supported                  |
 | 6    | torch.set_default_dtype       |                   Supported                  |
 | 7    | torch.get_default_dtype       |                   Supported                  |
 | 8    | torch.set_default_tensor_type |                   Supported                  |
@@ -35,38 +35,38 @@
 | 31   | torch.quantize_per_tensor     |                   Supported                  |
 | 32   | torch.quantize_per_channel    |                   Supported                  |
 | 33   | torch.dequantize              |                   Unsupported                  |
-| 34   | torch.complex                 |                   Unsupported                  |
-| 35   | torch.polar                   |                   Unsupported                  |
+| 34   | torch.complex                 |                   Supported                  |
+| 35   | torch.polar                   |                   Supported                  |
 | 36   | torch.heaviside               |                   Unsupported                  |
 | 37   | torch.cat                     |                   Supported                  |
 | 38   | torch.chunk                   |                   Supported                  |
-| 39   | torch.column_stack            |                   Unsupported                  |
-| 40   | torch.dstack                  |                   Unsupported                  |
-| 41   | torch.hstack                  |                   Unsupported                  |
+| 39   | torch.column_stack            |                   Supported                  |
+| 40   | torch.dstack                  |                   Supported                  |
+| 41   | torch.hstack                  |                   Supported                  |
 | 42   | torch.gather                  |                   Supported                  |
 | 43   | torch.index_select            |                   Supported                  |
 | 44   | torch.masked_select           |                   Supported                  |
-| 45   | torch.movedim                 |                   Unsupported                  |
-| 46   | torch.moveaxis                |                   Unsupported                  |
+| 45   | torch.movedim                 |                   Supported                  |
+| 46   | torch.moveaxis                |                   Supported                  |
 | 47   | torch.narrow                  |                   Supported                  |
 | 48   | torch.nonzero                 |                   Supported                  |
 | 49   | torch.reshape                 |                   Supported                  |
-| 50   | torch.row_stack               |                   Unsupported                  |
+| 50   | torch.row_stack               |                   Supported                  |
 | 51   | torch.scatter                 |                   Supported                  |
 | 52   | torch.scatter_add             |                   Supported                  |
 | 53   | torch.split                   |                   Supported                  |
 | 54   | torch.squeeze                 |                   Supported                  |
 | 55   | torch.stack                   |                   Supported                  |
-| 56   | torch.swapaxes                |                   Unsupported                  |
-| 57   | torch.swapdims                |                   Unsupported                  |
+| 56   | torch.swapaxes                |                   Supported                  |
+| 57   | torch.swapdims                |                   Supported                  |
 | 58   | torch.t                       |                   Supported                  |
 | 59   | torch.take                    |                   Supported                  |
-| 60   | torch.tensor_split            |                   Unsupported                  |
-| 61   | torch.tile                    |                   Unsupported                  |
+| 60   | torch.tensor_split            |                   Supported                  |
+| 61   | torch.tile                    |                   Supported                  |
 | 62   | torch.transpose               |                   Supported                  |
 | 63   | torch.unbind                  |                   Supported                  |
 | 64   | torch.unsqueeze               |                   Supported                  |
-| 65   | torch.vstack                  |                   Unsupported                  |
+| 65   | torch.vstack                  |                   Supported                  |
 | 66   | torch.where                   |                   Supported                  |
 
 ## Generators
@@ -76,7 +76,7 @@
 | 1    | torch._C.Generator               | Supported      |
 | 2    | torch.*C.torch.default*generator | Supported      |
 
-## Random Sampling
+## Random sampling
 
 | No.| API                      | Supported/Unsupported|
 | ---- | ----------------------------- | -------- |
@@ -114,267 +114,267 @@
 | 1    | torch.save | Supported      |
 | 2    | torch.load | Supported      |
 
-## Math Operations
+## Math operations
 
-| No.| API                               | Supported/Unsupported                |
-| ---- | -------------------------------------- | ------------------------ |
-| 1    | torch.abs                              | Supported                      |
-| 2    | torch.absolute                         | Unsupported                      |
-| 3    | torch.acos                             | Supported                      |
-| 4    | torch.arccos                           | Unsupported                      |
-| 5    | torch.acosh                            | Unsupported                      |
-| 6    | torch.arccosh                          | Unsupported                      |
-| 7    | torch.add                              | Supported                      |
-| 8    | torch.addcdiv                          | Supported                      |
-| 9    | torch.addcmul                          | Supported                      |
-| 10   | torch.angle                            | Unsupported                      |
-| 11   | torch.asin                             | Supported                      |
-| 12   | torch.arcsin                           | Unsupported                      |
-| 13   | torch.asinh                            | Unsupported                      |
-| 14   | torch.arcsinh                          | Unsupported                      |
-| 15   | torch.atan                             | Supported                      |
-| 16   | torch.arctan                           | Unsupported                      |
-| 17   | torch.atanh                            | Unsupported                      |
-| 18   | torch.arctanh                          | Unsupported                      |
-| 19   | torch.atan2                            | Supported                      |
-| 20   | torch.bitwise_not                      | Supported                      |
-| 21   | torch.bitwise_and                      | Supported                      |
-| 22   | torch.bitwise_or                       | Supported                      |
-| 23   | torch.bitwise_xor                      | Supported                      |
-| 24   | torch.ceil                             | Supported                      |
-| 25   | torch.clamp                            | Supported                      |
-| 26   | torch.clip                             | Unsupported                      |
-| 27   | torch.conj                             | Unsupported                      |
-| 28   | torch.copysign                         | Unsupported                      |
-| 29   | torch.cos                              | Supported                      |
-| 30   | torch.cosh                             | Supported                      |
-| 31   | torch.deg2rad                          | Unsupported                      |
-| 32   | torch.div                              | Supported                      |
-| 33   | torch.divide                           | Unsupported                      |
-| 34   | torch.digamma                          | Unsupported                      |
-| 35   | torch.erf                              | Supported                      |
-| 36   | torch.erfc                             | Supported                      |
-| 37   | torch.erfinv                           | Supported                      |
-| 38   | torch.exp                              | Supported                      |
-| 39   | torch.exp2                             | Unsupported                      |
-| 40   | torch.expm1                            | Supported                      |
-| 41   | torch.fake_quantize_per_channel_affine | Unsupported                      |
-| 42   | torch.fake_quantize_per_tensor_affine  | Unsupported                      |
-| 43   | torch.fix                              | Unsupported                      |
-| 44   | torch.float_power                      | Unsupported                      |
-| 45   | torch.floor                            | Supported                      |
-| 46   | torch.floor_divide                     | Supported                      |
-| 47   | torch.fmod                             | Supported                      |
-| 48   | torch.frac                             | Supported                      |
-| 49   | torch.imag                             | Unsupported                      |
-| 50   | torch.ldexp                            | Unsupported                      |
-| 51   | torch.lerp                             | Supported                      |
-| 52   | torch.lgamma                           | Unsupported                      |
-| 53   | torch.log                              | Supported                      |
-| 54   | torch.log10                            | Supported                      |
-| 55   | torch.log1p                            | Supported                      |
-| 56   | torch.log2                             | Supported                      |
-| 57   | torch.logaddexp                        | Unsupported                      |
-| 58   | torch.logaddexp2                       | Unsupported                      |
-| 59   | torch.logical_and                      | Supported                      |
-| 60   | torch.logical_not                      | Supported                      |
-| 61   | torch.logical_or                       | Supported                      |
-| 62   | torch.logical_xor                      | Supported                      |
-| 63   | torch.logit                            | Unsupported                      |
-| 64   | torch.hypot                            | Unsupported                      |
-| 65   | torch.i0                               | Unsupported                      |
-| 66   | torch.igamma                           | Unsupported                      |
-| 67   | torch.igammac                          | Unsupported                      |
-| 68   | torch.mul                              | Supported                      |
-| 69   | torch.multiply                         | Unsupported                      |
-| 70   | torch.mvlgamma                         | Unsupported                      |
-| 71   | torch.nan_to_num                       | Unsupported                      |
-| 72   | torch.neg                              | Supported                      |
-| 73   | torch.negative                         | Unsupported                      |
-| 74   | torch.nextafter                        | Unsupported                      |
-| 75   | torch.polygamma                        | Unsupported                      |
-| 76   | torch.pow                              | Supported                      |
-| 77   | torch.rad2deg                          | Unsupported                      |
-| 78   | torch.real                             | Supported                      |
-| 79   | torch.reciprocal                       | Supported                      |
-| 80   | torch.remainder                        | Supported                      |
-| 81   | torch.round                            | Supported                      |
-| 82   | torch.rsqrt                            | Supported                      |
-| 83   | torch.sigmoid                          | Supported                      |
-| 84   | torch.sign                             | Supported                      |
-| 85   | torch.sgn                              | Unsupported                      |
-| 86   | torch.signbit                          | Unsupported                      |
-| 87   | torch.sin                              | Supported                      |
-| 88   | torch.sinc                             | Unsupported                      |
-| 89   | torch.sinh                             | Supported                      |
-| 90   | torch.sqrt                             | Supported                      |
-| 91   | torch.square                           | Supported                      |
-| 92   | torch.sub                              | Supported                      |
-| 93   | torch.subtract                         | Unsupported                      |
-| 94   | torch.tan                              | Supported                      |
-| 95   | torch.tanh                             | Supported                      |
-| 96   | torch.true_divide                      | Supported                      |
-| 97   | torch.trunc                            | Supported                      |
-| 98   | torch.xlogy                            | Unsupported                      |
-| 99   | torch.argmax                           | Supported                      |
-| 100  | torch.argmin                           | Supported                      |
-| 101  | torch.amax                             | Unsupported                      |
-| 102  | torch.amin                             | Unsupported                      |
-| 103  | torch.all                              | Supported                      |
-| 104  | torch.any                              | Supported                      |
-| 105  | torch.max                              | Supported                      |
-| 106  | torch.min                              | Supported                      |
-| 107  | torch.dist                             | Supported                      |
-| 108  | torch.logsumexp                        | Supported                      |
-| 109  | torch.mean                             | Supported                      |
-| 110  | torch.median                           | Supported                      |
-| 111  | torch.namedian                         | Unsupported                      |
-| 112  | torch.mode                             | Unsupported                      |
-| 113  | torch.norm                             | Supported                      |
-| 114  | torch.nansum                           | Unsupported                      |
-| 115  | torch.prod                             | Supported                      |
-| 116  | torch.quantile                         | Unsupported                      |
-| 117  | torch.nanquantile                      | Unsupported                      |
-| 118  | torch.std                              | Supported                      |
-| 119  | torch.std_mean                         | Supported                      |
-| 120  | torch.sum                              | Supported                      |
-| 121  | torch.unique                           | Supported                      |
-| 122  | torch.unique_consecutive               | Unsupported                      |
-| 123  | torch.var                              | Unsupported                      |
-| 124  | torch.var_mean                         | Unsupported                      |
-| 125  | torch.count_nonzero                    | Unsupported                      |
-| 126  | torch.allclose                         | Supported                      |
-| 127  | torch.argsort                          | Supported                      |
-| 128  | torch.eq                               | Supported                      |
-| 129  | torch.equal                            | Supported                      |
-| 130  | torch.ge                               | Supported                      |
-| 131  | torch.greater_qual                     | Unsupported                      |
-| 132  | torch.gt                               | Supported                      |
-| 133  | torch.greater                          | Unsupported                      |
-| 134  | torch.isclose                          | Unsupported                      |
-| 135  | torch.isfinite                         | Supported                      |
-| 136  | torch.isinf                            | Supported                      |
-| 137  | torch.isposinf                         | Unsupported                      |
-| 138  | torch.isneginf                         | Unsupported                      |
-| 139  | torch.isnan                            | Supported                      |
-| 140  | torch.isreal                           | Unsupported                      |
-| 141  | torch.kthvalue                         | Supported                      |
-| 142  | torch.le                               | Supported                      |
-| 143  | torch.less_qual                        | Unsupported                      |
-| 144  | torch.lt                               | Supported                      |
-| 145  | torch.less                             | Unsupported                      |
-| 146  | torch.maximum                          | Unsupported                      |
-| 147  | torch.minimum                          | Unsupported                      |
-| 148  | torch.fmax                             | Unsupported                      |
-| 149  | torch.fmin                             | Unsupported                      |
-| 150  | torch.ne                               | Supported                      |
-| 151  | torch.not_equal                        | Unsupported                      |
-| 152  | torch.sort                             | Supported                      |
-| 153  | torch.topk                             | Supported                      |
-| 154  | torch.msort                            | Unsupported                      |
-| 155  | torch.fft                              | Unsupported                      |
-| 156  | torch.ifft                             | Unsupported                      |
-| 157  | torch.rfft                             | Unsupported                      |
-| 158  | torch.irfft                            | Unsupported                      |
-| 159  | torch.stft                             | Unsupported                      |
-| 160  | torch.istft                            | Unsupported                      |
-| 161  | torch.bartlett_window                  | Supported                      |
-| 162  | torch.blackman_window                  | Supported                      |
-| 163  | torch.hamming_window                   | Supported                      |
-| 164  | torch.hann_window                      | Supported                      |
-| 165  | torch.kasier_window                    | Unsupported                      |
-| 166  | torch.atleast_1d                       | Unsupported                      |
-| 167  | torch.atleast_2d                       | Unsupported                      |
-| 168  | torch.atleast_3d                       | Unsupported                      |
-| 169  | torch.bincount                         | Supported                      |
-| 170  | torch.block_diag                       | Unsupported                      |
-| 171  | torch.broadcast_tensors                | Supported                      |
-| 172  | torch.broadcast_to                     | Unsupported                      |
-| 173  | torch.broadcast_shapes                 | Unsupported                      |
-| 174  | torch.bucketize                        | Unsupported                      |
-| 175  | torch.cartesian_prod                   | Supported                      |
-| 176  | torch.cdist                            | Supported                      |
-| 177  | torch.clone                            | Supported                      |
-| 178  | torch.combinations                     | Unsupported                      |
-| 179  | torch.cross                            | Supported                      |
-| 180  | torch.cummax                           | Supported                      |
-| 181  | torch.cummin                           | Supported                      |
-| 182  | torch.cumprod                          | Supported                      |
-| 183  | torch.cumsum                           | Supported                      |
-| 184  | torch.diag                             | Supported only in the diagonal=0 scenario.|
-| 185  | torch.diag_embed                       | Supported                      |
-| 186  | torch.diagflat                         | Supported                      |
-| 187  | torch.diagonal                         | Supported                      |
-| 188  | torch.diff                             | Unsupported                      |
-| 189  | torch.einsum                           | Supported                      |
-| 190  | torch.flatten                          | Supported                      |
-| 191  | torch.flip                             | Supported                      |
-| 192  | torch.fliplr                           | Unsupported                      |
-| 193  | torch.flipud                           | Unsupported                      |
-| 194  | torch.kron                             | Unsupported                      |
-| 195  | torch.rot90                            | Supported                      |
-| 196  | torch.gcd                              | Unsupported                      |
-| 197  | torch.histc                            | Unsupported                      |
-| 198  | torch.meshgrid                         | Supported                      |
-| 199  | torch.lcm                              | Unsupported                      |
-| 200  | torhc.logcumsumexp                     | Unsupported                      |
-| 201  | torch.ravel                            | Unsupported                      |
-| 202  | torch.renorm                           | Supported                      |
-| 203  | torch.repeat_interleave                | Supported                      |
-| 204  | torch.roll                             | Supported                      |
-| 205  | torch.searchsorted                     | Unsupported                      |
-| 206  | torch.tensordot                        | Supported                      |
-| 207  | torch.trace                            | Unsupported                      |
-| 208  | torch.tril                             | Supported                      |
-| 209  | torch.tril_indices                     | Supported                      |
-| 210  | torch.triu                             | Supported                      |
-| 211  | torch.triu_indices                     | Supported                      |
-| 212  | torch.vander                           | Unsupported                      |
-| 213  | torch.view_as_real                     | Unsupported                      |
-| 214  | torch.view_as_complex                  | Unsupported                      |
-| 215  | torch.addbmm                           | Supported                      |
-| 216  | torch.addmm                            | Supported                      |
-| 217  | torch.addmv                            | Supported                      |
-| 218  | torch.addr                             | Supported                      |
-| 219  | torch.baddbmm                          | Supported                      |
-| 220  | torch.bmm                              | Supported                      |
-| 221  | torch.chain_matmul                     | Supported                      |
-| 222  | torch.cholesky                         | Unsupported                      |
-| 223  | torch.cholesky_inverse                 | Unsupported                      |
-| 224  | torch.cholesky_solve                   | Unsupported                      |
-| 225  | torch.dot                              | Supported                      |
-| 226  | torch.eig                              | Unsupported                      |
-| 227  | torch.geqrf                            | Unsupported                      |
-| 228  | torch.ger                              | Supported                      |
-| 229  | torch.inner                            | Unsupported                      |
-| 230  | torch.inverse                          | Supported                      |
-| 231  | torch.det                              | Unsupported                      |
-| 232  | torch.logdet                           | Unsupported                      |
-| 233  | torch.slogdet                          | Supported                      |
-| 234  | torch.lstsq                            | Unsupported                      |
-| 235  | torch.lu                               | Unsupported                      |
-| 236  | torch.lu_solve                         | Unsupported                      |
-| 237  | torch.lu_unpack                        | Unsupported                      |
-| 238  | torch.matmul                           | Supported                      |
-| 239  | torch.matrix_power                     | Supported                      |
-| 240  | torch.matrix_rank                      | Supported                      |
-| 241  | torch.matrix_exp                       | Unsupported                      |
-| 242  | torch.mm                               | Supported                      |
-| 243  | torch.mv                               | Supported                      |
-| 244  | torch.orgqr                            | Unsupported                      |
-| 245  | torch.ormqr                            | Unsupported                      |
-| 246  | torch.outer                            | Unsupported                      |
-| 247  | torch.pinverse                         | Supported                      |
-| 248  | torch.qr                               | Supported                      |
-| 249  | torch.solve                            | Unsupported                      |
-| 250  | torch.svd                              | Supported                      |
-| 251  | torch.svd_lowrank                      | Supported                      |
-| 252  | torch.pca_lowrank                      | Supported                      |
-| 253  | torch.symeig                           | Supported                      |
-| 254  | torch.lobpcg                           | Unsupported                      |
-| 255  | torch.trapz                            | Supported                      |
-| 256  | torch.triangular_solve                 | Supported                      |
-| 257  | torch.vdot                             | Unsupported                      |
+| No.| API                               | Supported/Unsupported                                                    |
+| ---- | -------------------------------------- | ------------------------------------------------------------ |
+| 1    | torch.abs                              | Supported                                                          |
+| 2    | torch.absolute                         | Supported                                                          |
+| 3    | torch.acos                             | Supported                                                          |
+| 4    | torch.arccos                           | Unsupported                                                          |
+| 5    | torch.acosh                            | Supported                                                          |
+| 6    | torch.arccosh                          | Supported                                                          |
+| 7    | torch.add                              | Supported                                                          |
+| 8    | torch.addcdiv                          | Supported                                                          |
+| 9    | torch.addcmul                          | Supported                                                          |
+| 10   | torch.angle                            | Unsupported                                                          |
+| 11   | torch.asin                             | Supported                                                          |
+| 12   | torch.arcsin                           | Supported                                                          |
+| 13   | torch.asinh                            | Supported                                                          |
+| 14   | torch.arcsinh                          | Supported                                                          |
+| 15   | torch.atan                             | Supported                                                          |
+| 16   | torch.arctan                           | Supported                                                          |
+| 17   | torch.atanh                            | Supported                                                          |
+| 18   | torch.arctanh                          | Supported                                                          |
+| 19   | torch.atan2                            | Supported                                                          |
+| 20   | torch.bitwise_not                      | Supported                                                          |
+| 21   | torch.bitwise_and                      | Supported                                                          |
+| 22   | torch.bitwise_or                       | Supported                                                          |
+| 23   | torch.bitwise_xor                      | Supported                                                          |
+| 24   | torch.ceil                             | Supported                                                          |
+| 25   | torch.clamp                            | Supported                                                          |
+| 26   | torch.clip                             | Supported                                                          |
+| 27   | torch.conj                             | Unsupported                                                          |
+| 28   | torch.copysign                         | Supported                                                          |
+| 29   | torch.cos                              | Supported                                                          |
+| 30   | torch.cosh                             | Supported                                                          |
+| 31   | torch.deg2rad                          | Supported                                                          |
+| 32   | torch.div                              | Supported                                                          |
+| 33   | torch.divide                           | Supported                                                          |
+| 34   | torch.digamma                          | Supported                                                          |
+| 35   | torch.erf                              | Supported                                                          |
+| 36   | torch.erfc                             | Supported                                                          |
+| 37   | torch.erfinv                           | Supported                                                          |
+| 38   | torch.exp                              | Supported                                                          |
+| 39   | torch.exp2                             | Unsupported                                                          |
+| 40   | torch.expm1                            | Supported                                                          |
+| 41   | torch.fake_quantize_per_channel_affine | Unsupported                                                          |
+| 42   | torch.fake_quantize_per_tensor_affine  | Unsupported                                                          |
+| 43   | torch.fix                              | Supported                                                          |
+| 44   | torch.float_power                      | Supported                                                          |
+| 45   | torch.floor                            | Supported                                                          |
+| 46   | torch.floor_divide                     | Supported                                                          |
+| 47   | torch.fmod                             | Supported                                                          |
+| 48   | torch.frac                             | Supported                                                          |
+| 49   | torch.imag                             | Unsupported                                                          |
+| 50   | torch.ldexp                            | Supported                                                          |
+| 51   | torch.lerp                             | Supported                                                          |
+| 52   | torch.lgamma                           | Supported                                                          |
+| 53   | torch.log                              | Supported                                                          |
+| 54   | torch.log10                            | Supported                                                          |
+| 55   | torch.log1p                            | Supported                                                          |
+| 56   | torch.log2                             | Supported                                                          |
+| 57   | torch.logaddexp                        | Unsupported                                                          |
+| 58   | torch.logaddexp2                       | Unsupported                                                          |
+| 59   | torch.logical_and                      | Supported                                                          |
+| 60   | torch.logical_not                      | Supported                                                          |
+| 61   | torch.logical_or                       | Supported                                                          |
+| 62   | torch.logical_xor                      | Unsupported                                                          |
+| 63   | torch.logit                            | Supported                                                          |
+| 64   | torch.hypot                            | Supported                                                          |
+| 65   | torch.i0                               | Unsupported                                                          |
+| 66   | torch.igamma                           | Supported                                                          |
+| 67   | torch.igammac                          | Supported                                                          |
+| 68   | torch.mul                              | Supported                                                          |
+| 69   | torch.multiply                         | Supported                                                          |
+| 70   | torch.mvlgamma                         | Supported                                                          |
+| 71   | torch.nan_to_num                       | Unsupported                                                          |
+| 72   | torch.neg                              | Supported                                                          |
+| 73   | torch.negative                         | Supported                                                          |
+| 74   | torch.nextafter                        | Unsupported                                                          |
+| 75   | torch.polygamma                        | Unsupported                                                          |
+| 76   | torch.pow                              | Supported                                                          |
+| 77   | torch.rad2deg                          | Supported                                                          |
+| 78   | torch.real                             | Supported                                                          |
+| 79   | torch.reciprocal                       | Supported                                                          |
+| 80   | torch.remainder                        | Supported                                                          |
+| 81   | torch.round                            | Supported                                                          |
+| 82   | torch.rsqrt                            | Supported                                                          |
+| 83   | torch.sigmoid                          | Supported                                                          |
+| 84   | torch.sign                             | Supported                                                          |
+| 85   | torch.sgn                              | Unsupported                                                          |
+| 86   | torch.signbit                          | Unsupported                                                          |
+| 87   | torch.sin                              | Supported                                                          |
+| 88   | torch.sinc                             | Unsupported                                                          |
+| 89   | torch.sinh                             | Supported                                                          |
+| 90   | torch.sqrt                             | Supported                                                          |
+| 91   | torch.square                           | Supported                                                          |
+| 92   | torch.sub                              | Supported                                                          |
+| 93   | torch.subtract                         | Supported                                                          |
+| 94   | torch.tan                              | Supported                                                          |
+| 95   | torch.tanh                             | Supported                                                          |
+| 96   | torch.true_divide                      | Supported                                                          |
+| 97   | torch.trunc                            | Supported                                                          |
+| 98   | torch.xlogy                            | Supported                                                          |
+| 99   | torch.argmax                           | Supported                                                          |
+| 100  | torch.argmin                           | Supported                                                          |
+| 101  | torch.amax                             | Unsupported                                                          |
+| 102  | torch.amin                             | Unsupported                                                          |
+| 103  | torch.all                              | Supported                                                          |
+| 104  | torch.any                              | Supported                                                          |
+| 105  | torch.max                              | Supported                                                          |
+| 106  | torch.min                              | Supported                                                          |
+| 107  | torch.dist                             | Supported                                                          |
+| 108  | torch.logsumexp                        | Supported                                                          |
+| 109  | torch.mean                             | Supported                                                          |
+| 110  | torch.median                           | Supported                                                          |
+| 111  | torch.nanmedian                        | Supported                                                          |
+| 112  | torch.mode                             | Supported                                                          |
+| 113  | torch.norm                             | Supported                                                          |
+| 114  | torch.nansum                           | Supported                                                          |
+| 115  | torch.prod                             | Supported                                                          |
+| 116  | torch.quantile                         | Unsupported                                                          |
+| 117  | torch.nanquantile                      | Unsupported                                                          |
+| 118  | torch.std                              | Supported                                                          |
+| 119  | torch.std_mean                         | Supported                                                          |
+| 120  | torch.sum                              | Supported                                                          |
+| 121  | torch.unique                           | Supported                                                          |
+| 122  | torch.unique_consecutive               | Supported. Use keywords during parameter transfer. Otherwise, the accuracy does not meet the requirements.return_inverse=return_inverse,return_counts=return_counts,dim=dim |
+| 123  | torch.var                              | Unsupported                                                          |
+| 124  | torch.var_mean                         | Unsupported                                                          |
+| 125  | torch.count_nonzero                    | Unsupported                                                          |
+| 126  | torch.allclose                         | Supported                                                          |
+| 127  | torch.argsort                          | Supported                                                          |
+| 128  | torch.eq                               | Supported                                                          |
+| 129  | torch.equal                            | Supported                                                          |
+| 130  | torch.ge                               | Supported                                                          |
+| 131  | torch.greater_equal                    | Supported                                                          |
+| 132  | torch.gt                               | Supported                                                          |
+| 133  | torch.greater                          | Supported                                                          |
+| 134  | torch.isclose                          | Unsupported                                                          |
+| 135  | torch.isfinite                         | Supported                                                          |
+| 136  | torch.isinf                            | Supported                                                          |
+| 137  | torch.isposinf                         | Supported                                                          |
+| 138  | torch.isneginf                         | Supported                                                          |
+| 139  | torch.isnan                            | Supported                                                          |
+| 140  | torch.isreal                           | Supported                                                          |
+| 141  | torch.kthvalue                         | Supported                                                          |
+| 142  | torch.le                               | Supported                                                          |
+| 143  | torch.less_equal                       | Supported                                                          |
+| 144  | torch.lt                               | Supported                                                          |
+| 145  | torch.less                             | Supported                                                          |
+| 146  | torch.maximum                          | Supported                                                          |
+| 147  | torch.minimum                          | Supported                                                          |
+| 148  | torch.fmax                             | Unsupported                                                          |
+| 149  | torch.fmin                             | Unsupported                                                          |
+| 150  | torch.ne                               | Supported                                                          |
+| 151  | torch.not_equal                        | Supported                                                          |
+| 152  | torch.sort                             | Supported                                                          |
+| 153  | torch.topk                             | Supported                                                          |
+| 154  | torch.msort                            | Unsupported                                                          |
+| 155  | torch.fft                              | Unsupported                                                          |
+| 156  | torch.ifft                             | Unsupported                                                          |
+| 157  | torch.rfft                             | Unsupported                                                          |
+| 158  | torch.irfft                            | Unsupported                                                          |
+| 159  | torch.stft                             | Unsupported                                                          |
+| 160  | torch.istft                            | Unsupported                                                          |
+| 161  | torch.bartlett_window                  | Supported                                                          |
+| 162  | torch.blackman_window                  | Supported                                                          |
+| 163  | torch.hamming_window                   | Supported                                                          |
+| 164  | torch.hann_window                      | Supported                                                          |
+| 165  | torch.kasier_window                    | Unsupported                                                          |
+| 166  | torch.atleast_1d                       | Supported                                                          |
+| 167  | torch.atleast_2d                       | Supported                                                          |
+| 168  | torch.atleast_3d                       | Supported                                                          |
+| 169  | torch.bincount                         | Supported                                                          |
+| 170  | torch.block_diag                       | Supported                                                          |
+| 171  | torch.broadcast_tensors                | Supported                                                          |
+| 172  | torch.broadcast_to                     | Supported                                                          |
+| 173  | torch.broadcast_shapes                 | Supported                                                          |
+| 174  | torch.bucketize                        | Supported                                                          |
+| 175  | torch.cartesian_prod                   | Supported                                                          |
+| 176  | torch.cdist                            | Supported. Only **mode=donot_use_mm_for_euclid_dist** is supported.                 |
+| 177  | torch.clone                            | Supported                                                          |
+| 178  | torch.combinations                     | Supported                                                          |
+| 179  | torch.cross                            | Supported                                                          |
+| 180  | torch.cummax                           | Supported                                                          |
+| 181  | torch.cummin                           | Supported                                                          |
+| 182  | torch.cumprod                          | Supported                                                          |
+| 183  | torch.cumsum                           | Supported                                                          |
+| 184  | torch.diag                             | Supported only in the diagonal=0 scenario.                                    |
+| 185  | torch.diag_embed                       | Supported                                                          |
+| 186  | torch.diagflat                         | Supported                                                          |
+| 187  | torch.diagonal                         | Supported                                                          |
+| 188  | torch.diff                             | Supported                                                          |
+| 189  | torch.einsum                           | Supported                                                          |
+| 190  | torch.flatten                          | Supported                                                          |
+| 191  | torch.flip                             | Supported                                                          |
+| 192  | torch.fliplr                           | Supported                                                          |
+| 193  | torch.flipud                           | Supported                                                          |
+| 194  | torch.kron                             | Supported                                                          |
+| 195  | torch.rot90                            | Supported                                                          |
+| 196  | torch.gcd                              | Unsupported                                                          |
+| 197  | torch.histc                            | Unsupported                                                          |
+| 198  | torch.meshgrid                         | Supported                                                          |
+| 199  | torch.lcm                              | Unsupported                                                          |
+| 200  | torhc.logcumsumexp                     | Unsupported                                                          |
+| 201  | torch.ravel                            | Supported                                                          |
+| 202  | torch.renorm                           | Supported                                                          |
+| 203  | torch.repeat_interleave                | Supported                                                          |
+| 204  | torch.roll                             | Supported                                                          |
+| 205  | torch.searchsorted                     | Supported                                                          |
+| 206  | torch.tensordot                        | Supported                                                          |
+| 207  | torch.trace                            | Unsupported                                                          |
+| 208  | torch.tril                             | Supported                                                          |
+| 209  | torch.tril_indices                     | Supported                                                          |
+| 210  | torch.triu                             | Supported                                                          |
+| 211  | torch.triu_indices                     | Supported                                                          |
+| 212  | torch.vander                           | Supported                                                          |
+| 213  | torch.view_as_real                     | Supported                                                          |
+| 214  | torch.view_as_complex                  | Supported                                                          |
+| 215  | torch.addbmm                           | Supported                                                          |
+| 216  | torch.addmm                            | Supported                                                          |
+| 217  | torch.addmv                            | Supported                                                          |
+| 218  | torch.addr                             | Supported                                                          |
+| 219  | torch.baddbmm                          | Supported                                                          |
+| 220  | torch.bmm                              | Supported                                                          |
+| 221  | torch.chain_matmul                     | Supported                                                          |
+| 222  | torch.cholesky                         | Unsupported                                                          |
+| 223  | torch.cholesky_inverse                 | Unsupported                                                          |
+| 224  | torch.cholesky_solve                   | Unsupported                                                          |
+| 225  | torch.dot                              | Supported                                                          |
+| 226  | torch.eig                              | Unsupported                                                          |
+| 227  | torch.geqrf                            | Unsupported                                                          |
+| 228  | torch.ger                              | Supported                                                          |
+| 229  | torch.inner                            | Supported                                                          |
+| 230  | torch.inverse                          | Supported                                                          |
+| 231  | torch.det                              | Unsupported                                                          |
+| 232  | torch.logdet                           | Unsupported                                                          |
+| 233  | torch.slogdet                          | Supported                                                          |
+| 234  | torch.lstsq                            | Unsupported                                                          |
+| 235  | torch.lu                               | Unsupported                                                          |
+| 236  | torch.lu_solve                         | Unsupported                                                          |
+| 237  | torch.lu_unpack                        | Unsupported                                                          |
+| 238  | torch.matmul                           | Supported                                                          |
+| 239  | torch.matrix_power                     | Supported                                                          |
+| 240  | torch.matrix_rank                      | Supported                                                          |
+| 241  | torch.matrix_exp                       | Supported                                                          |
+| 242  | torch.mm                               | Supported                                                          |
+| 243  | torch.mv                               | Supported                                                          |
+| 244  | torch.orgqr                            | Unsupported                                                          |
+| 245  | torch.ormqr                            | Unsupported                                                          |
+| 246  | torch.outer                            | Supported                                                          |
+| 247  | torch.pinverse                         | Supported                                                          |
+| 248  | torch.qr                               | Supported                                                          |
+| 249  | torch.solve                            | Unsupported                                                          |
+| 250  | torch.svd                              | Supported                                                          |
+| 251  | torch.svd_lowrank                      | Supported                                                          |
+| 252  | torch.pca_lowrank                      | Supported                                                          |
+| 253  | torch.symeig                           | Supported                                                          |
+| 254  | torch.lobpcg                           | Unsupported                                                          |
+| 255  | torch.trapz                            | Supported                                                          |
+| 256  | torch.triangular_solve                 | Supported                                                          |
+| 257  | torch.vdot                             | Supported                                                          |
 
 ## Utilities
 
@@ -384,9 +384,9 @@
 | 2    | torch.result_type                          | Supported      |
 | 3    | torch.can_cast                             | Supported      |
 | 4    | torch.promote_types                        | Supported      |
-| 6    | torch.use_deterministic_algorithms         | Unsupported      |
-| 7    | torch.are_deterministic_algorithms_enabled | Unsupported      |
-| 8    | torch._assert                              | Unsupported      |
+| 6    | torch.use_deterministic_algorithms         | Supported      |
+| 7    | torch.are_deterministic_algorithms_enabled | Supported      |
+| 8    | torch._assert                              | Supported      |
 
 ## Other
 
@@ -777,7 +777,7 @@
 | No.| API                                                 | Supported/Unsupported                    |
 | ---- | -------------------------------------------------------- | ---------------------------- |
 | 1    | torch.nn.Parameter                                       | Supported                          |
-| 2    | torch.nn.UninitializedParameter                          | Unsupported                          |
+| 2    | torch.nn.UninitializedParameter                          | Supported                          |
 | 3    | torch.nn.Module                                          | Supported                          |
 | 4    | torch.nn.Module.add_module                               | Supported                          |
 | 5    | torch.nn.Module.apply                                    | Supported                          |
@@ -842,12 +842,12 @@
 | 64   | torch.nn.ConvTranspose1d                                 | Supported                          |
 | 65   | torch.nn.ConvTranspose2d                                 | Supported                          |
 | 66   | torch.nn.ConvTranspose3d                                 | Supported                          |
-| 67   | torch.nn.LazyConv1d                                      | Unsupported                          |
-| 68   | torch.nn.LazyConv2d                                      | Unsupported                          |
-| 69   | torch.nn.LazyConv3d                                      | Unsupported                          |
-| 70   | torch.nn.LazyConvTranspose1d                             | Unsupported                          |
-| 71   | torch.nn.LazyConvTranspose2d                             | Unsupported                          |
-| 72   | torch.nn.LazyConvTranspose3d                             | Unsupported                          |
+| 67   | torch.nn.LazyConv1d                                      | Supported                          |
+| 68   | torch.nn.LazyConv2d                                      | Supported                          |
+| 69   | torch.nn.LazyConv3d                                      | Supported                          |
+| 70   | torch.nn.LazyConvTranspose1d                             | Supported                          |
+| 71   | torch.nn.LazyConvTranspose2d                             | Supported                          |
+| 72   | torch.nn.LazyConvTranspose3d                             | Supported                          |
 | 73   | torch.nn.Unfold                                          | Supported                          |
 | 74   | torch.nn.Fold                                            | Supported                          |
 | 75   | torch.nn.MaxPool1d                                       | Supported                          |
@@ -868,9 +868,9 @@
 | 90   | torch.nn.AdaptiveAvgPool1d                               | Supported                          |
 | 91   | torch.nn.AdaptiveAvgPool2d                               | Supported                          |
 | 92   | torch.nn.AdaptiveAvgPool3d                               | Supported only in the D=1, H=1, and W=1 scenario. |
-| 93   | torch.nn.ReflectionPad1d                                 | Unsupported                          |
+| 93   | torch.nn.ReflectionPad1d                                 | Supported                          |
 | 94   | torch.nn.ReflectionPad2d                                 | Supported                          |
-| 95   | torch.nn.ReplicationPad1d                                | Unsupported                          |
+| 95   | torch.nn.ReplicationPad1d                                | Supported                          |
 | 96   | torch.nn.ReplicationPad2d                                | Supported                          |
 | 97   | torch.nn.ReplicationPad3d                                | Unsupported                          |
 | 98   | torch.nn.ZeroPad2d                                       | Supported                          |
@@ -879,9 +879,9 @@
 | 101  | torch.nn.ConstantPad3d                                   | Supported                          |
 | 102  | torch.nn.ELU                                             | Supported                          |
 | 103  | torch.nn.Hardshrink                                      | Supported                          |
-| 104  | torch.nn.Hardsigmoid                                     | Unsupported                          |
+| 104  | torch.nn.Hardsigmoid                                     | Supported                          |
 | 105  | torch.nn.Hardtanh                                        | Supported                          |
-| 106  | torch.nn.Hardswish                                       | Unsupported                          |
+| 106  | torch.nn.Hardswish                                       | Supported                          |
 | 107  | torch.nn.LeakyReLU                                       | Supported                          |
 | 108  | torch.nn.LogSigmoid                                      | Supported                          |
 | 109  | torch.nn.MultiheadAttention                              | Supported                          |
@@ -893,7 +893,7 @@
 | 115  | torch.nn.CELU                                            | Supported                          |
 | 116  | torch.nn.GELU                                            | Supported                          |
 | 117  | torch.nn.Sigmoid                                         | Supported                          |
-| 118  | torch.nn.SiLU                                            | Unsupported                          |
+| 118  | torch.nn.SiLU                                            | Supported                          |
 | 119  | torch.nn.Softplus                                        | Supported                          |
 | 120  | torch.nn.Softshrink                                      | Supported. However, it is not supported in SoftShrink scenarios currently.  |
 | 121  | torch.nn.Softsign                                        | Supported                          |
@@ -924,7 +924,7 @@
 | 146  | torch.nn.LSTM                                            | Supported                          |
 | 147  | torch.nn.GRU                                             | Supported. However, it is not supported in the DynamicGRUV2 scenario currently.|
 | 148  | torch.nn.RNNCell                                         | Supported                          |
-| 149  | torch.nn.LSTMCell                                        | Supported. However, it is not supported in non-16-byte alignment scenarios.                           |
+| 149  | torch.nn.LSTMCell                                        | Supported. However, it is not supported in the non-16-pixel alignment scenario currently.    |
 | 150  | torch.nn.GRUCell                                         | Supported                          |
 | 151  | torch.nn.Transformer                                     | Supported                          |
 | 152  | torch.nn.Transformer.forward                             | Supported                          |
@@ -940,7 +940,7 @@
 | 162  | torch.nn.Identity                                        | Supported                          |
 | 163  | torch.nn.Linear                                          | Supported                          |
 | 164  | torch.nn.Bilinear                                        | Supported                          |
-| 165  | torch.nn.LazyLinear                                      | Unsupported                          |
+| 165  | torch.nn.LazyLinear                                      | Supported                          |
 | 166  | torch.nn.Dropout                                         | Supported                          |
 | 167  | torch.nn.Dropout2d                                       | Supported                          |
 | 168  | torch.nn.Dropout3d                                       | Supported                          |
@@ -957,7 +957,7 @@
 | 179  | torch.nn.CTCLoss                                         | Supported                          |
 | 180  | torch.nn.NLLLoss                                         | Supported                          |
 | 181  | torch.nn.PoissonNLLLoss                                  | Supported                          |
-| 182  | torch.nn.GaussianNLLLoss                                 | Unsupported                          |
+| 182  | torch.nn.GaussianNLLLoss                                 | Supported                          |
 | 183  | torch.nn.KLDivLoss                                       | Supported                          |
 | 184  | torch.nn.BCELoss                                         | Supported                          |
 | 185  | torch.nn.BCEWithLogitsLoss                               | Supported                          |
@@ -970,21 +970,21 @@
 | 192  | torch.nn.CosineEmbeddingLoss                             | Supported                          |
 | 193  | torch.nn.MultiMarginLoss                                 | Unsupported                          |
 | 194  | torch.nn.TripletMarginLoss                               | Supported                          |
-| 195  | torch.nn.TripletMarginLossWithDistanceLoss               | Unsupported                          |
+| 195  | torch.nn.TripletMarginLossWithDistanceLoss               | Supported                          |
 | 196  | torch.nn.PixelShuffle                                    | Supported                          |
-| 197  | torch.nn.PixelUnshuffle                                  | Unsupported                          |
+| 197  | torch.nn.PixelUnshuffle                                  | Supported                          |
 | 198  | torch.nn.Upsample                                        | Supported                          |
 | 199  | torch.nn.UpsamplingNearest2d                             | Supported                          |
 | 200  | torch.nn.UpsamplingBilinear2d                            | Supported                          |
-| 201  | torch.nn.ChannelShuffle                                  | Unsupported                          |
-| 202  | torch.nn.DataParallel                                    | Unsupported                          |
+| 201  | torch.nn.ChannelShuffle                                  | Supported                          |
+| 202  | torch.nn.DataParallel                                    | Supported                          |
 | 203  | torch.nn.parallel.DistributedDataParallel                | Supported                          |
 | 204  | torch.nn.parallel.DistributedDataParallel.no_sync        | Supported                          |
 | 205  | torch.nn.utils.clip_grad_norm_                           | Supported                          |
 | 206  | torch.nn.utils.clip_grad_value_                          | Supported                          |
 | 207  | torch.nn.utils.parameters_to_vector                      | Supported                          |
 | 208  | torch.nn.utils.vector_to_parameters                      | Supported                          |
-| 209  | torch.nn.utils.Prune.BasePruningMethod                   | Unsupported                          |
+| 209  | torch.nn.utils.Prune.BasePruningMethod                   | Supported                          |
 | 210  | torch.nn.utils.prune.PruningContainer                    | Supported                          |
 | 211  | torch.nn.utils.prune.PruningContainer.add_pruning_method | Supported                          |
 | 212  | torch.nn.utils.prune.PruningContainer.apply              | Supported                          |
@@ -1039,12 +1039,12 @@
 | 261  | torch.nn.utils.remove_spectral_norm                      | Supported                          |
 | 262  | torch.nn.utils.rnn.PackedSequence                        | Supported                          |
 | 263  | torch.nn.utils.rnn.pack_padded_sequence                  | Supported                          |
-| 264  | torch.nn.utils.rnn.pad_packed_sequence                   | Unsupported                          |
+| 264  | torch.nn.utils.rnn.pad_packed_sequence                   | Supported                          |
 | 265  | torch.nn.utils.rnn.pad_sequence                          | Supported                          |
-| 266  | torch.nn.utils.rnn.pack_sequence                         | Unsupported                          |
+| 266  | torch.nn.utils.rnn.pack_sequence                         | Supported                          |
 | 267  | torch.nn.Flatten                                         | Supported                          |
-| 268  | torch.nn.Unflatten                                       | Unsupported                          |
-| 269  | torch.nn.modules.lazy.LazyModuleMixin                    | Unsupported                          |
+| 268  | torch.nn.Unflatten                                       | Supported                          |
+| 269  | torch.nn.modules.lazy.LazyModuleMixin                    | Supported                          |
 | 270  | torch.quantization.quantize                              | Unsupported                          |
 | 271  | torch.quantization.quantize_dynamic                      | Unsupported                          |
 | 272  | torch.quantization.quantize_qat                          | Unsupported                          |
@@ -1114,7 +1114,7 @@
 | 336  | torch.nn.quantized.dynamic.Linear.from_float             | Unsupported                          |
 | 337  | torch.nn.quantized.dynamic.LSTM                          | Unsupported                          |
 
-## Functions(torch.nn.functional)
+## Functions (torch.nn.functional)
 
 | No.| API                                              | Supported/Unsupported                   |
 | ---- | ----------------------------------------------------- | --------------------------- |
@@ -1174,10 +1174,10 @@
 | 54   | torch.nn.functional.log_softmax                       | Supported                         |
 | 55   | torch.nn.functional.tanh                              | Supported                         |
 | 56   | torch.nn.functional.sigmoid                           | Supported                         |
-| 57   | torch.nn.functional.hardsigmoid                       | Unsupported                         |
-| 58   | torch.nn.functional.hardswish                         | Unsupported                         |
-| 59   | torch.nn.functional.feature_alpha_dropout             | Unsupported                         |
-| 60   | torch.nn.functional.silu                              | Unsupported                         |
+| 57   | torch.nn.functional.hardsigmoid                       | Supported                         |
+| 58   | torch.nn.functional.hardswish                         | Supported                         |
+| 59   | torch.nn.functional.feature_alpha_dropout             | Supported                         |
+| 60   | torch.nn.functional.silu                              | Supported                         |
 | 61   | torch.nn.functional.batch_norm                        | Supported                         |
 | 62   | torch.nn.functional.instance_norm                     | Supported                         |
 | 63   | torch.nn.functional.layer_norm                        | Supported                         |
@@ -1195,12 +1195,12 @@
 | 75   | torch.nn.functional.pairwise_distance                 | Supported                         |
 | 76   | torch.nn.functional.cosine_similarity                 | Supported                         |
 | 77   | torch.nn.functional.pdist                             | Supported                         |
-| 78   | torch.nn.functional.binary_cross_entropy              | Supported                         |
+| 78   | torch.nn.functional.binary_cross_entropy              | Supported. The value of **y** can only be **1** or **0**.   |
 | 79   | torch.nn.functional.binary_cross_entropy_with_logits  | Supported                         |
 | 80   | torch.nn.functional.poisson_nll_loss                  | Supported                         |
 | 81   | torch.nn.functional.cosine_embedding_loss             | Supported                         |
 | 82   | torch.nn.functional.cross_entropy                     | Supported                         |
-| 83   | torch.nn.functional.ctc_loss                          | Yes (only two-dimensional inputs are supported)        |
+| 83   | torch.nn.functional.ctc_loss                          | Supported. Only 2-dimensional inputs are supported.        |
 | 84   | torch.nn.functional.hinge_embedding_loss              | Supported                         |
 | 85   | torch.nn.functional.kl_div                            | Supported                         |
 | 86   | torch.nn.functional.l1_loss                           | Supported                         |
@@ -1208,27 +1208,28 @@
 | 88   | torch.nn.functional.margin_ranking_loss               | Supported                         |
 | 89   | torch.nn.functional.multilabel_margin_loss            | Supported                         |
 | 90   | torch.nn.functional.multilabel_soft_margin_loss       | Supported                         |
-| 91   | torch.nn.functional.multi_margin_loss                 | Unsupported                         |
+| 91   | torch.nn.functional.multi_margin_loss                 | Supported                         |
 | 92   | torch.nn.functional.nll_loss                          | Supported                         |
 | 93   | torch.nn.functional.smooth_l1_loss                    | Supported                         |
 | 94   | torch.nn.functional.soft_margin_loss                  | Supported                         |
 | 95   | torch.nn.functional.triplet_margin_loss               | Supported                         |
-| 96   | torch.nn.functional.triplet_margin_with_distance_loss | Unsupported                         |
+| 96   | torch.nn.functional.triplet_margin_with_distance_loss | Supported                         |
 | 97   | torch.nn.functional.pixel_shuffle                     | Unsupported                         |
-| 98   | torch.nn.functional.pad                               | Supported                         |
-| 99   | torch.nn.functional.interpolate                       | Supported                         |
-| 100  | torch.nn.functional.upsample                          | Supported                         |
-| 101  | torch.nn.functional.upsample_nearest                  | Supported                         |
-| 102  | torch.nn.functional.upsample_bilinear                 | Supported                         |
-| 103  | torch.nn.functional.grid_sample                       | Supported                         |
-| 104  | torch.nn.functional.affine_grid                       | Supported                         |
-| 105  | torch.nn.parallel.data_parallel                       | Unsupported                         |
+| 98   | torch.nn.functional.pixel_unshuffle                   | Unsupported                         |
+| 99   | torch.nn.functional.pad                               | Supported                         |
+| 100  | torch.nn.functional.interpolate                       | Supported                         |
+| 101  | torch.nn.functional.upsample                          | Supported                         |
+| 102  | torch.nn.functional.upsample_nearest                  | Supported                         |
+| 103  | torch.nn.functional.upsample_bilinear                 | Supported                         |
+| 104  | torch.nn.functional.grid_sample                       | Supported                         |
+| 105  | torch.nn.functional.affine_grid                       | Supported                         |
+| 106  | torch.nn.parallel.data_parallel                       | Unsupported                         |
 
 ## torch.distributed
 
 | No.| API                                  | Supported/Unsupported|
 | ---- | ----------------------------------------- | -------- |
-| 1    | torch.distributed.is_available            | Unsupported      |
+| 1    | torch.distributed.is_available            | Supported      |
 | 2    | torch.distributed.init_process_group      | Supported      |
 | 3    | torch.distributed.Backend                 | Supported      |
 | 4    | torch.distributed.get_backend             | Supported      |
@@ -1238,18 +1239,18 @@
 | 8    | torch.distributed.is_mpi_available        | Supported      |
 | 9    | torch.distributed.is_nccl_available       | Supported      |
 | 10   | torch.distributed.new_group               | Supported      |
-| 11   | torch.distributed.Store                   | Unsupported      |
-| 12   | torch.distributed.TCPStore                | Unsupported      |
-| 13   | torch.distributed.HashStore               | Unsupported      |
-| 14   | torch.distributed.FileStore               | Unsupported      |
-| 15   | torch.distributed.PrefixStore             | Unsupported      |
-| 16   | torch.distributed.Store.set               | Unsupported      |
-| 17   | torch.distributed.Store.get               | Unsupported      |
-| 18   | torch.distributed.Store.add               | Unsupported      |
-| 19   | torch.distributed.Store.wait              | Unsupported      |
-| 20   | torch.distributed.Store.num_keys          | Unsupported      |
-| 21   | torch.distributed.Store.delete_keys       | Unsupported      |
-| 22   | torch.distributed.Store.set_timeout       | Unsupported      |
+| 11   | torch.distributed.Store                   | Supported      |
+| 12   | torch.distributed.TCPStore                | Supported      |
+| 13   | torch.distributed.HashStore               | Supported      |
+| 14   | torch.distributed.FileStore               | Supported      |
+| 15   | torch.distributed.PrefixStore             | Supported      |
+| 16   | torch.distributed.Store.set               | Supported      |
+| 17   | torch.distributed.Store.get               | Supported      |
+| 18   | torch.distributed.Store.add               | Supported      |
+| 19   | torch.distributed.Store.wait              | Supported      |
+| 20   | torch.distributed.Store.num_keys          | Supported      |
+| 21   | torch.distributed.Store.delete_keys       | Supported      |
+| 22   | torch.distributed.Store.set_timeout       | Supported      |
 | 23   | torch.distributed.send                    | Unsupported      |
 | 24   | torch.distributed.recv                    | Unsupported      |
 | 25   | torch.distributed.isend                   | Unsupported      |
@@ -1257,18 +1258,18 @@
 | 27   | is_completed                              | Supported      |
 | 28   | wait                                      | Supported      |
 | 29   | torch.distributed.broadcast               | Supported      |
-| 30   | torch.distributed.broadcast_object_list   | Unsupported      |
+| 30   | torch.distributed.broadcast_object_list   | Supported      |
 | 31   | torch.distributed.all_reduce              | Supported      |
 | 32   | torch.distributed.reduce                  | Unsupported      |
 | 33   | torch.distributed.all_gather              | Supported      |
-| 34   | torch.distributed.all_gather_object       | Unsupported      |
-| 35   | torch.distributed.gather_object           | Unsupported      |
+| 34   | torch.distributed.all_gather_object       | Supported      |
+| 35   | torch.distributed.gather_object           | Supported      |
 | 36   | torch.distributed.gather                  | Unsupported      |
 | 37   | torch.distributed.scatter                 | Unsupported      |
-| 38   | torch.distributed.scatter_object_list     | Unsupported      |
-| 39   | torch.distributed.reduce_scatter          | Unsupported      |
-| 40   | torch.distributed.reduce_scatter_multigpu | Unsupported      |
-| 41   | torch.distributed.all_to_all              | Unsupported      |
+| 38   | torch.distributed.scatter_object_list     | Supported      |
+| 39   | torch.distributed.reduce_scatter          | Supported      |
+| 40   | torch.distributed.reduce_scatter_multigpu | Supported      |
+| 41   | torch.distributed.all_to_all              | Supported      |
 | 42   | torch.distributed.barrier                 | Supported      |
 | 43   | torch.distributed.ReduceOp                | Supported      |
 | 44   | torch.distributed.reduce_op               | Supported      |
@@ -1281,95 +1282,95 @@
 
 ## torch_npu.npu
 
-| No.| API                                      | NPU API Name                                  | Supported/Unsupported|
-| ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
-| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer          | Unsupported      |
-| 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | Unsupported      |
-| 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | Supported      |
-| 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | Supported      |
-| 5    | torch.cuda.default_stream                     | torch_npu.npu.default_stream                     | Supported      |
-| 6    | torch.cuda.device                             | torch_npu.npu.device                             | Supported      |
-| 7    | torch.cuda.device_count                       | torch_npu.npu.device_count                       | Supported      |
-| 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | Supported      |
-| 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | Unsupported      |
-| 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | Unsupported      |
-| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | Unsupported |
-| 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | Unsupported      |
-| 13   | torch.cuda.init                               | torch_npu.npu.init                               | Supported      |
-| 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | Unsupported      |
-| 15   | torch.cuda.is_available                       | torch_npu.npu.is_available                       | Supported      |
-| 16   | torch.cuda.is_initialized                     | torch_npu.npu.is_initialized                     | Supported      |
+| No.| API                                      | NPU API Name                                  | Supported/Unsupported      |
+| ---- | --------------------------------------------- | ------------------------------------------------ | -------------- |
+| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer             | Supported            |
+| 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | Unsupported            |
+| 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | Supported            |
+| 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | Supported            |
+| 5    | torch.cuda.default_stream                     | torch_npu.npu.default_stream                     | Supported            |
+| 6    | torch.cuda.device                             | torch_npu.npu.device                             | Supported            |
+| 7    | torch.cuda.device_count                       | torch_npu.npu.device_count                       | Supported            |
+| 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | Supported            |
+| 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | Unsupported            |
+| 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | Unsupported            |
+| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | Unsupported            |
+| 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | Supported            |
+| 13   | torch.cuda.init                               | torch_npu.npu.init                               | Supported            |
+| 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | Unsupported            |
+| 15   | torch.cuda.is_available                       | torch_npu.npu.is_available                       | Supported            |
+| 16   | torch.cuda.is_initialized                     | torch_npu.npu.is_initialized                     | Supported            |
 | 17   | torch.cuda.set_device                         | torch_npu.npu.set_device                         | Partially supported|
-| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | Supported      |
-| 19   | torch.cuda.synchronize                        | torch_npu.npu.synchronize                        | Supported      |
-| 20   | torch.cuda.get_arch_list                      | torch_npu.npu.get_arch_list                      | Unsupported      |
-| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | Unsupported      |
-| 22   | torch.cuda.get_rng_state_all                  | torch_npu.npu.get_rng_state_all                  | Unsupported      |
-| 23   | torch.cuda.set_rng_state                      | torch_npu.npu.set_rng_state                      | Unsupported      |
-| 24   | torch.cuda.set_rng_state_all                  | torch_npu.npu.set_rng_state_all                  | Unsupported      |
-| 25   | torch.cuda.manual_seed                        | torch_npu.npu.manual_seed                        | Unsupported      |
-| 26   | torch.cuda.manual_seed_all                    | torch_npu.npu.manual_seed_all                    | Unsupported      |
-| 27   | torch.cuda.seed                               | torch_npu.npu.seed                               | Unsupported      |
-| 28   | torch.cuda.seed_all                           | torch_npu.npu.seed_all                           | Unsupported      |
-| 29   | torch.cuda.initial_seed                       | torch_npu.npu.initial_seed                       | Unsupported      |
-| 30   | torch.cuda.comm.broadcast                     | torch_npu.npu.comm.broadcast                     | Unsupported      |
-| 31   | torch.cuda.comm.broadcast_coalesced           | torch_npu.npu.comm.broadcast_coalesced           | Unsupported      |
-| 32   | torch.cuda.comm.reduce_add                    | torch_npu.npu.comm.reduce_add                    | Unsupported      |
-| 33   | torch.cuda.comm.scatter                       | torch_npu.npu.comm.scatter                       | Unsupported      |
-| 34   | torch.cuda.comm.gather                        | torch_npu.npu.comm.gather                        | Unsupported      |
-| 35   | torch.cuda.Stream                             | torch_npu.npu.Stream                             | Supported      |
-| 36   | torch.cuda.Stream.query                       | torch_npu.npu.Stream.query                       | Unsupported      |
-| 37   | torch.cuda.Stream.record_event                | torch_npu.npu.Stream.record_event                | Supported      |
-| 38   | torch.cuda.Stream.synchronize                 | torch_npu.npu.Stream.synchronize                 | Supported      |
-| 39   | torch.cuda.Stream.wait_event                  | torch_npu.npu.Stream.wait_event                  | Supported      |
-| 40   | torch.cuda.Stream.wait_stream                 | torch_npu.npu.Stream.wait_stream                 | Supported      |
-| 41   | torch.cuda.Event                              | torch_npu.npu.Event                              | Supported      |
-| 42   | torch.cuda.Event.elapsed_time                 | torch_npu.npu.Event.elapsed_time                 | Supported      |
-| 43   | torch.cuda.Event.from_ipc_handle              | torch_npu.npu.Event.from_ipc_handle              | Unsupported      |
-| 44   | torch.cuda.Event.ipc_handle                   | torch_npu.npu.Event.ipc_handle                   | Unsupported      |
-| 45   | torch.cuda.Event.query                        | torch_npu.npu.Event.query                        | Supported      |
-| 46   | torch.cuda.Event.record                       | torch_npu.npu.Event.record                       | Supported      |
-| 47   | torch.cuda.Event.synchronize                  | torch_npu.npu.Event.synchronize                  | Supported      |
-| 48   | torch.cuda.Event.wait                         | torch_npu.npu.Event.wait                         | Supported      |
-| 49   | torch.cuda.empty_cache                        | torch_npu.npu.empty_cache                        | Supported      |
-| 50   | torch.cuda.list_gpu_processes                 | torch_npu.npu.list_gpu_processes                 | Unsupported      |
-| 51   | torch.cuda.memory_stats                       | torch_npu.npu.memory_stats                       | Supported      |
-| 52   | torch.cuda.memory_summary                     | torch_npu.npu.memory_summary                     | Supported      |
-| 53   | torch.cuda.memory_snapshot                    | torch_npu.npu.memory_snapshot                    | Supported      |
-| 54   | torch.cuda.memory_allocated                   | torch_npu.npu.memory_allocated                   | Supported      |
-| 55   | torch.cuda.max_memory_allocated               | torch_npu.npu.max_memory_allocated               | Supported      |
-| 56   | torch.cuda.reset_max_memory_allocated         | torch_npu.npu.reset_max_memory_allocated         | Supported      |
-| 57   | torch.cuda.memory_reserved                    | torch_npu.npu.memory_reserved                    | Supported      |
-| 58   | torch.cuda.max_memory_reserved                | torch_npu.npu.max_memory_reserved                | Supported      |
-| 59   | torch.cuda.set_per_process_memory_fraction    | torch_npu.npu.set_per_process_memory_fraction    | Unsupported      |
-| 60   | torch.cuda.memory_cached                      | torch_npu.npu.memory_cached                      | Supported      |
-| 61   | torch.cuda.max_memory_cached                  | torch_npu.npu.max_memory_cached                  | Supported      |
-| 62   | torch.cuda.reset_max_memory_cached            | torch_npu.npu.reset_max_memory_cached            | Supported      |
-| 63   | torch.cuda.nvtx.mark                          | torch_npu.npu.nvtx.mark                          | Unsupported      |
-| 64   | torch.cuda.nvtx.range_push                    | torch_npu.npu.nvtx.range_push                    | Unsupported      |
-| 65   | torch.cuda.nvtx.range_pop                     | torch_npu.npu.nvtx.range_pop                     | Unsupported      |
-| 66   | torch.cuda.amp.autocast                       | torch_npu.npu.amp.autocast                       | Unsupported      |
-| 67   | torch.cuda.amp.custom_fwd                     | torch_npu.npu.amp.custom_fwd                     | Unsupported      |
-| 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | Unsupported      |
-| 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | Unsupported      |
-| 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | Unsupported      |
-| 71 | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | Unsupported      |
-| 72  | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | Unsupported      |
-| 73  | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | Unsupported      |
-| 74  | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | Unsupported      |
-| 75  | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | Unsupported      |
-| 76  | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | Unsupported      |
-| 77  | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | Unsupported      |
-| 78  | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | Unsupported      |
-| 79  | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | Unsupported      |
-| 80  | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | Unsupported      |
-| 81  | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | Unsupported      |
-| 82  | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | Unsupported      |
-| 83  | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | Unsupported      |
-| 84  | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | Unsupported      |
-| 85  | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | Unsupported      |
+| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | Supported            |
+| 19   | torch.cuda.synchronize                        | torch_npu.npu.synchronize                        | Supported            |
+| 20   | torch.cuda.get_arch_list                      | torch_npu.npu.get_arch_list                      | Supported            |
+| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | Supported            |
+| 22   | torch.cuda.get_rng_state_all                  | torch_npu.npu.get_rng_state_all                  | Supported            |
+| 23   | torch.cuda.set_rng_state                      | torch_npu.npu.set_rng_state                      | Supported            |
+| 24   | torch.cuda.set_rng_state_all                  | torch_npu.npu.set_rng_state_all                  | Supported            |
+| 25   | torch.cuda.manual_seed                        | torch_npu.npu.manual_seed                        | Supported            |
+| 26   | torch.cuda.manual_seed_all                    | torch_npu.npu.manual_seed_all                    | Supported            |
+| 27   | torch.cuda.seed                               | torch_npu.npu.seed                               | Supported            |
+| 28   | torch.cuda.seed_all                           | torch_npu.npu.seed_all                           | Supported            |
+| 29   | torch.cuda.initial_seed                       | torch_npu.npu.initial_seed                       | Supported            |
+| 30   | torch.cuda.comm.broadcast                     | torch_npu.npu.comm.broadcast                     | Unsupported            |
+| 31   | torch.cuda.comm.broadcast_coalesced           | torch_npu.npu.comm.broadcast_coalesced           | Unsupported            |
+| 32   | torch.cuda.comm.reduce_add                    | torch_npu.npu.comm.reduce_add                    | Unsupported            |
+| 33   | torch.cuda.comm.scatter                       | torch_npu.npu.comm.scatter                       | Unsupported            |
+| 34   | torch.cuda.comm.gather                        | torch_npu.npu.comm.gather                        | Unsupported            |
+| 35   | torch.cuda.Stream                             | torch_npu.npu.Stream                             | Supported            |
+| 36   | torch.cuda.Stream.query                       | torch_npu.npu.Stream.query                       | Unsupported            |
+| 37   | torch.cuda.Stream.record_event                | torch_npu.npu.Stream.record_event                | Supported            |
+| 38   | torch.cuda.Stream.synchronize                 | torch_npu.npu.Stream.synchronize                 | Supported            |
+| 39   | torch.cuda.Stream.wait_event                  | torch_npu.npu.Stream.wait_event                  | Supported            |
+| 40   | torch.cuda.Stream.wait_stream                 | torch_npu.npu.Stream.wait_stream                 | Supported            |
+| 41   | torch.cuda.Event                              | torch_npu.npu.Event                              | Supported            |
+| 42   | torch.cuda.Event.elapsed_time                 | torch_npu.npu.Event.elapsed_time                 | Supported            |
+| 43   | torch.cuda.Event.from_ipc_handle              | torch_npu.npu.Event.from_ipc_handle              | Unsupported            |
+| 44   | torch.cuda.Event.ipc_handle                   | torch_npu.npu.Event.ipc_handle                   | Unsupported            |
+| 45   | torch.cuda.Event.query                        | torch_npu.npu.Event.query                        | Supported            |
+| 46   | torch.cuda.Event.record                       | torch_npu.npu.Event.record                       | Supported            |
+| 47   | torch.cuda.Event.synchronize                  | torch_npu.npu.Event.synchronize                  | Supported            |
+| 48   | torch.cuda.Event.wait                         | torch_npu.npu.Event.wait                         | Supported            |
+| 49   | torch.cuda.empty_cache                        | torch_npu.npu.empty_cache                        | Supported            |
+| 50   | torch.cuda.list_gpu_processes                 | torch_npu.npu.list_gpu_processes                 | Supported            |
+| 51   | torch.cuda.memory_stats                       | torch_npu.npu.memory_stats                       | Supported            |
+| 52   | torch.cuda.memory_summary                     | torch_npu.npu.memory_summary                     | Supported            |
+| 53   | torch.cuda.memory_snapshot                    | torch_npu.npu.memory_snapshot                    | Supported            |
+| 54   | torch.cuda.memory_allocated                   | torch_npu.npu.memory_allocated                   | Supported            |
+| 55   | torch.cuda.max_memory_allocated               | torch_npu.npu.max_memory_allocated               | Supported            |
+| 56   | torch.cuda.reset_max_memory_allocated         | torch_npu.npu.reset_max_memory_allocated         | Supported            |
+| 57   | torch.cuda.memory_reserved                    | torch_npu.npu.memory_reserved                    | Supported            |
+| 58   | torch.cuda.max_memory_reserved                | torch_npu.npu.max_memory_reserved                | Supported            |
+| 59   | torch.cuda.set_per_process_memory_fraction    | torch_npu.npu.set_per_process_memory_fraction    | Supported            |
+| 60   | torch.cuda.memory_cached                      | torch_npu.npu.memory_cached                      | Supported            |
+| 61   | torch.cuda.max_memory_cached                  | torch_npu.npu.max_memory_cached                  | Supported            |
+| 62   | torch.cuda.reset_max_memory_cached            | torch_npu.npu.reset_max_memory_cached            | Supported            |
+| 63   | torch.cuda.nvtx.mark                          | torch_npu.npu.nvtx.mark                          | Unsupported            |
+| 64   | torch.cuda.nvtx.range_push                    | torch_npu.npu.nvtx.range_push                    | Unsupported            |
+| 65   | torch.cuda.nvtx.range_pop                     | torch_npu.npu.nvtx.range_pop                     | Unsupported            |
+| 66   | torch.cuda.amp.autocast                       | torch_npu.npu.amp.autocast                       | Supported            |
+| 67   | torch.cuda.amp.custom_fwd                     | torch_npu.npu.amp.custom_fwd                     | Supported            |
+| 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | Supported            |
+| 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | Unsupported            |
+| 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | Unsupported            |
+| 71   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | Supported            |
+| 72   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | Supported            |
+| 73   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | Supported            |
+| 74   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | Supported            |
+| 75   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | Supported            |
+| 76   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | Supported            |
+| 77   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | Supported            |
+| 78   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | Supported            |
+| 79   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | Supported            |
+| 80   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | Supported            |
+| 81   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | Supported            |
+| 82   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | Supported            |
+| 83   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | Supported            |
+| 84   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | Supported            |
+| 85   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | Supported            |
 
-The **torch_npu.npu.set_device()** API can be used to specify the device only at the starting position of the program by using **set_device**. The device cannot be specified for multiple times or switched by using **with torch_npu.npu.device(id)**.
+The **torch_npu.npu.set_device()** API can be used to specify the device only at the starting position of the program by using **set_device**. The device cannot be specified for multiple times or switched by using **with torch_npu.npu.device(id)**.  
 
 ## NPU Custom Operators
 
@@ -1432,6 +1433,12 @@ The **torch_npu.npu.set_device()** API can be used to specify the device only at
 | 55   | torch_npu.npu_linear                            |
 | 56   | torch_npu.npu_bert_apply_adam                   |
 | 57   | torch_npu.npu_giou                              |
+| 58   | torch_npu.npu_ciou                              |
+| 59   | torch_npu.npu_ciou_backward                     |
+| 60   | torch_npu.npu_diou                              |
+| 61   | torch_npu.npu_diou_backward                     |
+| 62   | torch_npu.npu_sign_bits_pack                    |
+| 63   | torch_npu.npu_sign_bits_unpack                  |
 
 Operator descriptions:
 
@@ -2382,7 +2389,7 @@ count dropout result with seed
 count dropout result without seed
 
 - Parameters:
-  Similar to `torch.dropout`, optimize implementation to npu device.
+  Similar to `torch.dropout`, optimize implemention to npu device.
   - **self** (Tensor) - The input Tensor.
   - **p** (Float) - Dropout probability.
 
@@ -2410,7 +2417,7 @@ count dropout result without seed
 count dropout result inplace.
 
 - Parameters:
-  Similar to `torch.dropout_`, optimize implementation to npu device.
+  Similar to `torch.dropout_`, optimize implemention to npu device.
   - **result** (Tensor) - The Tensor dropout inplace.
   - **p** (Float) - Dropout probability.
 
@@ -2566,7 +2573,7 @@ count ifmr result by begin,end,strides array, Input Feature Map Reconstruction
 count max result with dim.
 
 - Parameters:
-  Similar to `torch.max`, optimize implementation to npu device.
+  Similar to `torch.max`, optimize implemention to npu device.
   
   - **self** (Tensor) – the input tensor.
   - **dim** (Number) – the dimension to reduce.
@@ -2617,7 +2624,7 @@ count max result with dim.
 count min result with dim.
 
 - Parameters:
-  Similar to `torch.min`, optimize implementation to npu device.
+  Similar to `torch.min`, optimize implemention to npu device.
   - **self** (Tensor) – the input tensor.
   - **dim** (Number) – the dimension to reduce.
   - **keepdim** (bool) – whether the output tensor has dim retained or not.
@@ -2667,7 +2674,7 @@ count min result with dim.
 count scatter result with dim.
 
 - Parameters:
-  Similar to `torch.scatter`, optimize implementation to npu device.
+  Similar to `torch.scatter`, optimize implemention to npu device.
   
   - **self** (Tensor) - the input tensor.
   - **indices** (Tensor) – the indices of elements to scatter, can be either empty or of the same dimensionality as src. When empty, the operation returns self unchanged.
@@ -2703,7 +2710,7 @@ count scatter result with dim.
 count layer norm result.
 
 - Parameters:
-  The same as `torch.nn.functional.layer_norm`, optimize implementation to npu device.
+  The same as `torch.nn.functional.layer_norm`, optimize implemention to npu device.
   - **input** (Tensor) - The input Tensor.
   - **normalized_shape** (ListInt) – input shape from an expected input of size.
   - **weight** (Tensor) - The gamma Tensor.
@@ -2990,7 +2997,7 @@ Generate the responsible flags of anchor in a single feature map.
 Generates bounding boxes based on yolo's "anchor" and "ground-truth" boxes. It is a customized mmdetection operator. 
 
 - Parameters:
-  - **self** (Tensor) -  anchor boxes generated by the yolo training set. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs and the value "4" refers to (tx, ty, tw, th).  
+  - **self** (Tensor) -  anchor boxes generated by the yolo training set. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs, "N" indicates the number of ROIs, and the value "4" refers to (tx, ty, tw, th). 
   - **gt_bboxes** (Tensor) -  target of the transformation, e.g, ground-truth boxes. A 2D Tensor of type float32 or float16 with shape (N, 4). "N" indicates the number of ROIs, and 4 indicates "dx", "dy", "dw", and "dh". 
   - **strides** (Tensor) -  Scale for each box. A 1D Tensor of type int32 shape (N,). "N" indicates the number of ROIs. 
 - **performance_mode** (bool) - Select performance mode, "high_precision" or "high_performance". select "high_precision" when input type is float32, the output tensor precision will be smaller than 0.0001, select "high_performance" when input type is float32, the ops will be best performance, but precision will be only smaller than 0.005. 
@@ -3088,7 +3095,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
   - **start** (Tensor) - masked fill start pos. A 3D Tensor of int32 with shape (num, N).
   - **end** (Tensor) - masked fill end pos. A 3D Tensor of int32 with shape (num, N).
   - **value** (Tensor) - masked fill value. A 2D Tensor of float32/float16/int32/int8 with shape (num,).
-  - **axis** (Number) - axis with masked fill of int32. Defaults to -1. 
+  - **axis** (Number) - axis with masked fill of int32. Defaults to -1. 
 
 - Constraints:
 
@@ -3158,7 +3165,7 @@ masked fill tensor along with one axis by range.boxes. It is a customized masked
 
 - Keyword Arguments :
 
-  - **out** :A Tensor, optional. The output tensor. 
+  - **out** :A Tensor, optional. The output tensor. 
 
 - constraints:
 
@@ -3191,9 +3198,9 @@ First calculate the minimum closure area of the two boxes, IoU, the proportion o
 
   - **self** (Tensor) - Bounding boxes, a 2D Tensor of type float16 or float32 with shape (N, 4). "N" indicates the number of bounding boxes, and the value "4" refers to [x1, y1, x2, y2] or [x, y, w, h].
   - **gtboxes** (Tensor) - Ground-truth boxes, a 2D Tensor of type float16 or float32 with shape (M, 4). "M" indicates the number of ground truth boxes, and the value "4" refers to [x1, y1, x2, y2] or [x, y, w, h].
-  - **trans** (bool) - An optional bool, true for 'xywh', false for 'xyxy'. 
-  - **is_cross** (bool) - An optional bool, control whether the output shape is [M, N] or [1, N]. 
-  - **mode:** (Number) - Computation mode, a character string with the value range of [iou, iof] . 
+  - **trans** (bool) - An optional bool, true for 'xywh', false for 'xyxy'. 
+  - **is_cross** (bool) - An optional bool, control whether the output shape is [M, N] or [1, N]. 
+  - **mode:** (Number) - Computation mode, a character string with the value range of [iou, iof] . 
 
 - Constraints:
 
@@ -3221,11 +3228,11 @@ First calculate the minimum closure area of the two boxes, IoU, the proportion o
 
 > torch_npu.npu_silu(self) -> Tensor
 
-Computes the for the Swish of "x" .
+Computes the for the Swish of "x" .
 
 - Parameters:
 
-  - **self** (Tensor) - A Tensor. Must be one of the following types: float16, float32 
+  - **self** (Tensor) - A Tensor. Must be one of the following types: float16, float32 
 
 - Constraints:
 
@@ -3247,8 +3254,8 @@ Reshapes a tensor. Only the tensor shape is changed, without changing the data.
 
 - Parameters:
 
-  - **self** (Tensor) - A Tensor.
-  - **shape** (ListInt) - Defines the shape of the output tensor. 
+  - **self** (Tensor) - A Tensor.
+  - **shape** (ListInt) - Defines the shape of the output tensor. 
   - **can_refresh** (bool) - Used to specify whether reshape can be refreshed in place.
 
 - Constraints:
@@ -3274,7 +3281,7 @@ Calculate the overlapping area of the rotated box.
 
   - **self** (Tensor) - data of grad increment, a 3D Tensor of type float32 with shape (B, 5, N). 
   - **query_boxes** (Tensor) - Bounding boxes, a 3D Tensor of type float32 with shape (B, 5, K).
-  - **trans** (bool) - An optional attr, true for 'xyxyt', false for 'xywht'. 
+  - **trans** (bool) - An optional attr, true for 'xyxyt', false for 'xywht'. 
 
 - Constraints:
 
@@ -3301,9 +3308,9 @@ Calculate the IOU of the rotated box.
 
   - **self** (Tensor) - data of grad increment, a 3D Tensor of type float32 with shape (B, 5, N). 
   - **query_boxes** (Tensor) - Bounding boxes, a 3D Tensor of type float32 with shape (B, 5, K).
-  - **trans** (bool) - An optional attr, true for 'xyxyt', false for 'xywht'. 
+  - **trans** (bool) - An optional attr, true for 'xyxyt', false for 'xywht'. 
   - **is_cross** (bool) -Cross calculation when it is True, and one-to-one calculation when it is False.
-  - **mode** (Number) - Computation mode, a character string with the value range of [iou, iof, giou] . 
+  - **mode** (Number) - Computation mode, a character string with the value range of [iou, iof, giou] . 
 
 - Constraints:
 
@@ -3382,4 +3389,269 @@ Rotate Bounding Box Encoding.
                 [-88.4375]]], device='npu:0', dtype=torch.float16)
     ```
 
+>   torch_npu.npu_ciou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> Tensor
+
+Applies an NPU based CIOU operation.
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Notes:
+
+  Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args:
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  - mode (int):  Select the calculation mode of diou.
+  - atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
+
+- Returns:
+
+  torch.Tensor: The result of the mask operation
+
+- Examples:
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_ciou(box1, box2) 
+      >>> l = ciou.sum()
+      >>> l.backward()
+  ```
+
+>   torch_npu.npu_diou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=False, int mode=0) -> Tensor
+
+Applies an NPU based DIOU operation.
+
+Taking into account the distance between the targets,the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
+
+- Notes:
+
+  Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args:
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  - mode (int):  Select the calculation mode of diou.
+
+- Returns:
+
+  torch.Tensor: The result of the mask operation
+
+- Examples:
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_diou(box1, box2) 
+      >>> l = diou.sum()
+      >>> l.backward()
+  ```
+
+  >    torch_npu.npu_sign_bits_pack(Tensor self, int size) -> Tensor
+
+  one-bit Adam pack of float into uint8.
+
+  - Args:
+
+    - x(Tensor) - A floats Tensor in 1D.
+    - size(Number) - A required int. First dimension of output tensor when reshaping.
+
+    - Constraints:
+
+      Size needs to be divisible by output of packing floats. If size of x is divisible by 8, size of output is (size of x) / 8;
+      otherwise, size of output is (size of x // 8) + 1, -1 float values will be added to fill divisibility, at little endian positions.
+      910 and 710 chips support input type float32 and float16, 310 chips only supports input type float16.
+
+  - Examples:
+
+    ```
+        >>>a = torch.tensor([5,4,3,2,0,-1,-2, 4,3,2,1,0,-1,-2],dtype=torch.float32).npu()
+        >>>b = torch_npu.sign_bits_pack(a, 2)
+        >>>b
+        >>>tensor([[159],[15]], device='npu:0')
+        >>>(binary form of 159 is ob10011111, corresponds to 4, -2, -1, 0, 2, 3, 4, 5 respectively)
+    ```
+
+
+  >    torch_npu.sign_bits_unpack(x, dtype, size) -> Tensor
+
+  one-bit Adam unpack of uint8 into float.
+
+  - Args:
+
+    - x(Tensor) - A uint8 Tensor in 1D.
+    - dtype(Number) - A required int. 1 sets float16 as output, 0 sets float32 as output.
+    - size(Number) - A required int. First dimension of output tensor when reshaping.
+
+  - Constraints:
+
+    Size needs to be divisible by output of unpacking uint8s. Size of output is (size of x) * 8;
+
+  - Examples:
+
+    ```
+        >>>a = torch.tensor([159, 15], dtype=torch.uint8).npu()
+        >>>b = torch_npu.sign_bits_unpack(a, 0, 2)
+        >>>b
+        >>>tensor([[1., 1., 1., 1., 1., -1., -1., 1.],
+        >>>[1., 1., 1., 1., -1., -1., -1., -1.]], device='npu:0')
+    (binary form of 159 is ob00001111)
+    ```
+
+    
+
+## Affinity Library
+
+The following affinity library applies to PyTorch 1.8.1.
+
+>   **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
+
+Using NPU custom operator to replace the native writing method to improve performance
+
+- Args:
+
+  - training (bool): Whether it is training mode.
+  - dropout (nn.Module): the dropout layer
+  - attn_mask (Tensor): the attention mask.
+  - attn_scores (Tensor): the raw attention scores
+  - attn_head_size (float): the head size
+  - p (float): probability of an element to be zeroed
+  - dim (int): A dimension along which softmax will be computed.
+
+- Returns:
+
+  torch.Tensor: The result of the mask operation
+
+- Examples:
+
+  ```
+      >>> training = True
+      >>> dropout = nn.DropoutWithByteMask(0.1)
+      >>> npu_input1 = torch.rand(96, 12, 384, 384).half().npu()
+      >>> npu_input2 = torch.rand(96, 12, 384, 384).half().npu()
+      >>> alpha = 0.125
+      >>> axis = -1
+      >>> output = torch_npu.contrib.function.fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
+  ```
+
+>   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
+
+Applies an NPU based DIOU operation.
+
+Taking into account the distance between the targets,the overlap rate of the distance and the range, different targets or boundaries will tend to be stable.
+
+- Notes:
+
+  Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args:
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  -  mode (int):  Select the calculation mode of diou.
+
+- Returns:
+
+  torch.Tensor: The result of the mask operation
+
+- Examples:
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_diou(box1, box2) 
+      >>> l = diou.sum()
+      >>> l.backward()
+  ```
+  
+
+>   **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
+
+Applies an NPU based CIOU operation.
+
+ A penalty item is added on the basis of DIoU, and CIoU is proposed.
+
+- Notes:
+
+   Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you need to back propagation, please ensure your parameter is correct!
+
+- Args:
+
+  - boxes1 (Tensor): Predicted bboxes of format xywh, shape (4, n).
+  - boxes2 (Tensor): Corresponding gt bboxes, shape (4, n).
+  - trans (Bool): Whether there is an offset
+  - is_cross (Bool): Whether there is a cross operation between box1 and box2.
+  -  mode (int):  Select the calculation mode of diou.
+  - atan_sub_flag (Bool): whether to pass the second value of the forward to the reverse.
+
+- Returns:
+
+  torch.Tensor: The result of the mask operation
+
+- Examples:
+
+  ```
+      >>> box1 = torch.randn(4, 32).npu()
+      >>> box1.requires_grad = True
+      >>> box2 = torch.randn(4, 32).npu()
+      >>> box2.requires_grad = True
+      >>> ciou = torch_npu.contrib.function.npu_ciou(box1, box2) 
+      >>> l = ciou.sum()
+      >>> l.backward()
+  ```
+
+>   **class** **NpuFairseqDropout**(torch.nn.Dropout):
+
+FairseqDropout using on npu device
+
+- Args:
+  -  p (float): probability of an element to be zeroed.
+  - module_name (string): the name of the model
+
+>   **class** **MultiheadAttention**(nn.Module):
+
+Multi-headed attention.
+
+- Args:
+
+  - embed_dim (int): Total dimension of the model.
+
+  - num_heads (int): Number of parallel attention heads. 
+
+  - kdim(int): Total number of features for keys. Default: None
+
+  - vdim(int): Total number of features for values. Default: None
+
+  - dropout (float): Dropout probability 
+
+  - bias (bool):  If specified, adds bias to input / output projection layers. Default: True.
+
+  - add_bias_kv (bool): If specified, adds bias to the key and value sequences at dim=0. Default: False.
+
+  - add_zero_attn (bool): If specified, adds a new batch of zeros to the key and value sequences at dim=1. 
+                                  Default: False.
+
+  - self_attention (bool): Calculate your own attention score. Default: False.
+
+  - encoder_decoder_attention (bool): The input is the output of the encoder and the self-attention output of the decoder, where the self-attention of the encoder is used as the key and value, and the self-attention of the decoder is used as the query. Default: False.
+
+  - q_noise(float): amount of Quantization Noise.
+  
+  - qn_block_size(int): size of the blocks for subsequent quantization with iPQ.
+  
     
