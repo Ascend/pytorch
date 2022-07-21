@@ -13,7 +13,7 @@
 
 -   [FAQ](#faq)
 
--   [Version Description](#version-description)
+-   [Release Notes](#release-notes)
 
     
 
@@ -21,7 +21,7 @@
 
 This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch framework so that developers who use the PyTorch framework can obtain powerful compute capabilities of Ascend AI Processors. When setting up the environment for model development and running under PyTorch, you can manually build and install modules adapted to the PyTorch framework on a server.
 
-<h3 id="prerequisitesmd">Prerequisites</h3>
+## Prerequisites
 
 - The development or operating environment of CANN has been installed. For details, see the *CANN Software Installation Guide*.
 - Python version: 3.7.5 or 3.8
@@ -30,11 +30,20 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 
 ## CentOS & EulerOS
 
-yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
+yum install -y  patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
+
+yum install -y gcc==7.3.0 cmake==3.12.0
 
 ## Ubuntu
 
-apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
+apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
+
+apt-get install -y gcc==7.3.0 cmake==3.12.0
+
+
+
+>![](public_sys-resources/icon-note.gif) **NOTE:**
+>If an error occurs during the installation of the GCC and CMake dependency commands, use the source code for installation. For details, see the FAQ.
 
 
 # Ascend Auxiliary Software<a name="Ascend Auxiliary Software"></a> 
@@ -177,17 +186,17 @@ If the system is openEuler or its inherited OS, such as UOS, run the following c
 </tr>
 <tr id="row78312162301"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p1832171673019"><a name="p1832171673019"></a><a name="p1832171673019"></a>COMBINED_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>(Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to **1**. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency.</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p583261643014"><a name="p583261643014"></a><a name="p583261643014"></a>(Optional) Discontinuous-to-continuous level-2 derivation optimization. To enable this function, set the value to <b>1</b>. When a large number of time-consuming AsStrided operators are called in the model, you can enable this function to improve the device execution efficiency.</p>
 </td>
 </tr>
 <tr id="row183041355123411"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="p730435533415"><a name="p730435533415"></a><a name="p730435533415"></a>ACL_DUMP_DATA</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>(Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to **1**.</p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="p16304105533412"><a name="p16304105533412"></a><a name="p16304105533412"></a>(Optional) Operator data dump function, which is used for debugging. To enable this function, set the value to <b>1</b>.</p>
 </td>
 </tr>
 <tr id="row19173161510309"><td class="cellrowborder" valign="top" width="55.48%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001152616261_p16711563237"><a name="zh-cn_topic_0000001152616261_p16711563237"></a><a name="zh-cn_topic_0000001152616261_p16711563237"></a>TASK_QUEUE_ENABLE</p>
 </td>
-<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>(Optional) Use asynchronous task delivery to asynchronously invoke the ACL interface. To enable this function, set it to **1** (recommended default setting). </p>
+<td class="cellrowborder" valign="top" width="44.519999999999996%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001152616261_p0711356152317"><a name="zh-cn_topic_0000001152616261_p0711356152317"></a><a name="zh-cn_topic_0000001152616261_p0711356152317"></a>(Optional) Use asynchronous task delivery to asynchronously invoke the ACL interface. To enable this function, set it to <b>1</b> (recommended default setting). </p>
 </td>
 </tbody>
 </table>
@@ -204,7 +213,7 @@ python3 pytorch1.5.0/test/test_npu/test_network_ops/test_div.py
 ```
 # (Optional) Installing the Mixed Precision Module<a name="(Optional) Installing the Mixed Precision Module"></a>
 
-Select the APEX module based on the following functions. For details about how to build and install the APEX module, see the [README.en](https://gitee.com/ascend/apex/tree/v1.5.0/).
+Select the APEX module based on the following functions. For details about how to build and install the APEX module, see the [README.en](https://gitee.com/ascend/apex/tree/v1.5.0-3.0.rc2/).
 
 - APEX
   - O1 configuration mode: Conv and Matmul use the float16 precision for computing, and Softmax and BN use float32.
@@ -226,7 +235,7 @@ pip3 install -r requirments.txt
 
 
 
-## The **libhccl.so** cannot be found by **import torch**.
+## The libhccl.so cannot be found by import torch.
 
 Environment variables are not configured. You need to configure them using the **env.sh** script.
 
@@ -236,7 +245,7 @@ source pytorch/pytorch1.5.0/src/env.sh
 
 
 
-## The error message "no module named yaml/typing_extensions." is displayed when **bash build.sh** is run during compilation.
+## The error message "no module named yaml/typing_extensions." is displayed when bash build.sh is run during compilation.
 
 PyTorch compilation depends on the YAML and typing_extensions libraries, which need to be manually installed.
 
@@ -277,10 +286,32 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
 
- x86_64 environment: cmake-3.12.0-Linux-x86_64.sh
- AArch64 environment: cmake-3.12.0-Linux-aarch64.sh
+​		x86_64 environment: cmake-3.12.0-Linux-x86_64.sh
 
-Method 2: Use the source code to build and install.
+​		AArch64 environment: cmake-3.12.0-Linux-aarch64.sh
+
+1. Run the following command:
+
+   ```
+   ./cmake-3.12.0-Linux-{arch}.sh #{arch} indicates the architecture name.
+   ```
+
+2. Set the soft link.
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+3. Run the following command to check whether CMake has been installed:
+
+   ```
+   cmake --version
+   ```
+
+   If the message "cmake version 3.12.0" is displayed, the installation is successful.
+
+
+Method 2: Use the source code to compile and install.
 
 1. Obtain the CMake software package.
 
@@ -320,11 +351,11 @@ Method 2: Use the source code to build and install.
 
 ## During GCC installation through the CLI, an error is reported indicating that the package cannot be found. During GCC compilation, another error is reported.
 
-When downloading GCC from some sources, you may be prompted by an error message indicating that the package cannot be found. In this case, use the source code to build and install GCC.
+When downloading GCC from some sources, you may be prompted by an error message indicating that the package cannot be found. In this case, use the source code to compile and install GCC.
 
 Perform the following steps as the **root** user.
 
-1. Download gcc-7.3.0.tar.gz from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://gitee.com/link?target=https %3A %2F %2Fmirrors.tuna.tsinghua.edu.cn %2Fgnu %2Fgcc %2Fgcc-7.3.0%2Fgcc-7.3.0.tar.gz).
+1. Download **gcc-7.3.0.tar.gz** from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
 
 2. GCC installation requires adequate temporary space. Run the following command to clear the **/tmp** directory in advance:
 
@@ -346,7 +377,7 @@ Perform the following steps as the **root** user.
      apt-get install bzip2    
      ```
 
-4. Build and install GCC.
+4. Compile and install GCC.
 
    1. Go to the directory where the source package **gcc-7.3.0.tar.gz** is located and run the following command to decompress it:
 
@@ -378,7 +409,7 @@ Perform the following steps as the **root** user.
 
       If the verification fails, check whether there are duplicate dependency packages in the folder. If yes, delete duplicate ones.
 
-   3. Run the following commands for configuration, build, and installation.
+   3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>Run the configuration, compilation, and installation commands.
 
       ```
       ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
@@ -386,9 +417,33 @@ Perform the following steps as the **root** user.
       make install    
       ```
 
-      > ![img](public_sys-resources/icon-notice.gif) **Note**: The **--prefix** parameter specifies the installation path of linux_gcc7.3.0. Set this parameter to the actual path. But do not set it to **/usr/local** or **/usr**, which conflict with the default GCC installed by the system using the source code and thus damage the original GCC compilation environment. In this example, the installation path is set to **/usr/local/linux_gcc7.3.0**.
+      > ![img](public_sys-resources/icon-notice.gif) **NOTE: ** 
+      >The **--prefix** option is used to specify the **linux_gcc7.3.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr,** which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux_gcc7.3.0**.
 
+   4. Change the soft links.
 
+         ```
+      ln -s ${install_path}/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/bin/c++ /usr/bin/c++
+      ```
+
+   5. Configure environment variables.
+
+   Training must be performed in the compilation environment with GCC upgraded. If you want to run training, configure the following environment variable in your training script:
+
+   ```
+   export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
+   ```
+
+   **${install_path}** indicates the GCC 7.3.0 installation path configured in [3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/linux_gcc7.3.0/**.
+
+   >![](public_sys-resources/icon-note.gif) **NOTE:**
+   >Skip this step if you do not need to use the compilation environment with GCC upgraded.
+
+If the PyTorch compilation fails, check whether the soft link library is correct.
+
+libstdc++->libstdc++.so.6.0.24(7.3.0)
 
 ## libblas.so cannot be found.
 
@@ -428,6 +483,4 @@ If no error is reported, the installation is successful.
 
 
 
-# Version Description
-
-For details, see [Release Notes](https://gitee.com/ascend/pytorch/tree/master/docs/en/RELEASENOTE).
+For details about releases, see [Release Notes](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/RELEASENOTE/RELEASENOTE.md).
