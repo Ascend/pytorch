@@ -12,12 +12,18 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 
 ## CentOS & EulerOS
 
-yum install -y patch cmake==3.12.0 zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git gcc==7.3.0 dos2unix
+yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
+
+yum install -y gcc==7.3.0 cmake==3.12.0
 
 ## Ubuntu
 
-apt-get install -y patch gcc==7.3.0 g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 cmake==3.12.0 dos2unix libopenblas-dev git dos2unix
+apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
 
+apt-get install -y gcc==7.3.0 cmake==3.12.0
+
+>![](figures/icon-note.gif) **NOTE:** 
+>If an error occurs during the installation of the GCC and CMake dependency commands, use the source code for installation. For details, see the FAQ.  
 # Ascend Auxiliary Software
 | AscendPyTorch Version| CANN Version| Supported PyTorch Version| Gitee Branch|
 | :------------ | :----------- | :----------- | ------------- |
@@ -53,9 +59,11 @@ pip3 install torch==1.8.1+cpu # If an error is reported when you run the pip com
 ```
 
 Compile and generate the binary installation package of the PyTorch plugin.
-
+Download code of the corresponding branch and go to the root directory of the plugin.
 ```
-git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git & cd pytorch    # Download code of the v1.8.1-3.0.rc2 branch and go to the root directory of the plugin.
+# 
+git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git 
+cd pytorch    
 # Specify the Python version packaging mode:
 bash ci/build.sh --python=3.7
 # or
@@ -64,10 +72,14 @@ bash ci/build.sh --python=3.8
 bash ci/build.sh --python=3.9
 ```
 
-Install the **torch_npu** package generated in the **pytorch/dist** directory. ***{arch}*** indicates the architecture name.
+Install the **torch_npu** package generated in the **pytorch/dist** directory. *{arch}* indicates the architecture name.
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
+```
+Download TorchVision.
+```
+pip3 install torchvision==0.9.1
 ```
 
 
@@ -169,7 +181,7 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
-
+| **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |  
 # FAQs
 
 ## When the CPU architecture is ARM, PyTorch 1.8.1 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.8.1.
@@ -240,8 +252,27 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 Method 1: Download the installation script and install CMake. (For details, see the CMake official website.)
 
-​		x86_64 environment: cmake-3.12.0-Linux-x86_64.sh
-​		AArch64 environment: cmake-3.12.0-Linux-aarch64.sh
+​		x86_64 environment: cmake-3.12.0-Linux-x86_64.sh  
+​		AArch64 environment: cmake-3.12.0-Linux-aarch64.sh  
+1. Run the following command:
+
+   ```
+   ./cmake-3.12.0-Linux-{arch}.sh # {arch} indicates the architecture name.
+   ```
+
+2. Set the soft link.
+
+   ```
+   ln -s /usr/local/cmake/bin/cmake /usr/bin/cmake
+   ```
+
+3. Run the following command to check whether CMake has been installed:
+
+   ```
+   cmake --version
+   ```
+
+   If the message "cmake version 3.12.0" is displayed, the installation is successful.
 
 Method 2: Use the source code to compile and install.
 
@@ -349,24 +380,30 @@ Perform the following steps as the **root** user.
 
       >![](https://gitee.com/ascend/pytorch/raw/v1.8.1-3.0.rc2/docs/en/PyTorch%20Network%20Model%20Porting%20and%20Training%20Guide/public_sys-resources/icon-notice.gif) **NOTICE:** 
       >The **--prefix** option is used to specify the **linux\_gcc7.3.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr,** which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux\_gcc7.3.0**.
+   4. Change the soft links.
+
+         ```
+      ln -s ${install_path}/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/bin/c++ /usr/bin/c++
+      ```
 
 
-5. Configure environment variables.
+5. Configure the environment variable.
 
+   
    Training must be performed in the compilation environment with GCC upgraded. If you want to run training, configure the following environment variable in your training script:
 
    ```
    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
    ```
 
-   **${install_path}** indicates the GCC 7.3.0 installation path configured in [3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/gcc7.3.0/**.
+   **${install_path}** indicates the GCC 7.3.0 installation path configured in [3](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/gcc7.3.0/**.
 
-   >![](https://gitee.com/ascend/pytorch/raw/v1.8.1-3.0.rc2/docs/en/PyTorch%20Network%20Model%20Porting%20and%20Training%20Guide/public_sys-resources/icon-note.gif) **NOTE:** 
+   >![](figures/icon-note.gif) **NOTE:** 
    >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
-When the test environment is switched from GCC 4.8.5 to GCC 7.3.0, errors may occur and the PyTorch compilation fails. The following lists the libraries that require soft connections:
-
-gcc, g++, c++ (The version must be 7.3.0.)
+If the PyTorch compilation fails, check whether the soft link library is correct.
 
 libstdc++->libstdc++.so.6.0.24(7.3.0)
 
@@ -425,7 +462,7 @@ Parameter description:
 
 **$*{image name}:{tag}***: image name and version
 
-## An error is displayed during installation of -torch--whl-, indicating that -torch-1-5-0xxxx- and -torchvision- versions do not match.
+## An error is reported during installation of -torch--whl-, indicating that -torch-1-5-0xxxx- and -torchvision- versions do not match.
 
 During installation of **torch-\*.whl**, the message "ERROR: torchvision 0.6.0 has requirement torch==1.5.0, but you'll have torch 1.5.0a0+1977093 which is incompatible" is displayed.  
 ![](https://gitee.com/ascend/pytorch/raw/v1.8.1-3.0.rc2/figures/zh-cn_image_0000001190081735.png)
@@ -445,6 +482,11 @@ It will be resolved after the NPU's device ID is incorporated into the community
 
 ![Input Image Description](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
 
+## An error is reported when torch_npu is referenced with Python commands in the compilation directory.
+
+To verify the torch_npu reference, switch to another directory. If you perform the verification in the compilation directory, the following error message is displayed:
+
+<img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
 # Version Description
 
