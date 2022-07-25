@@ -345,6 +345,19 @@ class TestNpu(TestCase):
             self.assertEqual(a, b)
             self.assertEqual(torch_npu.npu.initial_seed(), 2)
 
+    def test_get_set_rng_state(self):
+        with freeze_rng_state():
+            torch.manual_seed(3)
+            cpu_state = torch.get_rng_state()
+            npu_state = torch_npu.npu.get_rng_state()
+            self.assertEqual(int(cpu_state[0]), 3)
+            self.assertEqual(cpu_state[0], npu_state[0])
+            torch_npu.npu.manual_seed(2)
+            cpu_state_new = torch.get_rng_state()
+            npu_state = torch_npu.npu.get_rng_state()
+            self.assertEqual(cpu_state, cpu_state_new)
+            self.assertEqual(int(npu_state[0]), 2)
+
     def test_get_device_index(self):
         from torch_npu.npu import _get_device_index
         with self.assertRaisesRegex(RuntimeError, "Invalid device string"):

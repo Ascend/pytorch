@@ -27,11 +27,12 @@ __all__ = [
     "memory_allocated", "max_memory_allocated", "memory_reserved", "max_memory_reserved",
     "memory_cached", "max_memory_cached", "memory_snapshot", "memory_summary",
     "Stream", "Event", "profiler", "set_option", "set_aoe", "profile", "prof_init",
-    "prof_start", "prof_stop", "prof_finalize",  "iteration_start", "iteration_end",
+    "prof_start", "prof_stop", "prof_finalize", "iteration_start", "iteration_end",
     "profileConfig", "_in_bad_fork", "set_compile_mode",
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
-    "get_npu_overflow_flag", "clear_npu_overflow_flag"
+    "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
+    "get_rng_state_all", "set_rng_state_all",
 ]
 
 import torch
@@ -44,7 +45,9 @@ from .utils import (is_initialized, _lazy_call, _lazy_init, init, set_dump,
                     stream, current_stream, default_stream, init_dump,
                     finalize_dump, set_dump, _in_bad_fork, get_npu_overflow_flag,
                     clear_npu_overflow_flag)
-from .random import manual_seed, manual_seed_all, seed, seed_all, initial_seed
+from .random import (manual_seed, manual_seed_all, seed, seed_all, initial_seed, 
+                     get_rng_state_all, set_rng_state_all,
+                     get_rng_state, set_rng_state)
 from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_delete,
                      empty_cache, memory_stats, memory_stats_as_nested_dict,
                      reset_accumulated_memory_stats, reset_peak_memory_stats,
