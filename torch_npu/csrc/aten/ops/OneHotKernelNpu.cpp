@@ -22,7 +22,7 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
   at::Scalar on_value = 1;
   at::Scalar off_value = 0;
   int64_t axis = -1;
-  int64_t depth;
+  at::Scalar depth;
   auto self_temp = self.to(at::kFloat);
 
   TORCH_CHECK(
@@ -48,16 +48,16 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
   }
 
   auto outputSize = array_to_small_vector(self.sizes());
-  outputSize.emplace_back(depth);
+  outputSize.emplace_back(depth.toLong());
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize,
       self.options().dtype(at::ScalarType::Int),
       self);
-  c10::SmallVector<int64_t, N> depthList = {depth};
+
   OpCommand cmd;
   cmd.Name("OneHot")
       .Input(self)
-      .Input(depthList, at::kInt)
+      .Input(depth, at::kInt)
       .Input(on_value, at::ScalarType::Int)
       .Input(off_value, at::ScalarType::Int)
       .Output(result)
