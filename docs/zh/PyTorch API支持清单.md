@@ -1251,8 +1251,8 @@
 | 20   | torch.distributed.Store.num_keys          | 是       |
 | 21   | torch.distributed.Store.delete_keys       | 是       |
 | 22   | torch.distributed.Store.set_timeout       | 是       |
-| 23   | torch.distributed.send                    | 否       |
-| 24   | torch.distributed.recv                    | 否       |
+| 23   | torch.distributed.send                    | 是       |
+| 24   | torch.distributed.recv                    | 是       |
 | 25   | torch.distributed.isend                   | 否       |
 | 26   | torch.distributed.irecv                   | 否       |
 | 27   | is_completed                              | 是       |
@@ -1269,7 +1269,7 @@
 | 38   | torch.distributed.scatter_object_list     | 是       |
 | 39   | torch.distributed.reduce_scatter          | 是       |
 | 40   | torch.distributed.reduce_scatter_multigpu | 是       |
-| 41   | torch.distributed.all_to_all              | 是       |
+| 41   | torch.distributed.all_to_all              | 否       |
 | 42   | torch.distributed.barrier                 | 是       |
 | 43   | torch.distributed.ReduceOp                | 是       |
 | 44   | torch.distributed.reduce_op               | 是       |
@@ -1279,6 +1279,7 @@
 | 48   | torch.distributed.all_gather_multigpu     | 否       |
 | 49   | torch.distributed.launch                  | 是       |
 | 50   | torch.multiprocessing.spawn               | 是       |
+| 51   | torch.distributed.all_to_all_single       | 是       |
 
 ## torch_npu.npu
 

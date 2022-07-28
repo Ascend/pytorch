@@ -1251,8 +1251,8 @@
 | 20   | torch.distributed.Store.num_keys          | Supported      |
 | 21   | torch.distributed.Store.delete_keys       | Supported      |
 | 22   | torch.distributed.Store.set_timeout       | Supported      |
-| 23   | torch.distributed.send                    | Unsupported      |
-| 24   | torch.distributed.recv                    | Unsupported      |
+| 23   | torch.distributed.send                    | Supported      |
+| 24   | torch.distributed.recv                    | Supported      |
 | 25   | torch.distributed.isend                   | Unsupported      |
 | 26   | torch.distributed.irecv                   | Unsupported      |
 | 27   | is_completed                              | Supported      |
@@ -1269,7 +1269,7 @@
 | 38   | torch.distributed.scatter_object_list     | Supported      |
 | 39   | torch.distributed.reduce_scatter          | Supported      |
 | 40   | torch.distributed.reduce_scatter_multigpu | Supported      |
-| 41   | torch.distributed.all_to_all              | Supported      |
+| 41   | torch.distributed.all_to_all              | Unsupported      |
 | 42   | torch.distributed.barrier                 | Supported      |
 | 43   | torch.distributed.ReduceOp                | Supported      |
 | 44   | torch.distributed.reduce_op               | Supported      |
@@ -1279,6 +1279,7 @@
 | 48   | torch.distributed.all_gather_multigpu     | Unsupported      |
 | 49   | torch.distributed.launch                  | Supported      |
 | 50   | torch.multiprocessing.spawn               | Supported      |
+| 51   | torch.distributed.all_to_all_single       | Supported      |
 
 ## torch_npu.npu
 
