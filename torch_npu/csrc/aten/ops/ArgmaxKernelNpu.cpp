@@ -31,12 +31,12 @@ at::Tensor NPUNativeFunctions::argmax(const at::Tensor& self, at::optional<int64
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithSizes(outputSize, self.options().dtype(at::kInt));
   
-  at::SmallVector<int64_t, N> DimVec = {realDim};
+  at::Scalar DimVec = realDim;
   // calculate the output result of the NPU
   OpCommand cmd;
   cmd.Name("ArgMaxV2")
       .Input(input)
-      .Input(DimVec, at::kInt)
+      .Input(DimVec, at::ScalarType::Int)
       .Output(result)
       .Attr("keep_dims", realKeepDim)
       .Run();
