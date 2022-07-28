@@ -62,7 +62,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertTensorWithZeroDimT
       CalcuOpUtil::CopyScalarToDevice(expScalar, scalarDataType);
 
   AclTensorDescMaker desc;
-  auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
+  auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND)
+                      .SetFormat(ACL_FORMAT_ND)
+                      .SetShape({})
+                      .Get();
   AclTensorBufferMaker buffer(aclInput);
   auto aclBuff = buffer.Get();
   return std::tie(aclDesc, aclBuff);
@@ -74,8 +77,11 @@ std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertNPUTensorWithZeroD
   aclDataType aclDataType =
       CalcuOpUtil::convert_to_acl_data_type(tensor.scalar_type());
   AclTensorDescMaker desc;
-  auto aclDesc =
-      desc.Create(aclDataType, ACL_FORMAT_ND).SetName(descName).Get();
+  auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND)
+          .SetFormat(ACL_FORMAT_ND)
+          .SetShape({})
+          .SetName(descName)
+          .Get();
   AclTensorBufferMaker buffer(tensor);
   auto aclBuff = buffer.Get();
   return std::tie(aclDesc, aclBuff);
@@ -87,7 +93,10 @@ std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertScalarToAclInput(
   aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
 
   AclTensorDescMaker desc;
-  auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
+  auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND)
+                      .SetFormat(ACL_FORMAT_ND)
+                      .SetShape({})
+                      .Get();
   AclTensorBufferMaker aclBuffer(aclInput);
   auto aclBuff = aclBuffer.Get();
   return std::tie(aclDesc, aclBuff);
@@ -104,6 +113,8 @@ std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertHostTensorToAclInp
   aclFormat format = ACL_FORMAT_ND;
   auto aclDesc = desc.Create(aclDataType, dims, format)
                       .SetPlacement(static_cast<aclMemType>(compileType))
+                      .SetFormat(format)
+                      .SetShape(dims)
                       .Get();
   int64_t numel = prod_intlist(dims);
   AclTensorBufferMaker buffer(tensor, numel);

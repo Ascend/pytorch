@@ -73,33 +73,18 @@ class AclTensorDescMaker {
     return *this;
   }
 
-  AclTensorDescMaker SetFormat(aclFormat format) {
+  AclTensorDescMaker& SetFormat(aclFormat format) {
     aclSetTensorFormat(desc, format);
     return *this;
   }
 
-  AclTensorDescMaker SetPlacement(aclMemType memType) {
+  AclTensorDescMaker& SetPlacement(aclMemType memType) {
     aclSetTensorPlaceMent(desc, memType);
     return *this;
   }
 
-  template <unsigned int N>
-  AclTensorDescMaker& SetShape(const SmallVector<int64_t, N>& dims) {
+  AclTensorDescMaker& SetShape(const IntArrayRef& dims) {
     aclSetTensorShape(desc, dims.size(), dims.data());
-    return *this;
-  }
-
-  template <unsigned int N>
-  AclTensorDescMaker& SetRange(const SmallVector<int64_t, N>& rangs) {
-    int arryDim = rangs.size() == 0 ? 0 : rangs.size() / 2;
-
-    int64_t range[arryDim][2];
-    for (int i = 0, j = 0; i < arryDim; i++, j += 2) {
-      range[i][0] = rangs[j];
-      range[i][1] = rangs[j + 1];
-    }
-
-    aclSetTensorShapeRange(desc, arryDim, range);
     return *this;
   }
 

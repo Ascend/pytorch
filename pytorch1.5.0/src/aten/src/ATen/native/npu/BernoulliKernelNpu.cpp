@@ -17,41 +17,49 @@
 #include "ATen/native/npu/utils/OpAdapter.h"
 #include "c10/npu/SecondaryStreamGuard.h"
 #include "c10/npu/NPUCachingAllocator.h"
+#include "ATen/npu/NPUGenerator.h"
+#include "ATen/Utils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, double p) {
+Tensor& bernoulli_npu_nocheck(Tensor& y, const Tensor& x, double p, int64_t seed, int64_t offset) {
   auto original_stream = c10::npu::getCurrentNPUStream();
   {
-      auto self_ = at::empty_like(self);
+      auto x_ = at::empty_like(x);
       c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
       OpCommand cmd;
-      cmd.Name("BernoulliCust")
-        .Input(self_)
+      cmd.Name("Bernoulli")
+        .Input(x_)
         .Input(Scalar(p), ScalarType::Float)
-        .Output(result)
+        .Output(y)
+        .Attr("seed", seed)
+        .Attr("offset", offset)
         .Run();
   }
-  c10::npu::NPUCachingAllocator::recordStream(result.storage().data_ptr(), original_stream);
-
-  return result;
+  c10::npu::NPUCachingAllocator::recordStream(y.storage().data_ptr(), original_stream);
+  return y;
 }
 
-Tensor& bernoulli_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& p) {
+Tensor& bernoulli_npu_nocheck(Tensor& y, const Tensor& x, const Tensor& p, int64_t seed, int64_t offset) {
   OpCommand cmd;
   cmd.Name("Bernoulli")
-    .Input(self)
+    .Input(x)
     .Input(p)
-    .Output(result)
+    .Output(y)
+    .Attr("seed", seed)
+    .Attr("offset", offset)
     .Run();
-
-  return result;
+  return y;
 }
 
 Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
-  OpPreparation::CheckMemory({self}, {self});
+  auto gen_ = get_generator_or_default<NPUGenerator>(gen, at::npu::detail::getDefaultNPUGenerator());
+  auto pair = gen_->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
   if (self.scalar_type() == ScalarType::Half) {
@@ -60,10 +68,10 @@ Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p);
+    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p, seed, offset);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, p);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, p, seed, offset);
     self.copy_(selfFp32);
   }
 
@@ -74,7 +82,11 @@ Tensor& bernoulli_npu_(Tensor& self, double p, Generator* gen) {
 }
 
 Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
-  OpPreparation::CheckMemory({self}, {self});
+  auto gen_ = get_generator_or_default<NPUGenerator>(gen, at::npu::detail::getDefaultNPUGenerator());
+  auto pair = gen_->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+
   ScalarType selfType = self.scalar_type();
   Tensor selfFp32 = self;
   Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
@@ -85,10 +97,10 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
 
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32);
+    Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32, seed, offset);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32, seed, offset);
     self.copy_(selfFp32);
   }
 
@@ -100,8 +112,7 @@ Tensor& bernoulli_npu_(Tensor& self, const Tensor& p, Generator* gen) {
 
 Tensor bernoulli_npu(const Tensor& self, Generator* gen) {
   const Tensor p = self;
-  Tensor selfCopy = at::empty_with_format(
-      self.sizes(), self.options(), ACL_FORMAT_ND);
+  Tensor selfCopy = OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options(), ACL_FORMAT_ND);
   selfCopy.copy_(self);
   return bernoulli_npu_(selfCopy, p, gen);
 }
