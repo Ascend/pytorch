@@ -15,7 +15,6 @@
 // limitations under the License.
 
 #include "ATen/native/npu/utils/OpAdapter.h"
-#include "c10/npu/SecondaryStreamGuard.h"
 #include "c10/npu/NPUCachingAllocator.h"
 #include "ATen/npu/NPUGenerator.h"
 #include "ATen/Utils.h"
@@ -25,20 +24,15 @@ namespace native {
 using namespace at::native::npu;
 
 Tensor& bernoulli_npu_nocheck(Tensor& y, const Tensor& x, double p, int64_t seed, int64_t offset) {
-  auto original_stream = c10::npu::getCurrentNPUStream();
-  {
-      auto x_ = at::empty_like(x);
-      c10::npu::SecondaryStreamGuard guard(c10::npu::getCurrentSecondaryStream());
-      OpCommand cmd;
-      cmd.Name("Bernoulli")
-        .Input(x_)
-        .Input(Scalar(p), ScalarType::Float)
-        .Output(y)
-        .Attr("seed", seed)
-        .Attr("offset", offset)
-        .Run();
-  }
-  c10::npu::NPUCachingAllocator::recordStream(y.storage().data_ptr(), original_stream);
+  auto x_ = at::empty_like(x);
+  OpCommand cmd;
+  cmd.Name("Bernoulli")
+    .Input(x_)
+    .Input(Scalar(p), ScalarType::Float)
+    .Output(y)
+    .Attr("seed", seed)
+    .Attr("offset", offset)
+    .Run();
   return y;
 }
 

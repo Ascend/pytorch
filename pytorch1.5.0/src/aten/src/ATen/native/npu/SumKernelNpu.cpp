@@ -48,10 +48,20 @@ Tensor& sum_out_npu_int_dtype(
     Tensor& result,
     const Tensor& self,
     IntArrayRef dim,
-    bool keepdim) {
-  Tensor selfs = self.npu_dtype_cast(ScalarType::Float);
+    bool keepdim,
+    ScalarType dtype) {
+  Tensor selfs = self;
+  if(self.scalar_type() != ScalarType::Float){
+    selfs = self.npu_dtype_cast(ScalarType::Float);
+  }
+  
   sum_out_npu_no_dtype(result, selfs, dim, keepdim);
-  result = result.npu_dtype_cast(self.scalar_type());
+
+  if(dtype == ScalarType::Long){
+    result = result.npu_dtype_cast(ScalarType::Long);
+    return result;
+  }
+  result = result.npu_dtype_cast(ScalarType::Int);
   return result;
 }
 
@@ -63,17 +73,16 @@ Tensor& sum_out_npu_nocheck(
     optional<ScalarType> dtype) {
   ScalarType dstType;
   if (dtype.has_value()) {
-    if (dtype.value() == ScalarType::Int) {
-      Tensor selfs = self.npu_dtype_cast(ScalarType::Int);
-      return sum_out_npu_int_dtype(result, selfs, dim, keepdim);
+    if(dtype.value() == ScalarType::Int || dtype.value() == ScalarType::Long){
+      return sum_out_npu_int_dtype(result, self, dim, keepdim, dtype.value());
     } else {
       dstType = dtype.value();
     }
   } else if (isIntegralType(self.scalar_type(), true)) {
-    return sum_out_npu_int_dtype(result, self, dim, keepdim);
+    return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
   } else if (result.defined()) {
     if (isIntegralType(result.scalar_type(), true)) {
-      return sum_out_npu_int_dtype(result, self, dim, keepdim);
+      return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
     } else {
       dstType = result.scalar_type();
     }
@@ -133,7 +142,7 @@ Tensor sum_npu(
     optional<ScalarType> dtype) {
   ScalarType dstType; 
   if (dtype.has_value()) {
-    if(dtype.value() == ScalarType::Int) {
+    if (isIntegralType(dtype.value(), true)){
       dstType = ScalarType::Float;
     } else {
       dstType = dtype.value();
