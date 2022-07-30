@@ -13,49 +13,49 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+#include <limits.h>
 #include <ATen/NamedTensorUtils.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/core/npu/SecondaryStreamGuard.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& result, const at::Tensor& self, double p) {
-  auto original_stream = c10_npu::getCurrentNPUStream();
-  {
-      c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-      OpCommand cmd;
-      cmd.Name("Bernoulli")
-        .Input(self)
-        .Input(at::Scalar(p), at::ScalarType::Float)
-        .Output(result)
-        .Run();
-  }
-  c10_npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
-
-  return result;
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, const at::Tensor& x, double p, int64_t seed, int64_t offset) {
+  auto x_ = at::empty_like(x);
+  OpCommand cmd;
+  cmd.Name("Bernoulli")
+    .Input(x_)
+    .Input(at::Scalar(p), at::ScalarType::Float)
+    .Output(y)
+    .Attr("seed", seed)
+    .Attr("offset", offset)
+    .Run();
+  return y;
 }
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& result, const at::Tensor& self, const at::Tensor& p) {
-  auto original_stream = c10_npu::getCurrentNPUStream();
-  {
-      c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-      OpCommand cmd;
-      cmd.Name("Bernoulli")
-        .Input(self)
-        .Input(p)
-        .Output(result)
-        .Run();
-  }
-  c10_npu::NPUCachingAllocator::recordStream(self.storage().data_ptr(), original_stream);
-  c10_npu::NPUCachingAllocator::recordStream(p.storage().data_ptr(), original_stream);
-
-  return result;
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, const at::Tensor& x, const at::Tensor& p, int64_t seed, int64_t offset) {
+  OpCommand cmd;
+  cmd.Name("Bernoulli")
+    .Input(x)
+    .Input(p)
+    .Output(y)
+    .Attr("seed", seed)
+    .Attr("offset", offset)
+    .Run();
+  return y;
 }
 
 at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, double p, c10::optional<at::Generator> gen) {
+  auto gen_ = at::get_generator_or_default<NPUGeneratorImpl>(gen, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen_->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+
   at::ScalarType selfType = self.scalar_type();
   at::Tensor selfFp32 = self;
   if (self.scalar_type() == at::ScalarType::Half) {
@@ -64,10 +64,10 @@ at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, double p, c10::opti
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p);
+    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p, seed, offset);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, p);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, p, seed, offset);
     self.copy_(selfFp32);
   }
 
@@ -78,6 +78,11 @@ at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, double p, c10::opti
 }
 
 at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, const at::Tensor& p, c10::optional<at::Generator> gen) {
+  auto gen_ = at::get_generator_or_default<NPUGeneratorImpl>(gen, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen_->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+
   at::ScalarType selfType = self.scalar_type();
   at::Tensor selfFp32 = self;
   at::Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
@@ -88,10 +93,10 @@ at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, const at::Tensor& p
 
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32);
+    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32, seed, offset);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32);
+    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32, seed, offset);
     self.copy_(selfFp32);
   }
 
@@ -116,6 +121,5 @@ at::Tensor& NPUNativeFunctions::bernoulli_out(const at::Tensor& self, c10::optio
   at::namedinference::propagate_names(result, self);
   return result;
 }
-
 } // namespace native
 } // namespace at_npu

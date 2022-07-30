@@ -16,22 +16,19 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestBernoulli(TestCase):
-    def cpu_op_exec(self, input1):
-        output = torch.bernoulli(input1)
-        output = output.numpy()
-        return output
+
+    def get_common_tensor(self, item, minValue, maxValue):
+        dtype = item[0]
+        shape = item[2]
+        npu_input = torch.randn(shape).uniform_(minValue, maxValue).npu().to(dtype)
+        return npu_input
 
     def npu_op_exec(self, input1):
         output = torch.bernoulli(input1)
         output = output.to("cpu")
-        output = output.numpy()
-        return output
-
-    def cpu_op_inplace_tensor_exec(self, input1, p):
-        output = input1.bernoulli_(p)
         output = output.numpy()
         return output
 
@@ -41,32 +38,11 @@ class TestBernoulli(TestCase):
         output = output.numpy()
         return output
 
-    def cpu_op_inplace_float_exec(self, input1):
-        output = input1.bernoulli_(0.5)
-        output = output.numpy()
-        return output
-
     def npu_op_inplace_float_exec(self, input1):
         output = input1.bernoulli_(0.5)
         output = output.to("cpu")
         output = output.numpy()
         return output
-
-    def cpu_op_out_exec(self, input1, output1):
-        torch.bernoulli(input1, out=output1)
-        output1 = output1.numpy()
-        return output1
-
-    def npu_op_out_exec(self, input1, output1):
-        torch.bernoulli(input1, out=output1)
-        output1 = output1.to("cpu")
-        output1 = output1.numpy()
-        return output1
-
-    def cpu_op_p_exec(self, input1, p):
-        input1 = input1.bernoulli_(p)
-        input1 = input1.numpy()
-        return input1
 
     def npu_op_p_exec(self, input1, p):
         input1 = input1.bernoulli_(p)
@@ -79,95 +55,63 @@ class TestBernoulli(TestCase):
         shape_list = [(2, 3, 4)]
         p_list = [0.2, 0.6]
         shape_format = [
-            [np.float32, i, j, k] for i in format_list for j in shape_list
+            [torch.float32, i, j, k] for i in format_list for j in shape_list
             for k in p_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_p_exec(cpu_input, item[3])
+            npu_input = self.get_common_tensor(item, 0, 1)
+            npu_expect_output = self.npu_op_p_exec(npu_input, item[3])
             npu_output = self.npu_op_p_exec(npu_input, item[3])
-            print(cpu_output, npu_output)
-
-
-    def test_bernoulli_out_float32(self):
-        format_list = [0, 3]
-        shape_list = [(2, 3, 4)]
-        shape_format = [
-            [np.float32, i, j] for i in format_list for j in shape_list
-        ]
-        for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_output1, npu_output1 = create_common_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_out_exec(cpu_input, cpu_output1)
-            npu_output = self.npu_op_out_exec(npu_input, npu_output1)
-            print(cpu_output, npu_output)
-
-    def test_bernoulli_out_float16(self):
-        format_list = [0, 3]
-        shape_list = [(2, 3, 4)]
-        shape_format = [
-            [np.float16, i, j] for i in format_list for j in shape_list
-        ]
-        for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_output1, npu_output1 = create_common_tensor(item, 0, 1)
-            cpu_input = cpu_input.to(torch.float32)
-            cpu_output1 = cpu_output1.to(torch.float32)
-            cpu_output = self.cpu_op_out_exec(cpu_input, cpu_output1)
-            npu_output = self.npu_op_out_exec(npu_input, npu_output1)
-            cpu_output = cpu_output.astype(np.float16)
-            print(cpu_output, npu_output)
+            self.assertEqual(npu_expect_output, npu_output)
 
     def test_bernoulli_float32(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [np.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_exec(cpu_input)
+            npu_input = self.get_common_tensor(item, 0, 1)
+            npu_expect_output = self.npu_op_exec(npu_input)
             npu_output = self.npu_op_exec(npu_input)
-            print(cpu_output, npu_output)
-
+            self.assertEqual(npu_expect_output, npu_output)
+            
     def test_bernoulli_float16(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [np.float16, i, j] for i in format_list for j in shape_list
+            [torch.float16, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_input = cpu_input.to(torch.float32)
-            cpu_output = self.cpu_op_exec(cpu_input)
+            npu_input = self.get_common_tensor(item, 0, 1)
+            npu_expect_output = self.npu_op_exec(npu_input)
             npu_output = self.npu_op_exec(npu_input)
-            cpu_output = cpu_output.astype(np.float16)
-            print(cpu_output, npu_output)
+            self.assertEqual(npu_expect_output, npu_output)
 
     def test_bernoulli_tensor_p(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [np.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_input_p, npu_input_p = create_common_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_inplace_tensor_exec(cpu_input, cpu_input_p)
+            npu_input = self.get_common_tensor(item, 0, 1)
+            npu_input_p = self.get_common_tensor(item, 0, 1)
+            npu_expect_output = self.npu_op_inplace_tensor_exec(npu_input, npu_input_p)
             npu_output = self.npu_op_inplace_tensor_exec(npu_input, npu_input_p)
-            print(cpu_output, npu_output)
+            self.assertEqual(npu_expect_output, npu_output)
 
     def test_bernoulli_float_p(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [np.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j] for i in format_list for j in shape_list
         ]
         for item in shape_format:
-            cpu_input, npu_input = create_common_tensor(item, 0, 1)
-            cpu_output = self.cpu_op_inplace_float_exec(cpu_input)
+            npu_input = self.get_common_tensor(item, 0, 1)
+            npu_expect_output = self.npu_op_inplace_float_exec(npu_input)
             npu_output = self.npu_op_inplace_float_exec(npu_input)
-            print(cpu_output, npu_output)
+            self.assertEqual(npu_expect_output, npu_output)
 
 if __name__ == '__main__':
     run_tests()
