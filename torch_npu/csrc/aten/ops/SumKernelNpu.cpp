@@ -53,11 +53,19 @@ namespace at_npu
         at::Tensor &result,
         const at::Tensor &self,
         at::IntArrayRef dim,
-        bool keepdim)
+        bool keepdim,
+        c10::ScalarType dtype)
     { 
-      at::Tensor selfs = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
+      at::Tensor selfs = self;
+      if(self.scalar_type() != c10::ScalarType::Float){
+        selfs = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
+      }    
       sum_out_npu_no_dtype(result, selfs, dim, keepdim);
-      result = NPUNativeFunctions::npu_dtype_cast(result, self.scalar_type());
+      if(dtype == c10::ScalarType::Long){
+        result = NPUNativeFunctions::npu_dtype_cast(result, c10::ScalarType::Long);
+        return result;
+      }
+      result = NPUNativeFunctions::npu_dtype_cast(result, c10::ScalarType::Int);
       return result;
     }
 
@@ -71,10 +79,8 @@ namespace at_npu
       c10::ScalarType dstType;
       if (dtype.has_value())
       {
-        if (dtype.value() == c10::ScalarType::Int)
-        {
-          at::Tensor selfs = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Int);
-          return sum_out_npu_int_dtype(result, selfs, dim, keepdim);
+        if(dtype.value() == c10::ScalarType::Int || dtype.value() == c10::ScalarType::Long){
+          return sum_out_npu_int_dtype(result, self, dim, keepdim, dtype.value());
         }
         else
         {
@@ -83,13 +89,13 @@ namespace at_npu
       }
       else if (isIntegralType(self.scalar_type(), true))
       {
-        return sum_out_npu_int_dtype(result, self, dim, keepdim);
+        return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
       }
       else if (result.defined())
       {
         if (isIntegralType(result.scalar_type(), true))
         {
-          return sum_out_npu_int_dtype(result, self, dim, keepdim);
+          return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
         }
         else
         {
@@ -159,7 +165,7 @@ namespace at_npu
       c10::ScalarType dstType;
       if (dtype.has_value())
       {
-        if (dtype.value() == c10::ScalarType::Int)
+        if (isIntegralType(dtype.value(), true))
         {
           dstType = c10::ScalarType::Float;
         }
