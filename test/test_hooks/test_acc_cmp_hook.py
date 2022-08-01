@@ -55,11 +55,18 @@ class TestAccCmpHook(TestCase):
         set_dump_path("./cpu_tensor_op.pkl")
         x = torch.randn(2, 3, 4)
         y = torch.randn(2, 3, 4)
-        _ = module(x, y)
+        x.requires_grad = True
+        y.requires_grad = True
+        out = module(x, y)
+        loss = out.sum()
+        loss.backward()
         set_dump_path("./npu_tensor_op.pkl")
+        module.npu()
         x = x.npu()
         y = y.npu()
-        _ = module(x, y)
+        out = module(x, y)
+        loss = out.sum()
+        loss.backward()
         assert os.path.exists("./cpu_tensor_op.pkl") and os.path.exists("./npu_tensor_op.pkl")
     
     def test_module_op(self):
@@ -68,10 +75,15 @@ class TestAccCmpHook(TestCase):
         seed_all()
         set_dump_path("./cpu_module_op.pkl")
         x = torch.randn(2, 2)
-        _ = module(x)
+        out = module(x)
+        loss = out.sum()
+        loss.backward()
         set_dump_path("./npu_module_op.pkl")
+        module.npu()
         x = x.npu()
-        _ = module(x)
+        out = module(x)
+        loss = out.sum()
+        loss.backward()
         assert os.path.exists("./cpu_module_op.pkl") and os.path.exists("./npu_module_op.pkl")
 
     def tearDown(self) -> None:

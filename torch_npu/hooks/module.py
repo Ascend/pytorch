@@ -29,7 +29,7 @@ class HOOKModule(nn.Module):
 
 def register_acc_cmp_hook(model):
     for _, module in model.named_modules():
-        if not hasattr(module, "named_modules") or not list(module.named_modules()):
+        if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
             continue
 
         module.register_forward_hook(warp_acc_cmp_hook("forward"))

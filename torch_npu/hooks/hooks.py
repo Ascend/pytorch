@@ -15,9 +15,9 @@
 
 
 import os
-import pickle
+import json
+import stat
 import torch
-import datetime
 
 
 def set_dump_path(fpath=None):
@@ -30,26 +30,23 @@ def get_dump_path():
     return os.environ.get("DUMP_PATH")
 
 
-def get_time_stamp():
-    now_time = datetime.datetime.now()
-    return ''.join([i for i in str(now_time)[:19] if i.isdigit()])
-
-
 def dump_tensor(x, prefix=""):
-    f = open(get_dump_path(), "ab")
+    f = os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a")
     if isinstance(x, (tuple, list)) and x:
         for i, item in enumerate(x):
             dump_tensor(item, prefix="{}.{}".format(prefix, i))
     elif isinstance(x, torch.Tensor):
-        pickle.dump([prefix, x.contiguous().view(-1).cpu().detach().float().numpy(), x.dtype, tuple(x.shape)], f)
+        list_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
+        json.dump([prefix, list_tensor, str(x.dtype), tuple(x.shape)], f)
+        f.write('\n')
     
     f.close()
 
 
 def warp_acc_cmp_hook(name):
-    def acc_cmp_hook(module, input, output):
-        name_template = f"{name}_{module.__class__.__name__}"+ "_{}_" + f"{get_time_stamp()}"
-        dump_tensor(input, name_template.format("input"))
-        dump_tensor(output, name_template.format("output"))
+    def acc_cmp_hook(module, in_feat, out_feat):
+        name_template = f"{name}_{module.__class__.__name__}"+ "_{}"
+        dump_tensor(in_feat, name_template.format("input"))
+        dump_tensor(out_feat, name_template.format("output"))
 
     return acc_cmp_hook

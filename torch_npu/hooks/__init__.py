@@ -42,4 +42,3 @@ def seed_all(seed=1234):
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    # torch.backends.cudnn.deterministic = True

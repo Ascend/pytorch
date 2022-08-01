@@ -39,29 +39,29 @@ def check_tensor(a, b):
 
 
 def compare(npu_pkl_path, bench_pkl_path, output_path):
-    npu_pkl = open(npu_pkl_path, "rb")
-    bench_pkl = open(bench_pkl_path, "rb")
+    npu_pkl = open(npu_pkl_path, "r")
+    bench_pkl = open(bench_pkl_path, "r")
     result = []
     while True:
-        try:
-            npu_data = pickle.load(npu_pkl)
-            bench_data = pickle.load(bench_pkl)
-            if not check_tensor(npu_data, bench_data):
-                continue
-            nvalue = npu_data[1]
-            bvalue = bench_data[1]
-            cos_sim = cosine_similarity(nvalue, bvalue)
-            if np.isnan(cos_sim):
-                cos_sim = 'nan'
-            rmse = get_rmse(nvalue, bvalue)
-            res = [npu_data[0], npu_data[3], npu_data[2], bench_data[2], cos_sim, rmse]
-            result.append(res)
-        except EOFError:
-            result_df = pd.DataFrame(result, columns=["Module name", "Shape", "NPU Dtype", "Bench Dtype", "Cosine", "RMSE"])
-            result_df.to_csv(output_path, index=False)
-            npu_pkl.close()
-            bench_pkl.close()
+        npu_data = npu_pkl.readline()
+        bench_data = bench_pkl.readline()
+        if len(npu_data) == 0 and len(bench_data) == 0:
             break
+        if not check_tensor(npu_data, bench_data):
+            continue
+        nvalue = np.array(npu_data[1])
+        bvalue = np.array(bench_data[1])
+        cos_sim = cosine_similarity(nvalue, bvalue)
+        if np.isnan(cos_sim):
+            cos_sim = 'nan'
+        rmse = get_rmse(nvalue, bvalue)
+        res = [npu_data[0], npu_data[3], npu_data[2], bench_data[2], cos_sim, rmse]
+        result.append(res)
+
+    result_df = pd.DataFrame(result, columns=["Name", "Shape", "NPU Dtype", "Bench Dtype", "Cosine", "RMSE"])
+    result_df.to_csv(output_path, index=False)
+    npu_pkl.close()
+    bench_pkl.close()
 
 
 if __name__ == "__main__":
