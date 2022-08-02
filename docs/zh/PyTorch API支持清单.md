@@ -7,9 +7,9 @@
 | 3    | torch.is_complex              | 是，支持判断，但当前硬件限制不支持复数 |
 | 4    | torch.is_floating_point       |                   是                   |
 | 5    | torch.is_nonzero              |                   是                   |
-| 6    | torch.set_default_dtype       |                   是                   |
-| 7    | torch.get_default_dtype       |                   是                   |
-| 8    | torch.set_default_tensor_type |                   是                   |
+| 6    | torch.set_default_dtype       |       是，但是不支持NPU数据类型        |
+| 7    | torch.get_default_dtype       |       是，但是不支持NPU数据类型        |
+| 8    | torch.set_default_tensor_type |       是，但是不支持NPU数据类型        |
 | 9    | torch.numel                   |                   是                   |
 | 10   | torch.set_printoptions        |                   是                   |
 | 11   | torch.set_flush_denormal      |                   是                   |

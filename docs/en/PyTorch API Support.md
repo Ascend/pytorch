@@ -7,9 +7,9 @@
 | 3    | torch.is_complex              | Supported. The judgment is supported, but the complex number is not supported by the current hardware.|
 | 4    | torch.is_floating_point       |                   Supported                  |
 | 5    | torch.is_nonzero              |                   Supported                  |
-| 6    | torch.set_default_dtype       |                   Supported                  |
-| 7    | torch.get_default_dtype       |                   Supported                  |
-| 8    | torch.set_default_tensor_type |                   Supported                  |
+| 6    | torch.set_default_dtype       | Supported (NPU data type are not supported)                  |
+| 7    | torch.get_default_dtype       | Supported (NPU data type are not supported)                  |
+| 8    | torch.set_default_tensor_type | Supported (NPU data type are not supported)                  |
 | 9    | torch.numel                   |                   Supported                  |
 | 10   | torch.set_printoptions        |                   Supported                  |
 | 11   | torch.set_flush_denormal      |                   Supported                  |
