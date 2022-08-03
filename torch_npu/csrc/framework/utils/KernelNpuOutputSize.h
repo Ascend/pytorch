@@ -224,6 +224,8 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>, c10::Sma
 
 c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor& self);
 
+c10::SmallVector<int64_t, SIZE> nonzero_npu_max_output_size(const at::Tensor& self);
+
 c10::SmallVector<int64_t, SIZE> pad_npu_output_size(const at::Tensor& input, c10::IntArrayRef paddings);
 
 c10::SmallVector<int64_t, SIZE> pdist_npu_output_size(const at::Tensor& self, float p);

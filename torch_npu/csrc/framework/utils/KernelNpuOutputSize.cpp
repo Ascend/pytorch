@@ -700,6 +700,13 @@ namespace at_npu
       return outputSize;
     }
 
+    c10::SmallVector<int64_t, SIZE> nonzero_npu_max_output_size(const at::Tensor& self) {
+      int64_t selfNumEl = self.numel();
+      int64_t selfDim = self.dim();
+      at::SmallVector<int64_t, SIZE> maxOutputSize = {selfNumEl, selfDim};
+      return maxOutputSize;
+    }
+
     c10::SmallVector<int64_t, SIZE> pad_npu_output_size(
         const at::Tensor &input,
         c10::IntArrayRef paddings)
