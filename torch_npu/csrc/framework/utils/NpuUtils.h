@@ -23,7 +23,7 @@
 #include <ATen/ATen.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
-#include "ge/ge_error_codes.h"
+#include "third_party/acl/inc/ge/ge_error_codes.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_op.h"
