@@ -20,6 +20,7 @@ import torch.nn as nn
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
+from torch_npu.hooks.tools import compare
 
 
 class TestTensorOP(nn.Module):
@@ -68,6 +69,8 @@ class TestAccCmpHook(TestCase):
         loss = out.sum()
         loss.backward()
         assert os.path.exists("./cpu_tensor_op.pkl") and os.path.exists("./npu_tensor_op.pkl")
+        compare("./npu_tensor_op.pkl", "./cpu_tensor_op.pkl", "./tensor_result.csv")
+        assert os.path.exists("./tensor_result.csv")
     
     def test_module_op(self):
         module = TestModuleOP()
@@ -85,12 +88,15 @@ class TestAccCmpHook(TestCase):
         loss = out.sum()
         loss.backward()
         assert os.path.exists("./cpu_module_op.pkl") and os.path.exists("./npu_module_op.pkl")
+        compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
+        assert os.path.exists("./module_result.csv")
 
     def tearDown(self) -> None:
         for filename in os.listdir('./'):
-            if filename.endswith(".pkl"):
+            if filename.endswith(".pkl") or filename.endswith(".csv"):
                 os.remove("./" + filename)
 
 
 if __name__ == '__main__':
     run_tests()
+
