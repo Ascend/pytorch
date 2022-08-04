@@ -283,10 +283,7 @@ class OpCommandBase {
 
   Derived& AddNoneTensor() {
     AclTensorDescMaker desc;
-    auto aclDesc = desc.Create(ACL_DT_UNDEFINED, ACL_FORMAT_UNDEFINED)
-                        .SetFormat(ACL_FORMAT_UNDEFINED)
-                        .SetShape({})
-                        .Get();
+    auto aclDesc = desc.Create(ACL_DT_UNDEFINED, ACL_FORMAT_UNDEFINED).Get();
     AclTensorBufferMaker buffer(nullptr, 0);
     aclCmd->AddInput(aclDesc, buffer.Get());
     return static_cast<Derived&>(*this);
