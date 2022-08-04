@@ -26,15 +26,15 @@ from . import wrap_tensor, wrap_torch
 from .module import register_acc_cmp_hook
 from .hooks import set_dump_path
 
-
+wrap_tensor.wrap_tensor_ops_and_bind()
 for attr_name in dir(wrap_tensor.HOOKTensor):
     if attr_name.startswith("wrap_"):
         setattr(torch.Tensor, attr_name[5:], getattr(wrap_tensor.HOOKTensor, attr_name))
 
-
-for attr_name in dir(wrap_torch):
+wrap_torch.wrap_torch_ops_and_bind()
+for attr_name in dir(wrap_torch.HOOKTorchOP):
     if attr_name.startswith("wrap_"):
-        setattr(torch, attr_name[5:], getattr(wrap_torch, attr_name))
+        setattr(torch, attr_name[5:], getattr(wrap_torch.HOOKTorchOP, attr_name))
 
 
 def seed_all(seed=1234):

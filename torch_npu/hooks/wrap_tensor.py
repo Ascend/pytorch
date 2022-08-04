@@ -18,56 +18,51 @@ import torch
 
 from .module import HOOKModule
 
+_tensor_include_ops = ['__add__', '__div__', '__idiv__', '__isub__', '__mul__', '__sub__', 'abs', 'abs_', 'acos', 
+                        'acos_', 'add', 'add_', 'addbmm', 'addbmm_', 'addcdiv', 'addcdiv_', 'addcmul', 'addcmul_',
+                        'addmm', 'addmm_', 'addmv', 'addmv_', 'addr', 'addr_', 'baddbmm', 'baddbmm_', 'bernoulli',
+                        'bernoulli_', 'bitwise_and', 'bitwise_and_', 'bitwise_not', 'bitwise_not_', 'bitwise_or',
+                        'bitwise_or_', 'bitwise_xor', 'bitwise_xor_', 'bmm', 'ceil', 'ceil_', 'clamp', 'clamp_',
+                        'clamp_max', 'clamp_max_', 'clamp_min', 'clamp_min_', 'cos', 'cos_', 'cosh', 'cosh_', 'div',
+                        'div_', 'dot', 'rsub', 'softmax']
+
+
+def get_tensor_ops():
+    global _tensor_include_ops
+    _tensor_ops = dir(torch._C._TensorBase)
+    assert set(_tensor_include_ops) <= set(_tensor_ops)
+    return _tensor_include_ops
 
 class HOOKTensor(object):
-    
-    def wrap___add__(self, other):
-        return Add()(self, other)
-    
-    def wrap___add__(self, rother):
-        return Add()(rother, self)
-
-    def wrap___sub__(self, other):
-        return Sub()(self, other)
-    
-    def wrap___rsub__(self, rother):
-        return Sub()(rother, self)
-    
-    def wrap___truediv__(self, other):
-        return Div()(self, other)
-    
-    def wrap___rtruediv__(self, rother):
-        return Div()(rother, self)
-    
-    def wrap___mul__(self, other):
-        return Mul()(self, other)
-    
-    def wrap___rmul__(self, rother):
-        return Mul()(rother, self)
-    
-    def add(self, *args, **kwargs):
-        return Add()(self, *args, **kwargs)
+    pass
 
 
-class Add(HOOKModule):
+class TensorOPTemplate(HOOKModule):
     
+    def __init__(self, op_name):
+        self.op_name_ = op_name
+        self.prefix_op_name_ = "Tensor_" + str(op_name) + "_"
+        super().__init__()
+
     def forward(self, *args, **kwargs):
-        return torch._C._VariableFunctions.add(*args, **kwargs)
+        return getattr(torch._C._TensorBase, str(self.op_name_))(*args, **kwargs)
 
 
-class Sub(HOOKModule):
-    
-    def forward(self, *args, **kwargs):
-        return torch._C._VariableFunctions.sub(*args, **kwargs)
+def wrap_tensor_op(op_name):
+    def tensor_op_template(*args, **kwargs):
+        return TensorOPTemplate(op_name)(*args, **kwargs)
+    return tensor_op_template
 
 
-class Div(HOOKModule):
-    
-    def forward(self, *args, **kwargs):
-        return torch._C._VariableFunctions.div(*args, **kwargs)
+def add_tensor_ops_hook(torch_ops):
+    torch_ops_bind_dict = {}
+    for op_name in torch_ops:
+        torch_ops_bind_dict[op_name] = wrap_tensor_op(op_name)
+    return torch_ops_bind_dict
 
 
-class Mul(HOOKModule):
-    
-    def forward(self, *args, **kwargs):
-        return torch._C._VariableFunctions.mul(*args, **kwargs)
+def wrap_tensor_ops_and_bind():
+    tensor_ops = get_tensor_ops()
+    tensor_ops_dict = add_tensor_ops_hook(tensor_ops)
+    for key, value in tensor_ops_dict.items():
+        setattr(HOOKTensor, "wrap_" + str(key), value)

@@ -31,6 +31,15 @@ class TestTensorOP(nn.Module):
         return z
 
 
+class TestTensorTemplateOP(nn.Module):
+    
+    def forward(self, x, y):
+        z_add = x.add(y)
+        z_abs = z_add.abs()
+        z = z_abs.softmax(dim=0)
+        return z
+
+
 class TestModuleOP(nn.Module):
 
     def __init__(self) -> None:
@@ -48,11 +57,11 @@ class TestModuleOP(nn.Module):
 
 class TestAccCmpHook(TestCase):
 
-    def test_tensor_op(self):
+    def test_tensor_bulitin_op(self):
         module = TestTensorOP()
         register_acc_cmp_hook(module)
         seed_all()
-        set_dump_path("./cpu_tensor_op.pkl")
+        set_dump_path("./cpu_tensor_builtin_op.pkl")
         x = torch.randn(2, 3, 4)
         y = torch.randn(2, 3, 4)
         x.requires_grad = True
@@ -60,15 +69,36 @@ class TestAccCmpHook(TestCase):
         out = module(x, y)
         loss = out.sum()
         loss.backward()
-        set_dump_path("./npu_tensor_op.pkl")
+        set_dump_path("./npu_tensor_builtin_op.pkl")
         module.npu()
         x = x.npu()
         y = y.npu()
         out = module(x, y)
         loss = out.sum()
         loss.backward()
-        assert os.path.exists("./cpu_tensor_op.pkl") and os.path.exists("./npu_tensor_op.pkl")
-    
+        assert os.path.exists("./cpu_tensor_builtin_op.pkl") and os.path.exists("./npu_tensor_builtin_op.pkl")
+
+    def test_tensor_template_op(self):
+        module = TestTensorTemplateOP()
+        register_acc_cmp_hook(module)
+        seed_all()
+        set_dump_path("./cpu_tensor_template_op.pkl")
+        x = torch.randn(2, 3, 4)
+        y = torch.randn(2, 3, 4)
+        x.requires_grad = True
+        y.requires_grad = True
+        out = module(x, y)
+        loss = out.sum()
+        loss.backward()
+        set_dump_path("./npu_tensor_template_op.pkl")
+        module.npu()
+        x = x.npu()
+        y = y.npu()
+        out = module(x, y)
+        loss = out.sum()
+        loss.backward()
+        assert os.path.exists("./cpu_tensor_template_op.pkl") and os.path.exists("./npu_tensor_template_op.pkl")
+
     def test_module_op(self):
         module = TestModuleOP()
         register_acc_cmp_hook(module)
