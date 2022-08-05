@@ -170,6 +170,7 @@ void GraphExecutor::Init() {
 
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
+  config["GE_USE_STATIC_MEMORY"] = ge::AscendString("2");
   session_ = std::make_unique<ge::Session>(config);
   C10_NPU_CHECK(aclrtSetDevice(init_device_id_));
   if (session_ == nullptr) {
