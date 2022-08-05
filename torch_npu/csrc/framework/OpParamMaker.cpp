@@ -77,6 +77,12 @@ namespace at_npu
       aclopSetAttrFloat(attr, name.c_str(), val);
     }
 
+    void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ScalarType value) 
+    {
+      aclDataType val = CalcuOpUtil::convert_to_acl_data_type(value);
+      aclopSetAttrDataType(attr, name.c_str(), val);
+    }
+
     void OpAttrMaker::Set(
         aclopAttr *attr,
         const string &name,
