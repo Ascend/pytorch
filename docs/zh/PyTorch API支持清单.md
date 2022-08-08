@@ -7,9 +7,9 @@
 | 3    | torch.is_complex              | 是，支持判断，但当前硬件限制不支持复数 |
 | 4    | torch.is_floating_point       |                   是                   |
 | 5    | torch.is_nonzero              |                   是                   |
-| 6    | torch.set_default_dtype       |                   是                   |
-| 7    | torch.get_default_dtype       |                   是                   |
-| 8    | torch.set_default_tensor_type |                   是                   |
+| 6    | torch.set_default_dtype       |       是，但是不支持NPU数据类型        |
+| 7    | torch.get_default_dtype       |       是，但是不支持NPU数据类型        |
+| 8    | torch.set_default_tensor_type |       是，但是不支持NPU数据类型        |
 | 9    | torch.numel                   |                   是                   |
 | 10   | torch.set_printoptions        |                   是                   |
 | 11   | torch.set_flush_denormal      |                   是                   |
@@ -1295,7 +1295,7 @@
 | 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | 是             |
 | 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | 否             |
 | 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | 否             |
-| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | 是             |
+| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | 否             |
 | 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | 是             |
 | 13   | torch.cuda.init                               | torch_npu.npu.init                               | 是             |
 | 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | 否             |
