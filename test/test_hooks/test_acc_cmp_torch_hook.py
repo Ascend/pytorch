@@ -22,7 +22,7 @@ from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
 
-class TestTensorOP(torch.nn.Module):
+class TestTorchOP(torch.nn.Module):
 
     def forward(self, x, y):
         z_add = torch.add(x, y)
@@ -47,10 +47,10 @@ class TestModuleOP(torch.nn.Module):
         return r1
 
 
-class TestAccCmpHook(TestCase):
+class TestTorchAccCmpHook(TestCase):
 
     def test_tensor_op(self):
-        module = TestTensorOP()
+        module = TestTorchOP()
         register_acc_cmp_hook(module)
         seed_all()
         set_dump_path("./cpu_torch_op.pkl")

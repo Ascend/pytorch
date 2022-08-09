@@ -41,16 +41,6 @@ class TorchOPTemplate(HOOKModule):
     def forward(self, *args, **kwargs):
         return getattr(torch._C._VariableFunctionsClass, str(self.op_name_))(*args, **kwargs)
 
-def get_torch_all_ops():
-    global _torch_exclude_ops     
-    _torch_function_ops = [] 
-
-    for name in dir(torch._C._VariableFunctionsClass):
-        if name.startswith("__"):
-            continue
-        _torch_function_ops.append(name)
-
-    return  set(_torch_function_ops) - set(_torch_exclude_ops)
 
 def wrap_torch_op(op_name):
     def torch_op_template(*args, **kwargs):
@@ -66,7 +56,7 @@ def add_torch_ops_hook(torch_dirs):
 
 
 def wrap_torch_ops_and_bind():
-    _torch_op_dirs = get_torch_all_ops()
+    _torch_op_dirs = get_torch_ops()
     torch_op_dirs_dict = add_torch_ops_hook(_torch_op_dirs)
     for key, value in torch_op_dirs_dict.items():
         setattr(HOOKTorchOP, "wrap_" + str(key), value)

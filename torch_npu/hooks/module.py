@@ -38,7 +38,7 @@ def register_acc_cmp_hook(model, dump_path=None):
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
             continue
 
-        prefix = ""
+        prefix = "Module_" + module.__class__.__name__ + "_"
         if hasattr(module, "prefix_op_name_"):
             prefix = module.prefix_op_name_
 

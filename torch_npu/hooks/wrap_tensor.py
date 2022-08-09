@@ -19,12 +19,12 @@ import torch
 from .module import HOOKModule
 
 _tensor_include_ops = ['__add__', '__div__', '__idiv__', '__isub__', '__mul__', '__sub__', 'abs', 'abs_', 'acos', 
-                        'acos_', 'add', 'add_', 'addbmm', 'addbmm_', 'addcdiv', 'addcdiv_', 'addcmul', 'addcmul_',
-                        'addmm', 'addmm_', 'addmv', 'addmv_', 'addr', 'addr_', 'baddbmm', 'baddbmm_', 'bernoulli',
-                        'bernoulli_', 'bitwise_and', 'bitwise_and_', 'bitwise_not', 'bitwise_not_', 'bitwise_or',
-                        'bitwise_or_', 'bitwise_xor', 'bitwise_xor_', 'bmm', 'ceil', 'ceil_', 'clamp', 'clamp_',
-                        'clamp_max', 'clamp_max_', 'clamp_min', 'clamp_min_', 'cos', 'cos_', 'cosh', 'cosh_', 'div',
-                        'div_', 'dot', 'rsub', 'softmax']
+                       'acos_', 'add', 'add_', 'addbmm', 'addbmm_', 'addcdiv', 'addcdiv_', 'addcmul', 'addcmul_',
+                       'addmm', 'addmm_', 'addmv', 'addmv_', 'addr', 'addr_', 'baddbmm', 'baddbmm_', 'bernoulli',
+                       'bernoulli_', 'bitwise_and', 'bitwise_and_', 'bitwise_not', 'bitwise_not_', 'bitwise_or',
+                       'bitwise_or_', 'bitwise_xor', 'bitwise_xor_', 'bmm', 'ceil', 'ceil_', 'clamp', 'clamp_',
+                       'clamp_max', 'clamp_max_', 'clamp_min', 'clamp_min_', 'cos', 'cos_', 'cosh', 'cosh_', 'div',
+                       'div_', 'dot', 'softmax']
 
 
 def get_tensor_ops():
