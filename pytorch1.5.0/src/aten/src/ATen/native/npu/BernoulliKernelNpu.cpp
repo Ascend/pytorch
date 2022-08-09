@@ -23,27 +23,28 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-Tensor& bernoulli_npu_nocheck(Tensor& y, const Tensor& x, double p, int64_t seed, int64_t offset) {
-  auto x_ = at::empty_like(x);
+Tensor& bernoulli_npu_nocheck(Tensor& y, Tensor& shape, double prob, int64_t seed, int64_t offset) {
+  shape = shape.npu_dtype_cast(at::ScalarType::Long);
   OpCommand cmd;
-  cmd.Name("Bernoulli")
-    .Input(x_)
-    .Input(Scalar(p), ScalarType::Float)
+  cmd.Name("StatelessBernoulli")
+    .Input(shape)
+    .Input(Scalar(prob), ScalarType::Float)
+    .Input(Scalar(seed), ScalarType::Long)
+    .Input(Scalar(offset), ScalarType::Long)
     .Output(y)
-    .Attr("seed", seed)
-    .Attr("offset", offset)
     .Run();
   return y;
 }
 
-Tensor& bernoulli_npu_nocheck(Tensor& y, const Tensor& x, const Tensor& p, int64_t seed, int64_t offset) {
+Tensor& bernoulli_npu_nocheck(Tensor& y, Tensor& shape, const Tensor& prob, int64_t seed, int64_t offset) {
+  shape = shape.npu_dtype_cast(at::ScalarType::Long);
   OpCommand cmd;
-  cmd.Name("Bernoulli")
-    .Input(x)
-    .Input(p)
+  cmd.Name("StatelessBernoulli")
+    .Input(shape)
+    .Input(prob)
+    .Input(Scalar(seed), ScalarType::Long)
+    .Input(Scalar(offset), ScalarType::Long)
     .Output(y)
-    .Attr("seed", seed)
-    .Attr("offset", offset)
     .Run();
   return y;
 }
