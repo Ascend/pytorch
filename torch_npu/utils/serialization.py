@@ -22,8 +22,16 @@ import torch.nn as nn
 import torch.serialization as se
 from torch._six import container_abcs, string_classes
 
+import torch_npu
+
 
 DEFAULT_PROTOCOL = 2
+
+
+def is_device(data):
+    if isinstance(data, torch_npu.utils.device_guard.device):
+        return True
+    return False
 
 
 def module_to_cpu(module):
@@ -49,7 +57,7 @@ def to_cpu(data):
         dict_obj = vars(data)
         return argparse.Namespace(**to_cpu(dict_obj))
 
-    if isinstance(data, container_abcs.Sequence):
+    if isinstance(data, container_abcs.Sequence) and not is_device(data):
         copy_data = list([None] * len(data))
         for i, value in enumerate(data):
             if isinstance(value, tuple):
@@ -71,7 +79,7 @@ def to_cpu(data):
     if isinstance(data, container_abcs.Mapping):
         copy_data = type(data)()
         for key, value in data.items():
-            if isinstance(value, tuple):
+            if isinstance(value, tuple) and not is_device(value):
                 list_value = list(value)
                 cpu_list_value = to_cpu(list_value)
                 copy_data[key] = type(value)(cpu_list_value)
