@@ -16,7 +16,7 @@
 
 import torch.nn as nn
 
-from .hooks import warp_acc_cmp_hook
+from .hooks import warp_acc_cmp_hook, set_dump_path
 
 
 class HOOKModule(nn.Module):
@@ -31,7 +31,9 @@ class HOOKModule(nn.Module):
         self.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
 
 
-def register_acc_cmp_hook(model):
+def register_acc_cmp_hook(model, dump_path=None):
+    assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
+    set_dump_path(dump_path)
     for _, module in model.named_modules():
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
             continue

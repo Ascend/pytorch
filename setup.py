@@ -238,7 +238,8 @@ def get_src_py_and_dst():
         "torch_npu/csrc/core/npu/*.h",
         "torch_npu/csrc/core/npu/*/*.h",
         "torch_npu/csrc/aten/*.h",
-        "third_party/acl/inc/*/*.h"
+        "third_party/acl/inc/*/*.h",
+        "third_party/acl/inc/*/*/*.h"
     ]
     glob_header_files = []
     for regex_pattern in header_files:
