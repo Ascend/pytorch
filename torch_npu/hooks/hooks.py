@@ -46,7 +46,7 @@ def dump_tensor(x, prefix=""):
 
 def warp_acc_cmp_hook(name):
     def acc_cmp_hook(module, in_feat, out_feat):
-        name_template = f"{name}_{module.__class__.__name__}"+ "_{}"
+        name_template = f"{name}"+ "_{}"
         dump_tensor(in_feat, name_template.format("input"))
         dump_tensor(out_feat, name_template.format("output"))
 

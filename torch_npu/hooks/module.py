@@ -23,8 +23,12 @@ class HOOKModule(nn.Module):
 
     def __init__(self) -> None:
         super(HOOKModule, self).__init__()
-        self.register_forward_hook(warp_acc_cmp_hook("forward"))
-        self.register_backward_hook(warp_acc_cmp_hook("backward"))
+        prefix = ""
+        if hasattr(self, "prefix_op_name_"):
+            prefix = self.prefix_op_name_
+        
+        self.register_forward_hook(warp_acc_cmp_hook(prefix + "forward"))
+        self.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
 
 
 def register_acc_cmp_hook(model, dump_path=None):
@@ -34,5 +38,9 @@ def register_acc_cmp_hook(model, dump_path=None):
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
             continue
 
-        module.register_forward_hook(warp_acc_cmp_hook("forward"))
-        module.register_full_backward_hook(warp_acc_cmp_hook("backward"))
+        prefix = "Module_" + module.__class__.__name__ + "_"
+        if hasattr(module, "prefix_op_name_"):
+            prefix = module.prefix_op_name_
+
+        module.register_forward_hook(warp_acc_cmp_hook(prefix + "forward"))
+        module.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
