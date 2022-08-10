@@ -11,11 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+
+
+SEED = 666
 
 
 class TestBernoulli(TestCase):
@@ -27,24 +32,28 @@ class TestBernoulli(TestCase):
         return npu_input
 
     def npu_op_exec(self, input1):
+        torch.manual_seed(SEED)
         output = torch.bernoulli(input1)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def npu_op_inplace_tensor_exec(self, input1, p):
+        torch.manual_seed(SEED)
         output = input1.bernoulli_(p)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
-    def npu_op_inplace_float_exec(self, input1):
-        output = input1.bernoulli_(0.5)
+    def npu_op_inplace_float_exec(self, input1, p):
+        torch.manual_seed(SEED)
+        output = input1.bernoulli_(p)
         output = output.to("cpu")
         output = output.numpy()
         return output
 
     def npu_op_p_exec(self, input1, p):
+        torch.manual_seed(SEED)
         input1 = input1.bernoulli_(p)
         input1 = input1.to("cpu")
         input1 = input1.numpy()
@@ -55,7 +64,9 @@ class TestBernoulli(TestCase):
         shape_list = [(2, 3, 4)]
         p_list = [0.2, 0.6]
         shape_format = [
-            [torch.float32, i, j, k] for i in format_list for j in shape_list
+            [torch.float32, i, j, k]
+            for i in format_list
+            for j in shape_list
             for k in p_list
         ]
         for item in shape_format:
@@ -68,19 +79,23 @@ class TestBernoulli(TestCase):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [torch.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j]
+            for i in format_list
+            for j in shape_list
         ]
         for item in shape_format:
             npu_input = self.get_common_tensor(item, 0, 1)
             npu_expect_output = self.npu_op_exec(npu_input)
             npu_output = self.npu_op_exec(npu_input)
             self.assertEqual(npu_expect_output, npu_output)
-            
+
     def test_bernoulli_float16(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [torch.float16, i, j] for i in format_list for j in shape_list
+            [torch.float16, i, j]
+            for i in format_list
+            for j in shape_list
         ]
         for item in shape_format:
             npu_input = self.get_common_tensor(item, 0, 1)
@@ -92,7 +107,9 @@ class TestBernoulli(TestCase):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
         shape_format = [
-            [torch.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j]
+            for i in format_list
+            for j in shape_list
         ]
         for item in shape_format:
             npu_input = self.get_common_tensor(item, 0, 1)
@@ -104,14 +121,18 @@ class TestBernoulli(TestCase):
     def test_bernoulli_float_p(self):
         format_list = [0, 3]
         shape_list = [(2, 3, 4)]
+        p = 0.5
         shape_format = [
-            [torch.float32, i, j] for i in format_list for j in shape_list
+            [torch.float32, i, j]
+            for i in format_list
+            for j in shape_list
         ]
         for item in shape_format:
             npu_input = self.get_common_tensor(item, 0, 1)
-            npu_expect_output = self.npu_op_inplace_float_exec(npu_input)
-            npu_output = self.npu_op_inplace_float_exec(npu_input)
+            npu_expect_output = self.npu_op_inplace_float_exec(npu_input, p)
+            npu_output = self.npu_op_inplace_float_exec(npu_input, p)
             self.assertEqual(npu_expect_output, npu_output)
+
 
 if __name__ == '__main__':
     run_tests()
