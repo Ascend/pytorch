@@ -12,15 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
 import torch_npu
+import torch.nn as nn
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestDropOutDoMask(TestCase):
+
+    def get_npu_tensor(self, item, minValue, maxValue):
+        dtype = item[0]
+        npu_format = item[1]
+        shape = item[2]
+        input1 = np.random.uniform(minValue, maxValue, shape).astype(dtype)
+        npu_input = torch.from_numpy(input1).npu()
+        if npu_format != -1:
+            npu_input = torch_npu.npu_format_cast(npu_input, npu_format)
+        return npu_input
+
     def cpu_op_exec(self, input1):
         out = torch.nn.Dropout(0.5)(input1)
         out = out.numpy()
@@ -31,6 +44,21 @@ class TestDropOutDoMask(TestCase):
         out = out.to("cpu")
         out = out.numpy()
         return out
+
+    def npu_set_dropout_seed_op_exec(self, input1, p, seed):
+        torch.manual_seed(seed)
+        m = nn.Dropout(p).npu()
+        out = m(input1)
+        out = out.to("cpu")
+        out = out.numpy()
+        return out
+
+    def dropout_set_dropout_seed_list_exec(self, list1, p, seed):
+        for item in list1:
+            npu_input1 = self.get_npu_tensor(item, 0, 100)
+            npu_expect_output = self.npu_set_dropout_seed_op_exec(npu_input1, p, seed)
+            npu_output = self.npu_set_dropout_seed_op_exec(npu_input1, p, seed)
+            self.assertRtolEqual(npu_expect_output, npu_output)
 
     def dropout_list_exec(self, list1):
         epsilon = 1e-3
@@ -64,6 +92,30 @@ class TestDropOutDoMask(TestCase):
             [np.float32, i, j] for i in format_list for j in shape_list
         ]
         self.dropout_list_exec(shape_format)
+
+    def test_set_dropout_seed_fp16(self):
+        p = 0.5
+        seed = 666
+        format_list = [-1]
+        shape_list = [1, (256, 1280), (32, 3, 3), (256, 2048, 7, 7)]
+        shape_format = [
+            [np.float16, i, j]
+            for i in format_list
+            for j in shape_list
+        ]
+        self.dropout_set_dropout_seed_list_exec(shape_format, p, seed)
+
+    def test_set_dropout_seed_fp32(self):
+        p = 0.5
+        seed = 666
+        format_list = [-1]
+        shape_list = [1, (256, 1280), (32, 3, 3), (256, 2048, 7, 7)]
+        shape_format = [
+            [np.float32, i, j]
+            for i in format_list
+            for j in shape_list
+        ]
+        self.dropout_set_dropout_seed_list_exec(shape_format, p, seed)
 
 
 if __name__ == "__main__":
