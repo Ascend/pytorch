@@ -227,7 +227,7 @@ public:
       std::vector<at::Tensor>& inputTensors,
       const c10d::GatherOptions& opts = c10d::GatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work>scatter(
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> scatter(
       std::vector<at::Tensor>& outputTensors,
       std::vector<std::vector<at::Tensor>>& inputTensors,
       const c10d::ScatterOptions& opts = c10d::ScatterOptions()) override;

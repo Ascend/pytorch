@@ -1151,36 +1151,26 @@ def reduce(tensor,
         None, if not async_op or if not part of the group
 
     """
-    if async_op:
-        raise RuntimeError("Reduce implemented by all_reduce: "
-                           "not support async")
-        return
-
     _check_single_tensor(tensor, "tensor")
     if _rank_not_in_group(group):
         return
 
-    opts = AllreduceOptions()
+    opts = ReduceOptions()
     opts.reduceOp = op
+    opts.rootRank = dst
 
     if group is None or group is GroupMember.WORLD:
         default_pg = _get_default_group()
-        group_dst_rank = dst
-        current_rank = get_rank()
-        tensor_tmp = tensor.clone()
-        work = default_pg.allreduce([tensor_tmp], opts)
+        work = default_pg.reduce([tensor], opts)
     else:
         group_dst_rank = _get_group_rank(group, dst)
-        current_rank = get_rank(group)
-        tensor_tmp = tensor.clone()
-        work = group.allreduce([tensor_tmp], opts)
+        opts.rootRank = group_dst_rank
+        work = group.reduce([tensor], opts)
 
     if async_op:
         return work
     else:
         work.wait()
-        if current_rank == group_dst_rank:
-            tensor.copy_(tensor_tmp)
 
 def all_gather(tensor_list,
                tensor,

@@ -559,9 +559,28 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesc
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
-    std::vector<at::Tensor>& /* unused */,
-    const c10d::ReduceOptions& /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support reduce");
+    std::vector<at::Tensor>& tensors,
+    const c10d::ReduceOptions& opts) {
+  check_npu_tensors(tensors);
+  uint64_t rank = opts.rootRank;
+  return collective(
+      tensors,
+      tensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
+        return hcclReduce(
+            input.data_ptr(),
+            output.data_ptr(),
+            (uint64_t)physical_numel(input),
+            getHcclDataType(input.scalar_type()),
+            hcclOp[opts.reduceOp],
+            rank,
+            comm,
+            stream.stream());
+      });
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
@@ -764,7 +783,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
     at::Tensor& inputTensor,
     std::vector<int64_t>& outputSplitSizes,
     std::vector<int64_t>& inputSplitSizes,
-    const c10d::AllToAllOptions& opts){
+    const c10d::AllToAllOptions& opts) {
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
@@ -775,7 +794,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
       outputSplitSizes.push_back(index);
     }
   }
-  
+
   int inputSize = inputSplitSizes.size();
   int outSize = outputSplitSizes.size();
   uint64_t inputCounts[inputSize];
