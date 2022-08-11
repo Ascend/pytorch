@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -34,7 +34,7 @@ at::Tensor& masked_select_out_npu_nocheck(
     const at::Tensor& mask) {
   at::Tensor maskBool = mask;
   if (!(mask.dtype() == at::kBool)) {
-    maskBool = NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
+    maskBool = XLANativeFunctions::npu_dtype_cast(mask, at::kBool);
   }
 
   OpCommand cmd;
@@ -47,18 +47,18 @@ at::Tensor& masked_select_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::masked_select_out(
+at::Tensor& XLANativeFunctions::masked_select_out(
     const at::Tensor& self,
     const at::Tensor& mask,
     at::Tensor& result) {
   at::Tensor dtypeCastOfSelf = self;
   at::Tensor maskCast = mask;
   if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
+    maskCast = XLANativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
   }
   if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
+    dtypeCastOfSelf = XLANativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
+    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
   }
   auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
 
@@ -75,7 +75,7 @@ at::Tensor& NPUNativeFunctions::masked_select_out(
       .Call(result);
 
   if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
+    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
   }
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
@@ -87,16 +87,16 @@ at::Tensor& NPUNativeFunctions::masked_select_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::masked_select(
+at::Tensor XLANativeFunctions::masked_select(
     const at::Tensor& self,
     const at::Tensor& mask) {
   at::Tensor dtypeCastOfSelf = self;
   at::Tensor maskCast = mask;
   if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
+    maskCast = XLANativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
   }
   if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
+    dtypeCastOfSelf = XLANativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
   }
   auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
 
@@ -105,7 +105,7 @@ at::Tensor NPUNativeFunctions::masked_select(
   masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);
 
   if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
+    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
   }
   return result;
 }

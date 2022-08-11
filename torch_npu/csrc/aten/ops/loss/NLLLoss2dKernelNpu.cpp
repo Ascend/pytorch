@@ -14,7 +14,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -38,7 +38,7 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> nll_loss
 }
 } // namespace
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
+tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::nll_loss2d_forward_out(
     const at::Tensor& self,
     const at::Tensor& target,
     const c10::optional<at::Tensor>& weight_opt,
@@ -56,10 +56,12 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
 
   if (ignore_index >= 0) {
     at::Tensor zero = at::zeros(1, self.options());
+    void* ignore_ptr = reinterpret_cast<uint8_t*>(weight_tensor.data_ptr()) +
+        ignore_index * weight_tensor.itemsize();
     CalcuOpUtil::AclrtMemcpyAsync(
-        {weight_tensor, ignore_index},
+        ignore_ptr,
         weight_tensor.itemsize(),
-        {zero, 0},
+        reinterpret_cast<void*>(zero.data_ptr()),
         weight_tensor.itemsize(),
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
@@ -81,7 +83,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
   return tuple<at::Tensor&, at::Tensor&>(result, total_weight);
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::nll_loss2d_forward(
     const at::Tensor& self,
     const at::Tensor& target,
     const c10::optional<at::Tensor>& weight_opt,
@@ -112,7 +114,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
       OpPreparation::ApplyTensor(self_input, std::get<1>(outputSizes));
 
   // calculate the output result of the NPU
-  NPUNativeFunctions::nll_loss2d_forward_out(
+  XLANativeFunctions::nll_loss2d_forward_out(
       self_input,
       target_input,
       weight_opt,

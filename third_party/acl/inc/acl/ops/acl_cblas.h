@@ -51,8 +51,7 @@ typedef enum aclComputeType {
  * @param dataTypeY [IN]   datatype of vector y
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
 */
 ACL_FUNC_VISIBILITY aclError aclblasGemvEx(aclTransType transA, int m, int n,
@@ -73,8 +72,7 @@ ACL_FUNC_VISIBILITY aclError aclblasGemvEx(aclTransType transA, int m, int n,
  * @param dataTypeY [IN]   datatype of vector y
  * @param type [IN]        computation type
  * @param handle [OUT]     pointer to the pointer to the handle
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
 */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForGemvEx(aclTransType transA,
@@ -105,7 +103,7 @@ ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForGemvEx(aclTransType transA,
  * @param incy [IN]        stride between consecutive elements of vector y
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasHgemv(aclTransType transA,
@@ -131,8 +129,7 @@ ACL_FUNC_VISIBILITY aclError aclblasHgemv(aclTransType transA,
  * @param n [IN]           number of columns of matrix A
  * @param type [IN]        computation type
  * @param handle [OUT]     pointer to the pointer to the handle
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForHgemv(aclTransType transA,
@@ -160,8 +157,7 @@ ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForHgemv(aclTransType transA,
  * @param incy [IN]        stride between consecutive elements of vector y
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasS8gemv(aclTransType transA,
@@ -187,8 +183,7 @@ ACL_FUNC_VISIBILITY aclError aclblasS8gemv(aclTransType transA,
  * @param n [IN]           number of columns of matrix A
  * @param handle [OUT]     pointer to the pointer to the handle
  * @param type [IN]        computation type
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForS8gemv(aclTransType transA,
@@ -222,8 +217,7 @@ ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForS8gemv(aclTransType transA,
  * @param dataTypeC [IN]   datatype of matrix C
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasGemmEx(aclTransType transA,
@@ -263,8 +257,7 @@ ACL_FUNC_VISIBILITY aclError aclblasGemmEx(aclTransType transA,
  * @param type [IN]        computation type
  * @param handle [OUT]     pointer to the pointer to the handle
  * @param type [IN]        computation type
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForGemmEx(aclTransType transA,
@@ -302,8 +295,7 @@ ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForGemmEx(aclTransType transA,
  * @param ldc [IN]         leading dimension used to store the matrix C
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasHgemm(aclTransType transA,
@@ -335,8 +327,7 @@ ACL_FUNC_VISIBILITY aclError aclblasHgemm(aclTransType transA,
  * @param k [IN]           number of columns of matrix A and rows of matrix B
  * @param type [IN]        computation type
  * @param handle [OUT]     pointer to the pointer to the handle
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForHgemm(aclTransType transA,
@@ -370,8 +361,7 @@ ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForHgemm(aclTransType transA,
  * @param ldc [IN]         leading dimension used to store the matrix C
  * @param type [IN]        computation type
  * @param stream [IN]      stream
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasS8gemm(aclTransType transA,
@@ -404,8 +394,7 @@ ACL_FUNC_VISIBILITY aclError aclblasS8gemm(aclTransType transA,
  * @param k [IN]           number of columns of matrix A and rows of matrix B
  * @param type [IN]        computation type
  * @param handle [OUT]     pointer to the pointer to the handle
- *
- * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval ACL_ERROR_NONE The function is successfully executed.
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclblasCreateHandleForS8gemm(aclTransType transA,

@@ -33,7 +33,6 @@
 #include <ATen/WrapDimUtils.h>
 #include <ATen/Dispatch.h>
 #include <c10/util/Half.h>
-#include <c10/core/TensorImpl.h>
 #include <c10/core/UndefinedTensorImpl.h>
 #include <c10/util/Optional.h>
 #include <ATen/Tensor.h>
@@ -46,11 +45,10 @@
 #include <utility>
 
 #include <ATen/Config.h>
-#include <ATen/core/op_registration/hacky_wrapper_for_legacy_signatures.h>
+// #include <ATen/core/op_registration/hacky_wrapper_for_legacy_signatures.h>
 #include <torch/library.h>
 #include "torch_npu/csrc/profiler/utils.h"
 
-$legacy_th_headers
 $external_backend_headers
 $namespaced_headers
 

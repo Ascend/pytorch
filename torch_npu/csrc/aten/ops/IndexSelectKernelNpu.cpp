@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -35,13 +35,13 @@ at::Tensor& index_select_out_npu_nocheck(
   cmd.Name("GatherV2")
       .Input(self)
       .Input(index)
-      .Input(dimVec)
+      .Input(dimVec, at::kInt)
       .Output(result)
       .Run();
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::index_select_out(
+at::Tensor& XLANativeFunctions::index_select_out(
     const at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
@@ -57,7 +57,7 @@ at::Tensor& NPUNativeFunctions::index_select_out(
   }
   at::Tensor input = self;
   if (self.dtype() == at::kBool) {
-    input = NPUNativeFunctions::npu_dtype_cast(input, at::kInt);
+    input = XLANativeFunctions::npu_dtype_cast(input, at::kInt);
   }
   OpPreparation::CheckOut(
       {input},
@@ -76,7 +76,7 @@ at::Tensor& NPUNativeFunctions::index_select_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::index_select(
+at::Tensor XLANativeFunctions::index_select(
     const at::Tensor& self, 
     int64_t dim, 
     const at::Tensor& index) {
@@ -91,17 +91,17 @@ at::Tensor NPUNativeFunctions::index_select(
   }
   at::Tensor input = self;
   if (self.dtype() == at::kBool) {
-    input = NPUNativeFunctions::npu_dtype_cast(input, at::kInt);
+    input = XLANativeFunctions::npu_dtype_cast(input, at::kInt);
   }
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, npu_format);
   index_select_out_npu_nocheck(input, dim, indexTmp, result);
   if (self.dtype() == at::kBool) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
+    result = XLANativeFunctions::npu_dtype_cast(result, at::kBool);
   }
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::index_select_out(
+at::Tensor& XLANativeFunctions::index_select_out(
     const at::Tensor& self,
     at::Dimname dim,
     const at::Tensor& index,
@@ -114,7 +114,7 @@ at::Tensor& NPUNativeFunctions::index_select_out(
       self, dimname_to_position(self, dim), indexTmp, result);
 }
 
-at::Tensor NPUNativeFunctions::index_select(
+at::Tensor XLANativeFunctions::index_select(
     const at::Tensor& self, 
     at::Dimname dim, 
     const at::Tensor& index) {

@@ -31,7 +31,7 @@ import torch_npu._C
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
-     serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method
+     serialization_patches, add_str_methods, add_dataloader_method
 
 from .version import __version__ as __version__
 
@@ -70,11 +70,11 @@ for name in dir(torch_npu._C._VariableFunctions):
 all_monkey_patches = [
     ["npu", torch_npu.npu],
     ["npu.amp", torch_npu.npu.amp],
-    ["autograd.profiler", torch_npu.npu.profiler],
-    ["distributed", torch_npu.distributed],
-    ["nn.parallel.distributed._get_device_index", torch_npu.npu._get_device_index],
-    ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
-    ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
+    # ["autograd.profiler", torch_npu.npu.profiler],
+    # ["distributed", torch_npu.distributed],
+    # ["nn.parallel.distributed._get_device_index", torch_npu.npu._get_device_index],
+    # ["distributed.distributed_c10d", torch_npu.distributed.distributed_c10d],
+    # ["nn.parallel.distributed._get_default_group", torch_npu.distributed.distributed_c10d._get_default_group],
     ["nn.functional", npu_functional],
     ["nn", npu_modules],
     ["_C.Generator", torch_npu._C.Generator]
@@ -119,7 +119,7 @@ def apply_class_patches():
     apply_module_patch()
     add_tensor_methods()
     add_torch_funcs()
-    add_storage_methods()
+    # add_storage_methods()
     add_str_methods()
     add_dataloader_method()
 

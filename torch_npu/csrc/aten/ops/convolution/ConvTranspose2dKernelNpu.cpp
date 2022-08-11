@@ -18,7 +18,7 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -63,7 +63,7 @@ at::Tensor& conv_transpose2d_out_npu(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::npu_conv_transpose2d(
+at::Tensor XLANativeFunctions::npu_conv_transpose2d(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt,

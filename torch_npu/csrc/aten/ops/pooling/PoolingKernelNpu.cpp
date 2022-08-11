@@ -17,14 +17,14 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
-
-    at::Tensor NPUNativeFunctions::max_pool2d(
+    /*
+    at::Tensor XLANativeFunctions::max_pool2d(
         const at::Tensor &self,
         at::IntArrayRef kernel_size,
         at::IntArrayRef stride,
@@ -36,6 +36,6 @@ namespace at_npu
           self, kernel_size, stride, padding, dilation, ceil_mode);
       return std::get<0>(output_and_indices);
     }
-
+    */
   } // namespace native
 } // namespace at_npu

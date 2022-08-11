@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -50,7 +50,7 @@ at::Tensor& fills_out_npu(at::Tensor& result, at::Tensor& self, at::Scalar value
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other) {
+at::Tensor& XLANativeFunctions::fill_(at::Tensor& self, const at::Tensor& other) {
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
     fills_out_npu(self, self, other.item());
   } else {
@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other)
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, at::Scalar value) {
+at::Tensor& XLANativeFunctions::fill_(at::Tensor& self, const at::Scalar& value) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = fills_out_npu(contiguousSelf, contiguousSelf, value);

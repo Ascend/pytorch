@@ -20,12 +20,12 @@
 #include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
+c10::Scalar XLANativeFunctions::_local_scalar_dense(const at::Tensor& self) {
   c10::Scalar r;
   AT_DISPATCH_ALL_TYPES_AND2(
       at::ScalarType::Half,

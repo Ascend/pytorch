@@ -17,7 +17,7 @@
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 
@@ -177,21 +177,21 @@ namespace at_npu
       if (CalcuOpUtil::get_tensor_npu_format(output) != format)
       {
         TORCH_CHECK(!is_read_write, "can not cast format when output is input");
-        NPUNativeFunctions::npu_format_cast_(output, format);
+        XLANativeFunctions::npu_format_cast_(output, format);
       }
     }
 
     at::Tensor OpPreparation::CastBackToOriFormat(const at::Tensor &tensor)
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-      auto ret = NPUNativeFunctions::npu_format_cast(tensor, tensor_desc.origin_format_);
+      auto ret = XLANativeFunctions::npu_format_cast(tensor, tensor_desc.origin_format_);
       return ret;
     }
 
     at::Tensor &OpPreparation::CastBackToOriFormat(at::Tensor &tensor)
     {
       auto &tensor_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-      NPUNativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
+      XLANativeFunctions::npu_format_cast_(tensor, tensor_desc.origin_format_);
       return tensor;
     }
 
@@ -228,7 +228,7 @@ namespace at_npu
     at::Tensor OpPreparation::ApplyTensorWithFormat(c10::IntArrayRef sizes, const c10::TensorOptions &options, int64_t format)
     {
       auto fixFormat = InferFormat::GuessStorageFormat(sizes, (aclFormat)format);
-      return NPUNativeFunctions::empty_with_format(
+      return XLANativeFunctions::empty_with_format(
           sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), fixFormat);
     }
@@ -236,7 +236,7 @@ namespace at_npu
     at::Tensor OpPreparation::ApplyTensorWithSizes(c10::IntArrayRef sizes, const c10::TensorOptions &options)
     {
       auto format = InferFormat::GuessBaseFormat(sizes);
-      return NPUNativeFunctions::empty_with_format(
+      return XLANativeFunctions::empty_with_format(
           sizes, optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
           options.device_opt(), options.pinned_memory_opt(), format);
     }

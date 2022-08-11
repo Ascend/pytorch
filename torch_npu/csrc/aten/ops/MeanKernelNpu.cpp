@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -81,7 +81,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::mean_out(
+    at::Tensor &XLANativeFunctions::mean_out(
         const at::Tensor &self,
         at::IntArrayRef dim,
         bool keepdim,
@@ -113,17 +113,17 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::mean_out(
+    at::Tensor &XLANativeFunctions::mean_out(
         const at::Tensor &self,
         at::DimnameList dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype,
         at::Tensor &result)
     {
-      return NPUNativeFunctions::mean_out(self, dimnames_to_positions(self, dim), keepdim, dtype, result);
+      return XLANativeFunctions::mean_out(self, dimnames_to_positions(self, dim), keepdim, dtype, result);
     }
 
-    at::Tensor NPUNativeFunctions::mean(
+    at::Tensor XLANativeFunctions::mean(
         const at::Tensor &self,
         at::IntArrayRef dim,
         bool keepdim,
@@ -146,22 +146,22 @@ namespace at_npu
           outputSize, self.options().dtype(dstType), npu_format);
 
       // calculate the output result of the NPU
-      NPUNativeFunctions::mean_out(self, dim, keepdim, dtype, result);
+      XLANativeFunctions::mean_out(self, dim, keepdim, dtype, result);
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::mean(
+    at::Tensor XLANativeFunctions::mean(
         const at::Tensor &self,
         at::DimnameList dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype)
     {
-      return NPUNativeFunctions::mean(self, dimnames_to_positions(self, dim), keepdim, dtype);
+      return XLANativeFunctions::mean(self, dimnames_to_positions(self, dim), keepdim, dtype);
     }
 
-    at::Tensor NPUNativeFunctions::mean(const at::Tensor &self, c10::optional<c10::ScalarType> dtype)
+    at::Tensor XLANativeFunctions::mean(const at::Tensor &self, c10::optional<c10::ScalarType> dtype)
     {
-      return NPUNativeFunctions::mean(self, c10::SmallVector<int64_t, N>{}, false, dtype);
+      return XLANativeFunctions::mean(self, c10::SmallVector<int64_t, N>{}, false, dtype);
     }
 
   } // namespace native

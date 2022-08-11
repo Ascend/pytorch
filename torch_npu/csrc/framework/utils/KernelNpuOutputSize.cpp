@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -422,7 +422,7 @@ namespace at_npu
             int64_t srcIdx = new_indices.size() + j;
             if (index.size(j) != self.size(srcIdx))
             {
-              TORCH_CHECK_INDEX("The shape of boolTensorIndex does not match the self");
+              TORCH_CHECK_INDEX(false, "The shape of boolTensorIndex does not match the self");
             }
           }
           // Replace with nonzeros
@@ -681,8 +681,8 @@ namespace at_npu
     c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor &self)
     {
       int64_t dim = self.dim();
-      at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
-      at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
+      at::Tensor boolSelf = XLANativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
+      at::Tensor intSelf = XLANativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
 
       at::Tensor coutNonzeroSelf = intSelf;
       if (self.numel() > 10000000)

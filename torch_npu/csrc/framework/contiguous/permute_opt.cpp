@@ -17,7 +17,6 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -39,7 +38,7 @@ public:
           static_cast<FormatShape>(sizes));
       src_desc.storage_sizes_ = sizes;
 
-      NPUNativeFunctions::npu_transpose_out(src, perm, false, self);
+      XLANativeFunctions::npu_transpose_out(src, perm, self);
       src_desc = src_desc_stored;
       return true;
     }
@@ -68,7 +67,7 @@ private:
 
     // After permute or reshape+permute, the total amount of data remains
     // unchanged.
-    if (at::prod_intlist(view_sizes) != at::prod_intlist(base_sizes)) {
+    if (c10::multiply_integers(view_sizes) != c10::multiply_integers(base_sizes)) {
       return false;
     }
 
@@ -199,9 +198,7 @@ private:
   }
 
   template <typename T> void squeeze_shape_and_stride(T &shape, T &stride) {
-    IF_GRAPH_MODE_THEN_RUN(return;)
-    auto shape_size = shape.size();
-    for (auto i = 0; i < shape_size; i++) {
+    for (auto i = 0; i < shape.size(); i++) {
       if (shape[i] == 1) {
         shape.erase(shape.begin() + i);
         stride.erase(stride.begin() + i);

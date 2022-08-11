@@ -15,14 +15,14 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 const int FLOAT_STATUS_OP_DIMS_SIZE = 8;
 
-at::Tensor NPUNativeFunctions::npu_alloc_float_status(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::npu_alloc_float_status(const at::Tensor& self) {
   auto options = at::TensorOptions(at_npu::key::NativeDeviceType).dtype(at::kFloat);
   at::Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, options);
   OpCommand cmd;
@@ -33,7 +33,7 @@ at::Tensor NPUNativeFunctions::npu_alloc_float_status(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor NPUNativeFunctions::npu_get_float_status(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::npu_get_float_status(const at::Tensor& self) {
   at::Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, self.options());
   OpCommand cmd;
   cmd.Name("NPUGetFloatStatus")
@@ -44,7 +44,7 @@ at::Tensor NPUNativeFunctions::npu_get_float_status(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor NPUNativeFunctions::npu_clear_float_status(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::npu_clear_float_status(const at::Tensor& self) {
   at::Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, self.options());
   OpCommand cmd;
   cmd.Name("NPUClearFloatStatus")

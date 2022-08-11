@@ -32,8 +32,7 @@
 
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/aten/common/ResizeNpu.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 
@@ -67,7 +66,7 @@ at::Tensor alias_with_sizes_and_strides_npu(
   return self_;
 }
 
-at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef size) {
+at::Tensor XLANativeFunctions::view(const at::Tensor& self, c10::IntArrayRef size) {
   auto inferred_size = at::infer_size(size, self.numel());
   auto stride =
       at::detail::computeStride(self.sizes(), self.strides(), inferred_size);
@@ -84,7 +83,7 @@ at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef siz
   return alias_with_sizes_and_strides_npu(dst, inferred_size, stride_value);
 }
 
-at::Tensor NPUNativeFunctions::as_strided(
+at::Tensor XLANativeFunctions::as_strided(
     const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
@@ -98,21 +97,22 @@ at::Tensor NPUNativeFunctions::as_strided(
       c10::Storage(dst.storage()),
       dst.key_set(),
       dst.dtype());
-    setStrided(result, size, stride, storage_offset);
+  at::native::setStrided(result, size, stride, storage_offset);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::as_strided_(
-    at::Tensor& self,
+const at::Tensor& XLANativeFunctions::as_strided_(
+    const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
     c10::optional<int64_t> storage_offset_) {
+  at::Tensor reuslt = self;
   if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, size)) {
-    self = FormatCastHelper::CovertSelfToBaseFormat(self);
+    reuslt = FormatCastHelper::CovertSelfToBaseFormat(self);
   }
-  auto storage_offset = storage_offset_.value_or(self.storage_offset());
-  at::native::setStrided(self, size, stride, storage_offset);
-  return self;
+  auto storage_offset = storage_offset_.value_or(reuslt.storage_offset());
+  at::native::setStrided(reuslt, size, stride, storage_offset);
+  return reuslt;
 }
 
 } // namespace native

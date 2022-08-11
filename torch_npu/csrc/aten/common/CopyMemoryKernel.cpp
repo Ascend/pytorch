@@ -19,15 +19,14 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "third_party/acl/inc/acl/acl.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+at::Tensor& XLANativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   AT_ASSERT(at_npu::key::isDeviceTensor(src), "copy_memory_ only support npu tensor");
   AT_ASSERT(
       src.dtype() == self.dtype(),
@@ -46,32 +45,34 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
 
   if (FormatHelper::IsPadded(&self)) {
     AT_ASSERT(self.storage_offset() == 0);
-    dst_size = at::prod_intlist(dst_desc.storage_sizes_);
+    dst_size = c10::multiply_integers(dst_desc.storage_sizes_);
   } else {
-    auto dst_element = at::prod_intlist(self.sizes());
-    auto dst_storage = at::prod_intlist(dst_desc.storage_sizes_);
+    auto dst_element = c10::multiply_integers(self.sizes());
+    auto dst_storage = c10::multiply_integers(dst_desc.storage_sizes_);
     dst_size = (dst_element > dst_storage) ? dst_storage : dst_element;
   }
 
   if (FormatHelper::IsPadded(&src)) {
     AT_ASSERT(src.storage_offset() == 0);
-    src_size = at::prod_intlist(src_desc.storage_sizes_);
+    src_size = c10::multiply_integers(src_desc.storage_sizes_);
   } else {
-    auto src_element = at::prod_intlist(src.sizes());
-    auto src_storage = at::prod_intlist(src_desc.storage_sizes_);
+    auto src_element = c10::multiply_integers(src.sizes());
+    auto src_storage = c10::multiply_integers(src_desc.storage_sizes_);
     src_size = (src_element > src_storage) ? src_storage : src_element;
   }
 
+  c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
+
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
-  C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(
+  C10_NPU_CHECK(aclrtMemcpyAsync(
       self.data_ptr(),
       dst_size * self.itemsize(),
       src.data_ptr(),
       dst_size * self.itemsize(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE));
+      ACL_MEMCPY_DEVICE_TO_DEVICE,
+      stream));
   if (!non_blocking) {
-    c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
     C10_NPU_CHECK(aclrtSynchronizeStream(stream));
   }
   return self;

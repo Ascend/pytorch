@@ -14,13 +14,10 @@
 # limitations under the License.
 
 import torch
-
 from torch._tensor_str import _Formatter as SrcFormatter
 from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffixes, get_summarized_data
 from torch.overrides import has_torch_function_unary, handle_torch_function
-
 import torch_npu
-
 
 class _Formatter(SrcFormatter):
     def __init__(self, tensor):
@@ -46,10 +43,19 @@ def _tensor_str(self, indent):
         self = self.rename(None)
 
     summarize = self.numel() > PRINT_OPTS.threshold
+    if self._is_zerotensor():
+        self = self.clone()
+
+    # handle the negative bit
+    if self.is_neg():
+        self = self.resolve_neg()
+
     if self.dtype is torch.float16 or self.dtype is torch.bfloat16:
         self = self.float()
 
     if self.dtype.is_complex:
+        # handle the conjugate bit
+        self = self.resolve_conj()
         real_formatter = _Formatter(get_summarized_data(self.real) if summarize else self.real)
         imag_formatter = _Formatter(get_summarized_data(self.imag) if summarize else self.imag)
         return _tensor_str_with_formatter(self, indent, summarize, real_formatter, imag_formatter)

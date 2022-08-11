@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -28,7 +28,7 @@ at::Tensor& ceil_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::ceil_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& XLANativeFunctions::ceil_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -36,13 +36,13 @@ at::Tensor& NPUNativeFunctions::ceil_out(const at::Tensor& self, at::Tensor& res
   return ceil_out_npu_nocheck(result, self);
 }
 
-at::Tensor NPUNativeFunctions::ceil(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::ceil(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   ceil_out_npu_nocheck(result, self);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::ceil_(at::Tensor& self) {
+at::Tensor& XLANativeFunctions::ceil_(at::Tensor& self) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = ceil_out_npu_nocheck(contiguousSelf, contiguousSelf);

@@ -39,8 +39,8 @@ private:
                         c10::SmallVector<int64_t, MAX_DIM> &start,
                         c10::SmallVector<int64_t, MAX_DIM> &end,
                         c10::SmallVector<int64_t, MAX_DIM> &step) {
-    if (at::prod_intlist(src_desc.sizes_) >=
-        at::prod_intlist(src_desc.base_sizes_)) {
+    if (c10::multiply_integers(src_desc.sizes_) >=
+        c10::multiply_integers(src_desc.base_sizes_)) {
       return false;
     }
 
@@ -90,7 +90,7 @@ private:
     //                  (5) 对step!=1的轴,
     //                  size(i)不可以为1:主要排除潜在的unsqueeze(0)+select(1,x)等走入indexing分支
     // case 1 & 2
-    if (at::prod_intlist(step) == 1 || step[step.size() - 1] != 1) {
+    if (c10::multiply_integers(step) == 1 || step[step.size() - 1] != 1) {
       return false;
     }
     // case 3
@@ -129,7 +129,7 @@ private:
                   temp_src.strides());
 
     // call StridedSlice op
-    NPUNativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0,
+    XLANativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0,
                                          0, self);
 
     return;

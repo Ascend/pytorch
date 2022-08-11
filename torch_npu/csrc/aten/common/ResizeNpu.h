@@ -17,14 +17,11 @@
 #pragma once
 
 #include <ATen/ATen.h>
-#include <TH/THTensor.hpp>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
@@ -54,12 +51,14 @@ static void storage_resize_npu(
       copy_size = storage.nbytes();
     }
     if (copy_size > 0) {
-      aclError error = c10_npu::queue::LaunchAsyncCopyTask(
+      c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
+      aclError error = aclrtMemcpyAsync(
           storage.data(),
           copy_size,
           old_data.get(),
           copy_size,
-          ACL_MEMCPY_DEVICE_TO_DEVICE);
+          ACL_MEMCPY_DEVICE_TO_DEVICE,
+          copy_stream);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
         return;
@@ -72,15 +71,19 @@ static inline void maybe_resize_storage_npu(
     at::TensorImpl* self,
     int64_t new_size,
     c10::IntArrayRef size) {
+  if (new_size == 0) {
+    return;
+  }
+
   if (new_size > 0) {
-    if (!THTensor_getStoragePtr(self)) {
+    if (!self->storage().unsafeGetStorageImpl()) {
       AT_ERROR("Try to resize a tensor with null storage");
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * self->dtype().itemsize();
     if (new_size_bytes > self->storage().nbytes()) {
       storage_resize_npu(
-          *torch_npu::NPUBridge::GetNpuStorageImpl((THTensor_getStoragePtr(self))),
+          *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
           new_size_bytes,
           size);
     }
@@ -127,70 +130,5 @@ static void resize_nd_npu(
   }
   resize_impl_npu_(self, sizes, strides);
 }
-
-static inline void checkInBoundsForStorage(
-    c10::IntArrayRef size,
-    c10::IntArrayRef stride,
-    int64_t storage_offset,
-    const caffe2::TypeMeta data_type,
-    const c10::Storage& new_storage) {
-  int64_t storage_size_bytes =
-      at::detail::computeStorageNbytes(size, stride, data_type.itemsize());
-  int64_t storage_offset_bytes = storage_offset * data_type.itemsize();
-  if (storage_size_bytes == 0) {
-    // NB: (a tensor with arbitrary 0 dims)'s storage can have any numel.
-    return;
-  }
-
-  int64_t new_storage_size_bytes;
-  if (c10_npu::NpuRunMode::IsGraphMode()){
-    new_storage_size_bytes = at::prod_intlist(size) * data_type.itemsize();
-  } else {
-    new_storage_size_bytes = new_storage.nbytes();
-  }
-  
-  TORCH_CHECK(
-      storage_size_bytes + storage_offset_bytes <= new_storage_size_bytes,
-      "setStorage: sizes ",
-      size,
-      ", strides ",
-      stride,
-      ","
-      " storage offset ",
-      storage_offset,
-      ", and itemsize ",
-      data_type.itemsize(),
-      " requiring a storage size of ",
-      storage_size_bytes,
-      " are out of bounds for storage of size ",
-      new_storage_size_bytes);
-}
-
-inline void setStrided(
-    const at::Tensor& self, 
-    c10::IntArrayRef size, 
-    c10::IntArrayRef stride, 
-    int64_t storage_offset) {
-  TORCH_CHECK(size.size() == stride.size(), "mismatch in length of strides and shape");
-  auto* self_ = self.unsafeGetTensorImpl();
-  checkInBoundsForStorage(
-      size, stride, storage_offset, self_->dtype(), self_->storage());
-
-  /* storage offset */
-  TORCH_CHECK(storage_offset >= 0, "Tensor: invalid storage offset ", storage_offset);
-  self_->set_storage_offset(storage_offset);
-
-  /* size and stride */
-  if (self_->sizes() == size && self_->strides() == stride) {
-    return;
-  }
-  for (auto val : stride) {
-    TORCH_CHECK(val >= 0,
-                "as_strided: Negative strides are not supported at the moment, "
-                "got strides: ", stride);
-  }
-  self_->set_sizes_and_strides(size, stride);
-}
-
 } // namespace native
 } // namespace at_npu

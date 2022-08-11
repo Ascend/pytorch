@@ -17,7 +17,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,7 +30,7 @@ bool is_transpose_last_two_dims_v2(const at::Tensor& Tensors) {
     return false;
   }
   auto storage_size = torch_npu::NPUBridge::GetNpuStorageImpl(Tensors)->get_npu_desc().storage_sizes_;
-  int64_t numel = at::prod_intlist(storage_size);
+  int64_t numel = c10::multiply_integers(storage_size);
 
   int64_t dim1 = Tensors.dim() - 1;
   int64_t dim2 = Tensors.dim() - 2;
@@ -348,7 +348,7 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::npu_bmmV2(const at::Tensor& self, const at::Tensor& mat2, at::IntArrayRef output_sizes) {
+at::Tensor XLANativeFunctions::npu_bmmV2(const at::Tensor& self, const at::Tensor& mat2, at::IntArrayRef output_sizes) {
   return NPUBmmV2Function::apply(self, mat2, output_sizes);
 }
 

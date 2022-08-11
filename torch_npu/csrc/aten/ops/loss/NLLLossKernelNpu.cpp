@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -38,10 +38,12 @@ tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
 
   if (ignore_index >= 0 && ignore_index < self.size(-1)) {
     at::Tensor zero = at::zeros(1, self.options());
+    void* ignore_ptr = reinterpret_cast<uint8_t*>(weight_tensor.data_ptr()) +
+        ignore_index * weight_tensor.itemsize();
     CalcuOpUtil::AclrtMemcpyAsync(
-        {weight_tensor, ignore_index},
+        ignore_ptr,
         weight_tensor.itemsize(),
-        {zero, 0},
+        reinterpret_cast<void*>(zero.data_ptr()),
         weight_tensor.itemsize(),
         ACL_MEMCPY_DEVICE_TO_DEVICE);
   }
@@ -51,7 +53,7 @@ tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
   at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
   if (scalar_type == at::kLong) {
-    targetCast = NPUNativeFunctions::npu_dtype_cast(target, at::kInt);
+    targetCast = XLANativeFunctions::npu_dtype_cast(target, at::kInt);
   }  else if (scalar_type == at::kInt) {
     ;
   }
@@ -74,7 +76,7 @@ tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
   return tuple<at::Tensor&, at::Tensor&>(result, total_weight);
 }
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
+tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::nll_loss_forward_out(
     const at::Tensor& self,
     const at::Tensor& target,
     const c10::optional<at::Tensor>& weight_opt,
@@ -88,7 +90,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
     weight_tensor = NpuUtils::format_contiguous(weight);
   } else {
     auto options = self.options();
-    weight_tensor = NPUNativeFunctions::ones(
+    weight_tensor = XLANativeFunctions::ones(
         self.size(1),
         optTypeMetaToScalarType(options.dtype_opt()), options.layout_opt(),
         options.device_opt(), options.pinned_memory_opt());
@@ -105,7 +107,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss_forward_out(
             .ReturnRef<at::Tensor&, at::Tensor&>();
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss_forward(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::nll_loss_forward(
     const at::Tensor& self,
     const at::Tensor& target,
     const c10::optional<at::Tensor>& weight_opt,

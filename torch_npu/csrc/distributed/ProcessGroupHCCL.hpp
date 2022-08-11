@@ -19,8 +19,9 @@
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-
-#include <c10d/frontend.hpp>
+#include <c10d/ProcessGroup.hpp>
+#include <c10d/Store.hpp>
+// #include <c10d/frontend.hpp>
 #include <c10d/Utils.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
@@ -185,6 +186,9 @@ public:
 
   virtual ~ProcessGroupHCCL();
 
+  const std::string getBackendName() const {
+      return "undefined"
+  }
   c10::intrusive_ptr<c10d::ProcessGroup::Work> broadcast(
       std::vector<at::Tensor>& tensors,
       const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
@@ -207,7 +211,7 @@ public:
       std::vector<at::Tensor>& inputTensors,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allgather_base(
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> _allgather_base(
       at::Tensor& outputbuffer,
       at::Tensor& inputbuffer,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
@@ -246,13 +250,6 @@ public:
       std::vector<at::Tensor>& tensors,
       int tag) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> alltoall_base(
-      at::Tensor& outputTensor,
-      at::Tensor& inputTensor,
-      std::vector<int64_t>& outputSplitSizes,
-      std::vector<int64_t>& inputSplitSizes,
-      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
-      
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
 protected:

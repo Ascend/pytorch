@@ -40,6 +40,28 @@ from codegen.api.translate import translate
 from codegen.selective_build.selector import SelectiveBuilder
 
 
+def gen_registration_headers(
+        backend_index: BackendIndex,
+        per_operator_headers: bool,
+) -> List[str]:
+    if per_operator_headers:
+        headers = ["#include <ATen/ops/as_strided_native.h>"]
+    else:
+        headers = ["#include <ATen/NativeFunctions.h>"]
+
+    if backend_index.dispatch_key in (DispatchKey.CPU, DispatchKey.Meta):
+        headers.append("#include <ATen/EmptyTensor.h>")
+    elif backend_index.dispatch_key == DispatchKey.CUDA:
+        headers.append("#include <ATen/cuda/EmptyTensor.h>")
+    elif per_operator_headers:
+        headers += [
+            "#include <ATen/ops/empty.h>",
+            "#include <ATen/ops/empty_strided.h>"]
+    else:
+        headers.append("#include <ATen/Functions.h>")
+
+    return headers
+
 def gen_create_out_helper(backend_index: BackendIndex) -> List[str]:
     if backend_index.dispatch_key == DispatchKey.Meta:
         # TODO: dedupe this with below
@@ -366,7 +388,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                     device_check = RegisterDispatchKey.gen_device_check(f.device_check, list(device_check_args), name)
 
                 device_guard = "// DeviceGuard omitted"  # default
-                record_func_def = "torch_npu::profiler::NPURecordFunction guard;"
+                # record_func_def = "torch_npu::profiler::NPURecordFunction guard;"
                 if f.device_guard and is_cuda_dispatch_key(self.backend_index.dispatch_key):
                     has_tensor_options = any(isinstance(a.argument, TensorOptionsArguments) for a in args)
                     if has_tensor_options:
@@ -397,7 +419,6 @@ namespace {{
   {device_check}
 
   {device_guard}
-  {record_func_def}
   return {impl_name}({args_exprs_str});
 }}
 

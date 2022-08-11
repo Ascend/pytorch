@@ -17,35 +17,17 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include <c10/core/TensorImpl.h>
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::npu_reshape_out(
-    const at::Tensor& src,
+at::Tensor& reshape_out_nocheck(
+    at::Tensor& result,
+    const at::Tensor& self,
     at::IntArrayRef shape,
-    bool can_refresh,
-    at::Tensor& result) {
-  if (c10_npu::NpuRunMode::IsGraphMode()) {
-    std::vector<int64_t> out_strides = at::detail::defaultStrides(shape);
-    if (result.sizes() != shape || result.strides() != out_strides) {
-      auto allow_flag =
-          result.unsafeGetTensorImpl()->allow_tensor_metadata_change();
-      result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(true);
-      StorageDescHelper::SetDesc(result, shape, out_strides);
-      result.unsafeGetTensorImpl()->set_allow_tensor_metadata_change(allow_flag);
-    }
-
-    OpCommand cmd;
-    cmd.Name("Reshape")
-        .InputWithoutContiguous(src)
-        .Input(shape, at::kLong)
-        .Output(result)
-        .Run();
-  } else if (can_refresh) {
+    bool can_refresh) {
+  if (can_refresh) {
     StorageDescHelper::SetDesc(
         result,
         array_to_small_vector(result.sizes()),
@@ -53,17 +35,30 @@ at::Tensor& NPUNativeFunctions::npu_reshape_out(
   } else {
     copy_d2d_by_memcpy(
         result,
-        src,
-        at::prod_intlist(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
+        self,
+        c10::multiply_integers(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
   }
   return result;
 }
 
-at::Tensor NPUNativeFunctions::npu_reshape(const at::Tensor& self, at::IntArrayRef shape, bool can_refresh) {
+at::Tensor& XLANativeFunctions::npu_reshape_out(
+    const at::Tensor& self,
+    at::IntArrayRef shape,
+    bool can_refresh,
+    at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      shape);
+  return reshape_out_nocheck(result, self, shape, can_refresh);
+}
+
+at::Tensor XLANativeFunctions::npu_reshape(const at::Tensor& self, at::IntArrayRef shape, bool can_refresh) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       shape, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-  NPUNativeFunctions::npu_reshape_out(self, shape, can_refresh, result);
+  reshape_out_nocheck(result, self, shape, can_refresh);
 
   return result;
 }

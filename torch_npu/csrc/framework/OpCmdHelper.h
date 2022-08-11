@@ -43,7 +43,7 @@ namespace at_npu
       static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertNPUTensorWithZeroDimToAclInput(const at::Tensor &tensor, const string &descName);
 
-      static std::tuple<aclTensorDesc *, aclDataBuffer *>
+      static std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat>
       CovertScalarToAclInput(const at::Tensor &tensor, at::ScalarType type);
 
       static std::tuple<aclTensorDesc *, aclDataBuffer *>

@@ -66,7 +66,7 @@ struct NPUGuard {
     return guard_.current_device();
   }
 
-private:
+ private:
   /// The guard for the current device.
   c10::impl::InlineDeviceGuard<c10_npu::impl::NPUGuardImpl> guard_;
 };
@@ -134,7 +134,7 @@ struct OptionalNPUGuard {
     guard_.reset();
   }
 
-private:
+ private:
   c10::impl::InlineOptionalDeviceGuard<impl::NPUGuardImpl> guard_;
 };
 
@@ -197,7 +197,7 @@ struct NPUStreamGuard {
     return guard_.original_device();
   }
 
-private:
+ private:
   c10::impl::InlineStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 };
 
@@ -266,7 +266,7 @@ struct OptionalNPUStreamGuard {
     guard_.reset();
   }
 
-private:
+ private:
   c10::impl::InlineOptionalStreamGuard<c10_npu::impl::NPUGuardImpl> guard_;
 };
 

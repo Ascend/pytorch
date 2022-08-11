@@ -25,7 +25,6 @@ LOAD_FUNCTION(aclprofStop)
 LOAD_FUNCTION(aclprofFinalize)
 LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
-LOAD_FUNCTION(aclrtGetSocName)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -174,14 +173,5 @@ aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
   return func(profilerConfig);
 }
 
-const char *AclrtGetSocName() {
-  typedef const char *(*aclrtGetSocNameFunc)();
-  static aclrtGetSocNameFunc func = nullptr;
-  if (func == nullptr) {
-    func = (aclrtGetSocNameFunc)GET_FUNC(aclrtGetSocName);
-  }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName");
-  return func();
-}
 } // namespace acl
 } // namespace c10

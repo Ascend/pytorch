@@ -4,7 +4,7 @@
 #include <ATen/ATen.h>
 #include <ATen/CPUGeneratorImpl.h>
 
-#include <TH/TH.h>
+// #include <TH/TH.h>
 #include <torch/csrc/THP.h>
 #include <torch/csrc/Device.h>
 #include <torch/csrc/Exceptions.h>
@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/npu/Generator.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 using namespace at;
 using namespace torch;
@@ -92,7 +92,7 @@ static PyObject * THPGenerator_setState(PyObject *_self, PyObject *_new_state)
   }
   auto self = (THPGenerator*)_self;
   auto& gen = self->cdata;
-  auto& new_state_tensor = ((THPVariable*)_new_state)->cdata;
+  auto& new_state_tensor = THPVariable_Unpack(_new_state);
   
   // See Note [Acquire lock when using random generators]
   std::lock_guard<std::mutex> lock(gen.mutex());

@@ -5,42 +5,44 @@
 #include <c10/util/Exception.h>
 #include <c10/core/Storage.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
+#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+
+#define TORCH_ASSERT_ONLY_METHOD_OPERATORS
+#include <ATen/core/Tensor.h>
+#include <ATen/core/dispatch/DispatchKeyExtractor.h>
 #include <torch/library.h>
 
-#include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
+#ifndef AT_PER_OPERATOR_HEADERS
+#include <ATen/Operators.h>
+#else
+#include <ATen/ops/is_pinned_ops.h>
+#include <ATen/ops/_pin_memory_ops.h>
+
+${ops_headers}
+#endif
 
 namespace at_npu {
 namespace native {
 
-at::Tensor pin_memory(const at::Tensor& self) {
-  if (self.options().backend() != c10::Backend::CPU) {
-    AT_ERROR("cannot pin '", self.toString(), "' only dense CPU tensors can be pinned");
+bool is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
+  // Only CPU tensors can be pinned
+  if (!self.is_cpu()) {
+    return false;
   }
-  if (self.is_pinned()) {
-    return self;
-  }
-
-  at::Allocator* allocator = nullptr;
-  if (c10_npu::device_count() > 0) {
-    allocator = getPinnedMemoryAllocator();
-  }
-
-  if(allocator == nullptr) {
-      return self;
-  }
-  auto storage = c10::Storage(
-      c10::Storage::use_byte_size_t(),
-      at::detail::computeStorageNbytes(
-          self.sizes(), self.strides(), self.dtype().itemsize()),
-      allocator,
-      false);
-  auto tensor = at::empty({0}, self.options()).set_(storage, 0, self.sizes(), self.strides());
-  tensor.copy_(self);
-  return tensor;
+  // TODO: fetch scalar type from Tensor? But it doesn't really matter...
+  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(at_npu::key::NativeDeviceType)));
+  return at::_ops::is_pinned::redispatch(_dk, self, device);
 }
 
-TORCH_LIBRARY_IMPL(aten, CPU, m){
-  m.impl("pin_memory", TORCH_FN(pin_memory));
+at::Tensor _pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
+  TORCH_CHECK(self.device().is_cpu(), "cannot pin '", self.toString(), "' only dense CPU tensors can be pinned");
+  c10::DispatchKeySet _dk = c10::DispatchKeySet(c10::computeDispatchKey(c10::nullopt, self.layout(), device.value_or(at_npu::key::NativeDeviceType)));
+  return at::_ops::_pin_memory::redispatch(_dk, self, device);
+}
+
+TORCH_LIBRARY_IMPL(aten, BackendSelect, m) {
+  m.impl(TORCH_SELECTIVE_NAME("aten::is_pinned"), TORCH_FN(is_pinned));
+  m.impl(TORCH_SELECTIVE_NAME("aten::_pin_memory"), TORCH_FN(_pin_memory));
 }
 
 }

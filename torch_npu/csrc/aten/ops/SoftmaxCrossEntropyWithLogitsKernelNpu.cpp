@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include <torch/csrc/autograd/custom_function.h>
 
 namespace at_npu {
@@ -60,7 +60,7 @@ at::Tensor softmax_cross_entropy_with_logits_npu(
   return std::get<0>(softmax_cross_entropy_with_logits_impl_npu(self, labels));
 }
 
-at::Tensor NPUNativeFunctions::npu_softmax_cross_entropy_with_logits_backward(
+at::Tensor XLANativeFunctions::npu_softmax_cross_entropy_with_logits_backward(
     const at::Tensor& grad,
     const at::Tensor& self,
     const at::Tensor& labels) {
@@ -84,7 +84,7 @@ public:
     auto self = saved[0];
     auto labels = saved[1];
 
-    at::Tensor result = NPUNativeFunctions::npu_softmax_cross_entropy_with_logits_backward(grad_outputs[0],
+    at::Tensor result = XLANativeFunctions::npu_softmax_cross_entropy_with_logits_backward(grad_outputs[0],
         self,
         labels);
     tensor_list output = {result, at::Tensor()};
@@ -92,7 +92,7 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::npu_softmax_cross_entropy_with_logits(const at::Tensor& self,
+at::Tensor XLANativeFunctions::npu_softmax_cross_entropy_with_logits(const at::Tensor& self,
     const at::Tensor& labels) {
     return NPUSoftmaxCrossEntropyWithLogitsFunction::apply(self, labels);
 }

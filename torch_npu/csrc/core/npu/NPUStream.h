@@ -12,7 +12,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "third_party/acl/inc/acl/acl_op.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 
 namespace c10_npu {

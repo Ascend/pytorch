@@ -33,17 +33,16 @@ from codegen.api.python import (PythonSignature,
                                 PythonSignatureNativeFunctionPair,
                                 arg_parser_output_exprs,
                                 cpp_dispatch_exprs,
-                                cpp_record_func,
                                 cpp_dispatch_target,
                                 dispatch_lambda_args,
                                 dispatch_lambda_exprs,
                                 dispatch_lambda_return_str,
                                 has_tensor_options,
                                 namedtuple_fieldnames, signature)
-from codegen.gen import cpp_string, FileManager, error_check_native_functions
+from codegen.gen import cpp_string, FileManager, LineLoader, error_check_native_functions
 from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
-                           Type, Variant, BackendIndex,
+                           Type, Variant, BackendIndex, Location,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import context
 
@@ -54,7 +53,7 @@ _SKIP_PYTHON_BINDINGS = [
     '.*_backward', '.*_backward_(out|input|weight|bias)', '.*_forward',
     '.*_forward_out', '_unsafe_view', 'tensor', '_?sparse_coo_tensor.*',
     '_?sparse_csr_tensor.*',
-    '_arange.*', '_range.*', '_linspace.*', '_logspace.*',
+    '_arange.*', '_range.*', 'linspace.*', 'logspace.*',
     '_sparse_add_out', '_sparse_div.*', '_sparse_mul.*', '_sparse_sub.*', '_sparse_dense_add_out',
     'index', 'unique_dim_consecutive',
     '_cumsum.*', '_cumprod.*', '_sum.*', '_prod.*',
@@ -74,7 +73,6 @@ _SKIP_PYTHON_BINDINGS = [
     '_fw_primal', 'fake_quantize_per_tensor_affine_cachemask',
     'fake_quantize_per_channel_affine_cachemask',
     '_reshape_alias',
-    '_cudnn.*', '.*_quantized', 'fft_.*',
 ]
 
 SKIP_PYTHON_BINDINGS = list(map(lambda pattern: re.compile(rf'^{pattern}$'), _SKIP_PYTHON_BINDINGS))
@@ -117,11 +115,13 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.safe_load(f_str)
-    for e_with_vars in custom_es:
-        funcs = e_with_vars.get('func')
-        with context(lambda: f'in {custom_path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e_with_vars)
+    custom_es = yaml.load(f_str, Loader=LineLoader)
+    for e in custom_es:
+        assert isinstance(e.get('__line__'), int), e
+        loc = Location(custom_path, e['__line__'])
+        funcs = e.get('func')
+        with context(lambda: f'in {loc}:\n  {funcs}'):
+            func, m = NativeFunction.from_yaml(e, loc)
             func.variants.discard(Variant.method)
             rs.append(func)
             BackendIndex.grow_index(bs, m)
@@ -129,10 +129,10 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     error_check_native_functions(rs)
     # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
     indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
-        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
+        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, device_guard=False, index={}))
     for k, v in bs.items():
         # All structured in-tree operators are implemented in terms of their out operator.
-        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, index=v)
+        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, device_guard=False, index=v)
     return ParsedYaml(rs, indices)
 
 
@@ -166,7 +166,6 @@ def group_filter_overloads(
 def create_python_bindings(
     fm: FileManager,
     pairs: Sequence[PythonSignatureNativeFunctionPair],
-    pairs_device: Sequence[PythonSignatureNativeFunctionPair],
     pred: Callable[[NativeFunction], bool],
     module: Optional[str],
     filename: str,
@@ -177,12 +176,8 @@ def create_python_bindings(
     py_methods: List[str] = []
     py_method_defs: List[str] = []
     py_forwards: List[str] = []
-    py_device_methods: List[str] = []
-    py_device_forwards: List[str] = []
-    py_device_method_defs: List[str] = []
 
     grouped = group_filter_overloads(pairs, pred)
-    grouped_device = group_filter_overloads(pairs_device, pred)
 
     for name in sorted(grouped.keys(), key=lambda x: str(x)):
         overloads = grouped[name]
@@ -190,79 +185,13 @@ def create_python_bindings(
         py_method_defs.append(method_def(name, module, overloads, method=method))
         py_forwards.extend(forward_decls(name, overloads, method=method))
 
-    for name in sorted(grouped_device.keys(), key=lambda x: str(x)):
-        overloads = grouped_device[name]
-        py_device_methods.append(method_impl(name, module, overloads, method=method, custom=False))
-        py_device_method_defs.append(method_def(name, module, overloads, method=method))
-        py_device_forwards.extend(forward_decls(name, overloads, method=method))
-
     fm.write_with_template(filename, filename, lambda: {
         'generated_comment': '@' + f'generated from {fm.template_dir}/{filename}',
         'py_forwards': py_forwards,
         'py_methods': py_methods,
-        'py_device_methods': py_device_methods,
         'py_method_defs': py_method_defs,
-        'py_device_forwards': py_device_forwards,
-        'py_device_method_defs': py_device_method_defs,
     })
 
-
-def create_python_device_bindings(
-    fm: FileManager,
-    pairs: Sequence[PythonSignatureNativeFunctionPair],
-    pred: Callable[[NativeFunction], bool],
-    module: Optional[str],
-    filename: str,
-    *,
-    method: bool,
-) -> None:
-    """Generates Python bindings to ATen functions"""
-    py_device_method_defs: List[str] = []
-    device_methods_def_py_dispatch: List[str] = []
-
-    grouped = group_filter_overloads(pairs, pred)
-
-    PY_DEVICE_METHOD_DEF = CodeTemplate("""\
-    torch.${name} = _${name}
-""")
-
-    PY_DEVICE_METHOD_DEF_DISPATCH = CodeTemplate("""\
-
-@torch_device_guard
-def _${name}(*args, **kwargs):
-    return torch_npu.${name}(*args, **kwargs)
-
-""")
-
-    def method_device_def(name):
-        return PY_DEVICE_METHOD_DEF.substitute(name=name)
-
-    def method_device_def_dispatch(name):
-        return PY_DEVICE_METHOD_DEF_DISPATCH.substitute(name=name)
-
-    for name in sorted(grouped.keys(), key=lambda x: str(x)):
-        py_device_method_defs.append(method_device_def(name))
-        device_methods_def_py_dispatch.append(method_device_def_dispatch(name))
-        
-
-    fm.write_with_template(filename, filename, lambda: {
-        'device_methods_def_py': py_device_method_defs,
-        'device_methods_def_py_dispatch': device_methods_def_py_dispatch
-    })
-
-    def query_methods(filepath):
-        with open(filepath, 'r', encoding='UTF-8') as f:
-            read_lines = f.readlines()
-        def_methods = []
-        for read_line in read_lines:
-            if read_line.startswith("def"):
-                def_methods.append((read_line[4:read_line.index("(")]).strip())
-        return def_methods
-
-    device_methods = query_methods(fm.install_dir + filename)
-    if len(device_methods) != len(set(device_methods)):
-        raise RuntimeError("In device methods file " + 
-                    str(fm.install_dir + filename) + " has multi-definition function.")
 
 def load_signatures(
     native_functions: List[NativeFunction],
@@ -392,8 +321,7 @@ def method_impl(
     module: Optional[str],
     overloads: Sequence[PythonSignatureNativeFunctionPair],
     *,
-    method: bool,
-    custom: bool = True
+    method: bool
 ) -> str:
     """
     Generate a python binding for all overloads of an op.
@@ -418,7 +346,7 @@ def method_impl(
     for overload_index, overload in enumerate(grouped_overloads):
         overload_signature = overload.signature.signature_str()
         signatures.append(f'{cpp_string(str(overload_signature))},')
-        dispatch_body = emit_dispatch_case(overload, namedtuple_typenames, custom)
+        dispatch_body = emit_dispatch_case(overload, namedtuple_typenames)
         dispatch.append(
             PY_VARIABLE_CASE.substitute(overload_index=overload_index, body=dispatch_body)
             if not is_singleton else dispatch_body)
@@ -454,7 +382,6 @@ if (_r.isNone(${out_idx})) {
 def emit_dispatch_case(
     overload: PythonSignatureGroup,
     namedtuple_typenames: Dict[str, str],
-    custom: bool = True
 ) -> str:
     """
     Emit dispatching code for a single parsed signature. This corresponds to either
@@ -467,14 +394,14 @@ def emit_dispatch_case(
         return PY_VARIABLE_OUT.substitute(
             out_idx=overload.signature.output_idx(),
             call_dispatch=emit_single_dispatch(
-                overload.signature, overload.base, namedtuple_typenames, custom),
+                overload.signature, overload.base, namedtuple_typenames),
             call_dispatch_out=emit_single_dispatch(
-                overload.signature, overload.outplace, namedtuple_typenames, custom),
+                overload.signature, overload.outplace, namedtuple_typenames),
         )
     else:
         # no-output version only
         return emit_single_dispatch(
-            overload.signature, overload.base, namedtuple_typenames, custom)
+            overload.signature, overload.base, namedtuple_typenames)
 
 
 def forward_decls(
@@ -545,20 +472,18 @@ def group_overloads(
             bases[sig] = overload
 
     for sig, out in outplaces.items():
-        if sig in bases:
-            continue
-
-        candidates: List[str] = []
-        for overload in overloads:
-            if str(overload.function.func.name.name) == str(out.function.func.name.name) \
-                    and not overload.function.func.is_out_fn():
-                candidates.append(overload.signature.signature_str(skip_outputs=True))
-        out_sig = out.signature.signature_str()
-        raise RuntimeError(
-            f'While identifying overloads, we found an out schema {out_sig} without a corresponding non-out '
-            f'variant. We expected the non-out variant to have schema: \n- {sig}\nPlease check that you '
-            f'spelled the schema correctly in native_functions.yaml. We discovered the following candidate(s): \n'
-            + '\n'.join(f'- {candidate}' for candidate in candidates))
+        if sig not in bases:
+            candidates: List[str] = []
+            for overload in overloads:
+                if str(overload.function.func.name.name) == str(out.function.func.name.name) \
+                        and not overload.function.func.is_out_fn():
+                    candidates.append(overload.signature.signature_str(skip_outputs=True))
+            out_sig = out.signature.signature_str()
+            raise RuntimeError(
+                f'While identifying overloads, we found an out schema {out_sig} without a corresponding non-out variant. '
+                f'We expected the non-out variant to have schema: \n- {sig}\nPlease check that you spelled the schema '
+                'correctly in native_functions.yaml. We discovered the following candidate(s): \n'
+                + '\n'.join(f'- {candidate}' for candidate in candidates))
 
     grouped: List[PythonSignatureGroup] = []
     for sig, base in bases.items():
@@ -629,9 +554,50 @@ def sort_overloads(
 
     return list(map(lambda x: grouped_overloads[x], sorted_ids))
 
+def create_python_device_bindings(
+    fm: FileManager,
+    pairs: Sequence[PythonSignatureNativeFunctionPair],
+    pred: Callable[[NativeFunction], bool],
+    module: Optional[str],
+    filename: str,
+    *,
+    method: bool,
+) -> None:
+    """Generates Python bindings to ATen functions"""
+    py_device_method_defs: List[str] = []
+
+    grouped = group_filter_overloads(pairs, pred)
+
+    PY_DEVICE_METHOD_DEF = CodeTemplate("""\
+    torch.${name} = torch_npu.${name}
+""")
+
+    def method_device_def(name):
+        return PY_DEVICE_METHOD_DEF.substitute(name=name)
+
+    for name in sorted(grouped.keys(), key=lambda x: str(x)):
+        py_device_method_defs.append(method_device_def(name))
+
+    fm.write_with_template(filename, filename, lambda: {
+        'device_methods_def_py': py_device_method_defs,
+    })
+
+    def query_methods(filepath):
+        with open(filepath, 'r', encoding='UTF-8') as f:
+            read_lines = f.readlines()
+        def_methods = []
+        for read_line in read_lines:
+            if read_line.startswith("def"):
+                def_methods.append((read_line[4:read_line.index("(")]).strip())
+        return def_methods
+
+    device_methods = query_methods(fm.install_dir + filename)
+    if len(device_methods) != len(set(device_methods)):
+        raise RuntimeError("In device methods file " + 
+                    str(fm.install_dir + filename) + " has multi-definition function.")
 
 def emit_single_dispatch(
-    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str], custom = True
+    ps: PythonSignature, f: NativeFunction, namedtuple_typenames: Dict[str, str]
 ) -> str:
     """
     Emit dispatch code for a single native function.
@@ -644,23 +610,16 @@ def emit_single_dispatch(
         # dispatch lambda signature
         name = cpp.name(f.func)
         lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
-                                    dispatch_lambda_args(ps, f, custom)))
+                                       dispatch_lambda_args(ps, f, True)))
         lambda_return = dispatch_lambda_return_str(f)
 
-        # device init
-        if custom and ("Device" in str(f.func)):
-            init_npu_device = f"torch_npu::utils::maybe_initialize_npu(device);"
-        else:
-            init_npu_device = f"//"
-
         # dispatch lambda body
-        record_func_define = cpp_record_func(f, custom=custom)
-        dispatch_callee = cpp_dispatch_target(f, custom=custom)
-        dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
+        dispatch_callee = cpp_dispatch_target(f, custom=True)
+        dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=True))
 
         # from arg parser outputs to dispatch lambda arguments
         parser_outputs = arg_parser_output_exprs(ps, f)
-        lambda_arg_exprs = dispatch_lambda_exprs(ps, f, custom)
+        lambda_arg_exprs = dispatch_lambda_exprs(ps, f, True)
         inits = '\n'.join(lambda_arg_exprs.inits)
         lambda_args = ', '.join(lambda_arg_exprs.exprs)
 
@@ -674,9 +633,7 @@ def emit_single_dispatch(
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
-  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
-  {record_func_define}
   {dispatch_callee}({dispatch_args});
 }};
 dispatch_{name}({lambda_args}){set_requires_grad};
@@ -689,9 +646,7 @@ Py_RETURN_NONE;
 {schema_comment}
 {inits}
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
-  {init_npu_device}
   pybind11::gil_scoped_release no_gil;
-  {record_func_define}
   return {dispatch_callee}({dispatch_args});
 }};
 return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad});
@@ -713,9 +668,11 @@ def parse_native_yaml(path: str) -> List[NativeFunction]:
     with_device_base_operator = set()
 
     for e in es:
+        assert isinstance(e.get('__line__'), int), e
+        loc = Location(path, e['__line__'])
         funcs = e.get('func')
         with context(lambda: f'in {path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e)
+            func, m = NativeFunction.from_yaml(e, loc)
             if "Device" in funcs:
                 with_device_base_operator.add(func.func.name.name.base)
 
@@ -750,13 +707,5 @@ if __name__ == "__main__":
     valid_native_functions = list(filter(should_generate_py_binding, parsed_native_functions))
 
     functions = load_signatures(valid_native_functions, method=False)
-    torch_native_functions = list(filter(should_generate_py_binding, parse_native_yaml(options.native_yaml)))
-    device_native_functions = load_signatures(torch_native_functions, method=False)
-
-    create_python_bindings(file_manager, functions, device_native_functions, lambda f: Variant.function in f.variants,
+    create_python_bindings(file_manager, functions, lambda f: Variant.function in f.variants,
                            'torch_npu', 'python_custom_functions.cpp', method=False)
-    
-    file_device_manager=FileManager(install_dir=options.output_dir +"../../utils/", 
-                                    template_dir=options.template_path, dry_run=False)
-    create_python_device_bindings(file_device_manager, device_native_functions, 
-                            lambda f: Variant.function in f.variants, 'torch_npu', 'torch_funcs.py', method=False)

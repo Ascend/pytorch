@@ -22,7 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class Test__And__(TestCase):
-    def cpu_op_exec(self, input1, input2):
+    def cpu_op_exec(self, input1, input2):        
         output = input1.__and__(input2)
         if output.dtype != torch.int32:
             output = output.to(torch.int32)
@@ -47,7 +47,7 @@ class Test__And__(TestCase):
         ]
 
         for item in shape_format:
-            if len(item[1]) > 1:
+            if len(item[1]) > 1:                
                 cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
                 cpu_input2, npu_input2 = create_common_tensor(item[1], 0, 100)
                 cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
@@ -61,4 +61,4 @@ class Test__And__(TestCase):
 
 
 if __name__ == "__main__":
-    run_tests()
+	run_tests()

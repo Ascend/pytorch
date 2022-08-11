@@ -20,7 +20,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
@@ -65,7 +65,7 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   bool isFuzzyCompile = env::CheckFuzzyEnable();
   int64_t numels;
   auto desc_ = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
-  numels = isFuzzyCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
+  numels = isFuzzyCompile ? c10::multiply_integers(desc_.storage_sizes_) : self.numel();
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
@@ -94,7 +94,7 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   return mask;
 }
 
-at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
+at::Tensor XLANativeFunctions::npu_dropout_gen_mask(
     at::IntArrayRef size, double p,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<c10::Layout> layout_opt,
@@ -106,7 +106,7 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
                                           .pinned_memory(pin_memory_opt);
 
   at::Scalar prob = at::Scalar(1. - p);
-  int64_t numels = at::prod_intlist(size);
+  int64_t numels = c10::multiply_integers(size);
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length / 8}, options.dtype(at::kByte),
@@ -160,7 +160,7 @@ std::tuple<at::Tensor, at::Tensor> dropout_v1_npu_impl(
   return std::tie(result, mask);
 }
 
-at::Tensor NPUNativeFunctions::npu_dropout_backward(
+at::Tensor XLANativeFunctions::npu_dropout_backward(
     const at::Tensor& grad_output,
     const at::Tensor& mask,
     double scale) {
@@ -210,13 +210,13 @@ public:
     auto p = ctx->saved_data["p"].toDouble();
     auto saved = ctx->get_saved_variables();
     auto mask = saved[0];
-    at::Tensor result = NPUNativeFunctions::npu_dropout_backward(grad_outputs[0], mask, p);
+    at::Tensor result = XLANativeFunctions::npu_dropout_backward(grad_outputs[0], mask, p);
     tensor_list output = {result, at::Tensor()};
     return output;
   }
 };
 
-std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_npu_dropout(
+std::tuple<at::Tensor, at::Tensor> XLANativeFunctions::_npu_dropout(
     const at::Tensor& self,
     double p) {
     auto result = NPUdropoutFunction::apply(self, p);
@@ -244,13 +244,13 @@ public:
     auto p = ctx->saved_data["p"].toDouble();
     auto saved = ctx->get_saved_variables();
     auto mask = saved[0];
-    at::Tensor result = NPUNativeFunctions::npu_dropout_backward(grad_outputs[0], mask, p);
+    at::Tensor result = XLANativeFunctions::npu_dropout_backward(grad_outputs[0], mask, p);
     tensor_list output = {result, at::Tensor(), at::Tensor()};
     return output;
   }
 };
 
-std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_do_mask(
+std::tuple<at::Tensor, at::Tensor> XLANativeFunctions::npu_dropout_do_mask(
     const at::Tensor& self,
     const at::Tensor& mask,
     double p) {
@@ -259,14 +259,14 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_do_mask(
   return output;
 }
 
-at::Tensor NPUNativeFunctions::dropout(const at::Tensor& self, double p, bool train) {
+at::Tensor XLANativeFunctions::dropout(const at::Tensor& self, double p, bool train) {
   if (p == 0 || !train || self.numel() == 0) {
     return self;
   }
   if (p == 1) {
     return self.mul(at::zeros(self.sizes(), self.options()));
   }
-  at::Tensor result = std::get<0>(NPUNativeFunctions::_npu_dropout(self, p));
+  at::Tensor result = std::get<0>(XLANativeFunctions::_npu_dropout(self, p));
   return result;
 }
 

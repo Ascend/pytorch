@@ -19,7 +19,7 @@ namespace at_npu {
 namespace native {
 
 void ContiguousTensorDesc::refresh_contiguous_using_size_and_stride() {
-  if (at::prod_intlist(sizes_) == 0) {
+  if (c10::multiply_integers(sizes_) == 0) {
     is_contiguous_ = true;
   }
   int64_t infer_axis_size = 1;
@@ -61,7 +61,7 @@ void ContiguousTensorDesc::find_match_optimization_cases() {
   }
 
   // Considering combined-cases, we cannot split slice cases any further.
-  if (at::prod_intlist(sizes_) < at::prod_intlist(base_sizes_)) {
+  if (c10::multiply_integers(sizes_) < c10::multiply_integers(base_sizes_)) {
     opt_cases_.emplace_back("slice");
     opt_cases_.emplace_back("select");
     opt_cases_.emplace_back("indexing");

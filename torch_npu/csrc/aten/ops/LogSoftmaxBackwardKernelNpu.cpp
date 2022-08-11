@@ -18,16 +18,16 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::_log_softmax_backward_data(
+at::Tensor XLANativeFunctions::_log_softmax_backward_data(
     const at::Tensor& grad_output,
     const at::Tensor& output,
     int64_t dim,
-    const at::Tensor& self) {
+    at::ScalarType input_dtype) {
   c10::SmallVector<int64_t, N> dimList = {dim};
   at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
 

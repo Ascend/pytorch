@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,7 +30,7 @@ at::Tensor& reciprocal_out_npu_nocheck(const at::Tensor& self, at::Tensor& resul
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::reciprocal_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& XLANativeFunctions::reciprocal_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -42,7 +42,7 @@ at::Tensor& NPUNativeFunctions::reciprocal_out(const at::Tensor& self, at::Tenso
       .Call(result);
 }
 
-at::Tensor NPUNativeFunctions::reciprocal(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::reciprocal(const at::Tensor& self) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
@@ -51,8 +51,8 @@ at::Tensor NPUNativeFunctions::reciprocal(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::reciprocal_(at::Tensor& self) {
-  NPUNativeFunctions::reciprocal_out(self, self);
+at::Tensor& XLANativeFunctions::reciprocal_(at::Tensor& self) {
+  XLANativeFunctions::reciprocal_out(self, self);
 
   return self;
 }

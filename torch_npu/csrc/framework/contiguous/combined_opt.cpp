@@ -18,7 +18,6 @@
 
 #include <map>
 
-#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
@@ -86,8 +85,8 @@ private:
     }
     auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->get_npu_desc();
 
-    if ((at::prod_intlist(tensor.sizes()) !=
-         at::prod_intlist(npu_desc.base_sizes_)) ||
+    if ((c10::multiply_integers(tensor.sizes()) !=
+         c10::multiply_integers(npu_desc.base_sizes_)) ||
         (tensor.storage_offset() != npu_desc.base_offset_)) {
       return false;
     }
@@ -154,8 +153,8 @@ private:
   // Weak constrains for slice cases
   bool maybe_slice(const ContiguousTensorDesc &tensor_desc) {
     // tensors with reduced numel will be taken into consideration.
-    if (at::prod_intlist(tensor_desc.sizes_) <
-        at::prod_intlist(tensor_desc.base_sizes_)) {
+    if (c10::multiply_integers(tensor_desc.sizes_) <
+        c10::multiply_integers(tensor_desc.base_sizes_)) {
       for (auto i = 0; i < tensor_desc.sizes_.size() - 2; i++) {
         if (tensor_desc.strides_[i] % tensor_desc.strides_[i + 1] != 0) {
           return false;
@@ -280,8 +279,8 @@ Inference order: permute, select, slice.
         slice_size[i] = (view_strides[i - 1] / view_strides[i]);
       }
       slice_size[0] = 1;
-      slice_size[0] = (at::prod_intlist(tensor_desc.base_sizes_) /
-                       at::prod_intlist(slice_size));
+      slice_size[0] = (c10::multiply_integers(tensor_desc.base_sizes_) /
+                       c10::multiply_integers(slice_size));
       infer_offset = tensor_desc.offset_;
       // Refresh tensor's base info and storage info to construct sliced tensor
       tensor_desc.base_sizes_ = slice_size;
@@ -424,10 +423,8 @@ Inference order: permute, select, slice.
     if (reconstruct_tensor(src, shape_stride_stacks, offset_stacks)) {
       ContiguousTensorDesc src_desc_ = TransContiguous::GetTensorDescInfo(src);
       OptimizationCases opt_cases_first{"reshape", "slice", "select"};
-      if ((!c10_npu::NpuRunMode::IsGraphMode()) && reshape_without_copy_match(src)) {
+      if (reshape_without_copy_match(src)) {
         // case 1 : The first tensor is reshape-type, refresh its info is enough
-        // In single op, refresh is inplace operation, but in graph mode, reshape is not.
-        // In graph mode, there is not matching operator for this case.
         return combined_to_contiguous(self, src, shape_stride_stacks,
                                       offset_stacks);
       } else if (can_be_optimize_from_default_cases(src_desc_)) {

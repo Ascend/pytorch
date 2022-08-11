@@ -33,9 +33,9 @@
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/distributed/Init.h"
 #include "torch_npu/csrc/distributed/reducer.hpp"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
-
+/*
 namespace torch_npu {
 namespace distributed {
 
@@ -49,7 +49,7 @@ class BroadcastWork {
 public:
   inline std::vector<at::Tensor> cast_tensors(at::TensorList tensors) {
     static auto cast_back_to_ori_format = [](const at::Tensor &t) {
-      return at_npu::native::NPUNativeFunctions::npu_format_cast(t, torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_.origin_format_);
+      return at_npu::native::XLANativeFunctions::npu_format_cast(t, torch_npu::NPUBridge::GetNpuStorageImpl(t)->npu_desc_.origin_format_);
     };
     return c10::fmap(tensors, cast_back_to_ori_format);
   }
@@ -388,3 +388,4 @@ PyMethodDef* python_functions() {
 
 } // namespace distributed
 } // namespace torch_npu
+*/

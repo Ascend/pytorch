@@ -18,8 +18,6 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
-#include "torch_npu/csrc/framework/graph/util/ATenGeBridge.h"
-#include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 #include <ATen/ATen.h>
 
 namespace at_npu {
@@ -100,16 +98,6 @@ public:
         NodeExtInfoType::ATTR_TYPE_FLOAT, std::make_pair(attr_name, val));
     node->UpdateNodeHash(val);
   }
-
-  static void SetAttr(
-    const string& attr_name,
-    const c10::ScalarType& value,
-    NodePtr node) {
-    ge::DataType val = ATenGeBridge::GetGeDType(value);
-    node->AddExtInfo(
-        NodeExtInfoType::ATTR_TYPE_DATATYPE, std::make_pair(attr_name, val));
-    node->UpdateNodeHash(val);
-  }
 };
 
 class GraphCommandImpl {
@@ -152,14 +140,6 @@ public:
   template <typename T>
   void AddAttr(const string& attr_name, T value) {
     OperatorAttrMaker::SetAttr(attr_name, value, ir_node_);
-  }
-
-  template <typename T>
-  void ReduceScalarValueOp(T* value, uint32_t& host_ptr_offset) {
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(value),
-        sizeof(T),
-        host_ptr_offset);
   }
 
 private:

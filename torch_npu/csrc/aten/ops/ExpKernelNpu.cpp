@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,7 +30,7 @@ at::Tensor& exp_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::exp_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& XLANativeFunctions::exp_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -42,13 +42,13 @@ at::Tensor& NPUNativeFunctions::exp_out(const at::Tensor& self, at::Tensor& resu
    .Call(result);
 }
 
-at::Tensor& NPUNativeFunctions::exp_(at::Tensor& self) {
+at::Tensor& XLANativeFunctions::exp_(at::Tensor& self) {
   exp_out(self, self);
 
   return self;
 }
 
-at::Tensor NPUNativeFunctions::exp(const at::Tensor& self) {
+at::Tensor XLANativeFunctions::exp(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   exp_out_npu_nocheck(result, self);
   return result;

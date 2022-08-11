@@ -66,7 +66,7 @@ public:
 
   void Finalize();
 
-private:
+ private:
   GraphExecutor() = default;
 
   void Init();

@@ -20,16 +20,16 @@ namespace native {
 
 class ReshapeV2ContiguousOpt : public ContiguousOpt {
 public:
-  bool Optimizer(at::Tensor &result, const at::Tensor &src,
+  bool Optimizer(at::Tensor &self, const at::Tensor &src,
                  const ContiguousTensorDesc &src_desc) override {
-    ContiguousTensorDesc result_desc = TransContiguous::GetTensorDescInfo(result);
-    if (check_reshape_match(result_desc, src_desc)) {
-      if ((!c10_npu::NpuRunMode::IsGraphMode()) && can_use_memory_repoint(src_desc) &&
-          reshape_match_by_memory_repoint(src, result)) {
+    ContiguousTensorDesc self_desc = TransContiguous::GetTensorDescInfo(self);
+    if (check_reshape_match(self_desc, src_desc)) {
+      if (can_use_memory_repoint(src_desc) &&
+          reshape_match_by_memory_repoint(src, self)) {
         return true;
       }
       RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
-      NPUNativeFunctions::npu_reshape_out(src, src.sizes(), false, result);
+      copy_d2d_by_memcpy(self, src, c10::multiply_integers(self_desc.storage_sizes_));
       return true;
     }
     return false;

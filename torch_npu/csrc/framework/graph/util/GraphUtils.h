@@ -42,8 +42,6 @@ public:
 
   static void SetDataOp(const at::Tensor& tensor);
 
-  static void SetDataPtrAndNbytes(c10::StorageImpl* storage, size_t nbytes);
-
   static void ResetOp(c10::StorageImpl* storage);
   static void ResetOp(at::Tensor& tensor);
 

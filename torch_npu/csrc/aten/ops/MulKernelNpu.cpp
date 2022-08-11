@@ -18,7 +18,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -70,7 +70,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::mul_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::mul_out(const at::Tensor &self, const at::Tensor &other, at::Tensor &result)
     {
       // calculate the output size
       at::Tensor outputTensor = mul_dest_output(self, other);
@@ -86,7 +86,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, const at::Tensor &other)
+    at::Tensor XLANativeFunctions::mul(const at::Tensor &self, const at::Tensor &other)
     {
       at::Tensor selfCast = self;
       at::Tensor otherCast = other;
@@ -117,7 +117,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, at::Scalar other)
+    at::Tensor XLANativeFunctions::mul(const at::Tensor &self, const at::Scalar& other)
     {
       // calculate the output size
       auto outputSize = input_same_output_size(self);
@@ -132,7 +132,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::mul_(at::Tensor &self, const at::Tensor &other)
+    at::Tensor &XLANativeFunctions::mul_(at::Tensor &self, const at::Tensor &other)
     {
       TORCH_CHECK(at_npu::key::isDeviceTensor(self), "Input1 must be NPU-Tensor");
 
@@ -141,9 +141,9 @@ namespace at_npu
       CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
       at::Tensor selfDtypeCast = 
-          (self.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+          (self.scalar_type() == at::kBool) ? XLANativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
       at::Tensor otherDtypeCast = 
-          (other.scalar_type() == at::kBool) ? NPUNativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
+          (other.scalar_type() == at::kBool) ? XLANativeFunctions::npu_dtype_cast(other, at::kFloat) : other;
       if (!NpuUtils::check_match(&selfDtypeCast)) {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfDtypeCast);
         at::Tensor result = mul_out_npu_nocheck(contiguousSelf, contiguousSelf, otherDtypeCast);
@@ -152,14 +152,14 @@ namespace at_npu
         mul_out_npu_nocheck(selfDtypeCast, selfDtypeCast, otherDtypeCast);
       }
       if (self.scalar_type() == at::kBool) {
-        selfDtypeCast = NPUNativeFunctions::npu_dtype_cast(selfDtypeCast, at::kBool);
+        selfDtypeCast = XLANativeFunctions::npu_dtype_cast(selfDtypeCast, at::kBool);
       }
       self.copy_(selfDtypeCast);
 
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::mul_(at::Tensor &self, at::Scalar other)
+    at::Tensor &XLANativeFunctions::mul_(at::Tensor &self, const at::Scalar& other)
     {
       if (!NpuUtils::check_match(&self))
       {

@@ -19,27 +19,28 @@
 
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::resize_(
-    at::Tensor& self,
+const at::Tensor& XLANativeFunctions::resize_(
+    const at::Tensor& self,
     c10::IntArrayRef size,
     c10::optional<c10::MemoryFormat> format) {
   // because of resize _impl_npu_ only support at base format, so
   // no need to reflush NpuStorageDesc here.
-  if (!FormatHelper::IsBaseFormatType(self)) {
-    NPUNativeFunctions::npu_format_cast_(self, FormatHelper::GetBaseFormat(self));
+  at::Tensor result = self;
+  if (!FormatHelper::IsBaseFormatType(result)) {
+    XLANativeFunctions::npu_format_cast_(result, FormatHelper::GetBaseFormat(self));
   }
-  auto* self_ = self.unsafeGetTensorImpl();
-  resize_impl_npu_(self_, size, c10::nullopt);
-  return self;
+  auto* self_ = result.unsafeGetTensorImpl();
+  resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
+  return result;
 }
 
-at::Tensor& NPUNativeFunctions::resize_as_(
-    at::Tensor& self,
+const at::Tensor& XLANativeFunctions::resize_as_(
+    const at::Tensor& self,
     const at::Tensor& the_template,
     c10::optional<c10::MemoryFormat> format) {
   TORCH_CHECK(
@@ -48,10 +49,12 @@ at::Tensor& NPUNativeFunctions::resize_as_(
   TORCH_CHECK(
       !format.has_value(), "NPU does not support specify memory_format.");
 
-  at::Tensor& result = self.resize_(the_template.sizes());
+  const at::Tensor& result = self.resize_(the_template.sizes());
   at::namedinference::propagate_names(result, the_template);
-  return result;
+  at::Tensor temp = result;
+  return temp;
 }
+
 
 } // namespace native
 } // namespace at_npu

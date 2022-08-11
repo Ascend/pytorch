@@ -16,7 +16,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -38,11 +38,11 @@ at::Tensor& index_out_nocheck_npu(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {  
+at::Tensor XLANativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {  
   at::native::checkIndexTensorTypes(orig);
   // first expand BoolTensor (masks) or ByteTensor (masks) into 1 or more LongTensors
   auto indices = at::native::expandTensors(self, orig);
-  at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  at::Tensor formatCastOfSelf = XLANativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
 
   // calculate the output size
   auto outputSize = index_npu_output_size(formatCastOfSelf, indices);

@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 
@@ -52,7 +52,7 @@ at::Tensor format_cast_impl_out_npu(at::Tensor& dst, const at::Tensor& src) {
 }
 
 // convert src from src_format to dst_format, write the result into dst
-at::Tensor& NPUNativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tensor& src) {
+at::Tensor& XLANativeFunctions::npu_format_cast_(at::Tensor& dst, const at::Tensor& src) {
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   if (src_desc.npu_format_ == dst_desc.npu_format_) {
@@ -94,16 +94,16 @@ at::Tensor npu_format_cast_impl(
 }
 
 // conver self to dst'format, write the result into new result tensor
-at::Tensor NPUNativeFunctions::npu_format_cast(
+at::Tensor XLANativeFunctions::npu_format_cast(
     const at::Tensor& src,
     const at::Tensor& dst) {
   auto dst_desc = torch_npu::NPUBridge::GetNpuStorageImpl(dst)->npu_desc_;
   int64_t dst_format = dst_desc.npu_format_;
-  return NPUNativeFunctions::npu_format_cast(src, dst_format);
+  return XLANativeFunctions::npu_format_cast(src, dst_format);
 }
 
 // conver self to acl_format, write the result into self
-at::Tensor& NPUNativeFunctions::npu_format_cast_(
+at::Tensor& XLANativeFunctions::npu_format_cast_(
     at::Tensor& src,
     int64_t acl_format) {
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
@@ -129,7 +129,7 @@ at::Tensor& NPUNativeFunctions::npu_format_cast_(
   return src;
 }
 
-int64_t NPUNativeFunctions::get_npu_format(const at::Tensor& src) {
+int64_t XLANativeFunctions::get_npu_format(const at::Tensor& src) {
   auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
   return src_desc.npu_format_;
 }
@@ -153,7 +153,7 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::npu_format_cast(const at::Tensor& self,
+at::Tensor XLANativeFunctions::npu_format_cast(const at::Tensor& self,
     int64_t acl_format) {
   return NPUFormatCastFunction::apply(self, acl_format);
 }

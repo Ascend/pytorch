@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 
@@ -31,7 +31,7 @@ bool FormatCastHelper::IsSameGroupType(const at::Tensor& src, const at::Tensor& 
 
 void FormatCastHelper::base_format_cast_nocheck(at::Tensor& dst, const at::Tensor& src) {
   dst.set_(dst.storage(), src.storage_offset(), src.sizes(), src.strides());
-  NPUNativeFunctions::copy_memory_(dst, src, true);
+  XLANativeFunctions::copy_memory_(dst, src, true);
 }
 
 void FormatCastHelper::format_cast_as_base_format(const at::Tensor& src, aclFormat format) {
@@ -90,12 +90,14 @@ bool FormatCastHelper::format_cast_between_group(at::Tensor& dst, const at::Tens
 
 at::Tensor FormatCastHelper::ApplyBaseFormatTensorBy(const at::Tensor& src) {
   auto format = FormatHelper::GetBaseFormat(src);
-  return NPUNativeFunctions::npu_format_cast(src, format);
+  return XLANativeFunctions::npu_format_cast(src, format);
 }
 
-at::Tensor& FormatCastHelper::CovertSelfToBaseFormat(at::Tensor& src) {
+at::Tensor& FormatCastHelper::CovertSelfToBaseFormat(const at::Tensor& src) {
   auto format = FormatHelper::GetBaseFormat(src);
-  return NPUNativeFunctions::npu_format_cast_(src, format);
+  at::Tensor result = src;
+  XLANativeFunctions::npu_format_cast_(result, format);
+  return result;
 }
 
 } // namespace native

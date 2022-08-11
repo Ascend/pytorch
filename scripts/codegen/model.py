@@ -52,6 +52,15 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
+# Represent a source location; used for better error reporting
+@dataclass(frozen=True)
+class Location:
+    file: str
+    line: int
+
+    def __str__(self) -> str:
+        return "{}:{}".format(self.file, self.line)
+
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
 
@@ -95,6 +104,7 @@ class DispatchKey(Enum):
     PrivateUse3 = auto()
     EndOfBackendKeys = PrivateUse3
 
+    ZeroTensor = auto()
     Meta = auto()
     BackendSelect = auto()
     Named = auto()
@@ -172,6 +182,19 @@ class DeviceCheckType(Enum):
     NoCheck = 0
     ExactSame = 1
 
+class Tag(Enum):
+    inplace_view = 0
+
+    def __str__(self) -> str:
+        return self.name
+
+    @staticmethod
+    def parse(value: str) -> 'Tag':
+        for k, v in Tag.__members__.items():
+            if k == value:
+                return v
+        raise AssertionError(f'unknown tag {value}')
+
 # The basic input to the code generation is native_functions.yaml.
 # The name "native", BTW, comes from the distinction between native
 # functions and legacy TH functions.  The legacy TH functions are gone,
@@ -192,10 +215,6 @@ class NativeFunction:
     # defined later in the file.  I opted for this ordering of the
     # classes for expository clarity.)
     func: 'FunctionSchema'
-
-    # Corresponds to the 'use_c10_dispatcher' field.  The default
-    # is 'full'
-    use_c10_dispatcher: UseC10Dispatcher
 
     # Whether or not to generate mutable tensor arguments like regular
     # ones
@@ -227,6 +246,10 @@ class NativeFunction:
     # the binding; instead, the binding gets generated to __dispatch_{funcname}
     # so you can make use of the normal binding if you need it.
     manual_cpp_binding: bool
+
+    # The location in the YAML file were this native function entry was
+    # defined.  This is for conveniently reporting error messages!
+    loc: 'Location'
 
     # Whether or not this out functions is a "structured kernel".  Structured
     # kernels are defined a little differently from normal kernels; in
@@ -273,6 +296,11 @@ class NativeFunction:
     has_composite_implicit_autograd_kernel: bool
     has_composite_explicit_autograd_kernel: bool
 
+    # Tags are used to describe semantic information about (groups of) operators,
+    # That aren't easily inferrable directly from the operator's schema.
+    # For now operators have at most one tag.
+    tag: Optional['Tag']
+
     # NB: The benefit of defining a dataclass is that we automatically get
     # a constructor defined for all the fields we specify.  No need
     # to explicitly write it out.
@@ -280,83 +308,64 @@ class NativeFunction:
     # We parse both the NativeFunction + backend-specific information about it, which it stored
     # in a corresponding BackendIndex.
     @staticmethod
-    def from_yaml(ei: Dict[str, object]) -> Tuple['NativeFunction',
-                                                  Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
+    def from_yaml(
+            ei: Dict[str, object],
+            loc: 'Location'
+    ) -> Tuple['NativeFunction', Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
+        """
+        Parse a NativeFunction from a dictionary as directly parsed
+        from native_functions.yaml
+        """
         e = ei.copy()
-        def parse_func(e):
-            funcs = e.pop('func')
-            assert isinstance(funcs, str), f'not a str: {funcs}'
-            func = FunctionSchema.parse(funcs)
-            return func
+        
+        funcs = e.pop('func')
+        assert isinstance(funcs, str), f'not a str: {funcs}'
+        func = FunctionSchema.parse(funcs)
 
-        def parse_cpp_no_default_args(e):
-            cpp_no_default_args_list = e.pop('cpp_no_default_args', [])
-            assert isinstance(cpp_no_default_args_list, list)
-            cpp_no_default_args = set(cpp_no_default_args_list)
-            return cpp_no_default_args
-
-        def parse_use_dispatcher(e):
-            use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
-            assert use_c10_dispatcher_s != 'full', \
-                "No need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
-            if use_c10_dispatcher_s is None:
-                use_c10_dispatcher = UseC10Dispatcher.full
-            elif use_c10_dispatcher_s == 'hacky_wrapper_for_legacy_signatures':
-                use_c10_dispatcher = UseC10Dispatcher.hacky_wrapper_for_legacy_signatures
-            else:
-                raise AssertionError(f'use_c10_dispatcher must be full or hacky_wrapper_for_legacy_signatures,'
-                                     f' got {use_c10_dispatcher_s}')
-            return use_c10_dispatcher
-
-        def parse_variants(e):
-            variants_s = e.pop('variants', 'function')
-            assert isinstance(variants_s, str)
-            variants: Set[Variant] = set()
-            for v in variants_s.split(', '):
-                if v == 'function':
-                    variants.add(Variant.function)
-                elif v == 'method':
-                    variants.add(Variant.method)
-                else:
-                    raise AssertionError(f'illegal variant {v}')
-            return variants
-
-        func = parse_func(e)
-        cpp_no_default_args = parse_cpp_no_default_args(e)
-        use_c10_dispatcher = parse_use_dispatcher(e)        
-        variants = parse_variants(e)
+        cpp_no_default_args_list = e.pop('cpp_no_default_args', [])
+        assert isinstance(cpp_no_default_args_list, list)
+        cpp_no_default_args = set(cpp_no_default_args_list)
 
         use_const_ref_for_mutable_tensors = e.pop('use_const_ref_for_mutable_tensors', False)
-        manual_kernel_registration = e.pop('manual_kernel_registration', False)
-        manual_cpp_binding = e.pop('manual_cpp_binding', False)
-        device_guard = e.pop('device_guard', True)
-        assert isinstance(use_const_ref_for_mutable_tensors, bool) and isinstance(manual_kernel_registration, bool) \
-            and isinstance(manual_cpp_binding, bool) and isinstance(device_guard, bool), f'exists non-bool value.'
+        assert isinstance(use_const_ref_for_mutable_tensors, bool)
 
-        def parse_device_check(e):
-            device_check_s = e.pop('device_check', None)
-            assert device_check_s is None or isinstance(device_check_s, str), f'not a str: {device_check_s}'
-            device_check: DeviceCheckType
-            if device_check_s is None:
-                device_check = DeviceCheckType.ExactSame
+        variants_s = e.pop('variants', 'function')
+        assert isinstance(variants_s, str)
+        variants: Set[Variant] = set()
+        for v in variants_s.split(', '):
+            if v == 'function':
+                variants.add(Variant.function)
+            elif v == 'method':
+                variants.add(Variant.method)
             else:
-                device_check = DeviceCheckType[device_check_s]
-            return device_check
+                raise AssertionError(f'illegal variant {v}')
 
-        device_check = parse_device_check(e)
+        manual_kernel_registration = e.pop('manual_kernel_registration', False)
+        assert isinstance(manual_kernel_registration, bool), f'not a bool: {manual_kernel_registration}'
+
+        manual_cpp_binding = e.pop('manual_cpp_binding', False)
+        assert isinstance(manual_cpp_binding, bool), f'not a bool: {manual_cpp_binding}'
+
+        device_guard = e.pop('device_guard', True)
+        assert isinstance(device_guard, bool), f'not a bool: {device_guard}'
+
+        device_check_s = e.pop('device_check', None)
+        assert device_check_s is None or isinstance(device_check_s, str), f'not a str: {device_check_s}'
+        device_check: DeviceCheckType
+        if device_check_s is None:
+            device_check = DeviceCheckType.ExactSame
+        else:
+            device_check = DeviceCheckType[device_check_s]
+
         structured = e.pop('structured', False)
         assert isinstance(structured, bool), f'not a bool: {structured}'
 
-        def parse_structured_delegate(e):
-            structured_delegate_s = e.pop('structured_delegate', None)
-            assert structured_delegate_s is None or isinstance(structured_delegate_s, str), \
-                f'not a str: {structured_delegate_s}'
-            structured_delegate: Optional[OperatorName] = None
-            if structured_delegate_s is not None:
-                structured_delegate = OperatorName.parse(structured_delegate_s)
-            return structured_delegate
+        structured_delegate_s = e.pop('structured_delegate', None)
+        assert structured_delegate_s is None or isinstance(structured_delegate_s, str), f'not a str: {structured_delegate}'
+        structured_delegate: Optional[OperatorName] = None
+        if structured_delegate_s is not None:
+            structured_delegate = OperatorName.parse(structured_delegate_s)
 
-        structured_delegate = parse_structured_delegate(e)
         structured_inherits = e.pop('structured_inherits', None)
         assert structured_inherits is None or isinstance(structured_inherits, str), f'not a str: {structured_inherits}'
 
@@ -366,83 +375,97 @@ class NativeFunction:
         category_override = e.pop('category_override', None)
         assert category_override is None or isinstance(category_override, str), f'not a str: {category_override}'
 
-        def parse_precomputed(e, structured):
-            precomputed_dict = e.pop('precomputed', None)
-            assert precomputed_dict is None or structured is True
-            precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
-            return precomputed
+        precomputed_dict = e.pop('precomputed', None)
+        assert precomputed_dict is None or structured is True
+        precomputed = Precompute.parse(precomputed_dict) if precomputed_dict else None
 
-        precomputed = parse_precomputed(e, structured)
+        tag_str = e.pop('tags', None)
+        assert tag_str is None or isinstance(tag_str, str), f'not a str: {tag_str}'
+        tag = Tag.parse(tag_str) if tag_str else None
 
         from codegen.api import cpp
 
-        def parse_dispatch(e, func, manual_kernel_registration, structured_delegate, structured):
-            raw_dispatch = e.pop('dispatch', None)
-            assert raw_dispatch is None or isinstance(raw_dispatch, dict), e
-            dispatch: Dict[DispatchKey, str] = {}
-            if raw_dispatch is not None:
-                assert not manual_kernel_registration, \
-                    "cannot specify both manual_kernel_registration and dispatch; with " \
-                    "manual registration, dispatch has no effect!"
-                for ks, v in raw_dispatch.items():
-                    if ks == '__line__':
-                        continue  # not worth tracking line numbers for dispatch entries
-                    assert isinstance(ks, str), e
-                    assert isinstance(v, str), e
-                    for k in ks.split(","):
-                        dispatch_key = DispatchKey.parse(k.strip())
-                        dispatch[dispatch_key] = v
-                assert dispatch != {DispatchKey.CompositeImplicitAutograd: cpp.name(func)}, \
-                    "unnecessary dispatch table for this function; just delete the dispatch " \
-                    "key entirely"
-                # if a function is a structured delegate, deleting the dispatch
-                # table is NOT semantics preserving
-                assert structured_delegate or dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}, \
-                    f"unexpected name for singleton CompositeImplicitAutograd dispatch entry:" \
-                    f" expected {cpp.name(func)} but got {dispatch[DispatchKey.CompositeImplicitAutograd]}." \
-                    f" Rename your implementation to the expected name, then delete the dispatch table"
-            elif not structured and structured_delegate is None:
-                dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
+        raw_dispatch = e.pop('dispatch', None)
+        assert raw_dispatch is None or isinstance(raw_dispatch, dict), e
+        dispatch: Dict[DispatchKey, str] = {}
+        if raw_dispatch is not None:
+            assert not manual_kernel_registration, \
+                "cannot specify both manual_kernel_registration and dispatch; with " \
+                "manual registration, dispatch has no effect!"
+            for ks, v in raw_dispatch.items():
+                if ks == '__line__':
+                    continue  # not worth tracking line numbers for dispatch entries
+                assert isinstance(ks, str), e
+                assert isinstance(v, str), e
+                for k in ks.split(","):
+                    dispatch_key = DispatchKey.parse(k.strip())
+                    dispatch[dispatch_key] = v
+            assert dispatch != {DispatchKey.CompositeImplicitAutograd: cpp.name(func)}, \
+                "unnecessary dispatch table for this function; just delete the dispatch " \
+                "key entirely"
+            # if a function is a structured delegate, deleting the dispatch
+            # table is NOT semantics preserving
+            assert structured_delegate or dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}, \
+                f"unexpected name for singleton CompositeImplicitAutograd dispatch entry: expected {cpp.name(func)} " \
+                f"but got {dispatch[DispatchKey.CompositeImplicitAutograd]}.  Rename your implementation to the expected " \
+                "name, then delete the dispatch table"
+        elif not structured and structured_delegate is None:
+            dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-            assert not (DispatchKey.CompositeExplicitAutograd in dispatch and
-                        DispatchKey.CompositeImplicitAutograd in dispatch), \
-                "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel;" \
-                " each strictly subsumes the other.  If you wanted to provide an explicit autograd " \
-                "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
-            return dispatch
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
+            "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
+            "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
+            "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
 
-        dispatch = parse_dispatch(e, func, manual_kernel_registration, structured_delegate, structured)
-        is_abstract = True if structured_delegate else dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}
+        if structured_delegate:
+            # Structured functions MUST have a dispatch table
+            is_abstract = True
+        else:
+            is_abstract = dispatch.keys() != {DispatchKey.CompositeImplicitAutograd}
 
         has_composite_implicit_autograd_kernel = DispatchKey.CompositeImplicitAutograd in dispatch.keys()
         has_composite_explicit_autograd_kernel = DispatchKey.CompositeExplicitAutograd in dispatch.keys()
 
+        # BackendMetadata is used to store any information about a NativeFunction that is backend dependent.
+        # The most obvious information is the kernel name, which usually contains the name of the backend in it for cpu/cuda.
+        # Why is 'structured' included? External backends (e.g. XLA) opt into which ops are structured
+        # independently of which in-tree ops are structured
         backend_metadata = {k: {func.name: BackendMetadata(
             kernel=v, structured=structured and is_structured_dispatch_key(k))} for k, v in dispatch.items()}
 
-        def assert_last(e, structured_delegate, dispatch):
-            # don't care if it exists or not; make it easier to use this function
-            # with other yaml parsers that aren't setting __line__ in the dict
-            e.pop('__line__', None)
-            assert not e, f"leftover entries: {e}"
+        # don't care if it exists or not; make it easier to use this function
+        # with other yaml parsers that aren't setting __line__ in the dict
+        e.pop('__line__', None)
+        assert not e, f"leftover entries: {e}"
 
-            # Asserts that we can't do in post_init, because they rely on backend-specific info
-            if structured_delegate is not None:
-                for key in STRUCTURED_DISPATCH_KEYS:
-                    assert key not in dispatch, \
-                        f"if structured_delegate, then must not have {key} in dispatch dictionary " \
-                        "(it is delegated!)"
-        assert_last(e, structured_delegate, dispatch)
-        return NativeFunction(func=func, use_c10_dispatcher=use_c10_dispatcher,
+        # Asserts that we can't do in post_init, because they rely on backend-specific info
+        if structured_delegate is not None:
+            for key in STRUCTURED_DISPATCH_KEYS:
+                assert key not in dispatch, \
+                    f"if structured_delegate, then must not have {key} in dispatch dictionary " \
+                    "(it is delegated!)"
+
+        return NativeFunction(
+            func=func,
             use_const_ref_for_mutable_tensors=use_const_ref_for_mutable_tensors,
-            variants=variants, structured=structured, structured_delegate=structured_delegate,
-            structured_inherits=structured_inherits, precomputed=precomputed,
-            manual_kernel_registration=manual_kernel_registration, manual_cpp_binding=manual_cpp_binding,
-            python_module=python_module, category_override=category_override, device_guard=device_guard,
-            device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
+            variants=variants,
+            structured=structured,
+            structured_delegate=structured_delegate,
+            structured_inherits=structured_inherits,
+            precomputed=precomputed,
+            manual_kernel_registration=manual_kernel_registration,
+            manual_cpp_binding=manual_cpp_binding,
+            python_module=python_module,
+            category_override=category_override,
+            device_guard=device_guard,
+            device_check=device_check,
+            loc=loc,
+            cpp_no_default_args=cpp_no_default_args,
+            is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
-            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel), backend_metadata
-
+            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel,
+            tag=tag,
+        ), backend_metadata
 
     def validate_unstructured(self) -> None:
         # TODO: probably better to accumulate these errors and report them all
@@ -481,9 +504,6 @@ class NativeFunction:
                                if a.default is not None}
         invalid_args = set.difference(self.cpp_no_default_args, defaulted_arguments)
         assert len(invalid_args) == 0, f'Invalid cpp_no_default_args: {invalid_args}'
-        if self.structured or self.structured_delegate:
-            assert self.use_c10_dispatcher is UseC10Dispatcher.full, \
-                "Structured kernels MUST be use_c10_dispatcher: full; port your argument order"
         if self.structured_inherits is not None:
             assert self.structured, "structured_inherits must also imply structured: True"
         if str(self.func.name).startswith('_foreach'):
@@ -650,6 +670,10 @@ class BackendIndex:
     # is used to implement the others.
     # All in-tree ops use out kernels, while XLA uses functional kernels.
     use_out_as_primary: bool
+    # Whether the backend requires a device guard, and device checks.
+    # For in-tree backends, this is currently just CUDA/HIP
+    # For out-of-tree backends, this is currently just Intel XPU
+    device_guard: bool
     # Whether the backend is in-tree (CPU/CUDA) or out-of-tree (XLA)
     external: bool
     # Other backend-specific information that is on a per-operator basis
@@ -771,7 +795,9 @@ class FunctionSchema:
     def parse(func: str) -> 'FunctionSchema':
         # We should probably get a proper parser here
         assert ' -> ' in func, "function schema missing return type (spaces are mandatory)"
-        func_decl, return_decl = [x.strip() for x in func.split(' -> ')]
+        last_index = func.rfind(" -> ")
+        func_decl = func[:last_index]
+        return_decl = func[last_index + len(" -> "):]
         ops, args = func_decl.split('(', 1)
         assert args[-1] == ")", "Expecting closing )"
         args = args[:-1]
@@ -912,19 +938,30 @@ class Annotation:
     # we can conveniently assume it is canonically ordered
     alias_set: Tuple[str, ...]
     is_write: bool
+    alias_set_after: str
 
     @staticmethod
     def parse(ann: str) -> 'Annotation':
-        m = re.match(r'^([a-z])(!?)(!?)$', ann)
+        # Only handling afterSet == Wildcard for now
+        becomes_wildcard_index = ann.find(" -> *")
+        if becomes_wildcard_index != -1:
+            after_set = "*"
+            # TODO: im not good enough with regexes to ignore -> *
+            m = re.match(r'^([a-z])(!?)(!?)$', ann[:becomes_wildcard_index] + ann[becomes_wildcard_index + len(" -> *"):])
+        else:
+            after_set = ""
+            m = re.match(r'^([a-z])(!?)(!?)$', ann)
         assert m is not None, f'unrecognized alias annotation {ann}'
         alias_set = (m.group(1),)
         is_write = m.group(2) == '!'
-        r = Annotation(alias_set=alias_set, is_write=is_write)
+        r = Annotation(alias_set=alias_set, is_write=is_write, alias_set_after=after_set)
         assert str(r) == ann, f'{r} != {ann}'
         return r
 
     def __str__(self) -> str:
         alias_set = '|'.join(self.alias_set)
+        if self.alias_set_after:
+            alias_set = f'{alias_set}{" -> "}{self.alias_set_after}'
         is_write = '!' if self.is_write else ''
         return f'{alias_set}{is_write}'
 
