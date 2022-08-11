@@ -12,21 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import copy
 import torch
 import numpy as np
-import sys
-import copy
+
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
+from common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor
 
 
 class TestEmbeddingRenorm(TestCase):
+
     def generate_data(self, min_d, max_d, shape, dtype):
         input1 = np.random.uniform(min_d, max_d, shape).astype(dtype)
         npu_input1 = torch.from_numpy(input1)
-        npu_input2 = torch.LongTensor(np.random.uniform(0,shape[0], int(shape[0]/2,)).astype(np.int32))
-        
+        npu_input2 = torch.LongTensor(np.random.uniform(0, shape[0], int(shape[0] / 2)).astype(np.int32))
         return npu_input1, npu_input2
 
     def cpu_op_exec(self, input1, input2, max_norm, norm_type):
@@ -38,7 +39,7 @@ class TestEmbeddingRenorm(TestCase):
             output = output.half()
         return output
 
-    def npu_op_exec(self, input1, input2, max_norm,norm_type):
+    def npu_op_exec(self, input1, input2, max_norm, norm_type):
         input1 = input1.to("npu")
         input2 = input2.to("npu")
         output = torch.embedding_renorm_(input1, input2, max_norm=max_norm, norm_type=norm_type)
@@ -54,7 +55,7 @@ class TestEmbeddingRenorm(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_embedding_renorm_float16_0(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (10, 4),np.float16)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (10, 4), np.float16)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_input2 = copy.deepcopy(npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2, 0.2, 0)
@@ -102,11 +103,20 @@ class TestEmbeddingRenorm(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_embedding_renorm_float32_10(self, device):
-        npu_input1, npu_input2 = self.generate_data(0, 100, (4,6), np.float32)
+        npu_input1, npu_input2 = self.generate_data(0, 100, (4, 6), np.float32)
         cpu_input1 = copy.deepcopy(npu_input1)
         cpu_input2 = copy.deepcopy(npu_input2)
-        npu_output = self.npu_op_exec(npu_input1, npu_input2, 1.0, 10)        
+        npu_output = self.npu_op_exec(npu_input1, npu_input2, 1.0, 10)
         cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, 1.0, 10)
+        self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_embedding_renorm_float32_indices(self, device):
+        shape = [np.float32, 0, [12, 18]]
+        cpu_input1, npu_input1 = create_common_tensor(shape, 10, 1000)
+        cpu_input2 = torch.tensor([11]).to(torch.int64)
+        npu_input2 = cpu_input2.npu()
+        npu_output = self.npu_op_exec(npu_input1, npu_input2, 0.5, 0)
+        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, 0.5, 0)
         self.assertRtolEqual(cpu_output, npu_output)
 
 
