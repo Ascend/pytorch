@@ -149,7 +149,7 @@ static void initGlobalStreamState() {
   auto& default_streamsi = default_streams[device_id];
   C10_NPU_CHECK(aclrtCreateStream(&default_streamsi.stream));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    default_streamsi.repo->InitRepo(device_id);
+    default_streamsi.repo->InitRepo(device_id, default_streamsi.stream);
   }
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
@@ -364,12 +364,10 @@ void enCurrentNPUStream(
     device_index = current_device();
   }
   check_npu(device_index);
-  c10_npu::queue::QueueParas* queueParam = static_cast<c10_npu::queue::QueueParas* >(cur_paras);
-  queueParam->paramStream = current_streams[device_index]->stream;
-  default_streams[device_index].repo->Enqueue(cur_paras);
-  if (default_streams[device_index].repo->GetStatus() == RepoStatus::INIT) {
-    default_streams[device_index].repo->MakeSureQueueEmpty();
-    default_streams[device_index].repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
+  current_streams[device_index]->repo->Enqueue(cur_paras);
+  if (current_streams[device_index]->repo->GetStatus() == RepoStatus::INIT) {
+    current_streams[device_index]->repo->MakeSureQueueEmpty();
+    current_streams[device_index]->repo->ChangeStatus(RepoStatus::INIT, RepoStatus::RUN);
   }
 }
 

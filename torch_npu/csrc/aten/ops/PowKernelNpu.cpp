@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -63,7 +63,7 @@ namespace at_npu
     }
 
     // pow.Tensor_Tensor_out
-    at::Tensor &NPUNativeFunctions::pow_out(const at::Tensor &self, const at::Tensor &exp, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::pow_out(const at::Tensor &self, const at::Tensor &exp, at::Tensor &result)
     {
       auto outputSize = broadcast_ops_npu_output_size(self, exp);
       OpPreparation::CheckOut(
@@ -80,7 +80,7 @@ namespace at_npu
     }
 
     // pow.Tensor_Scalar_out
-    at::Tensor &NPUNativeFunctions::pow_out(const at::Tensor &self, at::Scalar exp, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::pow_out(const at::Tensor &self, const at::Scalar &exp, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {self},
@@ -95,7 +95,7 @@ namespace at_npu
     }
 
     // pow.Scalar_out
-    at::Tensor &NPUNativeFunctions::pow_out(at::Scalar self, const at::Tensor &exp, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::pow_out(const at::Scalar &self, const at::Tensor &exp, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {exp},
@@ -109,7 +109,7 @@ namespace at_npu
           .Call(result);
     }
 
-    at::Tensor NPUNativeFunctions::pow(const at::Tensor &self, const at::Tensor &exp)
+    at::Tensor XLANativeFunctions::pow(const at::Tensor &self, const at::Tensor &exp)
     {
       // calculate the output size
       auto outputSize = broadcast_ops_npu_output_size(self, exp);
@@ -118,14 +118,14 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::pow(const at::Tensor &self, at::Scalar exp)
+    at::Tensor XLANativeFunctions::pow(const at::Tensor &self, const at::Scalar &exp)
     {
       at::Tensor result = OpPreparation::ApplyTensor(self);
       pow_tensor_scalar_out_npu_nocheck(self, exp, result);
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::pow(at::Scalar self, const at::Tensor &exp)
+    at::Tensor XLANativeFunctions::pow(const at::Scalar &self, const at::Tensor &exp)
     {
       // calculate the output size
       auto outputSize = input_same_output_size(exp);
@@ -138,15 +138,15 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::pow_(at::Tensor &self, const at::Tensor &exp)
+    at::Tensor &XLANativeFunctions::pow_(at::Tensor &self, const at::Tensor &exp)
     {
-      NPUNativeFunctions::pow_out(self, exp, self);
+      XLANativeFunctions::pow_out(self, exp, self);
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::pow_(at::Tensor &self, at::Scalar exp)
+    at::Tensor &XLANativeFunctions::pow_(at::Tensor &self, const at::Scalar &exp)
     {
-      NPUNativeFunctions::pow_out(self, exp, self);
+      XLANativeFunctions::pow_out(self, exp, self);
       return self;
     }
 

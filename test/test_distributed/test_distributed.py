@@ -16,15 +16,13 @@ from collections import namedtuple
 from multiprocessing import Manager
 
 import torch
+import torch_npu
 import torch.distributed as dist
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.testing._internal.common_utils import TestCase, run_tests
 from torch._utils_internal import TEST_MASTER_ADDR as MASTER_ADDR
 from torch._utils_internal import TEST_MASTER_PORT as MASTER_PORT
-
-import torch_npu
-
 
 try:
     import torchvision

@@ -16,12 +16,12 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-bool NPUNativeFunctions::equal(const at::Tensor& self, const at::Tensor& other) {
+bool XLANativeFunctions::equal(const at::Tensor& self, const at::Tensor& other) {
   // check the shape of self and other
   if(self.sizes() != other.sizes()) {
     return false;

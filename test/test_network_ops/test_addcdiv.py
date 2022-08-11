@@ -14,16 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import copy
 import torch
 import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 
-
 class TestAddcdiv(TestCase):
-
     def cpu_op_inp_input3_noncontiguous_exec(self, input1, input2, input3, scalar):
         input3_strided = input3.as_strided([2, 2], [1, 2], 2)
         input1.addcdiv_(input2, input3_strided, value=scalar)
@@ -43,7 +40,7 @@ class TestAddcdiv(TestCase):
     def non_zero_rand(self, size, dtype, device="npu"):
         if dtype.is_floating_point:
             a = torch.rand(size=size, dtype=dtype, device="cpu")
-            a = a.to("npu")
+            a = a.to("npu")  
         elif dtype == torch.uint8:
             a = torch.randint(1, 5, size=size, dtype=dtype, device="cpu").to(device)
         else:
@@ -152,17 +149,13 @@ class TestAddcdiv(TestCase):
         self.assertTrue(torch.allclose(expected.to("cpu"), actual.to("cpu"), equal_nan=True))
         self.assertRtolEqual(actual.to("cpu"), torch.addcdiv(a, alpha, b, c).to("cpu"))
 
-    def test_addcdiv(self, device="npu"):
-        """NPU does not support numpy.bool.
-
-        with self.maybeWarnsRegex(UserWarning, "This overload of addcdiv is deprecated"):
-            self.assertRtolEqual(actual.to("cpu"), torch.addcdiv(a, alpha, b, c).to("cpu"))
-
-        """
-        dtype_list = [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64,
-                      torch.float64, torch.complex64, torch.complex128]
+    def test_addcdiv(self, device="npu"): 
+        #由于np版本原因,np.bool不支持  with self.maybeWarnsRegex(
+        #由于np版本原因,np.bool不支持  UserWarning, "This overload of addcdiv is deprecated"):
+        #由于np版本原因,np.bool不支持  self.assertRtolEqual(actual.to("cpu"), torch.addcdiv(a, alpha, b, c).to("cpu"))
         for dtype in torch.testing.get_all_math_dtypes(device):
-            if dtype in dtype_list:
+            if dtype in [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64, 
+                        torch.float64, torch.complex64, torch.complex128]:
                 continue
             self._test_addcdiv(
                 self.non_zero_rand((2, 2), dtype=dtype, device=device),
@@ -240,21 +233,6 @@ class TestAddcdiv(TestCase):
         npu_output = self.npu_op_inp_input3_noncontiguous_exec(npu_input1, npu_input2, npu_input3, scalar)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_addcdiv_float64(self):
-        cpu_input1, cpu_input2, cpu_input3 = self.generate_data(1, 100, (5, 3), np.float64)
-        scalar = self.generate_scalar(1, 10)
-        cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        npu_output = self.npu_op_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-    def test_addcdiv_float16(self):
-        cpu_input1, cpu_input2, cpu_input3 = self.generate_data(1, 100, (5, 3), np.float16)
-        scalar = self.generate_scalar(1, 10)
-        cpu_output = self.cpu_op_exec(cpu_input1.float(), cpu_input2.float(), cpu_input3.float(), scalar)
-        npu_output = self.npu_op_exec(cpu_input1, cpu_input2, cpu_input3, scalar)
-        cpu_output = cpu_output.to(npu_output.dtype)
-        self.assertRtolEqual(cpu_output, npu_output)
-
-
 if __name__ == "__main__":
     run_tests()
+    

@@ -17,13 +17,13 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include <ATen/native/Pool.h>
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 
-at::Tensor& NPUNativeFunctions::max_pool2d_with_indices_backward_out(
+at::Tensor& XLANativeFunctions::max_pool2d_with_indices_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -63,7 +63,7 @@ at::Tensor& NPUNativeFunctions::max_pool2d_with_indices_backward_out(
   return grad_input;
 }
 
-at::Tensor NPUNativeFunctions::max_pool2d_with_indices_backward(
+at::Tensor XLANativeFunctions::max_pool2d_with_indices_backward(
     const at::Tensor& grad_output_,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -121,7 +121,7 @@ at::Tensor NPUNativeFunctions::max_pool2d_with_indices_backward(
   at::Tensor grad_input =  OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
-  NPUNativeFunctions::max_pool2d_with_indices_backward_out(
+  XLANativeFunctions::max_pool2d_with_indices_backward_out(
       grad_output,
       self,
       kernel_sizess,

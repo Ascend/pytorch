@@ -16,7 +16,6 @@
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
-#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -31,16 +30,6 @@ public:
 
     if (can_use_broadcast(src_desc)) {
       RECORD_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
-      IF_GRAPH_MODE_THEN_RUN(
-        at::IntArrayRef target_shape = self.sizes();
-        OpCommand cmd;
-        cmd.Name("BroadcastTo")
-            .InputWithoutContiguous(src)
-            .Input(target_shape, at::kLong)
-            .Output(self)
-            .Run();
-        return true;
-      )
       bool can_contiguous = broadcast_to_contiguous(self, src, src_desc);
       return can_contiguous;
     }
@@ -106,14 +95,21 @@ private:
     temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(src_size,
                                                           src.strides());
 
-    if (temp_src.is_contiguous()) {
-      auto temp_dst = NPUNativeFunctions::npu_broadcast(temp_src, self.sizes());
-      c10_npu::queue::LaunchAsyncCopyTask(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
-                                          self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE);
-      return true;
-    }
-    return false;
-  }
+    c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
+        if (temp_src.is_contiguous())
+        {
+          auto temp_dst = XLANativeFunctions::npu_broadcast(temp_src, self.sizes());
+          aclrtMemcpyAsync(
+              self.data_ptr(),
+              self.nbytes(),
+              temp_dst.data_ptr(),
+              self.nbytes(),
+              ACL_MEMCPY_DEVICE_TO_DEVICE,
+              copy_stream);
+          return true;
+        }
+        return false;
+      }
 
 }; // class BroadcastContiguousOpt
 

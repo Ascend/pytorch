@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu
@@ -23,7 +23,7 @@ namespace at_npu
   namespace native
   {
 
-    at::Tensor &NPUNativeFunctions::normal_out(
+    at::Tensor &XLANativeFunctions::normal_out(
         const at::Tensor &mean,
         double std,
         c10::optional<at::Generator> generator,
@@ -51,7 +51,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::normal_out(
+    at::Tensor &XLANativeFunctions::normal_out(
         double mean,
         const at::Tensor &std,
         c10::optional<at::Generator> generator,
@@ -77,7 +77,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::normal_out(
+    at::Tensor &XLANativeFunctions::normal_out(
         const at::Tensor &mean,
         const at::Tensor &std,
         c10::optional<at::Generator> generator,
@@ -108,7 +108,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::normal_out(
+    at::Tensor &XLANativeFunctions::normal_out(
         double mean,
         double std,
         at::IntArrayRef size,
@@ -118,7 +118,7 @@ namespace at_npu
       TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
       // the op of PTNormalFloatFloat only support format of ND
-      at::Tensor formatCastOfResult = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
+      at::Tensor formatCastOfResult = XLANativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
       if (formatCastOfResult.scalar_type() == at::ScalarType::Half)
       {
         formatCastOfResult = formatCastOfResult.to(at::ScalarType::Float);
@@ -138,40 +138,40 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::normal(
+    at::Tensor XLANativeFunctions::normal(
         const at::Tensor &mean,
         double std,
         c10::optional<at::Generator> generator)
     {
       at::Tensor result = OpPreparation::ApplyTensor(mean);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
+      XLANativeFunctions::normal_out(mean, std, generator, result);
 
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::normal(
+    at::Tensor XLANativeFunctions::normal(
         double mean,
         const at::Tensor &std,
         c10::optional<at::Generator> generator)
     {
       at::Tensor result = OpPreparation::ApplyTensor(std);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
+      XLANativeFunctions::normal_out(mean, std, generator, result);
 
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::normal(
+    at::Tensor XLANativeFunctions::normal(
         const at::Tensor &mean,
         const at::Tensor &std,
         c10::optional<at::Generator> generator)
     {
       at::Tensor result = OpPreparation::ApplyTensor(mean);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
+      XLANativeFunctions::normal_out(mean, std, generator, result);
 
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::normal(
+    at::Tensor XLANativeFunctions::normal(
         double mean,
         double std,
         at::IntArrayRef size,
@@ -182,16 +182,16 @@ namespace at_npu
         c10::optional<bool> pin_memory_opt)
     {
       // construct the output tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
+      at::Tensor result = XLANativeFunctions::empty_with_format(
           size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
 
       // calculate the output result of the NPU
-      NPUNativeFunctions::normal_out(mean, std, size, generator, result);
+      XLANativeFunctions::normal_out(mean, std, size, generator, result);
 
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::normal_(
+    at::Tensor &XLANativeFunctions::normal_(
         at::Tensor &self,
         double mean,
         double std,
@@ -201,12 +201,12 @@ namespace at_npu
       if (!NpuUtils::check_match(&self))
       {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-        at::Tensor result = NPUNativeFunctions::normal_out(mean, std, contiguousSelf.sizes(), generator, contiguousSelf);
+        at::Tensor result = XLANativeFunctions::normal_out(mean, std, contiguousSelf.sizes(), generator, contiguousSelf);
         NpuUtils::format_fresh_view(self, result);
       }
       else
       {
-        NPUNativeFunctions::normal_out(mean, std, self.sizes(), generator, self);
+        XLANativeFunctions::normal_out(mean, std, self.sizes(), generator, self);
       }
 
       return self;

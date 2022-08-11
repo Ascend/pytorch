@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/framework/graph/util/ATenGeBridge.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/interface/AclInterface.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include <torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h>
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
@@ -170,7 +171,6 @@ void GraphExecutor::Init() {
 
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
-  config["GE_USE_STATIC_MEMORY"] = ge::AscendString("2");
   session_ = std::make_unique<ge::Session>(config);
   C10_NPU_CHECK(aclrtSetDevice(init_device_id_));
   if (session_ == nullptr) {
@@ -305,7 +305,8 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
       if ((output_storage->data() == nullptr) &&
           (!graph_desc.graph_value.GetScalarMemOffset().has_value())) {
         size_t nbytes = GraphUtils::GetTensorCapacity(output_storage);
-        GraphUtils::SetDataPtrAndNbytes(output_storage, nbytes);
+        auto data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(nbytes);
+        output_storage->set_data_ptr(std::move(data_ptr));
       }
       continue;
     }
@@ -349,17 +350,17 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
       graph_desc.graph_value.HashNode(),
       "graph desc in storage must have node");
   size_t nbytes = GraphUtils::GetTensorCapacity(storage);
+  c10::DataPtr data_ptr;
 
   // In the case of in-place operator
   // we can not call set_data_ptr
   // for this will cause the old data ptr to be released
   // and if one value have data node which has no device memory
   // we should malloc for it
-  // After decoupling, we cannot simply set nbytes for NPUStorageImpl
-  // by calling set_data_ptr. Instead, we need to call set_nbytes
   if (!(graph_desc.graph_value.GetDataNode().has_value() &&
         storage->data() != nullptr)) {
-    GraphUtils::SetDataPtrAndNbytes(storage, nbytes);
+    data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(nbytes);
+    storage->set_data_ptr(std::move(data_ptr));
   }
   return MakeGeTensor(desc, storage->data(), nbytes);
 }

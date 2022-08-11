@@ -8,7 +8,7 @@
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include <third_party/acl/inc/acl/acl.h>
 #include <third_party/acl/inc/acl/acl_base.h>
 #include <third_party/acl/inc/acl/acl_rt.h>

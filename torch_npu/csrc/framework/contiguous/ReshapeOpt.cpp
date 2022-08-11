@@ -53,8 +53,8 @@ bool can_use_memcpy_for_other_format(const ContiguousTensorDesc &tensor_desc) {
       return false;
     }
     // Make sure no pandding happens
-    if (at::prod_intlist(tensor_desc.sizes_) !=
-        at::prod_intlist(tensor_desc.storage_sizes_)) {
+    if (c10::multiply_integers(tensor_desc.sizes_) !=
+        c10::multiply_integers(tensor_desc.storage_sizes_)) {
       return false;
     }
     return true;

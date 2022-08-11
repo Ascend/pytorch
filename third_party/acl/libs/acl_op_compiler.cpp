@@ -43,22 +43,6 @@ aclError aclopCompileAndExecute(
   return 0;
 }
 
-aclError aclopCompileAndExecuteV2(
-    const char* opType,
-    int numInputs,
-    aclTensorDesc *inputDesc[],
-    aclDataBuffer *inputs[],
-    int numOutputs,
-    aclTensorDesc *outputDesc[],
-    aclDataBuffer *outputs[],
-    aclopAttr* attr,
-    aclopEngineType engineType,
-    aclopCompileType compileFlag,
-    const char* opPath,
-    aclrtStream stream) {
-  return 0;
-}
-
 void GeGeneratorFinalize() {
   return;
 }

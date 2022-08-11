@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -25,9 +25,9 @@ at::Tensor& one_hot_out_npu(
     const at::Tensor& self,
     int64_t axis,
     int64_t depth,
-    at::Scalar on_value,
-    at::Scalar off_value) {
-  at::Tensor selfCp = NPUNativeFunctions::npu_dtype_cast(self, at::kInt);
+    const at::Scalar& on_value,
+    const at::Scalar& off_value) {
+  at::Tensor selfCp = XLANativeFunctions::npu_dtype_cast(self, at::kInt);
   at::Tensor on_tmp = OpPreparation::ApplyTensor(
       {1},
       selfCp.options().dtype(at::ScalarType::Float),
@@ -50,12 +50,12 @@ at::Tensor& one_hot_out_npu(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::npu_one_hot(
+at::Tensor XLANativeFunctions::npu_one_hot(
     const at::Tensor& self,
     int64_t axis,
     int64_t depth,
-    at::Scalar on_value,
-    at::Scalar off_value) {
+    const at::Scalar& on_value,
+    const at::Scalar& off_value) {
   auto outputSize = array_to_small_vector(self.sizes());
   outputSize.emplace_back(depth);
 

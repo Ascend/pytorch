@@ -15,7 +15,7 @@
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -45,9 +45,9 @@ at::Tensor matmul_by_bmmV2(const at::Tensor& tensor1, const at::Tensor& tensor2)
     at::Tensor output = at::_unsafe_view(t1.mm(t2), output_size);
     return output;
   } else if ((dim_tensor1 == 1 || dim_tensor1 == 2) && dim_tensor2 >= 3) {
-    return NPUNativeFunctions::npu_bmmV2(tensor1, tensor2, {});
+    return XLANativeFunctions::npu_bmmV2(tensor1, tensor2, {});
   } else if ((dim_tensor1 >= 1 && dim_tensor2 >= 1) && (dim_tensor1 >= 3 || dim_tensor2 >= 3)) {
-    return NPUNativeFunctions::npu_bmmV2(tensor1, tensor2, {});
+    return XLANativeFunctions::npu_bmmV2(tensor1, tensor2, {});
   }
   AT_ERROR("both arguments to matmul need to be at least 1D, but they are ",
       dim_tensor1, "D and ", dim_tensor2, "D");

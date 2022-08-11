@@ -18,53 +18,77 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
-namespace at_npu {
-namespace native {
-
-at::Tensor& relu_out_npu(const at::Tensor& self, at::Tensor& result) {
-  OpCommand cmd;
-  cmd.Name("Relu")
-     .Input(self)
-     .Output(result)
-     .Run();
-
-  return result;
-}
-
-
-at::Tensor NPUNativeFunctions::relu(const at::Tensor &self)
+namespace at_npu
 {
-  // return at::threshold(self, 0, 0);
-  // calculate the output size
-  auto outputSize = input_same_output_size(self);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
-
-  // calculate the output result of the NPU
-  relu_out_npu(self, result);
-  return result;
-}
-
-at::Tensor &NPUNativeFunctions::relu_(at::Tensor &self)
-{
-  // return at::threshold_(self, 0, 0);
-  if (!NpuUtils::check_match(&self))
+  namespace native
   {
-    at::Tensor selfContiguous = NpuUtils::format_contiguous(self);
-    at::Tensor result = relu_out_npu(selfContiguous, selfContiguous);
-    NpuUtils::format_fresh_view(self, result);
-  }
-  else
-  {
-    relu_out_npu(self, self);
-  }
 
-  return self;
-}
+    c10::SmallVector<NPUTensorDesc, N> relu_npu_input(
+        const c10::SmallVector<at::Tensor, N> &inputTensor)
+    {
+      return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
+    }
 
-} // namespace native
+    c10::SmallVector<NPUTensorDesc, N> relu_npu_output(
+        const c10::SmallVector<at::Tensor, N> &outputTensor)
+    {
+      return CalcuOpUtil::create_npu_output_tensor_desc(outputTensor);
+    }
+
+    c10::SmallVector<NPUAttrDesc, N> relu_npu_attr(const at::Tensor &self)
+    {
+      c10::SmallVector<NPUAttrDesc, N> attrs = {};
+      return attrs;
+    }
+
+    at::Tensor &relu_out_npu(const at::Tensor &self, at::Tensor &result)
+    {
+      // constructs the input and output NPUTensorDesc
+      auto inputs = relu_npu_input({self});
+      auto outputs = relu_npu_output({result});
+
+      // constructs the attr of the NPUAttrDesc
+      auto attrs = relu_npu_attr(self);
+
+      // executing the NPU operator
+      CalcuOpUtil::execute_npu_operate("Relu", inputs, outputs, attrs);
+
+      return result;
+    }
+
+    at::Tensor XLANativeFunctions::relu(const at::Tensor &self)
+    {
+      // return at::threshold(self, 0, 0);
+      // calculate the output size
+      auto outputSize = input_same_output_size(self);
+
+      // construct the output tensor of the NPU
+      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+
+      // calculate the output result of the NPU
+      relu_out_npu(self, result);
+      return result;
+    }
+
+    at::Tensor &XLANativeFunctions::relu_(at::Tensor &self)
+    {
+      // return at::threshold_(self, 0, 0);
+      if (!NpuUtils::check_match(&self))
+      {
+        at::Tensor selfContiguous = NpuUtils::format_contiguous(self);
+        at::Tensor result = relu_out_npu(selfContiguous, selfContiguous);
+        NpuUtils::format_fresh_view(self, result);
+      }
+      else
+      {
+        relu_out_npu(self, self);
+      }
+
+      return self;
+    }
+
+  } // namespace native
 } // namespace at_npu

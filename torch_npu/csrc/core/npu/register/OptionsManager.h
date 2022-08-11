@@ -30,6 +30,8 @@ public:
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();
   static bool CheckSwitchMMOutputEnable();
+  static bool CheckScalarToHostMemEnable();
+  static bool CheckDynamicOptimizer(const char* op);
   static bool CheckUseNpuLogEnable();
   static std::string CheckDisableDynamicPath();
 private:

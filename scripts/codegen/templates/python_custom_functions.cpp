@@ -37,7 +37,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 
 using at::Tensor;
@@ -67,7 +67,6 @@ static PyObject* THPVariableFunctionsModule = NULL;
 
 ${py_forwards}
 
-${py_device_forwards}
 
 // Wrapper converts a raised TypeError into returning NotImplemented
 // Used to implement binary arithmetic operators
@@ -452,7 +451,6 @@ static PyMethodDef torch_functions[] = {
   {"randint", castPyCFunctionWithKeywords(THPVariable_randint), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"range", castPyCFunctionWithKeywords(THPVariable_range), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   ${py_method_defs}
-  ${py_device_method_defs}
   {NULL}
 };
 
@@ -519,7 +517,5 @@ void initTorchFunctions(PyObject* module) {
 // generated methods start here
 
 ${py_methods}
-
-${py_device_methods}
 
 }} // namespace torch_npu::autograd

@@ -31,7 +31,6 @@
 #include <c10/core/Allocator.h>
 #include <c10/core/ScalarType.h>
 #include <c10/util/intrusive_ptr.h>
-#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -238,8 +237,6 @@ struct THNCachingAllocator {
   // lock around calls to aclFree (to prevent deadlocks with NCCL)
   mutable std::mutex npu_free_mutex;
 
-  mutable std::mutex recorded_event_mutex;
-
   // cached blocks larger than 1 MB
   BlockPool large_blocks;
 
@@ -251,8 +248,6 @@ struct THNCachingAllocator {
 
   // outstanding acl events
   std::deque<std::pair<aclrtEvent, Block*>> npu_events;
-
-  std::set<aclrtEvent> recorded_events;
 
   THNCachingAllocator()
       : large_blocks(BlockComparator), small_blocks(BlockComparator) {}
@@ -291,8 +286,8 @@ struct THNCachingAllocator {
     allocated_blocks.erase(it);
     block->allocated = false;
 
-    c10::reportMemoryUsageToProfiler(
-        block, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
+    // c10::reportMemoryUsageToProfiler(
+    //     block, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
 
     DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
@@ -633,7 +628,6 @@ struct THNCachingAllocator {
       err = aclrtMalloc(
           devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
       if (err != ACL_ERROR_NONE) {
-        C10_NPU_SHOW_ERR_MSG();
         return err;
       }
     }
@@ -698,14 +692,6 @@ struct THNCachingAllocator {
 
     for (auto& e : npu_events) {
       aclrtEvent event = e.first;
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
-            it == recorded_events.end()) {
-          break;
-        }
-      }
       Block* block = e.second;
       if (device.has_value() && block->device != *device) {
         remaining_events.push_back(e);
@@ -713,13 +699,6 @@ struct THNCachingAllocator {
       }
 
       C10_NPU_CHECK(aclrtSynchronizeEvent(event));
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
-        }
-      }
       C10_NPU_CHECK(aclrtDestroyEvent(event));
       block->event_count--;
       if (block->event_count == 0) {
@@ -738,11 +717,6 @@ struct THNCachingAllocator {
     return it->second;
   }
 
-  void insertRecordedEvent(aclrtEvent event) {
-    std::lock_guard<std::mutex> lock(recorded_event_mutex);
-    recorded_events.insert(event);
-  }
-
   void insert_events(Block* block) {
     int prev_device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&prev_device));
@@ -758,9 +732,9 @@ struct THNCachingAllocator {
         C10_NPU_CHECK(aclrtSetDevice(it->device_index()));
       }
 
-      aclrtEvent event = nullptr;
-      C10_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(&event, ACL_EVENT_TIME_LINE));
-      c10_npu::queue::NpuAllocatorLaunchRecordEventTask(event, *it);
+      aclrtEvent event;
+      aclrtCreateEvent(&event);
+      aclrtRecordEvent(event, it->stream());
 
       block->event_count++;
       npu_events.emplace_back(event, block);
@@ -786,15 +760,6 @@ struct THNCachingAllocator {
       aclrtEvent event = e.first;
       Block* block = e.second;
 
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.begin();
-        it = recorded_events.find(event);
-        if (c10_npu::option::OptionsManager::CheckQueueEnable() &&
-            it == recorded_events.end()) {
-          break;
-        }
-      }
 
       aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
       aclError err = aclrtQueryEvent(event, &status);
@@ -805,14 +770,7 @@ struct THNCachingAllocator {
         break;
       }
 
-      {
-        std::lock_guard<std::mutex> lock(recorded_event_mutex);
-        auto it = recorded_events.find(event);
-        if (it != recorded_events.end()) {
-          recorded_events.erase(it);
-        }
-      }
-      C10_NPU_CHECK(aclrtDestroyEvent(event));
+      aclrtDestroyEvent(event);
 
       block->event_count--;
       if (block->event_count == 0) {
@@ -836,7 +794,8 @@ struct THNCachingAllocator {
     DeviceStats_& stats_ = get_stats_for_device_(temp_block->device);
     StatTypes stat_types;
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(temp_block->pool)))] = true;
+    stat_types[static_cast<size_t>(
+        get_stat_type_for_pool(*(temp_block->pool)))] = true;
     update_stat_array(stats_.allocation, -1, {stat_types});
     update_stat_array(stats_.allocated_bytes, -temp_block->size, {stat_types});
     update_stat_array(stats_.active, -1, {stat_types});
@@ -1031,8 +990,8 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   *devPtr = block->ptr;
   stats.increaseAllocated(block->size);
 
-  c10::reportMemoryUsageToProfiler(
-      block, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
+  // c10::reportMemoryUsageToProfiler(
+  //     block, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
 
   update_stat_array(stats_.allocation, 1, stat_types);
   update_stat_array(stats_.allocated_bytes, block->size, stat_types);
@@ -1046,6 +1005,16 @@ static void NPUCachingDeleter(void* ptr) {
   caching_allocator.free(ptr);
 }
 
+bool forceUncachedAllocator() {
+  static bool force_uncached =
+      getenv("PYTORCH_NO_NPU_MEMORY_CACHING") != nullptr;
+  return force_uncached;
+}
+
+static void uncached_delete(void* ptr) {
+  C10_NPU_CHECK(aclrtFree(ptr));
+}
+
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
@@ -1054,6 +1023,16 @@ struct NPUCachingAllocator : public c10::Allocator {
     int device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&device));
     void* r = nullptr;
+
+    if (forceUncachedAllocator()) {
+      // Deliberately don't use cudaMallocMaybeCapturing here, to force an error
+      // if someone tries to use forceUncachedAllocator while capturing.
+      if (size != 0) {
+        C10_NPU_CHECK(aclrtMalloc(&r, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
+      }
+      return {r, r, &uncached_delete, c10::Device(at_npu::key::NativeDeviceType, device)};
+    }
+
     if (size != 0) {
       caching_allocator.malloc(
           &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
@@ -1061,7 +1040,12 @@ struct NPUCachingAllocator : public c10::Allocator {
     return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-    return &NPUCachingDeleter;
+
+    if (forceUncachedAllocator()) {
+      return &uncached_delete;
+    } else {
+      return &NPUCachingDeleter;
+    }
   }
 };
 
@@ -1135,10 +1119,6 @@ void resetPeakStats(int device) {
 
 std::vector<SegmentInfo> snapshot() {
   return caching_allocator.snapshot();
-}
-
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
-  return caching_allocator.insertRecordedEvent(event);
 }
 
 uint64_t currentMemoryAllocated(int device) {

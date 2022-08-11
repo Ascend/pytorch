@@ -18,7 +18,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -108,12 +108,12 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::npu_stride_add(
+    at::Tensor XLANativeFunctions::npu_stride_add(
         const at::Tensor &self,
         const at::Tensor &other,
-        c10::Scalar offset1,
-        c10::Scalar offset2,
-        c10::Scalar c1_len)
+        const c10::Scalar &offset1,
+        const c10::Scalar &offset2,
+        const c10::Scalar &c1_len)
     {
       // calculate the output size
       auto outputSize = deprecated_broadcast_ops_npu_output_size(self.sizes(), other.sizes());

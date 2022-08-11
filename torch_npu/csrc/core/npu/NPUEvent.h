@@ -9,7 +9,7 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include <cstdint>
 #include <utility>
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace c10_npu {
 /*
@@ -32,7 +32,7 @@ struct NPUEvent {
         C10_NPU_CHECK(c10_npu::queue::LaunchLazyDestroyEventTask(event_));
         C10_NPU_CHECK(c10_npu::NPUEventManager::GetInstance().QueryAndDestroyEvent());
       }
-    } catch (...) {}   // No throw.
+    } catch (...) {}
   }
 
   NPUEvent(const NPUEvent&) = delete;

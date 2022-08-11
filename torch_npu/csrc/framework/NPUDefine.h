@@ -33,6 +33,11 @@ namespace at_npu
         input_data_buf = nullptr;
         output_desc = nullptr;
         output_data_buf = nullptr;
+        inputDims = nullptr;
+        outputDims = nullptr;
+        inputFormats = nullptr;
+        outputFormats = nullptr;
+        hasAttr = false;
       }
 
       int input_num;
@@ -41,6 +46,11 @@ namespace at_npu
       int output_num;
       const aclTensorDesc **output_desc;
       aclDataBuffer **output_data_buf;
+      int64_t *inputDims;
+      int64_t *outputDims;
+      aclFormat *inputFormats;
+      aclFormat *outputFormats;
+      bool hasAttr;
     };
 
     struct ACL_DYNAMIC_PARAMS
@@ -88,7 +98,8 @@ namespace at_npu
     struct ExecuteParas
     {
       std::string opType;
-      bool isFuzzy = false;
+      std::string attrInfo;
+      bool isCompiling = false;
       ACL_PARAMS paras;
       CONST_PARAMS constParams;
       const aclopAttr *attr;
@@ -106,7 +117,6 @@ namespace at_npu
       ExecuteParas() = default;
       void Release();
       void Copy(ExecuteParas &other);
-      void CopyEx(ExecuteParas& other);
     };
 
     NPUStatus DestroyAclParams(ACL_PARAMS &params);

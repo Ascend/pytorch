@@ -17,12 +17,13 @@
 // #pragma once
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
-#include <TH/THTensor.hpp>
+// #include <TH/THTensor.hpp>
+#include <ATen/native/Resize.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 namespace at_npu {
@@ -42,36 +43,26 @@ torch_npu::NPUStorageImpl* storage_new_npu(caffe2::TypeMeta data_type) {
 }
 
 void set_storage_nd_npu(
-    at::TensorImpl* self,
-    torch_npu::NPUStorageImpl* storage,
-    ptrdiff_t storageOffset,
+    at::Tensor& self,
+    c10::Storage storage,
+    int64_t storage_offset,
     int nDimension,
-    const int64_t* size,
-    const int64_t* stride) {
-  if (THTensor_getStoragePtr(self) != storage) {
-    if (!THTensor_getStoragePtr(self)) {
-      AT_ERROR("at::Tensor: invalid null storage");
-    }
-    auto data_type = self->dtype();
-    if (storage != nullptr) {
-      c10::raw::intrusive_ptr::incref(storage);
-      THTensor_stealAndSetStoragePtr(self, static_cast<c10::StorageImpl*>(storage));
-    } else {
-      THTensor_stealAndSetStoragePtr(self, static_cast<c10::StorageImpl*>(storage_new_npu(data_type)));
-    }
-  }
+    c10::IntArrayRef size, 
+    c10::IntArrayRef stride) {
 
-  if (storageOffset < 0) {
+  at::native::checkSetStorage(self, storage, storage_offset, size, stride);
+
+  if (storage_offset < 0) {
     AT_ERROR("at::Tensor: invalid storage offset");
   }
-  self->set_storage_offset(storageOffset);
-  resize_nd_npu(self, nDimension, size, stride);
+  self.unsafeGetTensorImpl()->set_storage_offset(storage_offset);
+  resize_nd_npu(self.unsafeGetTensorImpl(), nDimension, size.data(), stride.data());
 }
 
 void set_storage_npu_(
-    at::TensorImpl* self,
-    torch_npu::NPUStorageImpl* storage_,
-    ptrdiff_t storageOffset_,
+    at::Tensor& self, 
+    c10::Storage storage_,
+    long storageOffset_,
     c10::IntArrayRef size_,
     c10::IntArrayRef stride_) {
   if (stride_.data()) {
@@ -81,15 +72,15 @@ void set_storage_npu_(
       storage_,
       storageOffset_,
       size_.size(),
-      size_.data(),
-      stride_.data());
+      size_,
+      stride_);
 }
 
-at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
+at::Tensor& XLANativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
   set_storage_npu_(
-      self.unsafeGetTensorImpl(),
-      torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl()),
+      self,
+      src,
       0,
       {new_size},
       {});
@@ -97,15 +88,15 @@ at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::set_(
+at::Tensor& XLANativeFunctions::set_(
     at::Tensor& self,
     c10::Storage src,
     long storage_offset,
     c10::IntArrayRef size,
     c10::IntArrayRef stride) {
   set_storage_npu_(
-      self.unsafeGetTensorImpl(),
-      torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl()),
+      self,
+      src,
       storage_offset,
       size,
       stride);
@@ -121,8 +112,8 @@ at::Tensor& set_format_npu_(
     c10::IntArrayRef size,
     c10::IntArrayRef stride) {
   set_storage_npu_(
-      self.unsafeGetTensorImpl(),
-      torch_npu::NPUBridge::GetNpuStorageImpl(src.unsafeGetStorageImpl()),
+      self,
+      src,
       storage_offset,
       size,
       stride);
@@ -131,23 +122,31 @@ at::Tensor& set_format_npu_(
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
-  set_storage_npu_(self.unsafeGetTensorImpl(), NULL, 0, {0}, {});
+at::Tensor& XLANativeFunctions::set_(at::Tensor& self) {
+  caffe2::TypeMeta dtype = self.dtype();
+  c10::Storage storage(
+      c10::Storage::use_byte_size_t(),
+      0,
+      c10_npu::NPUCachingAllocator::get(),
+      true);
+      
+  set_storage_npu_(self, storage, 0, {0}, {});
   StorageDescHelper::SetDesc(self);
+  TORCH_INTERNAL_ASSERT(dtype == self.dtype());
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, const at::Tensor& src) {
+at::Tensor& XLANativeFunctions::set_(at::Tensor& self, const at::Tensor& src) {
   at::TensorImpl* self_ = self.unsafeGetTensorImpl();
   at::TensorImpl* src_ = src.unsafeGetTensorImpl();
   if (self_ != src_) {
     set_storage_nd_npu(
-        self_,
-        torch_npu::NPUBridge::GetNpuStorageImpl(THTensor_getStoragePtr(src_)),
-        src_->storage_offset(),
-        src_->dim(),
-        THTensor_getSizePtr(src_),
-        THTensor_getStridePtr(src_));
+        self,
+        src.storage(),
+        src.storage_offset(),
+        src.dim(),
+        src.sizes(),
+        src.strides());
   }
   StorageDescHelper::CopyDesc(self, src);
   return self;

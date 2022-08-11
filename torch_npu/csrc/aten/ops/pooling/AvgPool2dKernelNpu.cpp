@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -62,7 +62,7 @@ at::Tensor& avg_pool2d_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::avg_pool2d_out(
+at::Tensor& XLANativeFunctions::avg_pool2d_out(
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,
@@ -101,7 +101,7 @@ at::Tensor& NPUNativeFunctions::avg_pool2d_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::avg_pool2d(
+at::Tensor XLANativeFunctions::avg_pool2d(
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,

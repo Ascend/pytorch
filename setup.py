@@ -36,7 +36,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.8.1rc2'
+VERSION = '1.11.0rc3'
 
 
 def which(thefile):
@@ -90,7 +90,6 @@ def _get_build_mode():
         if not sys.argv[i].startswith('-'):
             return sys.argv[i]
 
-    raise RuntimeError("Run setup.py without build mode.")
 
 def get_pytorch_dir():
     try:
@@ -102,8 +101,8 @@ def get_pytorch_dir():
         return os.path.dirname(frame_summary.filename)
 
 
-def generate_bindings_code(base_dir, verbose):
-    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh'), verbose]
+def generate_bindings_code(base_dir):
+    generate_code_cmd = ["sh", os.path.join(base_dir, 'scripts', 'generate_code.sh')]
     if subprocess.call(generate_code_cmd) != 0:
         print(
             'Failed to generate ATEN bindings: {}'.format(generate_code_cmd),
@@ -166,10 +165,6 @@ class Clean(distutils.command.clean.clean):
 
         # It's an old-style class in Python 2.7...
         distutils.command.clean.clean.run(self)
-
-        os.remove('torch_npu/csrc/aten/RegisterCPU.cpp')
-        os.remove('torch_npu/csrc/aten/RegisterNPU.cpp')
-        os.remove('torch_npu/csrc/aten/RegisterAutogradNPU.cpp')
 
 class CPPLibBuild(build_clib, object):
     def run(self):
@@ -235,13 +230,10 @@ def get_src_py_and_dst():
         ret.append((src, dst))
 
     header_files = [
-        "torch_npu/csrc/*.h",
-        "torch_npu/csrc/*/*.h",
-        "torch_npu/csrc/*/*/*.h",
-        "torch_npu/csrc/*/*/*/*.h",
-        "torch_npu/csrc/*/*/*/*/*.h",
-        "third_party/acl/inc/*/*.h",
-        "third_party/acl/inc/*/*/*.h"
+        "torch_npu/csrc/core/npu/*.h",
+        "torch_npu/csrc/core/npu/*/*.h",
+        "torch_npu/csrc/aten/*.h",
+        "third_party/acl/inc/*/*.h"
     ]
     glob_header_files = []
     for regex_pattern in header_files:
@@ -290,11 +282,10 @@ class PythonPackageBuild(build_py, object):
             self.copy_file(src, dst)
         super(PythonPackageBuild, self).finalize_options()
 
-to_cpu = os.getenv('NPU_TOCPU', default='TRUE')
 build_mode = _get_build_mode()
 if build_mode not in ['clean']:
-    # Generate bindings code, including RegisterNPU.cpp & NPUNativeFunctions.h.
-    generate_bindings_code(BASE_DIR, to_cpu)
+    # Generate bindings code, including RegisterNPU.cpp & XLANativeFunctions.h.
+    generate_bindings_code(BASE_DIR)
     build_stub(BASE_DIR)
 
 # Setup include directories folders.

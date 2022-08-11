@@ -19,7 +19,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor, test_2args_broadcast, create_dtype_tensor
-from torch_npu.testing.decorator import Dtypes, instantiate_tests, graph_mode
+from torch_npu.testing.decorator import Dtypes, instantiate_tests
 
 
 @instantiate_tests
@@ -42,8 +42,7 @@ class TestDiv(TestCase):
         npu_output = npu_out.to("cpu").numpy()
         return cpu_output, npu_output
 
-    @graph_mode
-    def test_div_broadcast(self):
+    def test_div_broadcast(self, device="npu"):
         for item in test_2args_broadcast(torch.div):
             self.assertRtolEqual(item[0], item[1])
 
@@ -55,9 +54,8 @@ class TestDiv(TestCase):
         cpu_input2, npu_input2 = create_dtype_tensor((2, 3, 4, 5), dtype, no_zero=True)
         cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], dtype)
         self.assertRtolEqual(cpu_output, npu_output)
-    
-    @graph_mode
-    def test_div_shape_format_fp16(self):
+
+    def test_div_shape_format_fp16(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
@@ -71,8 +69,7 @@ class TestDiv(TestCase):
             cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.half)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_div_shape_format_fp32(self):
+    def test_div_shape_format_fp32(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7), (2, 0, 2)]
         shape_format = [
@@ -84,36 +81,31 @@ class TestDiv(TestCase):
             cpu_output, npu_output = self.get_outputs([cpu_input1, cpu_input2], [npu_input1, npu_input2], torch.float)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_div_mix_dtype_1(self):
+    def test_div_mix_dtype_1(self, device="npu"):
         npu_input1, npu_input2 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input4], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_div_mix_dtype_2(self):
+    def test_div_mix_dtype_2(self, device="npu"):
         npu_input1, npu_input2 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         npu_input3 = torch.tensor(3).int()
         cpu_output, npu_output = self.get_outputs([npu_input1, npu_input3], [npu_input2, npu_input3], torch.float)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    @graph_mode
-    def test_div_scalar_dtype(self):
+    def test_div_scalar_dtype(self, device="npu"):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / 0.5
         npu_output = npu_input1 / 0.5
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
-    def test_div_npuscalar_dtype(self):
+    def test_div_npuscalar_dtype(self, device="npu"):
         cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
         cpu_output = cpu_input1 / torch.tensor(0.5)
         npu_output = npu_input1 / torch.tensor(0.5).npu()
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
-    def test_div_shape_format_fp32_1(self):
+    def test_div_shape_format_fp32_1(self, device="npu"):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
         shape_format = [
@@ -165,7 +157,6 @@ class TestDiv(TestCase):
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input1, npu_input2, item[3])
             self.assertRtolEqual(cpu_output, npu_output_inp)
     
-    @graph_mode
     def test_div_scalar_mode(self):
         shape_format = [
             [[np.float32, 0, (20, 16)], 15.9, 'floor'],

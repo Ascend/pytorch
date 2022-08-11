@@ -18,7 +18,7 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -79,9 +79,9 @@ at::Tensor conv2d_backward_input_out_npu(
   OpCommand cmd;
   cmd.Name("Conv2DBackpropInput")
       .Input(dimList, at::kInt)
-      .Input(weight, "filter", ACL_FORMAT_NCHW)
-      .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
-      .Output(gradInput, "y", ACL_FORMAT_NCHW)
+      .Input(weight)
+      .Input(grad)
+      .Output(gradInput)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -129,10 +129,10 @@ at::Tensor conv2d_backward_weight_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("Conv2DBackpropFilter")
-      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(input)
       .Input(dimList, at::kInt)
-      .Input(grad, "out_backprop", ACL_FORMAT_NCHW)
-      .Output(gradWeight, "y", ACL_FORMAT_NCHW)
+      .Input(grad)
+      .Output(gradWeight)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -195,7 +195,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> conv2d_backward_out_npu(
   return tuple<at::Tensor&, at::Tensor&, at::Tensor&>(gradInput, gradWeight, gradBias);
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backward(
+tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_conv2d_backward(
     const at::Tensor& input,
     const at::Tensor& grad,
     const at::Tensor& weight,

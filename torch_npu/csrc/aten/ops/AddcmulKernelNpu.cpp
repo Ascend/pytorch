@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -39,11 +39,11 @@ at::Tensor& addcmul_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::addcmul_out(
+at::Tensor& XLANativeFunctions::addcmul_out(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    const at::Scalar value,
+    const at::Scalar& value,
     at::Tensor& result) {
   auto mulOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), mulOutputSize);
@@ -61,11 +61,11 @@ at::Tensor& NPUNativeFunctions::addcmul_out(
       .Call(result);
 }
 
-at::Tensor NPUNativeFunctions::addcmul(
+at::Tensor XLANativeFunctions::addcmul(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    at::Scalar value) {
+    const at::Scalar& value) {
   auto mulOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), mulOutputSize);
 
@@ -76,11 +76,11 @@ at::Tensor NPUNativeFunctions::addcmul(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::addcmul_(
+at::Tensor& XLANativeFunctions::addcmul_(
     at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    at::Scalar value) {
+    const at::Scalar& value) {
   OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

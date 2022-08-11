@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -45,7 +45,7 @@ at::Tensor& mse_loss_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::mse_loss_out(
+at::Tensor& XLANativeFunctions::mse_loss_out(
     const at::Tensor& self,
     const at::Tensor& target,
     int64_t reduction,
@@ -65,7 +65,7 @@ at::Tensor& NPUNativeFunctions::mse_loss_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::mse_loss(
+at::Tensor XLANativeFunctions::mse_loss(
     const at::Tensor& self,
     const at::Tensor& target,
     int64_t reduction) {
@@ -73,10 +73,7 @@ at::Tensor NPUNativeFunctions::mse_loss(
   if (reduction == at::Reduction::None) {
     outputSize = input_same_output_size(self);
   }
-  at::Tensor result =
-      reduction == at::Reduction::None ?
-      OpPreparation::ApplyTensor(self, outputSize) :
-      OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_ND);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   mse_loss_out_npu_nocheck(result, self, target, reduction);
   return result;

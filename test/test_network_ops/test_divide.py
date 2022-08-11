@@ -163,8 +163,6 @@ class TestDivide(TestCase):
             [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
             [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
             [[np.float16, 0, (3, 20, 16)], -45.3, 'true'],
-            [[np.int32, 0, (20, 16)], 15.9, 'floor'],
-            [[np.int32, 0, (20, 16)], 17.2, 'trunc'],
         ]
         for item in shape_format:
             cpu_input, npu_input = create_common_tensor(item[0], 1, 100)

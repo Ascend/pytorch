@@ -18,6 +18,22 @@ import torch
 import torch._C as _C
 import torch_npu
 
+def _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride):
+    t = torch.tensor([0], dtype=storage.dtype).to(storage.device)
+    return t.npu_set_(storage, storage_offset, npu_format, size, stride)
+
+def _rebuild_tensor_v2(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_format=2):
+    if storage.device.type == 'npu':
+        tensor = _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride)
+    else:
+        tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
+    tensor.requires_grad = requires_grad
+    # NB: This line exists only for backwards compatibility; the
+    # general expectation is that backward_hooks is an empty
+    # OrderedDict.  See Note [Don't serialize hooks]
+    tensor._backward_hooks = backward_hooks
+    return tensor
+
 class _StorageBase(torch.storage._StorageBase):
     _cdata: Any
     is_cuda: bool = False
@@ -44,90 +60,5 @@ class _StorageBase(torch.storage._StorageBase):
             self._share_fd_()
         return self
 
-class DoubleStorage(_C.DoubleStorageBase, _StorageBase):
-    pass
-
-
-class FloatStorage(_C.FloatStorageBase, _StorageBase):
-    pass
-
-
-class HalfStorage(_C.HalfStorageBase, _StorageBase):
-    pass
-
-
-class LongStorage(_C.LongStorageBase, _StorageBase):
-    pass
-
-
-class IntStorage(_C.IntStorageBase, _StorageBase):
-    pass
-
-
-class ShortStorage(_C.ShortStorageBase, _StorageBase):
-    pass
-
-
-class CharStorage(_C.CharStorageBase, _StorageBase):
-    pass
-
-
-class ByteStorage(_C.ByteStorageBase, _StorageBase):
-    pass
-
-
-class BoolStorage(_C.BoolStorageBase, _StorageBase):
-    pass
-
-
-class BFloat16Storage(_C.BFloat16StorageBase, _StorageBase):
-    pass
-
-class ComplexDoubleStorage(_C.ComplexDoubleStorageBase, _StorageBase):
-    pass
-
-class ComplexFloatStorage(_C.ComplexFloatStorageBase, _StorageBase):
-    pass
-
-class QUInt8Storage(_C.QUInt8StorageBase, _StorageBase):
-    pass
-
-class QInt8Storage(_C.QInt8StorageBase, _StorageBase):
-    pass
-
-class QInt32Storage(_C.QInt32StorageBase, _StorageBase):
-    pass
-
-class QUInt4x2Storage(_C.QUInt4x2StorageBase, _StorageBase):
-    pass
-
-_storage_classes = {
-    DoubleStorage, FloatStorage, LongStorage, IntStorage, ShortStorage,
-    CharStorage, ByteStorage, HalfStorage, BoolStorage, QUInt8Storage, QInt8Storage,
-    QInt32Storage, BFloat16Storage, ComplexFloatStorage, ComplexDoubleStorage, QUInt4x2Storage
-}
-
-
-torch._storage_classes.add(DoubleStorage)
-torch._storage_classes.add(FloatStorage)
-torch._storage_classes.add(LongStorage)
-torch._storage_classes.add(IntStorage)
-torch._storage_classes.add(ShortStorage)
-torch._storage_classes.add(CharStorage)
-torch._storage_classes.add(ByteStorage)
-torch._storage_classes.add(HalfStorage)
-torch._storage_classes.add(BoolStorage)
-torch._storage_classes.add(BFloat16Storage)
-torch._storage_classes.add(ComplexDoubleStorage)
-torch._storage_classes.add(ComplexFloatStorage)
-
-def is_storage(obj):
-    r"""Returns True if `obj` is a PyTorch storage object.
-
-    Args:
-        obj (Object): Object to test
-    """
-    return type(obj) in torch._storage_classes
-
 def add_storage_methods():
-    torch.is_storage = is_storage
+    torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2

@@ -16,14 +16,14 @@
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu
 {
   namespace native
   {
-    at::Tensor NPUNativeFunctions::ones_like(const at::Tensor &self,
+    at::Tensor XLANativeFunctions::ones_like(const at::Tensor &self,
                                              c10::optional<c10::ScalarType> dtype_opt,
                                              c10::optional<c10::Layout> layout_opt,
                                              c10::optional<c10::Device> device_opt,
@@ -45,14 +45,14 @@ namespace at_npu
 
       auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
+      at::Tensor result = XLANativeFunctions::empty_with_format(
           outputSize, dtype_opt, layout_opt, device_opt, pin_memory_opt,
           CalcuOpUtil::get_tensor_npu_format(self));
       // calculate the output result of the NPUc
-      return NPUNativeFunctions::one_(result);
+      return XLANativeFunctions::one_(result);
     }
 
-    at::Tensor &NPUNativeFunctions::one_(at::Tensor &self)
+    at::Tensor &XLANativeFunctions::one_(at::Tensor &self)
     {
       if (!NpuUtils::check_match(&self))
       {

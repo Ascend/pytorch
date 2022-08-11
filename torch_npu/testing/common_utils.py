@@ -77,6 +77,7 @@ def is_iterable(obj):
 def set_npu_device():
     npu_device = get_npu_device()
     torch.npu.set_device(npu_device)
+    print(f"Your device is {npu_device}")
     return npu_device
 
 

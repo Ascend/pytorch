@@ -17,12 +17,9 @@ from statistics import mode
 import warnings
 import logging
 import torch
-
+import torch_npu
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
-
-import torch_npu
-
 
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
@@ -127,9 +124,7 @@ def cast_weight(self, device):
             module.v_proj_weight.data = module.v_proj_weight.data.to(device)
             module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
-    # supported devices list: "npu"(from module.npu), "xla"(from module.to)
-    support_cast_devices = [torch_npu.npu.native_device, torch_npu.npu.npu_device]
-    if device is None or not any(support_cast_device in str(device) for support_cast_device in support_cast_devices):
+    if device is None or torch_npu.npu.native_device not in str(device):
         return
 
     current_class = self.__class__
@@ -176,7 +171,6 @@ def ddp_forward(self, *inputs, **kwargs):
     if self.ddp_uneven_inputs_config.ddp_join_enabled:
         # Notify joined ranks whether they should sync in backwards pass or not.
         self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    # Note: module.device_type was builded from device.type("npu") inside Class Module
     if self.device_ids and self.device_type != torch_npu.npu.npu_device:
         if len(self.device_ids) == 1:
             inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])

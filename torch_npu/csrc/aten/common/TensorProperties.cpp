@@ -16,12 +16,12 @@
 #include <ATen/ATen.h>
 
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFormat memory_format) {
+at::Tensor XLANativeFunctions::contiguous(const at::Tensor& self, c10::MemoryFormat memory_format) {
   if (self.is_contiguous(memory_format)) {
     return self;
   }

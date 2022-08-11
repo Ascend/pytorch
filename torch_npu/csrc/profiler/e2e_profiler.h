@@ -29,15 +29,15 @@
 namespace torch_npu {
 namespace profiler {
 
-void InitMsPorf(const std::string dump_path, uint64_t npu_event,
+void initMsPorf(const std::string dump_path, uint64_t npu_event,
     uint64_t aicore_metrics);
 
-void PushStartTime(at::RecordFunction& fn);
-void PopEndTime(const at::RecordFunction& fn);
+void pushStartTime(at::RecordFunction& fn);
+void popEndTime(const at::RecordFunction& fn);
 
-void InitE2eProfiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics);
+void init_e2e_profiler(const std::string dump_path,  uint64_t npu_event, uint64_t aicore_metrics);
 
-void FinalizeE2eProfiler();
+void finalize_e2e_profiler();
 
 } // namespace profiler
 } // namespace torch_npu

@@ -52,8 +52,8 @@ public:
     C10D_HCCL_CHECK(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
-          HcclCommDestroy(comm->hcclComm_);
-        }, c10_npu::ReleasePriority::PriorityMiddle);
+      HcclCommDestroy(comm->hcclComm_);
+    }, c10_npu::ReleasePriority::PriorityMiddle);
     return comm;
   }
 

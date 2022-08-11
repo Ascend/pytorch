@@ -20,13 +20,13 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 
 namespace at_npu {
 namespace native {
-
-at::Tensor NPUNativeFunctions::batch_norm(
+/*
+at::Tensor XLANativeFunctions::batch_norm(
     const at::Tensor& input,
     const c10::optional<at::Tensor>& weight_opt,
     const c10::optional<at::Tensor>& bias_opt,
@@ -67,7 +67,7 @@ at::Tensor NPUNativeFunctions::batch_norm(
       cudnn_enabled));
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, int64_t> NPUNativeFunctions::_batch_norm_impl_index(
+tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, int64_t> XLANativeFunctions::_batch_norm_impl_index(
     const at::Tensor& input,
     const c10::optional<at::Tensor>& weight,
     const c10::optional<at::Tensor>& bias,
@@ -92,7 +92,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, int64_t> NPUNativeFunction
       std::make_tuple(0));
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_batch_norm_impl_index_backward(
+tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::_batch_norm_impl_index_backward(
     int64_t impl_index,
     const at::Tensor& input,
     const at::Tensor& grad_output,
@@ -116,7 +116,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_batch_norm_impl_i
       train,
       epsilon,
       output_mask);
-}
+}*/
 
 } // namespace native
 } // namespace at_npu

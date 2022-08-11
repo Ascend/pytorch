@@ -13,16 +13,16 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_classes) {
+at::Tensor XLANativeFunctions::one_hot(const at::Tensor& self, int64_t num_classes) {
   at::Scalar on_value = 1;
   at::Scalar off_value = 0;
   int64_t axis = -1;
-  at::Scalar depth;
+  int64_t depth;
   auto self_temp = self.to(at::kFloat);
 
   TORCH_CHECK(
@@ -48,16 +48,16 @@ at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
   }
 
   auto outputSize = array_to_small_vector(self.sizes());
-  outputSize.emplace_back(depth.toLong());
+  outputSize.emplace_back(depth);
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize,
       self.options().dtype(at::ScalarType::Int),
       self);
-
+  c10::SmallVector<int64_t, N> depthList = {depth};
   OpCommand cmd;
   cmd.Name("OneHot")
       .Input(self)
-      .Input(depth, at::kInt)
+      .Input(depthList, at::kInt)
       .Input(on_value, at::ScalarType::Int)
       .Input(off_value, at::ScalarType::Int)
       .Output(result)

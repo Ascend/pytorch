@@ -19,19 +19,19 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
 
-    at::Tensor &NPUNativeFunctions::addmm_out(
+    at::Tensor &XLANativeFunctions::addmm_out(
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha,
+        const at::Scalar &beta,
+        const at::Scalar &alpha,
         at::Tensor &result)
     {
       // mat1*alpha
@@ -46,12 +46,12 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::addmm(
+    at::Tensor XLANativeFunctions::addmm(
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha)
+        const at::Scalar &beta,
+        const at::Scalar &alpha)
     {
       // calculate the output size
       auto outputSize = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
@@ -61,17 +61,17 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), resFormat);
 
       // calculate the output result of the NPU
-      NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result);
+      XLANativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result);
 
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::addmm_(
+    at::Tensor &XLANativeFunctions::addmm_(
         at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha)
+        const at::Scalar &beta,
+        const at::Scalar &alpha)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, mat1, mat2};
       c10::SmallVector<at::Tensor, N> outputs = {self};
@@ -80,12 +80,12 @@ namespace at_npu
       {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
         at::Tensor result =
-            NPUNativeFunctions::addmm_out(contiguousSelf, mat1, mat2, beta, alpha, contiguousSelf);
+            XLANativeFunctions::addmm_out(contiguousSelf, mat1, mat2, beta, alpha, contiguousSelf);
         NpuUtils::format_fresh_view(self, result);
       }
       else
       {
-        NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, self);
+        XLANativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, self);
       }
 
       return self;

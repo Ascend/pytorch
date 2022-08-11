@@ -43,7 +43,7 @@ namespace at_npu
                          .SetName(descName)
                          .Get();
 
-      int64_t numel = at::prod_intlist(storageDims);
+      int64_t numel = c10::multiply_integers(storageDims);
       AclTensorBufferMaker buffer(tensor, numel);
       auto aclBuff = buffer.Get();
       return std::tie(aclDesc, aclBuff);
@@ -84,7 +84,7 @@ namespace at_npu
       return std::tie(aclDesc, aclBuff);
     }
 
-    std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertScalarToAclInput(
+    std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat> OpCmdHelper::CovertScalarToAclInput(
         const at::Tensor &aclInput, at::ScalarType type)
     {
       aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
@@ -93,7 +93,9 @@ namespace at_npu
       auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
       AclTensorBufferMaker aclBuffer(aclInput);
       auto aclBuff = aclBuffer.Get();
-      return std::tie(aclDesc, aclBuff);
+      int64_t storageDim = 0;
+      aclFormat stroageFormate = ACL_FORMAT_ND;
+      return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
     }
 
     std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertHostTensorToAclInput(
@@ -106,7 +108,7 @@ namespace at_npu
       auto aclDesc = desc.Create(aclDataType, dims, format)
                          .SetPlacement(static_cast<aclMemType>(compileType))
                          .Get();
-      int64_t numel = at::prod_intlist(dims);
+      int64_t numel = c10::multiply_integers(dims);
       AclTensorBufferMaker buffer(tensor, numel);
       auto aclBuff = buffer.Get();
       return std::tie(aclDesc, aclBuff);
@@ -125,7 +127,7 @@ namespace at_npu
                          .SetFormat(npuDesc.npu_format_)
                          .SetShape(storageDims)
                          .Get();
-      auto numel = at::prod_intlist(storageDims);
+      auto numel = c10::multiply_integers(storageDims);
       AclTensorBufferMaker aclBuffer(tensor, numel);
       auto aclBuff = aclBuffer.Get();
       return std::tie(aclDesc, aclBuff);

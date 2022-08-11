@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
@@ -34,7 +34,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::neg_out(const at::Tensor &self, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::neg_out(const at::Tensor &self, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {self},
@@ -47,7 +47,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::neg(const at::Tensor &self)
+    at::Tensor XLANativeFunctions::neg(const at::Tensor &self)
     {
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
@@ -59,7 +59,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::neg_(at::Tensor &self)
+    at::Tensor &XLANativeFunctions::neg_(at::Tensor &self)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self};
       c10::SmallVector<at::Tensor, N> outputs = {self};

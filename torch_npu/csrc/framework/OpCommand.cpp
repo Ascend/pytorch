@@ -12,7 +12,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include <c10/util/Exception.h>
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -61,7 +60,7 @@ OpCommand& OpCommand::Input(
       auto contiguous_input = Contiguous(input);
       if (commonType.has_value() &&
           commonType.value() != contiguous_input.scalar_type()) {
-        contiguous_input = NPUNativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
+        contiguous_input = XLANativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
       }
       graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
   )
@@ -122,39 +121,29 @@ OpCommand& OpCommand::Output(
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       if (sensitive_format.has_value() &&
           FormatHelper::GetBaseFormat(output) != sensitive_format.value()) {
-        output = NPUNativeFunctions::npu_format_cast(output, sensitive_format.value());
+        output = XLANativeFunctions::npu_format_cast(output, sensitive_format.value());
       }
       graphCmd.AddOutput(output, descName, realType, sensitive_format);
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
-        output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
-      } 
+        output = XLANativeFunctions::npu_dtype_cast(output, commonType.value());
+      }
   )
-  outputTensor.emplace_back(output);
   return AddOutput(output, realType);
 }
 
 void OpCommand::Run() {
   IF_GRAPH_MODE_THEN_RUN(return;)
-  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
-    ExecuteParas execParams;
-    aclCmd->ExportParams(execParams);
-    c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
+  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+    ExecuteParas params;
+    aclCmd->ExportParams(params);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
   } else {
-    aclCmd->Run(sync, sync_index, outputTensor);
+    aclCmd->Run();
     aclCmd->releaseSource();
-  } 
-  aclCmds->Pop();
-}
-
-OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
-  sync_index = index;
-  if (!index.empty()) {
-    sync = true;
   }
-  return *this;
+  aclCmds->Pop();
 }
 
 OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
@@ -163,7 +152,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      const string &realData) {
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-    tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
+    tensor = XLANativeFunctions::npu_dtype_cast(tensor, commonType.value());
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (tensor.dim() == 0) {
@@ -196,7 +185,7 @@ OpCommand& OpCommand::AddNoneTensor() {
 
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
   if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-    output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+    output = XLANativeFunctions::npu_dtype_cast(output, commonType.value());
   }
   auto res = OpCmdHelper::CovertToAclOutput(output, realType);
   aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));

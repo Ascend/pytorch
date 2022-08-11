@@ -13,19 +13,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
-    using torch::autograd::Function;
-    using torch::autograd::AutogradContext;
-    using tensor_list = std::vector<at::Tensor>;
     namespace
     {
       at::Tensor &cast_nocheck(at::Tensor &result, const at::Tensor &self)
@@ -41,7 +37,7 @@ namespace at_npu
       }
     } // namespace
 
-    at::Tensor npu_dtype_cast_impl(const at::Tensor &self, at::ScalarType dtype)
+    at::Tensor XLANativeFunctions::npu_dtype_cast(const at::Tensor &self, at::ScalarType dtype)
     {
       if (self.dtype() == dtype)
       {
@@ -60,7 +56,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::npu_dtype_cast_(at::Tensor &self, const at::Tensor &src)
+    at::Tensor &XLANativeFunctions::npu_dtype_cast_(at::Tensor &self, const at::Tensor &src)
     {
       if (self.dtype() == src.dtype())
       {
@@ -79,33 +75,6 @@ namespace at_npu
       }
 
       return self;
-    }
-
-    class NPUDtypeCastFunction : public torch::autograd::Function<NPUDtypeCastFunction> {
-    public:
-      static at::Tensor forward(AutogradContext *ctx,
-          at::Tensor self, 
-          at::ScalarType dtype) {
-        at::AutoNonVariableTypeMode g;
-        ctx->save_for_backward({self});
-        return npu_dtype_cast_impl(self, dtype);
-      }
-
-      static tensor_list backward(AutogradContext *ctx,
-          tensor_list grad_outputs) {
-        auto saved = ctx->get_saved_variables();
-        auto self = saved[0];
-
-        at::Tensor result = npu_dtype_cast_impl(grad_outputs[0], self.scalar_type());
-        tensor_list output = {result, at::Tensor()};
-
-        return output;
-      }
-    };
-
-    at::Tensor NPUNativeFunctions::npu_dtype_cast(const at::Tensor &self, 
-        at::ScalarType dtype) {
-      return NPUDtypeCastFunction::apply(self, dtype);
     }
 
   } // namespace native

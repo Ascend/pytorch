@@ -243,7 +243,7 @@ static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
   if (!PyArg_ParseTuple(args, "OO", &_tensor, &_stream)) {
     throw torch::TypeError("record_stream useage: tensor.record_stream(stream)");
   }
-  auto& self_ = reinterpret_cast<THPVariable*>(_tensor)->cdata;
+  auto& self_ = THPVariable_Unpack(_tensor);
   c10_npu::NPUCachingAllocator::recordStream(self_.storage().data_ptr(), c10_npu::NPUStream::unpack(((THNPStream*)_stream)->cdata));
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS

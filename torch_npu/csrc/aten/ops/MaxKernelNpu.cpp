@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -38,7 +38,7 @@ tuple<at::Tensor&, at::Tensor&> max_out_npu_nocheck(
   return std::tie(output, indices);
 }
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
+tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::max_out(
     const at::Tensor& self,
     int64_t dim,
     bool keepdim,
@@ -78,7 +78,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
             .ReturnRef<at::Tensor&, at::Tensor&>();
 }
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
+tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::max_out(
     const at::Tensor& self,
     at::Dimname dim,
     bool keepdim,
@@ -87,7 +87,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_out(
   return max_out(self, dimname_to_position(self, dim), keepdim, output, indices);
   }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::max(
     const at::Tensor& self, 
     int64_t dim, 
     bool keepdim) {
@@ -115,7 +115,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max(
   return std::tie(outputs, indices);
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::max(
     const at::Tensor& self, 
     at::Dimname dim, 
     bool keepdim) {
@@ -135,19 +135,21 @@ at::Tensor& max_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::max_out(
+at::Tensor& XLANativeFunctions::max_out(
     const at::Tensor& self, 
     const at::Tensor& other,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
-      self);
+      ACL_FORMAT_ND,
+      self.scalar_type(),
+      self.sizes());
   max_out_npu_nocheck(self, other, result);
   return result;
 }
 
-at::Tensor NPUNativeFunctions::maximum(
+at::Tensor XLANativeFunctions::max(
     const at::Tensor& self, 
     const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
@@ -171,7 +173,7 @@ at::Tensor& max_out_npu_nocheck(
     return result;
 }
 
-at::Tensor NPUNativeFunctions::amax(
+at::Tensor XLANativeFunctions::amax(
     const at::Tensor& self, 
     at::IntArrayRef dims, 
     bool keepdim) {
@@ -185,13 +187,13 @@ at::Tensor NPUNativeFunctions::amax(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::max(
+at::Tensor XLANativeFunctions::max(
     const at::Tensor& self) {
   at::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
   return amax(self, dims, false);
 }
 
-at::Tensor& NPUNativeFunctions::amax_out(
+at::Tensor& XLANativeFunctions::amax_out(
     const at::Tensor& self, 
     at::IntArrayRef dims, 
     bool keepdim,

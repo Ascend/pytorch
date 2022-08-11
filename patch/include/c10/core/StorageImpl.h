@@ -45,7 +45,7 @@ struct C10_API StorageImpl : public c10::intrusive_ptr_target {
   StorageImpl() = delete;
   StorageImpl(StorageImpl&& other) = default;
   StorageImpl(const StorageImpl&) = delete;
-  ~StorageImpl() = default;
+  ~StorageImpl() override = default;
 
   void reset() {
     data_ptr_.clear();
@@ -86,12 +86,18 @@ struct C10_API StorageImpl : public c10::intrusive_ptr_target {
     return data_ptr_;
   };
 
-  // Returns the previous data_ptr
+    // Returns the previous data_ptr
   at::DataPtr set_data_ptr(at::DataPtr&& data_ptr) {
-    std::swap(data_ptr_, data_ptr);
-    return std::move(data_ptr);
+    at::DataPtr old_data_ptr(std::move(data_ptr_));
+    data_ptr_ = std::move(data_ptr);
+    return old_data_ptr;
   };
 
+  void set_data_ptr_noswap(at::DataPtr&& data_ptr) {
+    data_ptr_ = std::move(data_ptr);
+  }
+
+  // TODO: Return const ptr eventually if possible
   void* data() {
     return data_ptr_.get();
   }

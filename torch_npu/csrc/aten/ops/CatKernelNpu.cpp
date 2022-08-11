@@ -16,28 +16,13 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include <third_party/acl/inc/op_proto/split_combination_ops.h>
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
 
-    namespace 
-    {
-    template <typename ge_op_type>
-    at_npu::native::DynamicInputRegFunc concat_func =
-        [](DyNumAndIndex num_and_index,
-          std::string op_name) -> ge::OperatorPtr 
-          {
-            auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
-            ge_op->create_dynamic_input_byindex_x(
-                num_and_index.front().first, num_and_index.front().second);
-            return ge_op;
-          };
-    }
-    
     c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(at::TensorList tensors)
     {
       c10::SmallVector<at::Tensor, N> dstTensorList;
@@ -114,7 +99,7 @@ namespace at_npu
       return size;
     }
 
-    at::Tensor &NPUNativeFunctions::_cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::_cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
     {
       if (tensors.size() == 1)
       {
@@ -133,32 +118,17 @@ namespace at_npu
       int64_t input_number = 0;
       OpCommand cmd;
       cmd.Name("ConcatD");
-
-      // In graph mode, if all of input tensors are null numel,
-      // these null tensors should be passed to ConcatD as inputs.
-      // Otherwise, an error will be reported when infershape.
-      bool tensors_empty_in_graph_mode = false;
-      if (c10_npu::NpuRunMode::IsGraphMode()) {
-        tensors_empty_in_graph_mode = true;
-        for (int i = 0; i < inputTensors.size(); i++) {
-          if (inputTensors[i].numel() != 0) {
-            tensors_empty_in_graph_mode = false;
-            break;
-          }
-        }
-      }
-      input_number = 0;
       for (int i = 0; i < inputTensors.size(); i++)
       {
-        if (inputTensors[i].numel() != 0 || tensors_empty_in_graph_mode)
+        if (inputTensors[i].numel() == 0)
         {
-          string inputName = "x" + std::to_string(input_number++);
-          cmd.Input(inputTensors[i], inputName);
+          continue;
         }
+        string inputName = "x" + std::to_string(input_number++);
+        cmd.Input(inputTensors[i], inputName);
       }
 
-      cmd.DynamicInputReg(concat_func<ge::op::ConcatD>, {{input_number, 0}})
-          .Output(result)
+      cmd.Output(result)
           .Attr("N", input_number)
           .Attr("concat_dim", dim)
           .Run();
@@ -166,7 +136,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::cat_out(at::TensorList tensors, int64_t dim, at::Tensor &result)
     {
       c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
 
@@ -186,12 +156,12 @@ namespace at_npu
       return at::_cat_out(result, tensors, dim);
     }
 
-    at::Tensor &NPUNativeFunctions::cat_out(at::TensorList tensors, at::Dimname dim, at::Tensor &result)
+    at::Tensor &XLANativeFunctions::cat_out(at::TensorList tensors, at::Dimname dim, at::Tensor &result)
     {
       return at::cat_out(result, tensors, dimname_to_position(tensors[0], dim));
     }
 
-    at::Tensor NPUNativeFunctions::_cat(at::TensorList tensors, int64_t dim)
+    at::Tensor XLANativeFunctions::_cat(at::TensorList tensors, int64_t dim)
     {
       c10::SmallVector<at::Tensor, N> inputTensors = cat_dest_tensor_list(tensors);
 
@@ -225,23 +195,23 @@ namespace at_npu
       if (tensors_dim_check == true)
       {
         at::Tensor result = OpPreparation::ApplyTensor(tensors[0], outputSize);
-        NPUNativeFunctions::_cat_out(tensors, dim, result);
+        XLANativeFunctions::_cat_out(tensors, dim, result);
         return result;
       }
       else
       {
         at::Tensor result = OpPreparation::ApplyTensorWithFormat(tensors[0], outputSize, ACL_FORMAT_ND);
-        NPUNativeFunctions::_cat_out(tensors, dim, result);
+        XLANativeFunctions::_cat_out(tensors, dim, result);
         return result;
       }
     }
 
-    at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, int64_t dim)
+    at::Tensor XLANativeFunctions::cat(at::TensorList tensors, int64_t dim)
     {
       return at::_cat(tensors, dim);
     }
 
-    at::Tensor NPUNativeFunctions::cat(at::TensorList tensors, at::Dimname dim)
+    at::Tensor XLANativeFunctions::cat(at::TensorList tensors, at::Dimname dim)
     {
       return at::cat(tensors, dimname_to_position(tensors[0], dim));
     }

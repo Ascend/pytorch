@@ -221,9 +221,9 @@ namespace at_npu
           at::ScalarType scalar_data_type);
       static at::Tensor copy_tensor_host_to_device(const at::Tensor &cpu_tensor);
       static NPUStatus AclrtMemcpyAsync(
-          const std::pair<at::Tensor, int64_t>& dst,
+          void *dst,
           size_t dst_size,
-          const std::pair<at::Tensor, int64_t>& src,
+          const void *src,
           size_t src_size,
           aclrtMemcpyKind kind);
       static void check_memory_over_laps(
@@ -252,7 +252,7 @@ namespace at_npu
           at::ScalarType scalar_type);
       static c10::SmallVector<NPUTensorDesc, N> create_npu_output_tensor_desc(
           const c10::SmallVector<at::Tensor, N> &outputTensor);
-      static aclopAttr* CreateNpuAttrDesc(const c10::SmallVector<NPUAttrDesc, N> &attrs);
+      static std::tuple<aclopAttr *, string> CreateNpuAttrDesc(const c10::SmallVector<NPUAttrDesc, N> &attrs);
       static NPUStatus CreateAclTensorDescInfo(
           c10::SmallVector<NPUTensorDesc, N> &input,
           c10::SmallVector<NPUTensorDesc, N> &output,

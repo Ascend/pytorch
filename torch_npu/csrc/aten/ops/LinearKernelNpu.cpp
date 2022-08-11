@@ -18,7 +18,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -70,7 +70,7 @@ at::Tensor linear_backward_out_npu(
   return result;
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_linear_backward(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::npu_linear_backward(
     const at::Tensor& grad,
     const at::Tensor& input,
     const at::Tensor& weight) {
@@ -88,7 +88,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_linear_backward(
     linear_backward_out_npu(weightGrad, grad, input, true, false);
   } else {
     at::Tensor gradFormatcast = OpPreparation::ApplyTensor(grad, grad.sizes());
-    gradFormatcast = NPUNativeFunctions::npu_format_cast(grad, CalcuOpUtil::get_tensor_npu_format(weight));
+    gradFormatcast = XLANativeFunctions::npu_format_cast(grad, CalcuOpUtil::get_tensor_npu_format(weight));
     linear_backward_out_npu(inputGrad, gradFormatcast, weight, false, false);
     linear_backward_out_npu(weightGrad, gradFormatcast, input, true, false);
   }
@@ -116,7 +116,7 @@ public:
     auto input = saved[0];
     auto weight = saved[1];
 
-    tuple<at::Tensor, at::Tensor> result = NPUNativeFunctions::npu_linear_backward(grad_outputs[0], input, weight);
+    tuple<at::Tensor, at::Tensor> result = XLANativeFunctions::npu_linear_backward(grad_outputs[0], input, weight);
 
     tensor_list output;
     if (bias_has_value) {
@@ -132,7 +132,7 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
+at::Tensor XLANativeFunctions::npu_linear(const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt) {
   return NPULinearFunction::apply(input, weight, bias_opt);

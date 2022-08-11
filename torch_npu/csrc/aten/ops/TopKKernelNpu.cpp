@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/XLANativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -63,7 +63,7 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
     std::swap(perm[dim], perm[lastDim]);
 
     // construct the output tensor of the NPU
-    at::Tensor transposeSelf = NPUNativeFunctions::npu_transpose(self, perm, true);
+    at::Tensor transposeSelf = XLANativeFunctions::npu_transpose(self, perm);
     auto outputSize = transpose_npu_output_size(values, perm);
     at::Tensor transposeValue = OpPreparation::ApplyTensor(values, outputSize);
     at::Tensor transposeIndices = OpPreparation::ApplyTensor(indices, outputSize);
@@ -75,8 +75,8 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
         lastDim,
         largest,
         sorted);
-    NPUNativeFunctions::npu_transpose_out(transposeValue, perm, true, values);
-    NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, true, indices);
+    XLANativeFunctions::npu_transpose_out(transposeValue, perm, values);
+    XLANativeFunctions::npu_transpose_out(transposeIndices, perm, indices);
   } else {
     topk_out_npu_no_transpose(
         values, indices, self, k, lastDim, largest, sorted);
@@ -85,7 +85,7 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_nocheck(
   return tuple<at::Tensor&, at::Tensor&>(values, indices);
 }
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::topk_out(
+tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::topk_out(
     const at::Tensor& self,
     int64_t k,
     int64_t dim,
@@ -126,7 +126,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::topk_out(
       .ReturnRef<at::Tensor&, at::Tensor&>();
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::topk(
+tuple<at::Tensor, at::Tensor> XLANativeFunctions::topk(
     const at::Tensor& self,
     int64_t k,
     int64_t dim,
@@ -143,7 +143,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::topk(
   topk_out_npu_nocheck(values, indices, selfCp, k, dim, largest, sorted);
 
   // indices dtype transform Int64
-  indices = NPUNativeFunctions::npu_dtype_cast(indices, at::kLong);
+  indices = XLANativeFunctions::npu_dtype_cast(indices, at::kLong);
 
   return tuple<at::Tensor, at::Tensor>(values, indices);
 }

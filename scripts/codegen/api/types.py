@@ -15,10 +15,10 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Optional, Union, TypeVar, List, Dict
+from typing import Optional, Union, Sequence, TypeVar, List, Set, Dict
 from enum import Enum
 
-from codegen.model import Argument, SelfArgument, TensorOptionsArguments, BaseTy
+from codegen.model import Argument, SelfArgument, TensorOptionsArguments, BaseTy, FunctionSchema, NativeFunction
 
 _T = TypeVar('_T')
 
@@ -314,3 +314,276 @@ class Binding:
 class Expr:
     expr: str
     type: NamedCType
+
+# A CppSignature represents a single overload in the C++ API.  For
+# any given function schema, there may be multiple CppSignatures
+# corresponding to it, based on how we desugar to C++.  See also
+# CppSignatureGroup.
+@dataclass(frozen=True)
+class CppSignature:
+    # The schema this signature is derived from
+    func: FunctionSchema
+
+    # Is this a C++ signature for a method, i.e. Tensor::my_op(...)?
+    method: bool
+
+    # Is this a faithful C++ signature (i.e. following the JIT schema) or a convenience API
+    # (i.e. with a potential TensorOptions argument and out arguments in the front)
+    faithful: bool
+
+    # The set of C++ arguments which should not have defaults applied to them
+    cpp_no_default_args: Set[str]
+
+    # Is this a fallback C++ binding?  Fallback bindings are enabled by
+    # manual_cpp_binding: True and are alternate, non-public API that
+    # lets manual C++ binding implementors access the binding that would
+    # have been automatically generated
+    fallback_binding: bool = False
+
+    # Return the unpacked argument structure of this signature,
+    # discarding information about which arguments are semantically
+    # related to each other.
+    def arguments(self) -> Sequence[Binding]:
+        return cpp.arguments(
+            self.func.arguments, faithful=self.faithful,
+            method=self.method, cpp_no_default_args=self.cpp_no_default_args)
+
+    def name(self) -> str:
+        n = cpp.name(self.func, faithful_name_for_out_overloads=self.faithful)
+        if self.fallback_binding:
+            n = f"__dispatch_{n}"
+        return n
+
+    # Render the C++ declaration for this signature
+    def decl(self, *, name: Optional[str] = None, prefix: str = "", is_redispatching_fn: bool = False) -> str:
+        returns_type = cpp.returns_type(self.func.returns).cpp_type()
+        cpp_args = [a.decl() for a in self.arguments()]
+        if is_redispatching_fn:
+            cpp_args = ['c10::DispatchKeySet dispatchKeySet'] + cpp_args
+        cpp_args_str = ', '.join(cpp_args)
+        if name is None:
+            name = prefix + self.name()
+        return f"{returns_type} {name}({cpp_args_str})"
+
+    # Render the C++ definition for this signature, not including
+    # the body (with curly braces)
+    def defn(self, *, name: Optional[str] = None, prefix: str = "", is_redispatching_fn: bool = False) -> str:
+        returns_type = cpp.returns_type(self.func.returns).cpp_type()
+        cpp_args = [a.defn() for a in self.arguments()]
+        if is_redispatching_fn:
+            cpp_args = ['c10::DispatchKeySet dispatchKeySet'] + cpp_args
+        cpp_args_str = ', '.join(cpp_args)
+        if name is None:
+            name = prefix + self.name()
+        return f"{returns_type} {name}({cpp_args_str})"
+
+    def ptr_type(self) -> str:
+        args_types_str = ', '.join(a.type for a in self.arguments())
+        return f'{cpp.returns_type(self.func.returns).cpp_type()} (*)({args_types_str})'
+
+    # Return the C++ function type, e.g., something like int(bool)
+    def type(self) -> str:
+        args_types_str = ', '.join(a.type for a in self.arguments())
+        return f'{cpp.returns_type(self.func.returns).cpp_type()} ({args_types_str})'
+
+# Represents group of all CppSignatures associated with a
+# FunctionSchema.  Right now, that's the regular, user-visible
+# signature, as well as a "faithful" signature which doesn't
+# have grouping.
+@dataclass(frozen=True)
+class CppSignatureGroup:
+    func: FunctionSchema
+    signature: CppSignature
+    faithful_signature: Optional[CppSignature]
+
+    def most_faithful_signature(self) -> CppSignature:
+        if self.faithful_signature:
+            return self.faithful_signature
+        else:
+            return self.signature
+
+    @staticmethod
+    def from_native_function(f: NativeFunction, *, method: bool, fallback_binding: bool = False) -> 'CppSignatureGroup':
+        func = f.func
+        faithful_signature: Optional[CppSignature]
+        if func.arguments.tensor_options is not None or len(func.arguments.out) > 0:
+            faithful_signature = CppSignature(
+                func=func,
+                faithful=True,
+                method=method,
+                fallback_binding=fallback_binding,
+                cpp_no_default_args=f.cpp_no_default_args
+            )
+        else:
+            faithful_signature = None
+        signature = CppSignature(
+            func=func,
+            faithful=False,
+            method=method,
+            fallback_binding=fallback_binding,
+            cpp_no_default_args=f.cpp_no_default_args
+        )
+        return CppSignatureGroup(
+            func=func,
+            signature=signature,
+            faithful_signature=faithful_signature,
+        )
+
+@dataclass(frozen=True)
+class DispatcherSignature:
+    # The schema this signature is derived from
+    func: FunctionSchema
+
+    # Allows you to prepend an arbitrary prefix to the signature name.
+    # This is useful for parts of the codegen that generate wrappers around kernels,
+    # and need to avoid naming collisions.
+    prefix: str = ""
+
+    def arguments(self) -> List[Binding]:
+        return dispatcher.arguments(self.func)
+
+    def name(self) -> str:
+        return self.prefix + dispatcher.name(self.func)
+
+    def decl(self, name: Optional[str] = None) -> str:
+        args_str = ', '.join(a.decl() for a in self.arguments())
+        if name is None:
+            name = self.name()
+        return f"{self.returns_type().cpp_type()} {name}({args_str})"
+
+    def defn(self, name: Optional[str] = None, *, is_redispatching_fn: bool = False) -> str:
+        args = [a.defn() for a in self.arguments()]
+        if is_redispatching_fn:
+            args = ['c10::DispatchKeySet dispatchKeySet'] + args
+        args_str = ', '.join(args)
+        if name is None:
+            name = self.name()
+        return f"{self.returns_type().cpp_type()} {name}({args_str})"
+
+    def exprs(self) -> List[Expr]:
+        return [Expr(a.name, a.nctype) for a in self.arguments()]
+
+    def returns_type(self) -> CType:
+        return dispatcher.returns_type(self.func.returns)
+
+    def ptr_type(self) -> str:
+        dispatcher_args_types_str = ', '.join(a.type for a in self.arguments())
+        return f'{self.returns_type().cpp_type()} (*)({dispatcher_args_types_str})'
+
+    # Return the C++ function type, e.g., something like int(bool)
+    def type(self) -> str:
+        dispatcher_args_types_str = ', '.join(a.type for a in self.arguments())
+        return f'{self.returns_type().cpp_type()} ({dispatcher_args_types_str})'
+
+    @staticmethod
+    def from_schema(func: FunctionSchema, *, prefix: str = '') -> 'DispatcherSignature':
+        return DispatcherSignature(func, prefix)
+
+@dataclass(frozen=True)
+class NativeSignature:
+    # The schema this signature is derived from
+    func: FunctionSchema
+
+    prefix: str = ""
+
+    def name(self) -> str:
+        return self.prefix + native.name(self.func)
+
+    def decl(self, name: Optional[str] = None) -> str:
+        args_str = ', '.join(a.decl() for a in self.arguments())
+        if name is None:
+            name = self.name()
+        return f"{native.returns_type(self.func.returns).cpp_type()} {name}({args_str})"
+
+    def defn(self, name: Optional[str] = None) -> str:
+        args_str = ', '.join(a.defn() for a in self.arguments())
+        if name is None:
+            name = self.name()
+        return f"{native.returns_type(self.func.returns).cpp_type()} {name}({args_str})"
+
+    def ptr_type(self) -> str:
+        # don't include defaults in type signature!
+        args_str = ', '.join(a.defn() for a in self.arguments())
+        return f'{native.returns_type(self.func.returns).cpp_type()} (*)({args_str})'
+
+    def arguments(self) -> List[Binding]:
+        return native.arguments(self.func)
+
+    def returns_type(self) -> CType:
+        return native.returns_type(self.func.returns)
+
+    def dispatcher_exprs(self) -> List[Expr]:
+        return translate.translate(self.arguments(), dispatcher.arguments(self.func), method=False)
+
+@dataclass(frozen=True)
+class ViewInverseSignature:
+    # The NativeFunction this signature is derived from
+    f: NativeFunction
+
+    def name(self) -> str:
+        return functionalization.name(self.f, functional_op=self.f, is_reverse=True, include_namespace=False)
+
+    def decl(self) -> str:
+        return_type = functionalization.returns_type(self.f.func)
+        decls = [a.decl() for a in functionalization.inner_arguments(self.f.func, is_reverse=True)]
+        return f"static {return_type.cpp_type()} {self.name()}({', '.join(decls)});"
+
+    @staticmethod
+    def from_func(f: NativeFunction) -> 'ViewInverseSignature':
+        # Some assertions: lambdas are only used for view ops
+        assert f.is_view_op
+        assert not f.func.name.name.inplace  # only functional view ops need an inverse (e.g. not transpose_())
+        return ViewInverseSignature(f)
+
+@dataclass(frozen=True)
+class FunctionalizationLambda:
+    # The NativeFunction this signature is derived from
+    f: NativeFunction
+
+    # The corresponding out-of-place variant of the above NativeFunction
+    # This only really matters for inplace-view ops.
+    # e.g. transpose_() -> transpose().
+    functional_op: NativeFunction
+
+    # are we generating the forward lambda or the reverse lambda?
+    is_reverse: bool
+
+    def captures(self) -> List[Expr]:
+        # The lambda lives inside of a kernel following the dispatcher API, so its outer context is the dispatcher arguments
+        outer_ctx = dispatcher.arguments(self.f.func)
+        capture_bindings = functionalization.capture_arguments(self.f.func, is_reverse=self.is_reverse)
+        # allow_expensive_conversions is set because we want to convert
+        # some reference types (IntArrayRef) to value types (vector<int64_t>).
+        capture_exprs = translate.translate(outer_ctx, capture_bindings, method=False, allow_expensive_conversions=True)
+        return capture_exprs
+
+    def decl(self) -> str:
+        return_type = functionalization.returns_type(self.f.func)
+        capture_str = ', '.join(f'{val.type.name} = {val.expr}' for val in self.captures())
+        decls = [a.decl() for a in functionalization.outer_arguments(is_reverse=self.is_reverse)]
+        return f"[{capture_str}]({', '.join(decls)}) -> {return_type.cpp_type()}"
+
+    def inner_call(self) -> str:
+        inner_call_name = functionalization.name(
+            self.f, functional_op=self.functional_op, is_reverse=self.is_reverse, include_namespace=True)
+
+        arg_ctx = functionalization.outer_arguments(is_reverse=self.is_reverse)
+        capture_ctx = functionalization.capture_arguments(self.f.func, is_reverse=self.is_reverse)
+        full_ctx = arg_ctx + capture_ctx
+
+        call_bindings = functionalization.inner_arguments(self.f.func, is_reverse=self.is_reverse)
+        maybe_index = functionalization.inner_call_index(self.f.func)
+        call_exprs = [e.expr for e in translate.translate(full_ctx, call_bindings, method=False)]
+        if not self.is_reverse and maybe_index is not None:
+            return f'{inner_call_name}({", ".join(call_exprs)})[{maybe_index.name}];'
+        else:
+            return f'{inner_call_name}({", ".join(call_exprs)});'
+
+    @staticmethod
+    def from_func(f: NativeFunction, *, functional_op: NativeFunction, is_reverse: bool) -> 'FunctionalizationLambda':
+        # Some assertions: lambdas are only used for view ops
+        assert f.is_view_op
+        assert functional_op.is_view_op
+        # functional_op corresponds to the functional-variant of f, and is only actually used if f itself is an inplace_view op.
+        assert f.func.signature() == functional_op.func.signature()
+        return FunctionalizationLambda(f, functional_op, is_reverse)

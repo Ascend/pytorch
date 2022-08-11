@@ -20,7 +20,6 @@
 #include <c10/util/Registry.h>
 #include <c10/util/SmallVector.h>
 #include "torch_npu/csrc/core/npu/NPUMacros.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
 
@@ -141,8 +140,6 @@ void resetMaxMemoryCached(int device);
 std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
-
-void NpuAllocatorInsertRecordedEvent(aclrtEvent event);
 
 } // namespace NPUCachingAllocator
 } // namespace c10_npu
