@@ -36,7 +36,7 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.11.0rc3'
+VERSION = '1.11.0rc1'
 
 
 def which(thefile):
