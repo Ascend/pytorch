@@ -95,6 +95,14 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
   return AddHostTensorInput(cpuTensor);
 }
 
+OpCommand& OpCommand::InputForUint64(const c10::IntArrayRef &dimListRef) {
+  at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
+                                           dimListRef.size(),
+                                           c10::TensorOptions(at::kCPU).dtype(at::kLong),
+                                           at::kLong);
+  return AddHostUint64TensorInput(cpuTensor);
+}
+
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
     CompileType compileType) {
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
@@ -182,6 +190,13 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
 OpCommand& OpCommand::AddHostTensorInput(const at::Tensor &tensor, CompileType compileType) {
   std::tuple < aclTensorDesc *, aclDataBuffer *> res;
   res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
+  aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
+  return *this;
+}
+
+OpCommand& OpCommand::AddHostUint64TensorInput(const at::Tensor &tensor, CompileType compileType) {
+  std::tuple<aclTensorDesc*, aclDataBuffer*> res;
+  res = OpCmdHelper::CovertHostUint64TensorToAclInput(tensor, compileType);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }
