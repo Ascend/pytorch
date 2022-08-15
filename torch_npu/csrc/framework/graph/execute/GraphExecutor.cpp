@@ -206,6 +206,30 @@ void GraphExecutor::ConstructOps(CombinedInfo& output) {
             input.input_index,
             *(input.peer_output_node->GetGeOp()),
             input.peer_output_index);
+        /*
+        *        public_input
+        *           /     \
+        *          /       \
+        *         /         \
+        *       op ---------> inplace_op
+        *         control_edge
+        *
+        *  Add control edges to ensure that
+        *  the operators will be executed in the correct order
+        *  in inplace-related cases.
+        */
+        auto inplace_node_ptr =
+          input.peer_output_node->GetInplaceNode(input.peer_output_index);
+        if ((inplace_node_ptr.has_value()) &&
+            (!inplace_node_ptr.value().expired()) &&
+            (!top_node->IsInplace())) {
+          auto inplace_node = inplace_node_ptr.value().lock();
+          if (inplace_node != nullptr) {
+            ATenGeBridge::CheckAndBuildGeOpForNode(inplace_node);
+            inplace_node->GetGeOp()->AddControlInput(*(top_node->GetGeOp()));
+          }
+        }
+        
         if (searched_nodes.find(input.peer_output_node) !=
             searched_nodes.end()) {
           continue;
@@ -418,3 +442,4 @@ bool GraphExecutor::CheckDeviceIdAndInit() {
 }
 } // namespace native
 } // namespace at_npu
+
