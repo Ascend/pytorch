@@ -374,6 +374,8 @@ supported:
   - kl_div_backward
   - unsqueeze
   - unsqueeze_
+  - isnan
+  - unfold
 
   #- full
 
