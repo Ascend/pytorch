@@ -34,8 +34,18 @@ def get_rmse(a, b):
     return rmse
 
 
-def check_op(a, b):
-    return a["op_name"] == b["op_name"]
+def get_mape(a, b):
+    mape_val = sum(np.abs((a - b) / b)) / len(b) * 100
+    mape = str(round(mape_val, 4)) + '%'
+    return mape
+
+
+def check_op(a, b, shape_flag):
+    if shape_flag:
+        return a["op_name"] == b["op_name"] and a["input_struct"] == b["input_struct"] \
+            and a["output_struct"] == b["output_struct"]
+    else:
+        return a["op_name"] == b["op_name"]
 
 
 def merge_tensor(tensor_list):
@@ -72,14 +82,14 @@ def read_op(ops_queue, pkl_file_handle):
     return read_flag
 
 
-def match_op(npu_queue, bench_queue):
-    if check_op(npu_queue[-1], bench_queue[-1]):
+def match_op(npu_queue, bench_queue, shape_flag):
+    if check_op(npu_queue[-1], bench_queue[-1], shape_flag):
         return len(npu_queue)-1, len(bench_queue)-1
     for b_index, b_op in enumerate(bench_queue[0: -1]):
-        if check_op(npu_queue[-1], b_op):
+        if check_op(npu_queue[-1], b_op, shape_flag):
             return len(npu_queue)-1, b_index
     for n_index, n_op in enumerate(npu_queue[0: -1]):
-        if check_op(n_op, bench_queue[-1]):
+        if check_op(n_op, bench_queue[-1], shape_flag):
             return n_index, len(bench_queue)-1
     return -1, -1
 
@@ -96,15 +106,21 @@ def get_accuracy(result, n_dict, b_dict):
             b_value = np.array(b_dict["output_value"][0])
             n_struct = n_dict["output_struct"][0]
             b_struct = b_dict["output_struct"][0]
-        cos_sim = cosine_similarity(n_value, b_value)
-        if np.isnan(cos_sim):
-            cos_sim = "nan"
-        rmse = get_rmse(n_value, b_value)
+        if n_struct[1] != b_struct[1]:
+            cos_sim = "cannot be calculated "
+            rmse = "cannot be calculated"
+            mape = "cannot be calculated"
+        else:
+            cos_sim = cosine_similarity(n_value, b_value)
+            if np.isnan(cos_sim):
+                cos_sim = "nan"
+            rmse = get_rmse(n_value, b_value)
+            mape = get_mape(n_value, b_value)
         result.append([name, n_struct[0], b_struct[0],
-                       n_struct[1], b_struct[1], cos_sim, rmse])
+                       n_struct[1], b_struct[1], cos_sim, rmse, mape])
 
 
-def compare(npu_pkl_path, bench_pkl_path, output_path):
+def compare(npu_pkl_path, bench_pkl_path, output_path, shape_flag=False):
     npu_pkl = open(npu_pkl_path, "r")
     bench_pkl = open(bench_pkl_path, "r")
     npu_ops_queue = []
@@ -116,7 +132,7 @@ def compare(npu_pkl_path, bench_pkl_path, output_path):
         if (not npu_file_flag and not bench_file_flag) \
                 or (len(npu_ops_queue) == 0 or len(bench_ops_queue) == 0):
             break
-        n_match_point, b_match_point = match_op(npu_ops_queue, bench_ops_queue)
+        n_match_point, b_match_point = match_op(npu_ops_queue, bench_ops_queue, shape_flag)
         if n_match_point == -1 and b_match_point == -1:
             continue
         n_match_data = npu_ops_queue[n_match_point]
@@ -126,7 +142,7 @@ def compare(npu_pkl_path, bench_pkl_path, output_path):
         del bench_ops_queue[0: b_match_point + 1]
     result_df = pd.DataFrame(
         result, columns=["Name", "NPU Tensor Dtype", "Bench Tensor Dtype",
-                         "NPU Tensor Shape", "Bench Tensor Shape", "Cosine", "RMSE"])
+                         "NPU Tensor Shape", "Bench Tensor Shape", "Cosine", "RMSE", "MAPE"])
     result_df.to_csv(output_path, index=False)
     npu_pkl.close()
     bench_pkl.close()
@@ -137,6 +153,8 @@ if __name__ == "__main__":
     parser.add_argument('--npu_pkl', type=str, required=True)
     parser.add_argument('--bench_pkl', type=str, required=True)
     parser.add_argument('--out_path', type=str, required=True)
+    parser.add_argument('--shape', action='store_true', default=False,
+                    help='Enforce tensor.shape is same when op matches')
     args = parser.parse_args()
-    compare(args.npu_pkl, args.bench_pkl, args.out_path)
+    compare(args.npu_pkl, args.bench_pkl, args.out_path, args.shape)
 
