@@ -122,6 +122,12 @@ OpCommand& OpCommand::Inputs(const at::TensorList &inputs)
   return *this;
 }
 
+OpCommand& OpCommand::InputScalarToNPUTensor(
+    const c10::Scalar& input,
+    const at::ScalarType type) {
+  return AddScalarInput(input, type);
+}
+
 OpCommand& OpCommand::Output(
     at::Tensor &output,
     const string &descName,
@@ -209,6 +215,17 @@ OpCommand& OpCommand::AddNoneTensor() {
   return *this;
 }
 
+OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType type) {
+  at::ScalarType type_bk = type;
+  if (commonType.has_value()) {
+    type_bk = commonType.value();
+  }
+  at::Tensor aclInput = CopyHostToDevice(input, type_bk);
+  auto res = OpCmdHelper::CovertScalarToAclInput(aclInput, type_bk);
+  aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
+  return *this;
+}
+
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
   if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
     output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
@@ -222,6 +239,24 @@ OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
 // 同下，CopyScalarToDevice也有同样问题
 at::Tensor& OpCommand::Contiguous(const at::Tensor &input) {
   storage.emplace_back(std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
+  return storage.back();
+}
+
+at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType type) {
+  auto tensor = scalar_to_tensor(scalar).to(type);
+  return CopyHostToDevice(tensor);
+}
+
+at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
+  at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
+  int deviceIndex = 0;
+  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  auto tensor = cpuPinMemTensor.to(
+      c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
+      cpuPinMemTensor.scalar_type(),
+      true,
+      true);
+  storage.emplace_back(tensor);
   return storage.back();
 }
 
