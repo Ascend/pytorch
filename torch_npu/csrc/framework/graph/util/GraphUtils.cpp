@@ -54,7 +54,11 @@ void GraphUtils::SetDataOp(c10::StorageImpl* storage) {
   TORCH_CHECK(storage != nullptr, "Storage is null");
   auto data_node = std::make_shared<Node>("Data");
   auto data_value = Value(data_node, data_node, 0);
-  SetTensorIrValue(storage, data_value);
+  auto& npu_graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(storage)->get_mutable_npu_graph_desc();
+
+  // Replace node directly, regardless of inplace op.
+  // Use SetFromOther instead of UpdateFromOther.
+  npu_graph_desc.graph_value.SetFromOther(data_value);
 }
 
 void GraphUtils::SetDataOp(const at::Tensor& tensor) {
@@ -105,3 +109,4 @@ void GraphUtils::RetainGraphDataTensor(const at::Tensor& data_tensor) {
 }
 } // namespace native
 } // namespace at_npu
+
