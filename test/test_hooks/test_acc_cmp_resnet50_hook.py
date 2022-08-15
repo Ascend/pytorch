@@ -24,6 +24,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
+
 class TestResNet50AccCmpHook(TestCase):
 
     def test_resnet50_op(self):
