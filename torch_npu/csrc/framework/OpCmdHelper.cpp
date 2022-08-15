@@ -112,6 +112,22 @@ namespace at_npu
       return std::tie(aclDesc, aclBuff);
     }
 
+    std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertHostUint64TensorToAclInput(
+        const at::Tensor &tensor, CompileType compileType)
+    {
+      aclDataType aclDataType = ACL_UINT64;
+      const auto &dims = tensor.sizes();
+      AclTensorDescMaker desc;
+      aclFormat format = ACL_FORMAT_ND;
+      auto aclDesc = desc.Create(aclDataType, dims, format)
+                         .SetPlacement(static_cast<aclMemType>(compileType))
+                         .Get();
+      int64_t numel = at::prod_intlist(dims);
+      AclTensorBufferMaker buffer(tensor, numel);
+      auto aclBuff = buffer.Get();
+      return std::tie(aclDesc, aclBuff);
+    }
+
     std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertToAclOutput(
         const at::Tensor &tensor, const string &forceDataType)
     {
