@@ -25,6 +25,7 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 
 namespace at_npu {
 namespace native {
@@ -143,8 +144,8 @@ static inline void checkInBoundsForStorage(
   }
 
   int64_t new_storage_size_bytes;
-  if (c10_npu::NpuRunMode::IsGraphMode()){
-    new_storage_size_bytes = at::prod_intlist(size) * data_type.itemsize();
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    new_storage_size_bytes = GraphUtils::GetTensorCapacity(new_storage.unsafeGetStorageImpl());
   } else {
     new_storage_size_bytes = new_storage.nbytes();
   }
