@@ -41,7 +41,7 @@ class TestTensorMethodOP(nn.Module):
         return z
 
 
-class TestTensorAccCmpHook(TestCase):
+class TestAccCmpTensorHook(TestCase):
 
     def test_tensor_bulitin_op(self):
         module = TestTensorBuiltinOP()

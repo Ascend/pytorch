@@ -47,7 +47,7 @@ class TestModuleOP(torch.nn.Module):
         return r1
 
 
-class TestTorchAccCmpHook(TestCase):
+class TestAccCmpTorchHook(TestCase):
 
     def test_tensor_op(self):
         module = TestTorchOP()
