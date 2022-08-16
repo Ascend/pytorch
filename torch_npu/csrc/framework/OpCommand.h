@@ -100,6 +100,8 @@ public:
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList &inputs);
 
+  OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
+
   // Output Tensor
   OpCommand& Output(
       at::Tensor &output,
@@ -133,6 +135,8 @@ private:
   OpCommand& AddHostUint64TensorInput(
       const at::Tensor &tensor,
       CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+
+  OpCommand& AddScalarInput(const c10::Scalar& input, at::ScalarType type);
 
   OpCommand& AddNoneTensor();
 
