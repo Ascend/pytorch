@@ -14,9 +14,12 @@
 
 from .function import npu_iou, npu_ptiou, npu_giou, npu_diou, npu_ciou, npu_multiclass_nms, \
      npu_batched_multiclass_nms, npu_single_level_responsible_flags, npu_fast_condition_index_put, \
-     npu_bbox_coder_encode_yolo, npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy 
+     npu_bbox_coder_encode_yolo, npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy, \
+     roll, matmul_transpose
 from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
-     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, MultiheadAttention, FusedColorJitter
+     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, MultiheadAttention, \
+     FusedColorJitter, NpuDropPath, Focus
+
 
 __all__ = [
     # from function
@@ -32,7 +35,9 @@ __all__ = [
     "npu_bbox_coder_encode_yolo",
     "npu_bbox_coder_encode_xyxy2xywh",
     "npu_bbox_coder_decode_xywh2xyxy",
-    "fuse_add_softmax_dropout"
+    "fuse_add_softmax_dropout",
+    "roll",
+    "matmul_transpose"
 
     # from module
     "ChannelShuffle",
@@ -48,4 +53,6 @@ __all__ = [
     "Swish",
     "NpuFairseqDropout",
     "MultiheadAttention",
+    "NpuDropPath",
+    "Focus",
 ]
