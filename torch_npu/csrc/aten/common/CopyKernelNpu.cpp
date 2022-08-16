@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <c10/core/Scalar.h>
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
@@ -37,12 +38,27 @@ void copy_kernel_npu(
     bool non_blocking) {
   RECORD_FUNCTION("d2dCopyWithViewCopy", std::vector<c10::IValue>({src}));
 
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
-
   auto self_size = self.sizes();
   auto self_stride = self.strides();
   auto src_size = src.sizes();
   auto src_stride = src.strides();
+
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    OpCommand cmd;
+    cmd.Name("ViewCopy")
+        .InputWithoutContiguous(self)
+        .Input(self_size)
+        .Input(self_stride)
+        .Input(c10::Scalar(self.storage_offset()), at::kLong)
+        .InputWithoutContiguous(src)
+        .Input(src_size)
+        .Input(src_stride)
+        .Input(c10::Scalar(src.storage_offset()), at::kLong)
+        .Output(self)
+        .Run();
+
+    return;
+  };
 
   OpCommand cmd;
   cmd.Name("ViewCopy")
