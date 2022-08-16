@@ -18,13 +18,17 @@ import torch
 
 from .module import HOOKModule
 
-_torch_include_ops = ['add', 'sub', 'relu', 'batch_norm', 'conv2d']
+
+WrapTorchOps = [
+    'add', 'sub', 'relu', 'batch_norm', 'conv2d'
+]
+
 
 def get_torch_ops():
-    global _torch_include_ops
+    global WrapTorchOps
     _torch_ops = dir(torch._C._VariableFunctionsClass)
-    assert set(_torch_include_ops) <= set(_torch_ops)
-    return _torch_include_ops
+    assert set(WrapTorchOps) <= set(_torch_ops)
+    return WrapTorchOps
 
 
 class HOOKTorchOP(object):
@@ -48,15 +52,7 @@ def wrap_torch_op(op_name):
     return torch_op_template
 
 
-def add_torch_ops_hook(torch_dirs):
-    torch_op_dirs_dict = {}
-    for op_name in torch_dirs:
-        torch_op_dirs_dict[op_name] = wrap_torch_op(op_name)
-    return torch_op_dirs_dict
-
-
 def wrap_torch_ops_and_bind():
-    _torch_op_dirs = get_torch_ops()
-    torch_op_dirs_dict = add_torch_ops_hook(_torch_op_dirs)
-    for key, value in torch_op_dirs_dict.items():
-        setattr(HOOKTorchOP, "wrap_" + str(key), value)
+    _torch_ops = get_torch_ops()
+    for op_name in _torch_ops:
+        setattr(HOOKTorchOP, "wrap_" + op_name, wrap_torch_op(op_name))

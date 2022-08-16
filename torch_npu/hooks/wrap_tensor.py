@@ -18,20 +18,24 @@ import torch
 
 from .module import HOOKModule
 
-_tensor_include_ops = ['__add__', '__div__', '__idiv__', '__isub__', '__mul__', '__sub__', 'abs', 'abs_', 'acos', 
-                       'acos_', 'add', 'add_', 'addbmm', 'addbmm_', 'addcdiv', 'addcdiv_', 'addcmul', 'addcmul_',
-                       'addmm', 'addmm_', 'addmv', 'addmv_', 'addr', 'addr_', 'baddbmm', 'baddbmm_', 'bernoulli',
-                       'bernoulli_', 'bitwise_and', 'bitwise_and_', 'bitwise_not', 'bitwise_not_', 'bitwise_or',
-                       'bitwise_or_', 'bitwise_xor', 'bitwise_xor_', 'bmm', 'ceil', 'ceil_', 'clamp', 'clamp_',
-                       'clamp_max', 'clamp_max_', 'clamp_min', 'clamp_min_', 'cos', 'cos_', 'cosh', 'cosh_', 'div',
-                       'div_', 'dot', 'softmax']
+
+WrapTensorOps = [
+    '__add__', '__div__', '__idiv__', '__isub__', '__mul__', '__sub__', 'abs', 'abs_', 'acos', 
+    'acos_', 'add', 'add_', 'addbmm', 'addbmm_', 'addcdiv', 'addcdiv_', 'addcmul', 'addcmul_',
+    'addmm', 'addmm_', 'addmv', 'addmv_', 'addr', 'addr_', 'baddbmm', 'baddbmm_', 'bernoulli',
+    'bernoulli_', 'bitwise_and', 'bitwise_and_', 'bitwise_not', 'bitwise_not_', 'bitwise_or',
+    'bitwise_or_', 'bitwise_xor', 'bitwise_xor_', 'bmm', 'ceil', 'ceil_', 'clamp', 'clamp_',
+    'clamp_max', 'clamp_max_', 'clamp_min', 'clamp_min_', 'cos', 'cos_', 'cosh', 'cosh_', 'div',
+    'div_', 'dot', 'softmax'
+]
 
 
 def get_tensor_ops():
-    global _tensor_include_ops
+    global WrapTensorOps
     _tensor_ops = dir(torch._C._TensorBase)
-    assert set(_tensor_include_ops) <= set(_tensor_ops)
-    return _tensor_include_ops
+    assert set(WrapTensorOps) <= set(_tensor_ops)
+    return WrapTensorOps
+
 
 class HOOKTensor(object):
     pass
@@ -54,15 +58,7 @@ def wrap_tensor_op(op_name):
     return tensor_op_template
 
 
-def add_tensor_ops_hook(torch_ops):
-    torch_ops_bind_dict = {}
-    for op_name in torch_ops:
-        torch_ops_bind_dict[op_name] = wrap_tensor_op(op_name)
-    return torch_ops_bind_dict
-
-
 def wrap_tensor_ops_and_bind():
-    tensor_ops = get_tensor_ops()
-    tensor_ops_dict = add_tensor_ops_hook(tensor_ops)
-    for key, value in tensor_ops_dict.items():
-        setattr(HOOKTensor, "wrap_" + str(key), value)
+    _tensor_ops = get_tensor_ops()
+    for op_name in _tensor_ops:
+        setattr(HOOKTensor, "wrap_" + str(op_name), wrap_tensor_op(op_name))
