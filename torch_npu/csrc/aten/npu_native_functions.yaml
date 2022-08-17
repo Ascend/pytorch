@@ -376,6 +376,8 @@ supported:
   - unsqueeze_
   - isnan
   - unfold
+  - nonzero
+  - nonzero.out
 
   #- full
 
