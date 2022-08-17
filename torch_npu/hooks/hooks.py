@@ -32,6 +32,9 @@ def get_dump_path():
 
 
 def dump_tensor(x, prefix=""):
+    if "DUMP_PATH" not in os.environ:
+        return
+
     f = os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a")
     if isinstance(x, (tuple, list)) and x:
         for i, item in enumerate(x):
