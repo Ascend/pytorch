@@ -37,8 +37,8 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_rotated(const at::Tens
 
   c10::SmallVector<int64_t, N> output_sync_idx = {0, 1};
   OpCommand cmd;
-  cmd.Name("RotatedNMS")
-      .Sync(output_sync_idx)
+  cmd.Sync(output_sync_idx)
+      .Name("RotatedNMS")
       .Input(detsCast)
       .Input(scoresCast)
       .Input(labels)
@@ -51,7 +51,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_rotated(const at::Tens
       .Run();
 
   at::Tensor selectedNum =
-      OpPreparation::ApplyTensor({1}, scores.options().dtype(at::kInt), scores).fill_(selectedIndex.item());
+      OpPreparation::ApplyTensor({1}, scores.options().dtype(at::kInt), scores).fill_(selectedIndex.size()[0]);
   return std::tie(selectedIndex, selectedNum);
 }
 
