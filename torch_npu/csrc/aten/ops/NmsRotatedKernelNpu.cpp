@@ -51,7 +51,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_rotated(const at::Tens
       .Run();
 
   at::Tensor selectedNum =
-      OpPreparation::ApplyTensor({1}, scores.options().dtype(at::kInt), scores).fill_(selectedIndex.size()[0]);
+      OpPreparation::ApplyTensor({1}, scores.options().dtype(at::kInt), scores).fill_(selectedIndex.size(0));
   return std::tie(selectedIndex, selectedNum);
 }
 
