@@ -26,7 +26,7 @@ class HOOKModule(nn.Module):
         prefix = ""
         if hasattr(self, "prefix_op_name_"):
             prefix = self.prefix_op_name_
-        
+ 
         self.register_forward_hook(warp_acc_cmp_hook(prefix + "forward"))
         self.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
 
