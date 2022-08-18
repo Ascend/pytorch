@@ -376,6 +376,18 @@ supported:
   - unsqueeze_
   - isnan
   - unfold
+  - le.Scalar_out
+  - le.Scalar
+  - le.Tensor_out
+  - le.Tensor
+  - le_.Scalar
+  - le_.Tensor
+  - less_equal.Scalar_out
+  - less_equal.Scalar
+  - less_equal.Tensor_out
+  - less_equal.Tensor
+  - less_equal_.Scalar
+  - less_equal_.Tensor
 
   #- full
 
