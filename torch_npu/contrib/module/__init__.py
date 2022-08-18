@@ -23,6 +23,8 @@ from .ps_roi_pooling import PSROIPool
 from .ensemble_dropout import NpuFairseqDropout
 from .multihead_attention import MultiheadAttention
 from .fusedcolorjitter import FusedColorJitter
+from .drop_path import NpuDropPath
+from .focus import Focus
 
 __all__ = [
     "ChannelShuffle",
@@ -39,4 +41,6 @@ __all__ = [
     "NpuFairseqDropout",
     "MultiheadAttention",
     "FusedColorJitter",
+    "NpuDropPath",
+    "Focus",
 ]
