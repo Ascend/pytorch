@@ -388,6 +388,8 @@ supported:
   - less_equal.Tensor
   - less_equal_.Scalar
   - less_equal_.Tensor
+  - nonzero
+  - nonzero.out
 
   #- full
 
