@@ -88,7 +88,8 @@ public:
 
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
-                 at::ScalarType toType = at::kLong);
+                   at::ScalarType toType = at::kLong,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
 
   // IntArrayRef/SmallVector Input for uint64
   OpCommand& InputForUint64(const c10::IntArrayRef &dimListRef);
