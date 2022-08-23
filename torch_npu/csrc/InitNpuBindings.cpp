@@ -19,6 +19,7 @@
 #include <torch/csrc/Generator.h>
 
 #include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/npu/ReplayFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
@@ -77,6 +78,7 @@ static PyMethodDef TorchNpuMethods[] = {
 
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
+void THNPReplayGraph_init(PyObject *module);
 bool THPGenerator_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
 
@@ -112,6 +114,7 @@ PyObject* initModule(){
   // C, so these lines have to execute first)..
   THNPStream_init(module);
   THNPEvent_init(module);
+  THNPReplayGraph_init(module);
   THPGenerator_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);

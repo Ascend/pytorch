@@ -24,13 +24,14 @@ enum class ModeKind : uint8_t {
   DEFAULT_MODE = 0,
   SINGLE_OP_MODE = DEFAULT_MODE,
   GRAPH_MODE,
+  REPLAY_MODE,
 };
 
 class  NpuRunMode{
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();
-  static inline bool IsGraphMode() {return cur_mode_ == ModeKind::GRAPH_MODE;};
+  static inline bool IsGraphMode() {return cur_mode_ == ModeKind::GRAPH_MODE || cur_mode_ == ModeKind::REPLAY_MODE;};
 
 private:
   static ModeKind cur_mode_;
