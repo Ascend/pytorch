@@ -15,6 +15,7 @@
 #include <c10/util/Exception.h>
 
 #include "GraphConstructor.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 
@@ -67,7 +68,11 @@ void GraphCommandImpl::AddInput(
     const at::Scalar& input,
     const at::ScalarType type,
     CompileType compile_type) {
-  if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
+  bool is_replay_graph_mode = false;
+  if (c10_npu::NpuRunMode::CurRunMode() == c10_npu::ModeKind::REPLAY_MODE) {
+    is_replay_graph_mode = true;
+  }
+  if (is_replay_graph_mode == false && compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
     uint32_t offset;
     ReduceScalarValue(input, type, offset);
     int deviceIndex = 0;

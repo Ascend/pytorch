@@ -282,5 +282,12 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(NodePtr node) {
   return;
 }
 
+ge::Tensor ATenGeBridge::MakeGeTensor(const ge::TensorDesc& tensor_desc,
+                                      void* device_ptr, const size_t nbytes) {
+  ge::Tensor ge_tensor{tensor_desc};
+  ge_tensor.SetData(reinterpret_cast<uint8_t *>(device_ptr),
+                    nbytes, [](uint8_t* device_ptr) { return; });
+  return ge_tensor;
+}
 } // namespace native
 } // namespace at_npu

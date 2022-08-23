@@ -32,7 +32,7 @@ __all__ = [
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
-    "get_rng_state_all", "set_rng_state_all",
+    "get_rng_state_all", "set_rng_state_all", "make_replay_graph"
 ]
 
 import torch
@@ -56,6 +56,7 @@ from .memory import (_free_mutex, caching_allocator_alloc, caching_allocator_del
                      memory_cached, max_memory_cached, memory_snapshot, memory_summary)
 from .streams import Stream, Event
 from .graph import is_graph_mode, disable_graph_mode, enable_graph_mode, launch_graph
+from .replay_graph import make_replay_graph
 from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, iteration_start, iteration_end, 
