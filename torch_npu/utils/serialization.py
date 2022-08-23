@@ -43,6 +43,29 @@ def module_to_cpu(module):
     return cpu_module
 
 
+def opt_to_cpu(opt):
+    cpu_opt = copy.deepcopy(opt)
+    new_state = type(cpu_opt.state)()
+    for stat_k in cpu_opt.state:
+        value = type(cpu_opt.state[stat_k])()
+        for k in cpu_opt.state[stat_k]:
+            if isinstance(cpu_opt.state[stat_k][k], torch.Tensor):
+                value[k] = cpu_opt.state[stat_k][k].cpu()
+            else:
+                value[k] = cpu_opt.state[stat_k][k]
+        if isinstance(stat_k, torch.Tensor):
+            new_state[stat_k.cpu()] = value
+        else:
+            new_state[stat_k] = value
+
+    cpu_opt.state = new_state
+    for i in range(len(cpu_opt.param_groups)):
+        for j in range(len(cpu_opt.param_groups[i]['params'])):
+            cpu_opt.param_groups[i]['params'][j] = cpu_opt.param_groups[i]['params'][j].cpu()
+
+    return cpu_opt
+
+
 def to_cpu(data):
     if isinstance(data, string_classes):
         return data
@@ -52,6 +75,9 @@ def to_cpu(data):
 
     if isinstance(data, nn.Module):
         return module_to_cpu(data)
+    
+    if isinstance(data, torch.optim.Optimizer):
+        return opt_to_cpu(data)
 
     if isinstance(data, argparse.Namespace):
         dict_obj = vars(data)
@@ -72,6 +98,8 @@ def to_cpu(data):
                 copy_data[i] = value.cpu()
             elif isinstance(value, nn.Module):
                 copy_data[i] = module_to_cpu(value)
+            elif isinstance(value, torch.optim.Optimizer):
+                copy_data[i] = opt_to_cpu(value)
             else:
                 copy_data[i] = value
         return type(data)(copy_data)
@@ -89,6 +117,8 @@ def to_cpu(data):
                 copy_data[key] = value.cpu()
             elif isinstance(value, nn.Module):
                 copy_data[key] = module_to_cpu(value)
+            elif isinstance(value, torch.optim.Optimizer):
+                copy_data[key] = opt_to_cpu(value)
             else:
                 copy_data[key] = value
         return copy_data
