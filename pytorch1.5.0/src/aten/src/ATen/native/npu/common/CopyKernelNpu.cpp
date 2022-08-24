@@ -25,40 +25,21 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-namespace {
-// view value : {numel, storage_offset, strides.size, strides}
-SmallVector<int64_t, N> get_view_value(
-    const Tensor& t,
-    const IntArrayRef& strides) {
-  static SmallVector<int64_t, N> value;
-  // It is determined by the definition of view attr
-  value.resize(strides.size() + 3);
-  value[0] = t.storage().unsafeGetStorageImpl()->numel(); // storageImpl numel
-  value[1] = t.storage_offset(); // default to 0
-  value[2] = strides.size();
-  for (size_t i = 0; i < strides.size(); i++) {
-    value[3 + i] = strides[i];
-  }
-  return value;
-}
-} // namespace
-
 // format are base format (the format of src and dst are all nchw now)
 // dtype are same
-// so the view_value and ReflushDescBySelf are base on the hypothesis above.
 void copy_kernel_npu(
     Tensor& self,
     const Tensor& src,
     bool non_blocking) {
-  RECORD_HOST_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
-  E2E_RECORD_FUNCTION("d2dCopyWithPTCopy");
-  // In single op mode, PTcopy will be replaced by ViewCopy in the future
+  RECORD_HOST_FUNCTION("d2dCopyByViewCopy", std::vector<c10::IValue>({src}));
+  E2E_RECORD_FUNCTION("d2dCopyByViewCopy");
+  auto self_size = self.sizes();
+  auto self_stride = self.strides();
+  auto src_size = src.sizes();
+  auto src_stride = src.strides();
+  OpCommand cmd;
   if (c10::npu::NpuRunMode::IsGraphMode()) {
-    auto self_size = self.sizes();
-    auto self_stride = self.strides();
-    auto src_size = src.sizes();
-    auto src_stride = src.strides();
-    OpCommand cmd;
+    // The accurate offset of tensor will be provided by scalar input.
     cmd.Name("ViewCopy")
         .InputWithoutContiguous(self)
         .Input(self_size)
@@ -70,49 +51,28 @@ void copy_kernel_npu(
         .Input(Scalar(src.storage_offset()), at::kLong)
         .Output(self)
         .Run();
-    return;
-  };
+  } else {
+    /*
+     * (Ascend) Fix multi-compilation of ViewCopy op by wrapping scalar
+     * storage_offset as a NPU Tensor instead of GE Const node.
+     * If GE Data node can pass vaule of storage_offset to op,
+     * we can switch storage_offset to Data node finally.
+     * The same problem occurs in operator AsStrided.
+     */
+    cmd.Name("ViewCopy")
+        .InputWithoutContiguous(self)
+        .Input(self_size)
+        .Input(self_stride)
+        .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+        .InputWithoutContiguous(src)
+        .Input(src_size)
+        .Input(src_stride)
+        .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+        .Output(self)
+        .Run();
+  }
 
-  const int64_t HEAD_FLAG = 0x6461656800000000;
-  const int64_t FIXED_LEN =
-      9; // head, len, version, two tensors' numel, offset and strides lens
-  const int64_t VERSION = 0; // op version
-
-  auto selfStrides = self.strides();
-  auto srcStrides = src.strides();
-
-  int64_t len = FIXED_LEN + selfStrides.size() + srcStrides.size();
-  SmallVector<int64_t, N> value;
-  value.emplace_back(HEAD_FLAG); // head flag
-  value.emplace_back(len); // value length
-  value.emplace_back(VERSION);
-
-  auto inputValue = get_view_value(src, srcStrides);
-  auto outValue = get_view_value(self, selfStrides);
-
-  value.insert(value.end(), inputValue.begin(), inputValue.end());
-  value.insert(value.end(), outValue.begin(), outValue.end());
-
-  Tensor attrTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      from_blob(value.data(), {value.size()}, dtype(ScalarType::Long)));
-
-  auto src_desc_bp = src.storage().get_npu_desc();
-  auto self_desc_bp = self.storage().get_npu_desc();
-
-  // The action of PTcopy_ is defined by attrTensor, so the member of NPUStorageDesc
-  // can not affect the result, but the PTcopy_ will check base_size and storage_size,
-  // so we reflash them here, and recover them later.
-  StorageDescHelper::ReflushDescBySelf(src);
-  StorageDescHelper::ReflushDescBySelf(self);
-
-  SmallVector<NPUTensorDesc, N> inputs = {
-      NPUTensorDesc(src), NPUTensorDesc(attrTensor)};
-  SmallVector<NPUTensorDesc, N> outputs = {NPUTensorDesc(self)};
-
-  CalcuOpUtil::execute_npu_operate("PTcopy_", inputs, outputs, {});
-
-  StorageDescHelper::CopyDesc(src, src_desc_bp);
-  StorageDescHelper::CopyDesc(self, self_desc_bp);
+  return;
 }
 
 // the dst and src are same dtype
