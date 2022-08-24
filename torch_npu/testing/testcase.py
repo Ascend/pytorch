@@ -509,11 +509,11 @@ class TestCase(expecttest.TestCase):
             runtime = stopTime - startTime
 
             if len(performanceResult.errors) == len(performanceResult.failures) == 0:
-                methodId = strclass(self.__class__) + "." + self._testMethodName)
+                methodId = strclass(self.__class__) + "." + self._testMethodName
                 baseline = PerfBaseline.get_baseline(methodId)
 
                 if baseline and runtime > baseline*1.2:
-                        errMsg = "Performance test failed. Performance baseline: "
+                        errMsg = "Performance test failed. Performance baseline: " \
                                 + str(baseline) + "s, current time: " + str(runtime) + "s"
                         perfErr = (self.failureException, self.failureException(errMsg), None)
                         self._feedErrorsToResult(result, [(self, perfErr)])
