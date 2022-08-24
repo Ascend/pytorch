@@ -245,7 +245,7 @@ class Baseline(object):
 
     def save_baseline(self):
         with self._mutex:
-            with os.fdopen(os.open(self._baselineFile, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
+            with os.fdopen(os.open(self._baselineFile, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
                 json.dump(self._baseline, f)
 
 PerfBaseline = Baseline(PERF_BASELINE_FILE)
