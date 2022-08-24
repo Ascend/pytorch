@@ -118,6 +118,7 @@ def init():
     # torch.Tensor.*
     device_wrapper(torch.Tensor, torch_tensor_fn_white_list)
     torch.Tensor.cuda = torch.Tensor.npu
+    torch.Tensor.is_cuda = torch.Tensor.is_npu
     torch.cuda.DoubleTensor = torch.npu.FloatTensor
 
     # torch.nn.Module.*
