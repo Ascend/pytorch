@@ -14,6 +14,7 @@
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -24,33 +25,34 @@ at::Tensor& uniform_out_npu(
     double to,
     c10::optional<at::Generator> gen_,
     at::Tensor& result) {
+  auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  c10::SmallVector<int64_t, N> seed_list = {seed};
+  c10::SmallVector<int64_t, N> offset_list = {0, offset};
+  int64_t alg = 1;
   OpCommand cmd;
-  cmd.Name("Uniform")
-    .Input(self)
+  cmd.Name("StatelessRandomUniformV2")
+    .Input(self.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+    .InputForUint64(seed_list, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+    .InputForUint64(offset_list, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+    .Input(at::Scalar(alg), at::ScalarType::Int)
     .Output(result)
-    .Attr("from", static_cast<float>(from))
-    .Attr("to", static_cast<float>(to))
+    .Attr("dtype", self.scalar_type())
     .Run();
-
+  result.mul_(to - from).add_(from);
   return result;
 }
 
 at::Tensor& NPUNativeFunctions::uniform_(at::Tensor& self, double from, double to, c10::optional<at::Generator> gen_) {
-  // The operator needs to use fp32 for calculation.
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = self.to(at::ScalarType::Float);
-  }
-
-  if (!NpuUtils::check_match(&selfCopy)) {
-    at::Tensor selfContiguous = NpuUtils::format_contiguous(selfCopy);
-    at::Tensor result = uniform_out_npu(selfContiguous, from, to, gen_, selfContiguous);
-    NpuUtils::format_fresh_view(selfCopy, result);
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor selfContiguous = NpuUtils::format_contiguous(self);
+    uniform_out_npu(selfContiguous, from, to, gen_, selfContiguous);
+    NpuUtils::format_fresh_view(self, selfContiguous);
   } else {
-    uniform_out_npu(selfCopy, from, to, gen_, selfCopy);
+    uniform_out_npu(self, from, to, gen_, self);
   }
-  self.copy_(selfCopy);
-  
   return self;
 }
 
