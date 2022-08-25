@@ -92,14 +92,13 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
   TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
       "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
       " for argument 'target'  in call to nll_loss2d_forward");
-  at::Tensor targetCast = target.to(at::kInt);
 
   auto self_input = self.contiguous();
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
-  auto target_input = targetCast.contiguous();
-  target_input = targetCast.reshape({-1});
+  auto target_input = target.contiguous();
+  target_input = target.reshape({-1});
 
   // calculate the output size
   auto outputSizes =
