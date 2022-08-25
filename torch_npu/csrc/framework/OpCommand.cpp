@@ -84,7 +84,8 @@ OpCommand& OpCommand::InputWithoutContiguous(
   return AddTensorInput(const_cast<at::Tensor &>(input));
 }
 
-OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType) {
+OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType,
+    CompileType compileType) {
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
@@ -92,7 +93,7 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
                                            dimListRef.size(),
                                            c10::TensorOptions(at::kCPU).dtype(at::kLong),
                                            toType);
-  return AddHostTensorInput(cpuTensor);
+  return AddHostTensorInput(cpuTensor, compileType);
 }
 
 OpCommand& OpCommand::InputForUint64(const c10::IntArrayRef &dimListRef) {

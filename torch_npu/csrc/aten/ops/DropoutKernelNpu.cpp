@@ -93,7 +93,7 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(at::Scalar(seed), at::ScalarType::Int)
       .Input(at::Scalar(seed1), at::ScalarType::Int)
-      .Input(offsetList, at::ScalarType::Long)
+      .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(mask)
       .Run();
   return mask;
@@ -131,7 +131,7 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
       .Input(prob, c10::typeMetaToScalarType(options.dtype()), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(at::Scalar(seed), at::ScalarType::Int)
       .Input(at::Scalar(seed1), at::ScalarType::Int)
-      .Input(offsetList, at::ScalarType::Long)
+      .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(mask)
       .Run();
   return mask;
@@ -187,7 +187,7 @@ at::Tensor NPUNativeFunctions::npu_dropout_backward(
   cmd.Name("DropOutDoMask")
       .Input(grad_output)
       .Input(mask)
-      .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(at::Scalar(retain), grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 
