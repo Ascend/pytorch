@@ -35,9 +35,9 @@ class Stream(torch_npu._C._NPUStreamBase):
                                  represent higher priorities.
     """
 
-    def __new__(cls, device=None,priority=0, **kwargs):
+    def __new__(cls, device=None, priority=0, **kwargs):
         with torch_npu.npu.device(device):
-            return super(Stream, cls).__new__(cls,priority=priority,**kwargs)
+            return super(Stream, cls).__new__(cls, priority=priority, **kwargs)
 
     def wait_event(self, event):
         r"""Makes all future work submitted to the stream wait for an event.
@@ -97,6 +97,15 @@ class Stream(torch_npu._C._NPUStreamBase):
            `NPU Stream documentation`_ for more info.
         """
         super(Stream, self).synchronize()
+
+    def set_data_preprocess_stream(self, is_data_preprocess_stream=False):
+        r"""Set data preprocess mode property to this stream.
+
+        Arguments:
+            is_data_preprocess_stream(bool): determine
+            whether to add data preprocess property.
+        """
+        super(Stream, self).set_data_preprocess_stream(is_data_preprocess_stream)
 
     @property
     def _as_parameter_(self):

@@ -93,6 +93,7 @@ namespace at_npu
       CONST_PARAMS constParams;
       const aclopAttr *attr;
       int64_t constIdx = -1;
+      bool isDataPreprocessOp = false;
       c10::SmallVector<at::Tensor, N> hostMemory;
       ExecuteParas(
           std::string opName,

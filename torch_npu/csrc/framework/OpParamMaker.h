@@ -249,7 +249,10 @@ namespace at_npu
       {
         params.opType = opName;
         params.attr = execParam.attr;
-
+        c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
+        if (stream.isDataPreprocessStream()) {
+          params.isDataPreprocessOp = true;
+        }
         // make params
         int inputNum = execParam.inDesc.size();
         int outputNum = execParam.outDesc.size();
