@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import torch_npu
 
@@ -21,6 +22,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestOneHot(TestCase):
+    
     def generate_single_data(self, low, high):
         npu_input1 = torch.arange(low, high)
         return npu_input1
@@ -75,7 +77,7 @@ class TestOneHot(TestCase):
         npu_output = self.npu_op_exec(input1, 12)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_one_hot_aicpu_bug(self):
+    def test_one_hot_aicpu_int64(self):
         input1 = torch.randint(0, 4, size=(4, 64, 64, 64)).npu()
         cpu_output = self.cpu_op_exec(input1.cpu(), 4)
         npu_output = self.npu_op_exec(input1, 4)
