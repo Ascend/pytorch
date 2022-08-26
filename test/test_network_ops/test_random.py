@@ -1,5 +1,5 @@
-# Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2022 Huawei Technologies Co., Ltd
+# Copyright (c) 2022, Facebook CORPORATION. 
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -140,6 +140,40 @@ class TestRandom(TestCase):
         self.assertTrue(0 <= t.to(torch.double).min() < alpha * to_inc)
         self.assertTrue((to_inc - alpha * to_inc) < t.to(torch.double).max() <= to_inc)
 
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    def test_random_diffent_size(self, dtype):
+        from_ = -800
+        to_ = 800
+
+        size = [10]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+
+        size = [10,8]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+
+        size = [10,8,7]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+        
+        size = [10,8,7,5]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+        
+        size = [10,8,7,5,2]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
 
 if __name__ == "__main__":
     run_tests()
