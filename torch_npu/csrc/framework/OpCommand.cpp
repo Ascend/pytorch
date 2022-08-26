@@ -96,12 +96,12 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
   return AddHostTensorInput(cpuTensor, compileType);
 }
 
-OpCommand& OpCommand::InputForUint64(const c10::IntArrayRef &dimListRef) {
+OpCommand& OpCommand::InputForUint64(const c10::IntArrayRef &dimListRef, CompileType compileType) {
   at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
                                            dimListRef.size(),
                                            c10::TensorOptions(at::kCPU).dtype(at::kLong),
                                            at::kLong);
-  return AddHostUint64TensorInput(cpuTensor);
+  return AddHostUint64TensorInput(cpuTensor, compileType);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,

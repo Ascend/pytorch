@@ -42,6 +42,15 @@ class TestUniform(TestCase):
             self.assertTrue(item[1] <= input1.min())
             self.assertTrue(item[2] >= input1.max())
 
+    def test_uniform_seed(self, device="npu"):
+        torch.manual_seed(123)
+        input1 = torch.rand(2, 3, 4).npu()
+        input1.uniform_(2, 10)
+        torch.manual_seed(123)
+        input2 = torch.rand(2, 3, 4).npu()
+        input2.uniform_(2, 10)
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
