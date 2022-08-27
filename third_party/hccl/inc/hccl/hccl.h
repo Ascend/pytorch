@@ -148,11 +148,13 @@ extern HcclResult HcclRecv(void *recvBuf, uint64_t count, HcclDataType dataType,
  * @param stream A pointer identifying the stream information.
  * @return HcclResult
  */
-
 extern HcclResult HcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls, 
     HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls, 
     HcclDataType recvType, HcclComm comm, aclrtStream stream);
-    
+
+extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
+    HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus
