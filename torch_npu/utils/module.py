@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from statistics import mode
 import warnings
 import logging
 import torch
+import torch.nn.functional as F
 
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
