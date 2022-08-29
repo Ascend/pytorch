@@ -711,7 +711,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   c10_npu::OptionalNPUGuard npuGuard;
   for (auto& device : devices) {
     npuGuard.set_index(device.index());
-    barrierTensors.push_back(at::empty(
+    barrierTensors.push_back(at::ones(
         {1},
         at::TensorOptions().device(at_npu::key::NativeDeviceType).dtype(at::kFloat)));
   }
