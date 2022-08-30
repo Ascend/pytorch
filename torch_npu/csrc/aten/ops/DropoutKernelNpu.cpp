@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/core/npu/SecondaryStreamGuard.h"
@@ -76,20 +77,24 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   at::IntArrayRef selfShape = isFuzzyCompile ? desc_.storage_sizes_ : self.sizes();
 
   OpCommand cmd;
-  // DropOutGenMask use seed and seed2 to generator a seed, like this:
-  //  seed2   seed
+  // DropOutGenMask use seed and seed1 to generator a seed, like this:
+  //  seed1   seed
   // 127~64   63~0
-  // so, we set seed2 = 0 to ensure the seed which user set is equal to the seed
+  // so, we set seed1 = 0 to ensure the seed which user set is equal to the seed
   // used by the operator DropOutGenMask
-  const auto &gen = at_npu::detail::getDefaultNPUGenerator();
-  const int64_t seed = static_cast<int64_t>(gen.current_seed());
-  const int64_t seed2 = 0;
-  cmd.Name("DropOutGenMask")
+  const auto gen = at_npu::detail::getDefaultNPUGenerator();
+  auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  at::SmallVector<int64_t, N> offsetList = {0, offset};
+  const int64_t seed1 = 0;
+  cmd.Name("StatelessDropOutGenMask")
       .Input(selfShape)
       .Input(prob, self.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(at::Scalar(seed), at::ScalarType::Int)
+      .Input(at::Scalar(seed1), at::ScalarType::Int)
+      .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(mask)
-      .Attr("seed", seed)
-      .Attr("seed2", seed2)
       .Run();
   return mask;
 }
@@ -113,16 +118,21 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
                                                          ACL_FORMAT_ND);
 
   OpCommand cmd;
-  // If either seed or seed2 are set to be non-zero, the random number generator
+  // If either seed or seed1 are set to be non-zero, the random number generator
   // is seeded by the given seed. Otherwise, it is seeded by a random seed.
-  int64_t seed = 0;
-  int64_t seed2 = 0;
-  cmd.Name("DropOutGenMask")
+  const auto gen = at_npu::detail::getDefaultNPUGenerator();
+  auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  at::SmallVector<int64_t, N> offsetList = {0, offset};
+  const int64_t seed1 = 0;
+  cmd.Name("StatelessDropOutGenMask")
       .Input(size)
       .Input(prob, c10::typeMetaToScalarType(options.dtype()), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(at::Scalar(seed), at::ScalarType::Int)
+      .Input(at::Scalar(seed1), at::ScalarType::Int)
+      .Input(offsetList, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(mask)
-      .Attr("seed", seed)
-      .Attr("seed2", seed2)
       .Run();
   return mask;
 }
@@ -177,7 +187,7 @@ at::Tensor NPUNativeFunctions::npu_dropout_backward(
   cmd.Name("DropOutDoMask")
       .Input(grad_output)
       .Input(mask)
-      .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(at::Scalar(retain), grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 

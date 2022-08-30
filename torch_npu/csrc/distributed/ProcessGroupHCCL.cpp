@@ -56,13 +56,27 @@ std::map<at::ScalarType, HcclDataType> hcclDataType = {
     {at::kLong, HCCL_DATA_TYPE_INT64},
 };
 
-int64_t physical_numel(at::Tensor self){
+int64_t physical_numel(at::Tensor& self){
   auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
     n *= s;
   }
   return n;
+}
+
+// use tensor numel when the format is ACL_FORMAT_ND or ACL_FORMAT_NCHW
+uint64_t getNumelForHCCL(at::Tensor& self) {
+    aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+    if (format != ACL_FORMAT_ND and format != ACL_FORMAT_NCHW) {
+        if (self.storage().data_ptr().get() != self.data_ptr()) {
+            TORCH_WARN_ONCE("The storage data_ptr is different from tensor data_ptr."
+                            "Maybe this tensor is not suitable for HCCL.");
+        }
+        return physical_numel(self);
+    } else {
+        return self.numel();
+    }
 }
 
 // Helper function that gets the data type and issues error if not supported
@@ -520,7 +534,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             hcclOp[opts.reduceOp],
             comm,
@@ -543,7 +557,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
         return HcclBroadcast(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             root,
             comm,
@@ -559,9 +573,28 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesc
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
-    std::vector<at::Tensor>& /* unused */,
-    const c10d::ReduceOptions& /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support reduce");
+    std::vector<at::Tensor>& tensors,
+    const c10d::ReduceOptions& opts) {
+  check_npu_tensors(tensors);
+  uint64_t rank = opts.rootRank;
+  return collective(
+      tensors,
+      tensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
+        return hcclReduce(
+            input.data_ptr(),
+            output.data_ptr(),
+            (uint64_t)physical_numel(input),
+            getHcclDataType(input.scalar_type()),
+            hcclOp[opts.reduceOp],
+            rank,
+            comm,
+            stream.stream());
+      });
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
@@ -586,7 +619,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
         return HcclAllGather(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             comm,
             stream.stream());
@@ -637,7 +670,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
         return HcclReduceScatter(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(output),
+            getNumelForHCCL(output),
             getHcclDataType(input.scalar_type()),
             hcclOp[opts.reduceOp],
             comm,
@@ -722,7 +755,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
         RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
         return HcclSend(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             dstRank,
             comm,
@@ -745,7 +778,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
         RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
         return HcclRecv(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             srcRank,
             comm,
@@ -764,7 +797,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
     at::Tensor& inputTensor,
     std::vector<int64_t>& outputSplitSizes,
     std::vector<int64_t>& inputSplitSizes,
-    const c10d::AllToAllOptions& opts){
+    const c10d::AllToAllOptions& opts) {
   std::vector<at::Tensor> inputTensors = {inputTensor};
   std::vector<at::Tensor> outputTensors = {outputTensor};
   int ranks = getSize();
@@ -775,7 +808,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::alltoall_base(
       outputSplitSizes.push_back(index);
     }
   }
-  
+
   int inputSize = inputSplitSizes.size();
   int outSize = outputSplitSizes.size();
   uint64_t inputCounts[inputSize];

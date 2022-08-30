@@ -131,7 +131,7 @@ at::Tensor NPUNativeFunctions::_dropout_with_byte_mask_backward(
   cmd.Name("DropOutDoMaskV3")
       .Input(grad_output)
       .Input(mask)
-      .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(at::Scalar(retain), grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 

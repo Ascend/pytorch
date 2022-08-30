@@ -23,6 +23,10 @@ from .ps_roi_pooling import PSROIPool
 from .ensemble_dropout import NpuFairseqDropout
 from .multihead_attention import MultiheadAttention
 from .fusedcolorjitter import FusedColorJitter
+from .drop_path import NpuDropPath
+from .focus import Focus
+from .batchnorm_with_int32_count import FastBatchNorm1d, \
+    FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
 
 __all__ = [
     "ChannelShuffle",
@@ -39,4 +43,10 @@ __all__ = [
     "NpuFairseqDropout",
     "MultiheadAttention",
     "FusedColorJitter",
+    "NpuDropPath",
+    "Focus",
+    "FastBatchNorm1d",
+    "FastBatchNorm2d",
+    "FastBatchNorm3d",
+    "FastSyncBatchNorm",
 ]

@@ -23,6 +23,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 torch_npu.npu.set_device("npu:0")
 
+
 class NpuMNIST(nn.Module):
 
   def __init__(self):
@@ -39,6 +40,7 @@ class NpuMNIST(nn.Module):
     x = F.relu(self.fc1(x))
     x = self.fc2(x)
     return F.log_softmax(x, dim=1)
+
 
 class WN(torch.nn.Module):
     """
@@ -57,6 +59,7 @@ class WN(torch.nn.Module):
         audio, spect = forward_input
         audio = self.start(torch.unsqueeze(audio, -1)).squeeze_(-1)
         return audio
+
 
 class TestSerialization(TestCase):
     '''

@@ -17,6 +17,7 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <ATen/native/TypeProperties.h>
 #include <third_party/acl/inc/op_proto/split_combination_ops.h>
 
 namespace at_npu
@@ -40,6 +41,7 @@ namespace at_npu
     
     c10::SmallVector<at::Tensor, N> cat_dest_tensor_list(at::TensorList tensors)
     {
+      at::ScalarType high_type = at::native::result_type(tensors);
       c10::SmallVector<at::Tensor, N> dstTensorList;
       // pytorch supports empty tensors, which needs to be removed from the NPU.
       for (at::Tensor tensor : tensors)
@@ -47,6 +49,10 @@ namespace at_npu
         if (tensor.dim() == 1 && tensor.sizes()[0] == 0)
         {
           continue;
+        }
+        if (tensor.scalar_type() != high_type)
+        {
+          tensor = NPUNativeFunctions::npu_dtype_cast(tensor, high_type);
         }
 
         dstTensorList.emplace_back(tensor);
@@ -224,13 +230,13 @@ namespace at_npu
       // construct the output tensor of the NPU
       if (tensors_dim_check == true)
       {
-        at::Tensor result = OpPreparation::ApplyTensor(tensors[0], outputSize);
+        at::Tensor result = OpPreparation::ApplyTensor(inputTensors[0], outputSize);
         NPUNativeFunctions::_cat_out(tensors, dim, result);
         return result;
       }
       else
       {
-        at::Tensor result = OpPreparation::ApplyTensorWithFormat(tensors[0], outputSize, ACL_FORMAT_ND);
+        at::Tensor result = OpPreparation::ApplyTensorWithFormat(inputTensors[0], outputSize, ACL_FORMAT_ND);
         NPUNativeFunctions::_cat_out(tensors, dim, result);
         return result;
       }

@@ -235,9 +235,11 @@ def get_src_py_and_dst():
         ret.append((src, dst))
 
     header_files = [
-        "torch_npu/csrc/core/npu/*.h",
-        "torch_npu/csrc/core/npu/*/*.h",
-        "torch_npu/csrc/aten/*.h",
+        "torch_npu/csrc/*.h",
+        "torch_npu/csrc/*/*.h",
+        "torch_npu/csrc/*/*/*.h",
+        "torch_npu/csrc/*/*/*/*.h",
+        "torch_npu/csrc/*/*/*/*/*.h",
         "third_party/acl/inc/*/*.h",
         "third_party/acl/inc/*/*/*.h"
     ]

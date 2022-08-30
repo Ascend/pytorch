@@ -35,30 +35,13 @@
 #define RECORD_HOST_FUNCTION(a, b) ;
 namespace at_npu {
 namespace native {
-namespace {
-const char* kPytorchGraphName = "PytorchGraph";
-const std::string kDataNodeType = "Data";
-const char* kDataAttrIndex = "index";
-
-static ge::Tensor MakeGeTensor(
-    const ge::TensorDesc& tensor_desc,
-    void* device_ptr,
-    const size_t nbytes) {
-  ge::Tensor ge_tensor{tensor_desc};
-  ge_tensor.SetData(
-      reinterpret_cast<uint8_t*>(device_ptr), nbytes, [](uint8_t* device_ptr) {
-        return;
-      });
-  return ge_tensor;
-}
-} // namespace
 
 uint32_t GraphExecutor::graph_id = 0;
 
 void GraphExecutor::RunGraph(
     uint32_t graph_id,
-    CombinedInfo& inputs,
-    CombinedInfo& outputs) {
+    const std::vector<ge::Tensor>& inputs,
+    std::vector<ge::Tensor>& outputs) {
   RECORD_HOST_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
   aclrtStream cal_stream =
       const_cast<aclrtStream>(c10_npu::getCurrentNPUStream().stream());
@@ -66,8 +49,8 @@ void GraphExecutor::RunGraph(
   auto start_time = std::chrono::steady_clock::now();
   C10_NPU_CHECK(session_->RunGraphWithStreamAsync(graph_id,
                                                   cal_stream,
-                                                  inputs.tensors,
-                                                  outputs.tensors));
+                                                  inputs,
+                                                  outputs));
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start_time);
   if (verbose_) {
@@ -92,6 +75,41 @@ void GraphExecutor::ConstructAndExecuteGraph() {
     return;
   }
 
+  bool is_cache_hit = false;
+  auto cur_graph_id = GetGraphIdDependOnCompileTypeAndCache(inputs, outputs, is_cache_hit);
+
+  size_t input_number = inputs.tensors.size();
+  size_t output_number = outputs.tensors.size();
+  if (verbose_) {
+    string is_cache = is_cache_hit ? "true" : "false";
+    NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
+             cur_graph_id, is_cache.c_str(), input_number, output_number);
+  }
+
+  // Release GIL to avoid deadlocks.
+  if (PyGILState_Check()) {
+    Py_BEGIN_ALLOW_THREADS
+    RunGraph(cur_graph_id, inputs.tensors, outputs.tensors);
+    Py_END_ALLOW_THREADS
+  } else {
+    RunGraph(cur_graph_id, inputs.tensors, outputs.tensors);
+  }
+
+  ScalarMemContext::GetContext().Reset();
+  ResetGraphOutputs();
+  if (!is_cache_hit) {
+    // Data of new graph maybe inputs of old graphs,
+    // GE will change its attr
+    // so we need to refresh it
+    RefreshGraphInputs();
+  }
+  ClearDataStore();
+  return;
+}
+
+uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo& inputs,
+                                                              CombinedInfo& outputs,
+                                                              bool& is_cache_hit) {
   uint32_t cur_graph_id = graph_id + 1;
   auto cached_graph_id = cacher_.GetCacheGraphId(
       inputs.hash_of_topo_and_attr,
@@ -102,43 +120,22 @@ void GraphExecutor::ConstructAndExecuteGraph() {
 
   if (!cached_graph_id.has_value()) {
     RECORD_HOST_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
-    ConstructOps(outputs);
-    ge::Graph graph(kPytorchGraphName);
-    graph.SetInputs(GetInputOps()).SetOutputs(GetOutputOps());
+    std::vector<ge::Operator> const_input_ops;
+    ConstructOpsAndAddEdge(outputs, const_input_ops);
+    ge::Graph graph("PytorchGraph");
+    std::vector<ge::Operator> input_ops = GetInputOps();
+    input_ops.insert(input_ops.end(),
+                     const_input_ops.begin(),
+                     const_input_ops.end());
+    graph.SetInputs(input_ops).SetOutputs(GetOutputOps());
 
     C10_NPU_CHECK(session_->AddGraph(cur_graph_id, graph));
     graph_id = cur_graph_id;
   } else {
     cur_graph_id = cached_graph_id.value();
   }
-
-  size_t input_number = inputs.tensors.size();
-  size_t output_number = outputs.tensors.size();
-  if (verbose_) {
-    string is_cache = cached_graph_id.has_value() ? "true" : "false";
-    NPU_LOGI("Using Graph Mode: current graph id = %u, cache hit = %s, input number = %zu, output number = %zu",
-             cur_graph_id, is_cache.c_str(), input_number, output_number);
-  }
-
-  // Release GIL to avoid deadlocks.
-  if (PyGILState_Check()) {
-    Py_BEGIN_ALLOW_THREADS
-    RunGraph(cur_graph_id, inputs, outputs);
-    Py_END_ALLOW_THREADS
-  } else {
-    RunGraph(cur_graph_id, inputs, outputs);
-  }
-
-  ScalarMemContext::GetContext().Reset();
-  ResetGraphOutputs();
-  if (!cached_graph_id.has_value()) {
-    // Data of new graph maybe inputs of old graphs,
-    // GE will change its attr
-    // so we need to refresh it
-    RefreshGraphInputs();
-  }
-  ClearDataStore();
-  return;
+  is_cache_hit = cached_graph_id.has_value();
+  return cur_graph_id;
 }
 
 void GraphExecutor::Init() {
@@ -185,8 +182,10 @@ void GraphExecutor::Finalize() {
   }
 }
 
-void GraphExecutor::ConstructOps(CombinedInfo& output) {
-  RECORD_HOST_FUNCTION("ConstructOps", std::vector<c10::IValue>({}));
+void GraphExecutor::ConstructOpsAndAddEdge(
+    const CombinedInfo& output,
+    std::vector<ge::Operator>& const_input_ops) {
+  RECORD_HOST_FUNCTION("ConstructOpsAndAddEdge", std::vector<c10::IValue>({}));
   std::set<NodePtr> searched_nodes;
   for (const auto& output_node : output.nodes) {
     if (searched_nodes.find(output_node) != searched_nodes.end()) {
@@ -197,15 +196,41 @@ void GraphExecutor::ConstructOps(CombinedInfo& output) {
     stack_node.push(output_node);
     while (!stack_node.empty()) {
       auto top_node = stack_node.top();
-      ATenGeBridge::CheckAndBuildGeOpForNode(top_node);
+      ATenGeBridge::CheckAndBuildGeOpForNode(top_node, const_input_ops);
       stack_node.pop();
       const auto& inputs = top_node->GetInputs();
       for (const auto& input : inputs) {
-        ATenGeBridge::CheckAndBuildGeOpForNode(input.peer_output_node);
+        ATenGeBridge::CheckAndBuildGeOpForNode(input.peer_output_node,
+                                               const_input_ops);
         top_node->GetGeOp()->SetInput(
             input.input_index,
             *(input.peer_output_node->GetGeOp()),
             input.peer_output_index);
+        /*
+        *        public_input
+        *           /     \
+        *          /       \
+        *         /         \
+        *       op ---------> inplace_op
+        *         control_edge
+        *
+        *  Add control edges to ensure that
+        *  the operators will be executed in the correct order
+        *  in inplace-related cases.
+        */
+        auto inplace_node_ptr =
+          input.peer_output_node->GetInplaceNode(input.peer_output_index);
+        if ((inplace_node_ptr.has_value()) &&
+            (!inplace_node_ptr.value().expired()) &&
+            (!top_node->IsInplace())) {
+          auto inplace_node = inplace_node_ptr.value().lock();
+          if (inplace_node != nullptr) {
+            ATenGeBridge::CheckAndBuildGeOpForNode(inplace_node,
+                                                   const_input_ops);
+            inplace_node->GetGeOp()->AddControlInput(*(top_node->GetGeOp()));
+          }
+        }
+        
         if (searched_nodes.find(input.peer_output_node) !=
             searched_nodes.end()) {
           continue;
@@ -225,7 +250,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
     auto &graph_desc = torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_mutable_npu_graph_desc();
     auto data_node = graph_desc.graph_value.GetDataNode();
     auto op_ptr = data_node.value()->GetGeOp();
-    if (data_node.value()->GetOpType() == kDataNodeType) {
+    if (data_node.value()->GetOpType() == "Data") {
       if (op_ptr == nullptr) {
         data_node.value()->SetGeOp(std::make_shared<ge::op::Data>());
         op_ptr = data_node.value()->GetGeOp();
@@ -237,7 +262,7 @@ std::vector<ge::Operator> GraphExecutor::GetInputOps() {
       // x and y are the input and output names of Data IR
       op_ptr->UpdateInputDesc("x", op_desc);
       op_ptr->UpdateOutputDesc("y", op_desc);
-      op_ptr->SetAttr(kDataAttrIndex, static_cast<uint32_t>(index));
+      op_ptr->SetAttr("index", static_cast<uint32_t>(index));
     }
     ops.push_back(*op_ptr);
   }
@@ -276,7 +301,7 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
         torch_npu::NPUBridge::GetNpuStorageImpl(input_storages[index])->get_npu_desc(),
         graph_desc.graph_value.GetRealDtype());
 
-    if (data_node.value()->GetOpType() == kDataNodeType) {
+    if (data_node.value()->GetOpType() == "Data") {
       size_t tensor_capacity = GraphUtils::GetTensorCapacity(input_storages[index]);
       ge::Tensor ge_tensor =
           PrepareInputTensor(input_storages[index], tensor_desc, tensor_capacity);
@@ -288,6 +313,7 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
     hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
     input_infos.hash_of_shape.push_back(shape_hash);
   }
+
   return input_infos;
 }
 
@@ -324,6 +350,7 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
     hash_t shape_hash = GraphCache::GetTensorShapeHash(topo_hash, tensor_desc);
     output_infos.hash_of_shape.push_back(shape_hash);
   }
+
   return output_infos;
 }
 
@@ -338,7 +365,7 @@ ge::Tensor GraphExecutor::PrepareInputTensor(
   if (addr_offset.has_value()) {
     device_ptr = ScalarMemContext::GetContext().GetDeviceMemBuffer() + addr_offset.value();
   }
-  return MakeGeTensor(desc, device_ptr, nbytes);
+  return ATenGeBridge::MakeGeTensor(desc, device_ptr, nbytes);
 }
 
 ge::Tensor GraphExecutor::PrepareOutputTenosr(
@@ -361,7 +388,7 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
         storage->data() != nullptr)) {
     GraphUtils::SetDataPtrAndNbytes(storage, nbytes);
   }
-  return MakeGeTensor(desc, storage->data(), nbytes);
+  return ATenGeBridge::MakeGeTensor(desc, storage->data(), nbytes);
 }
 
 void GraphExecutor::ResetGraphOutputs() {
@@ -418,3 +445,4 @@ bool GraphExecutor::CheckDeviceIdAndInit() {
 }
 } // namespace native
 } // namespace at_npu
+

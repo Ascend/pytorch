@@ -25,27 +25,28 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, const at::Tensor& x, double p, int64_t seed, int64_t offset) {
-  auto x_ = at::empty_like(x);
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, at::Tensor& shape, double prob, int64_t seed, int64_t offset) {
+  shape = NPUNativeFunctions::npu_dtype_cast(shape, at::ScalarType::Long);
   OpCommand cmd;
-  cmd.Name("Bernoulli")
-    .Input(x_)
-    .Input(at::Scalar(p), at::ScalarType::Float)
+  cmd.Name("StatelessBernoulli")
+    .Input(shape)
+    .Input(at::Scalar(prob), at::ScalarType::Float)
+    .Input(at::Scalar(seed), at::ScalarType::Long)
+    .Input(at::Scalar(offset), at::ScalarType::Long)
     .Output(y)
-    .Attr("seed", seed)
-    .Attr("offset", offset)
     .Run();
   return y;
 }
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, const at::Tensor& x, const at::Tensor& p, int64_t seed, int64_t offset) {
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, at::Tensor& shape, const at::Tensor& prob, int64_t seed, int64_t offset) {
+  shape = NPUNativeFunctions::npu_dtype_cast(shape, at::ScalarType::Long);
   OpCommand cmd;
-  cmd.Name("Bernoulli")
-    .Input(x)
-    .Input(p)
+  cmd.Name("StatelessBernoulli")
+    .Input(shape)
+    .Input(prob)
+    .Input(at::Scalar(seed), at::ScalarType::Long)
+    .Input(at::Scalar(offset), at::ScalarType::Long)
     .Output(y)
-    .Attr("seed", seed)
-    .Attr("offset", offset)
     .Run();
   return y;
 }

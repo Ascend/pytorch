@@ -228,6 +228,25 @@ PyObject* THNPModule_disable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_enable_replay_graph_mode_wrap(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  bool verbose = THPUtils_unpackBool(arg);
+  at_npu::native::GraphExecutor::GetInstance().SetVerbose(verbose);
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::REPLAY_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_disable_replay_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::SINGLE_OP_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject* THNPModule_launch_graph_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
@@ -559,6 +578,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
     {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_O, nullptr},
     {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_enable_replay_graph_mode", (PyCFunction)THNPModule_enable_replay_graph_mode_wrap, METH_O, nullptr},
+    {"_npu_disable_replay_graph_mode", (PyCFunction)THNPModule_disable_replay_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},

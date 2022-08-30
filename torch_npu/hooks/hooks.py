@@ -32,6 +32,9 @@ def get_dump_path():
 
 
 def dump_tensor(x, prefix=""):
+    if "DUMP_PATH" not in os.environ:
+        return
+
     f = os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a")
     if isinstance(x, (tuple, list)) and x:
         for i, item in enumerate(x):
@@ -46,7 +49,7 @@ def dump_tensor(x, prefix=""):
 
 def warp_acc_cmp_hook(name):
     def acc_cmp_hook(module, in_feat, out_feat):
-        name_template = f"{name}_{module.__class__.__name__}"+ "_{}"
+        name_template = f"{name}"+ "_{}"
         dump_tensor(in_feat, name_template.format("input"))
         dump_tensor(out_feat, name_template.format("output"))
 

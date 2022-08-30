@@ -88,7 +88,12 @@ public:
 
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
-                 at::ScalarType toType = at::kLong);
+                   at::ScalarType toType = at::kLong,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+
+  // IntArrayRef/SmallVector Input for uint64
+  OpCommand& InputForUint64(const c10::IntArrayRef &dimListRef,
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
 
   // Scalar Input, we will do h2d in launch kernel
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
@@ -96,6 +101,8 @@ public:
 
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList &inputs);
+
+  OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
 
   // Output Tensor
   OpCommand& Output(
@@ -126,6 +133,12 @@ private:
 
   OpCommand& AddHostTensorInput(const at::Tensor &tensor,
                               CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+
+  OpCommand& AddHostUint64TensorInput(
+      const at::Tensor &tensor,
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+
+  OpCommand& AddScalarInput(const c10::Scalar& input, at::ScalarType type);
 
   OpCommand& AddNoneTensor();
 

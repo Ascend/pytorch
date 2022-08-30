@@ -1,5 +1,5 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2022 Huawei Technologies Co., Ltd
+// Copyright (c) 2022, Facebook CORPORATION. 
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -17,6 +17,8 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
 namespace at_npu {
 namespace native {
@@ -26,13 +28,47 @@ namespace {
 }
 
 at::Tensor& random_out_npu(at::Tensor& result, at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
-  OpCommand cmd;
-  cmd.Name("Random")
-       .Input(self)
-       .Output(result)
-       .Attr("from", from)
-       .Attr("to", to)
+  at::Tensor SelfCopy = OpPreparation::ApplyTensor(self,self.options().dtype(at::kFloat));
+  at::Tensor resultTemp1 = OpPreparation::ApplyTensor(SelfCopy); 
+  at::Tensor resultTemp2 = OpPreparation::ApplyTensor(SelfCopy); 
+  at::Tensor resultTemp3 = OpPreparation::ApplyTensor(SelfCopy);  
+
+  at::IntArrayRef selfShape = self.sizes(); 
+  const auto gen = at_npu::detail::getDefaultNPUGenerator();
+  auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  at::SmallVector<int64_t, N> key = {seed}; 
+  at::SmallVector<int64_t, N> counter = {0, offset}; 
+  const int32_t alg = 1;
+  OpCommand cmd1;
+  cmd1.Name("StatelessRandomUniformV2")
+       .Input(selfShape, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+       .InputForUint64(key, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+       .InputForUint64(counter, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+       .Input(at::Scalar(alg), at::ScalarType::Int)
+       .Attr("dtype", at::kFloat)
+       .Output(resultTemp1)
        .Run();
+       
+  OpCommand cmd2;
+  cmd2.Name("Muls")
+       .Input(resultTemp1)
+       .Attr("value", static_cast<float>(to)-static_cast<float>(from))
+       .Output(resultTemp2)
+       .Run();
+       
+  resultTemp2.add_(static_cast<float>(from));
+  resultTemp3.copy_(resultTemp2); 
+  resultTemp3 = resultTemp3.to(self.dtype());
+  result.copy_(resultTemp3);
+  if(self.dtype() == at::kInt || self.dtype() == at::kLong) {
+    OpCommand cmd3;
+    cmd3.Name("Round")
+        .Input(resultTemp3)
+        .Output(result)
+        .Run();
+  }
   return result;
 }
 

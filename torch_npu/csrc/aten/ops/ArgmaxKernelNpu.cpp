@@ -36,7 +36,7 @@ at::Tensor NPUNativeFunctions::argmax(const at::Tensor& self, at::optional<int64
   OpCommand cmd;
   cmd.Name("ArgMaxV2")
       .Input(input)
-      .Input(DimVec, at::ScalarType::Int)
+      .Input(DimVec, at::ScalarType::Int, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Attr("keep_dims", realKeepDim)
       .Run();

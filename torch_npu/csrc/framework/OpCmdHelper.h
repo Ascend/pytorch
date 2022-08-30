@@ -51,6 +51,9 @@ namespace at_npu
 
       static std::tuple<aclTensorDesc *, aclDataBuffer *>
       CovertHostTensorToAclInput(const at::Tensor &tensor, at::ScalarType type, CompileType compileType);
+
+      static std::tuple<aclTensorDesc *, aclDataBuffer *>
+      CovertHostUint64TensorToAclInput(const at::Tensor &tensor, CompileType compileType);
     }; // class OpCommandImpl
 
   } // native

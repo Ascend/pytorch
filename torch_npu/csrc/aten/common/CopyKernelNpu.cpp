@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include <c10/core/Scalar.h>
 #include <ATen/record_function.h>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 
@@ -27,23 +28,6 @@
 
 namespace at_npu {
 namespace native {
-namespace {
-// view value : {numel, storage_offset, strides.size, strides}
-c10::SmallVector<int64_t, N> get_view_value(
-    const at::Tensor& t,
-    const c10::IntArrayRef& strides) {
-  static c10::SmallVector<int64_t, N> value;
-  // It is determined by the definition of view attr
-  value.resize(strides.size() + 3);
-  value[0] = t.storage().nbytes() / t.element_size(); // storageImpl numel
-  value[1] = t.storage_offset(); // default to 0
-  value[2] = strides.size();
-  for (size_t i = 0; i < strides.size(); i++) {
-    value[3 + i] = strides[i];
-  }
-  return value;
-}
-} // namespace
 
 // format are base format (the format of src and dst are all nchw now)
 // dtype are same
@@ -52,49 +36,44 @@ void copy_kernel_npu(
     at::Tensor& self,
     const at::Tensor& src,
     bool non_blocking) {
-  RECORD_FUNCTION("d2dCopyWithPTCopy", std::vector<c10::IValue>({src}));
-  // In graph mode, PTcopy will be supported in the future
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
-  const int64_t HEAD_FLAG = 0x6461656800000000;
-  const int64_t FIXED_LEN =
-      9; // head, len, version, two tensors' numel, offset and strides lens
-  const int64_t VERSION = 0; // op version
+  RECORD_FUNCTION("d2dCopyWithViewCopy", std::vector<c10::IValue>({src}));
 
-  auto selfStrides = self.strides();
-  auto srcStrides = src.strides();
+  auto self_size = self.sizes();
+  auto self_stride = self.strides();
+  auto src_size = src.sizes();
+  auto src_stride = src.strides();
 
-  int64_t len = FIXED_LEN + selfStrides.size() + srcStrides.size();
-  c10::SmallVector<int64_t, N> value;
-  value.emplace_back(HEAD_FLAG); // head flag
-  value.emplace_back(len); // value length
-  value.emplace_back(VERSION);
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    OpCommand cmd;
+    cmd.Name("ViewCopy")
+        .InputWithoutContiguous(self)
+        .Input(self_size)
+        .Input(self_stride)
+        .Input(c10::Scalar(self.storage_offset()), at::kLong)
+        .InputWithoutContiguous(src)
+        .Input(src_size)
+        .Input(src_stride)
+        .Input(c10::Scalar(src.storage_offset()), at::kLong)
+        .Output(self)
+        .Run();
 
-  auto inputValue = get_view_value(src, srcStrides);
-  auto outValue = get_view_value(self, selfStrides);
+    return;
+  };
 
-  value.insert(value.end(), inputValue.begin(), inputValue.end());
-  value.insert(value.end(), outValue.begin(), outValue.end());
+  OpCommand cmd;
+  cmd.Name("ViewCopy")
+      .InputWithoutContiguous(self)
+      .Input(self_size)
+      .Input(self_stride)
+      .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+      .InputWithoutContiguous(src)
+      .Input(src_size)
+      .Input(src_stride)
+      .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+      .Output(self)
+      .Run();
 
-  at::Tensor attrTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      at::from_blob(value.data(), {value.size()}, dtype(at::ScalarType::Long)));
-
-  auto src_desc_bp = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
-  auto self_desc_bp = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
-
-  // The action of PTcopy_ is defined by attrTensor, so the member of NPUStorageDesc
-  // can not affect the result, but the PTcopy_ will check base_size and storage_size,
-  // so we reflash them here, and recover them later.
-  StorageDescHelper::ReflushDescBySelf(src);
-  StorageDescHelper::ReflushDescBySelf(self);
-
-  c10::SmallVector<NPUTensorDesc, N> inputs = {
-      NPUTensorDesc(src), NPUTensorDesc(attrTensor)};
-  c10::SmallVector<NPUTensorDesc, N> outputs = {NPUTensorDesc(self)};
-
-  CalcuOpUtil::execute_npu_operate("PTcopy_", inputs, outputs, {});
-
-  StorageDescHelper::CopyDesc(src, src_desc_bp);
-  StorageDescHelper::CopyDesc(self, self_desc_bp);
+  return;
 }
 
 // the dst and src are same dtype
@@ -146,6 +125,5 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
     return;
   }
 }
-
 } // namespace native
 } // namespace at_npu
