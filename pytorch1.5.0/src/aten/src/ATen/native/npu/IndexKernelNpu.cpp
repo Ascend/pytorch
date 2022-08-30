@@ -26,12 +26,12 @@ using namespace at::native::npu;
 Tensor& index_out_npu(
     Tensor& result,
     const Tensor& self,
-    const Tensor& masksTensor,
+    IntArrayRef masks,
     TensorList allDefinedIndices) {
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(masksTensor);
+      .Input(masks);
   for (int i = 0; i < allDefinedIndices.size(); i++) {
     cmd.Input(allDefinedIndices[i]);
   }
@@ -74,11 +74,8 @@ Tensor index_npu(const Tensor& self, TensorList indices) {
     }
   }
 
-  Tensor masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      from_blob(masks.data(), {masks.size()}, dtype(ScalarType::Long)));
-
   // calculate the output result of the NPU
-  index_out_npu(result, formatCastOfSelf, masksTensor, allDefinedIndices);
+  index_out_npu(result, formatCastOfSelf, masks, allDefinedIndices);
 
   return result;
 }

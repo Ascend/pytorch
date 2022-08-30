@@ -1466,6 +1466,9 @@
 - name: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
   input, weight, bias: npu_convolution_transpose_backward(input, grad, weight, padding, output_padding, stride, dilation, groups, grad_input_mask)
 
+- name: npu_convolution_transpose_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
+  grad_output, input, weight: _convolution_double_backward(grads[0], grads[1], Tensor(), grad_output, weight, input, stride, padding, dilation, true, output_padding, groups, false, false, false, grad_input_mask)
+
 # The above backward definitions are equivalent to the definitions below.  Why do we bundle
 # everything up?  It's because it's more convenient to define double backwards
 # when there is a single function that manages everything.
