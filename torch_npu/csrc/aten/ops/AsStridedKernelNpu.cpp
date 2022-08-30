@@ -41,9 +41,9 @@ at::Tensor& stride_copy_out_npu_nocheck(
   OpCommand cmd;
   cmd.Name("AsStrided")
       .InputWithoutContiguous(self)
-      .Input(shape)
-      .Input(stride)
-      .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(shape, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(storage_offset, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Output(result)
       .Run();
   return result;
