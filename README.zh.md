@@ -257,6 +257,30 @@ source pytorch/pytorch1.5.0/src/env.sh
 
 
 
+## 编译过程执行bash build.sh报错FAILED:confu-deps/XNNPACK/CMakefiles/XNNPACK.dir/src/f32-gemm/gen-inc/4x8inc-minmax-{arch}-neonfma-cortex-a{xx}.S.o
+
+编译前，环境变量默认USE_XNNPACK=1，编译时会报错，需设置重设该环境变量，再次编译。
+
+1. 重设环境变量
+
+   ```
+   export USE_XNNPACK=0
+   ```
+
+2. 清除编译缓存
+
+   ```
+   make clean
+   ```
+
+3. 重新编译
+
+   ```
+   bash build.sh --python={python_version}
+   ```
+
+
+
 ## 编译过程执行bash build.sh报错no module named yaml/typing_extensions.
 
 pytorch编译依赖 yaml库和typing_extensions库，需要手动安装。
