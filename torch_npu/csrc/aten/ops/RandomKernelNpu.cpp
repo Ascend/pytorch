@@ -23,95 +23,70 @@
 namespace at_npu {
 namespace native {
 
-namespace {
-  constexpr int MAX_ERROR_OF_FP32_TO_FP16 = 16;
-}
-
-at::Tensor& random_out_npu(at::Tensor& result, at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
-  at::Tensor SelfCopy = OpPreparation::ApplyTensor(self,self.options().dtype(at::kFloat));
-  at::Tensor resultTemp1 = OpPreparation::ApplyTensor(SelfCopy); 
-  at::Tensor resultTemp2 = OpPreparation::ApplyTensor(SelfCopy); 
-  at::Tensor resultTemp3 = OpPreparation::ApplyTensor(SelfCopy);  
-
-  at::IntArrayRef selfShape = self.sizes(); 
-  const auto gen = at_npu::detail::getDefaultNPUGenerator();
-  auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
+at::Tensor& random_out_npu(
+    at::Tensor& result,
+    at::Tensor& self,
+    int64_t from,
+    int64_t to,
+    c10::optional<at::Generator> gen_) {
+  auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen->philox_engine_inputs(10);
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
   at::SmallVector<int64_t, N> key = {seed}; 
   at::SmallVector<int64_t, N> counter = {0, offset}; 
   const int32_t alg = 1;
-  OpCommand cmd1;
-  cmd1.Name("StatelessRandomUniformV2")
-       .Input(selfShape, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-       .InputForUint64(key, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-       .InputForUint64(counter, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-       .Input(at::Scalar(alg), at::ScalarType::Int)
-       .Attr("dtype", at::kFloat)
-       .Output(resultTemp1)
-       .Run();
-       
-  OpCommand cmd2;
-  cmd2.Name("Muls")
-       .Input(resultTemp1)
-       .Attr("value", static_cast<float>(to)-static_cast<float>(from))
-       .Output(resultTemp2)
-       .Run();
-       
-  resultTemp2.add_(static_cast<float>(from));
-  resultTemp3.copy_(resultTemp2); 
-  resultTemp3 = resultTemp3.to(self.dtype());
-  result.copy_(resultTemp3);
-  if(self.dtype() == at::kInt || self.dtype() == at::kLong) {
-    OpCommand cmd3;
-    cmd3.Name("Round")
-        .Input(resultTemp3)
+  OpCommand cmd;
+  cmd.Name("StatelessRandomUniformV2")
+      .Input(self.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(key, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(counter, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(at::Scalar(alg), at::ScalarType::Int);
+  // StatelessRandomUniformV2 doesn't support int output
+  if (isIntegralType(self.scalar_type(), true)) {
+    at::Tensor resultInt = OpPreparation::ApplyTensor(self, self.options().dtype(at::kFloat));
+    cmd.Attr("dtype", at::kFloat)
+        .Output(resultInt)
+        .Run();
+    // StatelessRandomUniformV2 output: U(0~1) --> U(from~to)
+    resultInt = resultInt.mul(to).sub(resultInt.mul(from).sub(static_cast<float>(from)));
+    result = NPUNativeFunctions::npu_dtype_cast(resultInt, self.scalar_type());
+  } else {
+    cmd.Attr("dtype", self.scalar_type())
         .Output(result)
         .Run();
+    // StatelessRandomUniformV2 output: U(0~1) --> U(from~to)
+    result = result.mul(to).sub(result.mul(from).sub(static_cast<float>(from)));
+    // round off numbers
+    result = NPUNativeFunctions::npu_dtype_cast(
+        NPUNativeFunctions::npu_dtype_cast(result, at::kLong), self.scalar_type());
   }
   return result;
 }
 
 at::Tensor& random_npu_(at::Tensor& self, int64_t from, int64_t to, c10::optional<at::Generator> gen_) {
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-
-  if (!NpuUtils::check_match(&selfCopy)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);
-    at::Tensor result = random_out_npu(contiguousSelf, contiguousSelf, from, to, gen_);
-    NpuUtils::format_fresh_view(selfCopy, result);
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    random_out_npu(contiguousSelf, contiguousSelf, from, to, gen_);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
   } else {
-    random_out_npu(selfCopy, selfCopy, from, to, gen_);
+    random_out_npu(self, self, from, to, gen_);
   }
-  self.copy_(selfCopy);
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, int64_t from, c10::optional<int64_t> to, c10::optional<at::Generator> gen_) {
+at::Tensor& NPUNativeFunctions::random_(
+    at::Tensor& self, int64_t from,
+    c10::optional<int64_t> to,
+    c10::optional<at::Generator> gen_) {
   int64_t to_ = to.value();
-
   random_npu_(self, from, to_, gen_);
-
-  // fp32 casting to fp16 will introduce error, so needing to counteract it.
-  if (self.scalar_type() == at::ScalarType::Half) {
-    self = at::where(self == to_, self - MAX_ERROR_OF_FP32_TO_FP16, self);
-  }
-
   return self;
 }
 
 at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, int64_t to, c10::optional<at::Generator> gen_) {
   int64_t from = 0;
-
   random_npu_(self, from, to, gen_);
-
-  // fp32 casting to fp16 will introduce error, so needing to counteract it.
-  if (self.scalar_type() == at::ScalarType::Half) {
-    self = at::where(self == to, self - MAX_ERROR_OF_FP32_TO_FP16, self);
-  }
-
   return self;
 }
 

@@ -89,11 +89,8 @@ public:
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
-                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
-
-  // IntArrayRef/SmallVector Input for uint64
-  OpCommand& InputForUint64(const c10::IntArrayRef &dimListRef,
-      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "");
 
   // Scalar Input, we will do h2d in launch kernel
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
@@ -131,12 +128,10 @@ private:
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
                           const string &descName = "", const string &realData = "") ;
 
-  OpCommand& AddHostTensorInput(const at::Tensor &tensor,
-                              CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
-
-  OpCommand& AddHostUint64TensorInput(
+  OpCommand& AddHostTensorInput(
       const at::Tensor &tensor,
-      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+      const string& realDtype = "");
 
   OpCommand& AddScalarInput(const c10::Scalar& input, at::ScalarType type);
 

@@ -175,5 +175,24 @@ class TestRandom(TestCase):
         self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
         self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
 
+    def test_random_seed(self):
+        torch.manual_seed(123)
+        input1 = torch.rand(2, 3, 4).npu()
+        input1.random_(2, 10)
+        torch.manual_seed(123)
+        input2 = torch.rand(2, 3, 4).npu()
+        input2.random_(2, 10)
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
+    def test_random_seed_fp16(self):
+        torch.manual_seed(3)
+        input1 = torch.rand(4, 5, 3).half().npu()
+        input1.random_(0, 100)
+        torch.manual_seed(3)
+        input2 = torch.rand(4, 5, 3).half().npu()
+        input2.random_(0, 100)
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
+
 if __name__ == "__main__":
     run_tests()

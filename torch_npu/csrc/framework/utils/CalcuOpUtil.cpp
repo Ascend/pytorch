@@ -72,7 +72,8 @@ namespace at_npu
       static std::map<const string, const aclDataType>
           STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
               {"uint16", ACL_UINT16},
-              {"uint8", ACL_UINT8}};
+              {"uint8", ACL_UINT8},
+              {"uint64", ACL_UINT64}};
 
       string GetAtScalarTypeName(const at::ScalarType data_type)
       {

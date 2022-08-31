@@ -85,7 +85,7 @@ OpCommand& OpCommand::InputWithoutContiguous(
 }
 
 OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType,
-    CompileType compileType) {
+    CompileType compileType, const string& realDtype) {
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
@@ -93,15 +93,7 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
                                            dimListRef.size(),
                                            c10::TensorOptions(at::kCPU).dtype(at::kLong),
                                            toType);
-  return AddHostTensorInput(cpuTensor, compileType);
-}
-
-OpCommand& OpCommand::InputForUint64(const c10::IntArrayRef &dimListRef, CompileType compileType) {
-  at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
-                                           dimListRef.size(),
-                                           c10::TensorOptions(at::kCPU).dtype(at::kLong),
-                                           at::kLong);
-  return AddHostUint64TensorInput(cpuTensor, compileType);
+  return AddHostTensorInput(cpuTensor, compileType, realDtype);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
@@ -194,16 +186,12 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   return *this;
 }
 
-OpCommand& OpCommand::AddHostTensorInput(const at::Tensor &tensor, CompileType compileType) {
+OpCommand& OpCommand::AddHostTensorInput(
+    const at::Tensor &tensor,
+    CompileType compileType,
+    const string& realDtype) {
   std::tuple < aclTensorDesc *, aclDataBuffer *> res;
-  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
-  aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
-  return *this;
-}
-
-OpCommand& OpCommand::AddHostUint64TensorInput(const at::Tensor &tensor, CompileType compileType) {
-  std::tuple<aclTensorDesc*, aclDataBuffer*> res;
-  res = OpCmdHelper::CovertHostUint64TensorToAclInput(tensor, compileType);
+  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }
