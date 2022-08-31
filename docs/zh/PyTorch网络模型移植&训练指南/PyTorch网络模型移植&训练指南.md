@@ -2075,12 +2075,7 @@ CANN Profiling数据采集
       >![](public_sys-resources/icon-note.gif) **说明：** 
       >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
-  2.  解析性能数据文件。
-
-      请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0003.html)中“开发工具>Profiling工具>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
-
-
-  3. 高级用法
+  2. 高级用法
 
     pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
     ```
@@ -2096,6 +2091,33 @@ CANN Profiling数据采集
                 torch_npu.npu.prof_stop()
                 torch_npu.npu.prof_finalize()
     ```
+  3.  解析性能数据文件。
+
+      详细内容请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
+
+      前述方法会产生如下数据：
+
+         <img src="figures/cann_prof_result.png" />
+
+        解析该数据需要使用的msprof工具，一般默认路径在 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py
+        第一步，执行
+        ```
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py import -dir ./results/
+        ```
+        第二步，导出数据（可以导出timeline和summary数据，timeline类型数据可以导出至chrome://tracing/查看，而summary数据以excel形式展示）。
+
+        ```
+        # 导出timeline数据
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py export  timeline -dir ./results/
+        # 导出summary数据
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py export  summary -dir ./results/
+        ```
+
+        解析结果如下：
+
+        <img src="figures/cann_result.png" />
+
+    
 
  E2E profiling数据采集
 
@@ -2139,13 +2161,11 @@ d. timeline路径下为解析得到的性能数据，可以通过chrome://tracin
 
    点击load，上传文件查看。
 
-      <img src="figures/chrometracing.png" style="zoom:80%;" />
-
    内容示例如下图：
 
-   <img src="figures/3.png" style="zoom:80%;" />
+   <img src="figures/e2e_prof.png" style="zoom:80%;" />
 
-   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
+   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（GeOPExecute）为GE层数据，第四层（Runtime）为Runtime调度层数据，第五层(Task Scheduler)为device上数据，第六层（如有则为是AICPU，示意图中没有第六层数据）为AICPU上数据。
 
 3. E2E profiling高级设置<a name="E2E"></a>
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
