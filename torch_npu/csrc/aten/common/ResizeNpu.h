@@ -46,8 +46,9 @@ static void storage_resize_npu(
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
   storage.set_nbytes(size);
-
-  StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
+  }
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;
