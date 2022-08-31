@@ -136,10 +136,9 @@ void syncStreams(
   }
 }
 
-// exit call back for allreduce error
+// exit call back for an AI Core exception
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
-  std::string err = "AllReduce error in:" + std::string(__FILE__) + ": " +
-      std::to_string(__LINE__);
+  std::string err = "An AI Core exception occurred";
   throw std::runtime_error(err);
 }
 } // namespace
@@ -711,7 +710,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   c10_npu::OptionalNPUGuard npuGuard;
   for (auto& device : devices) {
     npuGuard.set_index(device.index());
-    barrierTensors.push_back(at::empty(
+    barrierTensors.push_back(at::ones(
         {1},
         at::TensorOptions().device(at_npu::key::NativeDeviceType).dtype(at::kFloat)));
   }
