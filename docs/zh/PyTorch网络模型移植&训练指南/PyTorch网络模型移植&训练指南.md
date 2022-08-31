@@ -152,7 +152,7 @@
 - 模型迁移前，使用dump op方法获取算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中自定义算子进行比较，确定是否支持。
 - 模型迁移后，在昇腾设备上进行运行训练脚本，若存在不支持昇腾AI设备的算子，会提示报错信息。
 
-若存在不支持算子，可以采用修该模型用等价支持的算子替换或者参考[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
+若存在不支持算子，可以采用改模型用等价支持的算子替换或者参考[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
 ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 

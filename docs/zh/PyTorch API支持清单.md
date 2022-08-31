@@ -1674,7 +1674,6 @@ Change the format of a npu tensor.
     >>> torch_npu.get_npu_format(x)
     0
     >>> torch_npu.get_npu_format(x.npu_format_cast_(29))
-    29
     ```
 
 > torch_npu.npu_transpose(self, perm, bool require_contiguous=True) -> Tensor
@@ -3545,6 +3544,8 @@ Using NPU custom operator to replace the native writing method to improve perfor
       >>> axis = -1
       >>> output = torch_npu.contrib.function.fuse_add_softmax_dropout(training, dropout, npu_input1, npu_input2, alpha, p=axis)
   ```
+  
+  
 
 >   **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
 
@@ -3579,6 +3580,7 @@ Taking into account the distance between the targets,the overlap rate of the dis
       >>> l = diou.sum()
       >>> l.backward()
   ```
+  
   
 
 >   **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0):
@@ -3615,6 +3617,8 @@ Applies an NPU based CIOU operation.
       >>> l = ciou.sum()
       >>> l.backward()
   ```
+  
+  
 
 >   **class** **NpuFairseqDropout**(torch.nn.Dropout):
 
@@ -3623,6 +3627,8 @@ FairseqDropout using on npu device
 - Args：
   -  p (float): probability of an element to be zeroed.
   - module_name (string): the name of the model
+  
+  
 
 >   **class** **MultiheadAttention**(nn.Module):
 
@@ -3631,28 +3637,849 @@ Multi-headed attention.
 - Args：
 
   - embed_dim (int): Total dimension of the model.
-
   - num_heads (int): Number of parallel attention heads. 
-
   - kdim(int): Total number of features for keys. Default: None
-
   - vdim(int): Total number of features for values. Default: None
-
   - dropout (float): Dropout probability 
+  - bias (bool):  If specified, adds bias to input / output projection layers. Default: True.
+  - add_bias_kv (bool): If specified, adds bias to the key and value sequences at dim=0. Default: False.
+  - add_zero_attn (bool): If specified, adds a new batch of zeros to the key and value sequences at dim=1. 
+                                  Default: False.
+  - self_attention (bool): Calculate your own attention score. Default: False.
+  - encoder_decoder_attention (bool): The input is the output of the encoder and the self-attention output of the decoder, where the self-attention of the encoder is used as the key and value, and the self-attention of the decoder is used as the query. Default: False.
+  - q_noise(float): amount of Quantization Noise.
+  - qn_block_size(int): size of the blocks for subsequent quantization with iPQ.
 
+  
+
+>   **def** **npu_single_level_responsible_flags**(featmap_size,gt_bboxes,stride,num_base_anchors):
+
+Using NPU OP to generate the responsible flags of anchor in a single feature map.
+
+- Notes：
+
+  Using NPU OP to generate the responsible flags of anchor in a single feature map.
+
+- Args：
+
+  - featmap_size (tuple[int]): Total dimension of the model.
+
+  - gt_bboxes (Tensor): Number of parallel attention heads. 
+
+  - stride (tuple(int)): Total number of features for keys. Default: None
+
+  - num_base_anchors (int): Total number of features for values. Default: None
+
+- Returns：
+
+  torch.Tensor: The valid flags of each anchor in a single level \
+              feature map. Output size is [featmap_size[0] * featmap_size[1] * num_base_anchors].
+
+- Examples：
+
+  ```
+      >>> featmap_sizes = [[10, 10], [20, 20], [40, 40]]
+      >>> stride = [[32, 32], [16, 16], [8, 8]]
+      >>> gt_bboxes = torch.randint(0, 512, size=(128, 4))
+      >>> num_base_anchors = 3
+      >>> featmap_level = len(featmap_sizes)
+      >>> torch.npu.set_device(0)
+      >>> for i in range(featmap_level):
+              gt_bboxes = gt_bboxes.npu()
+      >>> out = npu_single_level_responsible_flags(featmap_sizes[i],gt_bboxes,stride[i],num_base_anchors)
+      >>> print(out.shape, out.max(), out.min())
+  ```
+
+
+
+>   **def** **npu_bbox_coder_encode_yolo**(bboxes, gt_bboxes, stride):
+
+Using NPU OP to Get box regression transformation deltas
+    that can be used to transform the ``bboxes`` into the ``gt_bboxes``
+
+- Args:
+  - bboxes (torch.Tensor): Source boxes, e.g., anchors. Support dtype: float, half.
+  - gt_bboxes (torch.Tensor): Target of the transformation, e.g.,ground-truth boxes. Support dtype: float, half.
+  - stride (torch.Tensor): Stride of bboxes. Only IntTensor is supported.
+
+- Returns:
+
+   torch.Tensor: Box transformation deltas
+
+- Examples：
+
+  ```
+      >>> A = 1024
+      >>> bboxes = torch.randint(0, 512, size=(A, 4))
+      >>> gt_bboxes = torch.randint(0, 512, size=(A, 4))
+      >>> stride = torch.randint(0, 32, size=(A,))
+      >>> torch.npu.set_device(0)
+      >>> bboxes = bboxes.npu()
+      >>> gt_bboxes = gt_bboxes.npu()
+      >>> stride = stride.npu()
+      >>> out = npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride)
+      >>> torch.npu.synchronize()
+      >>> print('_npu_bbox_coder_encode_yolo done. output shape is ', out.shape)
+  ```
+
+
+
+>   **npu_bbox_coder_encode_xyxy2xywh**(bboxes,gt_bboxes,means=None,stds=None,is_normalized=False,normalized_scale=10000.,):
+
+Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
+
+- Args：
+
+  -  bboxes (Tensor): Boxes to be transformed, shape (N, 4). Support dtype: float, half.
+
+  -  gt_bboxes (Tensor): Gt bboxes to be used as base, shape (N, 4). Support dtype: float, half.
+
+  -  means (List[float]): Denormalizing means of target for delta coordinates.
+  -  stds (List[float]): Denormalizing standard deviation of target for delta coordinates.
+  -  is_normalized (Bool): Whether the value of coordinates has been normalized.
+  -  normalized_scale (Float): Sets the normalization scale for restoring coordinates.
+
+- Returns：
+
+    torch.Tensor: Box transformation deltas
+
+- Examples：
+
+  ```
+      >>> A = 1024
+      >>> bboxes = torch.randint(0, 512, size=(A, 4))
+      >>> gt_bboxes = torch.randint(0, 512, size=(A, 4))
+      >>> stride = torch.randint(0, 32, size=(A,))
+      >>> torch.npu.set_device(0)
+      >>> bboxes = bboxes.npu()
+      >>> gt_bboxes = gt_bboxes.npu()
+      >>> stride = stride.npu()
+      >>> out = npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride)
+      >>> torch.npu.synchronize()
+      >>> print('_npu_bbox_coder_encode_yolo done. output shape is ', out.shape)
+  ```
+
+
+
+>   **def** 
+>   **npu_bbox_coder_decode_xywh2xyxy**(bboxes,pred_bboxes,means=None,stds=None,max_shape=None,wh_ratio_clip=16 / 1000,):
+
+ Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
+
+- Args：
+
+  - anchors (torch.Tensor): Basic boxes, shape (N, 4). Support dtype: float, half.
+
+  - pred_bboxes (torch.Tensor): Encoded boxes with shape, shape (N, 4). Support dtype: float, half.
+
+  - means (List[float]): Denormalizing means of target for delta coordinates.This parameter needs to be aligned with the encoding parameter.
+
+  - stds (List[float]): Denormalizing standard deviation of target for delta coordinates.This parameter needs to be aligned with the encoding parameter.
+
+  - max_shape (tuple[int], optional): Maximum shape of boxes specifies (H, W).This parameter generally corresponds to the size of the real picture where bbox is located.Defaults to [9999, 9999] as not limited.
+
+  - wh_ratio_clip (float, optional): The allowed ratio between width and height.
+
+- Returns：
+  Tensor: Boxes with shape (N, 4), where 4 represent tl_x, tl_y, br_x, br_y.
+
+- Example：
+
+  ```
+      >>> A = 1024
+      >>> max_shape = 512
+      >>> bboxes = torch.randint(0, max_shape, size=(A, 4))
+      >>> pred_bboxes = torch.randn(A, 4)
+      >>> torch.npu.set_device(0)
+      >>> bboxes = bboxes.npu()
+      >>> pred_bboxes = pred_bboxes.npu()
+      >>> out = npu_bbox_coder_decode_xywh2xyxy(bboxes, pred_bboxes, max_shape=(max_shape, max_shape))
+      >>> torch.npu.synchronize    >>> ()
+      >>> print('_npu_bbox_coder_decode_xywh2xyxy done. output shape is ', out.shape)
+  ```
+
+  
+
+>   **def** **npu_fast_condition_index_put**(x, condition, value):
+
+Using NPU affinity writing method to replace the native writing method in bool type index_put function.
+
+- Args：
+
+  - anchors (torch.Tensor): Basic boxes, shape (N, 4). Support dtype: float, half.
+
+  - pred_bboxes (torch.Tensor): Encoded boxes with shape, shape (N, 4). Support dtype: float, half.
+
+  - means (List[float]): Denormalizing means of target for delta coordinates.This parameter needs to be aligned with the encoding parameter.
+
+- Returns：
+
+  torch.Tensor: Box transformation deltas
+
+- Example：
+
+  ```
+      >>> x = torch.randn(128, 8192)
+      >>> condition = x < 0.5
+      >>> value = 0.
+      >>> x1 = copy.deepcopy(x)[condition] = value
+      >>> x1_opt = npu_fast_condition_index_put(x, condition, value)
+  ```
+
+  
+
+>   **class** **MatmulApply**(torch.autograd.Function):
+
+Using NPU custom operator to replace the native writing method to improve performance.
+
+- Args：
+
+  - tensor1 (Tensor): the first tensor to be multiplied.
+
+  - tensor2 (Tensor): the second tensor to be multiplied.
+
+- Returns：
+
+  Tensor: the output tensor.
+
+- Example：
+
+  ```
+          >>> tensor1 = torch.randn(68, 5, 75, 16).npu()
+          >>> tensor1.requires_grad_(True)
+          >>> tensor2 = torch.randn(68, 5, 75, 16).npu()
+          >>> tensor2.requires_grad_(True)
+          >>> output = matmul_transpose(tensor1, tensor2)
+          >>> output.sum().backward()
+  ```
+
+  
+
+>   **def npu_multiclass_nms**(multi_bboxes,multi_scores, score_thr=0.05,nms_thr=0.45,max_num=50,score_factors=None):
+
+NMS for multi-class bboxes using npu api.
+
+- Args：
+
+  - multi_bboxes (Tensor): shape (n, #class, 4) or (n, 4)
+  - multi_scores (Tensor): shape (n, #class+1), where the last column contains scores of the background class, but this will be ignored.On npu, in order to keep the semantics unblocked, we will unify the dimensions
+  - score_thr (float): bbox threshold, bboxes with scores lower than it will not be considered.
+  -  nms_thr (float): NMS IoU threshold. In the original implementation, a dictionary of {"iou_threshold": 0.45} was passed, which is simplified here.
+  - max_num (int): if there are more than max_num bboxes after NMS,only top max_num will be kept; if there are less than max_num bboxes after NMS,the output will zero pad to max_num. On the NPU, the memory needs to be requested in advance,so the current max_num cannot be set to -1 at present
+  - score_factors (Tensor): The factors multiplied to scores before applying NMS
+
+- Returns：
+
+  tuple: (bboxes, labels), tensors of shape (k, 5) and (k, 1). Labels are 0-based.
+
+- Example：
+
+  ```
+          >>> boxes = torch.randint(1, 255, size=(1000, 4))
+          >>> scores = torch.randn(1000, 81)
+          >>> boxes = boxes.npu().half()
+          >>> scores = scores.npu().half()
+          >>> det_bboxes, det_labels = npu_multiclass_nms(boxes, scores, score_thr=0.3, nms_thr=0.5, max_num=3)
+          >>> expedt_det_bboxes = torch.tensor([[ 57.0000, 198.8750, 45.9688, 221.8750, 4.1484],[215.0000, 155.0000, 236.8750, 137.0000,3.9023], [208.8750, 221.0000, 228.0000,  17.0000,   3.8867]],dtype=torch.float16)
+  ```
+
+
+
+
+
+>   **npu_batched_multiclass_nms**(multi_bboxes,multi_scores,max_num=50,score_factors=None):
+
+NMS for batched multi-class bboxes using npu api.
+
+- Args：
+
+  - multi_bboxes (Tensor): shape (bs, n, #class, 4) or (bs, n, 4)
+  - multi_scores (Tensor): shape (bs, n, #class+1), where the last column contains scores of the background class, but this will be ignored.On npu, in order to keep the semantics unblocked, we will unify the dimensions
+  - score_thr (float): bbox threshold, bboxes with scores lower than it will not be considered.
+  - nms_thr (float): NMS IoU threshold. In the original implementation, a dictionary of {"iou_threshold": 0.45}was passed, which is simplified here.
+  - max_num (int): if there are more than max_num bboxes after NMS,only top max_num will be kept; if there are less than max_num bboxes after NMS,the output will zero pad to max_num. On the NPU, the memory needs to be requested in advance,so the current max_num cannot be set to -1 at present
+  - score_factors (Tensor): The factors multiplied to scores before applying NMS
+
+- Returns：
+
+  tuple: (bboxes, labels), tensors of shape (bs, k, 5) and (bs, k, 1). Labels are 0-based.
+
+- Example：
+
+  ```
+    >>> boxes = torch.randint(1, 255, size=(4, 200, 80, 4))
+    >>> scores = torch.randn(4, 200, 81)
+    >>> boxes = boxes.npu().half()
+    >>> scores = scores.npu().half()
+    >>> det_bboxes, det_labels = npu_batched_multiclass_nms(boxes, scores, score_thr=0.3, nms_thr=0.5, max_num=3)
+    >>> expedt_det_bboxes = torch.tensor([[[221.8750,  60.0000, 183.0000,  22.0000,   3.8867], [167.0000, 250.0000, 136.0000, 144.0000,   3.6445], [ 45.9688, 147.0000,  67.0000, 241.8750,   3.4844]], 
+          [[  5.0000, 178.0000, 243.8750, 138.0000,   3.7344], [238.0000, 132.0000,  47.0000,  84.0000,   3.6836], [ 32.0000, 110.0000, 131.0000,  73.0000,   3.6309]], 
+          [[111.9375, 120.9375,  54.0000, 231.0000,   3.9219], [147.0000, 162.0000,  78.0000,   1.0010,   3.9219], [157.0000, 118.0000,  57.0000, 115.0000,   3.6523]], 
+          [[ 80.0000, 126.9375,  54.0000, 246.8750,   3.7344], [ 31.0000, 253.8750,  19.0000, 138.0000,   3.6328], [ 54.0000, 253.8750,  78.0000,  75.0000,   3.5586]]],dtype=torch.float16)
+  ```
+
+  
+
+>   **def** **dropout_with_byte_mask**(input1, p=0.5, training=True, inplace=False)
+
+This dropout_with_byte_mask method generates stateless random uint8 mask and do dropout according to the mask.
+
+- Args：
+  - input1: the input tensor.
+  - p: probability of a channel to be zeroed. Default: 0.5
+  - training: apply dropout if is ``True``. Default: ``True``
+  - inplace: If set to ``True``, will do this operation in-place. Default: ``False``
+
+- Example：
+
+  ```
+    >>> torch.manual_seed(5)
+    >>> items = [[np.float16, 2, (4, 4)], [np.float16, 0, (32, 384, 1024)]]
+    >>> for item in items:
+          cpu_input, npu_input = create_common_tensor(item, 0, 1)
+          self.npu_op_exec(npu_input, prob=0.2)
+  ```
+
+
+
+>   **class** **NpuRollWithIndexSelect**():
+
+Using NPU affinity writing method to replace the native roll in swin-transformer.
+
+- Args：
+
+  - input1 (Tensor): the input tensor.
+
+  - shifts (int or tuple of python:ints): The number of places by which the elements of the tensor are shifted. If shifts is a tuple, dims must be a tuple of the same size, and each dimension will be rolled by the corresponding value.
+  -  dims (int or tuple of python:ints): Axis along which to roll
+
+- Returns：
+
+  Tensor: shifted input.
+
+- Example：
+
+  ```
+          >>> input1 = torch.randn(32, 56, 56, 16).npu()
+          >>> shift_size = 3
+          >>> shifted_x_npu = roll(input1, shifts=(-shift_size, -shift_size), dims=(1, 2))
+  ```
+
+
+
+>   **class** **Mish**(nn.Module):
+
+Applies an NPU based Mish operation.
+
+- note：
+
+  Mish exists in the official version  in PyTorch 1.9.0.Currently, the PyTorch version adapted for NPU is 1.5.0,so Mish needs to be defined as an additional module.
+
+- Example：
+
+  ```
+              >>> m = nnn.Mish()
+              >>> input_tensor = torch.randn(2, 32, 5, 5)
+              >>> output = m(input_tensor)
+  ```
+
+  
+
+>   **class** **SiLU**(nn.Module):
+
+Applies an NPU based Sigmoid Linear Unit (SiLU) function, element-wise. The SiLU function is also known as the swish function.
+
+- note：
+
+   SiLU exists in the official version since PyTorch 1.7.0. Currently, the PyTorch version adapted for NPU is 1.5.0,so SiLU needs to be defined as an additional module.
+
+- Example：
+
+  ```
+              >>> m = nnn.SiLU()
+              >>> input_tensor = torch.randn(2, 32, 5, 5)
+              >>> output = m(input_tensor)
+  ```
+
+  
+
+>   **class** **FastBatchNorm1d**(_BatchNorm):
+
+Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D inputs with optional additional channel dimension)
+
+- math：
+  $$
+  y = \frac{x - \mathrm{E}[x]}{\sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+  $$
+  
+- Args：
+
+  - num_features: :math:`C` from an expected input1 of size :math:`(N, C, L)` or :math:`L` from input1 of size :math:`(N, L)`
+  - eps: a value added to the denominator for numerical stability. Default: 1e-5
+  - momentum: the value used for the running_mean and running_va computation. Can be set to ``None`` for cumulative moving average(i.e. simple average). Default: 0.1
+  - affine: a boolean value that when set to ``True``, this module has learnable affine parameters. Default: ``True``
+  - track_running_stats: a boolean value that when set to ``True``, this module tracks the running mean and variance, and when set to ``False``,this module does not track such statistics, and initializes statistics
+  - buffers :attr:`running_mean` and :attr:`running_var` as ``None``.When these buffers are ``None``, this module always uses batch statistics. in both training and eval modes. Default: ``True``     
+
+- shape：
+
+  - Input1: :math:`(N, C)` or :math:`(N, C, L)`
+
+     - Output: :math:`(N, C)` or :math:`(N, C, L)` (same shape as input1)
+
+- Example：
+
+  ```
+     >>> output = self.npu_fast_batchnorm1d_op_exec(num_features, input1)
+     >>> repeat_time = 100
+     >>> torch.npu.synchronize()
+     >>> t2 = time.time()
+     >>> for _ in range(repeat_time):
+         self.npu_fast_batchnorm1d_op_exec(num_features, input1)
+     >>> torch.npu.synchronize()
+     >>> fast_time = (time.time() - t2) / repeat_time * 1000
+     >>> return output, fast_time
+  ```
+
+  
+
+
+
+>   **class** **FastBatchNorm2d**(_BatchNorm):
+
+Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs with additional channel dimension) 
+
+- math：
+  $$
+  y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+  $$
+  
+- Args：
+
+  - num_features: :math:`C` from an expected input1 of size :math:`(N, C, H, W)`
+  - eps: a value added to the denominator for numerical stability. 1e-5
+  - momentum: the value used for the running_mean and running_var computation. Can be set to ``None`` for cumulative moving average (i.e. simple average). Default: 0.1
+  - affine: a boolean value that when set to ``True``, this module has learnable affine parameters. Default: ``True``
+  - track_running_stats: a boolean value that when set to ``True``, this module tracks the running mean and variance, and when set to ``False``,this module does not track such statistics, and initializes statistics buffers :attr:`running_mean` and :attr:`running_var` as ``None``.When these buffers are ``None``, this module always uses batch statistics.in both training and eval modes. Default: ``True``
+
+- shape：
+
+  - Input1: :math:`(N, C, H, W)`
+
+     - Output:  :math:`(N, C, H, W)` (same shape as input1)
+
+- Example：
+
+  ```
+     >>> output = self.npu_fast_batchnorm2d_op_exec(num_features, input1)
+     >>> repeat_time = 100
+     >>> torch.npu.synchronize()
+     >>> t1 = time.time()
+     >>> for _ in range(repeat_time):
+       self.npu_fast_batchnorm2d_op_exec(num_features, input1)
+     >>> torch.npu.synchronize()
+     >>> fast_time = (time.time() - t1) / repeat_time * 1000      
+     >>> return output, fast_time
+  ```
+
+  
+
+>   **class** **FastBatchNorm3d**(_BatchNorm):
+
+Applies Batch Normalization over a 5D input1 (a mini-batch of 3D inputs with additional channel dimension) 
+
+- math：
+  $$
+   y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
+  $$
+
+- Args：
+
+  - num_features: :math:`C` from an expected input1 of size :math:`(N, C, D, H, W)`
+  - eps: a value added to the denominator for numerical stability. Default: 1e-5
+  - momentum: the value used for the running_mean and running_var computation. Can be set to ``None`` for cumulative moving average (i.e. simple average). Default: 0.1
+  - affine: a boolean value that when set to ``True``, this module has learnable affine parameters.Default: ``True``
+  - track_running_stats:  a boolean value that when set to ``True``, this module tracks the running mean and variance, and when set to ``False``,this module does not track such statistics, and initializes statistics buffers :attr:`running_mean` and :attr:`running_var` as ``None``.When these buffers are ``None``, this module always uses batch statistics.in both training and eval modes. Default: ``True``
+
+- shape：
+
+  - input1: :math:`(N, C, D, H, W)`
+
+     - Output: :math:`(N, C, D, H, W)` (same shape as input1)
+
+- Example：
+
+  ```
+     >>> output = self.npu_fast_batchnorm2d_op_exec(num_features, input1)
+     >>> repeat_time = 100
+     >>> torch.npu.synchronize()
+     >>> t2 = time.time()
+     >>> for _ in range(repeat_time):
+       self.npu_fast_batchnorm2d_op_exec(num_features, input1)
+     >>> torch.npu.synchronize()
+     >>> fast_time = (time.time() - t2) / repeat_time * 1000      
+     >>> return output, fast_time
+  ```
+
+
+
+
+
+>   **class** **BiLSTM**(torch.nn.Module):
+
+Applies an NPU compatible bidirectional LSTM operation to an input sequence.The implementation of this BidirectionalLSTM is mainly based on the principle of bidirectional LSTM.Since NPU do not support the parameter bidirectional in torch.nn.lstm to be True,we reimplement it by joining two unidirection LSTM together to form a bidirectional LSTM
+
+-  Args：
+
+  - input_size: The number of expected features in the input `x`
+
+  - hidden_size: The number of features in the hidden state `h`
+
+- inputs：input, (h_0, c_0)
+
+  - **input** of shape `(seq_len, batch, input_size)`: tensor containing the features of the input sequence.The input can also be a packed variable length sequence.See :func:`torch.nn.utils.rnn.pack_padded_sequence` or :func:`torch.nn.utils.rnn.pack_sequence` for details.
+  - **h_0** of shape `(num_layers * num_directions, batch, hidden_size)`: tensor containing the initial hidden state for each element in the batch.
+       If the LSTM is bidirectional, num_directions should be 2, else it should be 1.
+  - **c_0** of shape `(num_layers * num_directions, batch, hidden_size)`: tensor containing the initial cell state for each element in the batch.If `(h_0, c_0)` is not provided, both **h_0** and **c_0** default to zero.
+
+- outputs：
+
+  - **output** of shape `(seq_len, batch, num_directions * hidden_size)`: tensor containing the output features `(h_t)` from the last layer of the LSTM, for each `t`. If a :class:`torch.nn.utils.rnn.PackedSequence` has been given as the input, the output will also be a packed sequence.         For the unpacked case, the directions can be separated  using ``output.view(seq_len, batch, num_directions, hidden_size)``,with forward and backward being direction `0` and `1` respectively. Similarly, the directions can be separated in the packed case.
+
+  - **h_n** of shape `(num_layers * num_directions, batch, hidden_size)`: tensor  containing the hidden state for `t = seq_len`. 
+
+    Like *output*, the layers can be separated using  ``h_n.view(num_layers, num_directions, batch, hidden_size)`` and similarly for *c_n*.
+
+  -  **c_n** of shape `(num_layers * num_directions, batch, hidden_size)`: tensor containing the cell state for `t = seq_len`.
+
+- Example：
+
+  ```
+     >>> r = BiLSTM(512, 256)
+     >>> input_tensor = torch.randn(26, 2560, 512)
+     >>> output = r(input_tensor)
+  ```
+
+
+
+>   **class** **ChannelShuffle**(nn.Module):
+
+Applies an NPU compatible channel shuffle operation.In order to avoid contiguous operation which is not efficient on npu, we replaced the original operation with a rewrite of the same semantics. Two discontinuous operations are replaced, transpose and chunk.
+
+- note： 
+
+  Only group=2 is implemented, modify other group scenarios yourself.
+
+- Args：
+
+  - in_channels (int): The total number of channels in the input tensors
+  - groups (int): The number of shuffle groups. Default: 2
+  - split_shuffle (bool): Whether to execute the chunk after shuffle. Default: True
+
+- Shape：
+
+  - Input: :math:`(N, C_{in}, L_{in})`, `(N, C_{in}, L_{in})`
+  - Output: :math:`(N, C_{out}, L_{out})`
+
+- Example：
+
+  ```
+     >>> x1 = torch.randn(2,32,7,7)
+     >>> x2 = torch.randn(2,32,7,7)
+     >>> m = ChannelShuffle(64, split_shuffle=True)
+     >>> output = m(x1, x2)
+  ```
+
+
+
+>   **class** **LabelSmoothingCrossEntropy**(nn.Module):
+
+CrossEntropy with LabelSmoothing using npu api.
+
+-  Args：
+
+  - smooth_factor (float): default 0. If label_smoothing using, using 0.1([0, 1]) instead.
+  - num_classes (float): classes numbers using for onehot.
+
+- Returns:
+
+  float: tensors of shape (k, 5) and (k, 1). Labels are 0-based.
+
+- Example：
+
+  ```
+     >>> x = torch.randn(2, 10)
+     >>> y = torch.randint(0, 10, size=(2,))
+     >>> x = x.npu()
+     >>> y = y.npu()
+     >>> x.requires_grad = True
+     >>> m = LabelSmoothingCrossEntropy(10)
+     >>> npu_output = m(x, y)
+     >>> npu_output.backward()
+  ```
+
+
+
+>   **class** **ModulatedDeformConv**(nn.Module):
+
+Applies an NPU based Modulated Deformable 2D convolution operation.
+
+- Note：
+
+   ModulatedDeformConv only implements operations under fp32 data types. Notice, weight and bias in conv_offset must be initialized to 0.
+
+- Args：
+
+  - in_channels (int): Number of channels in the input image.
+  - out_channels (int): Number of channels produced by the convolution.
+  -  kernel_size(int, tuple): Size of the convolving kernel.
+  - stride(int, tuple): Stride of the convolution. Default: 1.
+  - padding (int or tuple): Zero-padding added to both sides of the input.Default: 0.
+  - dilation (int or tuple): Spacing between kernel elements. Default: 1.
+  - groups (int): Number of blocked connections from input. channels to output channels. Default: 1.
+  - deform_groups (int): Number of deformable group partitions.
+  - bias (bool): If True, adds a learnable bias to the output. Default: False.
+  - pack (bool): If True, conv_offset and mask will be included in this module.Default: True.
+
+- Example：
+
+  ```
+     >>> m = ModulatedDeformConv(32, 32, 1)
+     >>> input_tensor = torch.randn(2, 32, 5, 5)
+     >>> output = m(input_tensor)
+  
+     >>> x = torch.randn(2, 32, 7, 7) 
+     >>> model = ModulatedDeformConv(32, 32, 3, 2, 1)
+  
+     >>> torch.npu.set_device(0)
+     >>> x = x.npu()
+     >>> model = model.npu()
+  
+     >>> o = model(x)
+     >>> l = o.sum()
+     >>> l.backward()
+     >>> print(l)
+  ```
+
+
+
+>   **class** **NpuDropPath**(nn.Module):
+
+Using NPU affinity writing method to replace the native Drop paths in swin_transformer.py. Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks.)
+
+-  Args：
+  - drop_prob (float): the dropout probabilities.
+  - x (Tensor): The input tensor to apply dropout.
+
+- Example：
+
+  ```
+    >>> input1 = torch.randn(68, 5).npu()
+    >>> input1.requires_grad_(True)
+    >>> input2 = torch.randn(68, 5).npu()
+    >>> input2.requires_grad_(True)
+    >>> fast_drop_path = NpuDropPath(0).npu()
+    >>> output = input1 + fast_drop_path(input2)
+    >>> output.sum().backward()
+  ```
+
+
+
+>   **class** **NpuFairseqDropout**(torch.nn.Dropout):
+
+FairseqDropout using on npu device
+
+-  Args：
+  - p (float): probability of an element to be zeroed.
+  - module_name (string): the name of the model
+
+- Example：
+
+  ```
+    >>> model = NpuMNIST().to("npu")
+    >>> x = torch.randn(2,10,16,16).to("npu")
+    >>> NpuFairseqDropout.enable_dropout_ensemble(model)
+    >>> output = model(x)
+  ```
+
+
+
+>   **class** **Focus**(nn.Module):
+
+Using NPU affinity writing method to replace the native Focus in Yolov5.
+
+-  Args：
+  - c1 (int): Number of channels in the input image.
+  - c2 (int): Number of channels produced by the convolution. 
+  - k(int): Size of the convolving kernel. Default: 1
+  - s(int): Stride of the convolution. Default: 1
+  - p (int): padding 
+  - g (int):  Number of blocked connections from input channels to output channels. Default: 1
+  - act (bool): whether to use an activation function. Default: True.
+
+- Example：
+
+  ```
+     >>> input = torch.randn(4, 8, 300, 40).npu()
+     >>> input.requires_grad_(True)
+     >>> fast_focus = Focus(8, 13).npu()
+     >>> output = fast_focus(input)
+     >>> output.sum().backward()
+  ```
+
+
+
+>   **class** **FusedColorJitter**(torch.nn.Module):
+
+Randomly change the brightness, contrast, saturation and hue of an image.
+
+-  Args：
+  -  brightness (float or tuple of float (min, max)): How much to jitter brightness.brightness_factor is chosen uniformly from [max(0, 1 - brightness), 1 + brightness] or the given [min, max]. Should be non negative numbers.
+  - contrast (float or tuple of float (min, max)): How much to jitter contrast. contrast_factor is chosen uniformly from [max(0, 1 - contrast), 1 + contrast] or the given [min, max]. Should be non negative numbers.
+  - saturation (float or tuple of float (min, max)): How much to jitter saturation.saturation_factor is chosen uniformly from [max(0, 1 - saturation), 1 + saturation] or the given [min, max]. Should be non negative numbers.
+  - hue (float or tuple of float (min, max)): How much to jitter hue.hue_factor is chosen uniformly from [-hue, hue] or the given [min, max].Should have 0<= hue <= 0.5 or -0.5 <= min <= max <= 0.5.
+
+- Example：
+
+  ```
+  >>> train_dataset = datasets.ImageFolder(
+         traindir,
+         transforms.Compose([
+             transforms.RandomResizedCrop(224),
+             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
+             transforms.RandomHorizontalFlip(),
+             ]))
+  ```
+
+
+
+>   **class** **MultiheadAttention**(nn.Module):
+
+Multi-headed attention.
+
+-  Args：
+
+  - embed_dim (int): Total dimension of the model.
+  - num_heads (int): Number of parallel attention heads. 
+  - kdim(int): Total number of features for keys. Default: None
+  - vdim(int): Total number of features for values. Default: None
+  - dropout (float): Dropout probability 
   - bias (bool):  If specified, adds bias to input / output projection layers. Default: True.
 
   - add_bias_kv (bool): If specified, adds bias to the key and value sequences at dim=0. Default: False.
-
-  - add_zero_attn (bool): If specified, adds a new batch of zeros to the key and value sequences at dim=1. 
-                                  Default: False.
-
+  - add_zero_attn (bool): If specified, adds a new batch of zeros to the key and value sequences at dim=1. Default: False.
   - self_attention (bool): Calculate your own attention score. Default: False.
-
   - encoder_decoder_attention (bool): The input is the output of the encoder and the self-attention output of the decoder, where the self-attention of the encoder is used as the key and value, and the self-attention of the decoder is used as the query. Default: False.
+  - q_noise(float): amount of Quantization Noise
+  - qn_block_size(int): size of the blocks for subsequent quantization with iPQ
 
-  - q_noise(float): amount of Quantization Noise.
-  
-  - qn_block_size(int): size of the blocks for subsequent quantization with iPQ.
-  
-    
+- Example：
+
+  ```
+     >>> model =          MultiheadAttention(embed_dim=1024,num_heads=16,dropout=0.1,kdim=1024,vdim=1024,self_attention=True,encoder_decoder_attention=True)
+     >>> _, query = create_common_tensor([np.float16, FORMAT_NZ, (1024,1024)], -1, 1)
+     >>> _, key = create_common_tensor([np.float16, FORMAT_NZ, (1024, 1024)], -1, 1)
+     >>> _, value = create_common_tensor([np.float16, FORMAT_NZ, (1024, 1024)], -1, 1)
+     >>> _, key_padding_mask = create_common_tensor([np.float16, FORMAT_NZ, (16,16,64,64)], -65504, 65504)
+     >>> bsz = 16
+     >>> tgt_len = 64
+     >>> s_len=64
+     >>> model = model.to("npu")
+     >>> output = model(query, key, value, bsz, tgt_len, s_len,   key_padding_mask)
+  ```
+
+
+
+>   **class** **DropoutWithByteMask**(Module):
+
+Applies an NPU compatible DropoutWithByteMask operation, Only supports npu devices.
+
+- Note：
+
+  max_seed is a hyper-parameter strongly related to the underlying operator.Please check the MAX(2 ** 31 - 1 / 2 ** 10 - 1) in dropout_v2.py in the opp package for matching settings.By default, it is matched by the Pytorch and OPP packages.
+
+- Args：
+
+  - p: probability of an element to be zeroed. Default: 0.5
+  - inplace: If set to ``True``, will do this operation in-place. Default: ``False``
+
+- Shape：
+
+  - Input: :math:`(*)`. Input can be of any shape
+  - Output: :math:`(*)`. Output is of the same shape as input
+
+- Example：
+
+  ```
+    >>> m = nn.DropoutWithByteMask(p=0.5)
+    >>> input = torch.randn(16, 16)
+    >>> output = m(input)
+  ```
+
+
+
+>   **def** **__init__**(self, pooled_height=7, pooled_width=7, spatial_scale=1 / **16.0**, group_size=7, output_dim=22):
+
+ROIAlign using npu api.
+
+- Note：
+
+  only pooled_height == pooled_width == group_size implemented.
+
+- Args：
+
+  - pooled_height (int): pooled_height
+  - pooled_width (int): pooled_width
+  - spatial_scale (float): scale the input boxes by this number
+  - group_size (int): number of groups encoding position sensitive score maps
+  - output_dim (int):number of output channels
+
+- Returns：
+
+  float: tensors of shape (k, 5) and (k, 1). Labels are 0-based.
+
+- Example：
+
+  ```
+    >>> model = PSROIPool(pooled_height=7, pooled_width=7, spatial_scale=1 / 16.0, group_size=7, output_dim=22)
+  ```
+
+
+
+>   **class** **ROIAlign**(nn.Module):
+
+ROIAlign using npu api.
+
+- Note：
+
+  The meaning of aligned=True:
+
+  Given a continuous coordinate c, its two neighboring pixel indices (in our pixel model) are computed by floor(c - 0.5) and ceil(c - 0.5). For example,c=1.3 has pixel neighbors with discrete indices [0] and [1] (which are sampledn from the underlying signal at continuous coordinates 0.5 and 1.5). But the original roi_align (aligned=False) does not subtract the 0.5 when computing neighboring pixel indices and therefore it uses pixels with a slightly incorrect alignment (relative to our pixel model) when performing bilinear interpolation.With `aligned=True`, we first appropriately scale the ROI and then shift it by -0.5 prior to calling roi_align. This produces the correct neighbors; see detectron2/tests/test_roi_align.py for verification. The difference does not make a difference to the model's performance if ROIAlign is used together with conv layers.
+
+- Args：
+
+  - output_size (tuple): h, w
+  - spatial_scale (float): scale the input boxes by this number
+  - sampling_ratio (int): number of inputs samples to take for each output sample. 0 to take samples densely.
+  - aligned (bool): if False, use the legacy implementation in Detectron. If True, align the results more perfectly.
+
+- Returns：
+
+  float: tensors of shape (k, 5) and (k, 1). Labels are 0-based.
+
+- Example：
+
+  ```
+    >>> input1 = self.generate_input()
+    >>> roi = torch.tensor([[0, -2.0, -2.0, 22.0, 22.0]]).npu()
+    >>> output_size = (3, 3)
+    >>> spatial_scale = 0.25
+    >>> sampling_ratio = 2
+    >>> aligned = False
+    >>> npu_output, npu_inputgrad = self.npu_roi_align(input1, roi, output_size, spatial_scale, sampling_ratio, aligned)
+    >>> expedt_cpu_output = torch.tensor([[[[ 4.5000,  6.5000,  8.5000],[16.5000, 18.5000, 20.5000],[28.5000, 30.5000, 32.5000]]]],dtype=torch.float32)
+    >>> expedt_cpu_inputgrad = torch.tensor([[[[0.2397, 0.2346, 0.2346, 0.2346, 0.2346, 0.2907],[0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],[0.2346, 0.2296, 0.2296, 0.2296, 0.2296,0.2845],[0.2346, 0.2296, 0.2296, 0.2296, 0.2296, 0.2845],[0.2346,0.2296, 0.2296, 0.2296, 0.2296, 0.2845],[0.2907, 0.2845, 0.2845, 0.2845, 0.2845, 0.3525]]]],dtype=torch.float32)
+    >>> self.assertRtolEqual(expedt_cpu_output, npu_output)
+    >>> self.assertRtolEqual(expedt_cpu_inputgrad, npu_inputgrad)
+  ```
+
