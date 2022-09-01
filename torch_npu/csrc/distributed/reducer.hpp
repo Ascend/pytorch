@@ -30,6 +30,7 @@
 #include <torch/csrc/autograd/function.h>
 #include <torch/csrc/autograd/variable.h>
 #include <torch/csrc/distributed/autograd/context/context.h>
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace c10d_npu {
 
@@ -103,8 +104,14 @@ public:
   // Returns true if we should rebuild buckets, else false. We only rebuild
   // buckets once after the first iteration and never rebuild them if
   // find_unused_parameters_.
+  // Function rebuild_buckets() is for dynamic graph mode, therefore we don't 
+  // need this in static graph mode.
   inline bool should_rebuild_buckets() const {
-    return !find_unused_parameters_ && !has_rebuilt_bucket_;
+    if (!c10_npu::NpuRunMode::IsGraphMode()) {
+      return !find_unused_parameters_ && !has_rebuilt_bucket_;
+    } else {
+      return false;
+    }
   }
 
   // Pushes all parameters to be rebuilt.

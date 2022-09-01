@@ -291,7 +291,7 @@ namespace at_npu
       else
       {
         // See Note [Explicit nullopt c10::MemoryFormat argument]
-        if (options.backend() == at_npu::key::NativeBackend)
+        if (!(options.backend() == at_npu::key::NativeBackend))
         {
           result = at::empty(
               self.sizes(), options.memory_format(memory_format), c10::nullopt);

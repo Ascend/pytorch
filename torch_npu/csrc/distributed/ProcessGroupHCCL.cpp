@@ -30,6 +30,8 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace c10d_npu {
 namespace {
@@ -128,6 +130,9 @@ void syncStreams(
     const std::vector<at::Device>& devices,
     std::vector<c10_npu::NPUEvent>& hcclEvents,
     std::vector<c10_npu::NPUStream>& hcclStreams) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return;
+  }
   for (size_t i = 0; i < devices.size(); ++i) {
     c10_npu::NPUStream& hcclStream = hcclStreams[i];
     c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
@@ -239,7 +244,9 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
 
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
-  synchronize();
+  if (!c10_npu::NpuRunMode::IsGraphMode()){
+    synchronize();
+  }
   // Always return true, because abort API is not implemented.
   return true;
 }
@@ -464,20 +471,22 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   c10_npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams_[key]);
 
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    npuGuard.set_index(devices[i].index());
-    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      npuGuard.set_index(devices[i].index());
+      c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
 
-    // Both `inputs' and `outputs' are created on a worker stream and used in
-    // different hcclStreams.  Hence, both must record the hcclStream to
-    // prevent being freed before the collective finishes.
-    //
-    // We only record `inputs' here, and leave recording `outputs' to `fn' for
-    // operations where `inputs' and `outputs' are not the same.
-    //
-    // See [Sync Streams].
-    c10_npu::NPUCachingAllocator::recordStream(
-        inputs[i].storage().data_ptr(), hcclStream);
+      // Both `inputs' and `outputs' are created on a worker stream and used in
+      // different hcclStreams.  Hence, both must record the hcclStream to
+      // prevent being freed before the collective finishes.
+      //
+      // We only record `inputs' here, and leave recording `outputs' to `fn' for
+      // operations where `inputs' and `outputs' are not the same.
+      //
+      // See [Sync Streams].
+      c10_npu::NPUCachingAllocator::recordStream(
+          inputs[i].storage().data_ptr(), hcclStream);
+    }
   }
   {
     for (size_t i = 0; i < inputs.size(); ++i) {
@@ -492,14 +501,15 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   }
   post(hcclStreams_[key]);
 
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
-    work->npuEvents_[i].record(hcclStream);
-    work->hcclComms_[i] = hcclComms[i];
-    work->blockingWait_ = blockingWait_;
-    work->opTimeout_ = opTimeout_;
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+      work->npuEvents_[i].record(hcclStream);
+      work->hcclComms_[i] = hcclComms[i];
+      work->blockingWait_ = blockingWait_;
+      work->opTimeout_ = opTimeout_;
+    }
   }
-
   return work;
 }
 
@@ -540,6 +550,38 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             stream.stream());
       });
 }
+
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
+    std::vector<at::Tensor>& inputs,
+    std::vector<at::Tensor>& outputs,
+    int64_t fusion_id,
+    const c10d::AllreduceOptions& opts) {
+    check_npu_tensors(inputs);
+    check_npu_tensors(outputs);
+    return collective(
+        inputs,
+        outputs,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10_npu::NPUStream& stream) {
+              aclrtSetExceptionInfoCallback(exceptionCallback);
+              RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
+              int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
+              at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
+                  input,
+                  "sum",
+                  "hccl_world_group",
+                  2,
+                  fusion_id,
+                  1,
+                  0,
+                  hccl_comm,
+                  output);
+              return HCCL_SUCCESS;
+            });
+}
+
 int g_broadcastID = 100000;
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
     std::vector<at::Tensor>& tensors,

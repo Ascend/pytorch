@@ -165,6 +165,16 @@ void GraphExecutor::Init() {
     }
   }
 
+  auto soc_name = c10_npu::acl::AclGetSocName();
+  if (soc_name != nullptr) {
+    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
+  }
+
+  if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
+    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+    config.emplace(HCOM_OPTIONS.data(), "1");
+  }
+
   config["ge.session_device_id"] = ge::AscendString(device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
   config["GE_USE_STATIC_MEMORY"] = ge::AscendString("2");
