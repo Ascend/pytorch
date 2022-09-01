@@ -2004,3 +2004,5 @@ custom_autograd:
   - func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
   - func: npu_ciou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> Tensor
   - func: get_storage_size(Tensor self) -> int
+  - func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
+  - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)

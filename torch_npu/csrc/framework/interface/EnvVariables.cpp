@@ -121,7 +121,6 @@ REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDEnable, MM_BMM_ND_ENABLE, "disable", "enable")
-
 } // namespace env
 } // namespace native
 } // namespace at_npu
