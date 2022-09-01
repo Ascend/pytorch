@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
+#include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 
@@ -111,16 +112,14 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
     return;
   }
 
-  c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-  aclError error = aclrtMemcpyAsync(
+  aclError error = c10_npu::queue::LaunchAsyncCopyTask(
       dst.data_ptr(),
       size * dst.element_size(),
       src.data_ptr(),
       size * dst.element_size(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE,
-      copy_stream);
+      ACL_MEMCPY_DEVICE_TO_DEVICE);
   if (error != ACL_ERROR_NONE) {
-    AT_ERROR("aclrtMemcpy device to device error.");
+    AT_ERROR("async copy device to device error.");
     return;
   }
 }

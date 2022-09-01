@@ -95,21 +95,14 @@ private:
     temp_src.unsafeGetTensorImpl()->set_sizes_and_strides(src_size,
                                                           src.strides());
 
-    c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-        if (temp_src.is_contiguous())
-        {
-          auto temp_dst = XLANativeFunctions::npu_broadcast(temp_src, self.sizes());
-          aclrtMemcpyAsync(
-              self.data_ptr(),
-              self.nbytes(),
-              temp_dst.data_ptr(),
-              self.nbytes(),
-              ACL_MEMCPY_DEVICE_TO_DEVICE,
-              copy_stream);
-          return true;
-        }
-        return false;
-      }
+    if (temp_src.is_contiguous()) {
+      auto temp_dst = XLANativeFunctions::npu_broadcast(temp_src, self.sizes());
+      c10_npu::queue::LaunchAsyncCopyTask(self.data_ptr(), self.nbytes(), temp_dst.data_ptr(),
+                                          self.nbytes(), ACL_MEMCPY_DEVICE_TO_DEVICE);
+      return true;
+    }
+    return false;
+  }
 
 }; // class BroadcastContiguousOpt
 

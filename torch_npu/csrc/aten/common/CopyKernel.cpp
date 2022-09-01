@@ -120,6 +120,7 @@ void copy_between_host_and_device(
   } else {
     aclError error = aclrtSynchronizeStream(stream);
     if (error != ACL_ERROR_NONE) {
+      C10_NPU_SHOW_ERR_MSG();
       AT_ERROR("ACL stream synchronize failed, error code:", error);
     }
   }

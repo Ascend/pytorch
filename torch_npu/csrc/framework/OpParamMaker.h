@@ -36,33 +36,20 @@ namespace at_npu
     class OpAttrMaker
     {
     public:
-      static void Set(aclopAttr *attr, string name, bool value);
-      static void Set(aclopAttr *attr, string name, int64_t value);
-      static void Set(aclopAttr *attr, string name, float value);
-      static void Set(aclopAttr *attr, string name, string value);
-      static void Set(aclopAttr *attr, string name, c10::IntArrayRef value);
-      static void Set(aclopAttr *attr, string name, at::ArrayRef<float> value);
-      static void Set(aclopAttr *attr, string name, c10::Scalar value);
+      static void Set(aclopAttr *attr, const string &name, bool value);
+      static void Set(aclopAttr *attr, const string &name, int64_t value);
+      static void Set(aclopAttr *attr, const string &name, float value);
+      static void Set(aclopAttr *attr, const string &name, string value);
+      static void Set(aclopAttr *attr, const string &name, c10::IntArrayRef value);
+      static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
+      static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
+      static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
       static void Set(
           aclopAttr *attr,
-          string name,
+          const string &name,
           at::ArrayRef<c10::IntArrayRef> value);
     }; // class OpAttrMaker
 
-    class AttrInfoMaker
-    {
-    public:
-      static void Add(bool value, string &attrInfo);
-      static void Add(int64_t value, string &attrInfo);
-      static void Add(float value, string &attrInfo);
-      static void Add(string value, string &attrInfo);
-      static void Add(c10::IntArrayRef value, string &attrInfo);
-      static void Add(at::ArrayRef<float> value, string &attrInfo);
-      static void Add(c10::Scalar value, string &attrInfo);
-      static void Add(at::ArrayRef<c10::IntArrayRef> value, string &attrInfo);
-    };
-
-    //
     class AclTensorDescMaker
     {
     public:
@@ -71,13 +58,13 @@ namespace at_npu
 
       AclTensorDescMaker &Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc)
       {
-        auto dims = storageDesc.base_sizes_;
+        auto& dims = storageDesc.base_sizes_;
         auto format = storageDesc.origin_format_;
         desc = aclCreateTensorDesc(dataType, dims.size(), dims.data(), format);
         return *this;
       }
 
-      AclTensorDescMaker &Create(
+      inline AclTensorDescMaker &Create(
           aclDataType dataType,
           c10::IntArrayRef dims,
           aclFormat format)
@@ -86,26 +73,26 @@ namespace at_npu
         return *this;
       }
 
-      AclTensorDescMaker &Create(aclDataType dataType, aclFormat format)
+      inline AclTensorDescMaker &Create(aclDataType dataType, aclFormat format)
       {
         desc = aclCreateTensorDesc(dataType, 0, nullptr, format);
         return *this;
       }
 
-      AclTensorDescMaker SetFormat(aclFormat format)
+      inline AclTensorDescMaker &SetFormat(aclFormat format)
       {
         aclSetTensorFormat(desc, format);
         return *this;
       }
 
-      AclTensorDescMaker SetPlacement(aclMemType memType)
+      inline AclTensorDescMaker &SetPlacement(aclMemType memType)
       {
         aclSetTensorPlaceMent(desc, memType);
         return *this;
       }
 
       template <unsigned int N>
-      AclTensorDescMaker &SetShape(const c10::SmallVector<int64_t, N> &dims)
+      inline AclTensorDescMaker &SetShape(const c10::SmallVector<int64_t, N> &dims)
       {
         aclSetTensorShape(desc, dims.size(), dims.data());
         return *this;
@@ -127,16 +114,15 @@ namespace at_npu
         return *this;
       }
 
-      AclTensorDescMaker &SetName(const string &name)
+      inline AclTensorDescMaker &SetName(const std::string &name)
       {
-        if (name != "")
-        {
+        if (!name.empty()) {
           aclSetTensorDescName(desc, name.c_str());
         }
         return *this;
       }
 
-      AclTensorDescMaker &SetConstAttr(c10::optional<at::Tensor> cpu_tensor)
+      inline AclTensorDescMaker &SetConstAttr(c10::optional<at::Tensor> cpu_tensor)
       {
         if (cpu_tensor.has_value() && cpu_tensor.value().defined())
         {
@@ -149,7 +135,7 @@ namespace at_npu
         return *this;
       }
 
-      aclTensorDesc *Get() const
+      inline aclTensorDesc *Get() const
       {
         return desc;
       }
@@ -196,7 +182,7 @@ namespace at_npu
 
       ~AclTensorBufferMaker() = default;
 
-      aclDataBuffer *Get() const
+      inline aclDataBuffer *Get() const
       {
         return ptr;
       }
@@ -260,30 +246,33 @@ namespace at_npu
       // export op execute params
       void ExportParams(ExecuteParas &params)
       {
-        InitAttr();
         params.opType = opName;
-        params.attrInfo = attrInfo;
         params.attr = execParam.attr;
 
         // make params
         int inputNum = execParam.inDesc.size();
         int outputNum = execParam.outDesc.size();
-        int constNum = execParam.constLists.size();
-        const int64_t **constListArr = new const int64_t *[constNum];
-        const aclTensorDesc **aclTensorInputDescArr =
-            new const aclTensorDesc *[inputNum];
-        const aclTensorDesc **aclTensorOutputDescArr =
-            new const aclTensorDesc *[outputNum];
-        const aclDataBuffer **aclDataInputBuffArr =
-            new const aclDataBuffer *[inputNum];
-        aclDataBuffer **aclDataOutputBuffArr = new aclDataBuffer *[outputNum];
 
-        int64_t *constIdxArr = new int64_t[constNum];
-        int64_t *inputDimsArr = new int64_t[inputNum];
-        int64_t *outputDimsArr = new int64_t[outputNum];
-        aclFormat *inputFormatsArr = new aclFormat[inputNum];
-        aclFormat *outputFormatsArr = new aclFormat[outputNum];
+        size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+        size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
 
+        size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+        size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
+
+        size_t totalMemLen = inputTensorDescArrLen + inputDataBuffArrLen + 
+                              outputTensorDescArrLen + outputDataBuffArrLen;
+
+        char* basePtr = static_cast<char* >(malloc(totalMemLen));
+        AT_ASSERT(basePtr != nullptr);
+        const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        basePtr += inputTensorDescArrLen;
+        const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+        basePtr += inputDataBuffArrLen;
+
+        const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+        basePtr += outputTensorDescArrLen;
+        aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
+        
         std::copy(
             execParam.inDesc.begin(),
             execParam.inDesc.end(),
@@ -301,50 +290,18 @@ namespace at_npu
             execParam.outBuffer.end(),
             aclDataOutputBuffArr);
 
-        std::copy(
-            execParam.inDims.begin(),
-            execParam.inDims.end(),
-            inputDimsArr);
-        std::copy(
-            execParam.outDims.begin(),
-            execParam.outDims.end(),
-            outputDimsArr);
-        std::copy(
-            execParam.inFormats.begin(),
-            execParam.inFormats.end(),
-            inputFormatsArr);
-        std::copy(
-            execParam.outFormats.begin(),
-            execParam.outFormats.end(),
-            outputFormatsArr);
-
-        std::copy(
-            execParam.constLists.begin(),
-            execParam.constLists.end(),
-            constListArr);
-        std::copy(
-            execParam.constIdxs.begin(),
-            execParam.constIdxs.end(),
-            constIdxArr);
-
         params.paras.input_num = inputNum;
         params.paras.output_num = outputNum;
         params.paras.input_desc = aclTensorInputDescArr;
         params.paras.input_data_buf = aclDataInputBuffArr;
         params.paras.output_desc = aclTensorOutputDescArr;
         params.paras.output_data_buf = aclDataOutputBuffArr;
-
-        params.paras.inputDims = inputDimsArr;
-        params.paras.outputDims = outputDimsArr;
-        params.paras.inputFormats = inputFormatsArr;
-        params.paras.outputFormats = outputFormatsArr;
-        params.paras.hasAttr = execParam.hasAttr;
-
-        params.constParams.constNum = constNum;
-        params.constParams.constList = constListArr;
-        params.constParams.constIdx = constIdxArr;
         params.hostMemory = execParam.hostMem;
-      }
+
+        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
+          params.isFuzzy = true;
+        }
+  }
 
       void Run();
 
@@ -368,11 +325,6 @@ namespace at_npu
               execParam.outBuffer.begin(),
               execParam.outBuffer.end(),
               aclDestroyDataBuffer);
-          std::for_each(
-              execParam.constLists.begin(),
-              execParam.constLists.end(),
-              [](const int64_t *constList)
-              { delete[] constList; });
           if (execParam.attr != nullptr)
           {
             aclopDestroyAttr(execParam.attr);
@@ -382,24 +334,15 @@ namespace at_npu
 
         execParam.inDesc.clear();
         execParam.inBuffer.clear();
-        execParam.inDims.clear();
-        execParam.inFormats.clear();
 
         execParam.outDesc.clear();
         execParam.outBuffer.clear();
-        execParam.outDims.clear();
-        execParam.outFormats.clear();
 
-        execParam.constIdxs.clear();
-        execParam.constLists.clear();
         execParam.hostMem.clear();
 
         // recover
-        execParam.hasAttr = false;
         execParam.attr = nullptr;
         opName = "";
-        attrInfo = "attrs:";
-        inputCounter = 0;
       }
 
     private:
@@ -409,16 +352,8 @@ namespace at_npu
         c10::SmallVector<const aclDataBuffer *, N> inBuffer; // owned
         c10::SmallVector<const aclTensorDesc *, N> outDesc;  // owned
         c10::SmallVector<aclDataBuffer *, N> outBuffer;      // owned
-        c10::SmallVector<int64_t, N> inDims;
-        c10::SmallVector<int64_t, N> outDims;
-        c10::SmallVector<aclFormat, N> inFormats;
-        c10::SmallVector<aclFormat, N> outFormats;
-        c10::SmallVector<const int64_t *, N> constLists;
-        c10::SmallVector<int64_t, N> constIdxs;
-        c10::SmallVector<at::Tensor, N> hostMem;
-
+        c10::SmallVector<at::Tensor, N> hostMem;   
         aclopAttr *attr = nullptr;
-        bool hasAttr = false;
       };
 
       void InitAttr()
@@ -432,9 +367,7 @@ namespace at_npu
       aclError InnerRun(string name, AclExecParam &params);
 
     private:
-      int64_t inputCounter = 0;
       string opName;
-      string attrInfo = "attrs:";
       AclExecParam execParam;
     }; // class OpCommandImpl
 

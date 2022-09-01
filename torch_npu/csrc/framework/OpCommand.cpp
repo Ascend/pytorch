@@ -135,8 +135,9 @@ OpCommand& OpCommand::Output(
 void OpCommand::Run() {
   IF_GRAPH_MODE_THEN_RUN(return;)
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
-    ExecuteParas params;
-    aclCmd->ExportParams(params);
+    ExecuteParas execParams;
+    aclCmd->ExportParams(execParams);
+    c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
   } else {
