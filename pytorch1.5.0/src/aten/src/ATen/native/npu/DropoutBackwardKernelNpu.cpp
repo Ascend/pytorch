@@ -38,7 +38,7 @@ Tensor dropout_backward_impl(
   cmd.Name(opType)
       .Input(grad_output)
       .Input(mask)
-      .Input(retain, grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
+      .Input(Scalar(retain), grad_output.scalar_type(), CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Output(result)
       .Run();
 

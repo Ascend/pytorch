@@ -16,10 +16,34 @@
 
 #include "ATen/native/npu/utils/KernelNpuOutputSize.h"
 #include "ATen/native/npu/utils/OpTemplate.h"
+#include "ATen/npu/NPUGenerator.h"
+#include "ATen/Utils.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
+
+Tensor& normal_out_npu_nocheck(
+    Tensor& result,
+    Generator* gen_) {
+  auto gen = get_generator_or_default<NPUGenerator>(gen_, at::npu::detail::getDefaultNPUGenerator());
+  auto pair = gen->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  SmallVector<int64_t, N> seed_list = {seed};
+  SmallVector<int64_t, N> offset_list = {0, offset};
+  const int32_t alg = 1;
+  OpCommand cmd;
+  cmd.Name("StatelessRandomNormalV2")
+      .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(seed_list, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(offset_list, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(at::Scalar(alg), at::ScalarType::Int)
+      .Output(result)
+      .Attr("dtype", result.scalar_type())
+      .Run();
+  return result;
+}
 
 Tensor& normal_out_npu(
     Tensor& result,
@@ -28,22 +52,9 @@ Tensor& normal_out_npu(
     Generator* generator) {
   TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
-  Tensor resultCopy = result;
-  Tensor dtypeCastOfMean = mean;
-  if (dtypeCastOfMean.scalar_type() == ScalarType::Half) {
-    dtypeCastOfMean = dtypeCastOfMean.to(ScalarType::Float);
-    resultCopy = resultCopy.to(ScalarType::Float);
-  }
-
-  OpCommand cmd;
-  cmd.Name("Normal")
-    .Input(dtypeCastOfMean)
-    .Input(Scalar(std), ScalarType::Float)
-    .Output(resultCopy)
-    .Run();
-
-  result.copy_(resultCopy);
-
+  OpPreparation::CheckOut({mean}, result, mean);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -52,22 +63,9 @@ Tensor& normal_out_npu(
     double mean, 
     const Tensor& std, 
     Generator* generator) {
-  Tensor resultCopy = result;
-  Tensor dtypeCastOfStd = std;
-  if (dtypeCastOfStd.scalar_type() == ScalarType::Half) {
-    dtypeCastOfStd = dtypeCastOfStd.to(ScalarType::Float);
-    resultCopy = resultCopy.to(ScalarType::Float);
-  }
-
-  OpCommand cmd;
-  cmd.Name("Normal")
-    .Input(Scalar(mean), ScalarType::Float)
-    .Input(dtypeCastOfStd)
-    .Output(resultCopy)
-    .Run();
-
-  result.copy_(resultCopy);
-
+  OpPreparation::CheckOut({std}, result, std);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -76,25 +74,10 @@ Tensor& normal_out_npu(
     const Tensor& mean, 
     const Tensor& std, 
     Generator* generator) {
-  Tensor resultCopy = result;  
-  Tensor dtypeCastOfMean = mean;
-  Tensor dtypeCastOfStd = std;
-  if (dtypeCastOfMean.scalar_type() == ScalarType::Half) {
-    dtypeCastOfMean = dtypeCastOfMean.to(ScalarType::Float);
-    resultCopy = resultCopy.to(ScalarType::Float);
-  }
-  if (dtypeCastOfStd.scalar_type() == ScalarType::Half) {
-    dtypeCastOfStd = dtypeCastOfStd.to(ScalarType::Float);
-  }
-  OpCommand cmd;
-  cmd.Name("Normal")
-    .Input(dtypeCastOfMean)
-    .Input(dtypeCastOfStd)
-    .Output(resultCopy)
-    .Run();
-
-  result.copy_(resultCopy);
-
+  SmallVector<int64_t, SIZE> outputSize = broadcast_ops_npu_output_size(mean, std);
+  OpPreparation::CheckOut({mean, std}, result, mean, outputSize);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -105,24 +88,9 @@ Tensor& normal_out_npu(
     IntArrayRef size,
     Generator* generator) {
   TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
-
-  // the op of PTNormalFloatFloat only support format of ND
-  Tensor formatCastOfResult = result.npu_format_cast(ACL_FORMAT_ND);
-  if (formatCastOfResult.scalar_type() == ScalarType::Half) {
-    formatCastOfResult = formatCastOfResult.to(ScalarType::Float);
-  }
-
-  Tensor meanTensor = OpPreparation::ApplyTensor(size, formatCastOfResult.options(), result);
-  meanTensor.fill_(mean);
-  OpCommand cmd;
-  cmd.Name("Normal")
-    .Input(meanTensor)
-    .Input(Scalar(std), ScalarType::Float)
-    .Output(formatCastOfResult)
-    .Run();
-
-  result.copy_(formatCastOfResult);
-
+  OpPreparation::CheckOut({}, result, result, size);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -131,8 +99,8 @@ Tensor normal_npu(
     double std, 
     Generator* generator) {
   Tensor result = OpPreparation::ApplyTensor(mean);
-  normal_out_npu(result, mean, std, generator);
-
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -141,8 +109,8 @@ Tensor normal_npu(
     const Tensor& std, 
     Generator* generator) {
   Tensor result = OpPreparation::ApplyTensor(std);
-  normal_out_npu(result, mean, std, generator);
-
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -151,8 +119,8 @@ Tensor normal_npu(
     const Tensor& std, 
     Generator* generator) {
   Tensor result = OpPreparation::ApplyTensor(mean);
-  normal_out_npu(result, mean, std, generator);
-
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -162,13 +130,9 @@ Tensor normal_npu(
     IntArrayRef size,
     Generator* generator,
     const TensorOptions& options) {
-  // construct the output tensor of the NPU
-  Tensor result = at::empty_with_format(
-      size, options, ACL_FORMAT_ND);
-
-  // calculate the output result of the NPU
-  normal_out_npu(result, mean, std, size, generator);
-
+  Tensor result = OpPreparation::ApplyTensorWithFormat(size, options, ACL_FORMAT_ND);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
   return result;
 }
 
@@ -177,11 +141,10 @@ Tensor& normal_npu_(
     double mean,
     double std,
     Generator* generator) {
-  OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    Tensor result = normal_out_npu(contiguousSelf, mean, std, contiguousSelf.sizes(), generator);
-    NpuUtils::format_fresh_view(self, result);
+    normal_out_npu(contiguousSelf, mean, std, contiguousSelf.sizes(), generator);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
   } else {
     normal_out_npu(self, mean, std, self.sizes(), generator);
   }

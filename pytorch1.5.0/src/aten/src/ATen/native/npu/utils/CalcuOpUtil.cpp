@@ -68,7 +68,8 @@ static std::unordered_map<at::ScalarType, std::string> AT_SCALAR_TYPE_NAME_MAP =
 static std::map<std::string, aclDataType>
     STRING_SCALAR_TYPE_TO_ACL_TYPE_MAP = {
         {"uint16", ACL_UINT16},
-        {"uint8", ACL_UINT8}
+        {"uint8", ACL_UINT8},
+        {"uint64", ACL_UINT64}
 };
 
 static std::map<aclDataType, at::ScalarType> ACL_SCALAR_TYPE_TO_AT_TYPE_MAP = {

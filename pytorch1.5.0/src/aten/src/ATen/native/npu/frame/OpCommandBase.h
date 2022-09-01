@@ -158,7 +158,11 @@ class OpCommandBase {
         npuTensor, ScalarType::Undefined, descName, "", cpuTensor);
   }
 
-  Derived& Input(const IntArrayRef& dimListRef, ScalarType toType = at::kLong) {
+  Derived& Input(
+      const IntArrayRef& dimListRef,
+      ScalarType toType = at::kLong,
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+      const string& realDtype = "") {
     IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
         graphCmd.AddInput(dimListRef, toType);
         )
@@ -167,7 +171,7 @@ class OpCommandBase {
         dimListRef.size(),
         TensorOptions(kCPU).dtype(at::kLong),
         toType);
-    return AddHostTensorInput(cpuTensor);
+    return AddHostTensorInput(cpuTensor, compileType, realDtype);
   }
 
   Derived& Input(
@@ -273,10 +277,12 @@ class OpCommandBase {
     return static_cast<Derived&>(*this);
   }
 
-  Derived& AddHostTensorInput(const Tensor& tensor,
-    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT) {
+  Derived& AddHostTensorInput(
+      const Tensor& tensor,
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+      const string& realDtype = "") {
     std::tuple<aclTensorDesc*, aclDataBuffer*> res;
-    res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
+    res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype);
     aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
     return static_cast<Derived&>(*this);
   }

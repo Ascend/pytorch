@@ -59,7 +59,25 @@ class TestNormal(TestCase):
         r = torch.normal(2, 3, (100, 100))
         self.assertEqual(r.mean(), 2, 0.2)
         self.assertEqual(r.to("cpu").to(torch.float).std(), 3, 0.2)
-        
+
+    def test_normal_seed(self, device):
+        torch.manual_seed(123)
+        mean = torch.rand(2, 3).npu()
+        std = torch.rand(2, 1).npu()
+        input1 = torch.normal(mean, std).npu()
+        torch.manual_seed(123)
+        input2 = torch.normal(mean, std).npu()
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
+    def test_normal_seed_fp16(self, device):
+        torch.manual_seed(23)
+        mean = torch.rand(2, 3).half().npu()
+        std = torch.rand(2, 1).half().npu()
+        input1 = torch.normal(mean, std).npu()
+        torch.manual_seed(23)
+        input2 = torch.normal(mean, std).npu()
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
 
 instantiate_device_type_tests(TestNormal, globals(), except_for="cpu")
 if __name__ == "__main__":

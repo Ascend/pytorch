@@ -52,7 +52,8 @@ public:
       const Tensor& tensor);
 
   static std::tuple<aclTensorDesc*, aclDataBuffer*>
-  CovertHostTensorToAclInput(const Tensor& tensor, ScalarType type, CompileType compileType);
+  CovertHostTensorToAclInput(
+      const Tensor& tensor, ScalarType type, CompileType compileType, const string& forceDataType);
 }; // class OpCommandImpl
 
 } // npu

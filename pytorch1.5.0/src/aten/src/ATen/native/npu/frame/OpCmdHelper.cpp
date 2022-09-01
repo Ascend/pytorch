@@ -95,8 +95,9 @@ std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertScalarToAclInput(
 std::tuple<aclTensorDesc*, aclDataBuffer*> OpCmdHelper::CovertHostTensorToAclInput(
     const Tensor& tensor,
     ScalarType type,
-    CompileType compileType) {
-  aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
+    CompileType compileType,
+    const string& forceDataType) {
+  aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type, forceDataType);
 
   const auto& dims = tensor.sizes();
   AclTensorDescMaker desc;
