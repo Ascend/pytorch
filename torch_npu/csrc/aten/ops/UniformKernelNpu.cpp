@@ -34,14 +34,15 @@ at::Tensor& uniform_out_npu(
   int64_t alg = 1;
   OpCommand cmd;
   cmd.Name("StatelessRandomUniformV2")
-    .Input(self.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-    .InputForUint64(seed_list, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-    .InputForUint64(offset_list, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-    .Input(at::Scalar(alg), at::ScalarType::Int)
-    .Output(result)
-    .Attr("dtype", self.scalar_type())
-    .Run();
-  result.mul_(to - from).add_(from);
+      .Input(self.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(seed_list, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(offset_list, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(at::Scalar(alg), at::ScalarType::Int)
+      .Output(result)
+      .Attr("dtype", self.scalar_type())
+      .Run();
+  // StatelessRandomUniformV2 output: U(0~1) --> U(from~to)
+  result = result.mul(to).sub(result.mul(from).sub(from));
   return result;
 }
 
