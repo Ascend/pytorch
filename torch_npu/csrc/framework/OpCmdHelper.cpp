@@ -84,7 +84,7 @@ namespace at_npu
       return std::tie(aclDesc, aclBuff);
     }
 
-    std::tuple<aclTensorDesc *, aclDataBuffer *, int64_t, aclFormat> OpCmdHelper::CovertScalarToAclInput(
+    std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertScalarToAclInput(
         const at::Tensor &aclInput, at::ScalarType type)
     {
       aclDataType aclDataType = CalcuOpUtil::convert_to_acl_data_type(type);
@@ -93,9 +93,7 @@ namespace at_npu
       auto aclDesc = desc.Create(aclDataType, ACL_FORMAT_ND).Get();
       AclTensorBufferMaker aclBuffer(aclInput);
       auto aclBuff = aclBuffer.Get();
-      int64_t storageDim = 0;
-      aclFormat stroageFormate = ACL_FORMAT_ND;
-      return std::tie(aclDesc, aclBuff, storageDim, stroageFormate);
+      return std::tie(aclDesc, aclBuff);
     }
 
     std::tuple<aclTensorDesc *, aclDataBuffer *> OpCmdHelper::CovertHostTensorToAclInput(

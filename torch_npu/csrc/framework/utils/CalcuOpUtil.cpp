@@ -182,14 +182,19 @@ namespace at_npu
     }
 
     NPUStatus CalcuOpUtil::AclrtMemcpyAsync(
-        void *dst,
+        const std::pair<at::Tensor, int64_t>& dst,
         size_t dst_size,
-        const void *src,
+        const std::pair<at::Tensor, int64_t>& src,
         size_t src_size,
         aclrtMemcpyKind kind)
     {
-      C10_NPU_CHECK(aclrtMemcpyAsync(
-          dst, dst_size, src, src_size, kind, c10_npu::getCurrentNPUStream()));
+      GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
+      void* dst_ptr = reinterpret_cast<uint8_t*>(dst.first.data_ptr()) +
+            dst.second * dst.first.itemsize();
+      void* src_ptr = reinterpret_cast<uint8_t*>(src.first.data_ptr()) +
+            src.second * src.first.itemsize();
+      C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(
+          dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
       return "SUCCESS";
     }
@@ -407,20 +412,26 @@ namespace at_npu
       int inputNum = input.size();
       int outputNum = output.size();
 
-      const aclTensorDesc **aclTensorInputDescArr =
-          inputNum == 0 ? nullptr : new const aclTensorDesc *[inputNum];
-      const aclTensorDesc **aclTensorOutputDescArr =
-          outputNum == 0 ? nullptr : new const aclTensorDesc *[outputNum];
+      size_t inputTensorDescArrLen = inputNum * sizeof(uintptr_t);
+      size_t inputDataBuffArrLen   = inputNum * sizeof(uintptr_t);
 
-      const aclDataBuffer **aclDataInputBuffArr =
-          inputNum == 0 ? nullptr : new const aclDataBuffer *[inputNum];
-      aclDataBuffer **aclDataOutputBuffArr =
-          outputNum == 0 ? nullptr : new aclDataBuffer *[outputNum];
+      size_t outputTensorDescArrLen = outputNum * sizeof(uintptr_t);
+      size_t outputDataBuffArrLen   = outputNum * sizeof(uintptr_t);
 
-      int64_t *inputDimsArr = new int64_t[inputNum];
-      int64_t *outputDimsArr = new int64_t[outputNum];
-      aclFormat *inputFormatsArr = new aclFormat[inputNum];
-      aclFormat *outputFormatsArr = new aclFormat[outputNum];
+      size_t totalMemLen =
+        inputTensorDescArrLen + inputDataBuffArrLen +
+        outputTensorDescArrLen + outputDataBuffArrLen;
+      char* basePtr = static_cast<char* >(malloc(totalMemLen));
+      AT_ASSERT(basePtr != nullptr);
+
+      const aclTensorDesc** aclTensorInputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+      basePtr += inputTensorDescArrLen;
+      const aclDataBuffer** aclDataInputBuffArr = reinterpret_cast<const aclDataBuffer** >(basePtr);
+      basePtr += inputDataBuffArrLen;
+
+      const aclTensorDesc** aclTensorOutputDescArr = reinterpret_cast<const aclTensorDesc** >(basePtr);
+      basePtr += outputTensorDescArrLen;
+      aclDataBuffer** aclDataOutputBuffArr = reinterpret_cast<aclDataBuffer** >(basePtr);
 
       for (int i = 0; i < inputNum; i++)
       {
@@ -438,8 +449,6 @@ namespace at_npu
           aclTensorInputDescArr[i] = aclCreateTensorDesc(
               ACL_DT_UNDEFINED, 0, nullptr, ACL_FORMAT_UNDEFINED);
           aclDataInputBuffArr[i] = aclCreateDataBuffer(nullptr, 0);
-          inputDimsArr[i] = 0;
-          inputFormatsArr[i] = ACL_FORMAT_UNDEFINED;
         }
         else if (
             input[i].tensorDescType == NPUTensorDesc::TensorDescType::TENSOR)
@@ -538,11 +547,6 @@ namespace at_npu
       params.output_desc = aclTensorOutputDescArr;
       params.output_data_buf = aclDataOutputBuffArr;
 
-      params.inputDims = inputDimsArr;
-      params.outputDims = outputDimsArr;
-      params.inputFormats = inputFormatsArr;
-      params.outputFormats = outputFormatsArr;
-
       return "SUCCESS";
     }
 
@@ -630,11 +634,10 @@ namespace at_npu
       return dimList;
     }
 
-    std::tuple<aclopAttr *, string> CalcuOpUtil::CreateNpuAttrDesc(
+    aclopAttr* CalcuOpUtil::CreateNpuAttrDesc(
         const c10::SmallVector<NPUAttrDesc, N> &attrs)
     {
       aclopAttr *attr = aclopCreateAttr();
-      string attrInfo = "attrs=";
 
       for (NPUAttrDesc npuAttrDesc : attrs)
       {
@@ -643,24 +646,20 @@ namespace at_npu
         case NPUAttrDesc::AttrDescType::BOOL_TYPE:
           aclopSetAttrBool(
               attr, npuAttrDesc.attrName.c_str(), npuAttrDesc.boolAttrValue);
-          attrInfo += std::to_string(npuAttrDesc.boolAttrValue) + "-";
           break;
         case NPUAttrDesc::AttrDescType::INT_TYPE:
           aclopSetAttrInt(
               attr, npuAttrDesc.attrName.c_str(), npuAttrDesc.intAttrValue);
-          attrInfo += std::to_string(npuAttrDesc.intAttrValue) + "-";
           break;
         case NPUAttrDesc::AttrDescType::FLOAT_TYPE:
           aclopSetAttrFloat(
               attr, npuAttrDesc.attrName.c_str(), npuAttrDesc.floatAttrValue);
-          attrInfo += std::to_string(npuAttrDesc.floatAttrValue) + "-";
           break;
         case NPUAttrDesc::AttrDescType::STRING_TYPE:
           aclopSetAttrString(
               attr,
               npuAttrDesc.attrName.c_str(),
               npuAttrDesc.stringAttrValue.c_str());
-          attrInfo += npuAttrDesc.stringAttrValue + "-";
           break;
         case NPUAttrDesc::AttrDescType::LIST_INT_TYPE:
           aclopSetAttrListInt(
@@ -668,9 +667,6 @@ namespace at_npu
               npuAttrDesc.attrName.c_str(),
               npuAttrDesc.listIntAttrValue.size(),
               npuAttrDesc.listIntAttrValue.data());
-          for (unsigned i = 0; i < npuAttrDesc.listIntAttrValue.size(); i++)
-            attrInfo += std::to_string(npuAttrDesc.listIntAttrValue.at(i)) + ",";
-          attrInfo += "-";
           break;
         case NPUAttrDesc::AttrDescType::LIST_FLOAT_TYPE:
           aclopSetAttrListFloat(
@@ -678,9 +674,6 @@ namespace at_npu
               npuAttrDesc.attrName.c_str(),
               npuAttrDesc.listFloatAttrValue.size(),
               npuAttrDesc.listFloatAttrValue.data());
-          for (unsigned i = 0; i < npuAttrDesc.listFloatAttrValue.size(); i++)
-            attrInfo += std::to_string(npuAttrDesc.listFloatAttrValue.at(i)) + ",";
-          attrInfo += "-";
           break;
         case NPUAttrDesc::AttrDescType::LIST_LIST_INT_TYPE:
           aclopSetAttrListListInt(
@@ -689,16 +682,13 @@ namespace at_npu
               npuAttrDesc.listListIntAttrValue.size(),
               npuAttrDesc.listListIntAttrListIntNum.data(),
               npuAttrDesc.listListIntAttrValue.data());
-          for (unsigned i = 0; i < npuAttrDesc.listListIntAttrValue.size(); i++)
-            attrInfo += std::to_string(*npuAttrDesc.listListIntAttrValue.at(i)) + ",";
-          attrInfo += "-";
           break;
         default:
           AT_ERROR("unsupport attr type", npuAttrDesc.attrType);
         }
       }
 
-      return std::tuple<aclopAttr *, string>(attr, attrInfo);
+      return attr;
     }
 
     void CalcuOpUtil::execute_npu_operate(
@@ -711,20 +701,22 @@ namespace at_npu
       {
         ExecuteParas cur_paras;
         cur_paras.opType = opName;
-        cur_paras.paras.hasAttr = attrs.size() == 0 ? false : true;
         CalcuOpUtil::CreateAclTensorDescInfo(
             inputs, outputs, cur_paras.paras, opName, attrs);
         auto attrRes = CalcuOpUtil::CreateNpuAttrDesc(attrs);
-        cur_paras.attr = std::get<0>(attrRes);
-        cur_paras.attrInfo = std::get<1>(attrRes);
-        c10_npu::enCurrentNPUStream(&cur_paras);
+        cur_paras.attr = attrRes;
+        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
+          cur_paras.isFuzzy = true;
+        }
+        c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
+        c10_npu::enCurrentNPUStream(&params);
         return;
       }
 
       ACL_PARAMS params;
 
       CalcuOpUtil::CreateAclTensorDescInfo(inputs, outputs, params, opName, attrs);
-      aclopAttr *attr = std::get<0>(CalcuOpUtil::CreateNpuAttrDesc(attrs));
+      aclopAttr *attr = CalcuOpUtil::CreateNpuAttrDesc(attrs);
 
       auto stream = c10_npu::getCurrentNPUStream();
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
