@@ -33,6 +33,7 @@ namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
 // non-blocking.
 constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
+constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 // ProcessGroupHCCL implements HCCL bindings for c10d.
 //
@@ -79,7 +80,7 @@ public:
     explicit WorkHCCL(const std::vector<at::Device>& devices);
     virtual ~WorkHCCL();
 
-    // Checks if request has completed. In this specific case of HCCL, it checks
+// Checks if request has completed. In this specific case of HCCL, it checks
     // if the HCCL operation has completed on the NPU in its own HCCL stream.
     // Non-blocking operation.
     bool isCompleted() override;
@@ -109,6 +110,17 @@ public:
     // The HCCL communicators used for this work item.
     std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
 
+    // // The HCCL communicators used for this work item.
+    // std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
+    // The HCCL communicators used for this work item. on
+    // multiple runtime devices. These start npu events are needed by desync
+    // debugging if enabled.
+    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
+
+    // The end npu events of HCCL operator tracking this work item on
+    // multiple npu devices.
+    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclEndEvents_;
+
     // Tensors used for barrier op
     std::vector<at::Tensor> barrierTensors_;
 
@@ -120,6 +132,9 @@ public:
 
     // Time point representing when the work started.
     std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
+
+    // Record the collective sequential number.
+    uint64_t seq_;
 
     // Temporarily not implemented
     // virtual std::exception_ptr checkForHCCLErrors(const
@@ -142,16 +157,20 @@ public:
     friend class ProcessGroupHCCL;
   };
 
-  struct Options : torch::CustomClassHolder {
-    explicit Options();
+ struct Options : torch::CustomClassHolder {
+    explicit Options(
+        bool is_high_priority_stream = false);
 
     // return intrusive_ptr of the object
     static c10::intrusive_ptr<Options> create(
+        bool is_high_priority_stream = false,
         std::chrono::milliseconds timeout = kNoTimeout) {
-      return c10::make_intrusive<Options>();
+      return c10::make_intrusive<Options>(is_high_priority_stream);
     }
 
     std::chrono::milliseconds opTimeout;
+    // Schedule NCCL operations on high priority CUDA streams
+    bool is_high_priority_stream;
   };
 
   // If you wish to create multiple process groups, each with a potentially
@@ -186,8 +205,12 @@ public:
 
   virtual ~ProcessGroupHCCL();
 
+  c10::intrusive_ptr<Options> getOptions() {
+    return options_;
+  }
+
   const std::string getBackendName() const {
-      return "undefined"
+      return "undefined";
   }
   c10::intrusive_ptr<c10d::ProcessGroup::Work> broadcast(
       std::vector<at::Tensor>& tensors,
@@ -252,6 +275,15 @@ public:
 
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
+   // Agrees on an initial sequence number for the whole group by having rank 0
+  // create it and broadcast it to other ranks using the store.
+  void setSequenceNumberForGroup() override;
+
+  // Retrieves the current sequence number for the whole group, which should be
+  // in sync. If the returned number is not consistent across the group, it
+  // may indicate that there is some sort of collective desynchronization.
+  uint64_t getSequenceNumberForGroup() override;
+
 protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
   void broadcastMasterID(HcclRootInfo* hcclID);
@@ -273,6 +305,7 @@ protected:
 
   // The store is used to broadcast the HCCL Master ID of rank 0.
   c10::intrusive_ptr<c10d::Store> store_;
+  const c10::intrusive_ptr<Options> options_;
 
   // The number of HCCL communicators that have been created during
   // the lifetime of this process group. This sequence number is
@@ -355,10 +388,18 @@ protected:
   // for the operation to complete.
   bool blockingWait_ = false;
 
+  // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
+
   // Timeout for operations. This is only used when blockingWait_ is enabled.
   std::chrono::milliseconds opTimeout_;
 
-  // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
+  // The number of active ncclGroupStart() calls. This counter will be increased
+  // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
+  // is called.
+  static thread_local uint64_t hcclActiveGroupCounter_;
+
+  // Counting for the sequential number of NCCL collective call.
+  uint64_t seq_{0};
 
 private:
   // Helper that encapsulates work shared across all collective communication
@@ -382,3 +423,4 @@ private:
 
 };
 } // namespace c10d_npu
+  

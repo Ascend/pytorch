@@ -36,6 +36,27 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 
+namespace {
+// Named type instead of a pair/tuple so that we can be sure to
+// construct the vectors in place and get NRVO.
+struct InferUnsqueezeGeometryResult {
+  at::DimVector sizes;
+  at::DimVector strides;
+  InferUnsqueezeGeometryResult(c10::IntArrayRef tensor_sizes, c10::IntArrayRef tensor_strides)
+      : sizes(tensor_sizes.begin(), tensor_sizes.end())
+      , strides(tensor_strides.begin(), tensor_strides.end()) {}
+};
+}
+
+InferUnsqueezeGeometryResult inferUnsqueezeGeometry(const at::Tensor& tensor, int64_t dim) {
+  InferUnsqueezeGeometryResult result(tensor.sizes(), tensor.strides());
+  int64_t new_stride = dim >= tensor.dim() ? 1 : result.sizes[dim] * result.strides[dim];
+  result.sizes.insert(result.sizes.begin() + dim, 1);
+  result.strides.insert(result.strides.begin() + dim, new_stride);
+
+  return result;
+}
+
 namespace at_npu {
 namespace native {
 
@@ -114,6 +135,13 @@ const at::Tensor& XLANativeFunctions::as_strided_(
   at::native::setStrided(reuslt, size, stride, storage_offset);
   return reuslt;
 }
+
+at::Tensor XLANativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
+    dim = at::maybe_wrap_dim(dim, self.dim() + 1);
+    auto g = inferUnsqueezeGeometry(self, dim);
+    return self.as_strided(g.sizes, g.strides);
+
+    }
 
 } // namespace native
 } // namespace at_npu
