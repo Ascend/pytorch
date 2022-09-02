@@ -595,7 +595,7 @@ void ReleaseQueue::PopFromReleaseQueue() {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
       }
-      usleep(2);
+      usleep(5);
     }
   }
 }
