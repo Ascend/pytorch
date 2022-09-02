@@ -23,6 +23,11 @@
 #include <tuple>
 #include <unordered_set>
 
+#include <c10/util/Optional.h>
+#include <c10/util/irange.h>
+#include <c10d/ParamCommsUtils.hpp>
+#include <c10d/TraceUtils.h>
+
 #include "torch_npu/csrc/distributed/HCCLUtils.hpp"
 #include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "third_party/acl/inc/acl/acl.h"
@@ -96,6 +101,14 @@ std::vector<at::Device> getDeviceList(const std::vector<at::Tensor>& tensors) {
   return res;
 }
 
+// Return device with ordinal given by input rank.
+at::Device getDeviceForRank(int rank) {
+  TORCH_CHECK(rank >= 0, "Invalid rank ", rank);
+  auto numNPUs = c10_npu::device_count();
+  int16_t deviceIdx = static_cast<int16_t>(rank % numNPUs);
+  return at::Device(at_npu::key::NativeDeviceType, deviceIdx);
+}
+
 // [Sync Streams] Helper that lets the input hcclStreams to wait for the current
 // stream. HCCL communications run on hcclStreams, but input tensors are
 // allocated on different streams (i.e., current streams). Communications on
@@ -132,6 +145,8 @@ void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
 constexpr int64_t kSynchronizeBusyWaitMillis = 10;
 constexpr int64_t maxOpNumPerSyncPoint = 2;
 const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
+thread_local uint64_t ProcessGroupHCCL::hcclActiveGroupCounter_ = 0;
+// const int64_t ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis = 10 * 1000;
 ProcessGroupHCCL::WorkHCCL::WorkHCCL(const std::vector<at::Device>& devices)
     : devices_(devices), workStartTime_(std::chrono::steady_clock::now()) {
   // Creates the npu event wrappers
@@ -194,7 +209,7 @@ void ProcessGroupHCCL::WorkHCCL::checkAndThrowException() {
 
 // Waiting on the work's corresponding NPU events
 void ProcessGroupHCCL::WorkHCCL::synchronize() {
-  for (size_t i = 0; i < devices_.size(); ++i) {
+  for (const auto i : c10::irange(devices_.size())) {
     auto currentStream = c10_npu::getCurrentNPUStream(devices_[i].index());
     // Block the current stream on the HCCL stream
     npuEvents_[i].block(currentStream);
@@ -237,9 +252,9 @@ ProcessGroupHCCL::ProcessGroupHCCL(
     c10::intrusive_ptr<Options> options)
     : c10d::ProcessGroup(rank, size),
       store_(store),
+      options_(options),
       hcclCommCounter_(0),
-      terminateWatchdog_(false),
-      opTimeout_(options->opTimeout) {
+      terminateWatchdog_(false) {
   char* blockingWait = getenv(HCCL_BLOCKING_WAIT);
   try {
     if (blockingWait != nullptr) {
@@ -260,6 +275,12 @@ ProcessGroupHCCL::ProcessGroupHCCL(
   }
 }
 
+void ProcessGroupHCCL::setSequenceNumberForGroup() {}
+
+uint64_t ProcessGroupHCCL::getSequenceNumberForGroup() {
+  return seq_;
+}
+
 ProcessGroupHCCL::~ProcessGroupHCCL() {}
 
 void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
@@ -276,9 +297,19 @@ void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
         reinterpret_cast<uint8_t*>(hcclID) + HCCL_ROOT_INFO_BYTES);
     store_->set(storeKey, vec);
   } else {
-    auto vec = store_->get(storeKey);
-    TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES);
-    std::memcpy(hcclID, vec.data(), vec.size());
+    try {
+      auto vec = store_->get(storeKey);
+      TORCH_CHECK(vec.size() == HCCL_ROOT_INFO_BYTES);
+      std::memcpy(hcclID, vec.data(), vec.size());
+    } catch (const std::exception& e) {
+      throw std::runtime_error(
+          "store->get() got error: " +
+          std::string(HCCL_BLOCKING_WAIT));
+    } catch (...) {
+      throw std::runtime_error(
+          "Unknown exception: " +
+          std::string(HCCL_BLOCKING_WAIT));
+    }
   }
 }
 
@@ -364,15 +395,15 @@ namespace {
 
 // Check that all `tensors' have the same type and shape and are distributed
 // across distinct NPUs.
-void check_npu_tensors(const std::vector<at::Tensor>& tensors) {
+void check_npu_tensors_different_devices(const std::vector<at::Tensor>& tensors) {
   // HCCL support one NPU per process only
   if (tensors.size() != 1) {
-    throw std::runtime_error(
+    TORCH_CHECK(false,
         "Tensor list mustn't be larger than the number of available NPUs");
   }
   // HCCL support contiguous tensor only
   if (!tensors[0].is_contiguous()) {
-    throw std::runtime_error("Tensors must be contiguous");
+    TORCH_CHECK(false, "Tensors must be contiguous");
   }
 }
 
@@ -383,7 +414,7 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
     std::vector<at::Tensor>& other,
     size_t world_size) {
   if (tensor_lists.size() != other.size()) {
-    throw std::runtime_error(
+    TORCH_CHECK(false,
         "Tensor list operands to scatter/gather must have the same length");
   }
   const auto num_devices = tensor_lists.size();
@@ -393,7 +424,7 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
 
   for (auto i = size_t{}; i < num_devices; ++i) {
     if (tensor_lists[i].size() != world_size * num_devices) {
-      throw std::runtime_error(
+      TORCH_CHECK(false,
           "Tensor list input to scatter/gather must match number of collective"
           " participants");
     }
@@ -401,14 +432,14 @@ std::vector<at::Tensor> flatten_for_scatter_gather(
     // Only check device match for the first tensor in the list; the call to
     // newLikeFlat() below will check the rest.
     if (tensor_lists[i].front().get_device() != other[i].get_device()) {
-      throw std::runtime_error(
+      TORCH_CHECK(false,
           "Corresponding input/output tensors to scatter/gather must all reside"
           " on the same device");
     }
 
     for (const auto& t : tensor_lists[i]) {
       if (t.numel() != other[i].numel()) {
-        throw std::runtime_error(
+        TORCH_CHECK(false,
             "All tensor operands to scatter/gather must have the same size");
       }
     }
@@ -429,8 +460,9 @@ c10::intrusive_ptr<ProcessGroupHCCL::WorkHCCL> ProcessGroupHCCL::initWork(
   return c10::make_intrusive<ProcessGroupHCCL::WorkHCCL>(devices);
 }
 
-ProcessGroupHCCL::Options::Options()
-    : opTimeout(kProcessGroupHCCLOpTimeoutMillis){}
+ProcessGroupHCCL::Options::Options(bool is_high_priority_stream)
+    : opTimeout(kProcessGroupHCCLOpTimeoutMillis),
+    is_high_priority_stream(is_high_priority_stream){}
 
 template <typename Fn, typename PreProcess, typename PostProcess>
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
@@ -439,20 +471,24 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     Fn fn,
     PreProcess pre,
     PostProcess post) {
+
+  // Bump collective counter
+  seq_++;
+  
   const auto devices = getDeviceList(inputs);
   const auto key = getKeyFromDevices(devices);
   auto& hcclComms = getHCCLComm(key, devices);
+  // Used many times below, so we stash the unordered_map lookup
+  auto& hcclStreams = hcclStreams_[key];
   // First let HCCL streams wait for input tensors allocation streams
-  syncStreams(devices, hcclEvents_[key], hcclStreams_[key]);
+  syncStreams(devices, hcclEvents_[key], hcclStreams);
   // Work itself will create the events on all NPUs of tensors
   auto work = initWork(devices);
-
   c10_npu::OptionalNPUGuard npuGuard;
-  pre(hcclStreams_[key]);
-
-  for (size_t i = 0; i < inputs.size(); ++i) {
+  pre(hcclStreams);
+  for (const auto i : c10::irange(inputs.size())) {
     npuGuard.set_index(devices[i].index());
-    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+    c10_npu::NPUStream& hcclStream = hcclStreams[i];
 
     // Both `inputs' and `outputs' are created on a worker stream and used in
     // different hcclStreams.  Hence, both must record the hcclStream to
@@ -466,26 +502,24 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
         inputs[i].storage().data_ptr(), hcclStream);
   }
   {
-    for (size_t i = 0; i < inputs.size(); ++i) {
+    for (const auto i : c10::irange(inputs.size())) {
       npuGuard.set_index(devices[i].index());
       // to avoid to much task pushed to the stream, leading to stream overflow
       // insert sync point fluxLimit(key, i)
-      c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+      c10_npu::NPUStream& hcclStream = hcclStreams[i];
       hcclUs startut = TIME_NOW();
       C10D_HCCL_CHECK(
           fn(inputs[i], outputs[i], hcclComms[i]->getHcclComm(), hcclStream));
     }
   }
-  post(hcclStreams_[key]);
-
+  post(hcclStreams);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+    c10_npu::NPUStream& hcclStream = hcclStreams[i];
     work->npuEvents_[i].record(hcclStream);
     work->hcclComms_[i] = hcclComms[i];
     work->blockingWait_ = blockingWait_;
     work->opTimeout_ = opTimeout_;
   }
-
   return work;
 }
 
@@ -506,7 +540,7 @@ int g_allreduceID = 0;
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
     std::vector<at::Tensor>& tensors,
     const c10d::AllreduceOptions& opts) {
-  check_npu_tensors(tensors);
+  check_npu_tensors_different_devices(tensors);
   return collective(
       tensors,
       tensors,
@@ -526,11 +560,12 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
             stream.stream());
       });
 }
+
 int g_broadcastID = 100000;
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
     std::vector<at::Tensor>& tensors,
     const c10d::BroadcastOptions& opts) {
-  check_npu_tensors(tensors);
+  check_npu_tensors_different_devices(tensors);
   return collective(
       tensors,
       tensors,
@@ -567,10 +602,10 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
     std::vector<std::vector<at::Tensor>>& outputTensors,
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts) {
-  check_npu_tensors(inputTensors);
+  check_npu_tensors_different_devices(inputTensors);
   auto outputFlattened =
       flatten_for_scatter_gather(outputTensors, inputTensors, size_);
-  check_npu_tensors(outputFlattened);
+  check_npu_tensors_different_devices(outputFlattened);
 
   return collective(
       inputTensors,
@@ -593,9 +628,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
       [&](std::vector<c10_npu::NPUStream>& hcclStreams) {},
       [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
         // Copy the flattened output tensors to the outputs.
-        for (size_t i = 0; i < outputTensors.size(); ++i) {
+        for (const auto i : c10::irange(outputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-          for (size_t j = 0; j < outputTensors[0].size(); ++j) {
+          for (const auto j : c10::irange(outputTensors[0].size())) {
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
                 outputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
@@ -617,11 +652,11 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
     std::vector<at::Tensor>& outputTensors,
     std::vector<std::vector<at::Tensor>>& inputTensors,
     const c10d::ReduceScatterOptions& opts) {
-  check_npu_tensors(outputTensors);
+  check_npu_tensors_different_devices(outputTensors);
 
   auto inputFlattened =
       flatten_for_scatter_gather(inputTensors, outputTensors, size_);
-  check_npu_tensors(inputFlattened);
+  check_npu_tensors_different_devices(inputFlattened);
 
   return collective(
       inputFlattened,
@@ -644,9 +679,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
       },
       [&](std::vector<c10_npu::NPUStream>& hcclStreams) {
         // Copy the input tensors to the flattened inputs.
-        for (size_t i = 0; i < inputTensors.size(); ++i) {
+        for (const auto i : c10::irange(inputTensors.size())) {
           c10_npu::NPUStreamGuard guard(hcclStreams[i]);
-          for (size_t j = 0; j < inputTensors[0].size(); ++j) {
+          for (const auto j : c10::irange(inputTensors[0].size())) {
             // See [Sync Streams].
             c10_npu::NPUCachingAllocator::recordStream(
                 inputTensors[i][j].storage().data_ptr(), hcclStreams[i]);
@@ -710,7 +745,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
     std::vector<at::Tensor>& tensors,
     int dstRank,
     int tag) {
-  check_npu_tensors(tensors);
+  check_npu_tensors_different_devices(tensors);
   return collective(
       tensors,
       tensors,
@@ -733,7 +768,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
     std::vector<at::Tensor>& tensors,
     int srcRank,
     int tag) {
-  check_npu_tensors(tensors);
+  check_npu_tensors_different_devices(tensors);
   return collective(
       tensors,
       tensors,
@@ -755,6 +790,6 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recvAnysource(
     std::vector<at::Tensor>& /* unused */,
     int /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support recv");
+  TORCH_CHECK(false, "ProcessGroupHCCL does not support recv");
 }
 } // namespace c10d_npu

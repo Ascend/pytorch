@@ -22,7 +22,7 @@ PYTORCH_DIR=$1
 function main()
 {
     cd $PYTORCH_DIR
-    patch -p1 < $ROOT_DIR/patch/npu.patch
+    patch -N -p1 < $ROOT_DIR/patch/npu.patch
     cp -r $ROOT_DIR/third_party/* $PYTORCH_DIR/third_party/
 }
 
