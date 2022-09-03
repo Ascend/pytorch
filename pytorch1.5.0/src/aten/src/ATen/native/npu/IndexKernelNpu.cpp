@@ -33,7 +33,8 @@ Tensor& index_out_npu(
       .Input(self)
       .Input(masks);
   for (int i = 0; i < allDefinedIndices.size(); i++) {
-    cmd.Input(allDefinedIndices[i]);
+    string inputName = "indices" + to_string(i);
+    cmd.Input(allDefinedIndices[i], inputName);
   }
   cmd.Output(result)
       .Run();
