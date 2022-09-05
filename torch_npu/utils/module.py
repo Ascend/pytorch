@@ -40,8 +40,7 @@ def npu(self, device=None):
     Returns:
         Module: self
     """
-    if device is None:
-        device = torch.device("npu")
+    device = torch.device("npu")
     if torch_npu.npu.is_available():
         # Ref [cast weight in single op mode]
         is_graph_mode = torch_npu.npu.is_graph_mode()
