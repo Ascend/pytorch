@@ -150,7 +150,7 @@ source pytorch/env.sh
 以下环境变量为NPU场景下使用的功能类或可以提升性能的环境变量：
 
 ```
-export TASK_QUEUE_ENABLE=1 # 使用异步任务下发，异步调用acl接口，建议默认开启，开启设置为1
+export TASK_QUEUE_ENABLE=1 # 使用异步任务下发，异步调用acl接口，主机侧任务下发出现瓶颈时建议开启，开启设置为1
 export PTCOPY_ENABLE=1 # 使用PTCopy算子模式，加速转连续及copy等过程，建议默认开启，开启设置为1
 ```
 
