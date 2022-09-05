@@ -4,6 +4,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -56,6 +57,8 @@ private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
+  std::condition_variable cv;
+  std::mutex mtx;
   bool initialized = false;
 };
 
