@@ -31,7 +31,8 @@ at::Tensor& index_out_nocheck_npu(
       .Input(self)
       .Input(masksTensor);
   for (int i = 0; i < allDefinedIndices.size(); i++) {
-    cmd.Input(allDefinedIndices[i]);
+    string inputName = "indices" + std::to_string(i);
+    cmd.Input(allDefinedIndices[i], inputName);
   }
   cmd.Output(result)
       .Run();
