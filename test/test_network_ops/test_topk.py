@@ -92,8 +92,6 @@ class TestTopK(TestCase):
             cpu_input3, npu_input3 = create_common_tensor(item, 0, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
-            if cpu_input1.dtype == torch.float16:
-                cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output, cpu_indices = self.cpu_op_exec(cpu_input1, 5)
             npu_output, npu_indices = self.npu_op_exec_out(npu_input1, 5, npu_input2, npu_input3.to(torch.int64))
             cpu_output = cpu_output.astype(npu_output.dtype)
