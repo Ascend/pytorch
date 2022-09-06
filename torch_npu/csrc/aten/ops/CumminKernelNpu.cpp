@@ -30,7 +30,7 @@ void cummin_out_npu_nocheck (
     .Input(self)
     .Output(values)
     .Output(indices)
-    .Attr("dim", dim)
+    .Attr("axis", dim)
     .Run();      
 }
 
