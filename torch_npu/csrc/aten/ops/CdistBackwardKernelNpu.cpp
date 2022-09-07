@@ -32,7 +32,6 @@ static void check_cdist_backward_input(
   TORCH_CHECK(device1 == at::kCPU || device1 == at::kCUDA || device1 == at_npu::key::NativeDeviceType, "_cdist_backward only supports CPU, CUDA and NPU devices, X1 got: ", device1);
   auto device2 = x2.device().type();
   TORCH_CHECK(device2 == at::kCPU || device2 == at::kCUDA || device2 == at_npu::key::NativeDeviceType, "_cdist_backward only supports CPU, CUDA and NPU devices, X2 got: ", device2);
-  TORCH_CHECK(p <= std::numeric_limits<float>::max(), "npu dose not support float64" );
 }
 
 at::Tensor NPUNativeFunctions::_cdist_backward(
@@ -44,7 +43,7 @@ at::Tensor NPUNativeFunctions::_cdist_backward(
   check_cdist_backward_input(grad, x1, x2, p, cdist);
   float p_float;
   if (std::isinf(p)) {
-    p_float = std::numeric_limits<float>::infinity();
+    p_float = -1;
   }
   else {
     p_float = static_cast<float>(p);
