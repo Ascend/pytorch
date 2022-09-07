@@ -55,7 +55,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pad_packed_sequence(
     prevBatchSize = batchSize;
   }
   if (batchFirst) {
-    output = NPUNativeFunctions::npu_transpose(data, {0, 1}, true);
+    output = data.transpose(0, 1);
   }
   return std::tie(output, lengthsT);
 }
