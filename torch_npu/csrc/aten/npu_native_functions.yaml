@@ -760,9 +760,6 @@ supported:
   - selu_
   - celu
   - celu_
-  - silu
-  - silu_
-  - silu.out
   - silu_backward
   - sigmoid
   - sigmoid_
@@ -1860,6 +1857,9 @@ autograd:
   - elu.out
   - elu
   - elu_
+  - silu
+  - silu_
+  - silu.out
 
 custom:
   - func: npu_transpose(Tensor self, int[] perm, bool require_contiguous=True) -> Tensor
