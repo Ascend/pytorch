@@ -122,16 +122,17 @@ class TestRandom(TestCase):
                     lambda: t.random_(from_, to_)
                 )
 
-    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16, torch.uint8, torch.int16, torch.int8, torch.double)
     def test_random_default(self, dtype):
         size = 2000
         alpha = 0.1
 
-        # the dtype of 'to' is int, so its max value is the max of int64
         if dtype == torch.float:
-            to_inc = torch.iinfo(torch.int64).max
-        elif dtype == torch.float16:
-            to_inc = 65504
+            to_inc = 1 << 24
+        elif dtype == torch.double:
+            to_inc = 1 << 53
+        elif dtype == torch.half:
+            to_inc = 1 << 11
         else:
             to_inc = torch.iinfo(dtype).max
 
