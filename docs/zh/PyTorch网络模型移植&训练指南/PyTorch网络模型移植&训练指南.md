@@ -3,13 +3,13 @@
 # PyTorch网络模型移植&训练指南
 
 -   [概述](#概述)
--   [约束与限制](#约束与限制md)
--   [迁移流程](#迁移流程md)
+-   [约束与限制](#约束与限制)
+-   [迁移流程](#迁移流程)
 -   [快速上手](#快速上手)
 -   [模型移植评估](#模型移植评估md)
 -   [环境准备](#环境准备md)
 -   [模型迁移](#模型迁移md)
--   [模型训练](#模型训练md)
+-   [模型训练](#模型训练)
 -   [性能调优和分析](#性能调优和分析)
 -   [精度调测](#精度调测)
 -   [模型保存与转换](#模型保存与转换)
@@ -21,7 +21,8 @@
     -   [模型调测常见问题](#模型调测常见问题)
     -   [其他操作相关问题](#其他操作相关问题)
     -   [模型分布式训练常见问题](#模型分布式训练常见问题)
-<h2 id="概述md">概述</h2>
+
+## 概述
 
 当前阶段针对PyTorch框架实现的对接适配昇腾AI处理器的方案为在线对接方案。
 
@@ -42,7 +43,7 @@
 4.  扩展性好。在打通流程的通路之上，对于新增的网络类型或结构，只需涉及相关计算类算子的开发和实现。框架类算子，反向图建立和实现机制等结构可保持复用。
 5.  与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，只需在Python侧和Device相关操作中，指定device为昇腾AI处理器，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试，用户无需进一步关注昇腾AI处理器具体的底层细节。这样可以确保用户的最小化修改，迁移成本较低。
 
-<h2 id="约束与限制md">约束与限制</h2>
+## 约束与限制
 
 -   infershape阶段算子不支持unknowshape的推导。
 -   cube计算的算子只支持float16。
@@ -55,8 +56,7 @@
     -   只支持1/2/4/8P粒度的分配。
     -   只支持int8，int32，float16和float32数据类型。
 
-
-<h2 id="迁移流程md">迁移流程</h2>
+## 迁移流程
 
 模型迁移主要指将开源社区中实现过的模型迁移到昇腾AI处理器上，主要流程如[图1](#fig759451810422)所示。
 
@@ -672,7 +672,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
 
 准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet。
 
-**执行命令**
+**执行命令**  <a name="命令"></a>
 
 单卡训练:
 
@@ -711,8 +711,7 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
 
-
-<h2 id="模型移植评估md">模型移植评估</h2>
+## 模型移植评估
 
 1. 在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
 
@@ -721,316 +720,30 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
 
-
-<h2 id="环境准备md">环境准备</h2>
+## 环境准备
 
 请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch及混合精度模块安装，并配置环境变量。
 
-<h2 id="模型迁移md">模型迁移</h2>
+## 模型迁移
 
-
-<h3 id="工具迁移md">工具迁移</h3>
+### 工具迁移
 
 Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://www.hiascend.com/document/detail/zh/mindstudio/304/msug)。
 
-<h4 id="功能介绍md">功能介绍</h4>
+#### 功能介绍
 
 **简介**<a name="zh-cn_topic_0000001133095885_section20874690446"></a>
 
 昇腾NPU是AI算力的后起之秀，但目前训练和在线推理脚本大多是基于GPU的。由于NPU与GPU的架构差异，基于GPU的训练和在线推理脚本不能直接在NPU上使用，脚本转换工具提供了将基于GPU的脚本转换为基于NPU的脚本的自动化方法，节省了人工手动进行脚本迁移的学习成本与工作量，大幅提升了迁移效率。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。除使用[表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换成功后可直接运行外，其他脚本的转换结果仅供参考，仍需用户根据实际情况做少量适配。
->-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的原脚本需要在GPU环境下且基于python3能够跑通。
->-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换后的执行逻辑与转换前保持一致。
+>-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。
 >-   此脚本转换工具当前仅支持PyTorch训练脚本转换。
 
-**表 1**  模型支持列表
+**模型支持**
 
-<a name="zh-cn_topic_0000001133095885_table4705239194613"></a>
-<table><thead align="left"><tr id="zh-cn_topic_0000001133095885_row1270543910462"><th class="cellrowborder" valign="top" width="27.41%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001133095885_p670613914465"><a name="zh-cn_topic_0000001133095885_p670613914465"></a><a name="zh-cn_topic_0000001133095885_p670613914465"></a>序号</p>
-</th>
-<th class="cellrowborder" valign="top" width="72.59%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001133095885_p57061739124611"><a name="zh-cn_topic_0000001133095885_p57061739124611"></a><a name="zh-cn_topic_0000001133095885_p57061739124611"></a>模型名称</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001133095885_row11706239134617"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18706163918464"><a name="zh-cn_topic_0000001133095885_p18706163918464"></a><a name="zh-cn_topic_0000001133095885_p18706163918464"></a>1</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3573354194212"><a name="zh-cn_topic_0000001133095885_p3573354194212"></a><a name="zh-cn_topic_0000001133095885_p3573354194212"></a>3D AttentionNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67061939194612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17706143917468"><a name="zh-cn_topic_0000001133095885_p17706143917468"></a><a name="zh-cn_topic_0000001133095885_p17706143917468"></a>2</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1957314543423"><a name="zh-cn_topic_0000001133095885_p1957314543423"></a><a name="zh-cn_topic_0000001133095885_p1957314543423"></a>3D Nested_UNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row197069395460"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p207061639194612"><a name="zh-cn_topic_0000001133095885_p207061639194612"></a><a name="zh-cn_topic_0000001133095885_p207061639194612"></a>3</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15573155434213"><a name="zh-cn_topic_0000001133095885_p15573155434213"></a><a name="zh-cn_topic_0000001133095885_p15573155434213"></a>Advanced East</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1706103914467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2706163911464"><a name="zh-cn_topic_0000001133095885_p2706163911464"></a><a name="zh-cn_topic_0000001133095885_p2706163911464"></a>4</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731454144217"><a name="zh-cn_topic_0000001133095885_p125731454144217"></a><a name="zh-cn_topic_0000001133095885_p125731454144217"></a>AlexNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row9706739124610"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5706739114611"><a name="zh-cn_topic_0000001133095885_p5706739114611"></a><a name="zh-cn_topic_0000001133095885_p5706739114611"></a>5</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1357319544426"><a name="zh-cn_topic_0000001133095885_p1357319544426"></a><a name="zh-cn_topic_0000001133095885_p1357319544426"></a>DeeplabV3+(Xception-JFT)</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row177079399465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p147072039184612"><a name="zh-cn_topic_0000001133095885_p147072039184612"></a><a name="zh-cn_topic_0000001133095885_p147072039184612"></a>6</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657315454213"><a name="zh-cn_topic_0000001133095885_p657315454213"></a><a name="zh-cn_topic_0000001133095885_p657315454213"></a>DeepMar</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row15707173954611"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13707103984614"><a name="zh-cn_topic_0000001133095885_p13707103984614"></a><a name="zh-cn_topic_0000001133095885_p13707103984614"></a>7</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1057345444220"><a name="zh-cn_topic_0000001133095885_p1057345444220"></a><a name="zh-cn_topic_0000001133095885_p1057345444220"></a>Densenet121</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row2707739124612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707839114617"><a name="zh-cn_topic_0000001133095885_p18707839114617"></a><a name="zh-cn_topic_0000001133095885_p18707839114617"></a>8</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p175731454114210"><a name="zh-cn_topic_0000001133095885_p175731454114210"></a><a name="zh-cn_topic_0000001133095885_p175731454114210"></a>DenseNet161</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1270714392464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p197072397468"><a name="zh-cn_topic_0000001133095885_p197072397468"></a><a name="zh-cn_topic_0000001133095885_p197072397468"></a>9</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05731654204218"><a name="zh-cn_topic_0000001133095885_p05731654204218"></a><a name="zh-cn_topic_0000001133095885_p05731654204218"></a>DenseNet169</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row17707113914468"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p18707339144611"><a name="zh-cn_topic_0000001133095885_p18707339144611"></a><a name="zh-cn_topic_0000001133095885_p18707339144611"></a>10</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p125731254154212"><a name="zh-cn_topic_0000001133095885_p125731254154212"></a><a name="zh-cn_topic_0000001133095885_p125731254154212"></a>DenseNet201</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1707439204614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2707153974611"><a name="zh-cn_topic_0000001133095885_p2707153974611"></a><a name="zh-cn_topic_0000001133095885_p2707153974611"></a>11</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p12573354164210"><a name="zh-cn_topic_0000001133095885_p12573354164210"></a><a name="zh-cn_topic_0000001133095885_p12573354164210"></a>EAST</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67083391464"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1070883911466"><a name="zh-cn_topic_0000001133095885_p1070883911466"></a><a name="zh-cn_topic_0000001133095885_p1070883911466"></a>12</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1157312542426"><a name="zh-cn_topic_0000001133095885_p1157312542426"></a><a name="zh-cn_topic_0000001133095885_p1157312542426"></a>FCN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row127085393465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p4708133911464"><a name="zh-cn_topic_0000001133095885_p4708133911464"></a><a name="zh-cn_topic_0000001133095885_p4708133911464"></a>13</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857395417429"><a name="zh-cn_topic_0000001133095885_p857395417429"></a><a name="zh-cn_topic_0000001133095885_p857395417429"></a>FD-GAN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row570863914618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p17708143904620"><a name="zh-cn_topic_0000001133095885_p17708143904620"></a><a name="zh-cn_topic_0000001133095885_p17708143904620"></a>14</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p14573185411425"><a name="zh-cn_topic_0000001133095885_p14573185411425"></a><a name="zh-cn_topic_0000001133095885_p14573185411425"></a>FOTS</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row11708839174619"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1670883917466"><a name="zh-cn_topic_0000001133095885_p1670883917466"></a><a name="zh-cn_topic_0000001133095885_p1670883917466"></a>15</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157355416428"><a name="zh-cn_topic_0000001133095885_p157355416428"></a><a name="zh-cn_topic_0000001133095885_p157355416428"></a>GENet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row87085397467"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p16708439164618"><a name="zh-cn_topic_0000001133095885_p16708439164618"></a><a name="zh-cn_topic_0000001133095885_p16708439164618"></a>16</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p4574254164219"><a name="zh-cn_topic_0000001133095885_p4574254164219"></a><a name="zh-cn_topic_0000001133095885_p4574254164219"></a>GoogleNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row5708839174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11708113914462"><a name="zh-cn_topic_0000001133095885_p11708113914462"></a><a name="zh-cn_topic_0000001133095885_p11708113914462"></a>17</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105743542421"><a name="zh-cn_topic_0000001133095885_p105743542421"></a><a name="zh-cn_topic_0000001133095885_p105743542421"></a>GRU</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row170933914612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1170963974615"><a name="zh-cn_topic_0000001133095885_p1170963974615"></a><a name="zh-cn_topic_0000001133095885_p1170963974615"></a>18</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574054104214"><a name="zh-cn_topic_0000001133095885_p20574054104214"></a><a name="zh-cn_topic_0000001133095885_p20574054104214"></a>Inception V4</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row670913934612"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p270993924620"><a name="zh-cn_topic_0000001133095885_p270993924620"></a><a name="zh-cn_topic_0000001133095885_p270993924620"></a>19</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11574135411427"><a name="zh-cn_topic_0000001133095885_p11574135411427"></a><a name="zh-cn_topic_0000001133095885_p11574135411427"></a>InceptionV2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row15709939174615"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p2709133914614"><a name="zh-cn_topic_0000001133095885_p2709133914614"></a><a name="zh-cn_topic_0000001133095885_p2709133914614"></a>20</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p105741754124219"><a name="zh-cn_topic_0000001133095885_p105741754124219"></a><a name="zh-cn_topic_0000001133095885_p105741754124219"></a>LPRNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row3709143917462"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p0709193913461"><a name="zh-cn_topic_0000001133095885_p0709193913461"></a><a name="zh-cn_topic_0000001133095885_p0709193913461"></a>21</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25745540427"><a name="zh-cn_topic_0000001133095885_p25745540427"></a><a name="zh-cn_topic_0000001133095885_p25745540427"></a>LSTM</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row177091639184618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p157091239164617"><a name="zh-cn_topic_0000001133095885_p157091239164617"></a><a name="zh-cn_topic_0000001133095885_p157091239164617"></a>22</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p157485414422"><a name="zh-cn_topic_0000001133095885_p157485414422"></a><a name="zh-cn_topic_0000001133095885_p157485414422"></a>MNASNet0_5</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row18709173944613"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p177091739124615"><a name="zh-cn_topic_0000001133095885_p177091739124615"></a><a name="zh-cn_topic_0000001133095885_p177091739124615"></a>23</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p9574205454219"><a name="zh-cn_topic_0000001133095885_p9574205454219"></a><a name="zh-cn_topic_0000001133095885_p9574205454219"></a>MNASNet0_75</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row187101039144614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1371023914612"><a name="zh-cn_topic_0000001133095885_p1371023914612"></a><a name="zh-cn_topic_0000001133095885_p1371023914612"></a>24</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p357475415426"><a name="zh-cn_topic_0000001133095885_p357475415426"></a><a name="zh-cn_topic_0000001133095885_p357475415426"></a>MNASNet1_0</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1471033917465"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3710939164613"><a name="zh-cn_topic_0000001133095885_p3710939164613"></a><a name="zh-cn_topic_0000001133095885_p3710939164613"></a>25</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15741754144213"><a name="zh-cn_topic_0000001133095885_p15741754144213"></a><a name="zh-cn_topic_0000001133095885_p15741754144213"></a>MNASNet1_3</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row8710163924614"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p8710143914614"><a name="zh-cn_topic_0000001133095885_p8710143914614"></a><a name="zh-cn_topic_0000001133095885_p8710143914614"></a>26</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574135464217"><a name="zh-cn_topic_0000001133095885_p2574135464217"></a><a name="zh-cn_topic_0000001133095885_p2574135464217"></a>MobileNetV1</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1471063944618"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p11710203910465"><a name="zh-cn_topic_0000001133095885_p11710203910465"></a><a name="zh-cn_topic_0000001133095885_p11710203910465"></a>27</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p20574254104215"><a name="zh-cn_topic_0000001133095885_p20574254104215"></a><a name="zh-cn_topic_0000001133095885_p20574254104215"></a>MobileNetV2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row171010393463"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p47101339154613"><a name="zh-cn_topic_0000001133095885_p47101339154613"></a><a name="zh-cn_topic_0000001133095885_p47101339154613"></a>28</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557415444214"><a name="zh-cn_topic_0000001133095885_p1557415444214"></a><a name="zh-cn_topic_0000001133095885_p1557415444214"></a>PNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row7611556191918"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p12611156171919"><a name="zh-cn_topic_0000001133095885_p12611156171919"></a><a name="zh-cn_topic_0000001133095885_p12611156171919"></a>29</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757435454213"><a name="zh-cn_topic_0000001133095885_p1757435454213"></a><a name="zh-cn_topic_0000001133095885_p1757435454213"></a>PSENet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row5477004202"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1847770182017"><a name="zh-cn_topic_0000001133095885_p1847770182017"></a><a name="zh-cn_topic_0000001133095885_p1847770182017"></a>30</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p165741254194213"><a name="zh-cn_topic_0000001133095885_p165741254194213"></a><a name="zh-cn_topic_0000001133095885_p165741254194213"></a>RAFT</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row67255202017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9725728202"><a name="zh-cn_topic_0000001133095885_p9725728202"></a><a name="zh-cn_topic_0000001133095885_p9725728202"></a>31</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1757465464214"><a name="zh-cn_topic_0000001133095885_p1757465464214"></a><a name="zh-cn_topic_0000001133095885_p1757465464214"></a>RecVAE</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row83941035161019"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p173949354104"><a name="zh-cn_topic_0000001133095885_p173949354104"></a><a name="zh-cn_topic_0000001133095885_p173949354104"></a>32</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057435444220"><a name="zh-cn_topic_0000001133095885_p2057435444220"></a><a name="zh-cn_topic_0000001133095885_p2057435444220"></a>ResNet101</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row14021731181017"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p13402231171018"><a name="zh-cn_topic_0000001133095885_p13402231171018"></a><a name="zh-cn_topic_0000001133095885_p13402231171018"></a>33</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p05741554194217"><a name="zh-cn_topic_0000001133095885_p05741554194217"></a><a name="zh-cn_topic_0000001133095885_p05741554194217"></a>ResNet152</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row106426081116"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p06426017111"><a name="zh-cn_topic_0000001133095885_p06426017111"></a><a name="zh-cn_topic_0000001133095885_p06426017111"></a>34</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p19574145464214"><a name="zh-cn_topic_0000001133095885_p19574145464214"></a><a name="zh-cn_topic_0000001133095885_p19574145464214"></a>ResNet18</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row13947174191112"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p894715491110"><a name="zh-cn_topic_0000001133095885_p894715491110"></a><a name="zh-cn_topic_0000001133095885_p894715491110"></a>35</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p25741754204213"><a name="zh-cn_topic_0000001133095885_p25741754204213"></a><a name="zh-cn_topic_0000001133095885_p25741754204213"></a>ResNet34</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1359519811113"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p059516861111"><a name="zh-cn_topic_0000001133095885_p059516861111"></a><a name="zh-cn_topic_0000001133095885_p059516861111"></a>36</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957475454218"><a name="zh-cn_topic_0000001133095885_p957475454218"></a><a name="zh-cn_topic_0000001133095885_p957475454218"></a>ResNet50</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row10740141321119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p27401713131114"><a name="zh-cn_topic_0000001133095885_p27401713131114"></a><a name="zh-cn_topic_0000001133095885_p27401713131114"></a>37</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2574125415422"><a name="zh-cn_topic_0000001133095885_p2574125415422"></a><a name="zh-cn_topic_0000001133095885_p2574125415422"></a>Resnext101_32x8d</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row667112181118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p146715124119"><a name="zh-cn_topic_0000001133095885_p146715124119"></a><a name="zh-cn_topic_0000001133095885_p146715124119"></a>38</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p15574135484218"><a name="zh-cn_topic_0000001133095885_p15574135484218"></a><a name="zh-cn_topic_0000001133095885_p15574135484218"></a>Resnext50</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row4738182913104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p107383299102"><a name="zh-cn_topic_0000001133095885_p107383299102"></a><a name="zh-cn_topic_0000001133095885_p107383299102"></a>39</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p857445444218"><a name="zh-cn_topic_0000001133095885_p857445444218"></a><a name="zh-cn_topic_0000001133095885_p857445444218"></a>RNet</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row328451021115"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p928461019117"><a name="zh-cn_topic_0000001133095885_p928461019117"></a><a name="zh-cn_topic_0000001133095885_p928461019117"></a>40</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p6574175464211"><a name="zh-cn_topic_0000001133095885_p6574175464211"></a><a name="zh-cn_topic_0000001133095885_p6574175464211"></a>Shufflenetv2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row128999641118"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p198995621117"><a name="zh-cn_topic_0000001133095885_p198995621117"></a><a name="zh-cn_topic_0000001133095885_p198995621117"></a>41</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p13575125419422"><a name="zh-cn_topic_0000001133095885_p13575125419422"></a><a name="zh-cn_topic_0000001133095885_p13575125419422"></a>SqueezeNet1_0</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row136314218119"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p53631028119"><a name="zh-cn_topic_0000001133095885_p53631028119"></a><a name="zh-cn_topic_0000001133095885_p53631028119"></a>42</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p757535410428"><a name="zh-cn_topic_0000001133095885_p757535410428"></a><a name="zh-cn_topic_0000001133095885_p757535410428"></a>SqueezeNet1_1</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row156190549108"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p106191454141012"><a name="zh-cn_topic_0000001133095885_p106191454141012"></a><a name="zh-cn_topic_0000001133095885_p106191454141012"></a>43</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657545410427"><a name="zh-cn_topic_0000001133095885_p657545410427"></a><a name="zh-cn_topic_0000001133095885_p657545410427"></a>U-Net</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row9370164720106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9370144741015"><a name="zh-cn_topic_0000001133095885_p9370144741015"></a><a name="zh-cn_topic_0000001133095885_p9370144741015"></a>44</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957585415426"><a name="zh-cn_topic_0000001133095885_p957585415426"></a><a name="zh-cn_topic_0000001133095885_p957585415426"></a>VAE+GAN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row453116573102"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p95311557151018"><a name="zh-cn_topic_0000001133095885_p95311557151018"></a><a name="zh-cn_topic_0000001133095885_p95311557151018"></a>45</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957525454210"><a name="zh-cn_topic_0000001133095885_p957525454210"></a><a name="zh-cn_topic_0000001133095885_p957525454210"></a>VGG11</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1478625141010"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p3786195151010"><a name="zh-cn_topic_0000001133095885_p3786195151010"></a><a name="zh-cn_topic_0000001133095885_p3786195151010"></a>46</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p1557565434218"><a name="zh-cn_topic_0000001133095885_p1557565434218"></a><a name="zh-cn_topic_0000001133095885_p1557565434218"></a>VGG11_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row129701341121014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p199701641141016"><a name="zh-cn_topic_0000001133095885_p199701641141016"></a><a name="zh-cn_topic_0000001133095885_p199701641141016"></a>47</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p957517542420"><a name="zh-cn_topic_0000001133095885_p957517542420"></a><a name="zh-cn_topic_0000001133095885_p957517542420"></a>VGG13</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1286634916106"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p5866124917105"><a name="zh-cn_topic_0000001133095885_p5866124917105"></a><a name="zh-cn_topic_0000001133095885_p5866124917105"></a>48</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p10575115416421"><a name="zh-cn_topic_0000001133095885_p10575115416421"></a><a name="zh-cn_topic_0000001133095885_p10575115416421"></a>VGG13_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row269355152015"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p469385122011"><a name="zh-cn_topic_0000001133095885_p469385122011"></a><a name="zh-cn_topic_0000001133095885_p469385122011"></a>49</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557519545422"><a name="zh-cn_topic_0000001133095885_p557519545422"></a><a name="zh-cn_topic_0000001133095885_p557519545422"></a>VGG16</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1874673971014"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p674693981017"><a name="zh-cn_topic_0000001133095885_p674693981017"></a><a name="zh-cn_topic_0000001133095885_p674693981017"></a>50</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p11575454114215"><a name="zh-cn_topic_0000001133095885_p11575454114215"></a><a name="zh-cn_topic_0000001133095885_p11575454114215"></a>VGG16_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row149883820103"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p9982038151018"><a name="zh-cn_topic_0000001133095885_p9982038151018"></a><a name="zh-cn_topic_0000001133095885_p9982038151018"></a>51</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p657585417429"><a name="zh-cn_topic_0000001133095885_p657585417429"></a><a name="zh-cn_topic_0000001133095885_p657585417429"></a>VGG19</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row154671633171013"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p114677333101"><a name="zh-cn_topic_0000001133095885_p114677333101"></a><a name="zh-cn_topic_0000001133095885_p114677333101"></a>52</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p557535415426"><a name="zh-cn_topic_0000001133095885_p557535415426"></a><a name="zh-cn_topic_0000001133095885_p557535415426"></a>VGG19_BN</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row054412715104"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p954482714105"><a name="zh-cn_topic_0000001133095885_p954482714105"></a><a name="zh-cn_topic_0000001133095885_p954482714105"></a>53</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p95752543424"><a name="zh-cn_topic_0000001133095885_p95752543424"></a><a name="zh-cn_topic_0000001133095885_p95752543424"></a>VIT-base</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row53891311191318"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p1438911115138"><a name="zh-cn_topic_0000001133095885_p1438911115138"></a><a name="zh-cn_topic_0000001133095885_p1438911115138"></a>54</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p3575654184213"><a name="zh-cn_topic_0000001133095885_p3575654184213"></a><a name="zh-cn_topic_0000001133095885_p3575654184213"></a>Wide_ResNet101_2</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001133095885_row1928912911311"><td class="cellrowborder" valign="top" width="27.41%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001133095885_p182893901310"><a name="zh-cn_topic_0000001133095885_p182893901310"></a><a name="zh-cn_topic_0000001133095885_p182893901310"></a>55</p>
-</td>
-<td class="cellrowborder" valign="top" width="72.59%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001133095885_p2057525424213"><a name="zh-cn_topic_0000001133095885_p2057525424213"></a><a name="zh-cn_topic_0000001133095885_p2057525424213"></a>Wide_ResNet50_2</p>
-</td>
-</tr>
-</tbody>
-</table>
+目前支持模型请参考[《昇腾Modelzoo社区》](https://www.hiascend.com/software/modelzoo) ，筛选类型分类：“训练”、框架分类：“Pytorch”的Pytorch训练模型。
+
 **系统要求**<a name="zh-cn_topic_0000001133095885_section1055723118446"></a>
 
 脚本转换工具支持Ubuntu 18.04、CentOS 7.6或EulerOS 2.8。
@@ -1039,7 +752,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/envdeployment/instg) 安装开发环境。
 
-<h4 id="操作指南md">操作指南</h4>
+#### 操作指南
 
 **参数说明**<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
 
@@ -1112,7 +825,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tr>
 </tbody>
 </table>
-**自定义规则文件**<a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
+**自定义规则文件** <a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
 
 自定义转换规则样例如下：
 
@@ -1224,7 +937,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 3.  完成脚本转换。
 
-<h4 id="结果解析md">结果解析</h4>
+#### 结果解析
 
 脚本转换完成后，进入脚本转换结果输出路径查看结果文件，以GPU单卡脚本转换为NPU多卡脚本为例。
 
@@ -1237,10 +950,9 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 │   ├── run_distributed_npu.sh            // 多卡启动shell脚本。
 ```
 
-<h3 id="手工迁移md">手工迁移</h3>
+### 手工迁移
 
-
-<h4 id="单P训练模型迁移md">单P训练模型迁移</h4>
+#### 单P训练模型迁移
 
 当前在线对接方案优点在于保证在昇腾AI处理器上训练与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，**只需在Python侧和Device相关操作中，指定device为昇腾AI处理器**，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试。针对单P模型训练，主要迁移改动如下。
 
@@ -1272,7 +984,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 更多迁移细节请参见[单卡训练修改](#单卡训练修改)。
 
-<h4 id="多P训练模型迁移md">多P训练模型迁移</h4>
+#### 多P训练模型迁移
 
 多P训练模型迁移除了需在**Python侧和Device相关操作中，指定device为昇腾AI处理器**外，依然通过PyTorch的DistributedDataParallel方式来进行分布式训练，即在模型初始化阶段执行init\_process\_group，再将模型初始化为DistributedDataParallel模型。但须注意的是在初始化init\_process\_group时需要将**backend**配置为**hccl**并屏蔽掉初始化方式。
 
@@ -1298,7 +1010,7 @@ def main():
 
 更多迁移细节请参见[单机多卡训练修改](#单机多卡训练修改)。
 
-<h4 id="PyTorch接口替换md">PyTorch接口替换</h4>
+#### PyTorch接口替换
 
 1.  为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
 
@@ -1497,7 +1209,7 @@ def main():
 
 更多接口请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
-<h3 id="混合精度md">混合精度</h3>
+### 混合精度
 
 **概述**<a name="section166113311599"></a>
 
@@ -1588,34 +1300,31 @@ def main():
     optimizer.step()
     ```
 
-<h2 id="模型训练md">模型训练</h2>
+### 模型训练
 
-训练脚本迁移完成后，需要参见[配置环境变量](#zh-cn_topic_0000001144082004md)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行md)。
+训练脚本迁移完成后，需要参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 运行环境变量章节配置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[命令执行](#命令)。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
 
-<h2 id="性能调优和分析">性能调优和分析</h2>
+### 性能调优和分析
 
 
 <h3 id="前提条件md">前提条件</h3>
 
-1.  参见[样例说明](#样例说明md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
-2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子适配开发。
+1.  参见[模型调优样例](#模型调优样例)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
+2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子适配开发。
 3.  优先打通单卡功能，再打通多卡功能。
 
 <h3 id="调测过程md">调测过程</h3>
 
--   **[总体思路](#总体思路md)**  
+-    [总体思路](#总体思路)
 
--   **[采集训练过程相关数据](#采集训练过程相关数据md)**  
+-   [采集训练过程相关数据](#采集训练过程相关数据) 
 
--   **[host侧性能优化](#host侧性能优化md)**  
+-    [训练过程性能优化](#训练过程性能优化)  
 
--   **[训练过程性能优化](#训练过程性能优化md)**  
-
-
-<h4 id="总体思路md">总体思路</h4>
+#### 总体思路<a name="总体思路"></a>
 
 1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
 2.  当吞吐量指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
@@ -1728,7 +1437,7 @@ def main():
 
   2.  解析性能数据文件。
 
-      请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0003.html)中“开发工具>Profiling工具>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
+      请参见[《开发工具》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0003.html)中“Profiling工具>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
 
 
   3. 高级用法
@@ -1807,7 +1516,7 @@ def main():
     export ASCEND_SLOG_PRINT_TO_STDOUT=1
     ```
 
-3.  设置日志级别为info，参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
+3.  设置日志级别为info，参考[《故障管理》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
 4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
@@ -1817,17 +1526,17 @@ def main():
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
 
-<h4 id="host侧性能优化md">host侧性能优化</h4>
+#### host侧性能优化
 
 -   **[概述](#概述-0md)**  
 
--   **[修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)**  
+-   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器)
 
--   **[修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)**  
+-   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器)
 
--   **[安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)**  
+-   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器)
 
--   **[（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)**  
+-   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库)
 
 
 <h5 id="概述-0md">概述</h5>
@@ -1838,7 +1547,7 @@ def main():
 -   安装高性能pillow库。
 -   （可选）安装指定版本OpenCV库。
 
-<h5 id="修改CPU性能模式（X86服务器）md">修改CPU性能模式（X86服务器）</h5>
+###### **修改CPU性能模式（X86服务器）**<a name="修改CPU性能模式X86服务器"></a>
 
 **设置电源策略为高性能模式**<a name="section18832114453814"></a>
 
@@ -1945,7 +1654,7 @@ def main():
 
 4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
-<h5 id="修改CPU性能模式（ARM服务器）md">修改CPU性能模式（ARM服务器）</h5>
+###### **修改CPU性能模式ARM服务器 ** <a name="修改CPU性能模式ARM服务器"></a>
 
 **设置电源策略为高性能模式**<a name="section18832114453814"></a>
 
@@ -1974,7 +1683,7 @@ def main():
 
 6.  按下“F10”保存配置并重启服务器。
 
-<h5 id="安装高性能pillow库（X86服务器）md">安装高性能pillow库（X86服务器）</h5>
+###### 安装高性能pillow库（X86服务器）<a name="修改CPU性能模式ARM服务器"></a>
 
 1.  安装高性能pillow库相关依赖，命令如下。
 
@@ -2012,7 +1721,7 @@ def main():
         >```
 
 
-3.  修改torchvision代码解决pillow-simd缺少PILLOW\_VERSION问题。torchvision安装参见[样例获取](#样例获取md)。
+3.  修改torchvision代码解决pillow-simd缺少PILLOW\_VERSION问题。
 
     将/usr/local/python3.x.x/lib/python3.x/site-packages/torchvision/transforms/functional.py第5行代码修改如下：
 
@@ -2024,15 +1733,14 @@ def main():
         PILLOW_VERSION="7.0.0"
     ```
 
-
-<h5 id="（可选）安装指定版本OpenCV库md">（可选）安装指定版本OpenCV库</h5>
+###### （可选）安装指定版本OpenCV库  <a name="可选安装指定版本OpenCV库"></a>
 
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
 1.  获取源码：[获取地址](https://opencv.org/releases/)。
 2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
-<h4 id="训练过程性能优化md">训练过程性能优化</h4>
+#### 训练过程性能优化<a name="训练过程性能优化"></a>
 
 **算子瓶颈优化**<a name="section8727652134111"></a>
 
@@ -2071,108 +1779,11 @@ def main():
 3.  需参照以下两种方案解决。
     -   规避方案：在理解模型语义和相关API基础上，使用固定Shape的方式代替动态Shape。
     -   解决方案：减少编译或不需要编译该算子。
-    -   优化算子编译配置请参见[编译选项设置](#编译选项设置md)。
+    -   优化算子编译配置请参见[编译选项设置](#编译选项设置)。
 
 ### 端到端性能工具（E2E prof）使用说明
 
-#### E2E prof工具介绍
-
-E2E prof工具是一个将pytorch框架的profiling工具和cann prof工具获取到的框架层面数据和算子性能数据统一集成，实现端到端的模型和算子性能分析工具。
-
-#### E2E prof使用教程
-
-添加with语句使能E2E prof功能
-
-```
-with torch.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
-
-     model_train()
-```
-
-- profiler_result_path表示prof结果保存路径，默认为当前路径，若设置其他路径请确保路径已存在。
-- use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
-
-（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
-
-#### E2E prof结果解析
-
-通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
-
-1. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
-
-2. 切换至如上图./results/PROF_***路径后，执行下述脚本，其中PROF_***文件夹为自动生成的文件夹。
-
-   ```
-   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
-   ```
-
-   - output：原始数据路径。
-
-3. 运行完成后，在原始数据路径下输出timeline目录。如下图：
-
-   ![](figures/2.png)
-
-4. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
-
-   1. 浏览器进入chrome://tracing/。
-
-   2. 点击load，上传文件查看。
-
-      <img src="figures/chrometracing.png" style="zoom:80%;" />
-
-   内容示例如下图：
-
-   <img src="figures/3.png" style="zoom:80%;" />
-
-   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
-
-#### E2E prof高级设置
-
-E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
-
-```
-with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
-                        config=torch.npu.profileConfig(ACL_PROF_ACL_API=True, \
-                        ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
-                        ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
-                        ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
-                        aiCoreMetricsType=0)):
-```
-
-- ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
-
-
-- ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
-
-
-- ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
-
-
-- ACL_PROF_AICPU：0x0008，集AI CPU任务的开始、结束轨迹数据，默认为True 
-
-- ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
-
-- ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
-
-- ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
-
-其中，aiCoreMetricsType的取值和定义如下，默认为0：
-
-- ACL_AICORE_ARITHMETIC_UTILIZATION = 0：表示各种计算类指标占比统计，包括采集项mac_fp16_ratio、mac_int8_ratio、vec_fp32_ratio、vec_fp16_ratio、vec_int32_ratio、vec_misc_ratio
-
-- ACL_AICORE_PIPE_UTILIZATION = 1：表示计算单元和搬运单元耗时占比，包括采集项vec_ratio、mac_ratio、scalar_ratio、mte1_ratio、mte2_ratio、mte3_ratio、icache_miss_rate
-
-- ACL_AICORE_MEMORY_BANDWIDTH = 2：表示外部内存读写类指令占比，包括采集项ub_read_bw、ub_write_bw、l1_read_bw、l1_write_bw、l2_read_bw、l2_write_bw、main_mem_read_bw、main_mem_write_bw
-
-- ACL_AICORE_L0B_AND_WIDTH ：表示内部内存读写类指令占比，包括采集项scalar_ld_ratio、scalar_st_ratio、l0a_read_bw、l0a_write_bw、l0b_read_bw、l0b_write_bw、l0c_read_bw、l0c_write_bw
-
-- ACL_AICORE_RESOURCE_CONFLICT_RATIO ：表示流水线队列类指令占比，包括采集项vec_bankgroup_cflt_ratio、vec_bank_cflt_ratio、vec_resc_cflt_ratio、mte1_iq_full_ratio、mte2_iq_full_ratio、mte3_iq_full_ratio、cube_iq_full_ratio、vec_iq_full_ratio、iq_full_ratio
-
-- ACL_AICORE_NONE = 0xFF：表示不采集
-
-​    
-
-### 亲和库
+## 亲和库
 
 
 <h4 id="来源介绍md">来源介绍</h4>
@@ -2185,13 +1796,13 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
 
-### AOE调优工具使用说明
+## AOE调优工具使用说明
 
-#### AOE调优工具介绍
+### AOE调优工具介绍
 
 对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，AOE工具则实现了这样的调优功能，可以用于提升模型的性能。
 
-#### AOE调优工具使用
+### AOE调优工具使用
 
 1. dump算子信息至本地。
 
@@ -2245,32 +1856,37 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
      调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/Ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/Ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
 
-#### 注意事项
+### 注意事项
 
 1. 目前仅支持静态算子，动态算子暂不支持。
 2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
 3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
 4. 使用前需关闭profiling工具，否则会影响模型性能。
 
-<h2 id="精度调测">精度调测</h2>
+### 性能验证
 
+调优完成后，还原代码修改，运行模型，验证模型/算子性能是否提高。
 
-<h3 id="前提条件-2md">前提条件</h3>
+## 精度调测
+
+### 前提条件
+
+目前pytorch1.8.1暂不支持。
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h3 id="调测过程-3md">调测过程</h3>
+### 调测过程
 
 -   **[总体思路](#总体)**  
 
 -   **[精度调优方法](#精度调优方法)**  
 
-<h4 name="总体">总体思路</h4>
+#### 总体思路
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
 1.  <a name="li17755175510322"></a>模型网络计算错误。
-    -   定位思路：在网络中加入hook进行排查判断是哪个地方有较大嫌疑，然后构建[单算子用例](#单算子样例编写说明md)逐渐缩小错误范围，证明该算子在当前网络场景下计算有误，可以对比CPU或GPU结果证明。
+    -   定位思路：在网络中加入hook进行排查判断是哪个地方有较大嫌疑，然后构建[单算子用例](#单算子样例编写说明)逐渐缩小错误范围，证明该算子在当前网络场景下计算有误，可以对比CPU或GPU结果证明。
 
     -   规避方案：使用同等语义其他算子替代。
 
@@ -2297,7 +1913,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-<h4 id="精度调优方法">精度调优方法</h4>
+#### 精度调优方法
 
 模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
 
@@ -2310,7 +1926,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
 ##### 环境准备
 
-- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5)。
 
   若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
 
@@ -2334,7 +1950,7 @@ with torch.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, 
 
 ##### 模型算子精度对比
 
-用户使用精度对比工具，在相同输入的情况下，获取模型在GPU和NPU进行训练时模型内算子输出的精度差异，从而帮助开发者实现算子精度问题定位。
+用户使用精度对比工具，将GPU/CPU每层算子的输入输出与NPU对应层算子输入输出进行对比，识别存在精度误差的算子层，帮助开发者实现算子精度问题定位。
 
 约束说明：
 
@@ -2440,12 +2056,12 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 解决方法：<a name="section1729763162019"></a>
 
-1. 将采集到的.h5文件映射到TBE算子，映射方法请参见[IR与TBE算子映射](#IR与TBE算子映射)。
+1. 将采集到的.h5文件映射到TBE算子，映射方法请参见[算子层级精度对比](#算子层级精度对比)。
 
 2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
 
-##### IR与TBE算子映射
-
+##### 算子层级精度对比
+将GPU/CPU上一层算子的输出作为NPU当前层算子的输入，逐层进行精度比对，以排除由于累计误差造成的影响。
 前提条件：
 
 - 设置环境变量`export ACL_DUMP_DATA=0`。
@@ -2520,11 +2136,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
    运行成功后，在acl.json配置文件中的`dump_path`路径下查看输出结果文件。
 
-##### NPU与GPU算子映射
-
-请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)中 ”开发工具>精度比对工具> 比对数据准备>训练场景数据准备>准备以PyTorch为原始训练网络的精度比对数据文件” 章节 。
-
-<h5 id="整网调测md">整网调测</h5>
+##### 整网精度调测
 
 用户也可通过分析整个网络的方式来进行网络模型的精度调测。
 
@@ -2585,7 +2197,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
         print("[grad]: "+name, module.grad)
     ```
 
-<h2 id="模型保存与转换">模型保存与转换</h2>
+## 模型保存与转换
 
 -   **[简介](#简介md)**  
 
@@ -2593,20 +2205,19 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 -   **[导出ONNX模型](#导出ONNX模型md)**  
 
-
-<h3 id="简介md">简介</h3>
+### 简介
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
 本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.html)手册中“ATC模型转换”章节。
 
-如果想使用Auto Tune优化功能，请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)手册中“开发工具>Auto Tune工具”章节。
+如果想使用Auto Tune优化功能，请参考[《开发工具》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)手册中“Auto Tune工具”章节。
 
-离线推理应用构建请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)手册中“应用开发（c++）“章节。整体流程如下：
+离线推理应用构建请参考[《推理应用开发》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)手册中“应用开发（c++）“章节。整体流程如下：
 
 ![](figures/zh-cn_image_0000001144082132.png)
 
-<h3 id="模型保存md">模型保存</h3>
+### 模型保存
 
 Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件，根据模型文件的后续用途会保存为两种格式的模型文件：
 
@@ -2679,7 +2290,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
 >![](public_sys-resources/icon-notice.gif) **须知：** 
 >通常情况下，训练图和推理图中对同一个算子处理方式不同（例如BatchNorm和dropout等算子），在输入格式上也有差别，因此在运行推理或导出ONNX模型之前，必须调用model.eval\(\) 来将dropout和batch normalization层设置为推理模式。
 
-<h3 id="导出ONNX模型md">导出ONNX模型</h3>
+### 导出ONNX模型
 
 **简介**<a name="section5385151615714"></a>
 
@@ -2766,9 +2377,9 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="样例说明md">模型调优样例</h2>
+## 模型调优样例
 
-<h3 id="ShuffleNet模型调优示例md">ShuffleNet模型调优示例</h3>
+### ShuffleNet模型调优示例
 
 -   **[样例获取](#样例获取-5md)**  
 
@@ -2778,10 +2389,7 @@ if __name__ == "__main__":
 
 -   **[网络调测](#网络调测md)**  
 
-
-<h4 id="样例获取-5md">样例获取</h4>
-
-**样例获取**<a name="section1155115015182"></a>
+#### 样例获取<a name="section1155115015182"></a>
 
 1.  本样例基于PyTorch官网提供的Imagenet数据集训练模型进行适配昇腾910 AI处理器的迁移改造，样例获取路径为[https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet)。
 2.  ShuffleNet模型参考PyTorch官网模型[ShuffleNet V2](https://pytorch.org/hub/pytorch_vision_shufflenet_v2/)，实际使用在脚本执行中直接指定参数arch为shufflenet\_v2\_x1\_0。
@@ -2801,17 +2409,17 @@ if __name__ == "__main__":
 ├──main.py 
 ```
 
-<h4 id="模型评估md">模型评估</h4>
+#### 模型评估
 
 模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.5.0-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
-<h4 id="网络迁移md">网络迁移</h4>
+#### 网络迁移
 
 训练脚本迁移请参见[单卡训练修改](#单卡训练修改)和[单机多卡训练修改](#单机多卡训练修改)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
 
-<h4 id="网络调测md">网络调测</h4>
+#### 网络调测
 
-网络调测具体方法请参见[调测过程](#调测过程md)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
+网络调测具体方法请参见[调测过程](#调测过程)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
 
 **前向排查**<a name="section7544311140"></a>
 
@@ -3324,10 +2932,9 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 -   **[编译安装hdf5](#编译安装hdf5md)**  
 
+### 单算子样例编写说明
 
-<h3 id="单算子样例编写说明md">单算子样例编写说明</h3>
-
-在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法md)。
+在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法)。
 
 1.  单算子测试用例构建，直接调用该算子即可复现错误场景。
 
@@ -3420,8 +3027,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
         run_tests()
     ```
 
-
-<h3 id="单算子dump方法md">单算子dump方法</h3>
+### 单算子dump方法
 
 #### 采集Dump数据<a name="zh-cn_topic_0235790166_section1470293916167"></a>
 
@@ -3528,8 +3134,7 @@ torch.npu.finalize_dump()
 
     转换为.txt格式文件后，维度信息、Dtype均不存在。详细的使用方法请参考numpy官网介绍。
 
-
-<h3 id="常用环境变量说明md">常用环境变量说明</h3>
+### 常用环境变量说明
 
 1.  开启TASK多线程下发，绝大多数情况下，打开该功能会进一步提升整网训练性能。
 
@@ -3539,7 +3144,7 @@ torch.npu.finalize_dump()
 
     **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
 
-3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《CANN [《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别设置日志级别。
+3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《故障管理》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别设置日志级别。
 
     **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
 
@@ -3569,8 +3174,7 @@ torch.npu.finalize_dump()
 
     **export HCCL\_WHITELIST\_DISABLE=1**
 
-
-<h3 id="dump-op方法md">dump op方法</h3>
+### dump op方法
 
 1.  使用profile接口对原始代码训练脚本的loss计算和优化过程进行改造，打印算子信息。代码样例如下：
 
@@ -3585,7 +3189,7 @@ torch.npu.finalize_dump()
 
 2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
 
-<h3 id="编译选项设置md">编译选项设置</h3>
+### 编译选项设置
 
 用于配置算子编译过程中的属性，可用于提升性能，通过ACL接口实现。用法及解释如下：
 
@@ -3626,7 +3230,7 @@ ACL_OP_COMPILER_CACHE_MODE：用于配置算子编译磁盘缓存模式。该编
 ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该编译选项需要与ACL_OP_COMPILER_CACHE_MODE配合使用。
 ```
 
-<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
+### 安装7.3.0版本gcc
 
 以下步骤请在root用户下执行。
 
@@ -3707,8 +3311,7 @@ ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该�
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
-
-<h3 id="编译安装hdf5md">编译安装hdf5</h3>
+### 编译安装hdf5
 
 以下步骤请在root用户下执行。
 
@@ -3756,7 +3359,8 @@ ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该�
 
 -   **[模型分布式训练常见问题](#模型分布式训练常见问题md)**  
 
-<h3 id="软件安装常见问题">软件安装常见问题</h3>
+
+<h3 id="软件安装常见问题md">软件安装常见问题</h3>
 
 -   **[pip3.7 install Pillow==5.3.0安装失败](#pip3-7-install-Pillow-5-3-0安装失败md)**  
 
@@ -3783,7 +3387,8 @@ pip3.7 install pillow==5.3.0安装失败。
 
     **apt-get install libjpeg python-devel  zlib-devel  libjpeg-turbo-devel**
 
-<h3 id="模型和算子运行常见问题">模型和算子运行常见问题</h3>
+
+<h3 id="模型和算子运行常见问题md">模型和算子运行常见问题</h3>
 
 -   **[在模型运行或者算子运行时遇到报错“RuntimeError: ExchangeDevice:”](#在模型运行或者算子运行时遇到报错-RuntimeError-ExchangeDevicemd)**  
 
