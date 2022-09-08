@@ -18,28 +18,28 @@
 namespace at_npu {
 namespace native {
 
-std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&> _unique2_out_npu(
+std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> _unique2_out_npu(
     at::Tensor& y,
-    at::Tensor& yOutputSize,
     at::Tensor& yInverse,
     at::Tensor& yCounts,
     const at::Tensor& self,
     bool sorted,
     bool return_inverse,
     bool return_counts) {
+  c10::SmallVector<int64_t, N> output_sync_idx = {0, 2};
   OpCommand cmd;
-  cmd.Name("UniqueWithCountsAndSorting")
-     .Input(self)
-     .Output(y)
-     .Output(yOutputSize)
-     .Output(yInverse)
-     .Output(yCounts)
-     .Attr("sorted", sorted)
-     .Attr("return_inverse", true)
-     .Attr("return_counts", true)
-     .Run();
+  cmd.Sync(output_sync_idx)
+      .Name("UniqueWithCountsAndSorting")
+      .Input(self)
+      .Output(y)
+      .Output(yInverse)
+      .Output(yCounts)
+      .Attr("sorted", sorted)
+      .Attr("return_inverse", return_inverse)
+      .Attr("return_counts", return_counts)
+      .Run();
 
-  return std::tuple<at::Tensor&, at::Tensor&, at::Tensor&, at::Tensor&>(y, yOutputSize, yInverse, yCounts);
+  return std::tuple<at::Tensor&, at::Tensor&, at::Tensor&>(y, yInverse, yCounts);
 }
 
 tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_unique2(
@@ -48,48 +48,22 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_unique2(
     bool return_inverse,
     bool return_counts) {
   if (self.numel() == 0) {
-    at::Tensor result= OpPreparation::ApplyTensor(self, {0});
+    at::Tensor result = OpPreparation::ApplyTensor(self, {0});
     at::Tensor yInverse = OpPreparation::ApplyTensor({0}, self.options().dtype(at::kLong), self);
     at::Tensor yCounts = OpPreparation::ApplyTensor({0}, self.options().dtype(at::kLong), self);
     return std::tie(result, yInverse, yCounts);
   }
-  
-  auto yInverseSize = input_same_output_size(self);
-  auto outputSizes = tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>, at::IntArrayRef>(
-      {self.numel()}, {1}, yInverseSize);
+  at::Tensor y = OpPreparation::ApplyTensor(self, self.numel());
+  at::Tensor yInverse = !(return_counts || return_inverse) ?
+      OpPreparation::ApplyTensorWithFormat({0}, self.options().dtype(at::kLong), ACL_FORMAT_ND) :
+      OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options().dtype(at::kLong), ACL_FORMAT_ND);
+  at::Tensor yCounts = return_counts ?
+      OpPreparation::ApplyTensorWithFormat(self.numel(), self.options().dtype(at::kLong), ACL_FORMAT_ND) :
+      OpPreparation::ApplyTensorWithFormat({0}, self.options().dtype(at::kLong), ACL_FORMAT_ND);
 
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
- 
-  at::Tensor y = OpPreparation::ApplyTensor(selfCopy, std::get<0>(outputSizes));
-  at::Tensor yOutputSize = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
-  at::Tensor yInverse = OpPreparation::ApplyTensorWithFormat(std::get<2>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
-  at::Tensor yCounts = OpPreparation::ApplyTensorWithFormat(std::get<0>(outputSizes), self.options().dtype(at::kLong), ACL_FORMAT_ND);
-  
-  _unique2_out_npu(y, yOutputSize, yInverse, yCounts, selfCopy, sorted, return_inverse, return_counts);
-  
-  int64_t count = yOutputSize[0].item().toLong();
-  at::Tensor result = y.slice(0, 0, count, 1);
-  result = NpuUtils::format_contiguous(result);
+  _unique2_out_npu(y, yInverse, yCounts, self, sorted, return_inverse, return_counts);
 
-  if (self.scalar_type() == at::ScalarType::Half) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
-
-  if (return_counts) {
-    yCounts = yCounts.slice(0, 0, count, 1);
-    yCounts = NpuUtils::format_contiguous(yCounts);
-  } else {
-    yCounts = at::empty({0}, self.options().dtype(at::kLong));
-  }
-  
-  if (!(return_counts || return_inverse)) {
-    yInverse = at::empty({0}, self.options().dtype(at::kLong));
-  }
-  
-  return std::tuple<at::Tensor, at::Tensor, at::Tensor>(result, yInverse, yCounts);
+  return std::tuple<at::Tensor, at::Tensor, at::Tensor>(y, yInverse, yCounts);
 }
 } // namespace native
 } // namespace at_npu
