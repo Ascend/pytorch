@@ -1,6 +1,4 @@
-// Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION.
-// All rights reserved.
+// Copyright (c) 2022, Huawei Technologies.All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,200 +15,147 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/framework/OpCommand.h"
 
-namespace at_npu
-{
-  namespace native
-  {
+namespace at_npu {
+namespace native {
 
-    at::Tensor &NPUNativeFunctions::normal_out(
-        const at::Tensor &mean,
-        double std,
-        c10::optional<at::Generator> generator,
-        at::Tensor &result)
-    {
-      TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
+at::Tensor &normal_out_npu_nocheck(
+    at::Tensor& result,
+    c10::optional<at::Generator> gen_) {
+  auto gen = at::get_generator_or_default<NPUGeneratorImpl>(gen_, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
+  at::SmallVector<int64_t, N> key = {seed}; 
+  at::SmallVector<int64_t, N> counter = {0, offset}; 
+  const int32_t alg = 1;
+  OpCommand cmd;
+  cmd.Name("StatelessRandomNormalV2")
+      .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(key, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(counter, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT, (string)"uint64")
+      .Input(at::Scalar(alg), at::ScalarType::Int)
+      .Output(result)
+      .Attr("dtype", result.scalar_type())
+      .Run();
+  return result;
+}
 
-      at::Tensor resultCopy = result;
-      at::Tensor dtypeCastOfMean = mean;
-      if (dtypeCastOfMean.scalar_type() == at::ScalarType::Half)
-      {
-        dtypeCastOfMean = dtypeCastOfMean.to(at::ScalarType::Float);
-        resultCopy = resultCopy.to(at::ScalarType::Float);
-      }
+at::Tensor &NPUNativeFunctions::normal_out(
+    const at::Tensor &mean, 
+    double std, 
+    c10::optional<at::Generator> generator,
+    at::Tensor &result) {
+  TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
 
-      OpCommand cmd;
-      cmd.Name("Normal")
-          .Input(dtypeCastOfMean)
-          .Input(at::Scalar(std), at::ScalarType::Float)
-          .Output(resultCopy)
-          .Run();
+  OpPreparation::CheckOut({mean}, result, mean);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
+  return result;
+}
 
-      result.copy_(resultCopy);
+at::Tensor &NPUNativeFunctions::normal_out(
+    double mean, 
+    const at::Tensor &std, 
+    c10::optional<at::Generator> generator,
+    at::Tensor &result) {
+  OpPreparation::CheckOut({std}, result, std);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
+  return result;
+}
 
-      return result;
-    }
+at::Tensor &NPUNativeFunctions::normal_out(
+    const at::Tensor &mean, 
+    const at::Tensor &std,
+    c10::optional<at::Generator> generator, 
+    at::Tensor &result) {
+  at::SmallVector<int64_t, SIZE> outputSize = broadcast_ops_npu_output_size(mean, std);
+  OpPreparation::CheckOut({mean, std}, result, mean, outputSize);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
+  return result;
+}
 
-    at::Tensor &NPUNativeFunctions::normal_out(
-        double mean,
-        const at::Tensor &std,
-        c10::optional<at::Generator> generator,
-        at::Tensor &result)
-    {
-      at::Tensor resultCopy = result;
-      at::Tensor dtypeCastOfStd = std;
-      if (dtypeCastOfStd.scalar_type() == at::ScalarType::Half)
-      {
-        dtypeCastOfStd = dtypeCastOfStd.to(at::ScalarType::Float);
-        resultCopy = resultCopy.to(at::ScalarType::Float);
-      }
+at::Tensor &NPUNativeFunctions::normal_out(
+    double mean, 
+    double std, 
+    at::IntArrayRef size,
+    c10::optional<at::Generator> generator, 
+    at::Tensor &result) {
+  TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
+  OpPreparation::CheckOut({}, result, result, size);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
+  return result;
+}
 
-      OpCommand cmd;
-      cmd.Name("Normal")
-          .Input(at::Scalar(mean), at::ScalarType::Float)
-          .Input(dtypeCastOfStd)
-          .Output(resultCopy)
-          .Run();
+at::Tensor NPUNativeFunctions::normal(
+    const at::Tensor &mean, 
+    double std,
+    c10::optional<at::Generator> generator) {
+  at::Tensor result = OpPreparation::ApplyTensor(mean);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
 
-      result.copy_(resultCopy);
+  return result;
+}
 
-      return result;
-    }
+at::Tensor NPUNativeFunctions::normal(
+    double mean, 
+    const at::Tensor &std,
+    c10::optional<at::Generator> generator) {
+  at::Tensor result = OpPreparation::ApplyTensor(std);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
 
-    at::Tensor &NPUNativeFunctions::normal_out(
-        const at::Tensor &mean,
-        const at::Tensor &std,
-        c10::optional<at::Generator> generator,
-        at::Tensor &result)
-    {
-      at::Tensor resultCopy = result;
-      at::Tensor dtypeCastOfMean = mean;
-      at::Tensor dtypeCastOfStd = std;
-      if (dtypeCastOfMean.scalar_type() == at::ScalarType::Half)
-      {
-        dtypeCastOfMean = dtypeCastOfMean.to(at::ScalarType::Float);
-        resultCopy = resultCopy.to(at::ScalarType::Float);
-      }
-      if (dtypeCastOfStd.scalar_type() == at::ScalarType::Half)
-      {
-        dtypeCastOfStd = dtypeCastOfStd.to(at::ScalarType::Float);
-      }
+  return result;
+}
 
-      OpCommand cmd;
-      cmd.Name("Normal")
-          .Input(dtypeCastOfMean)
-          .Input(dtypeCastOfStd)
-          .Output(resultCopy)
-          .Run();
+at::Tensor NPUNativeFunctions::normal(
+    const at::Tensor &mean,
+    const at::Tensor &std,
+    c10::optional<at::Generator> generator) {
+  at::Tensor result = OpPreparation::ApplyTensor(mean);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
 
-      result.copy_(resultCopy);
+  return result;
+}
 
-      return result;
-    }
+at::Tensor NPUNativeFunctions::normal(
+    double mean, double std,
+    at::IntArrayRef size,
+    c10::optional<at::Generator> generator,
+    c10::optional<at::ScalarType> dtype_opt,
+    c10::optional<c10::Layout> layout_opt,
+    c10::optional<c10::Device> device_opt,
+    c10::optional<bool> pin_memory_opt) {
+  at::Tensor result = NPUNativeFunctions::empty_with_format(
+      size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
+  normal_out_npu_nocheck(result, generator);
+  result.mul_(std).add_(mean);
 
-    at::Tensor &NPUNativeFunctions::normal_out(
-        double mean,
-        double std,
-        at::IntArrayRef size,
-        c10::optional<at::Generator> generator,
-        at::Tensor &result)
-    {
-      TORCH_CHECK(std > 0.0, "normal_ expects std > 0.0, but found std=", std);
+  return result;
+}
 
-      // the op of PTNormalFloatFloat only support format of ND
-      at::Tensor formatCastOfResult = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
-      if (formatCastOfResult.scalar_type() == at::ScalarType::Half)
-      {
-        formatCastOfResult = formatCastOfResult.to(at::ScalarType::Float);
-      }
+at::Tensor &NPUNativeFunctions::normal_(
+    at::Tensor &self, 
+    double mean, 
+    double std,
+    c10::optional<at::Generator> generator) {
+  if (!NpuUtils::check_match(&self)) {
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    NPUNativeFunctions::normal_out(mean, std, contiguousSelf.sizes(), generator, contiguousSelf);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
+  } else {
+    NPUNativeFunctions::normal_out(mean, std, self.sizes(), generator, self);
+  }
 
-      at::Tensor meanTensor = OpPreparation::ApplyTensor(size, result.options(), result);
-      meanTensor.fill_(mean);
-      OpCommand cmd;
-      cmd.Name("Normal")
-          .Input(meanTensor)
-          .Input(at::Scalar(std), at::ScalarType::Float)
-          .Output(formatCastOfResult)
-          .Run();
+  return self;
+}
 
-      result.copy_(formatCastOfResult);
-
-      return result;
-    }
-
-    at::Tensor NPUNativeFunctions::normal(
-        const at::Tensor &mean,
-        double std,
-        c10::optional<at::Generator> generator)
-    {
-      at::Tensor result = OpPreparation::ApplyTensor(mean);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
-
-      return result;
-    }
-
-    at::Tensor NPUNativeFunctions::normal(
-        double mean,
-        const at::Tensor &std,
-        c10::optional<at::Generator> generator)
-    {
-      at::Tensor result = OpPreparation::ApplyTensor(std);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
-
-      return result;
-    }
-
-    at::Tensor NPUNativeFunctions::normal(
-        const at::Tensor &mean,
-        const at::Tensor &std,
-        c10::optional<at::Generator> generator)
-    {
-      at::Tensor result = OpPreparation::ApplyTensor(mean);
-      NPUNativeFunctions::normal_out(mean, std, generator, result);
-
-      return result;
-    }
-
-    at::Tensor NPUNativeFunctions::normal(
-        double mean,
-        double std,
-        at::IntArrayRef size,
-        c10::optional<at::Generator> generator,
-        c10::optional<at::ScalarType> dtype_opt,
-        c10::optional<c10::Layout> layout_opt,
-        c10::optional<c10::Device> device_opt,
-        c10::optional<bool> pin_memory_opt)
-    {
-      // construct the output tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
-          size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
-
-      // calculate the output result of the NPU
-      NPUNativeFunctions::normal_out(mean, std, size, generator, result);
-
-      return result;
-    }
-
-    at::Tensor &NPUNativeFunctions::normal_(
-        at::Tensor &self,
-        double mean,
-        double std,
-        c10::optional<at::Generator> generator)
-    {
-      OpPreparation::CheckMemory({self}, {self});
-      if (!NpuUtils::check_match(&self))
-      {
-        at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-        at::Tensor result = NPUNativeFunctions::normal_out(mean, std, contiguousSelf.sizes(), generator, contiguousSelf);
-        NpuUtils::format_fresh_view(self, result);
-      }
-      else
-      {
-        NPUNativeFunctions::normal_out(mean, std, self.sizes(), generator, self);
-      }
-
-      return self;
-    }
-
-  } // namespace native
-} // namespace at_npu
+}  // namespace native
+}  // namespace at_npu
