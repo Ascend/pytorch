@@ -20,24 +20,42 @@
 
 namespace at_npu {
 namespace native {
+c10::SmallVector<int64_t, SIZE> upsample_nearest1d_backward_output_size(at::IntArrayRef input_size) {
+  c10::SmallVector<int64_t, SIZE> outputSize;
+  int64_t N = input_size[0];
+  int64_t C = input_size[1];
+  int64_t W = input_size[2];
+  outputSize = {N, C, 1, W};
+  return outputSize;
+}
+
 at::Tensor& upsample_nearest1d_backward_out_nocheck(
-    const at::Tensor& grads,
+    const at::Tensor& grad_output,
     at::IntArrayRef output_size,
     at::IntArrayRef input_size,
     c10::optional<double> scales,
-    at::Tensor& y) {
-  OpCommand cmd;
-  cmd.Name("UpsampleNearest1dGrad")
-      .Input(grads)
-      .Output(y)
-      .Attr("output_size", output_size)
-      .Attr("input_size", input_size);
-      if (scales.has_value()) {
-        cmd.Attr("scales", static_cast<float>(scales.value()));
-      }
-      cmd.Run();
+    at::Tensor& grad_input) {
+  at::Tensor gradOp = grad_output.unsqueeze(2);
+  c10::SmallVector<int64_t, SIZE> origin_size = upsample_nearest1d_backward_output_size(input_size);
+  at::Scalar scalesOp = scales.has_value() ? scales.value() : input_size[0] / output_size[0];
 
-   return y;
+  OpCommand cmd;
+  cmd.Name("ResizeGrad")
+      .Input(gradOp)
+      .Input(scalesOp, at::kFloat)
+      .Input(scalesOp, at::kFloat)
+      .Input(origin_size, at::kLong)
+      .Output(grad_input)
+      // Default value of Resize
+      .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
+      .Attr("cubic_coeff_a", (float)-0.75)
+      .Attr("exclude_outside", (int64_t)0)
+      .Attr("extrapolation_value", (float)0.0)
+      .Attr("mode", (string)"nearest")
+      .Attr("nearest_mode", (string)"floor")
+      .Run();
+  grad_input = grad_input.squeeze(2);
+  return grad_input;
 }
 
 at::Tensor& NPUNativeFunctions::upsample_nearest1d_backward_out(
@@ -45,28 +63,24 @@ at::Tensor& NPUNativeFunctions::upsample_nearest1d_backward_out(
     at::IntArrayRef output_size,
     at::IntArrayRef input_size,
     c10::optional<double> scales,
-    at::Tensor& y) {
-  at::Tensor grads = grad_output;
-  if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
-  }
-
+    at::Tensor& grad_input) {
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_backward_output_size(input_size);
   OpPreparation::CheckOut(
       {grad_output},
-      y,
+      grad_input,
       CalcuOpUtil::get_tensor_npu_format(grad_output),
-      grads.scalar_type(),
-      input_size);
+      grad_output.scalar_type(),
+      outputSize);
 
-  if (!NpuUtils::check_match(&y)) {
-    at::Tensor contiguousResult = NpuUtils::format_contiguous(y);
-    upsample_nearest1d_backward_out_nocheck(grads, output_size, input_size, scales, contiguousResult);
-    NpuUtils::format_fresh_view(y, contiguousResult);
+  if (!NpuUtils::check_match(&grad_input)) {
+    at::Tensor contiguousResult = NpuUtils::format_contiguous(grad_input);
+    upsample_nearest1d_backward_out_nocheck(grad_output, output_size, input_size, scales, contiguousResult);
+    NpuUtils::format_fresh_view(grad_input, contiguousResult);
   } else {
-    upsample_nearest1d_backward_out_nocheck(grads, output_size, input_size, scales, y);
+    upsample_nearest1d_backward_out_nocheck(grad_output, output_size, input_size, scales, grad_input);
   }
 
-   return y;
+   return grad_input;
 }
 
 at::Tensor NPUNativeFunctions::upsample_nearest1d_backward(
@@ -76,12 +90,10 @@ at::Tensor NPUNativeFunctions::upsample_nearest1d_backward(
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::compute_output_size(input_size, output_size, scale_factors);
   auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  at::Tensor grads = grad_output;
-  if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
-  }
-  at::Tensor grad_input = OpPreparation::ApplyTensor(input_size, grads.options(), grad_output);
-  upsample_nearest1d_backward_out_nocheck(grads, osize, input_size, scales_w, grad_input);
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_backward_output_size(input_size);
+  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
+
+  upsample_nearest1d_backward_out_nocheck(grad_output, osize, input_size, scales_w, grad_input);
   return grad_input;
 }
 
@@ -90,15 +102,11 @@ at::Tensor NPUNativeFunctions::upsample_nearest1d_backward(
     at::IntArrayRef output_size,
     at::IntArrayRef input_size,
     c10::optional<double> scales) {
-  at::Tensor grads = grad_output;
-  if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
-  }
-
-  at::Tensor grad_input = OpPreparation::ApplyTensor(input_size, grads.options(), grad_output);
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_backward_output_size(input_size);
+  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
 
   upsample_nearest1d_backward_out_nocheck(
-      grads, output_size, input_size, scales, grad_input);
+      grad_output, output_size, input_size, scales, grad_input);
   return grad_input;
 }
 } // namespace native
