@@ -390,6 +390,23 @@ supported:
   - less_equal_.Tensor
   - nonzero
   - nonzero.out
+  - logical_and.out
+  - logical_and
+  - logical_and_
+  - where.self
+  - where
+  - _s_where
+  - squeeze
+  - squeeze.dim
+  - squeeze_
+  - squeeze_.dim
+  - dot
+  - dot.out
+  - sgn.out
+  - sign
+  - sign_
+  - sign.out
+  - sgn.out
 
   #- full
 
@@ -414,6 +431,8 @@ custom:
     variants: function, method
   - func: one_(Tensor(a!) self) -> Tensor(a!)
     variants: method, function
+  - func: npu_sign_bits_pack(Tensor self, int size) -> Tensor
+  - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
   - func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_convolution_backward(Tensor input, Tensor grad_output, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
@@ -457,3 +476,4 @@ custom_autograd:
   - func: npu_dropout_gen_mask(int[] size, float p, *, ScalarType? dtype=None, Layout? layout=None, Device? device=None, bool? pin_memory=None) -> Tensor
   - func: _npu_dropout(Tensor self, float p) -> (Tensor, Tensor)
   - func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
+  - func: npu_grid_assign_positive(Tensor self, Tensor overlaps, Tensor box_responsible_flags, Tensor max_overlaps, Tensor argmax_overlaps, Tensor gt_max_overlaps, Tensor gt_argmax_overlaps, int num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all) -> Tensor

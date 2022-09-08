@@ -57,6 +57,33 @@ InferUnsqueezeGeometryResult inferUnsqueezeGeometry(const at::Tensor& tensor, in
   return result;
 }
 
+std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor &tensor) {
+  at::DimVector sizes;
+  at::DimVector strides;
+
+  for(const auto d : c10::irange(tensor.dim())) {
+    if(tensor.sizes()[d] != 1) {
+      sizes.push_back(tensor.sizes()[d]);
+      strides.push_back(tensor.strides()[d]);
+    }
+  }
+
+  return std::make_tuple(std::move(sizes), std::move(strides));
+}
+
+std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor& tensor, int64_t dim) {
+  at::DimVector sizes;
+  at::DimVector strides;
+
+  for(const auto d : c10::irange(tensor.dim())) {
+    if(d != dim || tensor.sizes()[dim] != 1) {
+      sizes.push_back(tensor.sizes()[d]);
+      strides.push_back(tensor.strides()[d]);
+    }
+  }
+  return std::make_tuple(std::move(sizes), std::move(strides));
+}
+
 namespace at_npu {
 namespace native {
 
@@ -142,6 +169,45 @@ at::Tensor XLANativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
     return self.as_strided(g.sizes, g.strides);
 
     }
+
+at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self) {
+  auto g = inferSqueezeGeometry(self);
+  at::Tensor result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  auto maybe_outnames = at::namedinference::compute_squeeze_outnames(self);
+  at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
+  return result;
+}
+
+at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
+  int64_t dims = self.dim();
+  dim = at::maybe_wrap_dim(dim, dims);
+  if (dims == 0 || self.sizes()[dim] != 1) {
+    return self.as_strided(self.sizes(), self.strides());
+  }
+  auto g = inferSqueezeGeometry(self, dim);
+  auto result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  at::namedinference::propagate_names_except(result, self, {dim});
+  return result;
+}
+
+at::Tensor & XLANativeFunctions::squeeze_(at::Tensor& self) {
+  auto g = inferSqueezeGeometry(self);
+  self.as_strided_(std::get<0>(g), std::get<1>(g));
+  return self;
+}
+
+at::Tensor & XLANativeFunctions::squeeze_(at::Tensor& self, int64_t dim) {
+  int64_t dims = self.dim();
+  dim = at::maybe_wrap_dim(dim, self.dim());
+
+  if (dims == 0 || self.sizes()[dim] != 1) {
+    self.as_strided_(self.sizes(), self.strides());
+    return self;
+  }
+  auto g = inferSqueezeGeometry(self, dim);
+  self.as_strided_(std::get<0>(g), std::get<1>(g));
+  return self;
+}
 
 } // namespace native
 } // namespace at_npu
