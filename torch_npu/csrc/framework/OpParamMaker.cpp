@@ -136,6 +136,10 @@ namespace at_npu
         c10::SmallVector<int64_t, N> &sync_index, 
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       auto stream = c10_npu::getCurrentNPUStream();
+      if (stream.isDataPreprocessStream()) {
+        OpAttrMaker::Set(params.attr, "_performance_prior", "true");
+        OpAttrMaker::Set(params.attr, "_exclude_engines", "AICORE");
+      }
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
       bool reset_flag = false;
@@ -220,6 +224,10 @@ namespace at_npu
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
+      if (cur_paras->isDataPreprocessOp) {
+        OpAttrMaker::Set(const_cast<aclopAttr*>(cur_paras->attr), "_performance_prior", "true");
+        OpAttrMaker::Set(const_cast<aclopAttr*>(cur_paras->attr), "_exclude_engines", "AICORE");
+      }
       aclError ret;
       bool reset_flag = false;
       if (!cur_paras->isFuzzy)
@@ -329,20 +337,18 @@ namespace at_npu
       auto dstPtr = static_cast<c10_npu::queue::QueueParas* >(dst);
       auto srcPtr = static_cast<c10_npu::queue::QueueParas* >(src);
       dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(c10_npu::queue::QueueParas);
-      if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
-        // string or smallvector of struct is used, deconstructor need be called before memset
-        (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
-      }
       dstPtr->paramStream = srcPtr->paramStream;
       dstPtr->paramType = srcPtr->paramType;
       dstPtr->paramLen = srcPtr->paramLen;
-      memset(dstPtr->paramVal, 0, MAX_VAL_SIZE);
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+        new(dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
       } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
+        new(dstPtr->paramVal) CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
       } else {
+        new(dstPtr->paramVal) EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }

@@ -106,6 +106,17 @@ static PyObject * THNPStream_synchronize(THNPStream *self, PyObject *noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THNPStream_set_data_preprocess_stream(THNPStream *self, PyObject *arg) {
+  HANDLE_TH_ERRORS
+  {
+    pybind11::gil_scoped_release no_gil;
+    bool is_data_preprocess_stream = THPUtils_unpackBool(arg);
+    self->npu_stream.setDataPreprocessStream(is_data_preprocess_stream);
+  }
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 static PyObject * THNPStream_eq(THNPStream *self, THNPStream *other) {
   HANDLE_TH_ERRORS
   return PyBool_FromLong(self->npu_stream == other->npu_stream);
@@ -129,6 +140,7 @@ static PyMethodDef THNPStream_methods[] = {
   {(char*)"synchronize", (PyCFunction)THNPStream_synchronize, METH_NOARGS, nullptr},
   {(char*)"priority_range", (PyCFunction)(void(*)(void))THNPStream_priority_range, METH_STATIC | METH_NOARGS, nullptr},
   {(char*)"__eq__", (PyCFunction)THNPStream_eq, METH_O, nullptr},
+  {(char*)"set_data_preprocess_stream", (PyCFunction)THNPStream_set_data_preprocess_stream, METH_O, nullptr},
   {nullptr}
 };
 
