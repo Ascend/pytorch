@@ -23,6 +23,15 @@
 namespace at_npu {
 namespace native {
 
+namespace {
+
+// RANDOM_DOUBLE_MAX = 1 << 53
+const int64_t RANDOM_DOUBLE_MAX = 9007199254740992;
+const int64_t RANDOM_HALF_MAX = 1 << 11;
+const int64_t RANDOM_FLOAT_MAX = 1 << 24;
+
+}
+
 at::Tensor& random_out_npu(
     at::Tensor& result,
     at::Tensor& self,
@@ -91,23 +100,24 @@ at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, int64_t to, c10::optio
 }
 
 at::Tensor& NPUNativeFunctions::random_(at::Tensor& self, c10::optional<at::Generator> gen_) {
-  // Check the dtype of input
-  TORCH_CHECK(
-      self.dtype() == at::kHalf ||
-      self.dtype() == at::kFloat ||
-      self.dtype() == at::kInt ||
-      self.dtype() == at::kLong,
-      "the dtype of input must be float16, float32, int32, int64");
-  
   int64_t from = 0;
   int64_t to = 1;
   
   if (self.dtype() == at::kHalf) {
-    to = NPU_HALF_MAX;
+    to = RANDOM_HALF_MAX + 1;
+  } else if (self.dtype() == at::kFloat) {
+    to = RANDOM_FLOAT_MAX + 1;
+  } else if (self.dtype() == at::kDouble) {
+    to = RANDOM_DOUBLE_MAX + 1;
   } else if (self.dtype() == at::kInt) {
     to = INT_MAX;
-  } else if (self.dtype() == at::kLong || self.dtype() == at::kFloat) {
-    // the max of 'to' is also LONG_MAX because to's dtype is int64 though self is of fp32
+  } else if (self.dtype() == at::kShort) {
+    to = SHRT_MAX + 1;
+  } else if (self.dtype() == at::kChar) {
+    to = SCHAR_MAX + 1;
+  } else if (self.dtype() == at::kByte) {
+    to = UCHAR_MAX + 1;
+  } else if (self.dtype() == at::kLong) {
     to = LONG_MAX;
   } 
 
