@@ -100,11 +100,9 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         rs: List[NativeFunction] = []
         bs: Dict[DispatchKey, Dict[OperatorName, BackendMetadata]] = defaultdict(dict)
         for e in es:
-            assert isinstance(e.get('__line__'), int), e
-            loc = Location(path, e['__line__'])
             funcs = e.get('func')
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc)
+            with context(lambda: f'in {path}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
@@ -123,11 +121,9 @@ def parse_native_and_custom_yaml(path: str, custom_path: str) -> ParsedYaml:
         f_str.seek(0)
         custom_es = yaml.load(f_str, Loader=LineLoader)
         for e in custom_es:
-            assert isinstance(e.get('__line__'), int), e
-            loc = Location(custom_path, e['__line__'])
             funcs = e.get('func')
-            with context(lambda: f'in {loc}:\n  {funcs}'):
-                func, m = NativeFunction.from_yaml(e, loc)
+            with context(lambda: f'in {path}:\n  {funcs}'):
+                func, m = NativeFunction.from_yaml(e)
                 rs.append(func)
                 BackendIndex.grow_index(bs, m)
 
