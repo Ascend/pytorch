@@ -22,6 +22,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 from torch_npu.contrib.module import Focus
+from torch_npu.contrib.module.focus import fast_slice
 
 class TestFocus(TestCase):
     def npu_slow_focus_op_exec(self, c1, c2, input1):
@@ -75,7 +76,7 @@ class TestFocus(TestCase):
         slow_time = (time.time() - t1) / repeat_time * 1000
 
         return output, slow_time
-    
+
     def npu_fast_focus(self, c1, c2, input1):
         output = self.npu_fast_focus_op_exec(c1, c2, input1)
 
@@ -88,6 +89,29 @@ class TestFocus(TestCase):
         fast_time = (time.time() - t2) / repeat_time * 1000
 
         return output, fast_time
+
+    def npu_slow_slice(self, input1):
+        output = [input1[..., ::2, ::2], input1[..., 1::2, ::2], 
+                  input1[..., ::2, 1::2], input1[..., 1::2, 1::2]]
+
+        return output
+
+    def npu_fast_slice(self, input1):
+        output = fast_slice(input1)
+
+        return output
+
+    def test_slice_shape_format(self):
+        shape_format = [      
+            [np.float16, 2, [2, 3, 4, 5]],
+            [np.float32, 2, [3, 5, 8, 9]],
+        ]
+        for item in shape_format:
+            _, input1 = create_common_tensor(item, -10, 10)
+            slow_output = self.npu_slow_slice(input1)
+            fast_output = self.npu_fast_slice(input1)
+            for i, _ in enumerate(slow_output):
+                self.assertRtolEqual(slow_output[i].cpu().numpy(), fast_output[i].cpu().numpy())
 
     def test_focus_shape_format(self):
         shape_format = [      
