@@ -19,7 +19,8 @@
     -   [模型调测常见问题](#模型调测常见问题)
     -   [其他操作相关问题](#其他操作相关问题)
     -   [模型分布式训练常见问题](#模型分布式训练常见问题)
-<h2 id="概述md">概述</h2>
+
+## 概述
 
 当前阶段针对PyTorch框架实现的对接适配昇腾AI处理器的方案为在线对接方案。
 
@@ -40,7 +41,7 @@
 4.  扩展性好。在打通流程的通路之上，对于新增的网络类型或结构，只需涉及相关计算类算子的开发和实现。框架类算子，反向图建立和实现机制等结构可保持复用。
 5.  与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，只需在Python侧和Device相关操作中，指定device为昇腾AI处理器，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试，用户无需进一步关注昇腾AI处理器具体的底层细节。这样可以确保用户的最小化修改，迁移成本较低。
 
-<h2 id="约束与限制md">约束与限制</h2>
+## 约束与限制
 
 -   infershape阶段算子不支持unknowshape的推导。
 -   cube计算的算子只支持float16。
@@ -53,8 +54,7 @@
     -   只支持1/2/4/8P粒度的分配。
     -   只支持int8，int32，float16和float32数据类型。
 
-
-<h2 id="迁移流程md">迁移流程</h2>
+## 迁移流程
 
 模型迁移主要指将开源社区中实现过的模型迁移到昇腾AI处理器上，主要流程如[图1](#fig759451810422)所示。
 
@@ -672,7 +672,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
 
 准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet。
 
-**执行命令**
+**执行命令 ** <a name="命令"></a>
 
 单卡训练:
 
@@ -711,41 +711,36 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
 
-
-<h2 id="模型移植评估md">模型移植评估</h2>
+## 模型移植评估
 
 1. 在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
 
-2. 查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取当前模型算子列表并在[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中查找该算子查看是否支持。dump op方法参见<a href="#dump-op方法">dump op方法</a>，当有不支持算子时参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
+2. 查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取当前模型算子列表并在[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中查找该算子查看是否支持。dump op方法参见采集Dump数据中<a href="#dump-op方法">dump op方法</a>章节，当有不支持算子时参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
 
-
-<h2 id="环境准备md">环境准备</h2>
+## 环境准备
 
 请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch及混合精度模块安装，并配置环境变量。
 
-<h2 id="模型迁移md">模型迁移</h2>
+## 模型迁移
 
-
-<h3 id="工具迁移md">工具迁移</h3>
+### 工具迁移
 
 Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://www.hiascend.com/document/detail/zh/mindstudio/304/msug)。
 
-<h4 id="功能介绍md">功能介绍</h4>
+#### 功能介绍
 
 **简介**<a name="zh-cn_topic_0000001133095885_section20874690446"></a>
 
 昇腾NPU是AI算力的后起之秀，但目前训练和在线推理脚本大多是基于GPU的。由于NPU与GPU的架构差异，基于GPU的训练和在线推理脚本不能直接在NPU上使用，脚本转换工具提供了将基于GPU的脚本转换为基于NPU的脚本的自动化方法，节省了人工手动进行脚本迁移的学习成本与工作量，大幅提升了迁移效率。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
->-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。除使用[表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换成功后可直接运行外，其他脚本的转换结果仅供参考，仍需用户根据实际情况做少量适配。
->-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的原脚本需要在GPU环境下且基于python3能够跑通。
->-   [表1](#zh-cn_topic_0000001133095885_table4705239194613)里的脚本转换后的执行逻辑与转换前保持一致。
+>-   脚本转换工具根据适配规则，对用户脚本给出修改建议并提供转换功能，大幅度提高了脚本迁移速度，降低了开发者的工作量。
 >-   此脚本转换工具当前仅支持PyTorch训练脚本转换。
 
-##### 模型支持
+**模型支持**
 
 目前支持模型请参考[《昇腾Modelzoo社区》](https://www.hiascend.com/software/modelzoo) ，筛选类型分类：“训练”、框架分类：“Pytorch”的Pytorch训练模型。
 
@@ -757,7 +752,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/envdeployment/instg) 安装开发环境。
 
-<h4 id="操作指南md">操作指南</h4>
+#### 操作指南
 
 **参数说明**<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
 
@@ -830,7 +825,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tr>
 </tbody>
 </table>
-**自定义规则文件**<a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
+**自定义规则文件** <a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
 
 自定义转换规则样例如下：
 
@@ -942,7 +937,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 3.  完成脚本转换。
 
-<h4 id="结果解析md">结果解析</h4>
+#### 结果解析
 
 脚本转换完成后，进入脚本转换结果输出路径查看结果文件，以GPU单卡脚本转换为NPU多卡脚本为例。
 
@@ -955,10 +950,9 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 │   ├── run_distributed_npu.sh            // 多卡启动shell脚本。
 ```
 
-<h3 id="手工迁移md">手工迁移</h3>
+### 手工迁移
 
-
-<h4 id="单P训练模型迁移md">单P训练模型迁移</h4>
+#### 单P训练模型迁移
 
 当前在线对接方案优点在于保证在昇腾AI处理器上训练与GPU的使用方式和风格保持一致。用户在使用在线对接方案时，**只需在Python侧和Device相关操作中，指定device为昇腾AI处理器**，即可完成用昇腾AI处理器在PyTorch对网络的开发、训练以及调试。针对单P模型训练，主要迁移改动如下。
 
@@ -988,9 +982,9 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
     target = target.to(CALCULATE_DEVICE)
 ```
 
-更多迁移细节请参见[[单卡训练修改](#单卡训练修改)。
+更多迁移细节请参见[单卡训练修改](#单卡训练修改)。
 
-<h4 id="多P训练模型迁移md">多P训练模型迁移</h4>
+#### 多P训练模型迁移
 
 多P训练模型迁移除了需在**Python侧和Device相关操作中，指定device为昇腾AI处理器**外，依然通过PyTorch的DistributedDataParallel方式来进行分布式训练，即在模型初始化阶段执行init\_process\_group，再将模型初始化为DistributedDataParallel模型。但须注意的是在初始化init\_process\_group时需要将**backend**配置为**hccl**并屏蔽掉初始化方式。
 
@@ -1017,13 +1011,14 @@ def main():
 
 更多迁移细节请参见[单机多卡训练修改](#单机多卡训练修改)。
 
-<h4 id="PyTorch接口替换md">PyTorch接口替换</h4>
+#### PyTorch接口替换
 
 1. 为了使昇腾AI处理器使用PyTorch框架的能力，需要对原生的PyTorch框架进行一定Device层面的适配，对外呈现是需要将跟cpu和cuda相关的接口进行切换；在进行网络迁移时，需要将某些设备相关的接口转换成跟昇腾AI处理器相关的接口，当前适配的设备相关接口请参见[表1](#table1922064517344)：
 
    **表 1**  设备接口替换
 
    <a name="table1922064517344"></a>
+
    <table><thead align="left"><tr id="row1222164553413"><th class="cellrowborder" valign="top" width="43.43434343434344%" id="mcps1.2.4.1.1"><p id="p15221445163419"><a name="p15221445163419"></a><a name="p15221445163419"></a>PyTorch原始接口</p>
    </th>
    <th class="cellrowborder" valign="top" width="42.154215421542155%" id="mcps1.2.4.1.2"><p id="p11221164583414"><a name="p11221164583414"></a><a name="p11221164583414"></a>适配昇腾AI处理器后的接口</p>
@@ -1217,7 +1212,7 @@ def main():
 
 更多接口请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
-<h3 id="混合精度md">混合精度</h3>
+### 混合精度
 
 **概述**<a name="section166113311599"></a>
 
@@ -1308,7 +1303,7 @@ def main():
     optimizer.step()
     ```
 
-<h3 id="Pytorch1.8.1  AMP 在NPU上的使用说明md">Pytorch1.8.1  AMP 在NPU上的使用说明</h3>
+### Pytorch1.8.1  AMP 在NPU上的使用说明
 
 <h4 id=总体说明md">总体说明</h4>
 
@@ -1337,19 +1332,19 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 1. 1.8.1中AMP使用装饰器的方式实现。在train与test时需要通过添加with Autocast()将模型的入参转换为FP16，如果不添加，模型入参仍为FP32，在极限batchsize下，会出现内存不足的问题。
 4. 当前1.8.1AMP不支持tensor融合功能。
 
-<h2 id="模型训练md">模型训练</h2>
+### 模型训练
 
-训练脚本迁移完成后，需要参见[配置环境变量](#zh-cn_topic_0000001144082004md)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[脚本执行](#脚本执行md)。
+训练脚本迁移完成后，需要参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)设置环境变量，然后执行**python3** _xxx_进行模型训练。具体样例请参考[命令执行](#命令)。
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
 
-<h2 id="性能调优和分析">性能调优和分析</h2>
+### 性能调优和分析
 
 
 <h3 id="前提条件md">前提条件</h3>
 
-1.  参见[样例说明](#样例说明md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
+1.  参见[模型调优样例](#模型调优样例)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
 2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子适配开发。
 3.  优先打通单卡功能，再打通多卡功能。
 
@@ -1361,9 +1356,7 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 -   ### [训练过程性能优化](#训练过程性能优化)  
 
-
-总体思路
-<div id="1总体思路"> </div>
+#### 总体思路<a name="总体思路"></a>
 
 1.  通过训练执行结果，判断吞吐量指标是否达到预期要求。
 2.  当性能指标不达标时，需要找出制约性能瓶颈的原因，主要为以下几个方面：
@@ -1374,11 +1367,10 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 
 3.  针对以上制约性能瓶颈的原因进行分析与优化。
 
-对于上述最后一项因数据集加载或者预处理流程带来的性能瓶颈，一般通过修改服务器的配置、对于数据集为视频图像类可以安装高性能Pillow和OpenCV库进行优化，详细步骤查看[host侧性能优化](#host侧性能优化md)；
-而对于算子和编译造成瓶颈，请参考[采集训练过程相关数据](#采集训练过程相关数据)。同时，也可以采集算子OP_INFO，查看模型中所有调用的算子信息，通过调用顺序和调用关系可以定位是否因格式导致插入了多余的transdata导致的性能瓶颈，transdata主要用于数据类型和格式转换。
+对于上述最后一项因数据集加载或者预处理流程带来的性能瓶颈，一般通过修改服务器的配置、对于数据集为视频图像类可以安装高性能Pillow和OpenCV库进行优化，详细步骤查看[host侧性能优化](#host侧性能优化)；
+而对于算子和编译造成瓶颈，请参考[Profiling数据采集](#Profiling数据采集)。同时，也可以采集算子OP_INFO，查看模型中所有调用的算子信息，通过调用顺序和调用关系可以定位是否因格式导致插入了多余的transdata导致的性能瓶颈，transdata主要用于数据类型和格式转换。
 
-Profiling数据采集
-<div id="Profiling数据采集"> </div>
+#### Profiling数据采集<a name="Profiling数据采集"></a>
 
 当模型训练过程中吞吐量指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。基于NPU的pytorch在模型训练时，算子典型的执行流程是，算子通过pytorch框架多次分发后，调用ACL接口，然后在CANN层经过编译、GE/FE等模块的处理后，最终在NPU上计算执行，整个流程和调用栈较深。在ACL接口之前，调用栈和流程都是pytorch框架内，而在ACL接口之后，所有的流程全部在CANN内（基础软件包，通过so方式调用）。因此针对这一系列的流程，我们提供了三种不同层次的profiling方式，可以侧重记录不同层面的性能数据，分别是pytorch profiling、cann profiling和E2E profling。pytorch profiling功能是继承自原生pytorch的功能，主要记录了pytorch框架层面的算子在多次分发中调用栈的耗时信息，而对于算子在CANN内的流程，只能作为一整块展示，无法详细展示内部流程。cann profiling则是仅针对cann层内算子执行流程来记录性能信息，主要功能是分析算子在NPU设备上的执行性能，可以清晰看出算子在不同shape/format下耗时信息；而E2E profiling则将pytorch层面和CANN层面的性能数据结合起来，可以端到端地分析模型性能瓶颈所在，其展示的性能数据分模块展示，其在pytorch层面的数据与pytorch profiling的数据基本一致，而在CANN 层面展示的数据分为GE/ACL/RunTime/AI CPU/Device等多个模块，可以从整体上分析模型性能瓶颈。三种profiling的关系如下图所示，注意E2E profiling并不完全为pytorch和cann profiling的叠加。采集算子OP_INFO则是通过日志信息，获取模型中所有调用到的算子信息，一般用于确认模型中是否有插入多余的transdata（主要用于数据类型和格式转换）。
 
@@ -1386,7 +1378,7 @@ Profiling数据采集
 
 下面介绍如何在模型中采集三种profiling类型的数据和采集算子OP_INFO。
 
-PyTorch Profiling数据采集
+**PyTorch Profiling数据采集**
 
   1. 获取chrome\_trace文件。
 
@@ -1411,7 +1403,7 @@ PyTorch Profiling数据采集
 
       打印结果包含CPU和NPU的耗时等相关信息，详细信息参见表2 。
       
-      <a name='表2 profiler结果字段表'>**表2** profiler结果字段表</a>
+      <a name='表2 profiler结果字段表'> 表2 profiler结果字段表</a>
       
       | Name | Self CPU % | Self CPU | CPU total % | CPU total | CPU time avg | Self NPU % | Self NPU | NPU total | NPU time avg | # of Calls |
       | ---- | ---------- | -------- | ----------- | --------- | ------------ | ---------- | -------- | --------- | ------------ | :--------: |
@@ -1462,7 +1454,7 @@ PyTorch Profiling数据采集
 
         在Chrome浏览器中打开chrome\_trace结果文件，可查看简洁的算子性能信息。
 
-CANN Profiling数据采集
+**CANN Profiling数据采集**
 
   1.  获取性能数据文件。
 
@@ -1481,27 +1473,29 @@ CANN Profiling数据采集
 
   2.  解析性能数据文件。
 
-      请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0003.html)中“开发工具>Profiling工具>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
+      请参见[《开发工具》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0003.html)中“Profiling工具>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
 
 
   3. 高级用法
 
-    pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
-    ```
-    for i in range(steps):
-        if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
-            if i == 10:  ## 在第10个step时，开始使能该功能
-                torch_npu.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
-                torch_npu.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
-            torch_npu.npu.iteration_start()  ## 进入每个step时打上开始标记
-            train_one_step()
-            torch_npu.npu.iteration_end()    ## 每个step结束时打上开始标记
-            if i == 110:   ## 在第100个step时，关闭该功能
-                torch_npu.npu.prof_stop()
-                torch_npu.npu.prof_finalize()
-    ```
+     pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
 
- E2E profiling数据采集
+     ```
+     
+     for i in range(steps):
+         if i >=10 && i <= 100:  ## 表示获取第10到第100个step之间的性能数据
+             if i == 10:  ## 在第10个step时，开始使能该功能
+                 torch_npu.npu.prof_init(profiler_result_path) ## profiler_result_path 与前述profiler_result_path参数作用一致
+                 torch_npu.npu.prof_start(config) ## config与前述config参数作用一致，可以默认
+             torch_npu.npu.iteration_start()  ## 进入每个step时打上开始标记
+             train_one_step()
+             torch_npu.npu.iteration_end()    ## 每个step结束时打上开始标记
+             if i == 110:   ## 在第100个step时，关闭该功能
+                 torch_npu.npu.prof_stop()
+                 torch_npu.npu.prof_finalize()
+     ```
+
+ **E2E profiling数据采集**
 
 1. 获取性能数据文件
 
@@ -1522,9 +1516,9 @@ with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True
 
 通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
 
-a. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
+​		a. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](figures/1.png)
 
-b. 切换至如上图./result/PROF_XXX路径后，执行脚本。
+​		b. 切换至如上图./result/PROF_XXX路径后，执行脚本。
 
    ```
    /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
@@ -1533,11 +1527,11 @@ b. 切换至如上图./result/PROF_XXX路径后，执行脚本。
 
    - output：原始数据路径。
 
-c. 运行完成后，在原始数据路径下输出timeline目录。如下图：
+​		c. 运行完成后，在原始数据路径下输出timeline目录。如下图：
 
    ![](figures/2.png)
 
-d. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
+​		d. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
 
    浏览器进入chrome://tracing/。
 
@@ -1653,7 +1647,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
     export ASCEND_SLOG_PRINT_TO_STDOUT=1
     ```
 
-3.  设置日志级别为info，参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
+3.  设置日志级别为info，参考[《故障管理》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
 4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
@@ -1663,15 +1657,15 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 6.  分析TaskInfo中额外的task，尤其关注transdata。
 
-<h4 id="host侧性能优化md">host侧性能优化</h4>
+#### host侧性能优化
 
--   ### [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器md)
+-   [修改CPU性能模式（X86服务器）](#修改CPU性能模式X86服务器)
 
--   ### [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器md)
+-   [修改CPU性能模式（ARM服务器）](#修改CPU性能模式ARM服务器)
 
--   ### [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器md)
+-   [安装高性能pillow库（X86服务器）](#安装高性能pillow库X86服务器)
 
--   ### [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库md)
+-   [（可选）安装指定版本OpenCV库](#可选安装指定版本OpenCV库)
 
 
 在进行PyTorch模型迁移训练时，部分网络模型会出现FPS较低、性能不达标的情况。可以考虑对服务器进行以下优化尝试提高训练性能。
@@ -1680,10 +1674,9 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 -   安装高性能pillow库。
 -   （可选）安装指定版本OpenCV库。
 
-修改CPU性能模式（X86服务器）
-<div id="修改CPU性能模式X86服务器md"> </div>
+###### **修改CPU性能模式（X86服务器）**<a name="修改CPU性能模式X86服务器"></a>
 
-***设置电源策略为高性能模式***
+**设置电源策略为高性能模式**
 
 提升网络性能需要在X86服务器BIOS设置中将电源策略设为高性能模式，具体操作如下。
 
@@ -1788,8 +1781,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 4.  再次执行[步骤1](#li158435131344)查看当前CPU模式是否已设置为performance模式。
 
-修改CPU性能模式ARM服务器
- <div id="修改CPU性能模式ARM服务器md"> </div>
+###### **修改CPU性能模式ARM服务器 ** <a name="修改CPU性能模式ARM服务器"></a>
 
 **设置电源策略为高性能模式**<a name="section18832114453814"></a>
 
@@ -1818,7 +1810,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 6.  按下“F10”保存配置并重启服务器。
 
-<h5 id="安装高性能pillow库（X86服务器）md">安装高性能pillow库（X86服务器）</h5>
+###### 安装高性能pillow库（X86服务器）<a name="修改CPU性能模式ARM服务器"></a>
 
 1.  安装高性能pillow库相关依赖，命令如下。
 
@@ -1856,7 +1848,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
         >```
 
 
-3.  修改torchvision代码解决pillow-simd缺少PILLOW\_VERSION问题。torchvision安装参见[样例获取](#样例获取md)。
+3.  修改torchvision代码解决pillow-simd缺少PILLOW\_VERSION问题。
 
     将/usr/local/python3.x.x/lib/python3.x/site-packages/torchvision/transforms/functional.py第5行代码修改如下：
 
@@ -1868,36 +1860,34 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
         PILLOW_VERSION="7.0.0"
     ```
 
+###### （可选）安装指定版本OpenCV库  <a name="可选安装指定版本OpenCV库"></a>
 
-（可选）安装指定版本OpenCV库md <div id="可选安装指定版本OpenCV库md"> </div>
 如模型依赖OpenCV，基于训练性能考虑，建议安装OpenCV-3.4.10版本。
 
 1.  获取源码：[获取地址](https://opencv.org/releases/)。
 2.  安装指导：[获取地址](https://docs.opencv.org/3.4.10/d7/d9f/tutorial_linux_install.html)。
 
-训练过程性能优化
- <div id="训练过程性能优化"> </div>
-
+#### 训练过程性能优化<a name="训练过程性能优化"></a>
 
 **算子瓶颈优化**<a name="section8727652134111"></a>
 
-1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#采集训练过程相关数据md)。
+1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#Profiling数据采集)。
 2.  分析Profiling数据，得到耗时较大的算子。
-3.  参见[单算子样例编写说明](#单算子样例编写说明md)构建耗时较大算子的单算子样例，通过与CPU或GPU运行单算子样例时间进行对比，若发现性能不足，则有以下两种方案解决。
+3.  参见[单算子样例编写说明](#单算子样例编写说明)构建耗时较大算子的单算子样例，通过与CPU或GPU运行单算子样例时间进行对比，若发现性能不足，则有以下两种方案解决。
     -   规避方案：使用同等语义其他高效算子替代。
     -   解决方案：改进算子性能。
 
 **copy瓶颈优化**<a name="section219718193717"></a>
 
-1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#采集训练过程相关数据md)。
+1.  获取训练过程中的Profiling数据，参见[Profiling数据采集](#Profiling数据采集)。
 2.  分析Profiling数据分析整网中的format\_contiguous/AsStrided/PTCopy的耗时。
 3.  若发现耗时较大，则需参照以下两种方案解决。
-    -   方案一：（规避方案）PyTorch中View类型框架类算子会导致非连续转连续操作。优化思路为尽量使用计算类算子代替View类框架算子，常见的View类框架算子如View、Permute、Transpose等。更多View类框架算子可参考[https://pytorch.org/docs/stable/tensor\_view.html](https://pytorch.org/docs/stable/tensor_view.html)。
+    -   方案一：（规避方案）PyTorch中View类型框架类算子会导致非连续转连续操作。优化思路为尽量使用计算类算子代替View类框架算子，常见的View类框架算子如View、Permute、Transpose等。更多View类框架算子可参考[Tensor Views](https://pytorch.org/docs/stable/tensor_view.html)。
     -   方案二：（解决方案）加速转连续操作。
 
 **框架瓶颈优化**<a name="section1391981014420"></a>
 
-1. 获取训练过程中算子信息OP\_INFO，参见[获取算子信息OP\_INFO](#采集训练过程相关数据md)。
+1. 获取训练过程中算子信息OP\_INFO，参见[Profiling数据采集](#Profiling数据采集)。
 
 2. 分析OP\_INFO中算子的规格和调用关系，定位是否插入了多余的算子，重点关注transdata是否合理。
 
@@ -1918,10 +1908,10 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 3.  需参照以下两种方案解决。
     -   规避方案：在理解模型语义和相关API基础上，使用固定Shape的方式代替动态Shape。
     -   解决方案：减少编译或不需要编译该算子。
-    -   优化算子编译配置请参见[编译选项设置](#编译选项设置md)。
+    -   优化算子编译配置请参见[编译选项设置](#编译选项设置)。
 
 
-### 亲和库
+## 亲和库
 
 
 <h4 id="来源介绍md">来源介绍</h4>
@@ -1934,13 +1924,13 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
 
-### AOE调优工具使用说明
+## AOE调优工具使用说明
 
-#### AOE调优工具介绍
+### AOE调优工具介绍
 
 对于NPU设备，算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。以上这个过程称为调优，AOE工具则实现了这样的调优功能，可以用于提升模型的性能。
 
-#### AOE调优工具使用
+### AOE调优工具使用
 
 1. dump算子信息至本地。
 
@@ -1994,38 +1984,37 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
      调优完成后，结果会保存在TUNE_BANK_PATH环境变量中指定的/<soc_version>/目录，若不设置则默认保存在/{HOME}/Ascend/latest/data/aoe/custom/op/<soc_version>目录下；root用户则保存在/root/Ascend/latest/data/aoe/custom/op/<soc_version>。soc_version表示芯片类型，如Ascend910A。
 
-#### 注意事项
+### 注意事项
 
 1. 目前仅支持静态算子，动态算子暂不支持。
 2. dump算子信息时，目前无法对算子信息去重，且仅需执行一个step，否则会导致调优时间过长。
 3. 建议使用1P脚本进行dump图，多P会存在dump覆盖的问题。
 4. 使用前需关闭profiling工具，否则会影响模型性能。
 
-#### 性能验证
+### 性能验证
 
 调优完成后，还原代码修改，运行模型，验证模型/算子性能是否提高。
 
-<h2 id="精度调测md">精度调测</h2>
+## 精度调测
 
-
-<h3 id="前提条件-2md">前提条件</h3>
+### 前提条件
 
 目前pytorch1.8.1暂不支持。
 
 优先在同等语义和超参下，跑一定的epoch（推荐完整epoch数的20%），使精度，loss等对齐GPU相应水平，完成后再对齐最终精度。
 
-<h3 id="调测过程-3md">调测过程</h3>
+### 调测过程
 
 -   **[总体思路](#总体)**  
 
 -   **[精度调优方法](#精度调优方法)**  
 
-<h4 name="总体">总体思路</h4>
+#### 总体思路
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
 1.  <a name="li17755175510322"></a>模型网络计算错误。
-    -   定位思路：在网络中加入hook进行排查判断是哪个地方有较大嫌疑，然后构建[单算子用例](#单算子样例编写说明md)逐渐缩小错误范围，证明该算子在当前网络场景下计算有误，可以对比CPU或GPU结果证明。
+    -   定位思路：在网络中加入hook进行排查判断是哪个地方有较大嫌疑，然后构建[单算子用例](#单算子样例编写说明)逐渐缩小错误范围，证明该算子在当前网络场景下计算有误，可以对比CPU或GPU结果证明。
 
     -   规避方案：使用同等语义其他算子替代。
 
@@ -2052,7 +2041,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-<h4 id="精度调优方法">精度调优方法</h4>
+#### 精度调优方法
 
 模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
 
@@ -2065,7 +2054,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 ##### 环境准备
 
-- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5md)。
+- 安装hdf5工具以支持算子dump功能，安装详情请参见[编译安装hdf5](#编译安装hdf5)。
 
   若使用模型算子精度对比功能，需要同时在NPU和GPU环境安装hdf5。否则，仅在NPU环境安装hdf5即可。
 
@@ -2087,9 +2076,43 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
     DEBUG=0 USE_DISTRIBUTED=1 USE_HCCL=0 USE_NCCL=0 USE_MKLDNN=0 USE_CUDA=1 USE_NPU=0 BUILD_TEST=0 USE_NNPACK=0 USE_DUMP=1 python"${PY_VERSION}" setup.py build bdist_wheel
     ```
 
+##### 单算子溢出检测
+
+用户通过算子溢出检测功能检测算子是否有溢出，然后采集溢出算子的数据，从而帮助开发人员快速定位并解决算子精度问题。
+
+约束说明：<a name="section52762019181510"></a>
+
+-   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
+-   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能，使用单P对模型进行训练，不使用分布式。
+-   使用单算子溢出检测功能时，不支持把数据集加载部分包含进去。
+
+采集溢出算子数据：<a name="section121407268191"></a>
+
+```
+# check_overflow为溢出检测控制开关
+# dump_path为dump文件保存路径
+with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
+    # 需要检测算子溢出的代码片段(不包含数据集加载部分)
+    xxx # forward code 
+    xxx # backward code
+    
+```
+
+运行一个step，模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
+
+查看Dump数据：<a name="section155351957142017"></a>
+
+如果训练过程中采集到了Dump数据，则会在\{dump\_path\}路径下生成dump数据的.h5文件，用户可进入路径自行查看。
+
+解决方法：<a name="section1729763162019"></a>
+
+1. 将采集到的.h5文件映射到TBE算子，映射方法请参见[算子层级精度对比](#算子层级精度对比)。
+
+2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
+
 ##### 模型算子精度对比
 
-用户使用精度对比工具，在相同输入的情况下，获取模型在GPU和NPU进行训练时模型内算子输出的精度差异，从而帮助开发者实现算子精度问题定位。
+用户使用精度对比工具，将GPU/CPU每层算子的输入输出与NPU对应层算子输入输出进行对比，识别存在精度误差的算子层，帮助开发者实现算子精度问题定位。
 
 约束说明：
 
@@ -2168,42 +2191,9 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
       `-m`参数传入使用NPU获得的dump数据文件路径。
 
+##### 算子层级精度对比
 
-<h5 id="单算子溢出检测md">单算子溢出检测</h5>
-
-用户通过算子溢出检测功能检测算子是否有溢出，然后采集溢出算子的数据，从而帮助开发人员快速定位并解决算子精度问题。
-
-约束说明：<a name="section52762019181510"></a>
-
--   本功能只提供IR级别的算子溢出检测，且只支持AICORE，不支持Atomic。
--   使用单算子溢出检测功能时，请不要同时开启apex的动态loss scale模式和使用tensor融合功能，使用单P对模型进行训练，不使用分布式。
--   使用单算子溢出检测功能时，不支持把数据集加载部分包含进去。
-
-采集溢出算子数据：<a name="section121407268191"></a>
-
-```
-# check_overflow为溢出检测控制开关
-# dump_path为dump文件保存路径
-with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load_file_path='') as dump:   
-    # 需要检测算子溢出的代码片段(不包含数据集加载部分)
-    xxx # forward code 
-    xxx # backward code
-    
-```
-
-运行一个step，模型运行过程中，如果有算子溢出，会打印出相应IR的名字。
-
-查看Dump数据：<a name="section155351957142017"></a>
-
-如果训练过程中采集到了Dump数据，则会在\{dump\_path\}路径下生成dump数据的.h5文件，用户可进入路径自行查看。
-
-解决方法：<a name="section1729763162019"></a>
-
-1. 将采集到的.h5文件映射到TBE算子，映射方法请参见[IR与TBE算子映射](#IR与TBE算子映射)。
-
-2. 请将算子溢出的打印截图及映射后的TBE算子输入输出文件通过Issue附件形式反馈给华为开发人员。
-
-##### IR与TBE算子映射
+将GPU/CPU上一层算子的输出作为NPU当前层算子的输入，逐层进行精度比对，以排除由于累计误差造成的影响。
 
 前提条件：
 
@@ -2279,72 +2269,68 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
    运行成功后，在acl.json配置文件中的`dump_path`路径下查看输出结果文件。
 
-##### NPU与GPU算子映射
-
-请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)中 ”开发工具>精度比对工具> 比对数据准备>训练场景数据准备>准备以PyTorch为原始训练网络的精度比对数据文件” 章节 。
-
-<h5 id="整网调测md">整网调测</h5>
+##### 整网精度调测
 
 用户也可通过分析整个网络的方式来进行网络模型的精度调测。
 
-1.  通过对比CPU和昇腾AI处理器的结果，判断在昇腾AI处理器上计算是否正确。
+1. 通过对比CPU和昇腾AI处理器的结果，判断在昇腾AI处理器上计算是否正确。
 
-    代码样例（本样例只体现基本方法，禁止直接复制）如下：
+   代码样例（本样例只体现基本方法，禁止直接复制）如下：
 
-    ```
-    # 固定入参，保证模型与输入数据在CPU和昇腾AI处理器上相同
-    input_tensor_cpu = torch.Tensor()
-    model_cpu = build_model()
-    # 将输入数据迁移到昇腾AI处理器上
-    input_tensor_npu = input_tensor_cpu.npu()
-    # 将模型迁移到昇腾AI处理器上
-    model_npu = model_cpu.npu()
-    
-    # 运算结果对比
-    output_cpu = model_cpu(input_tensor_cpu)
-    output_npu = model_npu(input_tensor_npu)
-    compute_result = (output_cpu - output_npu).abs().mean())
-    print(compute_result)
-    ```
+   ```
+   # 固定入参，保证模型与输入数据在CPU和昇腾AI处理器上相同
+   input_tensor_cpu = torch.Tensor()
+   model_cpu = build_model()
+   # 将输入数据迁移到昇腾AI处理器上
+   input_tensor_npu = input_tensor_cpu.npu()
+   # 将模型迁移到昇腾AI处理器上
+   model_npu = model_cpu.npu()
+   
+   # 运算结果对比
+   output_cpu = model_cpu(input_tensor_cpu)
+   output_npu = model_npu(input_tensor_npu)
+   compute_result = (output_cpu - output_npu).abs().mean())
+   print(compute_result)
+   ```
 
-    因昇腾AI处理器硬件架构与cpu不同，计算结果会略有不同。若运算结果较为接近（一般不高于1e-4），则认为运算结果正常。
+   因昇腾AI处理器硬件架构与cpu不同，计算结果会略有不同。若运算结果较为接近（一般不高于1e-4），则认为运算结果正常。
 
-2.  通过Pytorch的hook机制来打印正向反向传播中module的输入和输出来分析。
+2. 通过Pytorch的hook机制来打印正向反向传播中module的输入和输出来分析。
 
-    代码样例（本样例只体现基本方法，禁止直接复制）如下：
+   代码样例（本样例只体现基本方法，禁止直接复制）如下：
 
-    ```
-    # 设置hook func
-    def hook_func(name, module):
-        def hook_function(module, inputs, outputs):
-            print(name+' inputs', inputs)
-            print(name+' outputs', outputs)
-        return hook_function
-    
-    # 注册正反向hook
-    for name, module in model.named_modules():
-        module.register_forward_hook(hook_func('[forward]: '+name, module))
-        module.register_backward_hook(hook_func('[backward]: '+name, module))
-    
-    # 运行
-    model(input_tensor)
-    ```
+   ```
+   # 设置hook func
+   def hook_func(name, module):
+       def hook_function(module, inputs, outputs):
+           print(name+' inputs', inputs)
+           print(name+' outputs', outputs)
+       return hook_function
+   
+   # 注册正反向hook
+   for name, module in model.named_modules():
+       module.register_forward_hook(hook_func('[forward]: '+name, module))
+       module.register_backward_hook(hook_func('[backward]: '+name, module))
+   
+   # 运行
+   model(input_tensor)
+   ```
 
-    通过分析打印正向反向传播中的inputs, outputs来确定。
+   通过分析打印正向反向传播中的inputs, outputs来确定。
 
-3.  通过直接获取module的grad, running\_mean, running\_var等参数来分析更新量。
+3. 通过直接获取module的grad, running\_mean, running\_var等参数来分析更新量。
 
-    代码样例（本样例只体现基本方法，禁止直接复制）如下：
+   代码样例（本样例只体现基本方法，禁止直接复制）如下：
 
-    ```
-    # 例如获取梯度和BN的均值方法来排查
-    for name, module in model.named_modules():
-        if isinstance(module, nn._BatchNorm):
-            print("[BN_buffer]: "+name, module.running_mean, module.running_var)
-        print("[grad]: "+name, module.grad)
-    ```
+   ```
+   # 例如获取梯度和BN的均值方法来排查
+   for name, module in model.named_modules():
+       if isinstance(module, nn._BatchNorm):
+           print("[BN_buffer]: "+name, module.running_mean, module.running_var)
+       print("[grad]: "+name, module.grad)
+   ```
 
-<h2 id="模型保存与转换">模型保存与转换</h2>
+## 模型保存与转换
 
 -   **[简介](#简介md)**  
 
@@ -2352,20 +2338,19 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 -   **[导出ONNX模型](#导出ONNX模型md)**  
 
-
-<h3 id="简介md">简介</h3>
+### 简介
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
-本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.html)手册中“ATC模型转换”章节。
+本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考[《推理应用开发》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.html)手册中“ATC模型转换”章节。
 
-如果想使用Auto Tune优化功能，请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)手册中“开发工具>Auto Tune工具”章节。
+如果想使用Auto Tune优化功能，请参考[《开发工具》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)手册中“Auto Tune工具”章节。
 
-离线推理应用构建请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)手册中“应用开发（c++）“章节。整体流程如下：
+离线推理应用构建请参考[《推理应用开发》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)手册中“应用开发（c++）“章节。整体流程如下：
 
 ![](figures/zh-cn_image_0000001144082132.png)
 
-<h3 id="模型保存md">模型保存</h3>
+### 模型保存
 
 Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件，根据模型文件的后续用途会保存为两种格式的模型文件：
 
@@ -2438,7 +2423,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
 >![](public_sys-resources/icon-notice.gif) **须知：** 
 >通常情况下，训练图和推理图中对同一个算子处理方式不同（例如BatchNorm和dropout等算子），在输入格式上也有差别，因此在运行推理或导出ONNX模型之前，必须调用model.eval\(\) 来将dropout和batch normalization层设置为推理模式。
 
-<h3 id="导出ONNX模型md">导出ONNX模型</h3>
+### 导出ONNX模型
 
 **简介**<a name="section5385151615714"></a>
 
@@ -2528,9 +2513,9 @@ if __name__ == "__main__":
     convert()
 ```
 
-<h2 id="样例说明md">模型调优样例</h2>
+## 模型调优样例
 
-<h3 id="ShuffleNet模型调优示例md">ShuffleNet模型调优示例</h3>
+### ShuffleNet模型调优示例
 
 -   **[样例获取](#样例获取-5md)**  
 
@@ -2540,10 +2525,7 @@ if __name__ == "__main__":
 
 -   **[网络调测](#网络调测md)**  
 
-
-<h4 id="样例获取-5md">样例获取</h4>
-
-**样例获取**<a name="section1155115015182"></a>
+#### 样例获取<a name="section1155115015182"></a>
 
 1.  本样例基于PyTorch官网提供的Imagenet数据集训练模型进行适配昇腾910 AI处理器的迁移改造，样例获取路径为[https://github.com/pytorch/examples/tree/master/imagenet](https://github.com/pytorch/examples/tree/master/imagenet)。
 2.  ShuffleNet模型参考PyTorch官网模型[ShuffleNet V2](https://pytorch.org/hub/pytorch_vision_shufflenet_v2/)，实际使用在脚本执行中直接指定参数arch为shufflenet\_v2\_x1\_0。
@@ -2563,17 +2545,17 @@ if __name__ == "__main__":
 ├──main.py 
 ```
 
-<h4 id="模型评估md">模型评估</h4>
+#### 模型评估
 
 模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
-<h4 id="网络迁移md">网络迁移</h4>
+#### 网络迁移
 
 训练脚本迁移请参见[单卡训练修改](#单卡训练修改)和[单机多卡训练修改](#单机多卡训练修改)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
 
-<h4 id="网络调测md">网络调测</h4>
+#### 网络调测
 
-网络调测具体方法请参见[调测过程](#调测过程md)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
+网络调测具体方法请参见[调测过程](#调测过程)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
 
 **前向排查**<a name="section7544311140"></a>
 
@@ -2642,10 +2624,10 @@ if __name__ == "__main__":
 
 详细说明如下：
 
--   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#训练过程性能优化md)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
--   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#训练过程性能优化md)所描述Copy瓶颈。
+-   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，如[copy瓶颈优化](#训练过程性能优化)所描述Copy瓶颈，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
+-   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续，如[copy瓶颈优化](#训练过程性能优化)所描述Copy瓶颈。
 -   适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
--   设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#训练过程性能优化md)所描述框架瓶颈。
+-   设置weight初始化格式避免计算过程中反复的transdata，如[copy瓶颈优化](#训练过程性能优化)所描述框架瓶颈。
 -   修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
 
 **整网排查**<a name="section1261194410241"></a>
@@ -3069,8 +3051,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
             return out
     ```
 
-
-<h2 id="参考信息md">参考信息</h2>
+## 参考信息
 
 -   **[单算子样例编写说明](#单算子样例编写说明md)**  
 
@@ -3086,10 +3067,9 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 -   **[编译安装hdf5](#编译安装hdf5md)**  
 
+### 单算子样例编写说明
 
-<h3 id="单算子样例编写说明md">单算子样例编写说明</h3>
-
-在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法md)。
+在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法)。
 
 1. 单算子测试用例构建，直接调用该算子即可复现错误场景。
 
@@ -3186,8 +3166,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
         run_tests()
     ```
 
-
-<h3 id="单算子dump方法md">单算子dump方法</h3>
+### 单算子dump方法
 
 #### 采集Dump数据<a name="zh-cn_topic_0235790166_section1470293916167"></a>
 
@@ -3295,8 +3274,7 @@ torch_npu.npu.finalize_dump()
 
     转换为.txt格式文件后，维度信息、Dtype均不存在。详细的使用方法请参考numpy官网介绍。
 
-
-<h3 id="常用环境变量说明md">常用环境变量说明</h3>
+### 常用环境变量说明
 
 1.  开启TASK多线程下发，绝大多数情况下，打开该功能会进一步提升整网训练性能。
 
@@ -3306,7 +3284,7 @@ torch_npu.npu.finalize_dump()
 
     **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
 
-3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《CANN [《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别设置日志级别。
+3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《故障管理》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别设置日志级别。
 
     **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
 
@@ -3336,8 +3314,7 @@ torch_npu.npu.finalize_dump()
 
     **export HCCL\_WHITELIST\_DISABLE=1**
 
-
-<h3 id="dump-op方法md">dump op方法</h3>
+### dump op方法
 
 1.  使用profile接口对原始代码训练脚本的loss计算和优化过程进行改造，打印算子信息。代码样例如下：
 
@@ -3352,7 +3329,7 @@ torch_npu.npu.finalize_dump()
 
 2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
 
-<h3 id="编译选项设置md">编译选项设置</h3>
+### 编译选项设置
 
 用于配置算子编译过程中的属性，可用于提升性能，通过ACL接口实现。用法及解释如下：
 
@@ -3394,7 +3371,7 @@ ACL_OP_COMPILER_CACHE_MODE：用于配置算子编译磁盘缓存模式。该编
 ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该编译选项需要与ACL_OP_COMPILER_CACHE_MODE配合使用。
 ```
 
-<h3 id="安装7-3-0版本gccmd">安装7.3.0版本gcc</h3>
+### 安装7.3.0版本gcc
 
 以下步骤请在root用户下执行。
 
@@ -3475,8 +3452,7 @@ ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该�
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
-
-<h3 id="编译安装hdf5md">编译安装hdf5</h3>
+### 编译安装hdf5
 
 以下步骤请在root用户下执行。
 
