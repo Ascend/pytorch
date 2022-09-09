@@ -18,6 +18,7 @@
 #include <c10/util/Exception.h>
 
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -107,15 +108,20 @@ void copy_between_host_and_device(
     const at::Tensor& src,
     aclrtMemcpyKind kind,
     bool non_blocking) {
-  void* dst_ptr = dst.data_ptr();
-  void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-  C10_NPU_CHECK(aclrtMemcpyAsync(dst_ptr, nbytes, src_ptr, nbytes, kind, stream));
+  auto ret = CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+      std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
+      nbytes,
+      std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
+      nbytes,
+      kind,
+      stream);
+  C10_NPU_CHECK(ret);
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
-    void* ptr = at_npu::key::isDeviceTensor(dst) ? src_ptr : dst_ptr;
+    void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);

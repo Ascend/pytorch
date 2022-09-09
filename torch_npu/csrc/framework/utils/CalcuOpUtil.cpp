@@ -30,9 +30,14 @@
 #include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_base.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+
+
+#include"torch_npu/csrc/core/NPUStorageImpl.h"
 
 namespace at_npu
 {
@@ -84,6 +89,29 @@ namespace at_npu
         }
 
         return iter->second;
+      }
+
+      aclError AclrtMemcpyAsyncParamCheck(
+          void *dst,
+          size_t destMax,
+          const void *src,
+          size_t count,
+          aclrtMemcpyKind kind,
+          aclrtStream stream)
+      {
+        if (c10_npu::NpuRunMode::IsGraphMode())
+        {
+          if (dst == nullptr || src == nullptr)
+          {
+            AT_ERROR(
+                "Dst ptr or Src ptr of aclrtMemcpyAsync is nullptr!",
+                "Current run mode is graph mode, "
+                "try to use torch.npu.disable_graph_mode() to fix this error.");
+          }
+        }
+
+        auto ret = aclrtMemcpyAsync(dst, destMax, src, count, kind, stream);
+        return ret;
       }
     } // namespace
 
@@ -198,6 +226,89 @@ namespace at_npu
           dst_ptr, dst_size, const_cast<void *>(src_ptr), src_size, kind));
 
       return "SUCCESS";
+    }
+
+    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+        const StorageAndOffsetMemSizePair& dst,
+        size_t dstMax,
+        const StorageAndOffsetMemSizePair& src,
+        size_t count,
+        aclrtMemcpyKind kind,
+        aclrtStream stream) {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+      }
+
+      void* dst_ptr = static_cast<void*>(
+          static_cast<uint8_t*>(dst.first->data()) + dst.second);
+      void* src_ptr = static_cast<void*>(
+          static_cast<uint8_t*>(src.first->data()) + src.second);
+      return AclrtMemcpyAsyncParamCheck(
+          dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
+    }
+
+    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+        const StorageAndOffsetMemSizePair& dst,
+        size_t dstMax,
+        const void* src,
+        size_t count,
+        aclrtMemcpyKind kind,
+        aclrtStream stream) {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+      }
+
+      void* dst_ptr = static_cast<void*>(
+          static_cast<uint8_t*>(dst.first->data()) + dst.second);
+      return AclrtMemcpyAsyncParamCheck(
+          dst_ptr, dstMax, src, count, kind, stream);
+    }
+
+    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+        void* dst,
+        size_t dstMax,
+        const StorageAndOffsetMemSizePair& src,
+        size_t count,
+        aclrtMemcpyKind kind,
+        aclrtStream stream) {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+      }
+
+      void* src_ptr = static_cast<void*>(
+          static_cast<uint8_t*>(src.first->data()) + src.second);
+      return AclrtMemcpyAsyncParamCheck(
+          dst, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
+    }
+
+    aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+        const at::Tensor& dst,
+        size_t dstMax,
+        const at::Tensor& src,
+        size_t count,
+        aclrtMemcpyKind kind) {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+      }
+
+      aclError ret = c10_npu::queue::LaunchAsyncCopyTask(
+          dst.data_ptr(), dstMax, src.data_ptr(), count, kind);
+      return ret;
+    }
+
+    aclError CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+        const c10::StorageImpl& dst,
+        size_t dstMax,
+        void* src,
+        size_t count,
+        aclrtMemcpyKind kind) {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+      }
+
+      aclError ret = c10_npu::queue::LaunchAsyncCopyTask(
+          dst.data(), dstMax, src, count, kind);
+      return ret;
     }
 
     bool check_npu_format_unchanged_in_format_contiguous(
