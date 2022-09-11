@@ -108,13 +108,10 @@ at::Tensor& NPUNativeFunctions::rrelu_with_noise_out(
     bool training,
     c10::optional<at::Generator> generator,
     at::Tensor& output) {
-
   OpPreparation::CheckOut(
-      {self},
+      {self, noise},
       output,
-      ACL_FORMAT_ND,
-      self.scalar_type(),
-      self.sizes());
+      self);
   
   if (!NpuUtils::check_match(&output)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(output);
