@@ -64,12 +64,14 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
 
   // Designed for the gather of tensors, ignoring npu_format_ and
   // copying continuous memory between npu tensors.
-  C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(
-      self.data_ptr(),
+  auto ret = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+      self,
       dst_size * self.itemsize(),
-      src.data_ptr(),
+      src,
       dst_size * self.itemsize(),
-      ACL_MEMCPY_DEVICE_TO_DEVICE));
+      ACL_MEMCPY_DEVICE_TO_DEVICE);
+  C10_NPU_CHECK(ret);
+
   if (!non_blocking) {
     c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
     C10_NPU_CHECK(aclrtSynchronizeStream(stream));

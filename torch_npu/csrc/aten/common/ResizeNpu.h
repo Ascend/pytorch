@@ -26,6 +26,7 @@
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -40,6 +41,8 @@ static void storage_resize_npu(
   }
 
   at::DataPtr new_data;
+  auto storage_desc = storage.npu_desc_;
+  size_t itemsize = storage_desc.data_type_.itemsize();
   if (size != 0) {
     new_data = storage.allocator()->allocate(size);
   }
@@ -56,11 +59,11 @@ static void storage_resize_npu(
       copy_size = storage.nbytes();
     }
     if (copy_size > 0) {
-      aclError error = c10_npu::queue::LaunchAsyncCopyTask(
-          storage.data(),
-          copy_size,
+      aclError error = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+          storage,
+          itemsize * copy_size,
           old_data.get(),
-          copy_size,
+          itemsize * copy_size,
           ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
