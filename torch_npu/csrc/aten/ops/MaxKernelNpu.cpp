@@ -152,8 +152,19 @@ at::Tensor& XLANativeFunctions::max_out(
 at::Tensor XLANativeFunctions::max(
     const at::Tensor& self, 
     const at::Tensor& other) {
-  auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  return at::maximum(self, other);
+}
+
+at::Tensor& XLANativeFunctions::maximum_out(
+    const at::Tensor& self, 
+    const at::Tensor& other,
+    at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      ACL_FORMAT_ND,
+      self.scalar_type(),
+      self.sizes());
   max_out_npu_nocheck(self, other, result);
   return result;
 }

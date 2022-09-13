@@ -64,6 +64,14 @@ supported:
   - angle.out
   - view_as_real
   - view_as_complex
+  - scatter_.src
+  - scatter.src
+  - scatter.src_out
+  - scatter_.value
+  - scatter.value
+  - scatter.value_out
+  - scatter.dimname_src
+  - scatter.dimname_value
   - sgn
   - sgn_
   - sgn.out
@@ -152,6 +160,8 @@ supported:
   - max
   - max.dim
   - max.dim_max
+  - maximum
+  - maximum.out
   - max.names_dim
   - max.names_dim_max
   - amax
@@ -224,6 +234,12 @@ supported:
   - addmm.out
   - addmm
   - addmm_
+  - arange
+  - arange.start
+  - arange.start_step
+  - arange.out
+  - arange.start_out
+  - _dim_arange
   - set_.source_Storage
   - set_.source_Storage_storage_offset
   - set_.source_Tensor
@@ -368,6 +384,10 @@ supported:
   - where.self
   - where
   - _s_where
+  - masked_fill_.Scalar
+  - masked_fill.Scalar
+  - masked_fill_.Tensor
+  - masked_fill.Tensor
   - mm.out
   - mm
   - kl_div
