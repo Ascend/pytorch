@@ -57,7 +57,7 @@ at::Tensor NPUNativeFunctions::decode_jpeg(
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       self.options().dtype(at::kByte),
-      ACL_FORMAT_ND);
+      ACL_FORMAT_NCHW);
 
   // calculate the output result of the NPU
   decode_jpeg_out(self, channels, result);

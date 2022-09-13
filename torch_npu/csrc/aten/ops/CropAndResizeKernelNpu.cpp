@@ -28,17 +28,14 @@ at::Tensor &crop_and_resize_out(
     std::string method,
     at::Tensor &result)
 {
-  std::vector<int32_t> cropSizeVector = {crop_size[0], crop_size[1]};
-  auto cropSizeTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      at::from_blob(cropSizeVector.data(), {cropSizeVector.size()}, at::kInt));
   OpCommand cmd;
   cmd.Name("CropAndResize")
-      .Input(self, "NHWC", c10::nullopt, "")
+      .Input(self)
       .Input(boxes)
       .Input(box_index)
-      .Input(cropSizeTensor)
+      .Input(crop_size, at::kInt)
       .Output(result)
-      .Attr("extrapolation_value", (float)extrapolation_value)
+      .Attr<float>("extrapolation_value", extrapolation_value)
       .Attr("method", method)
       .Run();
 

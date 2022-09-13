@@ -24,12 +24,12 @@ class TestCropAndResize(TestCase):
     def result_error(self, npu_output, boxes, crop_size):
         if npu_output.dtype != boxes.dtype:
             self.fail("dtype error")
-        if npu_output.shape[0] != boxes.shape[0] or npu_output.shape[1] != crop_size[0] \
-            or npu_output.shape[2] != crop_size[1]:
+        if npu_output.shape[0] != boxes.shape[0] or npu_output.shape[2] != crop_size[0] \
+            or npu_output.shape[3] != crop_size[1]:
             self.fail("shape error")
 
     def test_crop_and_resize(self, device="npu"):
-        input1 = np.random.uniform(0, 255, (1, 224, 224, 3)).astype(np.uint8)
+        input1 = np.random.uniform(0, 255, (1, 3, 224, 224)).astype(np.uint8)
         npu_input1 = torch.from_numpy(input1).npu()
         boxes = torch.tensor([[0.3, 0, 1, 1], [0.2, 0.6, 1.3, 0.9]], dtype=torch.float32).npu()
         box_index = torch.tensor([0, 0], dtype=torch.int32).npu()

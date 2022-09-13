@@ -60,6 +60,7 @@ namespace at_npu
       AclTensorDescMaker &Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc)
       {
         c10::SmallVector<int64_t, 5> dims;
+        // if aclDataType is ACL_STRING, storageDims is empty.
         if (dataType != ACL_STRING) {
           dims = storageDesc.base_sizes_;
         }

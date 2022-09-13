@@ -49,7 +49,7 @@ at::Tensor NPUNativeFunctions::image_normalize(
 
   // construct the output tensor of the NPU
   at::Tensor result;
-  if (dtype == 0) {
+  if (dtype == 0) { // dtype can only be 0 or 1
     result = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         self.options().dtype(at::kFloat),
