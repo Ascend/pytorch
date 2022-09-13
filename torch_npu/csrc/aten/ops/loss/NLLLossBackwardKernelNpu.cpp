@@ -57,23 +57,16 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
 
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
 
-  at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
-  if (scalar_type == at::kLong) {
-    targetCast = target.to(at::kInt);
-  }  else if (scalar_type == at::kInt) {
-    ;
-  }
-  else {
-    AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
-        " for argument 'target'  in call to nll_loss_backward");
-  }
+  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
+      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+      " for argument 'target'  in call to nll_loss_backward");
 
   OpCommand cmd;
   cmd.Name("NLLLossGrad")
       .Input(self)
       .Input(grad_output)
-      .Input(targetCast)
+      .Input(target)
       .Input(weight_tensor)
       .Input(total_weight)
       .Output(grad_input)

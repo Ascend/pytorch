@@ -52,25 +52,17 @@ tuple<at::Tensor&, at::Tensor&> nll_loss_forward_npu_nocheck(
           ACL_MEMCPY_DEVICE_TO_DEVICE);
     }
   }
-
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
 
-  at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
-  if (scalar_type == at::kLong) {
-    targetCast = NPUNativeFunctions::npu_dtype_cast(target, at::kInt);
-  }  else if (scalar_type == at::kInt) {
-    ;
-  }
-  else {
-    AT_ERROR("Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
-        " for argument 'target'  in call to nll_loss_forward");
-  }
+  TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
+      "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
+      " for argument 'target'  in call to nll_loss_forward");
 
   OpCommand cmd;
   cmd.Name("NLLLoss")
       .Input(self)
-      .Input(targetCast)
+      .Input(target)
       .Input(weight_tensor)
       .Output(result)
       .Output(total_weight)
