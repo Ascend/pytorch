@@ -1087,5 +1087,41 @@ namespace at_npu
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> crop_and_resize_npu_output_size(
+        const at::Tensor &self,
+        const at::Tensor &boxes,
+        at::IntArrayRef crop_size)
+    {
+      TORCH_CHECK(self.dim() == 4, "input x size must be 4");
+      TORCH_CHECK(boxes.dim() == 2, "boxes size must be 2");
+      TORCH_CHECK(crop_size.size() == 2, "crop_size size must be 2");
+      int64_t N = boxes.size(0);
+      int64_t H = crop_size[0];
+      int64_t W = crop_size[1];
+      int64_t C = self.size(1);
+
+      c10::SmallVector<int64_t, SIZE> outputSize = {N, C, H, W};
+      return outputSize;
+    }
+
+    c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
+        at::IntArrayRef image_shape,
+        int64_t channels)
+    {
+      TORCH_CHECK(image_shape.size() == 3, "image_shape size must be 3");
+      int64_t H = image_shape[0];
+      int64_t W = image_shape[1];
+      int64_t C = image_shape[2];
+
+      c10::SmallVector<int64_t, SIZE> outputSize;
+      if (channels == 0) {
+        outputSize = {1, C, H, W};
+      } else {
+        outputSize = {1, channels, H, W};
+      }
+      
+      return outputSize;
+    }
+
   } // namespace native
 } // namespace at_npu

@@ -35,7 +35,11 @@ namespace at_npu
       aclDataType aclDataType =
           CalcuOpUtil::convert_to_acl_data_type(scalarDataType, forceDataType);
       const auto &npuDesc = torch_npu::NPUBridge::GetNpuStorageImplDesc(tensor);
-      const auto &storageDims = npuDesc.storage_sizes_;
+      c10::SmallVector<int64_t, 5> storageDims;
+      // if aclDataType is ACL_STRING, storageDims is empty.
+      if (aclDataType != ACL_STRING) {
+         storageDims = npuDesc.storage_sizes_;
+      }
       AclTensorDescMaker desc;
       auto aclDesc = desc.Create(aclDataType, npuDesc)
                          .SetFormat(npuDesc.npu_format_)
