@@ -25,23 +25,33 @@ at::Tensor& reflection_pad2d_backward_out_npu_nocheck(
     const at::Tensor& input,
     at::IntArrayRef padding,
     at::Tensor& gradInput) {
-  TORCH_CHECK(input.scalar_type() != at::ScalarType::Float,
-      "PadV3Grad don't supports torch.float!");      
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * input.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
-  } 
-  OpCommand cmd;
-  cmd.Name("PadV3Grad")
-    .Input(gradOutput)
-    .Input(vectorInt, at::kInt)
-    .Output(gradInput)
-    .Attr("mode", (string)"reflect")
-    .Attr("paddings_contiguous", true)
-    .Run();
+  if (input.scalar_type() == at::ScalarType::Half) {
+    c10::SmallVector<int64_t, N> vectorInt;
+    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
+    paddingsVector.resize(2 * input.dim(), 0);
+    for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
+      vectorInt.emplace_back(paddingsVector[i - 2]);
+      vectorInt.emplace_back(paddingsVector[i - 1]);
+    }
+    OpCommand cmd;
+    cmd.Name("PadV3Grad")
+        .Input(gradOutput)
+        .Input(vectorInt, at::kInt)
+        .Output(gradInput)
+        .Attr("mode", (string)"reflect")
+        .Attr("paddings_contiguous", true)
+        .Run();
+  } else {
+    OpCommand cmd;
+    cmd.Name("PadV3Grad")
+        .Input(gradOutput)
+        .Input(padding)
+        .Output(gradInput)
+        .Attr("mode", (string)"reflect")
+        .Attr("paddings_contiguous", true)
+        .Run();
+  }
+
   return gradInput;
 }
 
