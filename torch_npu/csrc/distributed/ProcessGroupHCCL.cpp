@@ -629,7 +629,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
         return hcclReduce(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             hcclOp[opts.reduceOp],
             rank,
