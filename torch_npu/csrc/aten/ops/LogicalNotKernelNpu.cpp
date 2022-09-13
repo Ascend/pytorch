@@ -42,7 +42,7 @@ at::Tensor& NPUNativeFunctions::logical_not_out(const at::Tensor& self, at::Tens
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_NCHW,
+      CalcuOpUtil::get_tensor_npu_format(self),
       resultDtype,
       self.sizes());
   OpPipeWithDefinedOut pipe;
@@ -54,10 +54,10 @@ at::Tensor& NPUNativeFunctions::logical_not_out(const at::Tensor& self, at::Tens
 }
 
 at::Tensor NPUNativeFunctions::logical_not(const at::Tensor& self) {
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+  at::Tensor result = OpPreparation::ApplyTensor(
       self.sizes(),
       self.options().dtype(at::kBool),
-      ACL_FORMAT_NCHW);
+      self);
   logical_not_out_npu_nocheck(self, result);
   return result;
 }
