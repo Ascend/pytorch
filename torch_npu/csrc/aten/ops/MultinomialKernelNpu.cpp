@@ -14,6 +14,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 
 namespace at_npu {
 namespace native {
@@ -21,55 +22,57 @@ namespace native {
 at::Tensor& multinomial_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
-    int64_t num_samples, 
+    int64_t num_samples,
     bool replacement,
     c10::optional<at::Generator> gen) {
-  
-  OpCommand cmd;
-  cmd.Name("MultinomialWithReplacementD")
-    .Input(self)
-    .Output(result)
-    .Attr("num_samples", num_samples)
-    .Attr("replacement", replacement)
-    .Run();
+  auto gen_ = at::get_generator_or_default<NPUGeneratorImpl>(gen, at_npu::detail::getDefaultNPUGenerator());
+  auto pair = gen_->philox_engine_inputs(10);
+  const int64_t seed = pair.first;
+  const int64_t offset = pair.second;
 
+  OpCommand cmd;
+  cmd.Name("MultinomialWithReplacement")
+      .Input(self)
+      .Input(at::Scalar(seed), at::ScalarType::Long)
+      .Input(at::Scalar(offset), at::ScalarType::Long)
+      .Output(result)
+      .Attr("numsamples", num_samples)
+      .Attr("replacement", replacement)
+      .Run();
   return result;
 }
 
-
 at::Tensor& NPUNativeFunctions::multinomial_out(
     const at::Tensor& self,
-    int64_t num_samples, 
+    int64_t num_samples,
     bool replacement,
     c10::optional<at::Generator> gen,
-    at::Tensor& result){
-
+    at::Tensor& result) {
   auto input_dim = self.dim();
   TORCH_CHECK(input_dim==1 || input_dim==2, "dim of input tensor only can be 1 or 2.");
 
-  auto output_dim = result.dim();
-  TORCH_CHECK(input_dim==output_dim, "dim of output tensor must equal to input tensor.");
-
-  auto num = result.size(output_dim-1);
-  TORCH_CHECK(num == num_samples, "column of output tensor must equal num_samples.");
-
+  auto outputSize = array_to_small_vector(self.sizes());
+  outputSize[input_dim - 1] = num_samples;
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      CalcuOpUtil::get_tensor_npu_format(self),
+      at::ScalarType::Long,
+      outputSize);
   multinomial_out_npu_nocheck(result, self, num_samples, replacement, gen);
-
   return result;
 }
 
 at::Tensor NPUNativeFunctions::multinomial(
-    const at::Tensor& self, 
-    int64_t num_samples, 
-    bool replacement, 
-    c10::optional<at::Generator> gen){
-  
+    const at::Tensor& self,
+    int64_t num_samples,
+    bool replacement,
+    c10::optional<at::Generator> gen) {
   auto dim = self.dim();
   TORCH_CHECK(dim==1 || dim==2, "dim of input tensor only can be 1 or 2.");
 
   auto shape = array_to_small_vector(self.sizes());
   shape[dim-1] = num_samples;
-
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       shape, self.options().dtype(at::kLong), CalcuOpUtil::get_tensor_npu_format(self));
   multinomial_out_npu_nocheck(result, self, num_samples, replacement, gen);
