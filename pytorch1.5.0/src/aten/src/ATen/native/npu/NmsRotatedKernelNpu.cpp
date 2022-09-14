@@ -26,36 +26,39 @@ tuple<Tensor, Tensor> nms_rotated_npu(
     double iouThreshold,
     double scoreThreshold,
     int64_t maxOutputSize,
-    int64_t mode) {  
-  SmallVector<int64_t, SIZE> selectedIndexSize = {dets.size(0)};
-  SmallVector<int64_t, SIZE> selectedNumSize = {1};
-   
-  Tensor selectedIndex = OpPreparation::ApplyTensor(selectedIndexSize, dets.options().dtype(at::kInt), dets);
-  Tensor selectedNum = OpPreparation::ApplyTensor(selectedNumSize, dets.options().dtype(at::kInt), dets);
-  
+    int64_t mode) {
   // the Op only support fp32 currently!
   auto originDtype = dets.scalar_type();
   Tensor detsCast = dets;
   Tensor scoresCast = scores;
+  Tensor labels = at::zeros({}, scores.options().dtype(at::kInt));
   if(originDtype != at::ScalarType::Float){
     detsCast = dets.npu_dtype_cast(at::kFloat);
     scoresCast = scores.npu_dtype_cast(at::kFloat);
   }
- 
+
+  SmallVector<int64_t, SIZE> selectedIndexSize = {dets.size(0)};
+  Tensor selectedBox = OpPreparation::ApplyTensor(dets);
+  Tensor selectedIndex = OpPreparation::ApplyTensor(selectedIndexSize, dets.options().dtype(at::kInt), dets);
+
+  SmallVector<int64_t, N> output_sync_idx = {0, 1};
   OpCommand cmd;
-  cmd.Name("PolyNMS")
+  cmd.Sync(output_sync_idx)
+      .Name("RotatedNMS")
       .Input(detsCast)
       .Input(scoresCast)
+      .Input(labels)
+      .Output(selectedBox)
       .Output(selectedIndex)
-      .Output(selectedNum)
       .Attr("iou_threshold", (float)iouThreshold)
       .Attr("score_threshold", (float)scoreThreshold)
       .Attr("max_output_size", maxOutputSize)
       .Attr("mode", mode)
       .Run();
-  
-  Tensor selectedInd = selectedIndex.slice(0, 0, selectedNum.item().toLong());
-  return std::tie(selectedInd, selectedNum);
+
+  Tensor selectedNum =
+      OpPreparation::ApplyTensor({1}, scores.options().dtype(at::kInt), scores).fill_(selectedIndex.size(0));
+  return std::tie(selectedIndex, selectedNum);
 }
 
 } // namespace native
