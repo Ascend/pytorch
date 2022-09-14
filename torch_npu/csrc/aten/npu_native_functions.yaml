@@ -407,6 +407,45 @@ supported:
   - sign_
   - sign.out
   - sgn.out
+  - __ior__.Tensor
+  - __ior__.Scalar
+  - bitwise_or.Tensor_out
+  - bitwise_or.Scalar_out
+  - bitwise_or.Scalar
+  - bitwise_or.Tensor
+  - bitwise_or_.Scalar
+  - bitwise_or_.Tensor
+  - __or__.Scalar
+  - __or__.Tensor
+  - is_pinned
+  - pin_memory
+  - __irshift__.Scalar
+  - __irshift__.Tensor
+  - __ilshift__.Scalar
+  - __ilshift__.Tensor
+  - __rshift__.Scalar
+  - __rshift__.Tensor
+  - __lshift__.Scalar
+  - __lshift__.Tensor
+  - acos
+  - acos_
+  - acos.out
+  - acosh
+  - acosh_
+  - acosh.out
+  - all.dim
+  - all.out
+  - all
+  - _add_relu.Tensor
+  - _add_relu_.Tensor
+  - _add_relu.out
+  - bitwise_xor.Tensor_out
+  - bitwise_xor.Scalar_out
+  - bitwise_xor.Scalar
+  - bitwise_xor.Tensor
+  - bitwise_xor_.Scalar
+  - bitwise_xor_.Tensor
+
 
   #- full
 
