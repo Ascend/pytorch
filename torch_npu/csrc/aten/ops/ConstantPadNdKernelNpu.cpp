@@ -21,28 +21,43 @@
 namespace at_npu {
 namespace native {
 at::Tensor constant_pad_nd_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::IntArrayRef pad, at::Scalar value) {
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(pad);
-  paddingsVector.resize(2 * self.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
+  if (self.scalar_type() == at::ScalarType::Half ||
+      self.scalar_type() == at::ScalarType::Float ||
+      self.scalar_type() == at::ScalarType::Int) {
+    c10::SmallVector<int64_t, N> vectorInt;
+    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(pad);
+    paddingsVector.resize(2 * self.dim(), 0);
+    for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
+      vectorInt.emplace_back(paddingsVector[i - 2]);
+      vectorInt.emplace_back(paddingsVector[i - 1]);
+    }
+
+    float val = CalcuOpUtil::get_scalar_float_value(value);
+
+    at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
+
+    OpCommand cmd;
+    cmd.Name("PadV3")
+        .Input(self)
+        .Input(vectorInt, at::kInt)
+        .Input(value_tensor)
+        .Output(result)
+        .Attr("mode", (string)"constant")
+        .Attr("paddings_contiguous", true)
+        .Run();
+  } else {
+    float val = CalcuOpUtil::get_scalar_float_value(value);
+    at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
+    OpCommand cmd;
+    cmd.Name("PadV3")
+        .Input(self)
+        .Input(pad)
+        .Input(value_tensor)
+        .Output(result)
+        .Attr("mode", (string)"constant")
+        .Attr("paddings_contiguous", true)
+        .Run();
   }
-
-  float val = CalcuOpUtil::get_scalar_float_value(value);
-
-  at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
-
-  OpCommand cmd;
-  cmd.Name("PadV3")
-    .Input(self)
-    .Input(vectorInt, at::kInt)
-    .Input(value_tensor)
-    .Output(result)
-    .Attr("mode", (string)"constant")
-    .Attr("paddings_contiguous", true)
-    .Run();
-
   return result;
 }
 
@@ -99,7 +114,7 @@ at::Tensor NPUNativeFunctions::constant_pad_nd(const at::Tensor& self, at::IntAr
       end_list.push_back(i);
     }
     c10::SmallVector<int64_t, SIZE> strides(self.dim(), 1);
-    
+
     at::Tensor result = self;
     for (int64_t i = 0; i < self.dim(); i++) {
       if (pad_vec[max_pad_size - 2 * (i + 1)] == 0 && pad_vec[max_pad_size - 1 - 2 * i] == 0) {

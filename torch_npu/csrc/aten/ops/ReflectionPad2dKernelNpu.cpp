@@ -35,42 +35,55 @@ c10::SmallVector<int64_t, SIZE> reflection_pad2d_npu_output_size(const at::Tenso
   return outputSize;
 }
 
-at::Tensor& reflection_pad2d_out_npu_nocheck( 
-    const at::Tensor& self, 
-    at::IntArrayRef padding, 
+at::Tensor& reflection_pad2d_out_npu_nocheck(
+    const at::Tensor& self,
+    at::IntArrayRef padding,
     at::Tensor& out) {
-  TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * self.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
-  }
-  c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
-  OpCommand cmd;
-  if(self.dtype() == at::kHalf) {
-    cmd.Name("PadV3")
-    .Input(self)
-    .Input(vectorInt, at::kInt)
-    .Input(value_tensor, self.scalar_type())
-    .Output(out)
-    .Attr("mode", (string)"reflect")
-    .Attr("paddings_contiguous", true)
-    .Run();
+  if (self.scalar_type() == at::ScalarType::Half ||
+      self.scalar_type() == at::ScalarType::Float ||
+      self.scalar_type() == at::ScalarType::Int) {
+    TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
+    c10::SmallVector<int64_t, N> vectorInt;
+    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
+    paddingsVector.resize(2 * self.dim(), 0);
+    for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
+      vectorInt.emplace_back(paddingsVector[i - 2]);
+      vectorInt.emplace_back(paddingsVector[i - 1]);
+    }
+    c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
+    OpCommand cmd;
+    if(self.dtype() == at::kHalf) {
+      cmd.Name("PadV3")
+          .Input(self)
+          .Input(vectorInt, at::kInt)
+          .Input(value_tensor, self.scalar_type())
+          .Output(out)
+          .Attr("mode", (string)"reflect")
+          .Attr("paddings_contiguous", true)
+          .Run();
+    } else {
+      cmd.Name("MirrorPad")
+          .Input(self)
+          .Input(vectorInt, at::kInt)
+          .Output(out)
+          .Attr("mode", (string)"REFLECT")
+          .Run();
+    }
   } else {
-    cmd.Name("MirrorPad")
-    .Input(self)
-    .Input(vectorInt, at::kInt)
-    .Output(out)
-    .Attr("mode", (string)"REFLECT")
-    .Run();
+    OpCommand cmd;
+    cmd.Name("PadV3")
+        .Input(self)
+        .Input(padding)
+        .Output(out)
+        .Attr("mode", (string)"reflect")
+        .Attr("paddings_contiguous", true)
+        .Run();
   }
   return out;
 }
 
 at::Tensor& NPUNativeFunctions::reflection_pad2d_out(
-    const at::Tensor& self, 
+    const at::Tensor& self,
     at::IntArrayRef padding,
     at::Tensor& result){
   auto outputSize = reflection_pad2d_npu_output_size(self, padding);
