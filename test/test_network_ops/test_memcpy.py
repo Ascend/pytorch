@@ -15,12 +15,16 @@
 
 import torch
 import numpy as np
+import torch_npu
+
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
-import torch.nn as nn
+
 
 class TestMemcpy(TestCase):
+    
+    @graph_mode
     def test_copy_memory_(self):
         def cpu_op_exec(input1, input2):
             out_mul = torch.mul(input1, input2)
@@ -28,13 +32,11 @@ class TestMemcpy(TestCase):
             out_mul.copy_(out_add)
             out = torch.sub(out_mul, input2)
             return out.numpy()
-        def npu_op_exec(input1, input2):
-            torch.npu.enable_graph_mode()
+        def npu_op_exec(input1, input2):    
             out_mul = torch.mul(input1, input2)
             out_add = torch.add(input1, input2)
             out_mul.copy_memory_(out_add)
             out = torch.sub(out_mul, input2)
-            torch.npu.launch_graph()
             return out.to("cpu").numpy()
         
         dtype_list = [np.int32, np.float32]
@@ -52,7 +54,6 @@ class TestMemcpy(TestCase):
             cpu_output = cpu_op_exec(cpu_input, 2)
             npu_output = npu_op_exec(npu_input, 2)
             self.assertRtolEqual(cpu_output, npu_output)
-
 
     @graph_mode
     def test_h2d_inplace(self):
@@ -72,7 +73,6 @@ class TestMemcpy(TestCase):
         npu_output = npu_copy_op_exec(npu_input1, cpu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-
     @graph_mode
     def test_d2h_inplace(self):
         def cpu_copy_op_exec(input1_host, input2_host):
@@ -91,7 +91,6 @@ class TestMemcpy(TestCase):
         cpu_output = cpu_copy_op_exec(cpu_input1, cpu_out1)
         npu_output = npu_copy_op_exec(npu_input1, cpu_out2)
         self.assertRtolEqual(cpu_output, npu_output)
-
 
     @graph_mode
     def test_item(self):
