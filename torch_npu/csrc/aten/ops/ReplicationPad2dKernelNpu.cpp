@@ -19,26 +19,38 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& replication_pad2d_out_npu_nocheck(at::Tensor& out, const at::Tensor& self, at::IntArrayRef padding) {
-  TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
-  c10::SmallVector<int64_t, N> vectorInt;
-  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-  paddingsVector.resize(2 * self.dim(), 0);
-  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-    vectorInt.emplace_back(paddingsVector[i - 2]);
-    vectorInt.emplace_back(paddingsVector[i - 1]);
+  if (self.scalar_type() == at::ScalarType::Half ||
+      self.scalar_type() == at::ScalarType::Float ||
+      self.scalar_type() == at::ScalarType::Int) {
+    TORCH_CHECK(padding.size() == 4, "padding size is expected to be 4");
+    c10::SmallVector<int64_t, N> vectorInt;
+    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
+    paddingsVector.resize(2 * self.dim(), 0);
+    for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
+      vectorInt.emplace_back(paddingsVector[i - 2]);
+      vectorInt.emplace_back(paddingsVector[i - 1]);
+    }
+    // constructs the attr of the NPUAttrDesc
+    c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
+    OpCommand cmd;
+    cmd.Name("PadV3")
+        .Input(self)
+        .Input(vectorInt, at::kInt)
+        .Input(value_tensor, self.scalar_type())
+        .Output(out)
+        .Attr("mode", (string)"edge")
+        .Attr("paddings_contiguous", true)
+        .Run();
+  } else {
+    OpCommand cmd;
+    cmd.Name("PadV3")
+        .Input(self)
+        .Input(padding)
+        .Output(out)
+        .Attr("mode", (string)"edge")
+        .Attr("paddings_contiguous", true)
+        .Run();
   }
-  // constructs the attr of the NPUAttrDesc
-  c10::SmallVector<int64_t, N> value_tensor = {(int64_t)0};
-  OpCommand cmd;
-  cmd.Name("PadV3")
-    .Input(self)
-    .Input(vectorInt, at::kInt)
-    .Input(value_tensor, self.scalar_type())
-    .Output(out)
-    .Attr("mode", (string)"edge")
-    .Attr("paddings_contiguous", true)
-    .Run();
-
   return out;
 }
 

@@ -49,7 +49,7 @@ at::Tensor& replication_pad1d_backward_out_npu_nocheck(at::Tensor& gradInput, co
  }
 
 at::Tensor& NPUNativeFunctions::replication_pad1d_backward_out(const at::Tensor& gradOutput, const at::Tensor& input, at::IntArrayRef padding, at::Tensor& gradInput) {
-  if (input.scalar_type() != at::ScalarType::Float) {
+  if (input.scalar_type() == at::ScalarType::Half) {
     c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
     at::Tensor inputCopy = input;
     int dim_diff = 4 - inputCopy.dim();
@@ -84,7 +84,7 @@ at::Tensor& NPUNativeFunctions::replication_pad1d_backward_out(const at::Tensor&
 
 at::Tensor NPUNativeFunctions::replication_pad1d_backward(const at::Tensor& gradOutput, const at::Tensor& input, at::IntArrayRef padding) {
   at::Tensor gradInput;
-  if (input.scalar_type() != at::ScalarType::Float) {
+  if (input.scalar_type() == at::ScalarType::Half) {
     c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
     at::Tensor inputCopy = input;
     int dim_diff = 4 - inputCopy.dim();
