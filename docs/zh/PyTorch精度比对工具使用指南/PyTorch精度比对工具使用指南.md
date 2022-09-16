@@ -12,7 +12,12 @@
 
 在同一模型或算子调试过程中，遇到算子相关的计算精度问题，定位时费时费力，所以推出了一个精度比对工具。
 
-精度对比工具，通过在PyTorch模型中注入hook，跟踪计算图中算子的前向传播与反向传播时的输入与输出，对比npu芯片中的算子计算数值与cpu(gpu)芯片中的算子计算数值进行对比，排查npu算子在npu芯片中存在计算精度误差，进行问题的精准定位。
+精度对比工具，通过在PyTorch模型中注入hook，跟踪计算图中算子的前向传播与反向传播时的输入与输出，排查存在计算精度误差，进行问题的精准定位。
+
+主要的使用场景包括：
+
+- 同一模型，从gpu(或cpu)移植到npu中存在精度下降问题，对比npu芯片中的算子计算数值与gpu(cpu)芯片中的算子计算数值，进行问题定位。
+- 同一模型，进行迭代(模型、算子或设备迭代)时存在的精度下降问题，对比相同模型在迭代前后版本的算子计算数值，进行问题定位。
 
 ## **前提条件**
 
@@ -61,7 +66,7 @@
    cos(\theta) = \frac{\sum_{i=1}^{n} (\hat{y_{i}} \times y_{i})}
    {\sqrt{\sum_{i=1}^{n}\hat{y_{i}}} \times \sqrt{\sum_{i=1}^{n}y_{i}^{2}}}
   $$
-当余弦夹角数值越接近于1说明计算出的两个张量越相似
+当余弦夹角数值越接近于1说明计算出的两个张量越相似，在计算中可能会存在nan，主要由于可能会出现其中一个向量为0
 
 2. 均方根误差(RMSE)：
 
@@ -135,7 +140,7 @@ compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
 ```
 
 
-使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，以resnet50模型为例代码如下：
+使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu/gpu和npu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
 ```python
 import os
 import copy
@@ -158,12 +163,12 @@ register_acc_cmp_hook(model_cpu)
 register_acc_cmp_hook(model_npu)
 seed_all()
 
-# 需要根据不同的模型输入和标签生成相应的tensor(或读取实际数据)，损失函数等
+# 需要根据不同的模型输入和标签生成相应的tensor(或读取实际数据)，损失函数等，如果是随机生成的标签需要保证数据的有效性
 inputs = torch.randn(1, 3, 244, 244)
 labels = torch.randn(1).long()
 criterion = nn.CrossEntropyLoss()
 
-# cpu
+# cpu，若需要使用gpu或npu进行对比采用model_gpu = model.to("cuda:0")或model_npu = model.to("npu:0")
 set_dump_path("./cpu_resnet50_op.pkl")
 output = model_cpu(inputs)
 loss = criterion(output, labels)
@@ -181,4 +186,3 @@ loss.backward()
 # 对比dump出的数据精度，生成csv文件
 compare("./npu_resnet50_op.pkl", "./cpu_resnet50_op.pkl", "./resnet50_result.csv")
 ```
-
