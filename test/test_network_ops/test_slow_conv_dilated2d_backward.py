@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 def get_weight_grad(self, grad):
     self.weight_grad.append(grad.to("cpu"))
@@ -58,13 +59,15 @@ class TestSlowConvDilated2dBackward(TestCase):
         res_forward = res_forward.detach().numpy()
         return res_forward, input1.grad.to("cpu"), weight.grad.to("cpu")
 
-    def test_slow_conv_dilated2d_backward_shape_format_fp16(self, device="npu"):
-        self._test_slow_conv_dilated2d_backward_shape_format(device, np.float16)
+    @graph_mode
+    def test_slow_conv_dilated2d_backward_shape_format_fp16(self):
+        self._test_slow_conv_dilated2d_backward_shape_format(np.float16)
 
-    def test_slow_conv_dilated2d_backward_shape_format_fp32(self, device="npu"):
-        self._test_slow_conv_dilated2d_backward_shape_format(device, np.float32)
+    @graph_mode
+    def test_slow_conv_dilated2d_backward_shape_format_fp32(self):
+        self._test_slow_conv_dilated2d_backward_shape_format(np.float32)
 
-    def _test_slow_conv_dilated2d_backward_shape_format(self, device, dtype):
+    def _test_slow_conv_dilated2d_backward_shape_format(self, dtype):
         np.random.seed(1234)
         weight_grad = []
         input_grad = []

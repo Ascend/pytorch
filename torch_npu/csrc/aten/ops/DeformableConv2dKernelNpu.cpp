@@ -57,11 +57,11 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_de
   string dataFormat = "NCHW";
   OpCommand cmd;
   cmd.Name("DeformableOffsetsGrad")
-      .Input(deformableOffsetsBackwardInput)
-      .Input(input)
-      .Input(offset)
-      .Output(grad_input)
-      .Output(grad_offset)
+      .Input(deformableOffsetsBackwardInput, "grad", ACL_FORMAT_NCHW)
+      .Input(input, "X", ACL_FORMAT_NCHW)
+      .Input(offset, "offsets", ACL_FORMAT_NCHW)
+      .Output(grad_input, "grad_X", ACL_FORMAT_NCHW)
+      .Output(grad_offset, "grad_offsets", ACL_FORMAT_NCHW)
       .Attr("strides", stride)
       .Attr("pads", padding)
       .Attr("ksize", kernel_size)
@@ -95,9 +95,9 @@ tuple<at::Tensor, at::Tensor> deformable_conv2d_npu(
   string dataFormat = "NCHW";
   OpCommand cmd;
   cmd.Name("DeformableOffsets")
-      .Input(input)
-      .Input(offset)
-      .Output(deformableOffsetsOutput)
+      .Input(input, "X", ACL_FORMAT_NCHW)
+      .Input(offset, "offsets", ACL_FORMAT_NCHW)
+      .Output(deformableOffsetsOutput, "y", ACL_FORMAT_NCHW)
       .Attr("ksize", kernel_size)
       .Attr("strides", stride)
       .Attr("pads", padding)

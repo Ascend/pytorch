@@ -17,6 +17,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestDropOutWithAddSoftMax(TestCase):
@@ -35,6 +36,7 @@ class TestDropOutWithAddSoftMax(TestCase):
         x2_grad = x2.grad
         return softmax_out.cpu().detach().numpy(), output.cpu().detach().numpy(), x2_grad.cpu().detach().numpy()
 
+    @graph_mode
     def test_dropout_shape_format(self):
         cpu_input1 = torch.rand(96, 12, 384, 384).half()
         cpu_input2 = torch.rand(96, 12, 384, 384).half()
