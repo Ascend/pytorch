@@ -20,6 +20,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestUpsampleBicubic2d(TestCase):
@@ -35,6 +36,7 @@ class TestUpsampleBicubic2d(TestCase):
         output = output.numpy()
         return output
 
+    @graph_mode
     def test_upsample_bicubic2d_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (1, 1, 1, 1)], (1, 1), True, 0, 0, 0, 255],
@@ -59,6 +61,7 @@ class TestUpsampleBicubic2d(TestCase):
             npu_output = self.npu_op_exec(npu_input1, item[1], item[2], item[3], item[4])
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_upsample_bicubic2d_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, output_size, align_corners, scale_h, scale_w):
             input1 = input1.to(torch.float32)
@@ -95,3 +98,4 @@ class TestUpsampleBicubic2d(TestCase):
 
 if __name__ == "__main__":
     run_tests()
+

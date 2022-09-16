@@ -60,8 +60,8 @@ at::Tensor& NPUNativeFunctions::avg_pool3d_out(
       outputSize);
   OpCommand cmd;
   cmd.Name("AvgPool3D")
-      .Input(input)
-      .Output(out)
+      .Input(input, "x", ACL_FORMAT_NCDHW)
+      .Output(out, "y", ACL_FORMAT_NCDHW)
       .Attr("ksize", kernel_size)
       .Attr("strides", stride)
       .Attr("pads", pads)
