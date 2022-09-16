@@ -86,7 +86,7 @@ class TestOneHot(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_one_hot_aicpu_bug(self, device):
+    def test_one_hot_aicpu_int64(self, device):
         input1 = torch.randint(0, 4, size=(4, 64, 64, 64)).npu()
         cpu_output = self.cpu_op_exec(input1.cpu(), 4)
         npu_output = self.npu_op_exec(input1, 4)

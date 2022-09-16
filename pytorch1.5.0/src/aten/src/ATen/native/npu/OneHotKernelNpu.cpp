@@ -22,7 +22,7 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
   Scalar on_value = 1;
   Scalar off_value = 0;
   int64_t axis = -1;
-  Scalar depth;
+  int64_t depth;
 
   auto self_temp = self.to(at::kFloat);
 
@@ -54,7 +54,7 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
 
   // calculate output size
   auto outputSize = array_to_small_vector(self.sizes());
-  outputSize.emplace_back(depth.toLong());
+  outputSize.emplace_back(depth);
 
   Tensor result = OpPreparation::ApplyTensor(
       outputSize,
@@ -64,7 +64,7 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
   OpCommand cmd;
   cmd.Name("OneHot")
       .Input(self)
-      .Input(depth, at::kInt)
+      .Input(Scalar(depth), ScalarType::Int, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(on_value, ScalarType::Int)
       .Input(off_value, ScalarType::Int)
       .Output(result)
