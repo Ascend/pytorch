@@ -198,8 +198,8 @@ namespace at_npu
         bool count_include_pad,
         c10::optional<int64_t> divisor_override)
     {
-      int H = self.size(2);
-      int W = self.size(3);
+      int H = self.size(-2);
+      int W = self.size(-1);
 
       int64_t kH = ceil_mode
                        ? (CeilDiv(H + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
@@ -207,6 +207,16 @@ namespace at_npu
       int64_t kW = ceil_mode
                        ? (CeilDiv(W + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
                        : ((W + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+      if (ceil_mode) {
+        if ((kH - 1) * stride[0] >= H + padding[0]) {
+          --kH;
+        }
+      }
+      if (ceil_mode) {
+        if ((kW - 1) * stride[1] >= W + padding[1]) {
+          --kW;
+        }
+      }
       c10::SmallVector<int64_t, SIZE> outputSize = {self.size(0), self.size(1), kH, kW};
       return outputSize;
     }

@@ -45,20 +45,25 @@ at::Tensor& avg_pool2d_out_npu_nocheck(
   c10::SmallVector<int64_t, N> kernelSize = {1, 1, kernel_size[0], kernel_size[1]};
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, strideH, strideW};
   c10::SmallVector<int64_t, N> pads = {padding[0], padding[0], padding[1], padding[1]};
+  bool exclusive = count_include_pad ? false : true;
 
   OpCommand cmd;
   cmd.Name("AvgPoolV2")
-     .Input(self)
-     .Output(result)
-     .Attr("ksize", kernelSize)
-     .Attr("strides", stridesSize)
-     .Attr("padding_mode", (string)"CALCULATED")
-     .Attr("pads", pads)
-     .Attr("data_format", (string)"NCHW")
-     .Attr("global_pooling", false)
-     .Attr("ceil_mode", ceil_mode)
-     .Attr("exclusive", true)
-     .Run();
+      .Input(self)
+      .Output(result)
+      .Attr("ksize", kernelSize)
+      .Attr("strides", stridesSize)
+      .Attr("padding_mode", (string)"CALCULATED")
+      .Attr("pads", pads)
+      .Attr("data_format", (string)"NCHW")
+      .Attr("global_pooling", false)
+      .Attr("ceil_mode", ceil_mode);
+  if (self.scalar_type() == at::ScalarType::Half || self.scalar_type() == at::ScalarType::Char) {
+    cmd.Attr("exclusive", true);
+  } else {
+    cmd.Attr("exclusive", exclusive);
+  }
+  cmd.Run();
   return result;
 }
 
@@ -71,8 +76,12 @@ at::Tensor& NPUNativeFunctions::avg_pool2d_out(
     bool count_include_pad,
     c10::optional<int64_t> divisor_override,
     at::Tensor& result) {
+  at::Tensor selfCp = self;
+  if (self.dim() == 3) {
+    selfCp = selfCp.unsqueeze(0);
+  }
   auto outputSize = avg_pool2d_npu_output_size(
-      self,
+      selfCp,
       kernel_size,
       stride,
       padding,
@@ -83,21 +92,21 @@ at::Tensor& NPUNativeFunctions::avg_pool2d_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      self,
+      selfCp,
       outputSize);
-
-  OpPreparation::CheckMemory({self}, {result});
 
   avg_pool2d_out_npu_nocheck(
       result,
-      self,
+      selfCp,
       kernel_size,
       stride,
       padding,
       ceil_mode,
       count_include_pad,
       divisor_override);
-
+  if (self.dim() == 3) {
+    result = result.squeeze(0);
+  }
   return result;
 }
 
@@ -112,6 +121,10 @@ at::Tensor NPUNativeFunctions::avg_pool2d(
   TORCH_CHECK(
       kernel_size.size() == 1 || kernel_size.size() == 2,
       "avg_pool2d: kernel_size must either be a single int, or a tuple of two ints");
+  at::Tensor selfCp = self;
+  if (self.dim() == 3) {
+    selfCp = selfCp.unsqueeze(0);
+  }
   const int64_t kH = kernel_size[0];
   const int64_t kW = kernel_size.size() == 1 ? kH : kernel_size[1];
 
@@ -145,24 +158,27 @@ at::Tensor NPUNativeFunctions::avg_pool2d(
       "divisor must be not zero");
 
   auto outputSizes = avg_pool2d_npu_output_size(
-      self,
+      selfCp,
       kernel_sizess,
       stridess,
       paddingss,
       ceil_mode,
       count_include_pad,
       divisor_override);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSizes);
+  at::Tensor result = OpPreparation::ApplyTensor(selfCp, outputSizes);
 
   avg_pool2d_out_npu_nocheck(
       result,
-      self,
+      selfCp,
       kernel_sizess,
       stridess,
       paddingss,
       ceil_mode,
       count_include_pad,
       divisor_override);
+  if (self.dim() == 3) {
+      result = result.squeeze(0);
+  }
   return result;
 }
 
