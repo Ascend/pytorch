@@ -20,27 +20,16 @@
 namespace at_npu {
 namespace native {
 
-at::SmallVector<int64_t, SIZE> masked_select_npu_output_size(
-    const at::Tensor& self,
-    const at::Tensor& mask) {
-  int64_t shape;
-  shape = mask.sum().item().toInt();
-  return {shape};
-}
-
 at::Tensor& masked_select_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor maskBool = mask;
-  if (!(mask.dtype() == at::kBool)) {
-    maskBool = NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
-  }
-
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
-  cmd.Name("MaskedSelect")
+  cmd.Sync(output_sync_idx)
+      .Name("MaskedSelect")
       .Input(self)
-      .Input(maskBool)
+      .Input(mask)
       .Output(result)
       .Run();
 
@@ -51,62 +40,30 @@ at::Tensor& NPUNativeFunctions::masked_select_out(
     const at::Tensor& self,
     const at::Tensor& mask,
     at::Tensor& result) {
-  at::Tensor dtypeCastOfSelf = self;
-  at::Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
+  at::Tensor maskCast = mask.clone();
+  if (maskCast.sizes() != self.sizes()) {
+    maskCast = NPUNativeFunctions::npu_broadcast(mask, self.sizes());
   }
-  if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
-
+  auto outputSize = maskCast.numel();
   OpPreparation::CheckOut(
-      {dtypeCastOfSelf},
+      {self, mask},
       result,
-      dtypeCastOfSelf,
+      self,
       outputSize);
 
-  OpPipeWithDefinedOut pipe;
-  result = pipe.CheckMemory({dtypeCastOfSelf, maskCast}, {result})
-      .Func([&dtypeCastOfSelf, &maskCast](at::Tensor& result)
-      {masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);})
-      .Call(result);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
-  if (!NpuUtils::check_match(&result)) {
-    at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    masked_select_out_npu_nocheck(contiguousResult, self, mask);
-    NpuUtils::format_fresh_view(result, contiguousResult);
-  } else {
-    masked_select_out_npu_nocheck(result, self, mask);
-  }
+  masked_select_out_npu_nocheck(result, self, maskCast);
   return result;
 }
 
 at::Tensor NPUNativeFunctions::masked_select(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor dtypeCastOfSelf = self;
   at::Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
+  if (maskCast.sizes() != self.sizes()) {
+    maskCast = NPUNativeFunctions::npu_broadcast(mask, self.sizes());
   }
-  if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = NPUNativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
-
-  at::Tensor result = OpPreparation::ApplyTensor(dtypeCastOfSelf, outputSize);
-
-  masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
+  at::Tensor result = OpPreparation::ApplyTensor(self, maskCast.numel());
+  masked_select_out_npu_nocheck(result, self, maskCast);
   return result;
 }
 
