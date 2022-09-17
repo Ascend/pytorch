@@ -249,6 +249,73 @@ static PyObject * THPVariable_record_stream(PyObject* self, PyObject* args)
   END_HANDLE_TH_ERRORS
 }
 
+static PyObject * THPVariable_new_full(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser(
+      {
+          "new_full(Tensor self, IntArrayRef size, Scalar fill_value, *, ScalarType dtype=None, "
+          "Layout layout=torch.strided, Device device=None, bool "
+          "pin_memory=False, bool requires_grad=False) ",
+      },
+      true);
+  torch::ParsedArgs<8> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  auto self_ = r.tensor(0);
+  if (r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
+  }
+  auto device = at_npu::key::parse_npu_device_with_default(r.args[5], self_.device());
+  maybe_initialize_npu(device);
+  const auto options = at::TensorOptions()
+      .dtype(r.scalartypeWithDefault(3, self_.scalar_type()))
+      .device(device)
+      .layout(r.layoutWithDefault(4, c10::layout_from_backend(self_.options().backend())))
+      .requires_grad(r.toBool(7))
+      .pinned_memory(r.toBool(6));
+  auto dispatch_new_full = [](at::Tensor & self, c10::IntArrayRef size, c10::Scalar fill_val,
+                               at::TensorOptions options) -> at::Tensor {
+    pybind11::gil_scoped_release no_gil;
+    return self.new_full(size, fill_val, options);
+  };
+  return torch::autograd::utils::wrap(dispatch_new_full(self_, r.intlist(1), r.scalar(2), options).set_requires_grad(r.toBool(7)));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+static PyObject * THPVariable_new_zeros(PyObject* self, PyObject* args, PyObject* kwargs)
+{
+  HANDLE_TH_ERRORS
+  static torch::PythonArgParser parser(
+      {
+          "new_zeros(Tensor self, IntArrayRef size, *, ScalarType dtype=None, "
+          "Layout layout=torch.strided, Device device=None, bool "
+          "pin_memory=False, bool requires_grad=False)",
+      },
+      true);
+  torch::ParsedArgs<7> parsed_args;
+  auto r = parser.parse(args, kwargs, parsed_args);
+  auto self_ = r.tensor(0);
+  if (r.has_torch_function()) {
+    return torch::handle_torch_function(r, args, kwargs, THPVariableClass, "torch.Tensor");
+  }
+  auto device = at_npu::key::parse_npu_device_with_default(r.args[4], self_.device());
+  maybe_initialize_npu(device);
+  const auto options = at::TensorOptions()
+      .dtype(r.scalartypeWithDefault(2, self_.scalar_type()))
+      .device(device)
+      .layout(r.layoutWithDefault(3, c10::layout_from_backend(self_.options().backend())))
+      .requires_grad(r.toBool(6))
+      .pinned_memory(r.toBool(5));
+  auto dispatch_new_zeros = [](at::Tensor & self, c10::IntArrayRef size, at::TensorOptions options) -> at::Tensor {
+    pybind11::gil_scoped_release no_gil;
+    return self.new_zeros(size, options);
+  };
+  return torch::autograd::utils::wrap(dispatch_new_zeros(self_, r.intlist(1), options).set_requires_grad(r.toBool(6)));
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 // autograd methods on torch._C
 static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"npu", castPyCFunctionWithKeywords(THPVariable_npu), METH_VARARGS | METH_KEYWORDS, NULL},
@@ -258,6 +325,8 @@ static PyMethodDef TorchTensorMethods[] = { // NOLINT
   {"record_stream", (PyCFunction)(void(*)(void))THPVariable_record_stream, METH_VARARGS, NULL},
   {"new_empty", castPyCFunctionWithKeywords(THPVariable_new_empty), METH_VARARGS | METH_KEYWORDS, NULL},
   {"new_empty_strided", castPyCFunctionWithKeywords(THPVariable_new_empty_strided), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"new_full", castPyCFunctionWithKeywords(THPVariable_new_full), METH_VARARGS | METH_KEYWORDS, NULL},
+  {"new_zeros", castPyCFunctionWithKeywords(THPVariable_new_zeros), METH_VARARGS | METH_KEYWORDS, NULL},
   {nullptr, nullptr, 0, nullptr}
 };
 
