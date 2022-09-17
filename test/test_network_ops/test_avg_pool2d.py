@@ -59,6 +59,28 @@ class TestAvgPool2d(TestCase):
             npu_output = self.npu_op_exec(npu_input, item[1])
             self.assertRtolEqual(cpu_output, npu_output, 0.0009)
 
+    def test_avg_pool2d_3d_fp32(self):
+        cinput = torch.randn(128, 32, 7)
+        ninput = cinput.npu()
+        cmodel = torch.nn.AvgPool2d((4, 5))
+        nmodel = cmodel.npu()
+        cpu_output = cmodel(cinput)
+        npu_output = nmodel(ninput)
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_avg_pool2d_4d_fp32(self):
+        cinput = torch.randn(18, 43, 12, 400)
+        ninput = cinput.npu()
+        kernel = 13
+        padding = 6
+        stride = 10
+        ceil_mode = True
+        cmodel = torch.nn.AvgPool2d(kernel, stride = stride, padding = padding, ceil_mode = ceil_mode)
+        nmodel = cmodel.npu()
+        cpu_output = cmodel(cinput)
+        npu_output = nmodel(ninput)
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
 
 if __name__ == "__main__":
     run_tests()
