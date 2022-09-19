@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
@@ -45,6 +46,7 @@ at::Tensor NPUNativeFunctions::npu_get_float_status(const at::Tensor& self) {
 }
 
 at::Tensor NPUNativeFunctions::npu_clear_float_status(const at::Tensor& self) {
+  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
   at::Tensor result = at::empty({FLOAT_STATUS_OP_DIMS_SIZE}, self.options());
   OpCommand cmd;
   cmd.Name("NPUClearFloatStatus")
@@ -57,3 +59,4 @@ at::Tensor NPUNativeFunctions::npu_clear_float_status(const at::Tensor& self) {
 
 } // namespace native
 } // namespace at_npu
+

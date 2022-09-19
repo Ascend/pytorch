@@ -74,9 +74,9 @@ namespace at_npu
     {
       OpCommand cmd;
       cmd.Name("StrideAdd")
-         .Input(self)
-         .Input(other)
-         .Output(result)
+         .Input(self, "x1", ACL_FORMAT_NCHW)
+         .Input(other, "x2", ACL_FORMAT_NCHW)
+         .Output(result, "y", ACL_FORMAT_NCHW)
          .Attr("x1_c1_offset", (int64_t)offset1.toInt())
          .Attr("x2_c1_offset", (int64_t)offset2.toInt())
          .Attr("c1_len", (int64_t)c1_len.toInt())

@@ -21,6 +21,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestMaxPool2dWithIndices(TestCase):
@@ -38,7 +39,8 @@ class TestMaxPool2dWithIndices(TestCase):
         output2 = argMaxNpu.to("cpu").detach()
         return output1, output2
 
-    def test_max_pool2d_with_indices_fp16(self, device="npu"):
+    @graph_mode
+    def test_max_pool2d_with_indices_fp16(self):
         shape_format = [
             [[np.float16, 0, [256, 64, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float16, 0, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
@@ -64,8 +66,9 @@ class TestMaxPool2dWithIndices(TestCase):
             cpu_arg = cpu_arg.to(npu_arg.dtype)
 
             self.assertRtolEqual(cpu_output.numpy(), npu_output.numpy())
-    
-    def test_max_pool2d_with_indices_fp32(self, device="npu"):
+
+    @graph_mode
+    def test_max_pool2d_with_indices_fp32(self):
         shape_format = [
             [[np.float32, 0, [256, 64, 112, 112]], [3, 3], [2, 2], 1, 1, False],
             [[np.float32, 0, [1024, 24, 112, 112]], [3, 3], [2, 2], 1, 1, False],
