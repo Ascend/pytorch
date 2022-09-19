@@ -22,21 +22,12 @@ namespace at_npu {
 namespace native {
 c10::SmallVector<int64_t, SIZE> upsample_nearest1d_npu_output_size(
     const at::Tensor& input,
-    at::IntArrayRef output_size,
-    c10::optional<double> scales) {
+    at::IntArrayRef output_size) {
   c10::SmallVector<int64_t, SIZE> outputSize;
   int64_t N = input.size(0);
   int64_t C = input.size(1);
-  int64_t W;
-  int64_t Z = input.size(2);
-
-  if (output_size.size() != 0) {
-    W = output_size[0];
-  } else {
-    float temp_scales = (float)scales.value();
-    W = temp_scales * Z;
-  }
-  outputSize = {N, C, W};
+  int64_t W = output_size[0];
+  outputSize = {N, C, 1, W};
   return outputSize;
 }
 
@@ -45,16 +36,30 @@ at::Tensor& upsample_nearest1d_out_nocheck(
     at::IntArrayRef output_size,
     c10::optional<double> scales,
     at::Tensor& result) {
-  OpCommand cmd;
-  cmd.Name("UpsampleNearest1d")
-      .Input(self)
-      .Output(result)
-      .Attr("output_size", output_size);
-      if (scales.has_value()) {
-        cmd.Attr("scales", static_cast<float>(scales.value()));
-      }
-      cmd.Run();
+  TORCH_CHECK(
+      (self.size(1) != 0 && self.size(2) != 0) && self.dim() == 3,
+      "Non-empty 3D data tensor expected but got a tensor with sizes ",
+      self.sizes());
 
+  at::Tensor selfOp = self.unsqueeze(2);
+  OpCommand cmd;
+  cmd.Name("Resize")
+      .Input(selfOp)
+      .Input(output_size, at::kFloat)
+      .Input(output_size, at::kFloat)
+      .Input(result.sizes(), at::kLong)
+      .Output(result)
+      .Attr("mode", (string)"nearest");
+  if (self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf) {
+    cmd.Attr("nearest_mode", (string)"round_prefer_floor")
+        .Attr("coordinate_transformation_mode", (string)"half_pixel")
+        .Run();
+  } else {
+    cmd.Attr("nearest_mode", (string)"floor")
+        .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
+        .Run();
+  }
+  result = result.squeeze(2);
   return result;
 }
 
@@ -63,7 +68,7 @@ at::Tensor& NPUNativeFunctions::upsample_nearest1d_out(
     at::IntArrayRef output_size,
     c10::optional<double> scales,
     at::Tensor& result) {
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size, scales);
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
 
   OpPreparation::CheckOut(
       {self},
@@ -88,10 +93,10 @@ at::Tensor NPUNativeFunctions::upsample_nearest1d(
     c10::optional<at::ArrayRef<double>> scale_factors) {
   auto osize = CalcuOpUtil::compute_output_size(input.sizes(), output_size, scale_factors);
   auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(input, osize, scales_w);
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(input, osize);
   at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
-  upsample_nearest1d_out_nocheck(input, osize, scales_w, result);
 
+  upsample_nearest1d_out_nocheck(input, osize, scales_w, result);
   return result;
 }
 
@@ -99,7 +104,7 @@ at::Tensor NPUNativeFunctions::upsample_nearest1d(
     const at::Tensor& self,
     at::IntArrayRef output_size,
     c10::optional<double> scales) {
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size, scales);
+  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   upsample_nearest1d_out_nocheck(self, output_size, scales, result);
