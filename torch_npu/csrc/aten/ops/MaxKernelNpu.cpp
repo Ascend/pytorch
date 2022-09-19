@@ -142,9 +142,7 @@ at::Tensor& XLANativeFunctions::max_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_ND,
-      self.scalar_type(),
-      self.sizes());
+      self);
   max_out_npu_nocheck(self, other, result);
   return result;
 }
@@ -162,9 +160,7 @@ at::Tensor& XLANativeFunctions::maximum_out(
   OpPreparation::CheckOut(
       {self},
       result,
-      ACL_FORMAT_ND,
-      self.scalar_type(),
-      self.sizes());
+      self);
   max_out_npu_nocheck(self, other, result);
   return result;
 }

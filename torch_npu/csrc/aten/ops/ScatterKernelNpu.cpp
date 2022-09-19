@@ -21,8 +21,9 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& scatter_npu_src_nocheck(
-    at::Tensor& self,
+at::Tensor& scatter_out_npu_nocheck(
+    at::Tensor& result,
+    const at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
     const at::Tensor& src) {
@@ -31,67 +32,42 @@ at::Tensor& scatter_npu_src_nocheck(
      .Input(self)
      .Input(index)
      .Input(src)
-     .Output(self)
+     .Output(result)
      .Attr("axis", dim)
      .Run();
-  return self;
+  return result;
 }
 
-at::Tensor& scatter_npu_src_impl(
-    at::Tensor& self,
-    int64_t dim,
-    const at::Tensor& index_ex,
-    const at::Tensor& src_ex) {
-  at::ScalarType selfType = self.scalar_type();
-  if (selfType == at::ScalarType::Half) {
-    self = XLANativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-
-  at::Tensor index(index_ex);
-  if (index.scalar_type() == at::ScalarType::Half) {
-    index = XLANativeFunctions::npu_dtype_cast(index, at::ScalarType::Float);
-  }
-
-  at::Tensor src(src_ex);
-  if (src.scalar_type() != self.scalar_type()) {
-    src = XLANativeFunctions::npu_dtype_cast(src, self.scalar_type());
-  }
-
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-
-    scatter_npu_src_nocheck(contiguousSelf, dim, index, src);
-    NpuUtils::format_fresh_view(self, contiguousSelf);
-  } else {
-    scatter_npu_src_nocheck(self, dim, index, src);
-  }
-
-  if(self.scalar_type() != selfType){
-    self = XLANativeFunctions::npu_dtype_cast(self, at::ScalarType::Half);
-  }
-  return self;
+at::Tensor& XLANativeFunctions::scatter_out(
+  const at::Tensor& self,
+  int64_t dim,
+  const at::Tensor& index,
+  const at::Tensor& src,
+  at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self, src, index},
+      result, 
+      self);
+  scatter_out_npu_nocheck(result, self, dim, index, src);
+  return result;
 }
 
-at::Tensor& XLANativeFunctions::scatter_(
-    at::Tensor& self,
-    int64_t dim,
-    const at::Tensor& index_ex,
-    const at::Tensor& src_ex) {
-  at::Tensor src(src_ex);
-  scatter_npu_src_impl(self, dim, index_ex, src);
-  return self;
-}
-
-at::Tensor& XLANativeFunctions::scatter_(
-    at::Tensor& self,
-    int64_t dim,
-    const at::Tensor& index_ex,
-    const at::Scalar& src) {
-  at::Tensor srcTensor = scalar_to_tensor(src).to(at::ScalarType::Float);
+at::Tensor& XLANativeFunctions::scatter_out(
+  const at::Tensor& self,
+  int64_t dim,
+  const at::Tensor& index,
+  const at::Scalar& value,
+  at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self, index},
+      result,
+      self);
+  at::Tensor srcTensor = scalar_to_tensor(value).to(at::ScalarType::Float);
   srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
-  at::Tensor srcTensor_broadcast = XLANativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index_ex.sizes()));
-  scatter_npu_src_impl(self, dim, index_ex, srcTensor_broadcast);
-  return self;
+  at::Tensor srcTensor_broadcast = XLANativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
+  scatter_out_npu_nocheck(result, self, dim, index, srcTensor_broadcast);
+  return result;
 }
+
 } // namespace native
 } // namespace at_npu
