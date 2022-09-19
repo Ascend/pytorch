@@ -14,14 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
-from torch_npu.testing.common_utils import create_common_tensor
+
 
 class TestRandperm(TestCase):
+    
     def cpu_op_exec(self, input1, dtype):
         output = torch.randperm(input1, dtype=dtype, device='cpu')
         output = output.sum()
@@ -40,6 +42,23 @@ class TestRandperm(TestCase):
                 npu_output = self.npu_op_exec(n, dtype)
                 cpu_output = cpu_output.astype(npu_output.dtype)
                 self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_randperm_seed(self):
+        input_n = 10
+        torch.manual_seed(123)
+        out1 = torch.randperm(input_n, dtype=torch.float, device='npu')
+        torch.manual_seed(123)
+        out2 = torch.randperm(input_n, dtype=torch.float, device='npu')
+        self.assertRtolEqual(out1.cpu(), out2.cpu())
+
+    def test_randperm_seed_fp16(self):
+        input_n = 100
+        torch.manual_seed(23)
+        out1 = torch.randperm(input_n, dtype=torch.half, device='npu')
+        torch.manual_seed(23)
+        out2 = torch.randperm(input_n, dtype=torch.half, device='npu')
+        self.assertRtolEqual(out1.cpu(), out2.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
