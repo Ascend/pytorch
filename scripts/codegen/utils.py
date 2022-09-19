@@ -17,6 +17,7 @@
 import re
 import functools
 import os
+import stat
 from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional, Dict, Any, Union, Set, NoReturn
 from enum import Enum
 import contextlib
@@ -147,7 +148,8 @@ class FileManager:
         self.filenames = set()
         self.dry_run = dry_run
 
-    def _write_if_changed(self, filename: str, contents: str) -> None:
+    @staticmethod
+    def _write_if_changed(filename: str, contents: str) -> None:
         old_contents: Optional[str]
         try:
             with open(filename, 'r') as f:
@@ -155,9 +157,7 @@ class FileManager:
         except IOError:
             old_contents = None
         if contents != old_contents:
-            # Create output directory if it doesn't exist
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with open(filename, 'w') as f:
+            with os.fdopen(os.open(filename, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
                 f.write(contents)
 
     def write_with_template(self, filename: str, template_fn: str,

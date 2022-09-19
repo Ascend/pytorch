@@ -27,14 +27,9 @@ def _device(*args, **kwargs):
     return new_device
 
 
-# @torch_device_guard
-# def _tensor(*args, **kwargs):
-#     return torch_npu.tensor(*args, **kwargs)
-
+@torch_device_guard
 def _tensor(*args, **kwargs):
-    if kwargs and kwargs.get("device", None) == 'npu':
-        kwargs['device'] = torch_npu.npu.npu_device
-    return torch._C._VariableFunctions.tensor(*args, **kwargs)
+    return torch_npu.tensor(*args, **kwargs)
 
 
 @torch_device_guard
@@ -71,6 +66,7 @@ def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
     # (Ascend) Disable extension of torch.jit.script
     return obj
 
+
 def _as_tensor(*args, **kwargs):
     if kwargs and "device" in kwargs:
         dst_device = kwargs.get("device")
@@ -81,6 +77,8 @@ def _as_tensor(*args, **kwargs):
                 return args[0].to(dst_device)
     return torch._C._VariableFunctions.as_tensor(*args, **kwargs)
 
+
+${device_methods_def_py_dispatch}
 
 def add_torch_funcs():
     torch.device = _device
@@ -93,3 +91,5 @@ def add_torch_funcs():
     torch.npu_dropout_gen_mask = _npu_dropout_gen_mask
     torch.jit.script = jit_script
     torch.as_tensor = _as_tensor
+
+${device_methods_def_py}

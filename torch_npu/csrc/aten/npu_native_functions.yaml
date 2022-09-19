@@ -175,6 +175,30 @@ supported:
   - mul.out
   - mul.Scalar
   - mul_.Scalar
+  - rand.names
+  - rand.generator_with_names
+  - rand
+  - rand.generator
+  - rand.out
+  - rand.generator_out
+  - rand_like
+  - randint
+  - randint.generator
+  - randint.low
+  - randint.low_generator
+  - randint.out
+  - randint.generator_out
+  - randint.low_out
+  - randint.low_generator_out
+  - randint_like
+  - randint_like.low_dtype
+  - randn
+  - randn.generator
+  - randn.names
+  - randn.generator_with_names
+  - randn.out
+  - randn.generator_out
+  - randn_like
   - neg
   - neg_
   - neg.out
