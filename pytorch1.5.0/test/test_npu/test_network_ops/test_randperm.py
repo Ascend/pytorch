@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
-import numpy as np
 from torch.testing._internal.common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
-from util_test import create_common_tensor
+from common_device_type import instantiate_device_type_tests
+
 
 class TestRandperm(TestCase):
     def cpu_op_exec(self, input, dtype):
@@ -38,6 +38,22 @@ class TestRandperm(TestCase):
                 cpu_output = self.cpu_op_exec(n, dtype)
                 npu_output = self.npu_op_exec(n, dtype)
                 self.assertEqual(cpu_output, npu_output)
+
+    def test_randperm_seed(self, device):
+        input_n = 10
+        torch.manual_seed(123)
+        out1 = torch.randperm(input_n, dtype=torch.float, device='npu')
+        torch.manual_seed(123)
+        out2 = torch.randperm(input_n, dtype=torch.float, device='npu')
+        self.assertRtolEqual(out1.cpu(), out2.cpu())
+
+    def test_randperm_seed_fp16(self, device):
+        input_n = 100
+        torch.manual_seed(23)
+        out1 = torch.randperm(input_n, dtype=torch.half, device='npu')
+        torch.manual_seed(23)
+        out2 = torch.randperm(input_n, dtype=torch.half, device='npu')
+        self.assertRtolEqual(out1.cpu(), out2.cpu())
 
 
 instantiate_device_type_tests(TestRandperm, globals(), except_for='cpu')
