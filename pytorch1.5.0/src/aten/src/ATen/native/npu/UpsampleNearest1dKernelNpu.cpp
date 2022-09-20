@@ -22,20 +22,45 @@ using namespace at::native::npu;
 
 SmallVector<int64_t, SIZE> upsample_nearest1d_npu_output_size(
     const Tensor& input,
-    IntArrayRef output_size,
-    c10::optional<double> scales){
+    IntArrayRef output_size) {
   SmallVector<int64_t, SIZE> outputSize;
   int64_t N = input.size(0);
   int64_t C = input.size(1);
-  int64_t W;
-  if(output_size.size() != 0) {
-    W = output_size[0];
-  } else {
-    float temp_scales = (float)scales.value();
-    W = temp_scales * input.size(2);
-  }
-  outputSize = {N, C, W};
+  int64_t W = output_size[0];
+  outputSize = {N, C, 1, W};
   return outputSize;
+}
+
+Tensor& upsample_nearest1d_out_nocheck(
+    const Tensor& self,
+    IntArrayRef output_size,
+    c10::optional<double> scales,
+    Tensor& result) {
+  TORCH_CHECK(
+      (self.size(1) != 0 && self.size(2) != 0) && self.dim() == 3,
+      "Non-empty 3D data tensor expected but got a tensor with sizes ",
+      self.sizes());
+
+  Tensor selfOp = self.unsqueeze(2);
+  OpCommand cmd;
+  cmd.Name("Resize")
+      .Input(selfOp)
+      .Input(output_size, at::kFloat)
+      .Input(output_size, at::kFloat)
+      .Input(result.sizes(), at::kLong)
+      .Output(result)
+      .Attr("mode", (string)"nearest");
+  if (self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf) {
+    cmd.Attr("nearest_mode", (string)"round_prefer_floor")
+        .Attr("coordinate_transformation_mode", (string)"half_pixel")
+        .Run();
+  } else {
+    cmd.Attr("nearest_mode", (string)"floor")
+        .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
+        .Run();
+  }
+  result = result.squeeze(2);
+  return result;
 }
 
 Tensor& upsample_nearest1d_out_npu(
@@ -43,17 +68,20 @@ Tensor& upsample_nearest1d_out_npu(
     const Tensor& self,
     IntArrayRef output_size,
     c10::optional<double> scales) {
+  SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
+  OpPreparation::CheckOut(
+      {self},
+      result,
+      self,
+      outputSize);
 
-  OpCommand cmd;
-  cmd.Name("UpsampleNearest1d")  
-      .Input(self)
-      .Output(result)
-      .Attr("output_size", output_size);
-  if (scales.has_value()) {
-    cmd.Attr("scales", static_cast<float>(scales.value()));
+  if (!NpuUtils::check_match(&result)) {
+    Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    upsample_nearest1d_out_nocheck(self, output_size, scales, contiguousResult);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    upsample_nearest1d_out_nocheck(self, output_size, scales, result);
   }
-  cmd.Run();
-
   return result;
 }
 
@@ -61,25 +89,15 @@ Tensor upsample_nearest1d_npu(
     const Tensor& self,
     IntArrayRef output_size,
     c10::optional<double> scales) {
-  Tensor selfCast = self;
-  if(self.scalar_type() == at::kHalf){
-    selfCast = self.npu_dtype_cast(at::kFloat);
-  }
   // calculate the output size
-  SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size, scales);
+  SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(selfCast, outputSize);
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
-  upsample_nearest1d_out_npu(result, selfCast, output_size, scales);
-  
-  if(self.scalar_type() == at::kHalf){
-    result = result.npu_dtype_cast(at::kFloat);
-  }
-
+  upsample_nearest1d_out_npu(result, self, output_size, scales);
   return result;
 }
-
 } // namespace native
 } // namespace at

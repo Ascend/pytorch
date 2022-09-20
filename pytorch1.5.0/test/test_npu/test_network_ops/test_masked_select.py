@@ -47,6 +47,7 @@ class TestMaskedSelect(TestCase):
             [[np.float32, 2, [15, 15, 15, 16]], [np.float32, 2, [15, 15, 15, 16]]],
             [[np.float32, 2, [15, 15, 15, 16]], [np.float32, 2, [3, 3, 7, 7]]],
             [[np.float32, 0, [15, 15, 15, 16]], [np.float32, 0, [15, 15, 15, 16]]],
+            [[np.float32, 0, [15, 15, 15, 16]], [np.float32, 0, [23, 23, 1, 1]]],
             [[np.float32, 0, [15, 15, 15, 16]], [np.float32, 0, [232, 232, 1, 1]]],
         ]
         for item in shape_format:
@@ -75,7 +76,7 @@ class TestMaskedSelect(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_maskedselect_shape_format_fp32(self, device):
-        format_list = [0, 3]
+        format_list = [0]
         shape_list = [[3, 4, 5]]
         shape_format = [
             [np.float32, i, j] for i in format_list for j in shape_list

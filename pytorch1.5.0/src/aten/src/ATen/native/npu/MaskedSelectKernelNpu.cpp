@@ -20,28 +20,16 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
-SmallVector<int64_t, SIZE> masked_select_npu_output_size(
-    const Tensor& self,
-    const Tensor& mask) {
-  int64_t shape;
-  shape = mask.sum().item().toInt();
-  return {shape};
-}
-
 Tensor& masked_select_out_npu_nocheck(
     Tensor& result,
     const Tensor& self,
     const Tensor& mask) {
-  Tensor maskBool = mask;
-  if (!(mask.dtype() == at::kBool)) {
-    maskBool = mask.to(at::kBool);
-  }
-
-  // executing the NPU operator
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
-  cmd.Name("MaskedSelect")
+  cmd.Sync(output_sync_idx)
+      .Name("MaskedSelect")
       .Input(self)
-      .Input(maskBool)
+      .Input(mask)
       .Output(result)
       .Run();
 
@@ -52,55 +40,32 @@ Tensor& masked_select_out_npu(
     Tensor& result,
     const Tensor& self,
     const Tensor& mask) {
-  Tensor dtypeCastOfSelf = self;
-  Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = broadcast_npu(mask, dtypeCastOfSelf.sizes());
+  Tensor maskCast = mask.clone();
+  if (maskCast.sizes() != self.sizes()) {
+    maskCast = broadcast_npu(mask, self.sizes());
   }
-  if (dtypeCastOfSelf.scalar_type() == ScalarType::Half) {
-    dtypeCastOfSelf = dtypeCastOfSelf.npu_dtype_cast(ScalarType::Float);
-    result = result.to(ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
+  auto outputSize = maskCast.numel();
 
   OpPreparation::CheckOut(
-      {dtypeCastOfSelf},
+      {self, maskCast},
       result,
-      dtypeCastOfSelf,
+      self,
       outputSize);
 
-  OpPipeWithDefinedOut pipe;
-  result = pipe.CheckMemory({dtypeCastOfSelf, maskCast}, {result})
-      .Func([&dtypeCastOfSelf, &maskCast](Tensor& result)
-      {masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);})
-      .Call(result);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = result.npu_dtype_cast(ScalarType::Half);
-  }
+  masked_select_out_npu_nocheck(result, self, maskCast);
   return result;
 }
 
 Tensor masked_select_npu(
     const Tensor& self,
     const Tensor& mask) {
-  Tensor dtypeCastOfSelf = self;
   Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = broadcast_npu(mask, dtypeCastOfSelf.sizes());
+  if (maskCast.sizes() != self.sizes()) {
+    maskCast = broadcast_npu(mask, self.sizes());
   }
-  if (dtypeCastOfSelf.scalar_type() == ScalarType::Half) {
-    dtypeCastOfSelf = dtypeCastOfSelf.npu_dtype_cast(ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
+  Tensor result = OpPreparation::ApplyTensor(self, maskCast.numel());
+  masked_select_out_npu_nocheck(result, self, maskCast);
 
-  Tensor result = OpPreparation::ApplyTensor(dtypeCastOfSelf, outputSize);
-
-  masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = result.npu_dtype_cast(ScalarType::Half);
-  }
   return result;
 }
 

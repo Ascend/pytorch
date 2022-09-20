@@ -20,24 +20,42 @@ namespace at {
 namespace native {
 using namespace at::native::npu;
 
+SmallVector<int64_t, SIZE> upsample_nearest1d_backward_output_size(IntArrayRef input_size) {
+  SmallVector<int64_t, SIZE> outputSize;
+  int64_t N = input_size[0];
+  int64_t C = input_size[1];
+  int64_t W = input_size[2];
+  outputSize = {N, C, 1, W};
+  return outputSize;
+}
+
 Tensor& upsample_nearest1d_backward_out_npu(
-    Tensor& y,
-    const Tensor& grads,
+    Tensor& grad_input,
+    const Tensor& grad_output,
     IntArrayRef output_size,
     IntArrayRef input_size,
     c10::optional<double> scales) {
-  OpCommand cmd;
-  cmd.Name("UpsampleNearest1dGrad")
-      .Input(grads)
-      .Output(y)
-      .Attr("output_size", output_size)
-      .Attr("input_size", input_size);
-      if (scales.has_value()) {
-        cmd.Attr("scales", static_cast<float>(scales.value()));
-      }
-      cmd.Run();
+  Tensor gradOp = grad_output.unsqueeze(2);
+  SmallVector<int64_t, SIZE> origin_size = upsample_nearest1d_backward_output_size(input_size);
+  Scalar scalesOp = scales.has_value() ? scales.value() : input_size[0] / output_size[0];
 
-   return y;
+  OpCommand cmd;
+  cmd.Name("ResizeGrad")
+      .Input(gradOp)
+      .Input(scalesOp, at::kFloat)
+      .Input(scalesOp, at::kFloat)
+      .Input(origin_size, at::kLong)
+      .Output(grad_input)
+      // Default value of Resize
+      .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
+      .Attr("cubic_coeff_a", (float)-0.75)
+      .Attr("exclude_outside", (int64_t)0)
+      .Attr("extrapolation_value", (float)0.0)
+      .Attr("mode", (string)"nearest")
+      .Attr("nearest_mode", (string)"floor")
+      .Run();
+  grad_input = grad_input.squeeze(2);
+  return grad_input;
 }
 
 Tensor upsample_nearest1d_backward_npu(
@@ -45,21 +63,12 @@ Tensor upsample_nearest1d_backward_npu(
     IntArrayRef output_size,
     IntArrayRef input_size,
     c10::optional<double> scales) {
-  Tensor grads = grad_output;
-  if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.npu_dtype_cast(at::kFloat);
-  }
-
-  Tensor grad_input = OpPreparation::ApplyTensor(input_size, grads.options(), grad_output);
+  SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_backward_output_size(input_size);
+  Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
 
   upsample_nearest1d_backward_out_npu(
-      grad_input, grads, output_size, input_size, scales);
-      
-  if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grad_input = grad_input.npu_dtype_cast(grad_output.scalar_type());
-  }
+      grad_input, grad_output, output_size, input_size, scales);
   return grad_input;
 }
-
 } // namespace native
 } // namespace at
