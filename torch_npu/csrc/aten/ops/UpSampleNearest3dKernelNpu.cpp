@@ -55,12 +55,9 @@ at::Tensor& upsample_nearest3d_out_npu_nocheck(
     c10::optional<double> scales_d,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  at::Tensor inputCopy = (input.scalar_type() == at::ScalarType::Half) ?
-    NPUNativeFunctions::npu_dtype_cast(input, at::ScalarType::Float) : input;
-
   OpCommand cmd;
   cmd.Name("UpsampleNearest3d")
-    .Input(inputCopy)
+    .Input(input)
     .Output(result)
     .Attr("output_size", output_size)
     .Run();
@@ -77,22 +74,13 @@ at::Tensor& NPUNativeFunctions::upsample_nearest3d_out(
     at::Tensor& result) {
   auto outputsize = upsample_nearest3d_outputsize_npu(
       input, output_size, scales_d, scales_h, scales_w);
-
-  at::Tensor tmp = (input.scalar_type() == at::ScalarType::Half) ?
-    OpPreparation::ApplyTensorWithSizes(outputsize, input.options().dtype(at::kFloat)) :
-    OpPreparation::ApplyTensor(input, outputsize);
-
-  upsample_nearest3d_out_npu_nocheck(
-      tmp, input, output_size, scales_d, scales_h, scales_w);
-
-  if (input.scalar_type() == at::ScalarType::Half) {
-      tmp = NPUNativeFunctions::npu_dtype_cast(tmp, input.scalar_type());
-  }
-
   OpPreparation::CheckOut(
-      {tmp}, result, tmp);
-  
-  result.copy_(tmp);
+      {input},
+      result,
+      input,
+      outputsize);
+  upsample_nearest3d_out_npu_nocheck(
+      result, input, output_size, scales_d, scales_h, scales_w);
   return result;
 }
 
@@ -104,17 +92,9 @@ at::Tensor NPUNativeFunctions::upsample_nearest3d(
     c10::optional<double> scales_w) {
   auto outputsize = upsample_nearest3d_outputsize_npu(
       input, output_size, scales_d, scales_h, scales_w);
-  
-  at::Tensor result = (input.scalar_type() == at::ScalarType::Half) ?
-    OpPreparation::ApplyTensorWithSizes(outputsize, input.options().dtype(at::kFloat)) :
-    OpPreparation::ApplyTensor(input, outputsize); 
-
+  at::Tensor result = OpPreparation::ApplyTensor(input, outputsize); 
   upsample_nearest3d_out_npu_nocheck(
       result, input, output_size, scales_d, scales_h, scales_w);
-  
-  if (input.scalar_type() == at::ScalarType::Half) {
-      result = NPUNativeFunctions::npu_dtype_cast(result, input.scalar_type());
-  }
   return result;
 }
 
