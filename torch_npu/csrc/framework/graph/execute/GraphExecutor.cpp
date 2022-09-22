@@ -42,7 +42,7 @@ void GraphExecutor::RunGraph(
     uint32_t graph_id,
     const std::vector<ge::Tensor>& inputs,
     std::vector<ge::Tensor>& outputs) {
-  RECORD_HOST_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("RunGraph", std::vector<c10::IValue>({}));
   aclrtStream cal_stream =
       const_cast<aclrtStream>(c10_npu::getCurrentNPUStream().stream());
 
@@ -61,7 +61,7 @@ void GraphExecutor::RunGraph(
 }
 
 void GraphExecutor::ConstructAndExecuteGraph() {
-  RECORD_HOST_FUNCTION("ConstructAndExecuteGraph", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("ConstructAndExecuteGraph", std::vector<c10::IValue>({}));
   auto ret = CheckDeviceIdAndInit();
   if (!ret) {
     return;
@@ -119,7 +119,7 @@ uint32_t GraphExecutor::GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo
       cur_graph_id);
 
   if (!cached_graph_id.has_value()) {
-    RECORD_HOST_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
+    RECORD_FUNCTION("ConstructGraph", std::vector<c10::IValue>({}));
     std::vector<ge::Operator> const_input_ops;
     ConstructOpsAndAddEdge(outputs, const_input_ops);
     ge::Graph graph("PytorchGraph");
@@ -195,7 +195,7 @@ void GraphExecutor::Finalize() {
 void GraphExecutor::ConstructOpsAndAddEdge(
     const CombinedInfo& output,
     std::vector<ge::Operator>& const_input_ops) {
-  RECORD_HOST_FUNCTION("ConstructOpsAndAddEdge", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("ConstructOpsAndAddEdge", std::vector<c10::IValue>({}));
   std::set<NodePtr> searched_nodes;
   for (const auto& output_node : output.nodes) {
     if (searched_nodes.find(output_node) != searched_nodes.end()) {
@@ -298,7 +298,7 @@ GeOutPutOpType GraphExecutor::GetOutputOps() {
 }
 
 CombinedInfo GraphExecutor::GetInputCombinedInfo() {
-  RECORD_HOST_FUNCTION("GetInputCombinedInfo", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("GetInputCombinedInfo", std::vector<c10::IValue>({}));
   CombinedInfo input_infos;
   auto input_storages = NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
@@ -328,7 +328,7 @@ CombinedInfo GraphExecutor::GetInputCombinedInfo() {
 }
 
 CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
-  RECORD_HOST_FUNCTION("GetOutputCombinedInfo", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("GetOutputCombinedInfo", std::vector<c10::IValue>({}));
   CombinedInfo output_infos;
   auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
@@ -402,7 +402,7 @@ ge::Tensor GraphExecutor::PrepareOutputTenosr(
 }
 
 void GraphExecutor::ResetGraphOutputs() {
-  RECORD_HOST_FUNCTION("ResetGraphOutputs", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("ResetGraphOutputs", std::vector<c10::IValue>({}));
   auto output_storages = NpuGraphContextManager::GetInstance()
                              .GetAllStorageOfLiveTensors(init_device_id_);
   std::for_each(
@@ -415,7 +415,7 @@ void GraphExecutor::ResetGraphOutputs() {
 }
 
 void GraphExecutor::RefreshGraphInputs() {
-  RECORD_HOST_FUNCTION("RefreshGraphInputs", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("RefreshGraphInputs", std::vector<c10::IValue>({}));
   auto input_storages = NpuGraphContextManager::GetInstance()
                             .GetAllInputStorages(init_device_id_);
   std::for_each(
@@ -425,13 +425,13 @@ void GraphExecutor::RefreshGraphInputs() {
 }
 
 void GraphExecutor::ClearDataStore() {
-  RECORD_HOST_FUNCTION("ClearDataStore", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("ClearDataStore", std::vector<c10::IValue>({}));
   NpuGraphContextManager::GetInstance().EraseInputStorage(
       init_device_id_);
 }
 
 bool GraphExecutor::CheckDeviceIdAndInit() {
-  RECORD_HOST_FUNCTION("CheckDeviceIdAndInit", std::vector<c10::IValue>({}));
+  RECORD_FUNCTION("CheckDeviceIdAndInit", std::vector<c10::IValue>({}));
   auto devices_has_input =
       NpuGraphContextManager::GetInstance()
           .GetDevicesHasLiveTensor();
