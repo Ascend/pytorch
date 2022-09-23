@@ -50,24 +50,15 @@ at::Tensor& NPUNativeFunctions::masked_scatter_(
   c10::SmallVector<at::Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);
 
-  at::Tensor selfFp32 = self;
-  at::Tensor sourceFp32 = source;
-  at::ScalarType selfType = self.scalar_type();
-  if (selfType == at::ScalarType::Half) {
-    selfFp32 = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-    sourceFp32 = NPUNativeFunctions::npu_dtype_cast(source, at::ScalarType::Float);
-  }
-
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result = masked_scatter_out_npu_nocheck(contiguousSelf, contiguousSelf, mask, sourceFp32);
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    at::Tensor result = masked_scatter_out_npu_nocheck(contiguousSelf, contiguousSelf, mask, source);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    masked_scatter_out_npu_nocheck(selfFp32, selfFp32, mask, sourceFp32);
-    self.copy_(selfFp32);
+    masked_scatter_out_npu_nocheck(self, self, mask, source);
   }
 
-  return (self.scalar_type() != selfType) ? self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Half) : self;
+  return self;
 }
 } // namespace native
 } // namespace at_npu
