@@ -56,17 +56,13 @@ at::Tensor& upsample_trilinear3d_npu_nocheck(
     c10::optional<double> scales_d,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  at::Tensor input_copy = (input.scalar_type() == at::ScalarType::Half) ?
-    NPUNativeFunctions::npu_dtype_cast(input, at::kFloat) : input;
-    
   OpCommand cmd;
   cmd.Name("UpsampleTrilinear3d")
-    .Input(input_copy)
+    .Input(input)
     .Output(result)
     .Attr("output_size", output_size)
     .Attr("align_corners", align_corners)
     .Run();
-  
   return result;
 }
 
@@ -80,30 +76,16 @@ at::Tensor& NPUNativeFunctions::upsample_trilinear3d_out(
     at::Tensor& result) {
   auto outputsize = upsample_trilinear3d_outputsize_npu(
       input, output_size, scales_d, scales_h, scales_w);
-
   OpPreparation::CheckOut({input}, result, input, outputsize);
-  
-  if (input.scalar_type() == at::kHalf) {
-    auto out_copy = OpPreparation::ApplyTensorWithSizes(
-        outputsize, input.options().dtype(at::kFloat));
-    
-    upsample_trilinear3d_npu_nocheck(
-        out_copy, input, output_size, align_corners, scales_d, scales_h, scales_w);
-
-    out_copy = NPUNativeFunctions::npu_dtype_cast(out_copy, input.scalar_type());
-    NpuUtils::format_fresh_view(result, out_copy);
-  } else if (!NpuUtils::check_match(&result)) {
+  if (!NpuUtils::check_match(&result)) {
     auto contiguous_out = NpuUtils::format_contiguous(result);
-
     upsample_trilinear3d_npu_nocheck(
         contiguous_out, input, output_size, align_corners, scales_d, scales_h, scales_w);
-
     NpuUtils::format_fresh_view(result, contiguous_out);
   } else {
     upsample_trilinear3d_npu_nocheck(
         result, input, output_size, align_corners, scales_d, scales_h, scales_w);
   }
-
   return result;
 }
 
@@ -116,18 +98,9 @@ at::Tensor NPUNativeFunctions::upsample_trilinear3d(
     c10::optional<double> scales_w) {
   auto outputsize = upsample_trilinear3d_outputsize_npu(
       input, output_size, scales_d, scales_h, scales_w);
-
-  at::Tensor result = (input.scalar_type() == at::kHalf) ?
-    OpPreparation::ApplyTensorWithSizes(outputsize, input.options().dtype(at::kFloat)) :
-    OpPreparation::ApplyTensor(input, outputsize);
-
+  at::Tensor result = OpPreparation::ApplyTensor(input, outputsize);
   upsample_trilinear3d_npu_nocheck(
       result, input, output_size, align_corners, scales_d, scales_h, scales_w);
-  
-  if (input.scalar_type() == at::kHalf) {
-      result = NPUNativeFunctions::npu_dtype_cast(result, input.scalar_type());
-  }
-
   return result;
 }
 
