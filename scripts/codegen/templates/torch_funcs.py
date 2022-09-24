@@ -68,14 +68,11 @@ def jit_script(obj, optimize=None, _frames_up=0, _rcb=None):
 
 
 def _as_tensor(*args, **kwargs):
+    dst_device = "cpu"
     if kwargs and "device" in kwargs:
-        dst_device = kwargs.get("device")
-        if "npu" in str(dst_device):
-            if isinstance(args[0], numpy.ndarray):
-                return torch.from_numpy(args[0]).to(dst_device)
-            else:
-                return args[0].to(dst_device)
-    return torch._C._VariableFunctions.as_tensor(*args, **kwargs)
+        dst_device = kwargs.pop("device")
+
+    return torch._C._VariableFunctions.as_tensor(*args, **kwargs).to(dst_device)
 
 
 ${device_methods_def_py_dispatch}
