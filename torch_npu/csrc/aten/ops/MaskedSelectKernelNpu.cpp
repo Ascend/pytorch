@@ -24,12 +24,13 @@ at::Tensor& masked_select_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& mask) {
+  at::Tensor maskBool = mask.dtype() == at::kBool ? mask : NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
   c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
   cmd.Sync(output_sync_idx)
       .Name("MaskedSelect")
       .Input(self)
-      .Input(mask)
+      .Input(maskBool)
       .Output(result)
       .Run();
 
