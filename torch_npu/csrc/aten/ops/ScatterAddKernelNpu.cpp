@@ -26,12 +26,12 @@ at::Tensor& scatter_add_out_npu_nocheck(
     const at::Tensor& src) {
   OpCommand cmd;
   cmd.Name("ScatterAddWithAxis")
-     .Input(self)
-     .Input(index)
-     .Input(src)
-     .Output(result)
-     .Attr("axis", dim)
-     .Run();
+      .Input(self)
+      .Input(index)
+      .Input(src)
+      .Output(result)
+      .Attr("axis", dim)
+      .Run();
   return result;
 }
 
@@ -50,26 +50,12 @@ at::Tensor& NPUNativeFunctions::scatter_add_(
     const at::Tensor& src) {
   OpPreparation::CheckMemory({self, index, src}, {self});
 
-  at::ScalarType selfType = self.scalar_type();
-  at::Tensor selfFp32 = self;
-  at::Tensor srcFp32 = src;
-  if (selfType == at::ScalarType::Half) {
-    selfFp32 = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-    srcFp32 = NPUNativeFunctions::npu_dtype_cast(src, at::ScalarType::Float);
-  }
-
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result =
-        scatter_add_out_npu_nocheck(contiguousSelf, contiguousSelf, dim, index, srcFp32);
-    self.copy_(result);
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    scatter_add_out_npu_nocheck(contiguousSelf, self, dim, index, src);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
   } else {
-    scatter_add_out_npu_nocheck(selfFp32, selfFp32, dim, index, srcFp32);
-    self.copy_(selfFp32);
-  }
-
-  if(self.scalar_type() != selfType) {
-    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Half);
+    scatter_add_out_npu_nocheck(self, self, dim, index, src);
   }
 
   return self;
