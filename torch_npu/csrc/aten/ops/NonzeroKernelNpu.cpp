@@ -13,10 +13,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -32,7 +31,7 @@ at::Tensor& nonzero_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) 
   return result;
 }
 
-at::Tensor& XLANativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& result) {
   auto outputSize = nonzero_npu_output_size(self);
   OpPreparation::CheckOut(
       {self},
@@ -47,7 +46,7 @@ at::Tensor& XLANativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& 
    .Call(result);
 }
 
-at::Tensor XLANativeFunctions::nonzero(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::nonzero(const at::Tensor& self) {
   // calculate the output size
   auto outputSize = nonzero_npu_output_size(self);
 

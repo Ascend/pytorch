@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -49,7 +49,7 @@ at::Tensor& arange_out_npu_nocheck(
   return result;
 }
 
-at::Tensor XLANativeFunctions::arange(
+at::Tensor NPUNativeFunctions::arange(
     const at::Scalar& start,
     const at::Scalar& end,
     const at::Scalar& step,
@@ -107,7 +107,7 @@ at::Tensor XLANativeFunctions::arange(
   return result;
 }
 
-at::Tensor XLANativeFunctions::arange(
+at::Tensor NPUNativeFunctions::arange(
     const at::Scalar& start, 
     const at::Scalar& end, 
     c10::optional<at::ScalarType> dtype_opt,
@@ -115,21 +115,21 @@ at::Tensor XLANativeFunctions::arange(
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
-  return XLANativeFunctions::arange(start, end, 1, dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  return NPUNativeFunctions::arange(start, end, 1, dtype_opt, layout_opt, device_opt, pin_memory_opt);
 }
 
 
-at::Tensor XLANativeFunctions::arange(
+at::Tensor NPUNativeFunctions::arange(
     const at::Scalar& end, 
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
 
-  return XLANativeFunctions::arange(0, end, dtype_opt, layout_opt, device_opt, pin_memory_opt);  // start = 0
+  return NPUNativeFunctions::arange(0, end, dtype_opt, layout_opt, device_opt, pin_memory_opt);  // start = 0
 }
 
-at::Tensor& XLANativeFunctions::arange_out(
+at::Tensor& NPUNativeFunctions::arange_out(
     const at::Scalar& start,
     const at::Scalar& end,
     const at::Scalar& step,
@@ -157,20 +157,20 @@ at::Tensor& XLANativeFunctions::arange_out(
 
 at::Tensor& arange_other_out_npu(at::Scalar start, at::Scalar end, at::Tensor& result) {
   at::Scalar step = 1;
-  return XLANativeFunctions::arange_out(start, end, step, result);
+  return NPUNativeFunctions::arange_out(start, end, step, result);
 }
 
-at::Tensor& XLANativeFunctions::arange_out(const at::Scalar& end, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::arange_out(const at::Scalar& end, at::Tensor& result) {
   return arange_other_out_npu(0, end, result);
 }
 
-at::Tensor XLANativeFunctions::_dim_arange(const at::Tensor& self, int64_t dim) {
+at::Tensor NPUNativeFunctions::_dim_arange(const at::Tensor& self, int64_t dim) {
   c10::optional<at::ScalarType> dtype_opt(at::kInt);
   c10::optional<at::Layout> layout_opt(self.options().layout());
   c10::optional<at::Device> device_opt(self.options().device());
   c10::optional<bool> pin_memory_opt(self.options().pinned_memory());
 
-  at::Tensor result = XLANativeFunctions::arange(self.size(dim), dtype_opt, layout_opt, device_opt, pin_memory_opt);
+  at::Tensor result = NPUNativeFunctions::arange(self.size(dim), dtype_opt, layout_opt, device_opt, pin_memory_opt);
   return result;
 }
 

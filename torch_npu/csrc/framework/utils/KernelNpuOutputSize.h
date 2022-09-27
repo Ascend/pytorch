@@ -360,6 +360,15 @@ c10::SmallVector<int64_t, SIZE> var_npu_output_size(
     c10::IntArrayRef dim,
     bool keepdim);
 
+c10::SmallVector<int64_t, SIZE> crop_and_resize_npu_output_size(
+    const at::Tensor &self,
+    const at::Tensor &boxes,
+    at::IntArrayRef crop_size);
+
+c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
+    at::IntArrayRef image_shape,
+    int64_t channels);
+
 } // namespace native
 } // namespace at_npu
 

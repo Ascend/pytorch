@@ -127,9 +127,7 @@ def cast_weight(self, device):
             module.v_proj_weight.data = module.v_proj_weight.data.to(device)
             module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
-    # supported devices list: "npu"(from module.npu), "xla"(from module.to)
-    support_cast_devices = [torch_npu.npu.native_device, torch_npu.npu.npu_device]
-    if device is None or not any(support_cast_device in str(device) for support_cast_device in support_cast_devices):
+    if device is None or torch_npu.npu.native_device not in str(device):
         return
 
     current_class = self.__class__

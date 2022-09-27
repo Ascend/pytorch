@@ -17,13 +17,13 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include <ATen/native/Pool.h>
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 
-tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::max_pool2d_with_indices_out(
+tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::max_pool2d_with_indices_out(
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,
@@ -61,7 +61,7 @@ tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::max_pool2d_with_indices_out(
   return tuple<at::Tensor&, at::Tensor&>(output, indices);
 }
 
-tuple<at::Tensor, at::Tensor> XLANativeFunctions::max_pool2d_with_indices(
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max_pool2d_with_indices(
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
     at::IntArrayRef stride,
@@ -130,7 +130,7 @@ tuple<at::Tensor, at::Tensor> XLANativeFunctions::max_pool2d_with_indices(
   at::Tensor indices = OpPreparation::ApplyTensorWithFormat(self, indicesSize, ACL_FORMAT_NC1HWC0);
 
   // calculate the output result of the NPU
-  XLANativeFunctions::max_pool2d_with_indices_out(
+  NPUNativeFunctions::max_pool2d_with_indices_out(
       self, kernel_sizess, stridess, padss, dilationss, ceil_mode, output, indices);
   return tuple<at::Tensor, at::Tensor>(output, indices);
 }

@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -46,7 +46,7 @@ at::Tensor& irshift_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::__irshift__(at::Tensor& self, const at::Tensor& other) {
+at::Tensor& NPUNativeFunctions::__irshift__(at::Tensor& self, const at::Tensor& other) {
   OpPreparation::CheckMemory({self, other}, {self});  
   if(!NpuUtils::check_match(&self)){
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
@@ -58,7 +58,7 @@ at::Tensor& XLANativeFunctions::__irshift__(at::Tensor& self, const at::Tensor& 
   return self;
 }
 
-at::Tensor& XLANativeFunctions::__irshift__(at::Tensor& self, const at::Scalar& other) {
+at::Tensor& NPUNativeFunctions::__irshift__(at::Tensor& self, const at::Scalar& other) {
   if(!NpuUtils::check_match(&self)){
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     irshift_out_npu_nocheck(contiguousSelf, other, contiguousSelf);

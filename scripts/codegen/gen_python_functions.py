@@ -33,16 +33,17 @@ from codegen.api.python import (PythonSignature,
                                 PythonSignatureNativeFunctionPair,
                                 arg_parser_output_exprs,
                                 cpp_dispatch_exprs,
+                                cpp_record_func,
                                 cpp_dispatch_target,
                                 dispatch_lambda_args,
                                 dispatch_lambda_exprs,
                                 dispatch_lambda_return_str,
                                 has_tensor_options,
                                 namedtuple_fieldnames, signature)
-from codegen.gen import cpp_string, FileManager, LineLoader, error_check_native_functions
+from codegen.gen import cpp_string, FileManager, error_check_native_functions
 from codegen.context import with_native_function
 from codegen.model import (BaseOperatorName, NativeFunction,
-                           Type, Variant, BackendIndex, Location,
+                           Type, Variant, BackendIndex,
                            BackendMetadata, DispatchKey, OperatorName)
 from codegen.utils import context
 
@@ -53,7 +54,7 @@ _SKIP_PYTHON_BINDINGS = [
     '.*_backward', '.*_backward_(out|input|weight|bias)', '.*_forward',
     '.*_forward_out', '_unsafe_view', 'tensor', '_?sparse_coo_tensor.*',
     '_?sparse_csr_tensor.*',
-    '_arange.*', '_range.*', 'linspace.*', 'logspace.*',
+    '_arange.*', '_range.*', '_linspace.*', '_logspace.*',
     '_sparse_add_out', '_sparse_div.*', '_sparse_mul.*', '_sparse_sub.*', '_sparse_dense_add_out',
     'index', 'unique_dim_consecutive',
     '_cumsum.*', '_cumprod.*', '_sum.*', '_prod.*',
@@ -116,11 +117,11 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
             f_str.write(line)
 
     f_str.seek(0)
-    custom_es = yaml.load(f_str, Loader=LineLoader)
-    for e in custom_es:
-        funcs = e.get('func')
+    custom_es = yaml.safe_load(f_str)
+    for e_with_vars in custom_es:
+        funcs = e_with_vars.get('func')
         with context(lambda: f'in {custom_path}:\n  {funcs}'):
-            func, m = NativeFunction.from_yaml(e)
+            func, m = NativeFunction.from_yaml(e_with_vars)
             func.variants.discard(Variant.method)
             rs.append(func)
             BackendIndex.grow_index(bs, m)
@@ -128,10 +129,10 @@ def parse_custom_yaml(custom_path: str) -> ParsedYaml:
     error_check_native_functions(rs)
     # Default dict is to prevent the codegen from barfing when we have a dispatch key that has no kernels yet.
     indices: Dict[DispatchKey, BackendIndex] = defaultdict(lambda: BackendIndex(
-        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, device_guard=False, index={}))
+        dispatch_key=DispatchKey.Undefined, use_out_as_primary=True, external=False, index={}))
     for k, v in bs.items():
         # All structured in-tree operators are implemented in terms of their out operator.
-        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, device_guard=False, index=v)
+        indices[k] = BackendIndex(dispatch_key=k, use_out_as_primary=True, external=False, index=v)
     return ParsedYaml(rs, indices)
 
 
@@ -643,7 +644,7 @@ def emit_single_dispatch(
         # dispatch lambda signature
         name = cpp.name(f.func)
         lambda_formals = ', '.join(map(lambda a: f"{a.type_str} {a.name}",
-                                       dispatch_lambda_args(ps, f, custom)))
+                                    dispatch_lambda_args(ps, f, custom)))
         lambda_return = dispatch_lambda_return_str(f)
 
         # device init
@@ -653,6 +654,7 @@ def emit_single_dispatch(
             init_npu_device = f"//"
 
         # dispatch lambda body
+        record_func_define = cpp_record_func(f, custom=custom)
         dispatch_callee = cpp_dispatch_target(f, custom=custom)
         dispatch_args = ', '.join(cpp_dispatch_exprs(f, python_signature=ps, faithful=custom))
 
@@ -674,6 +676,7 @@ def emit_single_dispatch(
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   {init_npu_device}
   pybind11::gil_scoped_release no_gil;
+  {record_func_define}
   {dispatch_callee}({dispatch_args});
 }};
 dispatch_{name}({lambda_args}){set_requires_grad};
@@ -688,6 +691,7 @@ Py_RETURN_NONE;
 auto dispatch_{name} = []({lambda_formals}) -> {lambda_return} {{
   {init_npu_device}
   pybind11::gil_scoped_release no_gil;
+  {record_func_define}
   return {dispatch_callee}({dispatch_args});
 }};
 return wrap({namedtuple_typeref}dispatch_{name}({lambda_args}){set_requires_grad});

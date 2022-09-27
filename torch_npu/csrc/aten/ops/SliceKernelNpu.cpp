@@ -16,14 +16,14 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
 
-    at::Tensor &XLANativeFunctions::npu_slice_out(
+    at::Tensor &NPUNativeFunctions::npu_slice_out(
         const at::Tensor &self,
         c10::IntArrayRef offsets,
         c10::IntArrayRef size,
@@ -42,7 +42,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::npu_slice(const at::Tensor &self, c10::IntArrayRef offsets, c10::IntArrayRef size)
+    at::Tensor NPUNativeFunctions::npu_slice(const at::Tensor &self, c10::IntArrayRef offsets, c10::IntArrayRef size)
     {
       // calculate the output size
       c10::SmallVector<int64_t, SIZE> outputSize =

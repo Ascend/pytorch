@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -56,7 +56,7 @@ at::Tensor& adaptive_avg_pool2d_backward_out_npu(
   return result;
 }
 
-at::Tensor XLANativeFunctions::_adaptive_avg_pool2d_backward(
+at::Tensor NPUNativeFunctions::_adaptive_avg_pool2d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);

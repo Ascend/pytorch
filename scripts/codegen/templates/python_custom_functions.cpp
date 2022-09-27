@@ -31,13 +31,14 @@
 #include <torch/csrc/utils/structseq.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
 #include <ATen/ATen.h>
+#include <ATen/record_function.h>
 
 #include <functional>
 #include <initializer_list>
 #include <stdexcept>
 #include <utility>
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 
 using at::Tensor;
@@ -62,7 +63,6 @@ using namespace torch::autograd::utils;
 namespace torch_npu { namespace autograd {
 
 static PyObject* THPVariableFunctionsModule = NULL;
-
 
 // generated forward declarations start here
 
@@ -522,4 +522,5 @@ void initTorchFunctions(PyObject* module) {
 ${py_methods}
 
 ${py_device_methods}
+
 }} // namespace torch_npu::autograd

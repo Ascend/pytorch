@@ -41,8 +41,11 @@ public:
       const c10::optional<std::string>& real_dtype,
       bool is_op_desc = false);
 
-  static void CheckAndBuildGeOpForNode(NodePtr node);
+  static void CheckAndBuildGeOpForNode(NodePtr node,
+                                       std::vector<ge::Operator>& const_input_ops);
 
+  static ge::Tensor MakeGeTensor(const ge::TensorDesc& tensor_desc,
+                                 void* device_ptr, const size_t nbytes);
 private:
   template <typename T>
   static T TryToGetAnyValue(const Any& any_val) {
@@ -56,7 +59,7 @@ private:
   }
 
   template <typename ConstType>
-  static void SetGeOpConstInput(
+  static ge::Operator SetAndReturnGeOpConstInput(
       const Any& const_input,
       ge::OperatorPtr ge_op);
 
@@ -78,7 +81,8 @@ private:
 
   static void AddNodeExtInfoIntoGeOp(
       c10::ArrayRef<std::pair<NodeExtInfoType, Any>> ext_info,
-      ge::OperatorPtr ge_op);
+      ge::OperatorPtr ge_op,
+      std::vector<ge::Operator>& const_input_ops);
 };
 } // namespace native
 } // namespace at_npu

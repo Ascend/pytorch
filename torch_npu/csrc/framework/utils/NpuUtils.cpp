@@ -20,7 +20,7 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -31,6 +31,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -82,16 +83,11 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor &tensor) {
   // (1) NC1HWC0 format in storage, NCHW format in des.
   // (2) 4d format situation, only uncontiguous in Channel size
   // (3) size and start point must be 16*, make sure the memory be contiguous
-  const c10::Storage storage = tensor.storage();
-  const torch_npu::NPUStorageDesc npuDesc =
-      torch_npu::NPUBridge::GetNpuStorageImpl(storage.unsafeGetStorageImpl())
-          ->get_npu_desc();
-
   if (tensor.is_contiguous()) {
     return false;
   }
 
-  if (npuDesc.npu_format_ != ACL_FORMAT_NC1HWC0) {
+  if (torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.npu_format_ != ACL_FORMAT_NC1HWC0) {
     return false;
   }
 
@@ -117,8 +113,8 @@ bool NpuUtils::check_5d_5d_match(const at::Tensor &tensor) {
 
   int64_t contiguous_len = 16;
   int64_t c0_len = 16;
-  for (int i = 2; i < npuDesc.base_sizes_.size(); i++) {
-    contiguous_len *= npuDesc.base_sizes_[i];
+  for (int i = 2; i < torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_.size(); i++) {
+    contiguous_len *= torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.base_sizes_[i];
   }
   bool is_offset_match = (tensor.storage_offset() % contiguous_len == 0);
   bool is_length_match = (tensor.size(1) % c0_len == 0);
@@ -146,9 +142,9 @@ at::Tensor metadata_convert_match(const at::Tensor &src, bool numelEq) {
   // NCHW will generate a temporary tensor, which always monopolizes its own
   // storage.
   if (numelEq && (!FormatHelper::IsBaseFormatType(src))) {
-    at::Tensor tempTensor = XLANativeFunctions::npu_format_cast(
+    at::Tensor tempTensor = NPUNativeFunctions::npu_format_cast(
         src, FormatHelper::GetBaseFormat(src));
-    XLANativeFunctions::npu_reshape_out(tempTensor, tempTensor.sizes(), true,
+    NPUNativeFunctions::npu_reshape_out(tempTensor, tempTensor.sizes(), true,
                                         tempTensor);
     NpuUtils::RefreshFormat(tempTensor);
     return tempTensor;

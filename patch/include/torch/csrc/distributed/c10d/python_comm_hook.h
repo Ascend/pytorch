@@ -14,7 +14,7 @@ class TORCH_PYTHON_API PythonCommHook : public CommHookInterface {
   // Takes a state and a callable hook. The inputs are Python objects.
   // The state is passed to the hook in runHook method, and it can be used to
   // maintain and update any state information during the execution of the hook.
-  // The hook performs user-specified processing and returns a future indicating
+  // The hook performs user-specifieds processing and returns a future indicating
   // asychronous communication of gradients.
   PythonCommHook(py::object state, py::object hook)
       : state_(std::move(state)), hook_(std::move(hook)) {}
@@ -23,7 +23,7 @@ class TORCH_PYTHON_API PythonCommHook : public CommHookInterface {
 
   c10::intrusive_ptr<c10::ivalue::Future> runHook(GradBucket& bucket) override;
 
-at::Tensor parseHookResult(const c10::IValue& result) override;
+  at::Tensor parseHookResult(const c10::IValue& result) override;
 
  private:
   // Only needed for stateful communication.

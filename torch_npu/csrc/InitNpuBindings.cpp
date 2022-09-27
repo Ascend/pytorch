@@ -19,14 +19,16 @@
 #include <torch/csrc/Generator.h>
 
 #include "torch_npu/csrc/npu/Event.h"
+#include "torch_npu/csrc/npu/ReplayFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/sys_ctrl/npu_sys_ctrl.h"
 
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/distributed/Init.h"
-// #include "torch_npu/csrc/profiler/init.h"
+#include "torch_npu/csrc/profiler/init.h"
 #include "torch_npu/csrc/npu/Generator.h"
+#include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
 
 PyObject* module;
@@ -76,6 +78,7 @@ static PyMethodDef TorchNpuMethods[] = {
 
 void THNPStream_init(PyObject *module);
 void THNPEvent_init(PyObject *module);
+void THNPReplayGraph_init(PyObject *module);
 bool THPGenerator_init(PyObject *module);
 PyMethodDef* THNPModule_get_methods();
 
@@ -93,7 +96,7 @@ PyObject* initModule(){
 
   AddPyMethodDefs(methods, TorchNpuMethods);
   AddPyMethodDefs(methods, THNPModule_get_methods());
-  // AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
+  AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
   static struct PyModuleDef torchnpu_module = {
@@ -111,10 +114,13 @@ PyObject* initModule(){
   // C, so these lines have to execute first)..
   THNPStream_init(module);
   THNPEvent_init(module);
+  THNPReplayGraph_init(module);
   THPGenerator_init(module);
 
   torch_npu::autograd::initTorchFunctions(module);
 
+  RegisterNPUDeviceProperties(module);
+  BindGetDeviceProperties(module);
   return module;
 }
 

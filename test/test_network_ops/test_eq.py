@@ -17,6 +17,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestEqual(TestCase):
@@ -38,7 +39,8 @@ class TestEqual(TestCase):
         output = output.numpy()
         return output
 
-    def test_equal_shape_format_fp32(self, device="npu"):
+    @graph_mode
+    def test_equal_shape_format_fp32(self):
         dtype_list = [np.float32]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -51,8 +53,9 @@ class TestEqual(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)            
             self.assertEqual(cpu_output, npu_output)
-            
-    def test_equal_shape_format_fp16(self, device="npu"):
+    
+    @graph_mode       
+    def test_equal_shape_format_fp16(self):
         dtype_list = [np.float16]
         format_list = [0, 3]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -71,7 +74,8 @@ class TestEqual(TestCase):
             cpu_output = cpu_output.astype(np.float16)            
             self.assertEqual(cpu_output, npu_output)
 
-    def test_equal_out_shape_format_fp32(self, device="npu"):
+    @graph_mode
+    def test_equal_out_shape_format_fp32(self):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -84,8 +88,9 @@ class TestEqual(TestCase):
             npu_output_out = self.npu_op_exec_out(npu_input1, npu_input2)
             npu_output = self.npu_op_exec(npu_input1, npu_input2)           
             self.assertEqual(npu_output_out, npu_output)
-            
-    def test_equal_scalar_out_shape_format_fp32(self, device="npu"):
+    
+    @graph_mode     
+    def test_equal_scalar_out_shape_format_fp32(self):
         dtype_list = [np.float32]
         format_list = [0]
         shape_list = [[1024], [8, 128], [2, 8, 128], [2, 8, 128, 512]]
@@ -98,7 +103,8 @@ class TestEqual(TestCase):
             npu_output = self.npu_op_exec(npu_input1, 5)           
             self.assertEqual(npu_output_out, npu_output)
 
-    def test_equal_mix_dtype(self, device="npu"):
+    @graph_mode
+    def test_equal_mix_dtype(self):
         npu_input1, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_input3, npu_input4 = create_common_tensor([np.float32, 0, (2, 3)], 1, 100)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input3)

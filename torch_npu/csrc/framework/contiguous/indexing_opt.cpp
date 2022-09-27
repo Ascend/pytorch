@@ -129,7 +129,7 @@ private:
                   temp_src.strides());
 
     // call StridedSlice op
-    XLANativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0,
+    NPUNativeFunctions::npu_indexing_out(temp_src, start, end, step, 0, 0, 0, 0,
                                          0, self);
 
     return;

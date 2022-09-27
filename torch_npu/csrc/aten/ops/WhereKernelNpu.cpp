@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu {
@@ -44,7 +44,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_expand_outplace(
       to_expand3.expand(expanded_size, true));
 }
 
-at::Tensor XLANativeFunctions::_s_where(
+at::Tensor NPUNativeFunctions::_s_where(
     const at::Tensor& condition,
     const at::Tensor& self,
     const at::Tensor& other) {
@@ -61,7 +61,7 @@ at::Tensor XLANativeFunctions::_s_where(
   return result;
 }
 
-at::Tensor XLANativeFunctions::where(
+at::Tensor NPUNativeFunctions::where(
     const at::Tensor& condition,
     const at::Tensor& self,
     const at::Tensor& other) {
@@ -80,22 +80,23 @@ at::Tensor XLANativeFunctions::where(
 
 at::SmallVector<int64_t, SIZE> where_npu_output_size(const at::Tensor& condition){
   int64_t dim = condition.dim();
-  at::Tensor boolSelf = XLANativeFunctions::npu_dtype_cast(condition, at::ScalarType::Bool);
-  at::Tensor intSelf = XLANativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
+  at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(condition, at::ScalarType::Bool);
+  at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
   at::Tensor coutNonzeroSelf = at::sum(intSelf, at::ScalarType::Int);
   int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
   at::SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
   return outputSize;
 }
 
-vector<at::Tensor> XLANativeFunctions::where(const at::Tensor& condition) {
+
+vector<at::Tensor> NPUNativeFunctions::where(const at::Tensor& condition) {
   at::Tensor formatCastOfCondition = condition;
   if (torch_npu::NPUBridge::GetNpuStorageImpl(condition)->npu_desc_.npu_format_ !=
     ACL_FORMAT_ND) {
-    formatCastOfCondition = XLANativeFunctions::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
+    formatCastOfCondition = NPUNativeFunctions::npu_format_cast(formatCastOfCondition, ACL_FORMAT_ND);
   }
   if (condition.scalar_type() == at::ScalarType::Half) {
-    formatCastOfCondition = XLANativeFunctions::npu_dtype_cast(formatCastOfCondition, at::ScalarType::Float);
+    formatCastOfCondition = NPUNativeFunctions::npu_dtype_cast(formatCastOfCondition, at::ScalarType::Float);
   }
 
   // calculate the output size
@@ -104,6 +105,7 @@ vector<at::Tensor> XLANativeFunctions::where(const at::Tensor& condition) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize, formatCastOfCondition.options().dtype(at::kLong), ACL_FORMAT_ND);
+
   OpCommand cmd;
   cmd.Name("NonZero")
     .Input(formatCastOfCondition)

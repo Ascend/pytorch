@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,7 +30,7 @@ at::Tensor& sqrt_out_npu_nocheck(const at::Tensor& self, at::Tensor& result) {
   return result;
 }
 
-at::Tensor& XLANativeFunctions::sqrt_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::sqrt_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut({self}, result, self);
 
   OpPipeWithDefinedOut pipe;
@@ -39,15 +39,15 @@ at::Tensor& XLANativeFunctions::sqrt_out(const at::Tensor& self, at::Tensor& res
       .Call(result);
 }
 
-at::Tensor XLANativeFunctions::sqrt(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::sqrt(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
   sqrt_out_npu_nocheck(self, result);
   return result;
 }
 
-at::Tensor& XLANativeFunctions::sqrt_(at::Tensor& self) {
-  XLANativeFunctions::sqrt_out(self, self);
+at::Tensor& NPUNativeFunctions::sqrt_(at::Tensor& self) {
+  NPUNativeFunctions::sqrt_out(self, self);
 
   return self;
 }

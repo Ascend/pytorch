@@ -133,7 +133,7 @@ private:
     }
 
     // call StridedSlice op to contiguous
-    XLANativeFunctions::npu_indexing_out(temp_src, start, end, strides, 0, 0, 0,
+    NPUNativeFunctions::npu_indexing_out(temp_src, start, end, strides, 0, 0, 0,
                                          0, shrink_mask, self);
     return;
   }

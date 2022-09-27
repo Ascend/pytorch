@@ -1,9 +1,24 @@
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include <ATen/Utils.h>
 #include <c10/core/StreamGuard.h>
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace detail {
@@ -149,21 +164,19 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
   // It used to be static const size_t states_size = MAX_NUM_BLOCKS * sizeof(curandStateMtgp32);
   // MAX_NUM_BLOCKS was 200 and sizeof(curandStateMtgp32) is 4120. Hardcoding these numbers here
   // because this is just host side code and we don't want to worry about linking with npu
-  static const size_t states_size = 200 * sizeof(4120);
   static const size_t seed_size = sizeof(uint64_t);
   static const size_t offset_size = sizeof(int64_t);
-  static const size_t total_size = states_size + seed_size + offset_size;
+  static const size_t total_size = seed_size + offset_size;
 
   auto state_tensor = at::detail::empty_cpu({(int64_t)total_size}, at::ScalarType::Byte,
                                             c10::nullopt, c10::nullopt, c10::nullopt, c10::nullopt);
   auto rng_state = state_tensor.data_ptr<uint8_t>();
   // since curandStateMTGP is not used anymore, fill gen_states of THCGenerator with deterministic garbage value of -1
   // gen_states in THCGenerator struct was an array of curandStateMtgp32s.
-  memset(rng_state, -1, states_size);
   auto current_seed = this->current_seed();
   auto offset = static_cast<int64_t>(this->philox_offset_per_thread()); // Note that old THCGeneratorState had offset as std::atomic<int64_t>
-  memcpy(rng_state + states_size, &current_seed, seed_size);
-  memcpy(rng_state + states_size + seed_size, &offset, offset_size);
+  memcpy(rng_state, &current_seed, seed_size);
+  memcpy(rng_state + seed_size, &offset, offset_size);
 
   return state_tensor.getIntrusivePtr();
 }
@@ -175,10 +188,10 @@ c10::intrusive_ptr<c10::TensorImpl> NPUGeneratorImpl::get_state() const {
  * and size of the internal state.
  */
 void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
-  static const size_t states_size = 200 * sizeof(4120); // this line is just here for BC reason
+  
   static const size_t seed_size = sizeof(uint64_t);
   static const size_t offset_size = sizeof(int64_t);
-  static const size_t total_size = states_size + seed_size + offset_size;
+  static const size_t total_size = seed_size + offset_size;
 
   at::detail::check_rng_state(new_state);
 
@@ -192,11 +205,11 @@ void NPUGeneratorImpl::set_state(const c10::TensorImpl& new_state) {
 
   uint64_t input_seed;
   auto new_rng_state = new_state.data<uint8_t>();
-  memcpy(&input_seed, new_rng_state + states_size, seed_size);
+  memcpy(&input_seed, new_rng_state, seed_size);
   this->set_current_seed(input_seed);
   int64_t philox_offset = 0;
   if (!no_philox_seed) {
-    memcpy(&philox_offset, new_rng_state + states_size + seed_size, offset_size);
+    memcpy(&philox_offset, new_rng_state + seed_size, offset_size);
   }
   this->set_philox_offset_per_thread(static_cast<uint64_t>(philox_offset));
 }

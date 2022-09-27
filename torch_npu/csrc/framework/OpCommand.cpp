@@ -12,6 +12,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include <c10/util/Exception.h>
 #include "torch_npu/csrc/framework/OpCommand.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -60,7 +61,7 @@ OpCommand& OpCommand::Input(
       auto contiguous_input = Contiguous(input);
       if (commonType.has_value() &&
           commonType.value() != contiguous_input.scalar_type()) {
-        contiguous_input = XLANativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
+        contiguous_input = NPUNativeFunctions::npu_dtype_cast(contiguous_input, commonType.value());
       }
       graphCmd.AddInput(contiguous_input, descName, realData, sensitive_format);
   )
@@ -83,7 +84,8 @@ OpCommand& OpCommand::InputWithoutContiguous(
   return AddTensorInput(const_cast<at::Tensor &>(input));
 }
 
-OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType) {
+OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType,
+    CompileType compileType, const string& realDtype) {
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
@@ -91,7 +93,7 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
                                            dimListRef.size(),
                                            c10::TensorOptions(at::kCPU).dtype(at::kLong),
                                            toType);
-  return AddHostTensorInput(cpuTensor);
+  return AddHostTensorInput(cpuTensor, compileType, realDtype);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
@@ -113,6 +115,12 @@ OpCommand& OpCommand::Inputs(const at::TensorList &inputs)
   return *this;
 }
 
+OpCommand& OpCommand::InputScalarToNPUTensor(
+    const c10::Scalar& input,
+    const at::ScalarType type) {
+  return AddScalarInput(input, type);
+}
+
 OpCommand& OpCommand::Output(
     at::Tensor &output,
     const string &descName,
@@ -121,30 +129,39 @@ OpCommand& OpCommand::Output(
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       if (sensitive_format.has_value() &&
           FormatHelper::GetBaseFormat(output) != sensitive_format.value()) {
-        output = XLANativeFunctions::npu_format_cast(output, sensitive_format.value());
+        output = NPUNativeFunctions::npu_format_cast(output, sensitive_format.value());
       }
       graphCmd.AddOutput(output, descName, realType, sensitive_format);
       if (!resultTypeDefined && commonType.has_value() &&
           output.scalar_type() != commonType.value()) {
-        output = XLANativeFunctions::npu_dtype_cast(output, commonType.value());
-      }
+        output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
+      } 
   )
+  outputTensor.emplace_back(output);
   return AddOutput(output, realType);
 }
 
 void OpCommand::Run() {
   IF_GRAPH_MODE_THEN_RUN(return;)
-  if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
+  if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
     c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &execParams);
     c10_npu::enCurrentNPUStream(&params);
     aclCmd->releaseSource(false);
   } else {
-    aclCmd->Run();
+    aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
-  }
+  } 
   aclCmds->Pop();
+}
+
+OpCommand& OpCommand::Sync(c10::SmallVector<int64_t, N> &index) {
+  sync_index = index;
+  if (!index.empty()) {
+    sync = true;
+  }
+  return *this;
 }
 
 OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
@@ -153,7 +170,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
                                      const string &realData) {
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
-    tensor = XLANativeFunctions::npu_dtype_cast(tensor, commonType.value());
+    tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (tensor.dim() == 0) {
@@ -169,9 +186,12 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   return *this;
 }
 
-OpCommand& OpCommand::AddHostTensorInput(const at::Tensor &tensor, CompileType compileType) {
+OpCommand& OpCommand::AddHostTensorInput(
+    const at::Tensor &tensor,
+    CompileType compileType,
+    const string& realDtype) {
   std::tuple < aclTensorDesc *, aclDataBuffer *> res;
-  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType);
+  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }
@@ -184,9 +204,20 @@ OpCommand& OpCommand::AddNoneTensor() {
   return *this;
 }
 
+OpCommand& OpCommand::AddScalarInput(const c10::Scalar& input, at::ScalarType type) {
+  at::ScalarType type_bk = type;
+  if (commonType.has_value()) {
+    type_bk = commonType.value();
+  }
+  at::Tensor aclInput = CopyHostToDevice(input, type_bk);
+  auto res = OpCmdHelper::CovertScalarToAclInput(aclInput, type_bk);
+  aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
+  return *this;
+}
+
 OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
   if (resultTypeDefined == false && commonType.has_value() && commonType.value() != output.scalar_type()) {
-    output = XLANativeFunctions::npu_dtype_cast(output, commonType.value());
+    output = NPUNativeFunctions::npu_dtype_cast(output, commonType.value());
   }
   auto res = OpCmdHelper::CovertToAclOutput(output, realType);
   aclCmd->AddOutput(std::get<0>(res), std::get<1>(res));
@@ -197,6 +228,24 @@ OpCommand& OpCommand::AddOutput(at::Tensor &output, const string &realType) {
 // 同下，CopyScalarToDevice也有同样问题
 at::Tensor& OpCommand::Contiguous(const at::Tensor &input) {
   storage.emplace_back(std::move(NpuUtils::format_contiguous_add_copy_optimize(input)));
+  return storage.back();
+}
+
+at::Tensor OpCommand::CopyHostToDevice(const c10::Scalar& scalar, at::ScalarType type) {
+  auto tensor = scalar_to_tensor(scalar).to(type);
+  return CopyHostToDevice(tensor);
+}
+
+at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
+  at::Tensor cpuPinMemTensor = cpuTensor.pin_memory();
+  int deviceIndex = 0;
+  C10_NPU_CHECK(aclrtGetDevice(&deviceIndex));
+  auto tensor = cpuPinMemTensor.to(
+      c10::Device(at_npu::key::NativeDeviceType, deviceIndex),
+      cpuPinMemTensor.scalar_type(),
+      true,
+      true);
+  storage.emplace_back(tensor);
   return storage.back();
 }
 

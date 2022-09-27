@@ -19,12 +19,12 @@
 
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-const at::Tensor& XLANativeFunctions::resize_(
+const at::Tensor& NPUNativeFunctions::resize_(
     const at::Tensor& self,
     c10::IntArrayRef size,
     c10::optional<c10::MemoryFormat> format) {
@@ -32,14 +32,14 @@ const at::Tensor& XLANativeFunctions::resize_(
   // no need to reflush NpuStorageDesc here.
   at::Tensor result = self;
   if (!FormatHelper::IsBaseFormatType(result)) {
-    XLANativeFunctions::npu_format_cast_(result, FormatHelper::GetBaseFormat(self));
+    NPUNativeFunctions::npu_format_cast_(result, FormatHelper::GetBaseFormat(self));
   }
   auto* self_ = result.unsafeGetTensorImpl();
   resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
   return result;
 }
 
-const at::Tensor& XLANativeFunctions::resize_as_(
+const at::Tensor& NPUNativeFunctions::resize_as_(
     const at::Tensor& self,
     const at::Tensor& the_template,
     c10::optional<c10::MemoryFormat> format) {

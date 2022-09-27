@@ -17,7 +17,6 @@
 #include <torch/csrc/python_headers.h>
 
 #include <ATen/ATen.h>
-// #include <TH/TH.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
@@ -37,12 +36,54 @@
 
 #include "third_party/acl/inc/acl/acl.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
-// #include "torch_npu/csrc/profiler/cann_profiling.h"
-// #include "torch_npu/csrc/profiler/e2e_profiler.h"
+#include "torch_npu/csrc/profiler/cann_profiling.h"
+#include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
+#include "torch_npu/csrc/npu/Module.h"
+
+struct NPUDeviceProp {
+  std::string name;
+  size_t totalGlobalMem = 0;
+};
+NPUDeviceProp prop;
+void RegisterNPUDeviceProperties(PyObject* module) {
+  auto m = py::handle(module).cast<py::module>();
+  py::class_<NPUDeviceProp>(m, "_NPUDeviceProperties")
+            .def_readonly("name", &NPUDeviceProp::name)
+            .def_readonly("total_memory", &NPUDeviceProp::totalGlobalMem)
+            .def("__repr__", [](const NPUDeviceProp &prop) {
+              std::ostringstream stream;
+              stream << "_NPUDeviceProperties(name='" << prop.name << "', total_memory="
+                << prop.totalGlobalMem / (CHANGE_UNIT_SIZE * CHANGE_UNIT_SIZE) << "MB)";
+              return stream.str();
+            });
+}
+
+NPUDeviceProp* GetDeviceProperties(int64_t deviceid) {
+  const char* device_name;
+  size_t device_free;
+  size_t device_total;
+  device_name = c10_npu::acl::AclrtGetSocName();
+  if (device_name == nullptr) {
+    prop.name = " ";
+    NPU_LOGE("NPU get device name fail.");
+  } else {
+    prop.name = std::string(device_name);
+  }
+  C10_NPU_CHECK(aclrtGetMemInfo(ACL_HBM_MEM, &device_free, &device_total));
+  prop.totalGlobalMem = device_total;
+  return &prop;
+}
+
+void BindGetDeviceProperties(PyObject* module) {
+  auto m = py::handle(module).cast<py::module>();
+  m.def("_npu_getDeviceProperties", [](int deviceid) -> NPUDeviceProp* {
+    return GetDeviceProperties(deviceid);
+  }, py::return_value_policy::reference);
+}
 
 static PyObject* THNPModule_initExtension(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
@@ -178,6 +219,25 @@ PyObject* THNPModule_enable_graph_mode_wrap(PyObject* self, PyObject* arg) {
 }
 
 PyObject* THNPModule_disable_graph_mode_wrap(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::SINGLE_OP_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_enable_replay_graph_mode_wrap(PyObject* self, PyObject* arg) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  bool verbose = THPUtils_unpackBool(arg);
+  at_npu::native::GraphExecutor::GetInstance().SetVerbose(verbose);
+  c10_npu::NpuRunMode::SetNpuRunMode(c10_npu::ModeKind::REPLAY_MODE);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_disable_replay_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
   at_npu::native::GraphExecutor::GetInstance().ConstructAndExecuteGraph();
@@ -462,7 +522,7 @@ PyObject* THNPModule_prof_start(PyObject* self, PyObject* args) {
   uint64_t npu_event = THPUtils_unpackLong(value_1);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_2);
   pybind11::gil_scoped_release no_gil;
-  // torch_npu::profiler::NpuProfiling::Instance().Start(npu_event, aicore_metrics);
+  torch_npu::profiler::NpuProfiling::Instance().Start(npu_event, aicore_metrics);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -483,7 +543,7 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
   uint64_t npu_event = THPUtils_unpackLong(value_2);
   uint64_t aicore_metrics = THPUtils_unpackLong(value_3);
   pybind11::gil_scoped_release no_gil;
-  // torch_npu::profiler::init_e2e_profiler(dump_path, npu_event, aicore_metrics);
+  torch_npu::profiler::InitE2eProfiler(dump_path, npu_event, aicore_metrics);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -491,7 +551,7 @@ PyObject* THNPModule_enable_e2eProfiler(PyObject* self, PyObject* args) {
 PyObject* THNPModule_disable_e2eProfiler(PyObject* _unused, PyObject* noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  // torch_npu::profiler::finalize_e2e_profiler();
+  torch_npu::profiler::FinalizeE2eProfiler();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
@@ -517,6 +577,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_setStream", (PyCFunction)THNPModule_setStream_wrap,  METH_O, nullptr},
     {"_npu_enable_graph_mode", (PyCFunction)THNPModule_enable_graph_mode_wrap, METH_O, nullptr},
     {"_npu_disable_graph_mode", (PyCFunction)THNPModule_disable_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_enable_replay_graph_mode", (PyCFunction)THNPModule_enable_replay_graph_mode_wrap, METH_O, nullptr},
+    {"_npu_disable_replay_graph_mode", (PyCFunction)THNPModule_disable_replay_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},

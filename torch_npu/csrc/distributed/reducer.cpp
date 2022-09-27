@@ -31,7 +31,7 @@
 #include <torch/csrc/utils/memory.h>
 
 #include "torch_npu/csrc/distributed/reducer.hpp"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
@@ -338,9 +338,9 @@ void Reducer::copy_grad_to_bucket(
   if (comm_hook_ == nullptr) {
     // imitates wrapped_scalar_tensor in ATen/native/BinaryOps.cpp
     // Divides while copying into the bucket view.
-    at_npu::native::XLANativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
+    at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
   } else {
-    at_npu::native::XLANativeFunctions::copy_memory_(bucket_view, grad, true);
+    at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
   }
 }
 
@@ -370,14 +370,14 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
         // make sure grad has the same format as variable
         if (torch_npu::NPUBridge::GetNpuStorageImpl(grad)->npu_desc_.npu_format_ !=
               torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_) {
-          grad = at_npu::native::XLANativeFunctions::npu_format_cast(grad,
+          grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
               torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
         }
         if (comm_hook_ == nullptr) {
           if (!grad.requires_grad()) {
             // Divides while copying into the bucket view to save one scan over
             // all the input parameters.
-            at_npu::native::XLANativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
+            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
           } else {
             // If DDP is running with create_graph=True, gradients require_grad
             // themselves in order to compute higher order derivatives. However,
@@ -390,10 +390,10 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
                 << " through all_reduce operations will not occur. If you require "
                 << " DDP to work with higher-order gradients for your use case, "
                 << " please ping https://github.com/pytorch/pytorch/issues/63929";
-            at_npu::native::XLANativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
           }
         } else {
-          at_npu::native::XLANativeFunctions::copy_memory_(bucket_view, grad, true);
+          at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
         }
 
         if (gradient_as_bucket_view_) {
@@ -1336,9 +1336,9 @@ void Reducer::copy_bucket_to_grad(
         grad = at_npu::native::OpPreparation::ApplyTensorWithFormat(
             variable.sizes(), bucket_view.options(),
             torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
-        at_npu::native::XLANativeFunctions::copy_memory_(grad, bucket_view, true);
+        at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       } else {
-        at_npu::native::XLANativeFunctions::copy_memory_(grad, bucket_view, true);
+        at_npu::native::NPUNativeFunctions::copy_memory_(grad, bucket_view, true);
       }
       // The grad is modified and needs to be written back.
       return true;

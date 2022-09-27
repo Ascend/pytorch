@@ -14,6 +14,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/contiguous/ReshapeOpt.h"
+#include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
 namespace native {
@@ -70,6 +71,16 @@ bool check_reshape_match(const ContiguousTensorDesc &self_desc,
     if (!(self_desc.sizes_ == src_desc.sizes_)) {
       return false;
     }
+
+    IF_GRAPH_MODE_THEN_RUN(
+      // In single op mode, this opt will be used for reshape/slice/select
+      // scenes. In graph mode, reshape opt is only used for reshape scenes,
+      // npu-reshape is used to calculae and get contiguous tensor.
+      if (c10::multiply_integers(src_desc.base_sizes_) != c10::multiply_integers(src_desc.sizes_)) {
+        return false;
+      }
+    );
+
     return true;
   }
   return false;
@@ -94,3 +105,4 @@ bool CanUseMemcpyForOtherFormat(const at::Tensor &tensor) {
 
 } // namespace native
 } // namespace at_npu
+

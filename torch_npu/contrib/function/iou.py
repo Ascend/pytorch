@@ -25,7 +25,7 @@ def npu_iou(boxes1,
             boxes2,
             mode="ptiou",
             is_normalized=False,
-            normalized_scale=100.,
+            normalized_scale=100.
             ):
     """ Applies an NPU based IOU operation.
 
@@ -84,7 +84,7 @@ npu_ptiou = npu_iou
 
 def npu_giou(boxes1,
              boxes2,
-             is_permuted=True,
+             is_permuted=True
              ):
     """ Applies an NPU based GIOU operation.
 
@@ -144,7 +144,7 @@ def npu_diou(boxes1,
              boxes2, 
              trans=True, 
              is_cross=False, 
-             mode=0,
+             mode=0
              ):
     """ Applies an NPU based DIOU operation.
 
@@ -161,8 +161,8 @@ def npu_diou(boxes1,
 
     .. note::
 
-    Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
-    need to back propagation, please ensure your parameter is correct!
+        Util now, diou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
+        need to back propagation, please ensure your parameter is correct!
         
     Examples::
     >>> box1 = torch.randn(4, 32)
@@ -194,7 +194,7 @@ def npu_ciou(boxes1,
              boxes2,
              trans=True, 
              is_cross=False, 
-             mode=0,
+             mode=0
              ):
     """ Applies an NPU based CIOU operation.
 
@@ -210,7 +210,9 @@ def npu_ciou(boxes1,
     weight function, v is used to measure the similarity of the aspect ratio.
     
     .. note::
-        Util now, ciou only support is_cross==False, atan_sub_flag==True.
+
+        Util now, ciou backward only support trans==True, is_cross==False, mode==0('iou') current version if you 
+        need to back propagation, please ensure your parameter is correct!
         
     Examples::
     >>> box1 = torch.randn(4, 32)

@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,7 +30,8 @@ at::Tensor& sign_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& XLANativeFunctions::sign_out(const at::Tensor& self, at::Tensor& result) {
+
+at::Tensor& NPUNativeFunctions::sign_out(const at::Tensor& self, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -40,11 +41,11 @@ at::Tensor& XLANativeFunctions::sign_out(const at::Tensor& self, at::Tensor& res
   return result;
 }
 
-at::Tensor& XLANativeFunctions::sgn_out(const at::Tensor& self, at::Tensor& result) {
-  return XLANativeFunctions::sign_out(self, result);
+at::Tensor& NPUNativeFunctions::sgn_out(const at::Tensor& self, at::Tensor& result) {
+  return NPUNativeFunctions::sign_out(self, result);
 }
 
-at::Tensor XLANativeFunctions::sign(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::sign(const at::Tensor& self) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
@@ -53,7 +54,7 @@ at::Tensor XLANativeFunctions::sign(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& XLANativeFunctions::sign_(at::Tensor& self) {
+at::Tensor& NPUNativeFunctions::sign_(at::Tensor& self) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = sign_out_npu_nocheck(contiguousSelf, contiguousSelf);

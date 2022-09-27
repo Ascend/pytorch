@@ -18,6 +18,7 @@
 
 #include <map>
 
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 
@@ -423,8 +424,10 @@ Inference order: permute, select, slice.
     if (reconstruct_tensor(src, shape_stride_stacks, offset_stacks)) {
       ContiguousTensorDesc src_desc_ = TransContiguous::GetTensorDescInfo(src);
       OptimizationCases opt_cases_first{"reshape", "slice", "select"};
-      if (reshape_without_copy_match(src)) {
+      if ((!c10_npu::NpuRunMode::IsGraphMode()) && reshape_without_copy_match(src)) {
         // case 1 : The first tensor is reshape-type, refresh its info is enough
+        // In single op, refresh is inplace operation, but in graph mode, reshape is not.
+        // In graph mode, there is not matching operator for this case.
         return combined_to_contiguous(self, src, shape_stride_stacks,
                                       offset_stacks);
       } else if (can_be_optimize_from_default_cases(src_desc_)) {

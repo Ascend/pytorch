@@ -13,9 +13,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -31,7 +30,7 @@ at::Tensor& le_out_npu_nocheck(const at::Tensor& self, at::Scalar other, at::Ten
   return result;
 }
 
-at::Tensor& XLANativeFunctions::le_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::le_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   auto outputSize = formatCastOfSelf.sizes();
   OpPreparation::CheckOut(
@@ -58,7 +57,7 @@ at::Tensor& le_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other, 
   return result;
 }
 
-at::Tensor& XLANativeFunctions::le_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::le_out(const at::Tensor& self, const at::Tensor& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
   auto outputSize = broadcast_ops_npu_output_size(formatCastOfSelf, formatCastOfOther);
@@ -74,7 +73,7 @@ at::Tensor& XLANativeFunctions::le_out(const at::Tensor& self, const at::Tensor&
   return result;
 }
 
-at::Tensor XLANativeFunctions::le(const at::Tensor& self, const at::Scalar& other) {
+at::Tensor NPUNativeFunctions::le(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       formatCastOfSelf.sizes(),
@@ -84,7 +83,7 @@ at::Tensor XLANativeFunctions::le(const at::Tensor& self, const at::Scalar& othe
   return result;
 }
 
-at::Tensor XLANativeFunctions::le(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::le(const at::Tensor& self, const at::Tensor& other) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor formatCastOfOther = OpPreparation::CastBackToOriFormat(other);
 
@@ -98,7 +97,7 @@ at::Tensor XLANativeFunctions::le(const at::Tensor& self, const at::Tensor& othe
   return result;
 }
 
-at::Tensor& XLANativeFunctions::le_(at::Tensor& self, const at::Scalar& other) {
+at::Tensor& NPUNativeFunctions::le_(at::Tensor& self, const at::Scalar& other) {
   OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckMemory({self}, {self}); 
   at::Tensor result = OpPreparation::ApplyTensor(
@@ -114,7 +113,7 @@ at::Tensor& XLANativeFunctions::le_(at::Tensor& self, const at::Scalar& other) {
   return self;
 }
 
-at::Tensor& XLANativeFunctions::le_(at::Tensor& self, const at::Tensor& other) {
+at::Tensor& NPUNativeFunctions::le_(at::Tensor& self, const at::Tensor& other) {
   OpPreparation::CastBackToOriFormat(self);
   at::Tensor ori_other = OpPreparation::CastBackToOriFormat(other);
   OpPreparation::CheckMemory({self, ori_other}, {self}); 

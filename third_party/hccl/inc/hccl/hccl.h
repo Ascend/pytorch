@@ -133,6 +133,28 @@ extern HcclResult HcclSend(void *sendBuf, uint64_t count, HcclDataType dataType,
 extern HcclResult HcclRecv(void *recvBuf, uint64_t count, HcclDataType dataType, uint32_t srcRank, 
     HcclComm comm, aclrtStream stream);
 
+/**
+ * @brief AlltoAllV operator.
+ *
+ * @param sendBuff A pointer identifying the input data address of the operator.
+ * @param sendCounts Integer array, where entry i specifies the number of elements to send to rank i.
+ * @param sdispls Integer array, where entry i specifies the displacement (offset from sendbuf, in units of sendtype) from which to send data to rank i.
+ * @param sendType Datatype of send buffer elements, must be one of the following types: int8, int32, int64, uint64, float16, float32.
+ * @param recvBuf A pointer identifying the output data address of the operator.
+ * @param recvCounts Integer array, where entry j specifies the number of elements to receive from rank j.
+ * @param rdispls Integer array, where entry j specifies the displacement (offset from recvbuf, in units of recvtype) to which data from rank j should be written.
+ * @param recvType Datatype of receive buffer elements, must be one of the following types: int8, int32, int64, uint64, float16, float32.
+ * @param comm A pointer identifying the communication resource based on.
+ * @param stream A pointer identifying the stream information.
+ * @return HcclResult
+ */
+extern HcclResult HcclAlltoAllV(const void *sendBuf, const void *sendCounts, const void *sdispls, 
+    HcclDataType sendType, const void *recvBuf, const void *recvCounts, const void *rdispls, 
+    HcclDataType recvType, HcclComm comm, aclrtStream stream);
+
+extern HcclResult HcclReduce(void *sendBuf, void *recvBuf, uint64_t count, HcclDataType sendType,
+    HcclReduceOp op, uint32_t root, HcclComm comm, aclrtStream stream);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplus

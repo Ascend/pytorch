@@ -52,15 +52,6 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
-# Represent a source location; used for better error reporting
-@dataclass(frozen=True)
-class Location:
-    file: str
-    line: int
-
-    def __str__(self) -> str:
-        return "{}:{}".format(self.file, self.line)
-
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
 
@@ -407,8 +398,7 @@ class NativeFunction:
         elif not structured and structured_delegate is None:
             dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and \
-            DispatchKey.CompositeImplicitAutograd in dispatch), \
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
             "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
             "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
             "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
@@ -665,10 +655,6 @@ class BackendIndex:
     # is used to implement the others.
     # All in-tree ops use out kernels, while XLA uses functional kernels.
     use_out_as_primary: bool
-    # Whether the backend requires a device guard, and device checks.
-    # For in-tree backends, this is currently just CUDA/HIP
-    # For out-of-tree backends, this is currently just Intel XPU
-    device_guard: bool
     # Whether the backend is in-tree (CPU/CUDA) or out-of-tree (XLA)
     external: bool
     # Other backend-specific information that is on a per-operator basis
@@ -1002,7 +988,6 @@ class Type:
     def is_nullable(self) -> bool:
         raise NotImplementedError
 
-    @staticmethod
     def is_list_like(self) -> Optional['ListType']:
         raise NotImplementedError
 

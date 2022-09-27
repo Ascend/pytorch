@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 
 namespace at_npu {
@@ -168,7 +168,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
 }
 } // namespace
 
-tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::native_batch_norm(
+tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
     const at::Tensor& self,
     const c10::optional<at::Tensor>& weight_opt,
     const c10::optional<at::Tensor>& bias_opt,

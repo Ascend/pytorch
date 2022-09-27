@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor XLANativeFunctions::one_hot(const at::Tensor& self, int64_t num_classes) {
+at::Tensor NPUNativeFunctions::one_hot(const at::Tensor& self, int64_t num_classes) {
   at::Scalar on_value = 1;
   at::Scalar off_value = 0;
   int64_t axis = -1;
@@ -53,11 +53,11 @@ at::Tensor XLANativeFunctions::one_hot(const at::Tensor& self, int64_t num_class
       outputSize,
       self.options().dtype(at::ScalarType::Int),
       self);
-  c10::SmallVector<int64_t, N> depthList = {depth};
+  at::Scalar depthCp = depth;
   OpCommand cmd;
   cmd.Name("OneHot")
       .Input(self)
-      .Input(depthList, at::kInt)
+      .Input(depthCp, at::ScalarType::Int, CompileType::MEMORY_HOST_COMPILE_DEPENDENT)
       .Input(on_value, at::ScalarType::Int)
       .Input(off_value, at::ScalarType::Int)
       .Output(result)

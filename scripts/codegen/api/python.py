@@ -641,7 +641,7 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
             BaseTy.Tensor: 'Tensor',
             BaseTy.int: 'int64_t',
             BaseTy.float: 'double',
-            BaseTy.str: 'std::string'
+            BaseTy.str: 'c10::string_view'
         }
         if t.name in base_dict:
             return base_dict[t.name]
@@ -981,16 +981,16 @@ def dispatch_lambda_return_str(f: NativeFunction) -> str:
         raise RuntimeError(f'{f.func.name} returns unsupported type {return_str}')
     return return_str
 
-# def cpp_record_func(f: NativeFunction, custom=False) -> str:
-#     name = cpp.name(f.func)
+def cpp_record_func(f: NativeFunction, custom=False) -> str:
+    name = cpp.name(f.func)
 
-#     if Variant.function in f.variants:
-#         if custom:
-#             record_func = f'RECORD_FUNCTION("{name}", std::vector<c10::IValue>({{}}));'
-#         else:
-#             record_func = f'// RECORD_FUNCTION("{name}")'
-#         return record_func
-#     raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
+    if Variant.function in f.variants:
+        if custom:
+            record_func = f'RECORD_FUNCTION("{name}", std::vector<c10::IValue>({{}}));'
+        else:
+            record_func = f'// RECORD_FUNCTION("{name}")'
+        return record_func
+    raise RuntimeError(f'could not dispatch, neither function nor method: {f.func}')
 
 def cpp_dispatch_target(f: NativeFunction, custom=False) -> str:
     name = cpp.name(f.func)
@@ -998,7 +998,7 @@ def cpp_dispatch_target(f: NativeFunction, custom=False) -> str:
         return f'self.{name}'
     if Variant.function in f.variants:
         if custom:
-            namespace = 'at_npu::native::XLANativeFunctions'
+            namespace = 'at_npu::native::NPUNativeFunctions'
         elif has_tensor_options(f) or f.func.name.name.base.endswith('_like'):
             namespace = 'torch'
         else:
@@ -1048,7 +1048,7 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
             BaseTy.float: 'toDouble',
-            BaseTy.str: 'string'
+            BaseTy.str: 'stringView'
         }
         if t.name in [BaseTy.Tensor, BaseTy.Stream, BaseTy.Storage,
                       BaseTy.Scalar, BaseTy.Dimname]:

@@ -43,6 +43,7 @@ struct CombinedInfo {
   std::vector<ge::Tensor> tensors;
   std::vector<hash_t> hash_of_topo_and_attr;
   std::vector<hash_t> hash_of_shape;
+  std::vector<int64_t> unique_ids;
 };
 
 class GraphExecutor {
@@ -60,13 +61,34 @@ public:
     return instance;
   }
 
+  void RunGraph(
+      uint32_t graph_id,
+      const std::vector<ge::Tensor>& inputs,
+      std::vector<ge::Tensor>& outputs);
+
+  uint32_t GetGraphIdDependOnCompileTypeAndCache(const CombinedInfo& inputs,
+                                                 CombinedInfo& outputs,
+                                                 bool& is_cache_hit);
+
+  bool CheckDeviceIdAndInit();
+
+  CombinedInfo GetInputCombinedInfo();
+
+  CombinedInfo GetOutputCombinedInfo();
+
+  void ResetGraphOutputs();
+
+  void RefreshGraphInputs();
+
+  void ClearDataStore();
+
   void SetVerbose(bool verbose) {
     verbose_ = verbose;
   }
 
   void Finalize();
 
- private:
+private:
   GraphExecutor() = default;
 
   void Init();
@@ -80,22 +102,18 @@ public:
    *
    * 2, you can not construct graph in two different device.
    */
-  bool CheckDeviceIdAndInit();
-
   void RunGraph(
       uint32_t graph_id,
       CombinedInfo& inputs,
       CombinedInfo& outputs);
 
-  static void ConstructOps(CombinedInfo& output);
+  static void ConstructOpsAndAddEdge(
+      const CombinedInfo& output,
+      std::vector<ge::Operator>& const_input_ops);
 
   std::vector<ge::Operator> GetInputOps();
 
   GeOutPutOpType GetOutputOps();
-
-  CombinedInfo GetInputCombinedInfo();
-
-  CombinedInfo GetOutputCombinedInfo();
 
   static ge::Tensor PrepareInputTensor(
       const c10::StorageImpl* const storage,
@@ -105,12 +123,6 @@ public:
   static ge::Tensor PrepareOutputTenosr(
       c10::StorageImpl* storage,
       const ge::TensorDesc& desc);
-
-  void ResetGraphOutputs();
-
-  void RefreshGraphInputs();
-
-  void ClearDataStore();
 
   static uint32_t graph_id;
 

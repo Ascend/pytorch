@@ -21,8 +21,8 @@
 namespace at_npu {
 namespace native {
 
-inline void check_size_nonnegative(c10::IntArrayRef size) {
-  for (auto x : size) {
+inline void check_size_nonnegative(c10::IntArrayRef& size) {
+  for (auto& x : size) {
     TORCH_CHECK(
         x >= 0,
         "Trying to create tensor with negative dimension ",

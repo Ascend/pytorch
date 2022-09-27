@@ -17,13 +17,12 @@
 // #pragma once
 #include <ATen/ATen.h>
 #include <ATen/NativeFunctions.h>
-// #include <TH/THTensor.hpp>
 #include <ATen/native/Resize.h>
 
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/aten/common/ResizeNpu.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 namespace at_npu {
@@ -76,7 +75,7 @@ void set_storage_npu_(
       stride_);
 }
 
-at::Tensor& XLANativeFunctions::set_(at::Tensor& self, c10::Storage src) {
+at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   int64_t new_size = static_cast<int64_t>(src.nbytes() / self.dtype().itemsize());
   set_storage_npu_(
       self,
@@ -88,7 +87,7 @@ at::Tensor& XLANativeFunctions::set_(at::Tensor& self, c10::Storage src) {
   return self;
 }
 
-at::Tensor& XLANativeFunctions::set_(
+at::Tensor& NPUNativeFunctions::set_(
     at::Tensor& self,
     c10::Storage src,
     long storage_offset,
@@ -122,7 +121,7 @@ at::Tensor& set_format_npu_(
   return self;
 }
 
-at::Tensor& XLANativeFunctions::set_(at::Tensor& self) {
+at::Tensor& NPUNativeFunctions::set_(at::Tensor& self) {
   caffe2::TypeMeta dtype = self.dtype();
   c10::Storage storage(
       c10::Storage::use_byte_size_t(),
@@ -136,7 +135,7 @@ at::Tensor& XLANativeFunctions::set_(at::Tensor& self) {
   return self;
 }
 
-at::Tensor& XLANativeFunctions::set_(at::Tensor& self, const at::Tensor& src) {
+at::Tensor& NPUNativeFunctions::set_(at::Tensor& self, const at::Tensor& src) {
   at::TensorImpl* self_ = self.unsafeGetTensorImpl();
   at::TensorImpl* src_ = src.unsafeGetTensorImpl();
   if (self_ != src_) {

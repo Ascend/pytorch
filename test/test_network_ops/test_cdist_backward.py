@@ -21,7 +21,9 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
+
 class Testcdist(TestCase):
+
     def generate_data(self, min_n, max_n, shape_x, shape_y, src_type):
         np.random.seed(10086)
         x1 = np.random.uniform(min_n, max_n, shape_x).astype(src_type)
@@ -78,10 +80,10 @@ class Testcdist(TestCase):
 
     def test_cdis_backward_common_shape(self):
         shape_items = [
-                [np.float16, (5, 10), (4, 10)],
-                [np.float16, (20, 5, 10), (20, 4, 10)],
-                [np.float32, (5, 10), (4, 10)],
-                [np.float32, (20, 5, 10), (20, 4, 10)],
+            [np.float16, (5, 10), (4, 10)],
+            [np.float16, (20, 5, 10), (20, 4, 10)],
+            [np.float32, (5, 10), (4, 10)],
+            [np.float32, (20, 5, 10), (20, 4, 10)],
         ]
         p_ranges = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
         for item in shape_items:
@@ -102,7 +104,23 @@ class Testcdist(TestCase):
                                                     item[1], item[2], item[0])
                 cpu_output = self.op_exec(input1, input2, p, device='cpu')
                 npu_output = self.op_exec(input1, input2, p, device='npu')
-                self.assertRtolEqual(cpu_output, npu_output) 
+                self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_cdis_backward_inf(self):
+        shape_items = [
+            [np.float16, (5, 10), (4, 10)],
+            [np.float16, (20, 5, 10), (20, 4, 10)],
+            [np.float32, (5, 10), (4, 10)],
+            [np.float32, (20, 5, 10), (20, 4, 10)],
+        ]
+        p_ranges = [np.inf]
+        for item in shape_items:
+            for p in p_ranges:
+                input1, input2 = self.generate_data(-1, 1, item[1], item[2], item[0])
+                cpu_output = self.op_exec(input1, input2, p, device='cpu')
+                npu_output = self.op_exec(input1, input2, p, device='npu')
+                self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()

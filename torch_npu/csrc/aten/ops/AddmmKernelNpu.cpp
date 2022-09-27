@@ -19,14 +19,14 @@
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
 
-    at::Tensor &XLANativeFunctions::addmm_out(
+    at::Tensor &NPUNativeFunctions::addmm_out(
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
@@ -46,7 +46,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::addmm(
+    at::Tensor NPUNativeFunctions::addmm(
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
@@ -61,12 +61,12 @@ namespace at_npu
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), resFormat);
 
       // calculate the output result of the NPU
-      XLANativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result);
+      NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, result);
 
       return result;
     }
 
-    at::Tensor &XLANativeFunctions::addmm_(
+    at::Tensor &NPUNativeFunctions::addmm_(
         at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
@@ -80,12 +80,12 @@ namespace at_npu
       {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
         at::Tensor result =
-            XLANativeFunctions::addmm_out(contiguousSelf, mat1, mat2, beta, alpha, contiguousSelf);
+            NPUNativeFunctions::addmm_out(contiguousSelf, mat1, mat2, beta, alpha, contiguousSelf);
         NpuUtils::format_fresh_view(self, result);
       }
       else
       {
-        XLANativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, self);
+        NPUNativeFunctions::addmm_out(self, mat1, mat2, beta, alpha, self);
       }
 
       return self;

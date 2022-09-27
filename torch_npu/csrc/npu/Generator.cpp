@@ -4,7 +4,6 @@
 #include <ATen/ATen.h>
 #include <ATen/CPUGeneratorImpl.h>
 
-// #include <TH/TH.h>
 #include <torch/csrc/THP.h>
 #include <torch/csrc/Device.h>
 #include <torch/csrc/Exceptions.h>
@@ -16,7 +15,7 @@
 
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/npu/Generator.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 using namespace at;
 using namespace torch;

@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
@@ -38,7 +38,7 @@ tuple<at::Tensor&, at::Tensor&> min_out_npu_nocheck(
   return std::tie(output, indices);
 }
 
-tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::min_out(
+tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::min_out(
     const at::Tensor& self,
     int64_t dim,
     bool keepdim,
@@ -62,7 +62,7 @@ tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::min_out(
             .ReturnRef<at::Tensor&, at::Tensor&>();
 }
 
-tuple<at::Tensor, at::Tensor> XLANativeFunctions::min(const at::Tensor& self, int64_t dim, bool keepdim) {
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::min(const at::Tensor& self, int64_t dim, bool keepdim) {
   at::Tensor selfCast = self;
   if(self.dtype() == at::ScalarType::Bool){
     selfCast = self.to(at::ScalarType::Float);
@@ -88,7 +88,7 @@ tuple<at::Tensor, at::Tensor> XLANativeFunctions::min(const at::Tensor& self, in
   return std::tie(outputs, indices);
 }
 
-tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::min_out(
+tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::min_out(
     const at::Tensor& self,
     at::Dimname dim,
     bool keepdim,
@@ -97,7 +97,7 @@ tuple<at::Tensor&, at::Tensor&> XLANativeFunctions::min_out(
   return min_out(self, dimname_to_position(self, dim), keepdim, output, indices);
 }
 
-tuple<at::Tensor, at::Tensor> XLANativeFunctions::min(const at::Tensor& self, at::Dimname dim, bool keepdim) {
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::min(const at::Tensor& self, at::Dimname dim, bool keepdim) {
   return min(self, dimname_to_position(self, dim), keepdim);
 }
 
@@ -114,7 +114,7 @@ at::Tensor& min_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::min_out(
+at::Tensor& NPUNativeFunctions::min_out(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
@@ -128,7 +128,7 @@ at::Tensor& XLANativeFunctions::min_out(
   return result;
 }
 
-at::Tensor XLANativeFunctions::minimum(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::minimum(const at::Tensor& self, const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   min_out_npu_nocheck(self, other, result);
@@ -150,7 +150,7 @@ at::Tensor& min_out_npu_nocheck(
   return result;
 }
 
-at::Tensor XLANativeFunctions::amin(const at::Tensor& self, at::IntArrayRef dims, bool keepdim) {
+at::Tensor NPUNativeFunctions::amin(const at::Tensor& self, at::IntArrayRef dims, bool keepdim) {
   auto outputSize = reduce_ops_npu_output_size(self, dims, keepdim);
   int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(self);
   if (outputSize.empty()) {
@@ -161,12 +161,12 @@ at::Tensor XLANativeFunctions::amin(const at::Tensor& self, at::IntArrayRef dims
   return result;
 }
 
-at::Tensor XLANativeFunctions::min(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::min(const at::Tensor& self) {
   c10::SmallVector<int64_t, SIZE> dims = CalcuOpUtil::get_dimlist_for_tensor(self);
   return amin(self, dims, false);
 }
 
-at::Tensor& XLANativeFunctions::amin_out(
+at::Tensor& NPUNativeFunctions::amin_out(
     const at::Tensor& self, 
     at::IntArrayRef dims, 
     bool keepdim,

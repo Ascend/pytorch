@@ -39,7 +39,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUTensorImpl.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
@@ -124,16 +124,16 @@ namespace at_npu
       }
     } // namespace
 
-    // at::Tensor XLANativeFunctions::scalar_tensor(c10::Scalar s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
-    //                                              c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
-    //   at::tracer::impl::NoTracerDispatchMode tracer_guard;
-    //   at::AutoNonVariableTypeMode non_var_type_mode(true);
-    //   auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
-    //   at::native::fill_(result, s);
-    //   return result.to(at::device(at_npu::key::NativeDeviceType));
-    // }
+    at::Tensor NPUNativeFunctions::scalar_tensor(const c10::Scalar& s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
+                                                 c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
+      at::tracer::impl::NoTracerDispatchMode tracer_guard;
+      at::AutoNonVariableTypeMode non_var_type_mode(true);
+      auto result = at::native::empty_cpu({}, dtype, layout, c10::make_optional(c10::Device(at::kCPU)), pin_memory);
+      at::native::fill_(result, s);
+      return result.to(at::device(at_npu::key::NativeDeviceType));
+    }
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ empty ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::empty(c10::IntArrayRef size,
+    at::Tensor NPUNativeFunctions::empty(c10::IntArrayRef size,
                                          c10::optional<at::ScalarType> dtype_opt,
                                          c10::optional<c10::Layout> layout_opt,
                                          c10::optional<c10::Device> device_opt,
@@ -291,7 +291,7 @@ namespace at_npu
       else
       {
         // See Note [Explicit nullopt c10::MemoryFormat argument]
-        if (options.backend() == at_npu::key::NativeBackend)
+        if (!(options.backend() == at_npu::key::NativeBackend))
         {
           result = at::empty(
               self.sizes(), options.memory_format(memory_format), c10::nullopt);
@@ -312,7 +312,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::empty_like(
+    at::Tensor NPUNativeFunctions::empty_like(
         const at::Tensor &self,
         c10::optional<at::ScalarType> dtype_opt,
         c10::optional<c10::Layout> layout_opt,
@@ -329,7 +329,7 @@ namespace at_npu
       return at_npu::native::empty_like_npu(self, options, optional_memory_format);
     }
 
-    at::Tensor XLANativeFunctions::empty_with_format(c10::IntArrayRef size,
+    at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                      c10::optional<at::ScalarType> dtype_opt,
                                                      c10::optional<c10::Layout> layout_opt,
                                                      c10::optional<c10::Device> device_opt,
@@ -419,7 +419,7 @@ namespace at_npu
       return tensor;
     }
 
-    at::Tensor XLANativeFunctions::empty_with_format(c10::IntArrayRef size,
+    at::Tensor NPUNativeFunctions::empty_with_format(c10::IntArrayRef size,
                                                      c10::optional<at::DimnameList> names,
                                                      c10::optional<at::ScalarType> dtype_opt,
                                                      c10::optional<c10::Layout> layout_opt,
@@ -468,7 +468,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::empty_strided(
+    at::Tensor NPUNativeFunctions::empty_strided(
         c10::IntArrayRef size,
         c10::IntArrayRef stride,
         c10::optional<at::ScalarType> dtype_opt,
@@ -479,7 +479,7 @@ namespace at_npu
       check_size_nonnegative(size);
       checkInBoundsForStorage(size, stride, dtype_opt);
       c10::optional<c10::MemoryFormat> optional_memory_format = c10::nullopt;
-      auto t = XLANativeFunctions::empty({0},
+      auto t = NPUNativeFunctions::empty({0},
                                          dtype_opt,
                                          layout_opt,
                                          device_opt,
@@ -513,7 +513,7 @@ namespace at_npu
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ blackman_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::blackman_window(int64_t window_length,
+    at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
                                                    bool periodic,
                                                    c10::optional<at::ScalarType> dtype_opt,
                                                    c10::optional<c10::Layout> layout_opt,
@@ -544,7 +544,7 @@ namespace at_npu
       return periodic ? window.narrow(0, 0, window_length - 1) : window;
     }
 
-    at::Tensor XLANativeFunctions::blackman_window(int64_t window_length,
+    at::Tensor NPUNativeFunctions::blackman_window(int64_t window_length,
                                                    c10::optional<at::ScalarType> dtype_opt,
                                                    c10::optional<c10::Layout> layout_opt,
                                                    c10::optional<c10::Device> device_opt,
@@ -554,7 +554,7 @@ namespace at_npu
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~ bartlett_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::bartlett_window(
+    at::Tensor NPUNativeFunctions::bartlett_window(
         int64_t window_length,
         bool periodic,
         c10::optional<at::ScalarType> dtype_opt,
@@ -587,7 +587,7 @@ namespace at_npu
       return periodic ? window.narrow(0, 0, window_length - 1) : window;
     }
 
-    at::Tensor XLANativeFunctions::bartlett_window(int64_t window_length,
+    at::Tensor NPUNativeFunctions::bartlett_window(int64_t window_length,
                                                    c10::optional<at::ScalarType> dtype_opt,
                                                    c10::optional<c10::Layout> layout_opt,
                                                    c10::optional<c10::Device> device_opt,
@@ -598,7 +598,7 @@ namespace at_npu
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hann_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::hann_window(
+    at::Tensor NPUNativeFunctions::hann_window(
         int64_t window_length,
         bool periodic,
         c10::optional<at::ScalarType> dtype_opt,
@@ -616,7 +616,7 @@ namespace at_npu
       return at::hamming_window(window_length, periodic, 0.5, 0.5, options);
     }
 
-    at::Tensor XLANativeFunctions::hann_window(int64_t window_length,
+    at::Tensor NPUNativeFunctions::hann_window(int64_t window_length,
                                                c10::optional<at::ScalarType> dtype_opt,
                                                c10::optional<c10::Layout> layout_opt,
                                                c10::optional<c10::Device> device_opt,
@@ -626,7 +626,7 @@ namespace at_npu
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ hamming_window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::hamming_window(
+    at::Tensor NPUNativeFunctions::hamming_window(
         int64_t window_length,
         bool periodic,
         double alpha,
@@ -663,7 +663,7 @@ namespace at_npu
       return periodic ? window.narrow(0, 0, window_length - 1) : window;
     }
 
-    at::Tensor XLANativeFunctions::hamming_window(
+    at::Tensor NPUNativeFunctions::hamming_window(
         int64_t window_length,
         bool periodic,
         double alpha,
@@ -675,7 +675,7 @@ namespace at_npu
       return hamming_window(window_length, periodic, alpha, 0.46, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
-    at::Tensor XLANativeFunctions::hamming_window(
+    at::Tensor NPUNativeFunctions::hamming_window(
         int64_t window_length,
         bool periodic,
         c10::optional<at::ScalarType> dtype_opt,
@@ -686,7 +686,7 @@ namespace at_npu
       return hamming_window(window_length, periodic, 0.54, dtype_opt, layout_opt, device_opt, pin_memory_opt);
     }
 
-    at::Tensor XLANativeFunctions::hamming_window(int64_t window_length,
+    at::Tensor NPUNativeFunctions::hamming_window(int64_t window_length,
                                                   c10::optional<at::ScalarType> dtype_opt,
                                                   c10::optional<c10::Layout> layout_opt,
                                                   c10::optional<c10::Device> device_opt,
@@ -730,7 +730,7 @@ namespace at_npu
 #undef TENSOR
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ clone ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    at::Tensor XLANativeFunctions::clone(const at::Tensor &src,
+    at::Tensor NPUNativeFunctions::clone(const at::Tensor &src,
                                          c10::optional<c10::MemoryFormat> format)
     {
       OptimizationCases opt_cases{"reshape", "slice"};
@@ -756,25 +756,25 @@ namespace at_npu
       }
     }
 
-    // at::Tensor XLANativeFunctions::full(
-    //     c10::IntArrayRef size,
-    //     c10::Scalar fill_value,
-    //     c10::optional<at::ScalarType> dtype_opt,
-    //     c10::optional<at::Layout> layout_opt,
-    //     c10::optional<at::Device> device_opt,
-    //     c10::optional<bool> pin_memory_opt)
-    // {
-    //   c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
-    //                                       .device(device_opt)
-    //                                       .layout(layout_opt)
-    //                                       .pinned_memory(pin_memory_opt);
-    //   TORCH_CHECK(
-    //       options.layout() != at::kSparse,
-    //       "full(...) is not implemented for sparse layout");
+    at::Tensor NPUNativeFunctions::full(
+        c10::IntArrayRef size,
+        const c10::Scalar& fill_value,
+        c10::optional<at::ScalarType> dtype_opt,
+        c10::optional<at::Layout> layout_opt,
+        c10::optional<at::Device> device_opt,
+        c10::optional<bool> pin_memory_opt)
+    {
+      c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
+                                          .device(device_opt)
+                                          .layout(layout_opt)
+                                          .pinned_memory(pin_memory_opt);
+      TORCH_CHECK(
+          options.layout() != at::kSparse,
+          "full(...) is not implemented for sparse layout");
 
-    //   auto result = OpPreparation::ApplyTensorWithSizes(size, options);
-    //   return result.fill_(fill_value);
-    // }
+      auto result = OpPreparation::ApplyTensorWithSizes(size, options);
+      return result.fill_(fill_value);
+    }
 
   } // namespace native
 } // namespace at_npu

@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -38,7 +38,7 @@ at::Tensor& scatter_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::scatter_out(
+at::Tensor& NPUNativeFunctions::scatter_out(
   const at::Tensor& self,
   int64_t dim,
   const at::Tensor& index,
@@ -52,7 +52,7 @@ at::Tensor& XLANativeFunctions::scatter_out(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::scatter_out(
+at::Tensor& NPUNativeFunctions::scatter_out(
   const at::Tensor& self,
   int64_t dim,
   const at::Tensor& index,
@@ -64,7 +64,7 @@ at::Tensor& XLANativeFunctions::scatter_out(
       self);
   at::Tensor srcTensor = scalar_to_tensor(value).to(at::ScalarType::Float);
   srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
-  at::Tensor srcTensor_broadcast = XLANativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
+  at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
   scatter_out_npu_nocheck(result, self, dim, index, srcTensor_broadcast);
   return result;
 }

@@ -16,18 +16,20 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMM(TestCase):
-    def test_mm_mat1_mat2_transpose(self, device="npu"):
+    @graph_mode
+    def test_mm_mat1_mat2_transpose(self):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]
         shape_list = [
-                      [16, 32],
-                      [16, 30],
-                      [15, 32],
-                      [15, 30]
+                      [8, 16],
+                      [8, 15],
+                      [7, 16],
+                      [7, 15]
                       ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list
@@ -41,14 +43,15 @@ class TestMM(TestCase):
             cpu_out = torch.mm(cpu_input, cpu_input.t())
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.to(npu_out.dtype).numpy())
 
-    def test_mm_mat1_view_mat2_view_transpose(self, device="npu"):
+    @graph_mode
+    def test_mm_mat1_view_mat2_view_transpose(self):
         dtype_list = [np.float16, np.float32]
         format_list = [2, 29]
         shape_list = [
-                      [2, 15, 10],
-                      [2, 16, 10],
-                      [2, 16, 16],
-                      [2, 15, 16]
+                      [2, 7, 5],
+                      [2, 8, 5],
+                      [2, 8, 8],
+                      [2, 7, 8]
                       ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list

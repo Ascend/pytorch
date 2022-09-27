@@ -18,7 +18,7 @@
 #include "torch_npu/csrc/framework/OpParamMaker.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
 #include "torch_npu/csrc/aten/mirror/NPUTensorIterator.h"
 
@@ -88,7 +88,9 @@ public:
 
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
-                 at::ScalarType toType = at::kLong);
+                   at::ScalarType toType = at::kLong,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "");
 
   // Scalar Input, we will do h2d in launch kernel
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
@@ -96,6 +98,8 @@ public:
 
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList &inputs);
+
+  OpCommand& InputScalarToNPUTensor(const c10::Scalar& input, const at::ScalarType type);
 
   // Output Tensor
   OpCommand& Output(
@@ -117,13 +121,19 @@ public:
   // Run a single op
   void Run();
 
+  OpCommand& Sync(c10::SmallVector<int64_t, N> &sync_index);
+
 private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
                           const string &descName = "", const string &realData = "") ;
 
-  OpCommand& AddHostTensorInput(const at::Tensor &tensor,
-                              CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT);
+  OpCommand& AddHostTensorInput(
+      const at::Tensor &tensor,
+      CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+      const string& realDtype = "");
+
+  OpCommand& AddScalarInput(const c10::Scalar& input, at::ScalarType type);
 
   OpCommand& AddNoneTensor();
 
@@ -150,6 +160,10 @@ private:
   c10::optional<at::ScalarType> commonType = c10::nullopt;
   c10::optional<c10::IntArrayRef> commonShape = c10::nullopt;
   bool resultTypeDefined = false;
+  bool sync = false;
+  c10::SmallVector<int64_t, N> sync_index;
+  c10::SmallVector<at::Tensor, N> outputTensor;
+
 }; // class OpCommand
 } // namespace native
 } // namespace at_npu

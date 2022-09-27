@@ -64,6 +64,7 @@
 **表 1**  迁移流程说明
 
 <a name="table634981613275"></a>
+
 <table><thead align="left"><tr id="row163496162279"><th class="cellrowborder" valign="top" width="28.18%" id="mcps1.2.3.1.1"><p id="p163497165271"><a name="p163497165271"></a><a name="p163497165271"></a>场景</p>
 </th>
 <th class="cellrowborder" valign="top" width="71.82%" id="mcps1.2.3.1.2"><p id="p12349121682716"><a name="p12349121682716"></a><a name="p12349121682716"></a>说明</p>
@@ -82,7 +83,7 @@
 </tr>
 <tr id="row9883113014287"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p8883203017280"><a name="p8883203017280"></a><a name="p8883203017280"></a>算子开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a>《PyTorch算子开发指南》</span></span>。</p>
+    <td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p158831830192814"><a name="p158831830192814"></a><a name="p158831830192814"></a>详情请参见<span id="ph144957513112"><a name="ph144957513112"></a><a name="ph144957513112"></a><span id="ph45906272222"><a name="ph45906272222"></a><a name="ph45906272222"></a><a href="https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md">《PyTorch算子开发指南》</a></span></span>。</p>
 </td>
 </tr>
 <tr id="row2056653212812"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1656743213814"><a name="p1656743213814"></a><a name="p1656743213814"></a>环境准备</p>
@@ -102,36 +103,37 @@
 </tr>
 <tr id="row1658912015291"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p195901920192910"><a name="p195901920192910"></a><a name="p195901920192910"></a>错误分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph7924185091616"><a name="ph7924185091616"></a><a name="ph7924185091616"></a>《CANN 日志参考》</span>和<span id="ph1572317171516"><a name="ph1572317171516"></a><a name="ph1572317171516"></a>《CANN 开发辅助工具指南》</span>中“AI Core Error分析工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p95904208295"><a name="p95904208295"></a><a name="p95904208295"></a>详情请参见<span id="ph7924185091616"><a name="ph7924185091616"></a><a name="ph7924185091616"></a><a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html">《CANN 软件安装指南》</a>中“日志参考>日志操作”章节设置日志级别</span>和<span id="ph1572317171516"><a name="ph1572317171516"></a><a name="ph1572317171516"></a><a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasaicoreerr_16_0003.html">《CANN 软件安装指南》</a></span>中“开发工具>AI Core Error分析工具”章节。</p>
 </td>
 </tr>
 <tr id="row13191151664310"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p219216162433"><a name="p219216162433"></a><a name="p219216162433"></a>性能调优和分析</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>详情请参见<a href="#性能调优和分析md">性能调优和分析</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p11192181615434"><a name="p11192181615434"></a><a name="p11192181615434"></a>详情请参见<a href="#性能调优和分析">性能调优和分析</a>。</p>
 </td>
 </tr>
 <tr id="row94308194435"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p74301019144319"><a name="p74301019144319"></a><a name="p74301019144319"></a>精度调测</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="#精度调测md">精度调测</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="#精度调测">精度调测</a>。</p>
 </td>
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>模型保存与转换</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换md">模型保存与转换</a>和<span id="ph98735134233"><a name="ph98735134233"></a><a name="ph98735134233"></a>《CANN 开发辅助工具指南》</span>中“ATC工具使用指南”章节。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p12631521104319"><a name="p12631521104319"></a><a name="p12631521104319"></a>详情请参见<a href="#模型保存与转换">模型保存与转换</a>和<span id="ph98735134233"><a name="ph98735134233"></a><a name="ph98735134233"></a><a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.htmll">《CANN 软件安装指南》</a></span>中“ATC模型转换”章节。</p>
 </td>
 </tr>
 <tr id="row196272410438"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p176218241431"><a name="p176218241431"></a><a name="p176218241431"></a>应用软件开发</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph1062525151815"><a name="ph1062525151815"></a><a name="ph1062525151815"></a>《CANN 应用软件开发指南(C&amp;C++, 推理)》</span>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p1962142434317"><a name="p1962142434317"></a><a name="p1962142434317"></a>详情请参见<span id="ph1062525151815"><a name="ph1062525151815"></a><a name="ph1062525151815"></a><a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.htmll">《CANN 软件安装指南》</a></span>中”应用开发（c++）“章节。</p>
 </td>
 </tr>
 <tr id="row17586759102515"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p6586155952510"><a name="p6586155952510"></a><a name="p6586155952510"></a>FAQ</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>主要涉及环境准备、模型迁移、模型调测和其他常见问题的解决方法。详情请参见<a href="#FAQmd">FAQ</a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p105871359192515"><a name="p105871359192515"></a><a name="p105871359192515"></a>主要涉及环境准备、模型迁移、模型调测和其他常见问题的解决方法。详情请参见<a href="#FAQ">FAQ</a>。</p>
 </td>
 </tr>
 </tbody>
 </table>
+
 
 ## 快速上手
 
@@ -143,18 +145,18 @@
 
 本样例基于PyTorch官网提供的Imagenet数据集训练模型[main.py](https://github.com/pytorch/examples/tree/master/imagenet/main.py)脚本进行适配昇腾910 AI处理器的迁移。
 
-### 模型移植评估
+### 模型移植评估<a name="模型移植评估md"></a>
 
 模型是否可以迁移成功主要取决于模型算子是否支持昇腾AI处理器。故需要对模型算子对昇腾AI处理器的支持性进行评估，一般有两种方式评估算子支持性
 
-- 模型迁移前，使用dump op方法获取算子信息，与《PyTorch API 支持清单》中自定义算子进行比较，确定是否支持。
+- 模型迁移前，使用dump op方法获取算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中自定义算子进行比较，确定是否支持。
 - 模型迁移后，在昇腾设备上进行运行训练脚本，若存在不支持昇腾AI设备的算子，会提示报错信息。
 
-若存在不支持算子，可以采用修该模型用等价支持的算子替换或者参考《PyTorch算子开发指南》进行算子开发。
+若存在不支持算子，可以采用改模型用等价支持的算子替换或者参考[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
 ResNet50模型用到的算子已经在昇腾AI处理器上支持。
 
-### 环境准备
+### 环境准备<a name="环境准备md"></a>
 
 请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
 
@@ -166,7 +168,7 @@ aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
 
 X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
 
-### 模型迁移
+### 模型迁移<a name="模型迁移md"></a>
 
 在main.py训练脚本的基础上进行修改，实现模型的单卡训练和单机多卡训练迁移。
 
@@ -724,7 +726,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
    def main():
        args = parser.parse_args()
        ngpus_per_node = torch.cuda.device_count()
-       main_worker(args.gpu, ngpus_per_node，args)
+       main_worker(args.gpu, ngpus_per_node, args)
    ```
 
    修改后：
@@ -739,7 +741,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
            mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args))
        else:
            # Simply call main_worker function
-           main_worker(args.gpu, ngpus_per_node，args)
+           main_worker(args.gpu, ngpus_per_node, args)
    ```
 
    其中mp.spawn第一个参数为模型主函数名称，根据具体模型具体修改。
@@ -1052,14 +1054,9 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
    其余所需参数未列举
 
    ```python
-   python3 main.py
-   	  	--rank 0
-           --world-size 1 
-           --dist-url 'env://'
-           --dist-backend 'hccl'
-           --multiprocessing-distribute
+   python3 -m torch.distributed.launch --nproc_per_node 8 main.py
    ```
-
+   
    
 
 ##### Shell脚本方式
@@ -1115,7 +1112,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
    def main():
        args = parser.parse_args()
        ngpus_per_node = torch.cuda.device_count()
-       main_worker(args.gpu, ngpus_per_node，args)
+       main_worker(args.gpu, ngpus_per_node, args)
    ```
 
    修改后：
@@ -1126,7 +1123,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
        os.environ['MASTER_ADDR'] = args.addr 
        os.environ['MASTER_PORT'] = args.port
        ngpus_per_node = torch.npu.device_count()
-       main_worker(args.gpu, ngpus_per_node，args)
+       main_worker(args.gpu, ngpus_per_node, args)
    ```
 
 4. 添加分布式逻辑
@@ -1264,7 +1261,7 @@ X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+
 
 
 
-### 模型训练
+### 模型训练<a name="模型训练md"></a>
 
 **准备数据集**
 
@@ -1312,11 +1309,12 @@ python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                #
 
 <h2 id="模型移植评估md">模型移植评估</h2>
 
-1.  在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
-2.  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取算子信息，与《PyTorch适配算子清单》算子进行比较，查看是否支持。dump op方法参见[dump op方法](#dump-op方法md)，当有不支持算子时参见《PyTorch算子开发指南》进行算子开发。
+1. 在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
 
-    >![](public_sys-resources/icon-note.gif) **说明：** 
-    >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
+2. 查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取当前模型算子列表并在[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中查找该算子查看是否支持。dump op方法参见<a href="#dump-op方法">dump op方法</a>，当有不支持算子时参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
+
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >查看算子适配情况也可以先将模型及训练脚本迁移到昇腾AI处理器（迁移方法参见下文）进行训练来查看报错信息。一般会提示不能在昇腾AI处理器的backend下运行某个算子（第一个不支持的算子）。
 
 
 <h2 id="环境准备md">环境准备</h2>
@@ -1352,7 +1350,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 **环境准备**<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
 
-详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/504/envdeployment/instg) 安装开发环境。
+详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/envdeployment/instg) 安装开发环境。
 
 <h4 id="操作指南md">操作指南</h4>
 
@@ -1812,7 +1810,7 @@ def main():
     </table>
 
 
-更多接口请参见《PyTorch API支持清单》。
+更多接口请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
 <h3 id="混合精度md">混合精度</h3>
 
@@ -1839,6 +1837,7 @@ def main():
 **表 1**  混合精度模块功能
 
 <a name="table10717173813332"></a>
+
 <table><thead align="left"><tr id="row371716385333"><th class="cellrowborder" valign="top" width="32.269999999999996%" id="mcps1.2.3.1.1"><p id="p13717163815333"><a name="p13717163815333"></a><a name="p13717163815333"></a>功能</p>
 </th>
 <th class="cellrowborder" valign="top" width="67.73%" id="mcps1.2.3.1.2"><p id="p14400173910345"><a name="p14400173910345"></a><a name="p14400173910345"></a>描述</p>
@@ -1883,7 +1882,7 @@ def main():
 2.  导入amp模块后，需要初始化amp，使其能对模型、优化器以及PyTorch内部函数进行必要的改动，初始化代码如下：
 
     ```
-    model, optimizer = amp.initialize(model, optimizer，combine_grad=True)
+    model, optimizer = amp.initialize(model, optimizer, combine_grad=True)
     ```
 
 3.  标记反向传播.backward\(\)发生的位置，这样Amp就可以进行Loss Scaling并清除每次迭代的状态，代码如下：
@@ -1941,13 +1940,13 @@ Pytorch1.8.1版本的AMP，类似于Apex AMP的O1模式（动态 loss scale）�
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
 
-<h2 id="性能调优和分析md">性能调优和分析</h2>
+<h2 id="性能调优和分析">性能调优和分析</h2>
 
 
 <h3 id="前提条件md">前提条件</h3>
 
 1.  参见[样例说明](#样例说明md)改造开源代码，使模型能够正常运行，包括数据预处理，前向计算，loss计算，混合精度，反向计算，参数更新等。
-2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见《PyTorch算子开发指南》进行算子适配开发。
+2.  模型迁移阶段优先关注模型是否能跑通，现有算子是否能满足，如果遇到不满足的算子需参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子适配开发。
 3.  优先打通单卡功能，再打通多卡功能。
 
 <h3 id="调测过程md">调测过程</h3>
@@ -2076,12 +2075,7 @@ CANN Profiling数据采集
       >![](public_sys-resources/icon-note.gif) **说明：** 
       >获取性能数据文件时，model、input\_tensor、target需要下发到npu上。
 
-  2.  解析性能数据文件。
-
-      请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
-
-
-  3. 高级用法
+  2. 高级用法
 
     pytorch框架是单算子运行方式，本身无法区分step信息，若在with语句内执行了多个step，那么profiling得到的数据则是的多个step连在一起，从prof图上无法区分某个step的数据，因此为了区分step信息，提供高级接口，使用示例如下：
     ```
@@ -2097,6 +2091,33 @@ CANN Profiling数据采集
                 torch_npu.npu.prof_stop()
                 torch_npu.npu.prof_finalize()
     ```
+  3.  解析性能数据文件。
+
+      详细内容请参见《CANN 开发辅助工具指南》中“Profiling工具使用指南>高级功能（所有性能调优方式和采集项）>数据解析与导出”章节。
+
+      前述方法会产生如下数据：
+
+         <img src="figures/cann_prof_result.png" />
+
+        解析该数据需要使用的msprof工具，一般默认路径在 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py
+        第一步，执行
+        ```
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py import -dir ./results/
+        ```
+        第二步，导出数据（可以导出timeline和summary数据，timeline类型数据可以导出至chrome://tracing/查看，而summary数据以excel形式展示）。
+
+        ```
+        # 导出timeline数据
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py export  timeline -dir ./results/
+        # 导出summary数据
+        python3 /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/profiler_tool/analysis/msprof/msprof.py export  summary -dir ./results/
+        ```
+
+        解析结果如下：
+
+        <img src="figures/cann_result.png" />
+
+    
 
  E2E profiling数据采集
 
@@ -2113,7 +2134,7 @@ with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True
 - profiler_result_path表示prof结果保存路径，默认为当前路径。
 - use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
 
-（因NUP算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
+（因NPU算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
 
 2. 解析性能数据
 
@@ -2140,13 +2161,11 @@ d. timeline路径下为解析得到的性能数据，可以通过chrome://tracin
 
    点击load，上传文件查看。
 
-      <img src="figures/chrometracing.png" style="zoom:80%;" />
-
    内容示例如下图：
 
-   <img src="figures/3.png" style="zoom:80%;" />
+   <img src="figures/e2e_prof.png" style="zoom:80%;" />
 
-   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（Task Scheduler）为device数据，第四层（AI CPU）为AICPU数据。
+   该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（GeOPExecute）为GE层数据，第四层（Runtime）为Runtime调度层数据，第五层(Task Scheduler)为device上数据，第六层（如有则为是AICPU，示意图中没有第六层数据）为AICPU上数据。
 
 3. E2E profiling高级设置<a name="E2E"></a>
 E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
@@ -2250,7 +2269,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
     export ASCEND_SLOG_PRINT_TO_STDOUT=1
     ```
 
-3.  设置日志级别为info，参考《CANN 日志参考》设置日志级别。
+3.  设置日志级别为info，参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
 4.  执行训练脚本，进行模型训练，训练完成后获取host侧日志，默认位置为$HOME/ascend/log/plog目录下，$HOME表示Host侧用户根目录。
 5.  解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
 
@@ -2527,47 +2546,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 <h4 id="功能介绍-1md">功能介绍</h4>
 
-<a name="table348133010119"></a>
-<table><thead align="left"><tr id="row1348193013113"><th class="cellrowborder" valign="top" width="46.21462146214622%" id="mcps1.1.4.1.1"><p id="p98051838191114"><a name="p98051838191114"></a><a name="p98051838191114"></a>函数名</p>
-</th>
-<th class="cellrowborder" valign="top" width="25.292529252925295%" id="mcps1.1.4.1.2"><p id="p1080553881111"><a name="p1080553881111"></a><a name="p1080553881111"></a>位置</p>
-</th>
-<th class="cellrowborder" valign="top" width="28.49284928492849%" id="mcps1.1.4.1.3"><p id="p14805153841113"><a name="p14805153841113"></a><a name="p14805153841113"></a>功能说明</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="row1449163011112"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p138051838121113"><a name="p138051838121113"></a><a name="p138051838121113"></a>pairwise_iou</p>
-</td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p1080514386118"><a name="p1080514386118"></a><a name="p1080514386118"></a>torch_npu.contrib</p>
-</td>
-<td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p1480593811116"><a name="p1480593811116"></a><a name="p1480593811116"></a>计算两个目标框的IOU。</p>
-</td>
-</tr>
-<tr id="row174933013118"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p1280513819113"><a name="p1280513819113"></a><a name="p1280513819113"></a>fast_rcnn_inference_single_image</p>
-</td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p198057389119"><a name="p198057389119"></a><a name="p198057389119"></a>torch_npu.contrib</p>
-</td>
-<td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p118053381118"><a name="p118053381118"></a><a name="p118053381118"></a>Maskrcnn和Fasterrcnn模型的推理接口。</p>
-</td>
-</tr>
-<tr id="row349530141119"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p2806538181110"><a name="p2806538181110"></a><a name="p2806538181110"></a>ChannelShuffle</p>
-</td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p48069388115"><a name="p48069388115"></a><a name="p48069388115"></a>torch_npu.contrib</p>
-</td>
-<td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p5806123817112"><a name="p5806123817112"></a><a name="p5806123817112"></a>提供NPU亲和的channelshuffle操作，适用于shufflenetv2等模型。</p>
-</td>
-</tr>
-<tr id="row849203018111"><td class="cellrowborder" valign="top" width="46.21462146214622%" headers="mcps1.1.4.1.1 "><p id="p188062384116"><a name="p188062384116"></a><a name="p188062384116"></a>PreLoader</p>
-</td>
-<td class="cellrowborder" valign="top" width="25.292529252925295%" headers="mcps1.1.4.1.2 "><p id="p6806938111113"><a name="p6806938111113"></a><a name="p6806938111113"></a>torch_npu.contrib</p>
-</td>
-<td class="cellrowborder" valign="top" width="28.49284928492849%" headers="mcps1.1.4.1.3 "><p id="p14806103861118"><a name="p14806103861118"></a><a name="p14806103861118"></a>提供针对昇腾AI处理器加速的数据加载方法。</p>
-</td>
-</tr>
-</tbody>
-</table>
-
-
+亲和库详细说明请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中”亲和库“章节。
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
 
@@ -2642,7 +2621,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 调优完成后，还原代码修改，运行模型，验证模型/算子性能是否提高。
 
-<h2 id="精度调测md">精度调测</h2>
+<h2 id="精度调测">精度调测</h2>
 
 
 <h3 id="前提条件-2md">前提条件</h3>
@@ -2653,12 +2632,11 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
 <h3 id="调测过程-3md">调测过程</h3>
 
--   **[总体思路](#总体思路-4md)**  
+-   **[总体思路](#总体)**  
 
--   **[精度调优方法](#精度调优方法md)**  
+-   **[精度调优方法](#精度调优方法)**  
 
-
-<h4 id="总体思路-4md">总体思路</h4>
+<h4 name="总体">总体思路</h4>
 
 精度问题排查需要找出是哪一步出现的问题，主要以下几个方面：
 
@@ -2690,7 +2668,7 @@ with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=Tr
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-<h4 id="精度调优方法md">精度调优方法</h4>
+<h4 id="精度调优方法">精度调优方法</h4>
 
 模型出现精度问题一般有：因算子溢出导致的训练loss不收敛或者精度不达标问题，整个网络训练引起的性能不达标问题。用户可通过单算子溢出检测和整网调测适度解决模型精度不达标问题。
 
@@ -2919,7 +2897,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 ##### NPU与GPU算子映射
 
-请参见《开发辅助工具指南》中 ”精度对比工具使用指南（训练）“中 “数据准备章节” 中的 “[准备以PyTorch为原始训练网络的精度比对数据文件](https://support.huawei.com/enterprise/zh/doc/EDOC1100219269/2324edc8#ZH-CN_TOPIC_0000001162580808)”。
+请参见[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)中 ”开发工具>精度比对工具> 比对数据准备>训练场景数据准备>准备以PyTorch为原始训练网络的精度比对数据文件” 章节 。
 
 <h5 id="整网调测md">整网调测</h5>
 
@@ -2982,8 +2960,7 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
         print("[grad]: "+name, module.grad)
     ```
 
-
-<h2 id="模型保存与转换md">模型保存与转换</h2>
+<h2 id="模型保存与转换">模型保存与转换</h2>
 
 -   **[简介](#简介md)**  
 
@@ -2996,11 +2973,11 @@ with torch.utils.dumper(check_overflow=check_overflow, dump_path=dump_path, load
 
 模型训练完成后，通过Pytorch提供的接口保存模型文件并导出ONNX模型，然后通过ATC工具将其转换为适配昇腾AI处理器的.om文件用于离线推理。
 
-本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考《CANN 开发辅助工具指南》手册中“ATC工具使用指南”章节。
+本章主要介绍如何将训练好的pth文件pth.tar文件转换为ONNX模型，将ONNX模型转换为适配昇腾AI处理器的.om文件流程请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/atctool/atctool_0001.html)手册中“ATC模型转换”章节。
 
-如果想使用Auto Tune优化功能，请参考《CANN 开发辅助工具指南》手册中“Auto Tune工具使用指导”章节。
+如果想使用Auto Tune优化功能，请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)手册中“开发工具>Auto Tune工具”章节。
 
-离线推理应用构建请参考《CANN 应用软件开发指南\(C&C++, 推理\)》。整体流程如下：
+离线推理应用构建请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/inferapplicationdev/aclcppdevg/aclcppdevg_000000.html)手册中“应用开发（c++）“章节。整体流程如下：
 
 ![](figures/zh-cn_image_0000001144082132.png)
 
@@ -3024,7 +3001,7 @@ Pytorch在训练过程中，通常使用torch.save\(\)来保存Checkpoint文件�
         torch.save(net.state_dict(), PATH)
         ```
 
-    2.  加载模型以用于在线推理，示例如下，详情请参见《PyTorch在线推理指南》。
+    2.  加载模型以用于在线推理，示例如下，详情请参见[《PyTorch在线推理指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97/PyTorch%E5%9C%A8%E7%BA%BF%E6%8E%A8%E7%90%86%E6%8C%87%E5%8D%97.md)。
 
         ```
         # 模型文件保存路径
@@ -3204,7 +3181,7 @@ if __name__ == "__main__":
 
 <h4 id="模型评估md">模型评估</h4>
 
-模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与《PyTorch适配算子清单》算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见《PyTorch算子开发指南》进行算子开发。
+模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
 <h4 id="网络迁移md">网络迁移</h4>
 
@@ -3945,7 +3922,7 @@ torch_npu.npu.finalize_dump()
 
     **export ASCEND\_SLOG\_PRINT\_TO\_STDOUT=0**
 
-3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考《CANN 日志参考》设置日志级别。
+3.  设置日志级别，日志级别设置，信息从多到少分别是 debug --\> info --\> warning --\> error --\> null，一般设置为error，调试时使用info。请参考[《CANN [《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别设置日志级别。
 
     **export ASCEND\_GLOBAL\_LOG\_LEVEL=3**
 
@@ -4151,8 +4128,7 @@ ACL_OP_COMPILER_CACHE_DIR：用于配置算子编译磁盘缓存的目录。该�
     export CPATH=/usr/local/hdf5/include:$CPATH 
     ```
 
-
-<h2 id="FAQmd">FAQ</h2>
+<h2 id="FAQ">FAQ</h2>
 
 -   **[软件安装常见问题](#软件安装常见问题md)**  
 
@@ -4867,4 +4843,4 @@ return result
 **处理方法**<a name="section8970834202112"></a>
 
 export HCCL_CONNECT_TIMEOUT=time, 
-time默认值为120s ，取值范围为[120, 7200]2
+time默认值为120s ，取值范围为[120, 7200]

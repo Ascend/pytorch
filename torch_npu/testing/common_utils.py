@@ -21,6 +21,10 @@ from contextlib import contextmanager
 import os
 import sys
 import unittest
+import json
+import stat
+import atexit
+import threading
 import tempfile
 import torch
 import numpy as np
@@ -77,7 +81,6 @@ def is_iterable(obj):
 def set_npu_device():
     npu_device = get_npu_device()
     torch.npu.set_device(npu_device)
-    print(f"Your device is {npu_device}")
     return npu_device
 
 
@@ -219,3 +222,35 @@ class SkipIfNotRegistered(object):
         except ImportError:
             skipper = unittest.skip("Cannot import `caffe2.python.core`")
         return skipper
+
+PERF_TEST_ENABLE = (os.getenv('PERF_TEST_ENABLE', default='').upper() in ['ON', '1', 'YES', 'TRUE', 'Y'])
+PERF_BASELINE_FILE = os.getenv("PERF_BASELINE_FILE", default=os.path.join(os.getcwd(), "performance_baseline.json"))
+
+class Baseline(object):
+
+    def __init__(self, baselineFile):
+        self._baseline = {}
+        self._baselineFile = baselineFile
+        self._mutex = threading.Lock()
+        if os.path.exists(self._baselineFile):
+            with open(self._baselineFile, "r") as f:
+                self._baseline = json.load(f)
+
+    def get_baseline(self, resourceId):
+        return self._baseline.get(resourceId)
+
+    def set_baseline(self, resourceId, baseline):
+        with self._mutex:
+            self._baseline[resourceId] = baseline
+
+    def save_baseline(self):
+        with self._mutex:
+            with os.fdopen(os.open(self._baselineFile, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "w") as f:
+                json.dump(self._baseline, f)
+
+PerfBaseline = Baseline(PERF_BASELINE_FILE)
+
+@atexit.register
+def dump_baseline():
+    if PERF_TEST_ENABLE:
+        PerfBaseline.save_baseline()

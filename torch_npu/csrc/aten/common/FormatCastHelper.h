@@ -30,7 +30,7 @@ public:
   static bool format_cast_between_group(at::Tensor& dst, const at::Tensor& src, FormatCastFunc format_cast_inside_group);
   // this interface is similar to CastBackToOriFormat, but CastBackToOriFormat may have overload problem.
   static at::Tensor ApplyBaseFormatTensorBy(const at::Tensor& src);
-  static at::Tensor& CovertSelfToBaseFormat(const at::Tensor& src);
+  static at::Tensor& CovertSelfToBaseFormat(at::Tensor& src);
 private:
   // help function of format_cast_between_group
   static void base_format_cast_nocheck(at::Tensor& dst, const at::Tensor& src);

@@ -20,7 +20,7 @@
 #include <ATen/NamedTensorUtils.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 
 namespace at_npu {
@@ -63,7 +63,7 @@ at::Tensor log_softmax_nocheck(
 }
 } // namespace
 
-at::Tensor XLANativeFunctions::log_softmax(
+at::Tensor NPUNativeFunctions::log_softmax(
     const at::Tensor& self,
     int64_t dim,
     c10::optional<c10::ScalarType> dtype) {
@@ -76,14 +76,14 @@ at::Tensor XLANativeFunctions::log_softmax(
   return at::_log_softmax(self.toType(dstType), dim, false);
 }
 
-at::Tensor XLANativeFunctions::log_softmax(
+at::Tensor NPUNativeFunctions::log_softmax(
     const at::Tensor& self,
     at::Dimname dim,
     c10::optional<c10::ScalarType> dtype) {
-  return XLANativeFunctions::log_softmax(self, dimname_to_position(self, dim), dtype);
+  return NPUNativeFunctions::log_softmax(self, dimname_to_position(self, dim), dtype);
 }
 
-at::Tensor XLANativeFunctions::_log_softmax(const at::Tensor& self, int64_t dim, bool half_to_float) {
+at::Tensor NPUNativeFunctions::_log_softmax(const at::Tensor& self, int64_t dim, bool half_to_float) {
   // construct the output tensor of the NPU
   at::Tensor result;
   if (half_to_float) {

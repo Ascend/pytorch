@@ -154,4 +154,13 @@ Operator& Operator::SetAttr(const char* name, const Tensor& attr_value) {
   return op;
 }
 
+Operator& Operator::SetAttr(const char* name, const ge::DataType& attr_value){
+  return op;
+}
+
+Operator& Operator::AddControlInput(const Operator& src_oprt) {
+  return op;
+}
+
 } // namespace ge
+

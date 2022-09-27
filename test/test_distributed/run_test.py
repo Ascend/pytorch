@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
 
 import argparse
 from datetime import datetime
-import modulefinder
 import os
 import shutil
 import signal
-import subprocess
 import sys
 import tempfile
 import time
 import unittest
 
 import torch
-import torch_npu
 import torch._six
-from torch.utils import cpp_extension
-from torch.testing._internal.common_utils import TEST_WITH_ROCM, shell
 import torch.distributed as dist
+
+from torch.testing._internal.common_utils import TEST_WITH_ROCM, shell
+
+import torch_npu
+
+
 PY2 = sys.version_info <= (3,)
 PY33 = sys.version_info >= (3, 3)
 PY36 = sys.version_info >= (3, 6)

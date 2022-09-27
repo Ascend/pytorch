@@ -175,7 +175,7 @@ add_subdirectory(${TORCHNPU_ROOT}/core)
 add_subdirectory(${TORCHNPU_ROOT}/distributed)
 add_subdirectory(${TORCHNPU_ROOT}/framework)
 add_subdirectory(${TORCHNPU_ROOT}/npu)
-# add_subdirectory(${TORCHNPU_ROOT}/profiler)
+add_subdirectory(${TORCHNPU_ROOT}/profiler)
 add_subdirectory(${TORCHNPU_ROOT}/utils)
 
 # Compile code with pybind11

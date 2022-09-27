@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
@@ -37,6 +37,9 @@ Matmul: [1] 2-2-t(strict transpose); [2] 2-n-view+t(view transpose).
   False--Tensor is not transposed, proceed to format_contiguous.
 *****************************************/
 bool is_transpose_last_two_dims_flex(const at::Tensor &tensor) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   if (tensor.dim() != 2) {
     return false;
   }
@@ -54,6 +57,9 @@ bool is_transpose_last_two_dims_flex(const at::Tensor &tensor) {
 // Pick out strict-transpose tensors from flex-transpose tensors.
 bool is_transpose_last_two_dims_strict(const at::Tensor &tensor,
                                        bool is_transpose_flex) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return false;
+  }
   auto base_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)
                         ->get_npu_desc()
                         .base_sizes_;
@@ -72,7 +78,7 @@ void set_transposed_npu_desc(at::Tensor &tensor) {
                              temp_transpose_Tensor.strides());
 }
 
-at::Tensor &XLANativeFunctions::mm_out(const at::Tensor &self,
+at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
                                        const at::Tensor &mat2,
                                        at::Tensor &result) {
   at::Tensor contiguousResult =
@@ -138,7 +144,7 @@ at::Tensor &XLANativeFunctions::mm_out(const at::Tensor &self,
   return result;
 }
 
-at::Tensor XLANativeFunctions::mm(const at::Tensor &self,
+at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
                                   const at::Tensor &mat2) {
   // calculate the output size
   auto outputSize = {self.size(0), mat2.size(1)};
@@ -162,25 +168,25 @@ at::Tensor XLANativeFunctions::mm(const at::Tensor &self,
     static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
         && mm_bmm_nd && isAligin()) {
-      result = XLANativeFunctions::empty_with_format(
+      result = NPUNativeFunctions::empty_with_format(
           outputSize, optTypeMetaToScalarType(options.dtype_opt()),
           options.layout_opt(), options.device_opt(),
           options.pinned_memory_opt(), ACL_FORMAT_ND);
     } else {
-      result = XLANativeFunctions::empty_with_format(
+      result = NPUNativeFunctions::empty_with_format(
           outputSize, optTypeMetaToScalarType(options.dtype_opt()),
           options.layout_opt(), options.device_opt(),
           options.pinned_memory_opt(), ACL_FORMAT_FRACTAL_NZ);
     }
   } else {
-    result = XLANativeFunctions::empty_with_format(
+    result = NPUNativeFunctions::empty_with_format(
         outputSize, optTypeMetaToScalarType(options.dtype_opt()),
         options.layout_opt(), options.device_opt(), options.pinned_memory_opt(),
         ACL_FORMAT_ND);
   }
 
   // calculate the output result of the NPU
-  XLANativeFunctions::mm_out(self, mat2, result);
+  NPUNativeFunctions::mm_out(self, mat2, result);
   return result;
 }
 

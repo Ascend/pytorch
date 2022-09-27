@@ -118,7 +118,7 @@ class TestProfiler(TestCase):
                 allocs=[
                     "user_allocate",
                     "aten::to",
-                    "aten::empty_strided",
+                    "aten::_to_copy",
                 ],
                 deallocs=[
                     "user_deallocate",

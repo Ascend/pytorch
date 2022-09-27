@@ -1,4 +1,3 @@
-// #include <ATen/detail/NPUHooksInterface.h>
 #include <ATen/Context.h>
 #include <ATen/Config.h>
 #include <ATen/TensorUtils.h>
@@ -9,13 +8,13 @@
 #include <c10/core/TensorImpl.h>
 #include <stdexcept>
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 
 namespace at_npu {
 namespace native {
 
-bool XLANativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
+bool NPUNativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Device> device) {
   // Only CPU tensors can be pinned
   if (!self.is_cpu()) {
     return false;
@@ -24,7 +23,7 @@ bool XLANativeFunctions::is_pinned(const at::Tensor& self, c10::optional<at::Dev
   return false;
 }
 
-at::Tensor XLANativeFunctions::_pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
+at::Tensor NPUNativeFunctions::_pin_memory(const at::Tensor& self, c10::optional<at::Device> device) {
   // TORCH_INTERNAL_ASSERT_DEBUG_ONLY(!device.has_value() || device->is_npu());
   auto allocator = getPinnedMemoryAllocator();
   auto storage = c10::Storage(

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -26,7 +26,7 @@ at::Tensor& acosh_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
   return result;
 }
 
-at::Tensor& XLANativeFunctions::acosh_out(
+at::Tensor& NPUNativeFunctions::acosh_out(
     const at::Tensor& self,
     at::Tensor& result) {
   OpPreparation::CheckOut(
@@ -44,13 +44,13 @@ at::Tensor& XLANativeFunctions::acosh_out(
 
 }
 
-at::Tensor XLANativeFunctions::acosh(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::acosh(const at::Tensor& self) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   acosh_out_npu_nocheck(result, self);
   return result;
 }
 
-at::Tensor& XLANativeFunctions::acosh_(at::Tensor& self) {
+at::Tensor& NPUNativeFunctions::acosh_(at::Tensor& self) {
 
   return acosh_out(self, self);
 }

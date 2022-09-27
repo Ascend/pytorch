@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -28,7 +28,7 @@ namespace at_npu
         const at::Tensor &grad_output,
         const at::Tensor &output,
         int64_t dim,
-        at::ScalarType input_dtype)
+        const at::Tensor &self)
     {
       c10::SmallVector<int64_t, N> dimList = {dim};
       // executing the NPU operator
@@ -43,30 +43,30 @@ namespace at_npu
       return grad_input;
     }
 
-    at::Tensor XLANativeFunctions::_softmax_backward_data(
-        const at::Tensor &grad_output,
-        const at::Tensor &output,
-        int64_t dim,
-        at::ScalarType input_dtype)
-    {
-      // calculate the output size
-      auto outputSize = input_same_output_size(grad_output);
+    // at::Tensor NPUNativeFunctions::_softmax_backward_data(
+    //     const at::Tensor &grad_output,
+    //     const at::Tensor &output,
+    //     int64_t dim,
+    //     const at::Tensor &self)
+    // {
+    //   // calculate the output size
+    //   auto outputSize = input_same_output_size(grad_output);
 
-      at::Tensor tmp_output = output;
-      // output'format must be same with grad_output
-      if (CalcuOpUtil::get_tensor_npu_format(tmp_output) != CalcuOpUtil::get_tensor_npu_format(grad_output))
-      {
-        XLANativeFunctions::npu_format_cast_(tmp_output, CalcuOpUtil::get_tensor_npu_format(grad_output));
-      }
+    //   // output'format must be same with grad_output
+    //   at::Tensor temp_output = output;
+    //   if (CalcuOpUtil::get_tensor_npu_format(temp_output) == ACL_FORMAT_NC1HWC0)
+    //   {
+    //     NPUNativeFunctions::npu_format_cast_(temp_output, CalcuOpUtil::get_tensor_npu_format(grad_output));
+    //   }
 
-      // construct the output tensor of the NPU
-      at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output, outputSize);
+    //   // construct the output tensor of the NPU
+    //   at::Tensor grad_input = OpPreparation::ApplyTensor(temp_output, outputSize);
 
-      // calculate the output result of the NPU
-      softmax_backward_out_npu(grad_input, grad_output, tmp_output, dim, input_dtype);
+    //   // calculate the output result of the NPU
+    //   softmax_backward_out_npu(grad_input, grad_output, temp_output, dim, self);
 
-      return grad_input;
-    }
+    //   return grad_input;
+    // }
 
   } // namespace native
 } // namespace at_npu

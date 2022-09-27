@@ -19,7 +19,7 @@
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -30,14 +30,14 @@ at::Tensor matmul_opt_npu(
   at::NoNamesGuard guard;
   auto has_out = out_opt.has_value();
   at::Tensor out = out_opt.value_or(at::Tensor());
-  // if (at_npu::key::isDeviceTensor(tensor1) &&
-  //     at_npu::key::isDeviceTensor(tensor2) &&
-  //     tensor1.scalar_type() == at::kHalf &&
-  //     tensor2.scalar_type() == at::kHalf &&
-  //     at_npu::native::env::CheckBmmV2Enable()) {
-  //   auto res = matmul_by_bmmV2(tensor1, tensor2);
-  //   return has_out ? out.set_(res) : res;
-  // }
+  if (at_npu::key::isDeviceTensor(tensor1) &&
+      at_npu::key::isDeviceTensor(tensor2) &&
+      tensor1.scalar_type() == at::kHalf &&
+      tensor2.scalar_type() == at::kHalf &&
+      at_npu::native::env::CheckBmmV2Enable()) {
+    auto res = matmul_by_bmmV2(tensor1, tensor2);
+    return has_out ? out.set_(res) : res;
+  }
   auto dim_tensor1 = tensor1.dim();
   auto dim_tensor2 = tensor2.dim();
 
@@ -142,18 +142,18 @@ at::Tensor matmul_opt_npu(
           dim_tensor1, "D and ", dim_tensor2, "D");
 }
 
-// at::Tensor XLANativeFunctions::matmul(const at::Tensor & tensor1, const at::Tensor & tensor2) {
-//   auto maybe_outnames = at::namedinference::compute_matmul_outnames(tensor1, tensor2);
-//   auto result = matmul_opt_npu(c10::nullopt, tensor1, tensor2);
-//   at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
-//   return result;
-// }
+at::Tensor NPUNativeFunctions::matmul(const at::Tensor & tensor1, const at::Tensor & tensor2) {
+  auto maybe_outnames = at::namedinference::compute_matmul_outnames(tensor1, tensor2);
+  auto result = matmul_opt_npu(c10::nullopt, tensor1, tensor2);
+  at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
+  return result;
+}
 
-// at::Tensor& XLANativeFunctions::matmul_out(const at::Tensor & tensor1, const at::Tensor & tensor2, at::Tensor &result) {
-//   auto maybe_outnames = at::namedinference::compute_matmul_outnames(tensor1, tensor2);
-//   matmul_opt_npu(c10::optional<at::Tensor>(result), tensor1, tensor2);
-//   at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
-//   return result;
-// }
+at::Tensor& NPUNativeFunctions::matmul_out(const at::Tensor & tensor1, const at::Tensor & tensor2, at::Tensor &result) {
+  auto maybe_outnames = at::namedinference::compute_matmul_outnames(tensor1, tensor2);
+  matmul_opt_npu(c10::optional<at::Tensor>(result), tensor1, tensor2);
+  at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
+  return result;
+}
 } // namespace native
 } // namespace at_npu

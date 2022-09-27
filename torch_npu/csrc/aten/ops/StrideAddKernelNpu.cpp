@@ -18,7 +18,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -64,30 +64,7 @@ namespace at_npu
       return output_shape;
     }
 
-    c10::SmallVector<NPUTensorDesc, N> stride_add_npu_input(
-        const c10::SmallVector<at::Tensor, N> &inputTensor)
-    {
-      return CalcuOpUtil::create_npu_input_tensor_desc(inputTensor);
-    }
-
-    c10::SmallVector<NPUTensorDesc, N> stride_add_npu_output(const at::Tensor &result)
-    {
-      return CalcuOpUtil::create_npu_output_tensor_desc({result});
-    }
-
-    c10::SmallVector<NPUAttrDesc, N> stride_add_npu_attr(
-        c10::Scalar offset1,
-        c10::Scalar offset2,
-        c10::Scalar c1_len)
-    {
-      NPUAttrDesc npuAttrX1 = NPUAttrDesc("x1_c1_offset", (int64_t)offset1.toInt());
-      NPUAttrDesc npuAttrX2 = NPUAttrDesc("x2_c1_offset", (int64_t)offset2.toInt());
-      NPUAttrDesc npuAttrC1 = NPUAttrDesc("c1_len", (int64_t)c1_len.toInt());
-      c10::SmallVector<NPUAttrDesc, N> attrs = {npuAttrX1, npuAttrX2, npuAttrC1};
-      return attrs;
-    }
-
-    at::Tensor &stride_add_out_npu(
+    at::Tensor &stride_add_out_npu_nocheck(
         at::Tensor &result,
         const at::Tensor &self,
         const at::Tensor &other,
@@ -95,20 +72,19 @@ namespace at_npu
         c10::Scalar offset2,
         c10::Scalar c1_len)
     {
-      // constructs the input and output NPUTensorDesc
-      auto inputs = stride_add_npu_input({self, other});
-      auto outputs = stride_add_npu_output({result});
-
-      // constructs the attr of the NPUAttrDesc
-      auto attrs = stride_add_npu_attr(offset1, offset2, c1_len);
-
-      // executing the NPU operator
-      CalcuOpUtil::execute_npu_operate("StrideAdd", inputs, outputs, attrs);
-
+      OpCommand cmd;
+      cmd.Name("StrideAdd")
+         .Input(self)
+         .Input(other)
+         .Output(result)
+         .Attr("x1_c1_offset", (int64_t)offset1.toInt())
+         .Attr("x2_c1_offset", (int64_t)offset2.toInt())
+         .Attr("c1_len", (int64_t)c1_len.toInt())
+         .Run();
       return result;
     }
 
-    at::Tensor XLANativeFunctions::npu_stride_add(
+    at::Tensor NPUNativeFunctions::npu_stride_add(
         const at::Tensor &self,
         const at::Tensor &other,
         const c10::Scalar &offset1,
@@ -124,7 +100,7 @@ namespace at_npu
           outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
       // calculate the output result of the NPU
-      stride_add_out_npu(result, self, other, offset1, offset2, c1_len);
+      stride_add_out_npu_nocheck(result, self, other, offset1, offset2, c1_len);
 
       return result;
     }

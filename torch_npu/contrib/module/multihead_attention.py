@@ -188,6 +188,8 @@ class MultiheadAttention(nn.Module):
                                           output of the decoder, where the self-attention of the encoder 
                                           is used as the key and value, and the self-attention of the decoder 
                                           is used as the query. Default: False.
+        q_noise(float): amount of Quantization Noise
+        qn_block_size(int): size of the blocks for subsequent quantization with iPQ
     """
 
     def __init__(

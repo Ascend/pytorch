@@ -14,12 +14,12 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& XLANativeFunctions::nll_loss2d_backward_out(
+at::Tensor& NPUNativeFunctions::nll_loss2d_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& target,
@@ -62,7 +62,7 @@ at::Tensor& XLANativeFunctions::nll_loss2d_backward_out(
   return grad_input;
 }
 
-at::Tensor XLANativeFunctions::nll_loss2d_backward(
+at::Tensor NPUNativeFunctions::nll_loss2d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& target,
@@ -93,7 +93,7 @@ at::Tensor XLANativeFunctions::nll_loss2d_backward(
   at::Tensor grad_input = OpPreparation::ApplyTensorWithFormat(
       outputSize, self_input.options(), CalcuOpUtil::get_tensor_npu_format(self_input));
   // calculate the output result of the NPU
-  XLANativeFunctions::nll_loss2d_backward_out(
+  NPUNativeFunctions::nll_loss2d_backward_out(
       grad_output_reshape,
       self_input,
       target_input,

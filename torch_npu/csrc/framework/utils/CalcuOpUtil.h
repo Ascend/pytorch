@@ -70,6 +70,8 @@ using std::vector;
     }                                      \
   } while (0)
 
+using StorageAndOffsetMemSizePair = std::pair<const c10::StorageImpl*, int64_t>;
+
 namespace at_npu
 {
   namespace native
@@ -226,6 +228,43 @@ namespace at_npu
           const std::pair<at::Tensor, int64_t>& src,
           size_t src_size,
           aclrtMemcpyKind kind);
+
+      // Add some public interfaces for aclrtmemcpy process,
+      // to launch graph in graph mode automatically.
+      static aclError AclrtMemcpyAsyncWithModeSwitch(
+          const StorageAndOffsetMemSizePair& dst,
+          size_t dstMax,
+          const StorageAndOffsetMemSizePair& src,
+          size_t count,
+          aclrtMemcpyKind kind,
+          aclrtStream stream);
+      static aclError AclrtMemcpyAsyncWithModeSwitch(
+          const StorageAndOffsetMemSizePair& dst,
+          size_t dstMax,
+          const void* src,
+          size_t count,
+          aclrtMemcpyKind kind,
+          aclrtStream stream);
+      static aclError AclrtMemcpyAsyncWithModeSwitch(
+          void* dst,
+          size_t dstMax,
+          const StorageAndOffsetMemSizePair& src,
+          size_t count,
+          aclrtMemcpyKind kind,
+          aclrtStream stream);
+      static aclError LaunchAsyncCopyTaskWithModeSwitch(
+          const at::Tensor& dst,
+          size_t dstMax,
+          const at::Tensor& src,
+          size_t count,
+          aclrtMemcpyKind kind);
+      static aclError LaunchAsyncCopyTaskWithModeSwitch(
+          const c10::StorageImpl& dst,
+          size_t dstMax,
+          void* src,
+          size_t count,
+          aclrtMemcpyKind kind);
+
       static void check_memory_over_laps(
           c10::SmallVector<at::Tensor, N> &inputs,
           c10::SmallVector<at::Tensor, N> &outputs);

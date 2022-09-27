@@ -1,5 +1,5 @@
-# Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2022 Huawei Technologies Co., Ltd
+# Copyright (c) 2022, Facebook CORPORATION. 
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -122,16 +122,17 @@ class TestRandom(TestCase):
                     lambda: t.random_(from_, to_)
                 )
 
-    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16, torch.uint8, torch.int16, torch.int8, torch.double)
     def test_random_default(self, dtype):
         size = 2000
         alpha = 0.1
 
-        # the dtype of 'to' is int, so its max value is the max of int64
         if dtype == torch.float:
-            to_inc = torch.iinfo(torch.int64).max
-        elif dtype == torch.float16:
-            to_inc = 65504
+            to_inc = 1 << 24
+        elif dtype == torch.double:
+            to_inc = 1 << 53
+        elif dtype == torch.half:
+            to_inc = 1 << 11
         else:
             to_inc = torch.iinfo(dtype).max
 
@@ -139,6 +140,59 @@ class TestRandom(TestCase):
         t.random_()
         self.assertTrue(0 <= t.to(torch.double).min() < alpha * to_inc)
         self.assertTrue((to_inc - alpha * to_inc) < t.to(torch.double).max() <= to_inc)
+
+    @Dtypes(torch.int32, torch.int64, torch.float, torch.float16)
+    def test_random_diffent_size(self, dtype):
+        from_ = -800
+        to_ = 800
+
+        size = [10]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+
+        size = [10,8]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+
+        size = [10,8,7]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+        
+        size = [10,8,7,5]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+        
+        size = [10,8,7,5,2]
+        t = torch.empty(size, dtype=dtype, device="cpu").to("npu")    
+        t.random_(from_, to_)
+        self.assertTrue(from_ <= t.to(torch.double).min() <= to_)
+        self.assertTrue(from_ <= t.to(torch.double).max() <= to_)
+
+    def test_random_seed(self):
+        torch.manual_seed(123)
+        input1 = torch.rand(2, 3, 4).npu()
+        input1.random_(2, 10)
+        torch.manual_seed(123)
+        input2 = torch.rand(2, 3, 4).npu()
+        input2.random_(2, 10)
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
+
+    def test_random_seed_fp16(self):
+        torch.manual_seed(3)
+        input1 = torch.rand(4, 5, 3).half().npu()
+        input1.random_(0, 100)
+        torch.manual_seed(3)
+        input2 = torch.rand(4, 5, 3).half().npu()
+        input2.random_(0, 100)
+        self.assertRtolEqual(input1.cpu(), input2.cpu())
 
 
 if __name__ == "__main__":

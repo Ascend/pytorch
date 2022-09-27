@@ -15,7 +15,7 @@
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -41,14 +41,14 @@ at::Tensor& masked_fill_out_npu_nocheck(const at::Tensor& self, const at::Tensor
   cmd.Name("MaskedFill")
       .Input(self)
       .Input(maskBool)
-      .Input(valueTensor)
+      .Input(valueTensor)      
       .Output(result)
       .Run();
-
+  
   if (dimOfSelf == 0) {
     result.squeeze_(0);
   }
-
+  
   return result;
 }
 
@@ -79,7 +79,7 @@ at::Tensor& masked_fill_out_npu_nocheck(const at::Tensor& self, const at::Tensor
   return result;
 }
 
-at::Tensor& XLANativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Tensor& value) {
+at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Tensor& value) {
   // OpPreparation::CheckMemory({self, mask, value}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
@@ -91,7 +91,7 @@ at::Tensor& XLANativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor&
   return self;
 }
 
-at::Tensor& XLANativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Scalar& value) {
+at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Scalar& value) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = masked_fill_out_npu_nocheck(contiguousSelf, mask, value, contiguousSelf);

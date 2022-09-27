@@ -544,11 +544,12 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
     QUEUE_DEBUG("Release queue is full");
     return false;
   }
-
+  std::unique_lock<std::mutex> lck(mtx);
   releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 
   __sync_synchronize();
   write_idx.idx = (write_idx.idx + 1) % kReleaseQueueCapacity;
+  cv.notify_one();
   return true;
 }
 
@@ -594,8 +595,10 @@ void ReleaseQueue::PopFromReleaseQueue() {
       if (GetStatus() == RepoStatus::NEED_EXIT) {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
+      } else {
+        std::unique_lock<std::mutex> lck(mtx);
+        cv.wait(lck);
       }
-      usleep(2);
     }
   }
 }
@@ -626,6 +629,10 @@ ReleaseQueue::~ReleaseQueue() {
   if (initialized) {
     if (releaser.joinable()) {
       SetStatus(NEED_EXIT);
+      {
+        std::unique_lock<std::mutex> lck(mtx);
+        cv.notify_one();
+      }
       releaser.join();
     }
   }

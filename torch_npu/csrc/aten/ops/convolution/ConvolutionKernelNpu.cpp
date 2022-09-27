@@ -22,7 +22,7 @@
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -128,7 +128,7 @@ at::Tensor view3d(const at::Tensor& tensor) {
   return tensor.squeeze(2);
 }
 
-at::Tensor XLANativeFunctions::conv_transpose2d(
+at::Tensor NPUNativeFunctions::conv_transpose2d(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias,
@@ -149,7 +149,7 @@ at::Tensor XLANativeFunctions::conv_transpose2d(
       groups);
 }
 
-at::Tensor XLANativeFunctions::conv_transpose3d(
+at::Tensor NPUNativeFunctions::conv_transpose3d(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias,
@@ -184,7 +184,7 @@ at::Tensor convolution_kernel_npu(
   at::Tensor output;
   if (dim == 4) {
     output =
-        XLANativeFunctions::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
+        NPUNativeFunctions::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
   }
 
   if (dim == 5) {
@@ -196,7 +196,7 @@ at::Tensor convolution_kernel_npu(
     //  output = at::slow_conv3d(
        //   input, weight, kernel_size, bias_opt, stride, padding);
     } else {
-     // output = XLANativeFunctions::npu_conv3d(
+     // output = NPUNativeFunctions::npu_conv3d(
          // input, weight, bias_opt, stride, padding, dilation, groups);
     }
   }
@@ -204,7 +204,7 @@ at::Tensor convolution_kernel_npu(
   return output;
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_convolution_backward(
+tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_convolution_backward(
     const at::Tensor& input,
     const at::Tensor& grad,
     const at::Tensor& weight,
@@ -217,7 +217,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_convolution_ba
 
   tuple<at::Tensor, at::Tensor, at::Tensor> output;
   if (dim == 4) {
-    output = XLANativeFunctions::npu_conv2d_backward(
+    output = NPUNativeFunctions::npu_conv2d_backward(
         input,
         grad,
         weight,
@@ -229,7 +229,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_convolution_ba
   }
 
   if (dim == 5) {
-   /* output = XLANativeFunctions::npu_conv3d_backward(
+   /* output = NPUNativeFunctions::npu_conv3d_backward(
         input,
         grad,
         weight,
@@ -241,7 +241,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_convolution_ba
   }
   // Note:weight.grad should be equal weight
   if (std::get<1>(output).defined()) {
-    std::get<1>(output) = XLANativeFunctions::npu_dtype_cast(std::get<1>(output), weight.scalar_type());
+    std::get<1>(output) = NPUNativeFunctions::npu_dtype_cast(std::get<1>(output), weight.scalar_type());
   }
   return output;
 }
@@ -285,7 +285,7 @@ public:
     grad_input_mask[1] = weight.requires_grad();
     grad_input_mask[2] = bias_has_value;
 
-    tuple<at::Tensor, at::Tensor, at::Tensor> result = XLANativeFunctions::npu_convolution_backward(input,
+    tuple<at::Tensor, at::Tensor, at::Tensor> result = NPUNativeFunctions::npu_convolution_backward(input,
         grad_outputs[0],
         weight,
         stride,
@@ -304,7 +304,7 @@ public:
   }
 };
 
-at::Tensor XLANativeFunctions::npu_convolution(const at::Tensor& input,
+at::Tensor NPUNativeFunctions::npu_convolution(const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt,
     at::IntArrayRef stride,
@@ -321,21 +321,21 @@ at::Tensor XLANativeFunctions::npu_convolution(const at::Tensor& input,
   return NPUConvlutionFunction::apply(input, weight, bias, stride, padding, dilation, groups);
 }
 
-at::Tensor XLANativeFunctions::convolution_overrideable(
+at::Tensor NPUNativeFunctions::convolution_overrideable(
     const at::Tensor& input, const at::Tensor& weight, const c10::optional<at::Tensor>& bias_opt,
     c10::IntArrayRef stride, c10::IntArrayRef padding, c10::IntArrayRef dilation,
     bool transposed, c10::IntArrayRef output_padding, int64_t groups) {
 
-  return XLANativeFunctions::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
+  return NPUNativeFunctions::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::convolution_backward_overrideable(
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_backward_overrideable(
         const at::Tensor & grad_output, const at::Tensor & input, const at::Tensor & weight,
         c10::IntArrayRef stride, c10::IntArrayRef padding,
         c10::IntArrayRef dilation, bool transposed, c10::IntArrayRef output_padding,
         int64_t groups, std::array<bool,3> output_mask) {
 
-  return XLANativeFunctions::npu_convolution_backward(input,
+  return NPUNativeFunctions::npu_convolution_backward(input,
      grad_output,
      weight,
      stride,

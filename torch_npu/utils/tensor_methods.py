@@ -19,6 +19,7 @@ import torch
 import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard, device
 
+
 warnings.filterwarnings(action="once")
 warning_str = "The tensor methods of custom operators would cause performance drop." + \
               " Suggest to use torch.{0} or torch_npu.{0} instead."
@@ -58,10 +59,10 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
     warnings.warn(warning_str.format("npu_confusion_transpose"))
     return torch_npu.npu_confusion_transpose(self, perm, shape, transpose_first)
 
+
 @torch_device_guard
 def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
-
 
 @property
 def _is_npu(self):

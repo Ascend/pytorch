@@ -15,7 +15,7 @@
 
 #include <ATen/ATen.h>
 #include <torch/library.h>
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 
 namespace at_npu {

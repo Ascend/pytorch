@@ -126,7 +126,7 @@ private:
     temp_src.set_(src.storage(), temp_src.storage_offset(), temp_src.sizes(),
                   temp_src.strides());
 
-    XLANativeFunctions::npu_slice_out(temp_src, offsets, size, self);
+    NPUNativeFunctions::npu_slice_out(temp_src, offsets, size, self);
     return;
   }
 

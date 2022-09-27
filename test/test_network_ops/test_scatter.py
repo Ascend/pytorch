@@ -33,8 +33,6 @@ class TestScatter(TestCase):
         index = index.npu()
         if (isTensor) :
             src = src.npu()
-            if input1.dtype != src.dtype:
-                input1 = input1.to(src.dtype)
         npu_output = input1.scatter(dim, index, src)
         npu_output = npu_output.cpu()
         return npu_output.numpy()
@@ -49,8 +47,6 @@ class TestScatter(TestCase):
         index = index.npu()
         if (isTensor) :
             src = src.npu()
-            if input1.dtype != src.dtype:
-                input1 = input1.to(src.dtype)
         input1.scatter_(dim, index, src)
         input1 = input1.cpu()
         return input1.numpy()

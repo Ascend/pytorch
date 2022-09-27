@@ -44,6 +44,7 @@ namespace at_npu
       static void Set(aclopAttr *attr, const string &name, at::ArrayRef<float> value);
       static void Set(aclopAttr* attr, const string& name, at::ArrayRef<uint8_t> value);
       static void Set(aclopAttr *attr, const string &name, c10::Scalar value);
+      static void Set(aclopAttr* attr, const string& name, at::ScalarType value);
       static void Set(
           aclopAttr *attr,
           const string &name,
@@ -58,7 +59,11 @@ namespace at_npu
 
       AclTensorDescMaker &Create(aclDataType dataType, torch_npu::NPUStorageDesc storageDesc)
       {
-        auto& dims = storageDesc.base_sizes_;
+        c10::SmallVector<int64_t, 5> dims;
+        // if aclDataType is ACL_STRING, storageDims is empty.
+        if (dataType != ACL_STRING) {
+          dims = storageDesc.base_sizes_;
+        }
         auto format = storageDesc.origin_format_;
         desc = aclCreateTensorDesc(dataType, dims.size(), dims.data(), format);
         return *this;
@@ -248,7 +253,10 @@ namespace at_npu
       {
         params.opType = opName;
         params.attr = execParam.attr;
-
+        c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
+        if (stream.isDataPreprocessStream()) {
+          params.isDataPreprocessOp = true;
+        }
         // make params
         int inputNum = execParam.inDesc.size();
         int outputNum = execParam.outDesc.size();
@@ -303,7 +311,7 @@ namespace at_npu
         }
   }
 
-      void Run();
+      void Run(bool sync, c10::SmallVector<int64_t, N> &sync_index, c10::SmallVector<at::Tensor, N> &outputTensor);
 
       void releaseSource(bool no_blocking = true)
       {
@@ -364,7 +372,13 @@ namespace at_npu
         }
       }
 
-      aclError InnerRun(string name, AclExecParam &params);
+      aclError InnerRun(
+        string name, 
+        AclExecParam &params, 
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor
+      );
 
     private:
       string opName;
