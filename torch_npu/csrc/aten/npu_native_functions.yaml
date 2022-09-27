@@ -183,6 +183,30 @@ supported:
   - mul.out
   - mul.Scalar
   - mul_.Scalar
+  - rand.names
+  - rand.generator_with_names
+  - rand
+  - rand.generator
+  - rand.out
+  - rand.generator_out
+  - rand_like
+  - randint
+  - randint.generator
+  - randint.low
+  - randint.low_generator
+  - randint.out
+  - randint.generator_out
+  - randint.low_out
+  - randint.low_generator_out
+  - randint_like
+  - randint_like.low_dtype
+  - randn
+  - randn.generator
+  - randn.names
+  - randn.generator_with_names
+  - randn.out
+  - randn.generator_out
+  - randn_like
   - neg
   - neg_
   - neg.out
@@ -425,6 +449,45 @@ supported:
   - sign_
   - sign.out
   - sgn.out
+  - __ior__.Tensor
+  - __ior__.Scalar
+  - bitwise_or.Tensor_out
+  - bitwise_or.Scalar_out
+  - bitwise_or.Scalar
+  - bitwise_or.Tensor
+  - bitwise_or_.Scalar
+  - bitwise_or_.Tensor
+  - __or__.Scalar
+  - __or__.Tensor
+  - is_pinned
+  - pin_memory
+  - __irshift__.Scalar
+  - __irshift__.Tensor
+  - __ilshift__.Scalar
+  - __ilshift__.Tensor
+  - __rshift__.Scalar
+  - __rshift__.Tensor
+  - __lshift__.Scalar
+  - __lshift__.Tensor
+  - acos
+  - acos_
+  - acos.out
+  - acosh
+  - acosh_
+  - acosh.out
+  - all.dim
+  - all.out
+  - all
+  - _add_relu.Tensor
+  - _add_relu_.Tensor
+  - _add_relu.out
+  - bitwise_xor.Tensor_out
+  - bitwise_xor.Scalar_out
+  - bitwise_xor.Scalar
+  - bitwise_xor.Tensor
+  - bitwise_xor_.Scalar
+  - bitwise_xor_.Tensor
+
 
   #- full
 

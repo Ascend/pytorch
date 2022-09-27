@@ -62,6 +62,7 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
 def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
 
+
 @property
 def _is_npu(self):
     return torch_npu._C.is_npu(self)
@@ -69,6 +70,7 @@ def _is_npu(self):
 
 def _type(self, *args, **kwargs):
     return torch_npu._C.type(self, *args, **kwargs)
+
 
 @torch_device_guard
 def _to(self, *args, **kwargs):
@@ -96,19 +98,31 @@ def _storage(self):
 
     return storage_impl(self)
 
+
 @torch_device_guard
 def _new_empty(self, *args, **kwargs):
+    if isinstance(args[0], int):
+        list_args = list(args)
+        sizes = []
+        for item in list_args:
+            if not isinstance(item, int):
+                break
+            sizes.append(item)
+        args = tuple([tuple(sizes)] + list_args[len(sizes):])
     return torch_npu._C.new_empty(self, *args, **kwargs)
+
 
 @torch_device_guard
 def _new_empty_strided(self, *args, **kwargs):
     return torch_npu._C.new_empty_strided(self, *args, **kwargs)
+
 
 @property
 def _device(self):
     if torch_npu._C.is_npu(self):      
         return device(type='npu', index=self.get_device())
     return torch.device("cpu")
+
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_

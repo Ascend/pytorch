@@ -63,10 +63,12 @@ namespace torch_npu { namespace autograd {
 
 static PyObject* THPVariableFunctionsModule = NULL;
 
+
 // generated forward declarations start here
 
 ${py_forwards}
 
+${py_device_forwards}
 
 // Wrapper converts a raised TypeError into returning NotImplemented
 // Used to implement binary arithmetic operators
@@ -451,6 +453,7 @@ static PyMethodDef torch_functions[] = {
   {"randint", castPyCFunctionWithKeywords(THPVariable_randint), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   {"range", castPyCFunctionWithKeywords(THPVariable_range), METH_VARARGS | METH_KEYWORDS | METH_STATIC, NULL},
   ${py_method_defs}
+  ${py_device_method_defs}
   {NULL}
 };
 
@@ -518,4 +521,5 @@ void initTorchFunctions(PyObject* module) {
 
 ${py_methods}
 
+${py_device_methods}
 }} // namespace torch_npu::autograd

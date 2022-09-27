@@ -247,10 +247,6 @@ class NativeFunction:
     # so you can make use of the normal binding if you need it.
     manual_cpp_binding: bool
 
-    # The location in the YAML file were this native function entry was
-    # defined.  This is for conveniently reporting error messages!
-    loc: 'Location'
-
     # Whether or not this out functions is a "structured kernel".  Structured
     # kernels are defined a little differently from normal kernels; in
     # particular, their shape checking logic is defined separately from
@@ -310,7 +306,6 @@ class NativeFunction:
     @staticmethod
     def from_yaml(
             ei: Dict[str, object],
-            loc: 'Location'
     ) -> Tuple['NativeFunction', Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
         """
         Parse a NativeFunction from a dictionary as directly parsed
@@ -412,7 +407,8 @@ class NativeFunction:
         elif not structured and structured_delegate is None:
             dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and \
+            DispatchKey.CompositeImplicitAutograd in dispatch), \
             "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
             "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
             "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
@@ -459,7 +455,6 @@ class NativeFunction:
             category_override=category_override,
             device_guard=device_guard,
             device_check=device_check,
-            loc=loc,
             cpp_no_default_args=cpp_no_default_args,
             is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
@@ -1007,6 +1002,7 @@ class Type:
     def is_nullable(self) -> bool:
         raise NotImplementedError
 
+    @staticmethod
     def is_list_like(self) -> Optional['ListType']:
         raise NotImplementedError
 
