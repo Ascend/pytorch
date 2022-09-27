@@ -267,14 +267,13 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
       .def("_get_local_used_maps",
            &c10d_npu::Reducer::get_local_used_maps_on_device);
 
-  py::module_ dist = py::module_::import("torch.distributed");
-  auto processGroupHCCL = intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL>(
-      module, "ProcessGroupHCCL", dist.attr("ProcessGroup"))
+  auto processGroupHCCL = intrusive_ptr_class_<::c10d_npu::ProcessGroupHCCL>(module, "ProcessGroupHCCL")
       .def(py::init<c10::intrusive_ptr<::c10d::Store>&,
                     int,
                     int,
                     c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL::Options>>(),
            py::call_guard<py::gil_scoped_release>())
+
       .def(py::init([](const c10::intrusive_ptr<::c10d::Store>& store,
                        int rank,
                        int size,
@@ -290,6 +289,244 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
            py::arg("size"),
            py::arg("timeout") = std::chrono::milliseconds(
                ::c10d_npu::ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis))
+
+      .def("rank", &::c10d_npu::ProcessGroupHCCL::getRank)
+
+      .def("size", &::c10d_npu::ProcessGroupHCCL::getSize)
+
+      .def("broadcast",
+           &::c10d_npu::ProcessGroupHCCL::broadcast,
+           py::arg("tensors"),
+           py::arg("opts") = ::c10d::BroadcastOptions(),
+           py::call_guard<py::gil_scoped_release>())
+      
+      .def("broadcast",
+           [](::c10d_npu::ProcessGroupHCCL& pg, at::Tensor& x, int rootRank) {
+             ::c10d::BroadcastOptions opts;
+             opts.rootRank = rootRank;
+             std::vector<at::Tensor> xs = {x};
+             return pg.broadcast(xs, opts);
+           },
+           py::arg("tensor"),
+           py::arg("root"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allreduce",
+           &::c10d_npu::ProcessGroupHCCL::allreduce,
+           py::arg("tensors"),
+           py::arg("opts") = ::c10d::AllreduceOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allreduce",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              std::vector<at::Tensor>& xs,
+              ::c10d::ReduceOp op) {
+             ::c10d::AllreduceOptions opts;
+             opts.reduceOp = op;
+             return pg.allreduce(xs, opts);
+           },
+           py::arg("tensors"),
+           py::arg("op") = ::c10d::ReduceOp::SUM,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allreduce",
+           [](::c10d_npu::ProcessGroupHCCL& pg, at::Tensor& x, ::c10d::ReduceOp op) {
+             ::c10d::AllreduceOptions opts;
+             opts.reduceOp = op;
+             std::vector<at::Tensor> xs = {x};
+             return pg.allreduce(xs, opts);
+           },
+           py::arg("tensor"),
+           py::arg("op") = ::c10d::ReduceOp::SUM,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allreduce_coalesced",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              std::vector<at::Tensor>& xs,
+              ::c10d::AllreduceCoalescedOptions opts) {
+             return pg.allreduce_coalesced(xs, opts);
+           },
+           py::arg("tensors"),
+           py::arg("opts") = ::c10d::AllreduceCoalescedOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("reduce",
+           &::c10d_npu::ProcessGroupHCCL::reduce,
+           py::arg("tensors"),
+           py::arg("opts") = ::c10d::ReduceOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("reduce",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              at::Tensor& x,
+              int rootRank,
+              ::c10d::ReduceOp op) {
+             ::c10d::ReduceOptions opts;
+             opts.reduceOp = op;
+             opts.rootRank = rootRank;
+             std::vector<at::Tensor> xs = {x};
+             return pg.reduce(xs, opts);
+           },
+           py::arg("tensor"),
+           py::arg("root"),
+           py::arg("op") = ::c10d::ReduceOp::SUM,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allgather",
+           &::c10d_npu::ProcessGroupHCCL::allgather,
+           py::arg("output_tensors"),
+           py::arg("input_tensors"),
+           py::arg("opts") = ::c10d::AllgatherOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allgather",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              std::vector<at::Tensor>& output,
+              at::Tensor& input) {
+             std::vector<std::vector<at::Tensor>> outputs = {output};
+             std::vector<at::Tensor> inputs = {input};
+             return pg.allgather(
+                 outputs, inputs, ::c10d::AllgatherOptions());
+           },
+           py::arg("output_tensors"),
+           py::arg("input_tensor"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("allgather_coalesced",
+           &::c10d_npu::ProcessGroupHCCL::allgather_coalesced,
+           py::arg("output_lists"),
+           py::arg("input_list"),
+           py::arg("opts") = ::c10d::AllgatherOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("gather",
+           &::c10d_npu::ProcessGroupHCCL::gather,
+           py::arg("output_tensors"),
+           py::arg("input_tensors"),
+           py::arg("opts") = ::c10d::GatherOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("gather",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              std::vector<at::Tensor>& output,
+              at::Tensor& input,
+              int rootRank) {
+             ::c10d::GatherOptions opts;
+             opts.rootRank = rootRank;
+             std::vector<std::vector<at::Tensor>> outputs = {output};
+             std::vector<at::Tensor> inputs = {input};
+             return pg.gather(outputs, inputs, opts);
+           },
+           py::arg("output_tensors"),
+           py::arg("input_tensor"),
+           py::arg("root"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("scatter",
+           &::c10d_npu::ProcessGroupHCCL::scatter,
+           py::arg("output_tensors"),
+           py::arg("input_tensors"),
+           py::arg("opts") = ::c10d::ScatterOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("scatter",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              at::Tensor& output,
+              std::vector<at::Tensor>& input,
+              int rootRank) {
+             ::c10d::ScatterOptions opts;
+             opts.rootRank = rootRank;
+             std::vector<std::vector<at::Tensor>> inputs = {input};
+             std::vector<at::Tensor> outputs = {output};
+             return pg.scatter(outputs, inputs, opts);
+           },
+           py::arg("output_tensor"),
+           py::arg("input_tensors"),
+           py::arg("root"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("reduce_scatter",
+           &::c10d_npu::ProcessGroupHCCL::reduce_scatter,
+           py::arg("output_tensors"),
+           py::arg("input_tensors"),
+           py::arg("opts") = ::c10d::ReduceScatterOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("reduce_scatter",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              at::Tensor& output,
+              std::vector<at::Tensor>& input) {
+             std::vector<at::Tensor> outputs = {output};
+             std::vector<std::vector<at::Tensor>> inputs = {input};
+             return pg.reduce_scatter(
+                 outputs, inputs, ::c10d::ReduceScatterOptions());
+           },
+           py::arg("output_tensors"),
+           py::arg("input_tensor"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("alltoall_base",
+           &::c10d_npu::ProcessGroupHCCL::alltoall_base,
+           py::arg("output_tensor"),
+           py::arg("input_tensor"),
+           py::arg("output_split_sizes"),
+           py::arg("input_split_sizes"),
+           py::arg("opts") = ::c10d::AllToAllOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("alltoall_base",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              at::Tensor& output,
+              at::Tensor& input,
+              std::vector<int64_t> outputSplitSizes,
+              std::vector<int64_t> inputSplitSizes) {
+             return pg.alltoall_base(
+                 output,
+                 input,
+                 outputSplitSizes,
+                 inputSplitSizes,
+                 ::c10d::AllToAllOptions());
+           },
+           py::arg("output"),
+           py::arg("input"),
+           py::arg("output_split_sizes"),
+           py::arg("input_split_sizes"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("alltoall",
+           &::c10d_npu::ProcessGroupHCCL::alltoall,
+           py::arg("output_tensor"),
+           py::arg("input_tensor"),
+           py::arg("opts") = ::c10d::AllToAllOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("alltoall",
+           [](::c10d_npu::ProcessGroupHCCL& pg,
+              std::vector<at::Tensor>& output,
+              std::vector<at::Tensor>& input) {
+                return pg.alltoall(output, input, ::c10d::AllToAllOptions());
+           },
+           py::arg("output"),
+           py::arg("input"),
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("send",
+           &::c10d_npu::ProcessGroupHCCL::send,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("recv",
+           &::c10d_npu::ProcessGroupHCCL::recv,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("recv_anysource",
+           &::c10d_npu::ProcessGroupHCCL::recvAnysource,
+           py::call_guard<py::gil_scoped_release>())
+
+      .def("barrier",
+           &::c10d_npu::ProcessGroupHCCL::barrier,
+           py::arg("opts") = ::c10d::BarrierOptions(),
+           py::call_guard<py::gil_scoped_release>())
+
       .def("allreduce_out",
            [](
                ::c10d_npu::ProcessGroupHCCL& pg,
