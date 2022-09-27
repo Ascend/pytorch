@@ -14,14 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import sys
+
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
+from common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor
 
+
 class TestMaskedSelect(TestCase):
+
     def cpu_op_exec(self, input, mask):
         output = torch.masked_select(input, mask)
         output = output.numpy()
@@ -131,6 +134,15 @@ class TestMaskedSelect(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input, mask)
             npu_output = self.npu_op_exec(npu_input, mask)
             self.assertRtolEqual(cpu_output, npu_output)
+
+    def test_maskedselect_case_in_gaitset(self, device):
+        cpu_in = torch.rand(1015808)
+        npu_in = cpu_in.npu()
+        cpu_mask = (torch.randn(1015808) > 0).byte()
+        npu_mask = cpu_mask.npu()
+        cpu_out = torch.masked_select(cpu_in, cpu_mask)
+        npu_out = torch.masked_select(npu_in, npu_mask)
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
 
 
 instantiate_device_type_tests(TestMaskedSelect, globals(), except_for="cpu")

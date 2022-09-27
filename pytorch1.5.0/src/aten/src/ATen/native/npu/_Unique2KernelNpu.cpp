@@ -43,10 +43,12 @@ std::tuple<Tensor&, Tensor&, Tensor&> _unique2_out_npu(
 }
 
 tuple<Tensor, Tensor, Tensor> _unique2_npu(
-    const Tensor& self,
+    const Tensor& selfOp,
     bool sorted,
     bool return_inverse,
     bool return_counts) {
+  // Data accuracy loss in fp16 scene
+  const Tensor self = selfOp.scalar_type() == at::kHalf ? selfOp.npu_dtype_cast(at::kFloat) : selfOp;
   if (self.numel() == 0) {
     Tensor result= OpPreparation::ApplyTensor(self, {0});
     Tensor yInverse = OpPreparation::ApplyTensor({0}, self.options().dtype(kLong), self);
@@ -63,6 +65,9 @@ tuple<Tensor, Tensor, Tensor> _unique2_npu(
       OpPreparation::ApplyTensorWithFormat({0}, self.options().dtype(kLong), ACL_FORMAT_ND);
   
   _unique2_out_npu(y, yInverse, yCounts, self, sorted, return_inverse, return_counts);
+  if (selfOp.scalar_type() == at::kHalf) {
+    y = y.npu_dtype_cast(at::kHalf);
+  }
 
   return std::tuple<Tensor, Tensor, Tensor>(y, yInverse, yCounts);
 }
