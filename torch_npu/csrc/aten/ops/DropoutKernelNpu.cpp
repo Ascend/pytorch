@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
 namespace native {
@@ -86,7 +87,12 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
-  at::SmallVector<int64_t, N> offsetList = {0, offset};
+  at::SmallVector<int64_t, N> offsetList;
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    offsetList = {0, 0};
+  } else {
+    offsetList = {0, offset};
+  }
   const int64_t seed1 = 0;
   cmd.Name("StatelessDropOutGenMask")
       .Input(selfShape)
@@ -124,7 +130,12 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
   auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
-  at::SmallVector<int64_t, N> offsetList = {0, offset};
+  at::SmallVector<int64_t, N> offsetList;
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    offsetList = {0, 0};
+  } else {
+    offsetList = {0, offset};
+  }
   const int64_t seed1 = 0;
   cmd.Name("StatelessDropOutGenMask")
       .Input(size)
