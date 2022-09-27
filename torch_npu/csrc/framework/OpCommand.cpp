@@ -143,6 +143,7 @@ OpCommand& OpCommand::Output(
 
 void OpCommand::Run() {
   IF_GRAPH_MODE_THEN_RUN(return;)
+  aclCmd->SetEnginePriority();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);

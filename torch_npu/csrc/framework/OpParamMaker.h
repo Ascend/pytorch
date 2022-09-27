@@ -253,10 +253,6 @@ namespace at_npu
       {
         params.opType = opName;
         params.attr = execParam.attr;
-        c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-        if (stream.isDataPreprocessStream()) {
-          params.isDataPreprocessOp = true;
-        }
         // make params
         int inputNum = execParam.inDesc.size();
         int outputNum = execParam.outDesc.size();
@@ -310,6 +306,9 @@ namespace at_npu
           params.isFuzzy = true;
         }
   }
+
+      // Set engine priority for op on data preprocessing stream
+      void SetEnginePriority();
 
       void Run(bool sync, c10::SmallVector<int64_t, N> &sync_index, c10::SmallVector<at::Tensor, N> &outputTensor);
 
