@@ -55,9 +55,9 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::adaptive_max_pool2d_out(
 
       OpCommand cmd;
       cmd.Name("MaxPoolWithArgmaxV1")
-          .Input(self)
-          .Output(output)
-          .Output(indices, "", c10::nullopt, "uint16")
+          .Input(self, "x", ACL_FORMAT_NCHW)
+          .Output(output, "y", ACL_FORMAT_NCHW)
+          .Output(indices, "argmax", ACL_FORMAT_NCHW, "uint16")
           .Attr("ksize", kernelSize)
           .Attr("strides", stridesSize)
           .Attr("pads", paddings)

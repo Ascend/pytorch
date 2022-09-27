@@ -49,8 +49,8 @@ at::Tensor& upsample_bicubic2d_out_nocheck(
 
   OpCommand cmd;
   cmd.Name("ResizeD")
-      .Input(self)
-      .Output(result)
+      .Input(self, "X", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("sizes", output_size)
       .Attr("scales", scales)
       .Attr("roi", roi)

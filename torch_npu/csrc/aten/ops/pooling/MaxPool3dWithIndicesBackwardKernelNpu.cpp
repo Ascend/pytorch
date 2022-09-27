@@ -71,10 +71,10 @@ namespace at_npu
 
       OpCommand cmd;
       cmd.Name("MaxPool3DGrad")
-          .Input(self)
-          .Input(indices)
-          .Input(grad_output)
-          .Output(grad_input)
+          .Input(self, "orig_x", ACL_FORMAT_NCDHW)
+          .Input(indices, "orig_y", ACL_FORMAT_NCDHW)
+          .Input(grad_output, "grads", ACL_FORMAT_NCDHW)
+          .Output(grad_input, "y", ACL_FORMAT_NCDHW)
           .Attr("ksize", kernel_sizes)
           .Attr("strides", stride_sizes)
           .Attr("padding", padstr)

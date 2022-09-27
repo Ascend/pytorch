@@ -50,8 +50,8 @@ void avg_pool3d_backward_out_npu_nocheck(
   OpCommand cmd;
   cmd.Name("AvgPool3DGrad")
       .Input(dimList)
-      .Input(grads)
-      .Output(grad_output)
+      .Input(grads, "grads", ACL_FORMAT_NCDHW)
+      .Output(grad_output, "output", ACL_FORMAT_NCDHW)
       .Attr("ksize", kernel_sizess)
       .Attr("strides", stridess)
       .Attr("pads", pads)
