@@ -139,6 +139,21 @@ class TestIndexPut(TestCase):
         npu_input1[npu_mask_index] = npu_input2.detach()[npu_mask_index]
         self.assertEqual(cpu_input1, npu_input1.to("cpu"))
 
-\
+    def test_index_put_undefined_fp32(self):
+        cinput = torch.randn(4, 3, 2, 3)
+        ninput = cinput.npu()
+        cinput[:, [[1, 2, 1], [1, 2, 0]], :, [[1, 0, 2]]] = 1000
+        ninput[:, [[1, 2, 1], [1, 2, 0]], :, [[1, 0, 2]]] = 1000
+        self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
+
+    def test_index_put_tensor_fp32(self):
+        cinput = torch.randn(4, 4, 4, 4)
+        ninput = cinput.npu()
+        value = torch.tensor([100, 200, 300, 400], dtype=torch.float32)
+        cinput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value
+        ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
+        self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
+
+
 if __name__ == "__main__":
     run_tests()
