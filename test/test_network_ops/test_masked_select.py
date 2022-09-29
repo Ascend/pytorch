@@ -1,5 +1,5 @@
 # Copyright (c) 2020 Huawei Technologies Co., Ltd
-# Copyright (c) 2019, Facebook CORPORATION. 
+# Copyright (c) 2019, Facebook CORPORATION.
 # All rights reserved.
 #
 # Licensed under the BSD 3-Clause License  (the "License");
@@ -132,6 +132,15 @@ class TestMaskedSelect(TestCase):
         npu_mask = cpu_mask.npu()
         cpu_out = torch.masked_select(cpu_in, cpu_mask)
         npu_out = torch.masked_select(npu_in, npu_mask)
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
+
+    def test_maskedselect_shape_mask_nobroadcast(self):
+        cpu_input = torch.randn(2, 4, 1, 5)
+        npu_input = cpu_input.npu()
+        cpu_mask = torch.randn(2, 1, 3, 5) > 0.5
+        npu_mask = cpu_mask.npu()
+        cpu_out = torch.masked_select(cpu_input, cpu_mask)
+        npu_out = torch.masked_select(npu_input, npu_mask)
         self.assertRtolEqual(cpu_out, npu_out.cpu())
 
 

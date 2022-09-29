@@ -47,7 +47,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_unique2(
     bool sorted,
     bool return_inverse,
     bool return_counts) {
-  // Data accuracy loss in fp16 scene
+  /*
+   * 算子去重调用的std::unordered_set会根据hash函数打乱顺序，fp16场景与基本数据类型的打乱方式不同，使得sorted=false时，fp16精度不达标。
+   * 此外，算子去重时，fp16存在数据精度损失，因此这里将fp16强转fp32处理
+   */
   const at::Tensor self = selfOp.scalar_type() == at::kHalf ? NPUNativeFunctions::npu_dtype_cast(selfOp, at::kFloat) : selfOp;
   
   if (self.numel() == 0) {

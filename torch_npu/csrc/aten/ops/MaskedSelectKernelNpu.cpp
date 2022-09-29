@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,11 +14,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/ExpandUtils.h>
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
+
+at::SmallVector<int64_t, SIZE> masked_select_npu_output_size(
+    const at::Tensor& self,
+    const at::Tensor& mask) {
+  at::Tensor maskCast;
+  at::Tensor selfCast;
+  std::tie(maskCast, selfCast) = expand_outplace(mask, self);
+  auto outputSize = {maskCast.numel()};
+  return outputSize;
+}
 
 at::Tensor& masked_select_out_npu_nocheck(
     at::Tensor& result,
@@ -42,12 +54,9 @@ at::Tensor& NPUNativeFunctions::masked_select_out(
     const at::Tensor& mask,
     at::Tensor& result) {
   at::Tensor maskCast = mask.clone();
-  if (maskCast.sizes() != self.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, self.sizes());
-  }
-  auto outputSize = maskCast.numel();
+  auto outputSize = masked_select_npu_output_size(self, maskCast);
   OpPreparation::CheckOut(
-      {self, mask},
+      {self, maskCast},
       result,
       self,
       outputSize);
@@ -59,12 +68,9 @@ at::Tensor& NPUNativeFunctions::masked_select_out(
 at::Tensor NPUNativeFunctions::masked_select(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor maskCast = mask;
-  if (maskCast.sizes() != self.sizes()) {
-    maskCast = NPUNativeFunctions::npu_broadcast(mask, self.sizes());
-  }
-  at::Tensor result = OpPreparation::ApplyTensor(self, maskCast.numel());
-  masked_select_out_npu_nocheck(result, self, maskCast);
+  auto outputSize = masked_select_npu_output_size(self, mask);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  masked_select_out_npu_nocheck(result, self, mask);
   return result;
 }
 
