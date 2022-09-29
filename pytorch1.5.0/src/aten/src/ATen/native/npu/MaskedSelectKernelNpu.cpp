@@ -14,11 +14,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/ExpandUtils.h>
 #include "ATen/native/npu/utils/OpAdapter.h"
 
 namespace at {
 namespace native {
 using namespace at::native::npu;
+
+SmallVector<int64_t, SIZE> masked_select_npu_output_size(
+    const Tensor& self,
+    const Tensor& mask) {
+  Tensor maskCast;
+  Tensor selfCast;
+  std::tie(maskCast, selfCast) = expand_outplace(mask, self);
+  auto outputSize = {maskCast.numel()};
+  return outputSize;
+}
 
 Tensor& masked_select_out_npu_nocheck(
     Tensor& result,
@@ -42,10 +53,7 @@ Tensor& masked_select_out_npu(
     const Tensor& self,
     const Tensor& mask) {
   Tensor maskCast = mask.clone();
-  if (maskCast.sizes() != self.sizes()) {
-    maskCast = broadcast_npu(mask, self.sizes());
-  }
-  auto outputSize = maskCast.numel();
+  auto outputSize = masked_select_npu_output_size(self, maskCast);
 
   OpPreparation::CheckOut(
       {self, maskCast},
@@ -60,12 +68,9 @@ Tensor& masked_select_out_npu(
 Tensor masked_select_npu(
     const Tensor& self,
     const Tensor& mask) {
-  Tensor maskCast = mask;
-  if (maskCast.sizes() != self.sizes()) {
-    maskCast = broadcast_npu(mask, self.sizes());
-  }
-  Tensor result = OpPreparation::ApplyTensor(self, maskCast.numel());
-  masked_select_out_npu_nocheck(result, self, maskCast);
+  auto outputSize = masked_select_npu_output_size(self, mask);
+  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  masked_select_out_npu_nocheck(result, self, mask);
 
   return result;
 }

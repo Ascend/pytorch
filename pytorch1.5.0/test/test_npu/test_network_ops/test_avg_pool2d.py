@@ -11,15 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
 import torch
 import torch.nn as nn
 import numpy as np
+
 from common_utils import TestCase, run_tests
-from common_device_type import dtypes, instantiate_device_type_tests
+from common_device_type import instantiate_device_type_tests
 from util_test import create_common_tensor
 
 
 class TestAvgPool2d(TestCase):
+
     def cpu_op_exec(self, input, ceil_mode):
         m = nn.AvgPool2d(3, stride=(6, 5), padding=0, ceil_mode=ceil_mode)
         output = m(input)
@@ -57,6 +61,29 @@ class TestAvgPool2d(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input, item[1])
             npu_output = self.npu_op_exec(npu_input, item[1])
             self.assertRtolEqual(cpu_output, npu_output, 0.0009)
+
+    def test_avg_pool2d_3d_fp32(self, device):
+        cinput = torch.randn(128, 32, 7)
+        ninput = cinput.npu()
+        cmodel = torch.nn.AvgPool2d((4, 5))
+        nmodel = cmodel.npu()
+        cpu_output = cmodel(cinput)
+        npu_output = nmodel(ninput)
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
+    def test_avg_pool2d_4d_fp32(self, device):
+        cinput = torch.randn(18, 43, 12, 400)
+        ninput = cinput.npu()
+        kernel = 13
+        padding = 6
+        stride = 10
+        ceil_mode = True
+        cmodel = torch.nn.AvgPool2d(kernel, stride = stride, padding = padding, ceil_mode = ceil_mode)
+        nmodel = cmodel.npu()
+        cpu_output = cmodel(cinput)
+        npu_output = nmodel(ninput)
+        self.assertRtolEqual(cpu_output.numpy(), npu_output.cpu().numpy())
+
 
 instantiate_device_type_tests(TestAvgPool2d, globals(), except_for="cpu")
 if __name__ == "__main__":

@@ -56,9 +56,13 @@ Tensor& avg_pool2d_out_npu_nocheck(
      .Attr("pads", pads)
      .Attr("data_format", (string)"NCHW")
      .Attr("global_pooling", false)
-     .Attr("ceil_mode", ceil_mode)
-     .Attr("exclusive", true)
-     .Run();
+     .Attr("ceil_mode", ceil_mode);
+  if (self.scalar_type() == at::kHalf || self.scalar_type() == at::kChar) {
+    cmd.Attr("exclusive", true);
+  } else {
+    cmd.Attr("exclusive", !count_include_pad);
+  }
+  cmd.Run();
 
   return result;
 }
@@ -72,8 +76,12 @@ Tensor& avg_pool2d_out_npu(
     bool ceil_mode,
     bool count_include_pad,
     c10::optional<int64_t> divisor_override) {
+  Tensor selfCp = self;
+  if (self.dim() == 3) {
+    selfCp = selfCp.unsqueeze(0);
+  }
   auto outputSize = avg_pool2d_npu_output_size(
-      self,
+      selfCp,
       kernel_size,
       stride,
       padding,
@@ -82,14 +90,14 @@ Tensor& avg_pool2d_out_npu(
       divisor_override);
 
   OpPreparation::CheckOut(
-      {self},
+      {selfCp},
       result,
-      self,
+      selfCp,
       outputSize);
 
   avg_pool2d_out_npu_nocheck(
       result,
-      self,
+      selfCp,
       kernel_size,
       stride,
       padding,
@@ -97,6 +105,9 @@ Tensor& avg_pool2d_out_npu(
       count_include_pad,
       divisor_override);
 
+  if (self.dim() == 3) {
+    result = result.squeeze(0);
+  }
   return result;
 }
 
@@ -112,6 +123,10 @@ Tensor avg_pool2d_npu(
   TORCH_CHECK(
       kernel_size.size() == 1 || kernel_size.size() == 2,
       "avg_pool2d: kernel_size must either be a single int, or a tuple of two ints");
+  Tensor selfCp = self;
+  if (self.dim() == 3) {
+    selfCp = selfCp.unsqueeze(0);
+  }
   const int64_t kH = kernel_size[0];
   const int64_t kW = kernel_size.size() == 1 ? kH : kernel_size[1];
 
@@ -146,7 +161,7 @@ Tensor avg_pool2d_npu(
 
   // calculate the output size
   auto outputSizes = avg_pool2d_npu_output_size(
-      self,
+      selfCp,
       kernel_sizess,
       stridess,
       paddingss,
@@ -155,19 +170,22 @@ Tensor avg_pool2d_npu(
       divisor_override);
 
   // construct the output tensor of the NPU
-  Tensor result = OpPreparation::ApplyTensor(self, outputSizes);
+  Tensor result = OpPreparation::ApplyTensor(selfCp, outputSizes);
   // calculate the output result of the NPU
   avg_pool2d_out_npu_nocheck(
       result,
-      self,
+      selfCp,
       kernel_sizess,
       stridess,
       paddingss,
       ceil_mode,
       count_include_pad,
       divisor_override);
+
+  if (self.dim() == 3) {
+    result = result.squeeze(0);
+  }
   return result;
 }
-
 } // namespace native
 } // namespace at
