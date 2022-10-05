@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
 import torch_npu
+
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
@@ -44,7 +46,7 @@ class TestIndexAdd(TestCase):
         output = output.numpy()
         return output
     
-    def test_index_add_float32(self, device="npu"):
+    def test_index_add_float32(self):
         shape_format = [
                 [[np.float32, -1, (5, 3)], [np.int32, -1, (3, )], [np.float32, -1, (3, 3)], 0],
                 [[np.float32, -1, (6, 4)], [np.int32, -1, (5, )], [np.float32, -1, (5, 4)], 0],
@@ -69,7 +71,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_int32(self, device="npu"):
+    def test_index_add_int32(self):
         shape_format = [   
                 [[np.int32, -1, (5, 3)], [np.int32, -1, (3, )], [np.int32, -1, (3, 3)], 0],
                 [[np.int32, -1, (6, 4)], [np.int32, -1, (5, )], [np.int32, -1, (5, 4)], 0],
@@ -92,7 +94,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_int8(self, device="npu"):
+    def test_index_add_int8(self):
         shape_format = [  
                 [[np.int8, -1, (5, 3)], [np.int32, -1, (3, )], [np.int8, -1, (3, 3)], 0],
                 [[np.int8, -1, (6, 4)], [np.int32, -1, (5, )], [np.int8, -1, (5, 4)], 0],
@@ -116,7 +118,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_uint8(self, device="npu"):
+    def test_index_add_uint8(self):
         shape_format = [
                 [[np.uint8, -1, (5, 3)], [np.int32, -1, (3, )], [np.uint8, -1, (3, 3)], 0],
                 [[np.uint8, -1, (6, 4)], [np.int32, -1, (5, )], [np.uint8, -1, (5, 4)], 0],
@@ -141,7 +143,7 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_add_fp16(self, device="npu"):
+    def test_index_add_fp16(self):
         shape_format = [
                 [[np.float16, -1, (5, 3)], [np.int32, -1, (3, )], [np.float16, -1, (3, 3)], 0],
                 [[np.float16, -1, (3, 2)], [np.int32, -1, (2, )], [np.float16, -1, (2, 2)], 0],
@@ -168,6 +170,30 @@ class TestIndexAdd(TestCase):
             npu_output = self.npu_op_inter_exec(npu_var, npu_index, npu_source, item[3])
             cpu_output = cpu_output.astype(np.float16)
             self.assertRtolEqual(cpu_output, npu_output)
+
+    def cpu_index_select_backward_0d_exec(self, x, index):
+        x.requires_grad = True
+        cpu_out = torch.index_select(x, 0, index)
+        cpu_out.backward(torch.ones_like(cpu_out))
+        cpu_grad = x.grad
+        return cpu_out.detach(), cpu_grad
+
+    def npu_index_select_backward_0d_exec(self, x, index):
+        x.requires_grad = True
+        npu_out = torch.index_select(x, 0, index)
+        npu_out.backward(torch.ones_like(npu_out))
+        npu_grad = x.grad
+        return npu_out.cpu().detach(), npu_grad.cpu()
+
+    def test_index_select_backward_0d(self):
+        case = [np.float32, -1, (3, 4)]
+        cpu_x, npu_x = create_common_tensor(case, -2, 2)
+        cpu_index = torch.tensor([0]).squeeze()
+        npu_index = cpu_index.npu()
+        cpu_out, cpu_grad = self.cpu_index_select_backward_0d_exec(cpu_x, cpu_index)
+        npu_out, npu_grad = self.npu_index_select_backward_0d_exec(npu_x, npu_index)
+        self.assertRtolEqual(cpu_out, npu_out)
+        self.assertRtolEqual(cpu_grad, npu_grad)
 
 
 if __name__ == "__main__":

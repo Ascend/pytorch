@@ -32,9 +32,12 @@ at::Tensor& index_add_out_npu(
   if (index.scalar_type() != at::ScalarType::Int) {
     indices = index.to(at::kInt);
   }
+  if (index.dim() == 0) {
+    indices.unsqueeze_(0);
+  }
   
   at::SmallVector<int64_t, N> pad_size = array_to_small_vector(self.sizes());
-  pad_size[dim] = index.sizes()[0];
+  pad_size[dim] = indices.sizes()[0];
   at::Tensor source_broadcast = NPUNativeFunctions::npu_broadcast(source, pad_size);
   OpCommand cmd;
   cmd.Name("InplaceIndexAdd")
