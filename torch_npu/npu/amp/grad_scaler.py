@@ -252,6 +252,8 @@ class GradScaler(Cuda_GradScaler):
             self._sync_dist_overflow_count()
             if self._has_overflow:
                 per_device_found_inf.get(found_inf.device).add_(1)
+            else:
+                per_device_found_inf.get(found_inf.device)
 
         return per_device_found_inf._per_device_tensors
 
