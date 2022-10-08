@@ -25,28 +25,28 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, at::Tensor& shape, double prob, int64_t seed, int64_t offset) {
-  shape = NPUNativeFunctions::npu_dtype_cast(shape, at::ScalarType::Long);
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, double prob, int64_t seed, int64_t offset) {
   OpCommand cmd;
   cmd.Name("StatelessBernoulli")
-    .Input(shape)
+    .Input(y.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
     .Input(at::Scalar(prob), at::ScalarType::Float)
     .Input(at::Scalar(seed), at::ScalarType::Long)
     .Input(at::Scalar(offset), at::ScalarType::Long)
     .Output(y)
+    .Attr("dtype", y.scalar_type())
     .Run();
   return y;
 }
 
-at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, at::Tensor& shape, const at::Tensor& prob, int64_t seed, int64_t offset) {
-  shape = NPUNativeFunctions::npu_dtype_cast(shape, at::ScalarType::Long);
+at::Tensor& bernoulli_npu_nocheck(at::Tensor& y, const at::Tensor& prob, int64_t seed, int64_t offset) {
   OpCommand cmd;
   cmd.Name("StatelessBernoulli")
-    .Input(shape)
+    .Input(y.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
     .Input(prob)
     .Input(at::Scalar(seed), at::ScalarType::Long)
     .Input(at::Scalar(offset), at::ScalarType::Long)
     .Output(y)
+    .Attr("dtype", y.scalar_type())
     .Run();
   return y;
 }
@@ -57,23 +57,12 @@ at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, double p, c10::opti
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
 
-  at::ScalarType selfType = self.scalar_type();
-  at::Tensor selfFp32 = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfFp32 = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, p, seed, offset);
-    NpuUtils::format_fresh_view(self, result);
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    bernoulli_npu_nocheck(contiguousSelf, p, seed, offset);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, p, seed, offset);
-    self.copy_(selfFp32);
-  }
-
-  if(self.scalar_type() != selfType){
-    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Half);
+    bernoulli_npu_nocheck(self, p, seed, offset);
   }
   return self;
 }
@@ -84,25 +73,13 @@ at::Tensor& NPUNativeFunctions::bernoulli_(at::Tensor& self, const at::Tensor& p
   const int64_t seed = pair.first;
   const int64_t offset = pair.second;
 
-  at::ScalarType selfType = self.scalar_type();
-  at::Tensor selfFp32 = self;
-  at::Tensor pFp32 = OpPreparation::CastBackToOriFormat(p);
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfFp32 = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-    pFp32 = NPUNativeFunctions::npu_dtype_cast(p, at::ScalarType::Float);
-  }
-
+  at::Tensor pOriFormat = OpPreparation::CastBackToOriFormat(p);
   if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfFp32);
-    at::Tensor result = bernoulli_npu_nocheck(contiguousSelf, contiguousSelf, pFp32, seed, offset);
-    NpuUtils::format_fresh_view(self, result);
+    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
+    bernoulli_npu_nocheck(contiguousSelf, pOriFormat, seed, offset);
+    NpuUtils::format_fresh_view(self, contiguousSelf);
   } else {
-    bernoulli_npu_nocheck(selfFp32, selfFp32, pFp32, seed, offset);
-    self.copy_(selfFp32);
-  }
-
-  if(self.scalar_type() != selfType){
-    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Half);
+    bernoulli_npu_nocheck(self, pOriFormat, seed, offset);
   }
   return self;
 }
