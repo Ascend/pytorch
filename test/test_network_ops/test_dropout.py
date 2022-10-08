@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numpy as np
 import torch
 import torch_npu
-import numpy as np
 import torch.nn as nn
 
 from torch_npu.testing.testcase import TestCase, run_tests
