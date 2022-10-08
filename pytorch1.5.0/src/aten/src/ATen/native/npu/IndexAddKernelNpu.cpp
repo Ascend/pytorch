@@ -31,9 +31,12 @@ Tensor& index_add_out_npu(
   if (index.scalar_type() != at::ScalarType::Int) {
     indices = index.to(at::kInt);
   }
-  
+  if (index.dim() == 0) {
+    indices.unsqueeze_(0);
+  }
+
   SmallVector<int64_t, N> pad_size = array_to_small_vector(self.sizes());
-  pad_size[dim] = index.sizes()[0];
+  pad_size[dim] = indices.sizes()[0];
   Tensor source_broadcast = at::npu_broadcast(source, pad_size);
   OpCommand cmd;
   cmd.Name("InplaceIndexAdd")
@@ -45,7 +48,6 @@ Tensor& index_add_out_npu(
       .Run();
   return result;
 }
-
 
 Tensor& index_add_npu_(
     Tensor& self,
@@ -60,7 +62,6 @@ Tensor& index_add_npu_(
   } else {
       index_add_out_npu(self, self, dim, index, source);
   }
-
   return self;
 }
 
@@ -70,7 +71,6 @@ Tensor index_add_npu(
     const Tensor& index,
     const Tensor& source) {
   return self.clone().index_add_(dim, index, source);
-
 }
 
 Tensor index_add_npu(
@@ -80,7 +80,6 @@ Tensor index_add_npu(
     const Tensor& source)  {
   return index_add_npu(self, dimname_to_position(self, dim), index, source);
 }
-
 
 } // namespace native
 } // namespace at

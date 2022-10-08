@@ -115,7 +115,43 @@ Tensor AdvanceIndex::reshape_indexer(const Tensor& index, int64_t dims_before, i
   shape.append(dims_before, 1);
   shape.append(orig_shape.begin(), orig_shape.end());
   shape.append(dims_after, 1);
-  return index.reshape(shape);
+  if (index.dtype() == at::kLong) {
+    return index.reshape(shape);
+  } else {
+    return index.reshape(shape).to(at::kLong);
+  }
+}
+
+std::vector<Tensor> npu_expand_outplace(TensorList to_expand) {
+  // expands a list of Tensors; ignores undefined (null) tensors
+  bool first = true;
+  std::vector<int64_t> sizes;
+  for (size_t i = 0; i < to_expand.size(); ++i) {
+    if (!to_expand[i].defined()) {
+      continue;
+    } else if (first) {
+      sizes = to_expand[i].sizes().vec();
+      first = false;
+    } else {
+      sizes = infer_size(sizes, to_expand[i].sizes());
+    }
+  }
+
+  std::vector<Tensor> result(to_expand.size());
+  for (size_t i = 0; i < to_expand.size(); ++i) {
+    if (!to_expand[i].defined()) {
+      continue;
+    } else if (to_expand[i].sizes().equals(sizes)) {
+      result[i] = to_expand[i];
+    } else {
+      if (to_expand[i].dtype() == at::kLong) {
+        result[i] = to_expand[i].to(at::kInt).expand(sizes, true);
+      } else {
+        result[i] = to_expand[i].expand(sizes, true);
+      }
+    }
+  }
+  return result;
 }
 
 AdvancedIndex AdvanceIndex::make_info(Tensor self, TensorList orig) {
@@ -124,7 +160,7 @@ AdvancedIndex AdvanceIndex::make_info(Tensor self, TensorList orig) {
   auto indices = expandTensors(self, orig);
   // next broadcast all index tensors together
   try {
-    indices = expand_outplace(indices);
+    indices = npu_expand_outplace(indices);
   } catch (std::exception& e) {
     TORCH_CHECK_INDEX(false, "shape mismatch: indexing tensors could not be broadcast together"
                    " with shapes ", shapes_as_str(indices));

@@ -238,9 +238,9 @@ Tensor& index_put_nocheck(
   Tensor valueReshapelast = value.reshape(value.numel());
   Tensor valuecast = valueReshapelast.repeat({broadNum / valueReshapelast.numel()});
   if (self.dim() > 5) {
-    result = selfCp.reshape(-1);
+    selfCp = result.reshape(-1);
     lastIndex = check_indices_dim(self, stacklist1);
-    return result.put_(lastIndex, valuecast, accumulate);
+    return selfCp.put_(lastIndex, valuecast, accumulate);
   } else {
     OpCommand cmd;
     accumulate ? cmd.Name("ScatterNdAdd") : cmd.Name("ScatterNdUpdate");

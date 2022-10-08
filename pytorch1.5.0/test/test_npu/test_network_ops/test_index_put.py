@@ -153,6 +153,21 @@ class TestIndexPut(TestCase):
         ninput[:, :, [0, 1, 2, 3], [0, 1, 2, 3]] = value.npu()
         self.assertRtolEqual(cinput.numpy(), ninput.cpu().numpy())
 
+    def test_index_put_6d_fp32(self, device):
+        cinput1 = torch.randn(16, 8, 15, 13, 21, 5)
+        cinput2 = torch.randn(6)
+        cindex = [torch.tensor([15, 1, 4, 13, 0, 9]), torch.tensor([2, 1, 0, 7, 3, 4]),
+                  torch.tensor([7, 4, 3, 14, 13, 10]), torch.tensor([8, 0, 3, 4, 10, 11]),
+                  torch.tensor([5, 2, 7, 19, 17, 16]), torch.tensor([0, 0, 0, 0, 0, 0])]
+        ninput1 = cinput1.npu()
+        ninput2 = cinput2.npu()
+        nindex = [torch.tensor([15, 1, 4, 13, 0, 9]).npu(), torch.tensor([2, 1, 0, 7, 3, 4]).npu(),
+                  torch.tensor([7, 4, 3, 14, 13, 10]).npu(), torch.tensor([8, 0, 3, 4, 10, 11]).npu(),
+                  torch.tensor([5, 2, 7, 19, 17, 16]).npu(), torch.tensor([0, 0, 0, 0, 0, 0]).npu()]
+        cout = torch.index_put_(cinput1, cindex, cinput2)
+        nout = torch.index_put_(ninput1, nindex, ninput2)
+        self.assertRtolEqual(cout.numpy(), nout.cpu().numpy())
+
 instantiate_device_type_tests(TestIndexPut, globals(), except_for="cpu")
 if __name__ == "__main__":
     run_tests()
