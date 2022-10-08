@@ -14,9 +14,9 @@
 
 import os
 
+import numpy as np
 import torch
 import torch_npu
-import numpy as np
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
