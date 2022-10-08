@@ -488,6 +488,11 @@ To verify the torch_npu reference, switch to another directory. If you perform t
 
 <img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
+## Multi card training is stuck in initialization stage until timeout
+
+IPv6 address is used in the "init_process_group" function of multi card communication, for example ::1 (Note that the localhost may point to the IPv6 address)
+Use IPv4 to avoid this problem
+
 # Version Description
 
 For details, see [Release Notes](https://gitee.com/ascend/pytorch/tree/master/docs/en/RELEASENOTE).

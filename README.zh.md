@@ -496,6 +496,11 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 
 <img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
+## 多卡训练初始化阶段卡住直到超时
+
+init_process_group 函数中使用了IPV6地址例如::1(注意localhost 可能指向IPv6的地址)
+使用IPv4可以避免这个问题
+
 # 版本说明
 
 版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
