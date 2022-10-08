@@ -74,7 +74,11 @@ at::Tensor AdvanceIndex::reshape_indexer(const at::Tensor& index, int64_t dims_b
   shape.append(dims_before, 1);
   shape.append(orig_shape.begin(), orig_shape.end());
   shape.append(dims_after, 1);
-  return index.reshape(shape);
+  if (index.dtype() == at::kLong) {
+    return index.reshape(shape);
+  } else {
+    return index.reshape(shape).to(at::kLong);
+  }
 }
 
 at::Tensor AdvanceIndex::restride_src(const at::Tensor& src, int64_t dims_before, int64_t dims_indexed,
@@ -104,13 +108,45 @@ std::string AdvanceIndex::shapes_as_str(at::TensorList tensors) {
   return os.str();
 }
 
+std::vector<at::Tensor> npu_expand_outplace(at::TensorList to_expand) {
+  // expands a list of Tensors; ignores undefined (null) tensors
+  bool first = true;
+  std::vector<int64_t> sizes;
+  for (size_t i = 0; i < to_expand.size(); ++i) {
+    if (!to_expand[i].defined()) {
+      continue;
+    } else if (first) {
+      sizes = to_expand[i].sizes().vec();
+      first = false;
+    } else {
+      sizes = at::infer_size(sizes, to_expand[i].sizes());
+    }
+  }
+
+  std::vector<at::Tensor> result(to_expand.size());
+  for (size_t i = 0; i < to_expand.size(); ++i) {
+    if (!to_expand[i].defined()) {
+      continue;
+    } else if (to_expand[i].sizes().equals(sizes)) {
+      result[i] = to_expand[i];
+    } else {
+      if (to_expand[i].dtype() == at::kLong) {
+        result[i] = to_expand[i].to(at::kInt).expand(sizes, true);
+      } else {
+        result[i] = to_expand[i].expand(sizes, true);
+      }
+    }
+  }
+  return result;
+}
+
 AdvancedIndex AdvanceIndex::make_info(at::Tensor self, const torch::List<c10::optional<at::Tensor>>& orig) {
   at::native::checkIndexTensorTypes(orig);
   // first expand BoolTensor (masks) or ByteTensor (masks) into 1 or more LongTensors
   auto indices = at::native::expandTensors(self, orig);
   // next broadcast all index tensors together
   try {
-    indices = at::expand_outplace(indices);
+    indices = npu_expand_outplace(indices);
   } catch (std::exception& e) {
     TORCH_CHECK_INDEX(false, "shape mismatch: indexing tensors could not be broadcast together"
         " with shapes ", shapes_as_str(indices));
