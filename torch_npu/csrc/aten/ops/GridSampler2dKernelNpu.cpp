@@ -48,14 +48,16 @@ at::Tensor NPUNativeFunctions::grid_sampler_2d(
                                                 dtypeCastOfGrid.size(2)};
 
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(dtypeCastOfSelf, outputSize, ACL_FORMAT_ND);
+  std::string interMode[] = {"bilinear", "nearest", "bicubic"};
+  std::string paddingMode[] = {"zeros", "border", "reflection"};
 
   OpCommand cmd;
   cmd.Name("GridSampler2D")
       .Input(dtypeCastOfSelf)
       .Input(dtypeCastOfGrid)
       .Output(result)
-      .Attr("interpolation_mode", interpolation_mode)
-      .Attr("padding_mode", padding_mode)
+      .Attr("interpolation_mode", interMode[interpolation_mode])
+      .Attr("padding_mode", paddingMode[padding_mode])
       .Attr("align_corners", align_corners)
       .Run();
 
