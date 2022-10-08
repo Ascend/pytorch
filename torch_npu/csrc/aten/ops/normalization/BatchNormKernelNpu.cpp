@@ -81,58 +81,31 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_training_update_nocheck(
     const at::Tensor& square_sum,
     const at::Tensor& weight,
     const at::Tensor& bias,
-    at::Tensor& running_mean,
-    at::Tensor& running_var,
+    const at::Tensor& running_mean,
+    const at::Tensor& running_var,
     bool train,
     double momentum,
     double eps) {
   OpCommand cmd;
   string name = (self.dim() == 5) ? "BN3DTrainingUpdate" : "BNTrainingUpdate";
   auto format = (self.dim() == 5) ? ACL_FORMAT_NCDHW : ACL_FORMAT_NCHW;
-
-  if (env::CheckFuzzyEnable()) {
-    auto running_mean_new = running_mean.clone();
-    auto running_var_new = running_var.clone();
-
-    cmd.Name(name)
-        .Input(self, "x", format)
-        .Input(sum, "sum", ACL_FORMAT_NCHW)
-        .Input(square_sum, "square_sum", ACL_FORMAT_NCHW)
-        .Input(weight, "scale", ACL_FORMAT_NCHW)
-        .Input(bias, "offset", ACL_FORMAT_NCHW)
-        .Input(running_mean, "mean", ACL_FORMAT_NCHW)
-        .Input(running_var, "variance", ACL_FORMAT_NCHW)
-        .Output(result, "y", format)
-        .Output(running_mean_new, "mean", ACL_FORMAT_NCHW)
-        .Output(running_var_new, "variance", ACL_FORMAT_NCHW)
-        .Output(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-        .Output(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-        .Attr("epsilon", static_cast<float>(eps))
-        .Attr("factor", static_cast<float>(momentum))
-        .Run();
-
-    running_mean.copy_(running_mean_new);
-    running_var.copy_(running_var_new);
-
-  } else {
-
-    cmd.Name(name)
-        .Input(self, "x", format)
-        .Input(sum, "sum", ACL_FORMAT_NCHW)
-        .Input(square_sum, "square_sum", ACL_FORMAT_NCHW)
-        .Input(weight, "scale", ACL_FORMAT_NCHW)
-        .Input(bias, "offset", ACL_FORMAT_NCHW)
-        .Input(running_mean, "mean", ACL_FORMAT_NCHW)
-        .Input(running_var, "variance", ACL_FORMAT_NCHW)
-        .Output(result, "y", format)
-        .Output(running_mean, "mean", ACL_FORMAT_NCHW)
-        .Output(running_var, "variance", ACL_FORMAT_NCHW)
-        .Output(save_mean, "batch_mean", ACL_FORMAT_NCHW)
-        .Output(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
-        .Attr("epsilon", static_cast<float>(eps))
-        .Attr("factor", static_cast<float>(momentum))
-        .Run();
-  }
+  
+  cmd.Name(name)
+      .Input(self, "x", format)
+      .Input(sum, "sum", ACL_FORMAT_NCHW)
+      .Input(square_sum, "square_sum", ACL_FORMAT_NCHW)
+      .Input(weight, "scale", ACL_FORMAT_NCHW)
+      .Input(bias, "offset", ACL_FORMAT_NCHW)
+      .Input(running_mean, "mean", ACL_FORMAT_NCHW)
+      .Input(running_var, "variance", ACL_FORMAT_NCHW)
+      .Output(result, "y", format)
+      .Output(const_cast<at::Tensor&>(running_mean), "mean", ACL_FORMAT_NCHW)
+      .Output(const_cast<at::Tensor&>(running_var), "variance", ACL_FORMAT_NCHW)
+      .Output(save_mean, "batch_mean", ACL_FORMAT_NCHW)
+      .Output(save_invstd, "batch_variance", ACL_FORMAT_NCHW)
+      .Attr("epsilon", static_cast<float>(eps))
+      .Attr("factor", static_cast<float>(momentum))
+      .Run();  
 
   return tuple<at::Tensor&, at::Tensor&, at::Tensor&>(result, save_mean, save_invstd);
 }
