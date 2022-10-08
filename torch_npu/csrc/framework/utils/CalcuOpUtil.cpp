@@ -338,12 +338,14 @@ namespace at_npu
     }
 
     int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor) {
-      const torch_npu::NPUStorageDesc &tensor_desc =
+      if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor))
+      {
+        const torch_npu::NPUStorageDesc &tensor_desc =
           torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_;
-      if (check_npu_format_unchanged_in_format_contiguous(tensor,
-                                                          tensor_desc)) {
         return tensor_desc.npu_format_;
-      } else {
+      }
+      else
+      {
         return InferFormat::GuessFormatWhenContiguous(tensor);
       }
     }
