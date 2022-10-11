@@ -956,9 +956,7 @@ namespace at_npu
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
         c10::IntArrayRef output_padding,
-        c10::IntArrayRef dilation,
-        const at::Tensor &columns,
-        const at::Tensor &ones)
+        c10::IntArrayRef dilation)
     {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef>(self.sizes(), weight.sizes(), grad_output.sizes());
     }

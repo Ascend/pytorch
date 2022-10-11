@@ -61,40 +61,40 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> bert_apply_adam_out_npu_nocheck(
   return std::tie(var_out, m_out, v_out);
 }
 
-// std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_bert_apply_adam(
-//     const c10::Scalar& lr,
-//     const c10::Scalar& beta1,
-//     const c10::Scalar& beta2,
-//     const c10::Scalar& epsilon,
-//     const at::Tensor& grad,
-//     const c10::Scalar& max_grad_norm,
-//     const c10::Scalar& global_grad_norm,
-//     const c10::Scalar& weight_decay,
-//     c10::optional<at::Scalar> step_size,
-//     int64_t adam_mode) {
-//   AT_ERROR("npu_bert_apply_adam is not implemented for Tensor");
-// }
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_bert_apply_adam(
+    const c10::Scalar& lr,
+    const c10::Scalar& beta1,
+    const c10::Scalar& beta2,
+    const c10::Scalar& epsilon,
+    const at::Tensor& grad,
+    const c10::Scalar& max_grad_norm,
+    const c10::Scalar& global_grad_norm,
+    const c10::Scalar& weight_decay,
+    const c10::optional<at::Scalar>& step_size,
+    int64_t adam_mode) {
+  AT_ERROR("npu_bert_apply_adam is not implemented for Tensor");
+}
 
-// tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::npu_bert_apply_adam_out(
-//     const c10::Scalar& lr,
-//     const c10::Scalar& beta1,
-//     const c10::Scalar& beta2,
-//     const c10::Scalar& epsilon,
-//     const at::Tensor& grad,
-//     const c10::Scalar& max_grad_norm,
-//     const c10::Scalar& global_grad_norm,
-//     const c10::Scalar& weight_decay,
-//     c10::optional<at::Scalar> step_size,
-//     int64_t adam_mode,
-//     at::Tensor& var,
-//     at::Tensor& m,
-//     at::Tensor& v) {
-//   bert_apply_adam_out_npu_nocheck(
-//       var, m, v, var, m, v,
-//       lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size, adam_mode);
+tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::npu_bert_apply_adam_out(
+    const c10::Scalar& lr,
+    const c10::Scalar& beta1,
+    const c10::Scalar& beta2,
+    const c10::Scalar& epsilon,
+    const at::Tensor& grad,
+    const c10::Scalar& max_grad_norm,
+    const c10::Scalar& global_grad_norm,
+    const c10::Scalar& weight_decay,
+    const c10::optional<at::Scalar>& step_size,
+    int64_t adam_mode,
+    at::Tensor& var,
+    at::Tensor& m,
+    at::Tensor& v) {
+  bert_apply_adam_out_npu_nocheck(
+      var, m, v, var, m, v,
+      lr, beta1, beta2, epsilon, grad, max_grad_norm, global_grad_norm, weight_decay, step_size, adam_mode);
 
-//   return std::tie(var, m, v);
-// }
+  return std::tie(var, m, v);
+}
 
 } // namespace native
 } // namespace at_npu

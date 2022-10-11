@@ -148,7 +148,7 @@ class TestDiv(TestCase):
             [[np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], [np.float32, 0, (20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (16)], [np.float16, 0, (2, 20, 16)], 'trunc'],
             [[np.float16, 0, (2, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (2, 20, 16)], 'floor'],
-            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], 'true'],
+            [[np.float16, 0, (3, 20, 16)], [np.float16, 0, (20, 16)], [np.float16, 0, (3, 20, 16)], None],
         ]
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 1, 100)
@@ -172,7 +172,7 @@ class TestDiv(TestCase):
             [[np.float32, 0, (20, 16)], 17.2, 'trunc'],
             [[np.float16, 0, (2, 20, 16)], 72.2, 'floor'],
             [[np.float16, 0, (2, 20, 16)], -5.4, 'trunc'],
-            [[np.float16, 0, (3, 20, 16)], -45.3, 'true'],
+            [[np.float16, 0, (3, 20, 16)], -45.3, None],
             [[np.int32, 0, (2, 20, 16)], 15.9, 'floor'],
             [[np.int32, 0, (3, 20, 16)], 17.2, 'trunc'],
         ]

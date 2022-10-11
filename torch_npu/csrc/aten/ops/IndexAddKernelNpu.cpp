@@ -27,7 +27,8 @@ at::Tensor& index_add_out_npu(
     const at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
-    const at::Tensor& source) {
+    const at::Tensor& source,
+    const at::Scalar& alpha) {
   at::Tensor indices = index;
   if (index.scalar_type() != at::ScalarType::Int) {
     indices = index.to(at::kInt);
@@ -44,6 +45,23 @@ at::Tensor& index_add_out_npu(
       .Output(result)
       .Attr("axis", dim)
       .Run();
+  return result;
+}
+
+at::Tensor& NPUNativeFunctions::index_add_out(
+    const at::Tensor& self,
+    int64_t dim,
+    const at::Tensor& index,
+    const at::Tensor& source,
+    const at::Scalar& alpha,
+    at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {self, index, source},
+      result,
+      self);
+
+  index_add_out_npu(result, self, dim, index, source, alpha);
+
   return result;
 }
 

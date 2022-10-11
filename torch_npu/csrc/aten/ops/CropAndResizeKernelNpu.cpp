@@ -26,7 +26,7 @@ at::Tensor &crop_and_resize_out(
     const at::Tensor &box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
-    std::string method,
+    c10::string_view method,
     at::Tensor &result)
 {
   OpCommand cmd;
@@ -37,38 +37,38 @@ at::Tensor &crop_and_resize_out(
       .Input(crop_size, at::kInt)
       .Output(result)
       .Attr<float>("extrapolation_value", extrapolation_value)
-      .Attr("method", method)
+      .Attr<std::string>("method", std::string(method).data())
       .Run();
 
   return result;
 }
 
-// at::Tensor NPUNativeFunctions::crop_and_resize(
-//     const at::Tensor &self,
-//     const at::Tensor &boxes,
-//     const at::Tensor &box_index,
-//     at::IntArrayRef crop_size,
-//     double extrapolation_value,
-//     c10::string_view method)
-// {
-//   // calculate the output size
-//   auto outputSize = crop_and_resize_npu_output_size(self, boxes, crop_size);
+at::Tensor NPUNativeFunctions::crop_and_resize(
+    const at::Tensor &self,
+    const at::Tensor &boxes,
+    const at::Tensor &box_index,
+    at::IntArrayRef crop_size,
+    double extrapolation_value,
+    c10::string_view method)
+{
+  // calculate the output size
+  auto outputSize = crop_and_resize_npu_output_size(self, boxes, crop_size);
 
-//   // construct the output tensor of the NPU
-//   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-//       outputSize,
-//       self.options().dtype(boxes.dtype()),
-//       CalcuOpUtil::get_tensor_npu_format(self));
+  // construct the output tensor of the NPU
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      self.options().dtype(boxes.dtype()),
+      CalcuOpUtil::get_tensor_npu_format(self));
 
-//   // calculate the output result of the NPU
-//   crop_and_resize_out(
-//       self,
-//       boxes, box_index, crop_size,
-//       extrapolation_value, method,
-//       result);
+  // calculate the output result of the NPU
+  crop_and_resize_out(
+      self,
+      boxes, box_index, crop_size,
+      extrapolation_value, method,
+      result);
 
-//   return result;
-// }
+  return result;
+}
 
 } // namespace native
 } // namespace at_npu

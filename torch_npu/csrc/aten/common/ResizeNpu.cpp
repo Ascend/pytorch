@@ -30,13 +30,13 @@ const at::Tensor& NPUNativeFunctions::resize_(
     c10::optional<c10::MemoryFormat> format) {
   // because of resize _impl_npu_ only support at base format, so
   // no need to reflush NpuStorageDesc here.
-  at::Tensor result = self;
-  if (!FormatHelper::IsBaseFormatType(result)) {
-    NPUNativeFunctions::npu_format_cast_(result, FormatHelper::GetBaseFormat(self));
+  at::Tensor temp_self = self;
+  if (!FormatHelper::IsBaseFormatType(self)) {
+    NPUNativeFunctions::npu_format_cast_(temp_self, FormatHelper::GetBaseFormat(self));
   }
-  auto* self_ = result.unsafeGetTensorImpl();
+  auto* self_ = self.unsafeGetTensorImpl();
   resize_impl_npu_(self_, size, /*strides=*/c10::nullopt);
-  return result;
+  return self;
 }
 
 const at::Tensor& NPUNativeFunctions::resize_as_(
@@ -51,8 +51,7 @@ const at::Tensor& NPUNativeFunctions::resize_as_(
 
   const at::Tensor& result = self.resize_(the_template.sizes());
   at::namedinference::propagate_names(result, the_template);
-  at::Tensor temp = result;
-  return temp;
+  return result;
 }
 
 

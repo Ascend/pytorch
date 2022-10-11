@@ -53,7 +53,7 @@ class TestPreluBackward(TestCase):
         ]       
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, -2, 2)
-            cpu_weight = npu_weight =  torch.randn(12)
+            cpu_weight = npu_weight = 12
             cpu_output = self.cpu_op_back_exec_ext(cpu_input, cpu_weight)
             npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
             self.assertRtolEqual(cpu_output, npu_output)
@@ -61,7 +61,6 @@ class TestPreluBackward(TestCase):
     def test_PreluBackward_shape_format_fp16(self, device="npu"):
         def cpu_op_back_exec_fp16_ext(input1,weight):            
             input1 = input1.to(torch.float32)            
-            weight = weight.to(torch.float32)
             w = torch.ones_like(input1)
             input1.requires_grad_(True)
             m = torch.nn.PReLU(weight)                
@@ -82,7 +81,7 @@ class TestPreluBackward(TestCase):
         ] 
         for item in shape_format:    
             cpu_input, npu_input = create_common_tensor(item, -2, 2)
-            cpu_weight = npu_weight =  torch.randn(1)
+            cpu_weight = npu_weight = 1
             cpu_output = cpu_op_back_exec_fp16_ext(cpu_input, cpu_weight)
             npu_output = self.npu_op_back_exec_ext(npu_input, npu_weight)
             self.assertRtolEqual(cpu_output, npu_output)  

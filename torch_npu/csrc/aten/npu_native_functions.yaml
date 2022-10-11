@@ -231,11 +231,13 @@ supported:
   - constant_pad_nd
   - contiguous
   - convolution
+  - convolution_backward
   - convolution_overrideable
   - convolution_backward_overrideable
   - _convolution
-  # - _convolution_nogroup
   - _convolution_double_backward
+  - _conv_depthwise2d
+  - _conv_depthwise2d.out
   - conv1d
   - conv2d
   - conv3d
@@ -306,8 +308,8 @@ supported:
   - div.Scalar_mode
   - div_.Scalar
   - div.Tensor_mode
-  # - div_.Tensor_mode
-  # - div_.Scalar_mode
+  - div_.Tensor_mode
+  - div_.Scalar_mode
   - divide.Tensor
   - divide_.Tensor
   - divide.out
@@ -759,6 +761,7 @@ supported:
   - softmax.Dimname
   - _softmax
   - _softmax_backward_data
+  - _softmax_backward_data.out
   - unsafe_split.Tensor
   - split.Tensor
   - unsafe_split_with_sizes
@@ -1051,6 +1054,7 @@ supported:
   - index_add_
   - index_add
   - index_add.dimname
+  - index_add.out
   - index_fill_.int_Scalar
   - index_fill.int_Scalar
   - index_fill_.int_Tensor
@@ -1241,6 +1245,7 @@ supported:
   - eig
   - svd.U
   - svd
+  - _linalg_svd.U
   - swapaxes
   - swapaxes_
   - swapdims
@@ -1678,6 +1683,9 @@ supported:
   - slow_conv_transpose3d
   - thnn_conv2d.out
   - thnn_conv2d
+  - _slow_conv2d_forward
+  - _slow_conv2d_forward.output
+  - _slow_conv2d_backward.output_mask
   - slow_conv3d.out
   - slow_conv3d
   - slow_conv3d_forward.output
@@ -1818,8 +1826,8 @@ custom:
     variants: function, method
   - func: _amp_foreach_non_finite_check_(Tensor[] scaled_grads) -> bool
   - func: npu_sign_bits_pack(Tensor self, int size) -> Tensor
-  # - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
-  # - func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
+  - func: npu_bert_apply_adam(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0) -> (Tensor var, Tensor m, Tensor v)
+  - func: npu_bert_apply_adam.out(Scalar lr, Scalar beta1, Scalar beta2, Scalar epsilon, Tensor grad, Scalar max_grad_norm, Scalar global_grad_norm, Scalar weight_decay, Scalar? step_size=None, int adam_mode=0, *, Tensor(a!) var, Tensor(b!) m, Tensor(c!) v) -> (Tensor(a!), Tensor(b!), Tensor(c!))
   - func: npu_conv_transpose2d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_conv_transpose3d_backward(Tensor input, Tensor grad_output, Tensor weight, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: npu_convolution_backward(Tensor input, Tensor grad_output, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
@@ -1831,6 +1839,7 @@ custom:
   - func: npu_conv3d.out(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups, *, Tensor(a!) out) -> Tensor(a!)
   - func: npu_conv3d_backward(Tensor input, Tensor grad, Tensor weight, int[] stride, int[] padding, int[] dilation, int groups, bool[3] output_mask) -> (Tensor, Tensor, Tensor)
   - func: get_npu_format(Tensor self) -> int
+  - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
   - func: npu_format_cast.Tensor(Tensor self, Tensor dst) -> Tensor
   - func: npu_format_cast_.acl_format(Tensor(a!) self, int acl_format) -> Tensor(a!)
   - func: npu_format_cast_(Tensor(a!) self, Tensor src) -> Tensor(a!)
@@ -1902,10 +1911,13 @@ custom:
   - func: npu_ciou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, Tensor? atan_sub, bool trans=False, bool is_cross=True, int mode=0) -> (Tensor, Tensor)
   - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
   - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3) -> Tensor
-  # - func: crop_and_resize(Tensor self, Tensor boxes, Tensor box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
+  - func: crop_and_resize(Tensor self, Tensor boxes, Tensor box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
   - func: reverse(Tensor self, int[] axis) -> Tensor
   - func: image_normalize(Tensor self, Tensor mean, Tensor variance, int dtype=0) -> Tensor
   - func: image_normalize_(Tensor(a!) self, Tensor mean, Tensor variance, int dtype=0) -> Tensor(a!)
+  - func: _conv_depthwise2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[2] output_mask) -> (Tensor grad_input, Tensor grad_weight)
+  - func: slow_conv_dilated2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
+  - func: slow_conv_transpose2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
@@ -1920,7 +1932,6 @@ custom_autograd:
   - func: npu_softmax_cross_entropy_with_logits(Tensor self, Tensor labels) -> Tensor
   - func: npu_max.dim(Tensor self, int dim, bool keepdim=False) -> (Tensor values, Tensor indices)
   - func: npu_max.names_dim(Tensor self, Dimname dim, bool keepdim=False) -> (Tensor values, Tensor indices)
-  - func: npu_format_cast(Tensor self, int acl_format) -> Tensor
   - func: npu_bmmV2(Tensor self, Tensor mat2, int[] output_sizes) -> Tensor
     variants: function, method
   - func: npu_dtype_cast(Tensor self, ScalarType dtype) -> Tensor
@@ -1945,5 +1956,5 @@ custom_autograd:
   - func: npu_dropout_do_mask(Tensor self, Tensor mask, float p) -> (Tensor, Tensor)
   - func: npu_ciou(Tensor self, Tensor gtboxes, bool trans=False, bool is_cross=True, int mode=0, bool atan_sub_flag=False) -> Tensor
   - func: get_storage_size(Tensor self) -> int
-  # - func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
-  # - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)
+  - func: npu_hcom_allreduce(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm) -> Tensor
+  - func: npu_hcom_allreduce.out(Tensor self, str reduction, str group, int fusion, int fusion_id, float alpha, float beta, int? hccl_comm, *, Tensor(a!) out) -> Tensor(a!)

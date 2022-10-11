@@ -22,42 +22,42 @@ namespace native{
     
 using namespace at_npu::native;
 
-// at::Tensor NPUNativeFunctions::npu_hcom_allreduce(const at::Tensor& self,
-//     std::string reduction,
-//     std::string group,
-//     int64_t fusion,
-//     int64_t fusion_id,
-//     double alpha,
-//     double beta,
-//     c10::optional<int64_t> hccl_comm) {
-//     AT_ERROR("npu_hcom_allreduce is not implemented for Tensor");
-// }
+at::Tensor NPUNativeFunctions::npu_hcom_allreduce(const at::Tensor& self,
+    c10::string_view reduction,
+    c10::string_view group,
+    int64_t fusion,
+    int64_t fusion_id,
+    double alpha,
+    double beta,
+    c10::optional<int64_t> hccl_comm) {
+    AT_ERROR("npu_hcom_allreduce is not implemented for Tensor");
+}
 
-// at::Tensor& NPUNativeFunctions::npu_hcom_allreduce_out(const at::Tensor& self,
-//     std::string reduction,
-//     std::string group,
-//     int64_t fusion,
-//     int64_t fusion_id,
-//     double alpha,
-//     double beta,
-//     c10::optional<int64_t> hccl_comm,
-//     at::Tensor& out) {
-//     OpCommand cmd;
-//     cmd.Name("HcomAllReduce")
-//         .Input(self)
-//         .Attr("reduction", reduction)
-//         .Attr("group", group)
-//         .Attr("fusion", fusion)
-//         .Attr("fusion_id", fusion_id)
-//         .Attr("alpha", static_cast<float>(alpha))
-//         .Attr("beta", static_cast<float>(beta));
-//     if (hccl_comm.has_value()) {
-//         cmd.Attr("comm", hccl_comm.value());
-//     }
-//     cmd.Output(out)
-//         .Run();
-//     return out;
-// }
+at::Tensor& NPUNativeFunctions::npu_hcom_allreduce_out(const at::Tensor& self,
+    c10::string_view reduction,
+    c10::string_view group,
+    int64_t fusion,
+    int64_t fusion_id,
+    double alpha,
+    double beta,
+    c10::optional<int64_t> hccl_comm,
+    at::Tensor& out) {
+    OpCommand cmd;
+    cmd.Name("HcomAllReduce")
+        .Input(self)
+        .Attr<std::string>("reduction", std::string(reduction).data())
+        .Attr<std::string>("group", std::string(group).data())
+        .Attr("fusion", fusion)
+        .Attr("fusion_id", fusion_id)
+        .Attr("alpha", static_cast<float>(alpha))
+        .Attr("beta", static_cast<float>(beta));
+    if (hccl_comm.has_value()) {
+        cmd.Attr("comm", hccl_comm.value());
+    }
+    cmd.Output(out)
+        .Run();
+    return out;
+}
 
 } // namespace native
 } // namespace at_npu

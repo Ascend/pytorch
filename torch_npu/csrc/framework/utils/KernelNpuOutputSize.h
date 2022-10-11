@@ -302,9 +302,7 @@ tuple<c10::IntArrayRef, c10::IntArrayRef,c10::IntArrayRef> slow_conv_transpose2d
     c10::IntArrayRef stride,
     c10::IntArrayRef padding,
     c10::IntArrayRef output_padding,
-    c10::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones);
+    c10::IntArrayRef dilation);
 
 c10::IntArrayRef smooth_l1_loss_npu_output_size(
     const at::Tensor& self,

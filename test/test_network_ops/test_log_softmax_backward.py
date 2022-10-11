@@ -22,12 +22,12 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 class TestLogSoftmaxBackward(TestCase):
     def cpu_op_exec(self, input1, input2, n):
-        output = torch._log_softmax_backward_data(input1, input2, n, input1)
+        output = torch._log_softmax_backward_data(input1, input2, n, input1.dtype)
         output = output.numpy()
         return output
 
     def npu_op_exec_new(self, input1, input2, n):
-        output = torch._log_softmax_backward_data(input1, input2, n, input1)
+        output = torch._log_softmax_backward_data(input1, input2, n, input1.dtype)
         output = output.to("cpu")
         output = output.numpy()
         return output
