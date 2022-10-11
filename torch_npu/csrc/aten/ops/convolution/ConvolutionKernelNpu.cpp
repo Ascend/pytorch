@@ -172,8 +172,8 @@ at::Tensor view4d(const at::Tensor& tensor) {
 
 static auto view3d(const at::Tensor& tensor) -> at::Tensor {
   TORCH_CHECK(tensor.ndimension() == 4,
-           "expected 4D tensor, got tensor with ", tensor.ndimension(),
-           " dimensions instead");
+      "expected 4D tensor, got tensor with ", tensor.ndimension(),
+      " dimensions instead");
   return tensor.squeeze(2);
 }
 
@@ -221,16 +221,16 @@ static void check_shape_forward(const at::Tensor& input,
   TORCH_CHECK(!params.is_stride_nonpos(), "non-positive stride is not supported");
 
   TORCH_CHECK(weight_dim == k,
-           "Expected ", weight_dim, "-dimensional input for ", weight_dim,
-           "-dimensional weight ", weight_sizes, ", but got ", k, "-dimensional input of size ",
-           input.sizes(), " instead");
+      "Expected ", weight_dim, "-dimensional input for ", weight_dim,
+      "-dimensional weight ", weight_sizes, ", but got ", k, "-dimensional input of size ",
+      input.sizes(), " instead");
   TORCH_CHECK(weight_sizes[0] >= groups,
-           "Given groups=", groups, ", expected weight to be at least ", groups,
-           " at dimension 0, but got weight of size ", weight_sizes, " instead");
+      "Given groups=", groups, ", expected weight to be at least ", groups,
+      " at dimension 0, but got weight of size ", weight_sizes, " instead");
   TORCH_CHECK(weight_sizes[0] % groups == 0,
-           "Given groups=", groups, ", expected weight to be divisible by ",
-           groups, " at dimension 0, but got weight of size [", weight_sizes,
-           "] instead");
+      "Given groups=", groups, ", expected weight to be divisible by ",
+      groups, " at dimension 0, but got weight of size [", weight_sizes,
+      "] instead");
 
   if (!transposed) {
     std::vector<int64_t> input_shape;
@@ -238,15 +238,15 @@ static void check_shape_forward(const at::Tensor& input,
     bool kernel_size_correct = true;
 
     TORCH_CHECK(input.size(1) == (weight_sizes[1] * groups),
-                "Given groups=", groups, ", weight of size ", weight_sizes,
-                ", expected input", input.sizes(), " to have ",
-                (weight_sizes[1] * groups), " channels, but got ", input.size(1),
-                " channels instead");
+      "Given groups=", groups, ", weight of size ", weight_sizes,
+      ", expected input", input.sizes(), " to have ",
+      (weight_sizes[1] * groups), " channels, but got ", input.size(1),
+      " channels instead");
 
     TORCH_CHECK(!bias.defined() || (bias.ndimension() == 1 && bias.size(0) == weight_sizes[0]),
-             "Given weight of size ", weight_sizes,
-             ", expected bias to be 1-dimensional with ", weight_sizes[0], " elements",
-             ", but got bias of size ", bias.sizes(), " instead");
+        "Given weight of size ", weight_sizes,
+        ", expected bias to be 1-dimensional with ", weight_sizes[0], " elements",
+        ", but got bias of size ", bias.sizes(), " instead");
 
     for (const auto i : c10::irange(2, k)) {
       input_shape.push_back(input.size(i) + 2 * padding[i-2]);
@@ -276,13 +276,13 @@ static void check_shape_forward(const at::Tensor& input,
     }
   } else { // transposed
     TORCH_CHECK(input.size(1) == weight_sizes[0],
-             "Given transposed=", transposed, ", weight of size ", weight_sizes,
-             ", expected input", input.sizes(), " to have ", weight_sizes[0],
-             " channels, but got ", input.size(1), " channels instead");
+        "Given transposed=", transposed, ", weight of size ", weight_sizes,
+        ", expected input", input.sizes(), " to have ", weight_sizes[0],
+        " channels, but got ", input.size(1), " channels instead");
     TORCH_CHECK(!bias.defined() || (bias.ndimension() == 1 && bias.size(0) == weight_sizes[1] * groups),
-             "Given transposed=", transposed, ", weight of size ", weight_sizes,
-             ", expected bias to be 1-dimensional with ", weight_sizes[1] * groups, " elements",
-             ", but got bias of size ", bias.sizes(), " instead");
+        "Given transposed=", transposed, ", weight of size ", weight_sizes,
+        ", expected bias to be 1-dimensional with ", weight_sizes[1] * groups, " elements",
+        ", but got bias of size ", bias.sizes(), " instead");
   }
 }
 
@@ -682,20 +682,20 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _convolution_backward_nogroup_bac
   switch(backend) {
     case at::native::ConvBackend::Slow2d:
       return NPUNativeFunctions::_slow_conv2d_backward(
-        grad_output, input, weight, kernel_size, params.stride, params.padding, output_mask);
+          grad_output, input, weight, kernel_size, params.stride, params.padding, output_mask);
     // NB: nnpack backward does not support strided convolutions; use slow impl instead
     case at::native::ConvBackend::NnpackSpatial:
     case at::native::ConvBackend::SlowDilated2d:
       return NPUNativeFunctions::slow_conv_dilated2d_backward(
-        grad_output, input, weight, kernel_size, params.stride, params.padding, params.dilation, output_mask);
+          grad_output, input, weight, kernel_size, params.stride, params.padding, params.dilation, output_mask);
     case at::native::ConvBackend::SlowTranspose2d:
       return NPUNativeFunctions::slow_conv_transpose2d_backward(
-        grad_output, input, weight, kernel_size, params.stride, params.padding,
-        params.output_padding, params.dilation, output_mask);
+          grad_output, input, weight, kernel_size, params.stride, params.padding,
+          params.output_padding, params.dilation, output_mask);
     case at::native::ConvBackend::SlowTranspose3d:
       return NPUNativeFunctions::npu_conv_transpose3d_backward(
-        input, grad_output, weight, params.padding, params.output_padding, params.stride, 
-        params.dilation, params.groups, output_mask);
+          input, grad_output, weight, params.padding, params.output_padding, params.stride, 
+          params.dilation, params.groups, output_mask);
     default:
       TORCH_CHECK(false, "Unsupported conv nogroup backend encountered");
   }
@@ -841,7 +841,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
   if (!params.transposed) {
     for (auto pad : params.output_padding) {
       TORCH_CHECK(pad == 0, "output_padding is not supported for non-transposed convolutions; got: ",
-        params.output_padding);
+          params.output_padding);
     }
   }
 
@@ -857,7 +857,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
   }
 
   // Select appropriate backend to use.
-  at::native::ConvBackend backend = select_conv_backend(input, weight, bias_sizes_opt, /*need_backward=*/ true, params);
+  at::native::ConvBackend backend = select_conv_backend(input, weight, bias_sizes_opt, true, params);
   at::MemoryFormat backend_memory_format = determine_backend_memory_format(input, weight);
 
   // Call the backend.
@@ -880,7 +880,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
       // Only reach here when input is backend with out-of-source implementation.
       std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
         at::convolution_backward_overrideable(grad_output, input, weight, params.stride, params.padding,
-          params.dilation, params.transposed, params.output_padding, params.groups, output_mask);
+            params.dilation, params.transposed, params.output_padding, params.groups, output_mask);
       break;
     case at::native::ConvBackend::Slow3d:
       std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
@@ -900,7 +900,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
       if (params.groups == 1) {
         std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
           _convolution_backward_nogroup_backend(
-            grad_output, input, weight, output_mask, backend, params);
+              grad_output, input, weight, output_mask, backend, params);
       } else {
         std::vector<at::Tensor> backend_grad_inputs(params.groups);
         std::vector<at::Tensor> backend_grad_weights(params.groups);
@@ -911,7 +911,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
           auto weight_g = subtensor(weight, 0, params.groups, g);
           std::tie(backend_grad_inputs[g], backend_grad_weights[g], backend_grad_biases[g]) =
             _convolution_backward_nogroup_backend(
-              grad_output_g, input_g, weight_g, output_mask, backend, params);
+                grad_output_g, input_g, weight_g, output_mask, backend, params);
         }
         if (output_mask[0]) {
           backend_grad_input = at::cat(backend_grad_inputs, 1);

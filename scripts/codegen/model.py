@@ -398,7 +398,8 @@ class NativeFunction:
         elif not structured and structured_delegate is None:
             dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and 
+                    DispatchKey.CompositeImplicitAutograd in dispatch), \
             "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
             "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
             "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"

@@ -17,7 +17,9 @@
 import re
 import functools
 import os
-from typing import Tuple, List, Iterable, Iterator, Callable, Sequence, TypeVar, Optional, Dict, Any, Union, Set, NoReturn
+from typing import (Tuple, List, Iterable, Iterator, 
+                    Callable, Sequence, TypeVar, Optional,
+                    Dict, Any, Union, Set, NoReturn)
 from enum import Enum
 import contextlib
 import textwrap
