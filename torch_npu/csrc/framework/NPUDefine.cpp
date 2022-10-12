@@ -47,7 +47,6 @@ namespace at_npu
       this->constParams = other.constParams;
       this->hostMemory = other.hostMemory;
       this->isFuzzy = other.isFuzzy;
-      this->isDataPreprocessOp = other.isDataPreprocessOp;
     }
 
     void ExecuteParas::CopyEx(ExecuteParas& other)

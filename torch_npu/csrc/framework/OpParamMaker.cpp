@@ -113,6 +113,14 @@ namespace at_npu
           attrValue.data());
     }
 
+    void OpCommandImpl::SetEnginePriority() {
+        auto stream = c10_npu::getCurrentNPUStream();
+        if (stream.isDataPreprocessStream()) {
+          AddAttr("_performance_prior", static_cast<std::string>("true"));
+          AddAttr("_exclude_engines", static_cast<std::string>("AICORE"));
+        }
+      }
+
     void OpCommandImpl::Run(
         bool sync, 
         c10::SmallVector<int64_t, N> &sync_index, 
@@ -136,10 +144,6 @@ namespace at_npu
         c10::SmallVector<int64_t, N> &sync_index, 
         c10::SmallVector<at::Tensor, N> &outputTensor) {
       auto stream = c10_npu::getCurrentNPUStream();
-      if (stream.isDataPreprocessStream()) {
-        OpAttrMaker::Set(params.attr, "_performance_prior", "true");
-        OpAttrMaker::Set(params.attr, "_exclude_engines", "AICORE");
-      }
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
       bool reset_flag = false;
@@ -224,10 +228,6 @@ namespace at_npu
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
       NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
 
-      if (cur_paras->isDataPreprocessOp) {
-        OpAttrMaker::Set(const_cast<aclopAttr*>(cur_paras->attr), "_performance_prior", "true");
-        OpAttrMaker::Set(const_cast<aclopAttr*>(cur_paras->attr), "_exclude_engines", "AICORE");
-      }
       aclError ret;
       bool reset_flag = false;
       if (!cur_paras->isFuzzy)
