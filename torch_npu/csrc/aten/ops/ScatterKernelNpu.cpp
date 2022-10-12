@@ -39,11 +39,11 @@ at::Tensor& scatter_out_npu_nocheck(
 }
 
 at::Tensor& NPUNativeFunctions::scatter_out(
-  const at::Tensor& self,
-  int64_t dim,
-  const at::Tensor& index,
-  const at::Tensor& src,
-  at::Tensor& result) {
+    const at::Tensor& self,
+    int64_t dim,
+    const at::Tensor& index,
+    const at::Tensor& src,
+    at::Tensor& result) {
   OpPreparation::CheckOut(
       {self, src, index},
       result, 
@@ -53,11 +53,11 @@ at::Tensor& NPUNativeFunctions::scatter_out(
 }
 
 at::Tensor& NPUNativeFunctions::scatter_out(
-  const at::Tensor& self,
-  int64_t dim,
-  const at::Tensor& index,
-  const at::Scalar& value,
-  at::Tensor& result) {
+    const at::Tensor& self,
+    int64_t dim,
+    const at::Tensor& index,
+    const at::Scalar& value,
+    at::Tensor& result) {
   OpPreparation::CheckOut(
       {self, index},
       result,

@@ -136,12 +136,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _svd_helper(const at::Tensor& sel
 }
 
 std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_svd_out(
-                                 const at::Tensor& A,
-                                 const bool full_matrices,
-                                 const bool compute_uv,
-                                 at::Tensor& U,
-                                 at::Tensor& S,
-                                 at::Tensor& Vh) {
+    const at::Tensor& A,
+    const bool full_matrices,
+    const bool compute_uv,
+    at::Tensor& U,
+    at::Tensor& S,
+    at::Tensor& Vh) {
   // Half optimisation half precondition for some parts of the LAPACK / cuSOLVER
   // In particular, the call to lapackSvd to compute lwork fails otherwise
   if (A.numel() == 0) {
@@ -173,11 +173,11 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_sv
   // Prepare U / Vh
   // U_ and Vh_ are just going to be accessed whenever compute_uv == true
   const auto U_ready = !compute_uv || U.mT().is_contiguous();
-  const auto U_ = borrow_else_clone(U_ready, U, U, /*C-contig*/false);
+  const auto U_ = borrow_else_clone(U_ready, U, U, false);
   const auto Vh_ready = !compute_uv
                             || (!use_cusolver && Vh.mT().is_contiguous())
                             || (use_cusolver && Vh.is_contiguous());
-  const auto Vh_ = borrow_else_clone(Vh_ready, Vh, Vh, /*C-contig*/use_cusolver);
+  const auto Vh_ = borrow_else_clone(Vh_ready, Vh, Vh, use_cusolver);
 
   at::Tensor U_tmp, S_tmp, V_tmp;
   std::tie(U_tmp, S_tmp, V_tmp) = _svd_helper(A, full_matrices, compute_uv);
@@ -192,7 +192,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::_linalg_sv
     Vh.copy_(V_tmp);
   }
 
-  at::_linalg_check_errors(info, "linalg.svd", /*is_matrix*/A.dim() == 2);
+  at::_linalg_check_errors(info, "linalg.svd", A.dim() == 2);
 }
 
 } // namespace native

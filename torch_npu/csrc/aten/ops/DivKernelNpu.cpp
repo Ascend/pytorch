@@ -90,8 +90,8 @@ at::Tensor &NPUNativeFunctions::div_out(
     return result;
   }
   TORCH_CHECK(false,
-    "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-    "but found '", *rounding_mode, "'");
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor NPUNativeFunctions::div(const at::Tensor &selfTemp, const at::Tensor &otherTemp)
@@ -158,8 +158,8 @@ at::Tensor NPUNativeFunctions::div(
     return NPUNativeFunctions::trunc(true_div_res);
   }
   TORCH_CHECK(false,
-    "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
-    "but found '", *rounding_mode, "'");
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor NPUNativeFunctions::div(

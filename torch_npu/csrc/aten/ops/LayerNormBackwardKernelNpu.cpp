@@ -97,17 +97,17 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_backward_npu_support(
         c10::nullopt /* pin_memory */,
         LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     dgamma = at::native::zeros_like(gammaTemp,
-                         c10::nullopt /* dtype */,
-                         c10::nullopt /* layout */,
-                         c10::nullopt /* device */,
-                         c10::nullopt /* pin_memory */,
-                         LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+        c10::nullopt /* dtype */,
+        c10::nullopt /* layout */,
+        c10::nullopt /* device */,
+        c10::nullopt /* pin_memory */,
+        LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     dbeta = at::native::zeros_like(gammaTemp,
-                        c10::nullopt /* dtype */,
-                        c10::nullopt /* layout */,
-                        c10::nullopt /* device */,
-                        c10::nullopt /* pin_memory */,
-                        LEGACY_CONTIGUOUS_MEMORY_FORMAT);
+        c10::nullopt /* dtype */,
+        c10::nullopt /* layout */,
+        c10::nullopt /* device */,
+        c10::nullopt /* pin_memory */,
+        LEGACY_CONTIGUOUS_MEMORY_FORMAT);
     return std::make_tuple(std::move(dX), std::move(dgamma), std::move(dbeta));
   }  
 
