@@ -21,43 +21,28 @@
 namespace at_npu {
 namespace native {
 at::Tensor constant_pad_nd_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::IntArrayRef pad, at::Scalar value) {
-  if (self.scalar_type() == at::ScalarType::Half ||
-      self.scalar_type() == at::ScalarType::Float ||
-      self.scalar_type() == at::ScalarType::Int) {
-    c10::SmallVector<int64_t, N> vectorInt;
-    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(pad);
-    paddingsVector.resize(2 * self.dim(), 0);
-    for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
-      vectorInt.emplace_back(paddingsVector[i - 2]);
-      vectorInt.emplace_back(paddingsVector[i - 1]);
-    }
-
-    float val = CalcuOpUtil::get_scalar_float_value(value);
-
-    at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
-
-    OpCommand cmd;
-    cmd.Name("PadV3")
-        .Input(self)
-        .Input(vectorInt, at::kInt)
-        .Input(value_tensor)
-        .Output(result)
-        .Attr("mode", (string)"constant")
-        .Attr("paddings_contiguous", true)
-        .Run();
-  } else {
-    float val = CalcuOpUtil::get_scalar_float_value(value);
-    at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
-    OpCommand cmd;
-    cmd.Name("PadV3")
-        .Input(self)
-        .Input(pad)
-        .Input(value_tensor)
-        .Output(result)
-        .Attr("mode", (string)"constant")
-        .Attr("paddings_contiguous", true)
-        .Run();
+  c10::SmallVector<int64_t, N> vectorInt;
+  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(pad);
+  paddingsVector.resize(2 * self.dim(), 0);
+  for (int64_t i = paddingsVector.size(); i > 0; i -= 2) {
+    vectorInt.emplace_back(paddingsVector[i - 2]);
+    vectorInt.emplace_back(paddingsVector[i - 1]);
   }
+
+  float val = CalcuOpUtil::get_scalar_float_value(value);
+
+  at::Tensor value_tensor = at::empty({1}, self.options()).fill_(val);
+
+  OpCommand cmd;
+  cmd.Name("PadV3")
+      .Input(self)
+      .Input(vectorInt, at::kInt)
+      .Input(value_tensor)
+      .Output(result)
+      .Attr("mode", (string)"constant")
+      .Attr("paddings_contiguous", true)
+      .Run();
+
   return result;
 }
 

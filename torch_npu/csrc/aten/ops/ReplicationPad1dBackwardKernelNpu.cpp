@@ -19,94 +19,73 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& replication_pad1d_backward_out_npu_nocheck(at::Tensor& gradInput, const at::Tensor& gradOutput, const at::Tensor& input, at::IntArrayRef padding) {
-  if (input.scalar_type() == at::ScalarType::Half) {
-    c10::SmallVector<int64_t, N> vectorInt;
-    c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
-    paddingsVector.resize(2 * input.dim(), 0);
-    for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
-      vectorInt.emplace_back(paddingsVector[i - 2]);
-      vectorInt.emplace_back(paddingsVector[i - 1]);
-    }
-    OpCommand cmd;
-    cmd.Name("PadV3Grad")
-        .Input(gradOutput)
-        .Input(vectorInt, at::kInt)
-        .Output(gradInput)
-        .Attr("mode", (string)"edge")
-        .Attr("paddings_contiguous", true)
-        .Run();
-  } else {
-    OpCommand cmd;
-    cmd.Name("PadV3Grad")
-        .Input(gradOutput)
-        .Input(padding)
-        .Output(gradInput)
-        .Attr("mode", (string)"edge")
-        .Attr("paddings_contiguous", true)
-        .Run();
+  c10::SmallVector<int64_t, N> vectorInt;
+  c10::SmallVector<int64_t, N> paddingsVector = array_to_small_vector(padding);
+  paddingsVector.resize(2 * input.dim(), 0);
+  for (int64_t i = paddingsVector.size(); i > 1; i -= 2) {
+    vectorInt.emplace_back(paddingsVector[i - 2]);
+    vectorInt.emplace_back(paddingsVector[i - 1]);
   }
+
+  OpCommand cmd;
+  cmd.Name("PadV3Grad")
+      .Input(gradOutput)
+      .Input(vectorInt, at::kInt)
+      .Output(gradInput)
+      .Attr("mode", (string)"edge")
+      .Attr("paddings_contiguous", true)
+      .Run();
+
   return gradInput;
  }
 
 at::Tensor& NPUNativeFunctions::replication_pad1d_backward_out(const at::Tensor& gradOutput, const at::Tensor& input, at::IntArrayRef padding, at::Tensor& gradInput) {
-  if (input.scalar_type() == at::ScalarType::Half) {
-    c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
-    at::Tensor inputCopy = input;
-    int dim_diff = 4 - inputCopy.dim();
-    for (; dim_diff > 0; dim_diff--) {
-      inputCopy = inputCopy.unsqueeze(0);
-    }
-
-    at::Tensor gradOutputCopy = gradOutput;
-    int dim_diff1 = 4 - gradOutputCopy.dim();
-    for (; dim_diff1 > 0; dim_diff1--) {
-      gradOutputCopy = gradOutputCopy.unsqueeze(0);
-    }
-
-    OpPreparation::CheckOut(
-        {input, gradOutput},
-        gradInput,
-        inputCopy);
-    replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutputCopy, inputCopy, padding);
-    for (; dim_diff > 0; dim_diff--) {
-      gradInput = gradInput.squeeze(0);
-    }
-  } else {
-    OpPreparation::CheckOut(
-        {input, gradOutput},
-        gradInput,
-        input);
-    replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutput, input, padding);
+  c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
+  at::Tensor inputCopy = input;
+  int dim_diff = 4 - inputCopy.dim();
+  for (; dim_diff > 0; dim_diff--) {
+    inputCopy = inputCopy.unsqueeze(0);
   }
 
+  at::Tensor gradOutputCopy = gradOutput;
+  int dim_diff1 = 4 - gradOutputCopy.dim();
+  for (; dim_diff1 > 0; dim_diff1--) {
+    gradOutputCopy = gradOutputCopy.unsqueeze(0);
+  }
+
+  OpPreparation::CheckOut(
+      {input, gradOutput},
+      gradInput,
+      inputCopy);
+  replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutputCopy, inputCopy, padding);
+  for (; dim_diff > 0; dim_diff--) {
+    gradInput = gradInput.squeeze(0);
+ }
   return gradInput;
  }
 
 at::Tensor NPUNativeFunctions::replication_pad1d_backward(const at::Tensor& gradOutput, const at::Tensor& input, at::IntArrayRef padding) {
-  at::Tensor gradInput;
-  if (input.scalar_type() == at::ScalarType::Half) {
-    c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
-    at::Tensor inputCopy = input;
-    int dim_diff = 4 - inputCopy.dim();
-    for (; dim_diff > 0; dim_diff--) {
-      inputCopy = inputCopy.unsqueeze(0);
-    }
-    at::Tensor gradOutputCopy = gradOutput;
-    int dim_diff1 = 4 - gradOutputCopy.dim();
-    for (; dim_diff1 > 0; dim_diff1--) {
-      gradOutputCopy = gradOutputCopy.unsqueeze(0);
-    }
-    gradInput = OpPreparation::ApplyTensor(inputCopy);
-    replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutputCopy, inputCopy, paddings);
-    for (; dim_diff > 0; dim_diff--) {
-      gradInput = gradInput.squeeze(0);
-    }
-  } else {
-    gradInput = OpPreparation::ApplyTensor(input);
-    replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutput, input, padding);
+  c10::SmallVector<int64_t, N> paddings = {padding[0], padding[1], 0, 0};
+  at::Tensor inputCopy = input;
+  int dim_diff = 4 - inputCopy.dim();
+  for (; dim_diff > 0; dim_diff--) {
+    inputCopy = inputCopy.unsqueeze(0);
   }
 
+  at::Tensor gradOutputCopy = gradOutput;
+  int dim_diff1 = 4 - gradOutputCopy.dim();
+  for (; dim_diff1 > 0; dim_diff1--) {
+    gradOutputCopy = gradOutputCopy.unsqueeze(0);
+  }
+
+  at::Tensor gradInput = OpPreparation::ApplyTensor(inputCopy);
+
+  replication_pad1d_backward_out_npu_nocheck(gradInput, gradOutputCopy, inputCopy, paddings);
+  for (; dim_diff > 0; dim_diff--) {
+    gradInput = gradInput.squeeze(0);
+  }
   return gradInput;
  }
  } // namespace native
  } // namespace at
+ 
