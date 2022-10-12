@@ -42,9 +42,9 @@ at::Tensor& roi_align_npu_nocheck(
     int64_t roi_end_mode) {
   OpCommand cmd;
   cmd.Name("ROIAlign")
-      .Input(self)
+      .Input(self, "features", ACL_FORMAT_NCHW)
       .Input(rois)
-      .Output(result)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("spatial_scale", (float)spatial_scale)
       .Attr("pooled_height", pooled_height)
       .Attr("pooled_width", pooled_width)

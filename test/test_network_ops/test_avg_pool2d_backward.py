@@ -19,6 +19,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestAvgPool2dBackward(TestCase):
@@ -46,7 +47,8 @@ class TestAvgPool2dBackward(TestCase):
 
         return output_grad, output
 
-    def test_avg_pool2d_backward_shape_format_fp16(self, device="npu"):
+    @graph_mode
+    def test_avg_pool2d_backward_shape_format_fp16(self):
         format_list = [0, 3]
         shape_list = [(5, 20, 8, 8)]
         shape_format = [
@@ -63,7 +65,8 @@ class TestAvgPool2dBackward(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
             self.assertRtolEqual(cpu_output_grad, npu_output_grad)
 
-    def test_avg_pool2d_backward_shape_format_fp32(self, device="npu"):
+    @graph_mode
+    def test_avg_pool2d_backward_shape_format_fp32(self):
         format_list = [0, 3]
         shape_list = [(5, 20, 8, 8)]
         shape_format = [

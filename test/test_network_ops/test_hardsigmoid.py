@@ -17,6 +17,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 
 class TestHardsigmoid(TestCase):
     def generate_single_data(self, min_d, max_d, shape, dtype):
@@ -40,7 +41,8 @@ class TestHardsigmoid(TestCase):
         output = output.numpy()
         return output
 
-    def test_hardsigmoid_int32(self, device="npu"):
+    @graph_mode
+    def test_hardsigmoid_int32(self)
         def cpu_op_exec_int32(input1):
             input1 = input1.to(torch.float32)
             h = torch.nn.Hardsigmoid()
@@ -54,14 +56,16 @@ class TestHardsigmoid(TestCase):
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_hardsigmoid_float32(self, device="npu"):
+    @graph_mode
+    def test_hardsigmoid_float32(self):
         npu_input1 = self.generate_single_data(-6, 6, (9,3), np.float32)
         npu_input2 = self.generate_single_data(-6, 6, (9,3), np.float32)
         cpu_output = self.cpu_op_exec(npu_input1, npu_input2)
         npu_output = self.npu_op_exec(npu_input1, npu_input2)
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_hardsigmoid_float16(self, device="npu"):
+    @graph_mode
+    def test_hardsigmoid_float16(self):
         def cpu_op_exec_float16(input1):
             input1 = input1.to(torch.float32)
             h = torch.nn.Hardsigmoid()

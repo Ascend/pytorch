@@ -18,16 +18,18 @@ import numpy as np
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 class TestStrideAdd(TestCase):
-   def npu_op_exec(self, input1, input2, offset1, offset2, c1_len):
+    def npu_op_exec(self, input1, input2, offset1, offset2, c1_len):
         output = torch.npu_stride_add(input1, input2, offset1, offset2, c1_len)
         output = output.to("cpu")
         output = output.numpy()
 
         return output
 
-   def test_StrideAdd(self, device='npu'):
+    @graph_mode
+    def test_StrideAdd(self):
         input1  = torch.tensor([[[[[1.]]]]]).npu()
         input2  = input1
         exoutput = torch.tensor([[[[[2.]]],[[[0.]]],[[[0.]]],[[[0.]]],[[[0.]]],[[[0.]]],[[[0.]]],[[[0.]]],

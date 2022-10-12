@@ -21,18 +21,19 @@ namespace at_npu {
 namespace native {
 
 at::Tensor& nonzero_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
-  cmd.Name("NonZero")
+  cmd.Sync(output_sync_idx)
+    .Name("NonZero")
     .Input(self)
     .Output(result)
     .Attr("transpose", false)
     .Run();
-
   return result;
 }
 
 at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& result) {
-  auto outputSize = nonzero_npu_output_size(self);
+  auto outputSize = nonzero_npu_max_output_size(self);
   OpPreparation::CheckOut(
       {self},
       result,
@@ -48,7 +49,7 @@ at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& 
 
 at::Tensor NPUNativeFunctions::nonzero(const at::Tensor& self) {
   // calculate the output size
-  auto outputSize = nonzero_npu_output_size(self);
+  auto outputSize = nonzero_npu_max_output_size(self);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(

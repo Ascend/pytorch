@@ -45,9 +45,9 @@ at::Tensor conv_transpose2d_backward_input_out_npu(
 
   OpCommand cmd;
   cmd.Name("Conv2D")
-      .Input(grad_output)
-      .Input(weight)
-      .Output(gradInput)
+      .Input(grad_output, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW)
+      .Output(gradInput, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -79,10 +79,10 @@ at::Tensor conv_transpose2d_backward_weight_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("Conv2DBackpropFilter")
-      .Input(grad_output)
+      .Input(grad_output, "x", ACL_FORMAT_NCHW)
       .Input(dimList, at::kInt)
-      .Input(input)
-      .Output(gradWeight)
+      .Input(input, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(gradWeight, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)

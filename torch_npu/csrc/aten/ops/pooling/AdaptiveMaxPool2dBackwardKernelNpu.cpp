@@ -57,10 +57,10 @@ at::Tensor& NPUNativeFunctions::adaptive_max_pool2d_backward_out(
       bool ceil_mode = false;
       OpCommand cmd;
       cmd.Name("MaxPoolGradWithArgmaxV1")
-          .Input(self)
-          .Input(grad_output)
-          .Input(indices, "", c10::nullopt, "uint16")
-          .Output(grad_input)
+          .Input(self, "x", ACL_FORMAT_NCHW)
+          .Input(grad_output, "grad", ACL_FORMAT_NCHW)
+          .Input(indices, "argmax", ACL_FORMAT_NCHW, "uint16")
+          .Output(grad_input, "y", ACL_FORMAT_NCHW)
           .Attr("ksize", kernelSize)
           .Attr("strides", stridesSize)
           .Attr("pads", paddings)

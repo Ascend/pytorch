@@ -15,11 +15,12 @@
 import torch
 import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
-
+from torch_npu.testing.decorator import graph_mode
 
 class TestBatchNormBackwardElemt(TestCase):
 
-    def test_batch_norm_backward_elemt_4d(self, device="npu"):
+    @graph_mode
+    def test_batch_norm_backward_elemt_4d(self):
         grad_output = torch.ones([2, 3, 1, 4]).npu()
         input1 = torch.ones([2, 3, 1, 4]).npu()
         mean = torch.tensor([8., 5., 9.]).npu()
@@ -39,7 +40,8 @@ class TestBatchNormBackwardElemt(TestCase):
                                          [[2776., 2776., 2776, 2776.]]]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
-    def test_batch_norm_backward_elemt_2d(self, device="npu"):
+    @graph_mode
+    def test_batch_norm_backward_elemt_2d(self):
         grad_output = torch.ones([2, 3]).npu()
         input1 = torch.ones([2, 3]).npu()
         mean = torch.tensor([8., 5., 9.]).npu()
@@ -55,7 +57,8 @@ class TestBatchNormBackwardElemt(TestCase):
                                         [110., 11., 2776.]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
 
-    def test_batch_norm_backward_elemt_2d_fp(self, device="npu"):
+    @graph_mode
+    def test_batch_norm_backward_elemt_2d_fp(self):
         grad_output = torch.ones([2, 3]).npu()
         input1 = torch.ones([2, 3]).npu()
         mean = torch.tensor([8.123456, 5.147125, 9.365778]).npu()

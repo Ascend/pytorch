@@ -18,6 +18,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 class TestBatchNormBackwardReduce(TestCase):
     def expect_result(self):
@@ -35,7 +36,8 @@ class TestBatchNormBackwardReduce(TestCase):
                 npu_grad_weight.cpu().numpy(), npu_grad_bias.cpu().numpy()]
         return list2
 
-    def test_batch_norm_backward_reduce_mix_precision(self, device="npu"):
+    @graph_mode
+    def test_batch_norm_backward_reduce_mix_precision(self):
         np.random.seed(1234)
         shape_format = [
             [[np.float16, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
@@ -61,7 +63,8 @@ class TestBatchNormBackwardReduce(TestCase):
             for out16, out32 in zip(npu_output_fp16, npu_output_fp32):
                 self.assertRtolEqual(out16, out32)
 
-    def test_batch_norm_backward_reduce(self, device="npu"):
+    @graph_mode
+    def test_batch_norm_backward_reduce(self):
         np.random.seed(1234)
         shape_format = [
             [[np.float32, -1, [1, 3, 9, 9]], [np.float32, -1, [3]],
