@@ -16,6 +16,7 @@
 from itertools import product
 import collections
 import gc
+import numpy as np
 
 import torch
 import torch_npu
@@ -536,6 +537,73 @@ class TestNpu(TestCase):
         x = torch.ones(())
         x.data = x.data.npu()
 
+    def test_function_tensor_new_full(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_full((2, 3), 3.1)
+        
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_full((2, 3), 3.1, device=None, requires_grad=False)
+        npu_output2 = x.new_full((2, 3), 3.1, device='cpu', requires_grad=False)
+        npu_output3 = x.new_full((2, 3), 3.1, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_ones(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_ones((2, 3))
+
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_ones((2, 3), device=None, requires_grad=False)
+        npu_output2 = x.new_ones((2, 3), device='cpu', requires_grad=False)
+        npu_output3 = x.new_ones((2, 3), device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_tensor(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        x = torch.tensor((), dtype=torch.float32).npu()
+
+        list_input = [[1, 2, 3], [4, 5, 6]]
+        cpu_out = x_cpu.new_tensor(list_input)
+        npu_output1 = x.new_tensor(list_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(list_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(list_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        print(cpu_out.numpy().dtype, npu_output3.cpu().numpy().dtype)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+        np_input = np.array(list_input)
+        cpu_out = x_cpu.new_tensor(np_input)
+        npu_output1 = x.new_tensor(np_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(np_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(np_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+        tensor_input = torch.tensor(list_input)
+        cpu_out = x_cpu.new_tensor(tensor_input)
+        npu_output1 = x.new_tensor(tensor_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(tensor_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(tensor_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_zeros(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_zeros((2, 3))
+
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_zeros((2, 3), device=None, requires_grad=False)
+        npu_output2 = x.new_zeros((2, 3), device='cpu', requires_grad=False)
+        npu_output3 = x.new_zeros((2, 3), device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
 
 if __name__ == '__main__':
     run_tests()

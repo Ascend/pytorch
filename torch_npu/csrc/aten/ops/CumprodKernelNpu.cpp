@@ -18,11 +18,14 @@
 namespace at_npu {
 namespace native {
 at::Tensor& _cumprod_out(const at::Tensor& self, int64_t dim, at::Tensor& result) {
+  at::Scalar axis= dim;
   OpCommand cmd;
   cmd.Name("Cumprod")
     .Input(self)
+    .Input(axis, at::kLong)
+    .Attr("exclusive", (bool)false)
+    .Attr("reverse", (bool)false)
     .Output(result)
-    .Attr("axis", dim)
     .Run();
 
   return result;

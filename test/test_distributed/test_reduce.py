@@ -75,8 +75,10 @@ class HcclReduceTest(TestCase):
             for shape in shape_format:
                 if shape[0] == np.int8:
                     shape[1] = 0
-                expected, input1 = create_common_tensor(shape, -10, 10)
-                expected *= world_size
+                exp_input, input1 = create_common_tensor(shape, -10, 10)
+                expected = 0
+                for _ in range(world_size):
+                    expected += exp_input
                 self._test_multiprocess(HcclReduceTest._test_reduce,
                                         HcclReduceTest._init_dist_hccl, expected, input1, world_size)
 

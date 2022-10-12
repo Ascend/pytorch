@@ -337,6 +337,10 @@ namespace at_npu
       auto dstPtr = static_cast<c10_npu::queue::QueueParas* >(dst);
       auto srcPtr = static_cast<c10_npu::queue::QueueParas* >(src);
       dstPtr->paramVal = static_cast<uint8_t* >(dst) + sizeof(c10_npu::queue::QueueParas);
+      if (dstPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+        // string or smallvector of struct is used, deconstructor need be called before memset
+        (static_cast<ExecuteParas* >(dstPtr->paramVal))->~ExecuteParas();
+      }
       dstPtr->paramStream = srcPtr->paramStream;
       dstPtr->paramType = srcPtr->paramType;
       dstPtr->paramLen = srcPtr->paramLen;

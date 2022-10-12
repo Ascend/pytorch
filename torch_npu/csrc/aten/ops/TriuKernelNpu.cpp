@@ -23,10 +23,10 @@ namespace native {
 at::Tensor& triu_out_npu_nocheck(const at::Tensor& self, int64_t k, at::Tensor& result) {
   OpCommand cmd;
   cmd.Name("Triu")
-    .Input(self)
-    .Output(result)
-    .Attr("diagonal", k)
-    .Run();
+      .Input(self)
+      .Output(result)
+      .Attr("diagonal", k)
+      .Run();
 
   return result;
 }
@@ -36,52 +36,24 @@ at::Tensor& NPUNativeFunctions::triu_out(const at::Tensor& self, int64_t k, at::
       {self},
       result,
       self);
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-  triu_out_npu_nocheck(selfCopy, k, result);
-  if (self.scalar_type() == at::ScalarType::Half) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
+  if (!NpuUtils::check_match(&result)) {
+    at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
+    triu_out_npu_nocheck(self, k, contiguousResult);
+    NpuUtils::format_fresh_view(result, contiguousResult);
+  } else {
+    triu_out_npu_nocheck(self, k, result);
   }
   return result;
 }
 
 at::Tensor NPUNativeFunctions::triu(const at::Tensor& self, int64_t k) {
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-  at::Tensor result = OpPreparation::ApplyTensor(selfCopy);
-
-  triu_out_npu_nocheck(selfCopy, k, result);
-  if (self.scalar_type() == at::ScalarType::Half) {
-    result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
-
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  triu_out_npu_nocheck(self, k, result);
   return result;
 }
 
 at::Tensor& NPUNativeFunctions::triu_(at::Tensor& self, int64_t k) {
-  at::Tensor selfCopy = self;
-  if (self.scalar_type() == at::ScalarType::Half) {
-    selfCopy = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
-  }
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);
-    at::Tensor result = triu_out_npu_nocheck(contiguousSelf, k, contiguousSelf);
-    if (self.scalar_type() == at::ScalarType::Half) {
-      result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-    }
-    self.copy_(result);
-  } else {
-    triu_out_npu_nocheck(selfCopy, k, selfCopy);
-    if (self.scalar_type() == at::ScalarType::Half) {
-      selfCopy = NPUNativeFunctions::npu_dtype_cast(selfCopy, at::ScalarType::Half);
-    }
-    self.copy_(selfCopy);
-  }
-
+  NPUNativeFunctions::triu_out(self, k, self);
   return self;
 }
 
