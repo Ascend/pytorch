@@ -50,5 +50,13 @@ at::Tensor& NPUNativeFunctions::adaptive_avg_pool3d_backward_out(
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::_adaptive_avg_pool3d_backward(
+    const at::Tensor& grad_output,
+    const at::Tensor& self) {
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  NPUNativeFunctions::adaptive_avg_pool3d_backward_out(grad_output, self, result);
+  return result;
+}
+
 } // native
 } // at_npu

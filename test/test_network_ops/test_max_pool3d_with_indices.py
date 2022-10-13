@@ -39,7 +39,7 @@ class TestMaxPool3dWithIndices(TestCase):
         output2 = argMaxNpu.to("cpu").detach()
         return output1, output2
 
-    d@graph_mode
+    @graph_mode
     def test_max_pool3d_with_indices(self):
         shape_format = [
             [np.float16, 30, [1, 3, 19, 19, 19], [3, 3, 3], [2, 2, 2], 1, 1, False],

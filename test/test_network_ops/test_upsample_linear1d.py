@@ -94,7 +94,7 @@ class TestUpsampleLinear1D(TestCase):
 
     @graph_mode
     def test_upsample_linear1d(self):
-        for item in self.creat_shape_format1(device):
+        for item in self.creat_shape_format1():
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
 
             if cpu_input.dtype == torch.float16:
@@ -120,7 +120,7 @@ class TestUpsampleLinear1D(TestCase):
 
     @graph_mode
     def test_upsample_scale_linear1d(self):
-        for item in self.creat_shape_format1(device):
+        for item in self.creat_shape_format1():
             cpu_input, npu_input = create_common_tensor(item[0], 0, 100)
 
             if cpu_input.dtype == torch.float16:

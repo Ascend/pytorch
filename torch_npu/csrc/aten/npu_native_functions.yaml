@@ -1567,8 +1567,10 @@ supported:
   - mkldnn_adaptive_avg_pool2d
   - _adaptive_avg_pool2d
   - _adaptive_avg_pool2d_backward
+  - _adaptive_avg_pool3d
   - adaptive_avg_pool3d.out
   - adaptive_avg_pool3d
+  - _adaptive_avg_pool3d_backward
   - adaptive_avg_pool3d_backward.grad_input
   - adaptive_max_pool2d.out
   - adaptive_max_pool2d

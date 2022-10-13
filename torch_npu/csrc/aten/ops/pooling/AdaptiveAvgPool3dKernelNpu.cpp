@@ -57,6 +57,9 @@ at::Tensor NPUNativeFunctions::adaptive_avg_pool3d(const at::Tensor& self, at::I
   return result;
 }
 
+at::Tensor NPUNativeFunctions::_adaptive_avg_pool3d(const at::Tensor& self, at::IntArrayRef output_size) {
+  return NPUNativeFunctions::adaptive_avg_pool3d(self, output_size);
+}
 
 } // namespace native
 } // namespace at_npu

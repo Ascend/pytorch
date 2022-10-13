@@ -42,7 +42,7 @@ class TestHardsigmoid(TestCase):
         return output
 
     @graph_mode
-    def test_hardsigmoid_int32(self)
+    def test_hardsigmoid_int32(self):
         def cpu_op_exec_int32(input1):
             input1 = input1.to(torch.float32)
             h = torch.nn.Hardsigmoid()

@@ -58,7 +58,7 @@ class TestAvgPool3DBackward(TestCase):
         output = output.detach().numpy()
         return output_grad, output
 
-     @graph_mode
+    @graph_mode
     def test_avg_pool_3d_fp32(self):
         shape_format = [
                         [[np.float32, -1, (20, 16, 50, 44, 31)], (3, 2, 2), (2, 1, 2)],
