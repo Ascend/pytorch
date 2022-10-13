@@ -29,6 +29,7 @@ public:
   static bool CheckCombinedOptimizerEnable();
   static bool CheckTriCombinedOptimizerEnable();
   static bool CheckAclDumpDateEnable();
+  static bool CheckDisableAclopComAndExe();
   static bool CheckSwitchMMOutputEnable();
   static bool CheckUseNpuLogEnable();
   static std::string CheckDisableDynamicPath();
