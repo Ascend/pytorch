@@ -25,10 +25,10 @@ namespace native {
 at::SmallVector<int64_t, SIZE> masked_select_npu_output_size(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor maskCast;
-  at::Tensor selfCast;
+  c10::MaybeOwned<at::Tensor> maskCast;
+  c10::MaybeOwned<at::Tensor> selfCast;
   std::tie(maskCast, selfCast) = expand_outplace(mask, self);
-  auto outputSize = {maskCast.numel()};
+  auto outputSize = {maskCast->sum().item().toLong()};
   return outputSize;
 }
 

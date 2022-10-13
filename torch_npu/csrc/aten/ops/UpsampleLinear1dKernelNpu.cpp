@@ -20,95 +20,139 @@
 
 namespace at_npu {
 namespace native {
-c10::SmallVector<int64_t, SIZE> upsample_nearest1d_npu_output_size(
-    const at::Tensor& input,
-    at::IntArrayRef output_size) {
-  c10::SmallVector<int64_t, SIZE> outputSize;
-  int64_t N = input.size(0);
-  int64_t C = input.size(1);
-  int64_t W = output_size[0];
-  outputSize = {N, C, 1, W};
-  return outputSize;
-}
 
-at::Tensor& upsample_nearest1d_out_nocheck(
+static inline void upsample_linear1d_check(
     const at::Tensor& self,
-    at::IntArrayRef output_size,
-    c10::optional<double> scales,
-    at::Tensor& result) {
+    at::IntArrayRef output_size) {
+  TORCH_CHECK(
+      output_size.size() == 1,
+      "It is expected output_size equals to 1, but got size ",
+      output_size.size());
+
   TORCH_CHECK(
       (self.size(1) != 0 && self.size(2) != 0) && self.dim() == 3,
       "Non-empty 3D data tensor expected but got a tensor with sizes ",
       self.sizes());
+  
+  int64_t input_width = self.size(2);
+  int64_t output_width = output_size[0];
+  
+  TORCH_CHECK(
+      input_width > 0 && output_width > 0,
+      "Input and output sizes should be greater than 0, but got input (W: ",
+      input_width,
+      ") and output (W: ",
+      output_width,
+      ")");
+}
 
-  at::Tensor selfOp = self.unsqueeze(2);
-  OpCommand cmd;
-  cmd.Name("Resize")
-      .Input(selfOp)
-      .Input(output_size, at::kFloat)
-      .Input(output_size, at::kFloat)
-      .Input(result.sizes(), at::kLong)
-      .Output(result)
-      .Attr("mode", (string)"nearest");
-  if (self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf) {
-    cmd.Attr("nearest_mode", (string)"round_prefer_floor")
-        .Attr("coordinate_transformation_mode", (string)"half_pixel")
-        .Run();
+at::Tensor& upsample_linear1d_out_nocheck(
+    const at::Tensor& self,
+    at::IntArrayRef output_size,
+    bool align_corners,
+    c10::optional<double> scales,
+    at::Tensor& result) {
+  upsample_linear1d_check(self, output_size);
+
+  // Since only NCHW format input is currently supported, first convert the
+  // input self (3 dimensions) to 4 dimensions as the input of npu
+  at::Tensor selfcp = self.unsqueeze(2);
+
+  // to calculate the value of scale
+  c10::SmallVector<float, N> sc = {};
+  if (scales.has_value()) {
+    sc.push_back(scales.value());
   } else {
-    cmd.Attr("nearest_mode", (string)"floor")
-        .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
-        .Run();
+    float temp = float(output_size[0]) / float(selfcp.size(3));
+    sc.push_back(temp);
   }
-  result = result.squeeze(2);
+
+  string coordinate_transformation_mode =
+      align_corners ? "align_corners" : "half_pixel";
+  
+  string mode = "linear";
+
+  OpCommand cmd;
+  cmd.Name("ResizeD")
+      .Input(selfcp, "X", ACL_FORMAT_NCHW)
+      .Output(result, "y", ACL_FORMAT_NCHW)
+      .Attr("sizes", output_size)
+      .Attr("coordinate_transformation_mode", coordinate_transformation_mode)
+      .Attr("mode", mode)
+      .Attr("scales", sc)
+      .Run();
+
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::upsample_nearest1d_out(
+at::Tensor& NPUNativeFunctions::upsample_linear1d_out(
     const at::Tensor& self,
     at::IntArrayRef output_size,
+    bool align_corners,
     c10::optional<double> scales,
     at::Tensor& result) {
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
+
+  // calculate the output size
+  auto outputSize = upsample_linear1d_npu_output_size(
+      self, output_size, align_corners, scales);
 
   OpPreparation::CheckOut(
       {self},
       result,
-      self,
+      CalcuOpUtil::get_tensor_npu_format(self),
+      self.scalar_type(),
       outputSize);
-  
+
   if (!NpuUtils::check_match(&result)) {
     at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    upsample_nearest1d_out_nocheck(self, output_size, scales, contiguousResult);
-    NpuUtils::format_fresh_view(result, contiguousResult);
+    at::Tensor newResult = upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, contiguousResult);
+    NpuUtils::format_fresh_view(result, newResult);
   } else {
-    upsample_nearest1d_out_nocheck(self, output_size, scales, result);
+    upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
   }
 
   return result;
 }
 
-at::Tensor NPUNativeFunctions::upsample_nearest1d(
-    const at::Tensor& input,
-    c10::optional<at::IntArrayRef> output_size,
-    c10::optional<at::ArrayRef<double>> scale_factors) {
-  auto osize = CalcuOpUtil::compute_output_size(input.sizes(), output_size, scale_factors);
-  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(input, osize);
-  at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
-
-  upsample_nearest1d_out_nocheck(input, osize, scales_w, result);
-  return result;
-}
-
-at::Tensor NPUNativeFunctions::upsample_nearest1d(
+at::Tensor NPUNativeFunctions::upsample_linear1d(
     const at::Tensor& self,
     at::IntArrayRef output_size,
+    bool align_corners,
     c10::optional<double> scales) {
-  c10::SmallVector<int64_t, SIZE> outputSize = upsample_nearest1d_npu_output_size(self, output_size);
-  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  // calculate the output size
+  auto outputSize = upsample_linear1d_npu_output_size(
+      self, output_size, align_corners, scales);
+  
+  // construct the output tensor of the NPU
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
-  upsample_nearest1d_out_nocheck(self, output_size, scales, result);
+  // calculate the output result of the NPU
+  upsample_linear1d_out_nocheck(self, output_size, align_corners, scales, result);
+
   return result;
 }
+
+at::Tensor NPUNativeFunctions::upsample_linear1d(
+    const at::Tensor& self,
+    c10::optional<at::IntArrayRef> output_size,
+    bool align_corners,
+    c10::optional<at::ArrayRef<double>> scale_factors) {
+  auto osize = CalcuOpUtil::compute_output_size(self.sizes(), output_size, scale_factors);
+  auto scales_w = CalcuOpUtil::get_scale_value(scale_factors, 0);
+  // calculate the output size
+  auto outputSize = upsample_linear1d_npu_output_size(
+      self, osize, align_corners, scales_w);
+  
+  // construct the output tensor of the NPU
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+
+  // calculate the output result of the NPU
+  upsample_linear1d_out_nocheck(self, osize, align_corners, scales_w, result);
+
+  return result;
+}
+
 } // namespace native
 } // namespace at_npu
