@@ -167,7 +167,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 -   当前昇腾AI处理器中支持的算子以及对应的算子约束可以通过以下两种方式查询。
     -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)》进行离线查询。
     -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南》中的“算子&模型速查”章节。
--   当前PyTorch适配的算子列表可以参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
+-   当前PyTorch适配的算子列表可以参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
 <h2 id="算子适配开发md">算子适配开发</h2>
 
@@ -189,7 +189,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h3 id="获取PyTorch源码md">获取PyTorch源码</h3>
 
-针对pytorch1.8.1版本，PyTorch源码获取请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
+针对pytorch1.8.1版本，PyTorch源码获取请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
 
 <h3 id="注册算子开发md">注册算子开发</h3>
 

@@ -80,7 +80,7 @@ bash ci/build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.8.1rc3-cp37-cp37m-linux_{arch}.whl
 ```
 
 下载torchvision。
@@ -493,14 +493,53 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 
 验证torch_npu的引入，请切换至其他目录进行，在编译目录执行会提示如下错误。
 
-
 <img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
-## 多卡训练初始化阶段卡住直到超时
+## 在执行import torch_npu时出现ModuleNotFooundError: NO module named '_lzma'报错问题
 
-init_process_group 函数中使用了IPV6地址例如::1(注意localhost 可能指向IPv6的地址)
-使用IPv4可以避免这个问题
+在python命令行下，执行import torch_npu测试时，出现ModuleNotFooundError: NO module named '_lzma'问题，可能由于Python环境失效，重装Python即可。<img src="figures/QA.png"  />
 
+## 编译过程中出现XNNPACK相关的Make Error报错
+
+编译原生pytorch时，未配置相关环境变量，导致编译不成功。
+
+![](figures/QA1.png)
+
+1. 执行命令设置环境变量
+
+   ```
+   export USE_XNNPACK=0
+   ```
+
+2. 执行命令清除当前编译内容
+
+   ```
+   make clean
+   ```
+
+3. 重新编译
+
+## 编译时出现Breakpad error: field 'regs' has incomplete type 'google_breakpad::user_regs_struct'报错
+
+编译原生pytorch时，未配置相关环境变量，导致编译不成功。
+
+1. 执行命令配置环境变量
+
+   ```
+   export BUILD_BREAKPAD=0
+   ```
+
+2. 执行命令清除当前编译内容
+
+   ```
+   make clean
+   ```
+
+3. 重新编译
+
+## 多卡训练初始化阶段卡顿至超时
+
+init_process_group 函数中使用了IPV6地址，例如::1(注意localhost 可能指向IPv6的地址)，使用IPv4可以避免这个问题
 # 版本说明
 
 版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
