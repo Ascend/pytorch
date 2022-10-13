@@ -24,19 +24,19 @@ namespace option {
 using namespace std;
 
 bool OptionsManager::CheckQueueEnable() {
-  static int32_t queue_enable = -1;
-  if (queue_enable == -1) {
-    queue_enable = GetBoolTypeOption("TASK_QUEUE_ENABLE");
-  }
-  return (queue_enable == 1);
+  const static bool checkQueueEnable = []() -> bool {
+    int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE");
+    return (queue_enable != 0) ? true : false;
+  }();
+  return checkQueueEnable;
 }
 
 bool OptionsManager::CheckCombinedOptimizerEnable() {
-  static int32_t combined_optimize = -1;
-  if (combined_optimize == -1) {
-    combined_optimize = GetBoolTypeOption("COMBINED_ENABLE");
-  }
-  return (combined_optimize == 1);
+  const static bool checkCombinedOptimizerEnable = []() -> bool {
+    int32_t combined_optimize = OptionsManager::GetBoolTypeOption("COMBINED_ENABLE");
+    return (combined_optimize != 0) ? true : false;
+  }();
+  return checkCombinedOptimizerEnable;
 }
 
 bool OptionsManager::CheckAclDumpDateEnable() {
@@ -45,6 +45,14 @@ bool OptionsManager::CheckAclDumpDateEnable() {
     aclDumpDataEnable = GetBoolTypeOption("ACL_DUMP_DATA");
   }
   return (aclDumpDataEnable == 1);
+}
+
+bool OptionsManager::CheckDisableAclopComAndExe() {
+  const static bool checkDisableAclopComAndExe = []() -> bool {
+    int32_t disable_aclop_com_exe = OptionsManager::GetBoolTypeOption("DISABLE_ACLOP_COM_EXE");
+    return (disable_aclop_com_exe != 0) ? true : false;
+  }();
+  return checkDisableAclopComAndExe;
 }
 
 bool OptionsManager::CheckSwitchMMOutputEnable() {
