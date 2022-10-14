@@ -23,17 +23,16 @@ using namespace at::native::npu;
 Tensor& index_out_npu(
     Tensor& result,
     const Tensor& self,
-    IntArrayRef indexed_sizes,
-    IntArrayRef indexed_strides,
-    const TensorList& indices) {
+    IntArrayRef masks,
+    TensorList allDefinedIndices) {
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(indexed_sizes)
-      .Input(indexed_strides);
-  for (int i = 0; i < indices.size(); i++) {
+      .Input(masks)
+      .Input(result.sizes());
+  for (int i = 0; i < allDefinedIndices.size(); i++) {
     string inputName = "indices" + to_string(i);
-    cmd.Input(indices[i], inputName);
+    cmd.Input(allDefinedIndices[i], inputName);
   }
   cmd.Output(result)
       .Run();
@@ -51,12 +50,32 @@ Tensor index_npu(const Tensor& self, TensorList indices) {
    * mode, the single op mode is switched to execute by default.
    */
   GraphModeGuard mode_guard(c10::npu::ModeKind::SINGLE_OP_MODE);
-  // Index demands self contiguous and matchs info.indexed_sizes, info.indexed_strides
-  Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-  auto info = AdvanceIndex::make_info(contiguousSelf, indices);
-  auto outputSize = index_npu_output_size(contiguousSelf, indices);
-  Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  index_out_npu(result, contiguousSelf, info.indexed_sizes, info.indexed_strides, info.indices);
+
+  checkIndexTensorTypes(indices);
+  Tensor formatCastOfSelf = self.npu_format_cast(ACL_FORMAT_ND);
+
+  // calculate the output size
+  auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
+
+  // construct the output tensor of the NPU
+  Tensor result = OpPreparation::ApplyTensorWithFormat(
+      outputSize, formatCastOfSelf.options(), ACL_FORMAT_ND);
+
+  // masks corresponds to indices. 0 indicates undefined tensor.
+  SmallVector<int64_t, N> masks;
+  std::vector<Tensor> allDefinedIndices;
+  for (int64_t i = 0; i < indices.size(); i++) {
+    if (indices[i].defined()) {
+      masks.emplace_back(1);
+      allDefinedIndices.emplace_back(indices[i]);
+    } else {
+      masks.emplace_back(0);
+    }
+  }
+
+  // calculate the output result of the NPU
+  index_out_npu(result, formatCastOfSelf, masks, allDefinedIndices);
+
   return result;
 }
 
