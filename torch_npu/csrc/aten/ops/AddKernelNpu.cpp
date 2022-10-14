@@ -20,7 +20,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 
 namespace at_npu
@@ -71,7 +71,7 @@ namespace at_npu
       cmd.Name("Add")
           .Input(self)
           .Input(at::Scalar(value), self.scalar_type())
-          .Output(result, real_type)
+          .Output(result, "", c10::nullopt, real_type)
           .Run();
 
       return result;
@@ -117,7 +117,7 @@ namespace at_npu
           cmd.Name("Add")
               .Input(self)
               .Input(other)
-              .Output(result, real_type)
+              .Output(result, "", c10::nullopt, real_type)
               .Run();
         }
         else
@@ -170,7 +170,7 @@ namespace at_npu
       }
     }
 
-    at::Tensor XLANativeFunctions::add(const at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha)
+    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, const at::Scalar& alpha)
     {
       alpha_check_npu(self.scalar_type(), alpha);
       if ((!(self.is_contiguous() && other.is_contiguous())) &&
@@ -186,7 +186,7 @@ namespace at_npu
         at::Scalar other_c1_offset(
             other.storage_offset() / (other.size(2) * other.size(3) * c0_len));
         at::Scalar stride_len(self.size(1) / c0_len);
-        at::Tensor result = XLANativeFunctions::npu_stride_add(
+        at::Tensor result = NPUNativeFunctions::npu_stride_add(
             self_use, other_use, self_c1_offset, other_c1_offset, stride_len);
         return result;
       }
@@ -206,7 +206,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::add(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
+    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       alpha_check_npu(self.scalar_type(), alpha);
       // calculate the output size
@@ -221,7 +221,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &XLANativeFunctions::add_(at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha)
+    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, const at::Scalar& alpha)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
@@ -241,7 +241,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &XLANativeFunctions::add_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
+    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       if (!NpuUtils::check_match(&self))
       {
@@ -257,7 +257,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &XLANativeFunctions::add_out(
+    at::Tensor &NPUNativeFunctions::add_out(
         const at::Tensor &self,
         const at::Tensor &other,
         const at::Scalar &alpha,

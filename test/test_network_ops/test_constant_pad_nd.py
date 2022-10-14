@@ -102,7 +102,7 @@ class TestConstantPadNd(TestCase):
         dtype_list = [np.float16, np.float32]
         format_list = [3]
         pad_list = [(1,2,2,2),(1,2)]
-        shape_list = [(2,16,128), (1,2,16,128)]
+        shape_list = [(1,2,16,128)]
         shape_format = [
             [[i, j, k], l]  for i in dtype_list for j in format_list for k in shape_list for l in pad_list
         ]

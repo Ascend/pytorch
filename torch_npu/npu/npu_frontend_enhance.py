@@ -145,11 +145,11 @@ class profile(object):
         self.use_e2e_profiler = use_e2e_profiler
         self.config = config
         self.entered = False
-        # if not os.path.exists(self.result_path):
-        #     try:
-        #         os.makedirs(self.result_path)
-        #     except Exception:
-        #         raise ValueError("the path of '%s' is invaild."%(self.result_path))   
+        if not os.path.exists(self.result_path):
+            try:
+                os.makedirs(self.result_path)
+            except Exception:
+                raise ValueError("the path of '%s' is invaild."%(self.result_path))   
 
     def __enter__(self):
         if self.entered:

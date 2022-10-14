@@ -28,7 +28,8 @@
     HcclResult error = cmd;                                         \
     if (error != HCCL_SUCCESS) {                                    \
       std::string err = "HCCL error in: " + std::string(__FILE__) + \
-          std::to_string(__LINE__) + ", " + std::to_string(error);  \
+          ":" + std::to_string(__LINE__) + "\n" +                   \
+          c10_npu::acl::AclGetErrMsg();                             \
       throw std::runtime_error(err);                                \
     }                                                               \
   } while (0)
@@ -52,8 +53,8 @@ public:
     C10D_HCCL_CHECK(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
-      HcclCommDestroy(comm->hcclComm_);
-    }, c10_npu::ReleasePriority::PriorityMiddle);
+          HcclCommDestroy(comm->hcclComm_);
+        }, c10_npu::ReleasePriority::PriorityMiddle);
     return comm;
   }
 

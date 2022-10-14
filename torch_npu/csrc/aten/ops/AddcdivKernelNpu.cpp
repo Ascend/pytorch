@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -25,23 +25,20 @@ at::Tensor& addcdiv_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    const at::Scalar& value,
+    at::Scalar value,
     at::Tensor& result) {
-  at::Tensor selfCp = self.scalar_type() == at::kFloat ? self : XLANativeFunctions::npu_dtype_cast(self, at::kFloat);
-  at::Tensor tensor1Cp = tensor1.scalar_type() == at::kFloat ? tensor1 : XLANativeFunctions::npu_dtype_cast(tensor1, at::kFloat);
-  at::Tensor tensor2Cp = tensor2.scalar_type() == at::kFloat ? tensor2 : XLANativeFunctions::npu_dtype_cast(tensor2, at::kFloat);
   OpCommand cmd;
   cmd.Name("Addcdiv")
-    .Input(selfCp)
-    .Input(tensor1Cp)
-    .Input(tensor2Cp)
-    .Input(value, selfCp.scalar_type())
+    .Input(self)
+    .Input(tensor1)
+    .Input(tensor2)
+    .Input(value, self.scalar_type())
     .Output(result)
     .Run();
   return result;
 }
 
-at::Tensor& XLANativeFunctions::addcdiv_out(
+at::Tensor& NPUNativeFunctions::addcdiv_out(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
@@ -49,11 +46,8 @@ at::Tensor& XLANativeFunctions::addcdiv_out(
     at::Tensor& result) {
   auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
-  bool isFp32 = self.scalar_type() == at::kFloat && tensor1.scalar_type() == at::kFloat && tensor2.scalar_type() == at::kFloat;
-  at::Tensor temp = isFp32 ? OpPreparation::ApplyTensor(self, outputSize)
-                      : OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kFloat), self);
+  at::Tensor temp = OpPreparation::ApplyTensor(self, outputSize);
   addcdiv_npu_nocheck(self, tensor1, tensor2, value, temp);
-  temp = isFp32 ? temp : XLANativeFunctions::npu_dtype_cast(temp, self.scalar_type());
   OpPreparation::CheckOut(
       {temp},
       result,
@@ -62,22 +56,19 @@ at::Tensor& XLANativeFunctions::addcdiv_out(
   return result;
 }
 
-at::Tensor XLANativeFunctions::addcdiv(
+at::Tensor NPUNativeFunctions::addcdiv(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
     const at::Scalar& value) {
   auto divOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), divOutputSize);
-  bool isFp32 = self.scalar_type() == at::kFloat && tensor1.scalar_type() == at::kFloat && tensor2.scalar_type() == at::kFloat;
-  at::Tensor result = isFp32 ? OpPreparation::ApplyTensor(self, outputSize)
-                      : OpPreparation::ApplyTensor(outputSize, self.options().dtype(at::kFloat), self);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   addcdiv_npu_nocheck(self, tensor1, tensor2, value, result);
-  result = isFp32 ? result : XLANativeFunctions::npu_dtype_cast(result, self.scalar_type());
   return result;
 }
 
-at::Tensor& XLANativeFunctions::addcdiv_(
+at::Tensor& NPUNativeFunctions::addcdiv_(
     at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
@@ -85,10 +76,10 @@ at::Tensor& XLANativeFunctions::addcdiv_(
   OpPreparation::CheckMemory({self, tensor1, tensor2}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = XLANativeFunctions::addcdiv_out(contiguousSelf, tensor1, tensor2, value, contiguousSelf);
+    at::Tensor result = NPUNativeFunctions::addcdiv_out(contiguousSelf, tensor1, tensor2, value, contiguousSelf);
     NpuUtils::format_fresh_view(self, result);
   } else {
-    XLANativeFunctions::addcdiv_out(self, tensor1, tensor2, value, self);
+    NPUNativeFunctions::addcdiv_out(self, tensor1, tensor2, value, self);
   }
   return self;
 }

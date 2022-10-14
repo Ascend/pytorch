@@ -15,12 +15,12 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& XLANativeFunctions::npu_indexing_out(const at::Tensor& self,
+at::Tensor& NPUNativeFunctions::npu_indexing_out(const at::Tensor& self,
     c10::IntArrayRef begin,
     c10::IntArrayRef end,
     c10::IntArrayRef strides,
@@ -47,7 +47,7 @@ at::Tensor& XLANativeFunctions::npu_indexing_out(const at::Tensor& self,
   return result;
 }
 
-at::Tensor XLANativeFunctions::npu_indexing(
+at::Tensor NPUNativeFunctions::npu_indexing(
     const at::Tensor& self,
     c10::IntArrayRef begin,
     c10::IntArrayRef end,

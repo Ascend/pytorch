@@ -16,6 +16,7 @@
 from itertools import product
 import collections
 import gc
+import numpy as np
 
 import torch
 import torch_npu
@@ -345,6 +346,19 @@ class TestNpu(TestCase):
             self.assertEqual(a, b)
             self.assertEqual(torch_npu.npu.initial_seed(), 2)
 
+    def test_get_set_rng_state(self):
+        with freeze_rng_state():
+            torch.manual_seed(3)
+            cpu_state = torch.get_rng_state()
+            npu_state = torch_npu.npu.get_rng_state()
+            self.assertEqual(int(cpu_state[0]), 3)
+            self.assertEqual(cpu_state[0], npu_state[0])
+            torch_npu.npu.manual_seed(2)
+            cpu_state_new = torch.get_rng_state()
+            npu_state = torch_npu.npu.get_rng_state()
+            self.assertEqual(cpu_state, cpu_state_new)
+            self.assertEqual(int(npu_state[0]), 2)
+
     def test_get_device_index(self):
         from torch_npu.npu import _get_device_index
         with self.assertRaisesRegex(RuntimeError, "Invalid device string"):
@@ -515,14 +529,81 @@ class TestNpu(TestCase):
         device1 = torch.device("npu:1")
         device2 = torch.device("npu")
         device3 = torch.device("npu", 2)
-        self.assertEqual(str(device1), f"{torch_npu.npu.native_device}:1")
-        self.assertEqual(str(device2), torch_npu.npu.native_device)
-        self.assertEqual(str(device3), f"{torch_npu.npu.native_device}:2")
+        self.assertEqual(str(device1), f"device(type='{torch_npu.npu.npu_device}', index=1)")
+        self.assertEqual(str(device2), f"device(type='{torch_npu.npu.npu_device}', index=None)")
+        self.assertEqual(str(device3), f"device(type='{torch_npu.npu.npu_device}', index=2)")
 
     def test_function_tensor_data_npu(self):
         x = torch.ones(())
         x.data = x.data.npu()
 
+    def test_function_tensor_new_full(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_full((2, 3), 3.1)
+        
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_full((2, 3), 3.1, device=None, requires_grad=False)
+        npu_output2 = x.new_full((2, 3), 3.1, device='cpu', requires_grad=False)
+        npu_output3 = x.new_full((2, 3), 3.1, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_ones(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_ones((2, 3))
+
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_ones((2, 3), device=None, requires_grad=False)
+        npu_output2 = x.new_ones((2, 3), device='cpu', requires_grad=False)
+        npu_output3 = x.new_ones((2, 3), device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_tensor(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        x = torch.tensor((), dtype=torch.float32).npu()
+
+        list_input = [[1, 2, 3], [4, 5, 6]]
+        cpu_out = x_cpu.new_tensor(list_input)
+        npu_output1 = x.new_tensor(list_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(list_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(list_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        print(cpu_out.numpy().dtype, npu_output3.cpu().numpy().dtype)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+        np_input = np.array(list_input)
+        cpu_out = x_cpu.new_tensor(np_input)
+        npu_output1 = x.new_tensor(np_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(np_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(np_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+        tensor_input = torch.tensor(list_input)
+        cpu_out = x_cpu.new_tensor(tensor_input)
+        npu_output1 = x.new_tensor(tensor_input, device=None, requires_grad=False)
+        npu_output2 = x.new_tensor(tensor_input, device='cpu', requires_grad=False)
+        npu_output3 = x.new_tensor(tensor_input, device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
+
+    def test_function_tensor_new_zeros(self):
+        x_cpu = torch.tensor((), dtype=torch.float32)
+        cpu_out = x_cpu.new_zeros((2, 3))
+
+        x = torch.tensor((), dtype=torch.float32).npu()
+        npu_output1 = x.new_zeros((2, 3), device=None, requires_grad=False)
+        npu_output2 = x.new_zeros((2, 3), device='cpu', requires_grad=False)
+        npu_output3 = x.new_zeros((2, 3), device='npu', requires_grad=False)
+        self.assertRtolEqual(cpu_out.numpy(), npu_output1.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output2.cpu().numpy())
+        self.assertRtolEqual(cpu_out.numpy(), npu_output3.cpu().numpy())
 
 if __name__ == '__main__':
     run_tests()

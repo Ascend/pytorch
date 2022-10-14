@@ -23,6 +23,7 @@ import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 torch_npu.npu.set_device("npu:0")
 
+
 class NpuMNIST(nn.Module):
 
   def __init__(self):
@@ -39,6 +40,7 @@ class NpuMNIST(nn.Module):
     x = F.relu(self.fc1(x))
     x = self.fc2(x)
     return F.log_softmax(x, dim=1)
+
 
 class WN(torch.nn.Module):
     """
@@ -58,6 +60,7 @@ class WN(torch.nn.Module):
         audio = self.start(torch.unsqueeze(audio, -1)).squeeze_(-1)
         return audio
 
+
 class TestSerialization(TestCase):
     '''
     The saved data is transferred to PyTorch CPU device before being saved, so a
@@ -68,7 +71,7 @@ class TestSerialization(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
-            self.assertExpectedInline(str(x.device), '''npu:0''')
+            self.assertExpectedInline(str(x.device), f'{torch_npu.npu.native_device}:0')
             x_loaded = torch.load(path, map_location="npu:0")
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())

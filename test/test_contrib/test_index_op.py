@@ -38,9 +38,9 @@ class TestIndexOp(TestCase):
         format_list = [-1, 0, 2]
         shape_list = [
             [2, 3, 7, 7],
-            [1, 2, 3, 6, 6],
+            [1, 2, 3, 6],
             [6, 5, 8, 10],
-            [2, 5, 6, 8, 9]
+            [2, 5, 6, 8]
         ]
         shape_format = [
             [i, j, k] for i in dtype_list for j in format_list for k in shape_list

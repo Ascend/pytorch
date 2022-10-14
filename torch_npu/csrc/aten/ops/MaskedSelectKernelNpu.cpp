@@ -1,5 +1,5 @@
 // Copyright (c) 2020 Huawei Technologies Co., Ltd
-// Copyright (c) 2019, Facebook CORPORATION. 
+// Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
@@ -14,8 +14,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/ExpandUtils.h>
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -23,22 +25,22 @@ namespace native {
 at::SmallVector<int64_t, SIZE> masked_select_npu_output_size(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  int64_t shape;
-  shape = mask.sum().item().toInt();
-  return {shape};
+  c10::MaybeOwned<at::Tensor> maskCast;
+  c10::MaybeOwned<at::Tensor> selfCast;
+  std::tie(maskCast, selfCast) = expand_outplace(mask, self);
+  auto outputSize = {maskCast->sum().item().toLong()};
+  return outputSize;
 }
 
 at::Tensor& masked_select_out_npu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor maskBool = mask;
-  if (!(mask.dtype() == at::kBool)) {
-    maskBool = XLANativeFunctions::npu_dtype_cast(mask, at::kBool);
-  }
-
+  at::Tensor maskBool = mask.dtype() == at::kBool ? mask : NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
-  cmd.Name("MaskedSelect")
+  cmd.Sync(output_sync_idx)
+      .Name("MaskedSelect")
       .Input(self)
       .Input(maskBool)
       .Output(result)
@@ -47,66 +49,28 @@ at::Tensor& masked_select_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::masked_select_out(
+at::Tensor& NPUNativeFunctions::masked_select_out(
     const at::Tensor& self,
     const at::Tensor& mask,
     at::Tensor& result) {
-  at::Tensor dtypeCastOfSelf = self;
-  at::Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = XLANativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
-  }
-  if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = XLANativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
-
+  at::Tensor maskCast = mask.clone();
+  auto outputSize = masked_select_npu_output_size(self, maskCast);
   OpPreparation::CheckOut(
-      {dtypeCastOfSelf},
+      {self, maskCast},
       result,
-      dtypeCastOfSelf,
+      self,
       outputSize);
 
-  OpPipeWithDefinedOut pipe;
-  result = pipe.CheckMemory({dtypeCastOfSelf, maskCast}, {result})
-      .Func([&dtypeCastOfSelf, &maskCast](at::Tensor& result)
-      {masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);})
-      .Call(result);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
-  if (!NpuUtils::check_match(&result)) {
-    at::Tensor contiguousResult = NpuUtils::format_contiguous(result);
-    masked_select_out_npu_nocheck(contiguousResult, self, mask);
-    NpuUtils::format_fresh_view(result, contiguousResult);
-  } else {
-    masked_select_out_npu_nocheck(result, self, mask);
-  }
+  masked_select_out_npu_nocheck(result, self, maskCast);
   return result;
 }
 
-at::Tensor XLANativeFunctions::masked_select(
+at::Tensor NPUNativeFunctions::masked_select(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  at::Tensor dtypeCastOfSelf = self;
-  at::Tensor maskCast = mask;
-  if (maskCast.sizes() != dtypeCastOfSelf.sizes()) {
-    maskCast = XLANativeFunctions::npu_broadcast(mask, dtypeCastOfSelf.sizes());
-  }
-  if (dtypeCastOfSelf.scalar_type() == at::ScalarType::Half) {
-    dtypeCastOfSelf = XLANativeFunctions::npu_dtype_cast(dtypeCastOfSelf, at::ScalarType::Float);
-  }
-  auto outputSize = masked_select_npu_output_size(dtypeCastOfSelf, maskCast);
-
-  at::Tensor result = OpPreparation::ApplyTensor(dtypeCastOfSelf, outputSize);
-
-  masked_select_out_npu_nocheck(result, dtypeCastOfSelf, maskCast);
-
-  if (result.scalar_type() != self.scalar_type()) {
-    result = XLANativeFunctions::npu_dtype_cast(result, at::ScalarType::Half);
-  }
+  auto outputSize = masked_select_npu_output_size(self, mask);
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
+  masked_select_out_npu_nocheck(result, self, mask);
   return result;
 }
 

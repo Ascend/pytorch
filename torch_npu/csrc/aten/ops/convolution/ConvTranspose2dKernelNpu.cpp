@@ -18,7 +18,7 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -46,12 +46,12 @@ at::Tensor& conv_transpose2d_out_npu(
   OpCommand cmd;
   cmd.Name("Conv2DTranspose")
       .Input(sizeVec, at::kInt)
-      .Input(input)
-      .Input(weight);
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW);
   if (bias.defined()){
     cmd.Input(bias);
   }
-  cmd.Output(result)
+  cmd.Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("pads", paddings)
       .Attr("output_padding", outputpadding)
       .Attr("strides", stridesSize)
@@ -63,7 +63,7 @@ at::Tensor& conv_transpose2d_out_npu(
   return result;
 }
 
-at::Tensor XLANativeFunctions::npu_conv_transpose2d(
+at::Tensor NPUNativeFunctions::npu_conv_transpose2d(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt,

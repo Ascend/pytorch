@@ -98,22 +98,22 @@ REGISTER_OPTION_HOOK(NPU_FUZZY_COMPILE_BLACKLIST, [](const std::string &val)
                       { FuzzyCompileBlacklist::GetInstance().RegisterBlacklist(val); })
 
 REGISTER_OPTION_HOOK(deliverswitch, [](const std::string &val) {
-  // if (val == "enable") {
-  //   torch_npu::profiler::NpuProfilingDispatch::Instance().start();
-  // } else {
-  //   torch_npu::profiler::NpuProfilingDispatch::Instance().stop();
-  // }
+  if (val == "enable") {
+    torch_npu::profiler::NpuProfilingDispatch::Instance().start();
+  } else {
+    torch_npu::profiler::NpuProfilingDispatch::Instance().stop();
+  }
 })
 
 REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string &val) {
-  // torch_npu::profiler::NpuProfiling::Instance().Init(val); 
+  torch_npu::profiler::NpuProfiling::Instance().Init(val); 
 })
 
 REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
   if (val.compare("stop") == 0) {
-    // torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Stop();
+    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Stop();
   } else if (val.compare("finalize") == 0) {
-    // torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Finalize();
+    torch_npu::profiler::NpuProfiling::NpuProfiling::Instance().Finalize();
   } else {
     TORCH_CHECK(false, "profiling input: (", val, " ) error!")
   }
@@ -121,7 +121,6 @@ REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
 REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDEnable, MM_BMM_ND_ENABLE, "disable", "enable")
-
 } // namespace env
 } // namespace native
 } // namespace at_npu

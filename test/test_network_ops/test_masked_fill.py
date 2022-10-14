@@ -33,6 +33,8 @@ class TestMaskedFill(TestCase):
         return output
 
     def npu_op_exec(self, input1, mask, value):
+        if torch.is_tensor(value) and value.device.type != 'npu':
+            value = value.to("npu")
         output = torch.masked_fill(input1, mask, value)
         output = output.to("cpu")
         output = output.numpy()
@@ -44,6 +46,8 @@ class TestMaskedFill(TestCase):
         return output
 
     def npu_inp_op_exec(self, input1, mask, value):
+        if torch.is_tensor(value) and value.device.type != 'npu':
+            value = value.to("npu")
         output = input1.masked_fill_(mask, value)
         output = output.to("cpu")
         output = output.numpy()

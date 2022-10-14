@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -53,11 +53,19 @@ namespace at_npu
         at::Tensor &result,
         const at::Tensor &self,
         at::IntArrayRef dim,
-        bool keepdim)
-    {
-      at::Tensor selfs = XLANativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
+        bool keepdim,
+        c10::ScalarType dtype)
+    { 
+      at::Tensor selfs = self;
+      if(self.scalar_type() != c10::ScalarType::Float){
+        selfs = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
+      }    
       sum_out_npu_no_dtype(result, selfs, dim, keepdim);
-      result = XLANativeFunctions::npu_dtype_cast(result, c10::ScalarType::Int);
+      if(dtype == c10::ScalarType::Long){
+        result = NPUNativeFunctions::npu_dtype_cast(result, c10::ScalarType::Long);
+        return result;
+      }
+      result = NPUNativeFunctions::npu_dtype_cast(result, c10::ScalarType::Int);
       return result;
     }
 
@@ -71,10 +79,8 @@ namespace at_npu
       c10::ScalarType dstType;
       if (dtype.has_value())
       {
-        if (dtype.value() == c10::ScalarType::Int)
-        {
-          at::Tensor selfs = XLANativeFunctions::npu_dtype_cast(self, c10::ScalarType::Int);
-          return sum_out_npu_int_dtype(result, selfs, dim, keepdim);
+        if(dtype.value() == c10::ScalarType::Int || dtype.value() == c10::ScalarType::Long){
+          return sum_out_npu_int_dtype(result, self, dim, keepdim, dtype.value());
         }
         else
         {
@@ -83,13 +89,13 @@ namespace at_npu
       }
       else if (isIntegralType(self.scalar_type(), true))
       {
-        return sum_out_npu_int_dtype(result, self, dim, keepdim);
+        return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
       }
       else if (result.defined())
       {
         if (isIntegralType(result.scalar_type(), true))
         {
-          return sum_out_npu_int_dtype(result, self, dim, keepdim);
+          return sum_out_npu_int_dtype(result, self, dim, keepdim, self.scalar_type());
         }
         else
         {
@@ -111,7 +117,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &XLANativeFunctions::sum_out(
+    at::Tensor &NPUNativeFunctions::sum_out(
         const at::Tensor &self,
         at::IntArrayRef dim,
         bool keepdim,
@@ -139,18 +145,18 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &XLANativeFunctions::sum_out(
+    at::Tensor &NPUNativeFunctions::sum_out(
         const at::Tensor &self,
         at::DimnameList dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype,
         at::Tensor &result)
     {
-      return XLANativeFunctions::sum_out(self,
+      return NPUNativeFunctions::sum_out(self,
                                          dimnames_to_positions(self, dim), keepdim, dtype, result);
     }
 
-    at::Tensor XLANativeFunctions::sum(
+    at::Tensor NPUNativeFunctions::sum(
         const at::Tensor &self,
         at::IntArrayRef dim,
         bool keepdim,
@@ -159,7 +165,7 @@ namespace at_npu
       c10::ScalarType dstType;
       if (dtype.has_value())
       {
-        if (dtype.value() == c10::ScalarType::Int)
+        if (isIntegralType(dtype.value(), true))
         {
           dstType = c10::ScalarType::Float;
         }
@@ -205,18 +211,18 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::sum(
+    at::Tensor NPUNativeFunctions::sum(
         const at::Tensor &self,
         at::DimnameList dim,
         bool keepdim,
         c10::optional<c10::ScalarType> dtype)
     {
-      return XLANativeFunctions::sum(self, dimnames_to_positions(self, dim), keepdim, dtype);
+      return NPUNativeFunctions::sum(self, dimnames_to_positions(self, dim), keepdim, dtype);
     }
 
-    at::Tensor XLANativeFunctions::sum(const at::Tensor &self, c10::optional<c10::ScalarType> dtype)
+    at::Tensor NPUNativeFunctions::sum(const at::Tensor &self, c10::optional<c10::ScalarType> dtype)
     {
-      return XLANativeFunctions::sum(self, c10::SmallVector<int64_t, N>{}, false, dtype);
+      return NPUNativeFunctions::sum(self, c10::SmallVector<int64_t, N>{}, false, dtype);
     }
 
   } // namespace native

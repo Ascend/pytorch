@@ -6,7 +6,8 @@ FILE(GLOB _ATEN_SRCS
     ops/convolution/*.cpp
     ops/loss/*.cpp
     ops/normalization/*.cpp
-    ops/pooling/*.cpp)
+    ops/pooling/*.cpp
+    ops/hcom/*.cpp)
 
 LIST(APPEND ATEN_SRCS ${_ATEN_SRCS})
 

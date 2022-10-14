@@ -1,3 +1,19 @@
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"
 #include "torch_npu/csrc/core/npu/NPUGuard.h"
@@ -37,6 +53,7 @@ struct LeakyStreamInternals {
   int32_t stream_id = -1;
   aclrtStream stream = nullptr;
   ::std::unique_ptr<NPUQueueBase> repo = nullptr;
+  bool is_data_preprocess_stream = false;
 };
 
 // Global stream state and constants
@@ -382,6 +399,18 @@ void setCurrentNPUStream(NPUStream stream) {
 
 std::ostream& operator<<(std::ostream& stream, const NPUStream& s) {
   return stream << s.unwrap();
+}
+
+void NPUStream::setDataPreprocessStream(bool is_data_preprocess_stream) {
+  auto ptr = NPUStream_internals(getCurrentNPUStream());
+  AT_ASSERT(ptr);
+  ptr->is_data_preprocess_stream = is_data_preprocess_stream;
+}
+
+bool NPUStream::isDataPreprocessStream() {
+  auto ptr = NPUStream_internals(getCurrentNPUStream());
+  AT_ASSERT(ptr);
+  return ptr->is_data_preprocess_stream;
 }
 
 } // namespace c10_npu

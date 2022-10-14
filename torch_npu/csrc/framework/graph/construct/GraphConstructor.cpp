@@ -15,7 +15,7 @@
 #include <c10/util/Exception.h>
 
 #include "GraphConstructor.h"
-#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
 
@@ -42,8 +42,7 @@ void GraphCommandImpl::AddInput(
     if (!input.storage().data()) {
       auto storage_impl = input.storage().unsafeGetStorageImpl();
       size_t n_bytes = GraphUtils::GetTensorCapacity(storage_impl);
-      auto data_ptr = c10_npu::NPUCachingAllocator::get()->allocate(n_bytes);
-      storage_impl->set_data_ptr(std::move(data_ptr));
+      GraphUtils::SetDataPtrAndNbytes(storage_impl, n_bytes);
     }
     GraphUtils::SetDataOp(input.storage().unsafeGetStorageImpl());
   }
@@ -69,7 +68,11 @@ void GraphCommandImpl::AddInput(
     const at::Scalar& input,
     const at::ScalarType type,
     CompileType compile_type) {
-  if (compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
+  bool is_replay_graph_mode = false;
+  if (c10_npu::NpuRunMode::CurRunMode() == c10_npu::ModeKind::REPLAY_MODE) {
+    is_replay_graph_mode = true;
+  }
+  if (is_replay_graph_mode == false && compile_type == CompileType::MEMORY_HOST_COMPILE_INDEPENDENT) {
     uint32_t offset;
     ReduceScalarValue(input, type, offset);
     int deviceIndex = 0;
@@ -135,38 +138,71 @@ void GraphCommandImpl::ReduceScalarValue(
     const at::Scalar& input,
     const at::ScalarType type,
     uint32_t& host_ptr_offset) {
-  if (at::ScalarType::Float == type) {
-    float value = input.toFloat();
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(&value),
-        sizeof(float),
-        host_ptr_offset);
-  } else if (at::ScalarType::Int == type) {
-    int value = input.toInt();
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(&value),
-        sizeof(int),
-        host_ptr_offset);
-  } else if (at::ScalarType::Long == type) {
-    int64_t value = input.toLong();
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(&value),
-        sizeof(int64_t),
-        host_ptr_offset);
-  } else if (at::ScalarType::Double == type) {
-    double value = input.toDouble();
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(&value),
-        sizeof(double),
-        host_ptr_offset);
-  } else if (at::ScalarType::Half == type) {
-    auto value = input.toHalf();
-    ScalarMemContext::GetContext().AppendToHostMem(
-        reinterpret_cast<uint8_t*>(&value),
-        sizeof(at::ScalarType::Half),
-        host_ptr_offset);
-  } else {
+  switch (type)
+  {
+  case at::ScalarType::Float:
+    {
+      float value = input.toFloat();
+      ReduceScalarValueOp<float>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Int:
+    {
+      int value = input.toInt();
+      ReduceScalarValueOp<int>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Long:
+    {
+      int64_t value = input.toLong();
+      ReduceScalarValueOp<int64_t>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Double:
+    {
+      double value = input.toDouble();
+      ReduceScalarValueOp<double>(&value, host_ptr_offset);
+    }  
+    break;
+  case at::ScalarType::Half:
+    {
+      at::Half value = input.toHalf();
+      ReduceScalarValueOp<at::Half>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Byte:
+    {
+      uint8_t value = input.toByte();
+      ReduceScalarValueOp<uint8_t>(&value, host_ptr_offset);
+    }   
+    break;
+  case at::ScalarType::Char:
+    {
+      int8_t value = input.toChar();
+      ReduceScalarValueOp<int8_t>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Short:
+    {
+      int16_t value = input.toShort();
+      ReduceScalarValueOp<int16_t>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::Bool:
+    {
+      bool value = input.toBool();
+      ReduceScalarValueOp<bool>(&value, host_ptr_offset);
+    }
+    break;
+  case at::ScalarType::BFloat16:
+    {
+      at::BFloat16 value = input.toBFloat16();
+      ReduceScalarValueOp<at::BFloat16>(&value, host_ptr_offset);
+    }
+    break;
+  default:
     AT_ERROR("scalar not support '", at::toString(type), "' type currently.");
+    break;
   }
 }
 

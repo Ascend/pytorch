@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -34,7 +34,7 @@ at::Tensor& sign_bits_pack_npu_nocheck(
   return result;
 }
 
-at::Tensor XLANativeFunctions::npu_sign_bits_pack(const at::Tensor& self, int64_t size) {
+at::Tensor NPUNativeFunctions::npu_sign_bits_pack(const at::Tensor& self, int64_t size) {
   TORCH_CHECK(self.dim() == 1, "input must be one-dimensional");
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Half || self.scalar_type() == at::ScalarType::Float,
       "all only supports torch.float16 and torch.float32 dtypes");

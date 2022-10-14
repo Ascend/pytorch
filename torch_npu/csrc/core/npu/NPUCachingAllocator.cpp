@@ -291,8 +291,8 @@ struct THNCachingAllocator {
     allocated_blocks.erase(it);
     block->allocated = false;
 
-    // c10::reportMemoryUsageToProfiler(
-    //     block, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
+    c10::reportMemoryUsageToProfiler(
+        block, -block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
 
     DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
@@ -836,8 +836,7 @@ struct THNCachingAllocator {
     DeviceStats_& stats_ = get_stats_for_device_(temp_block->device);
     StatTypes stat_types;
     stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(
-        get_stat_type_for_pool(*(temp_block->pool)))] = true;
+    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(temp_block->pool)))] = true;
     update_stat_array(stats_.allocation, -1, {stat_types});
     update_stat_array(stats_.allocated_bytes, -temp_block->size, {stat_types});
     update_stat_array(stats_.active, -1, {stat_types});
@@ -1032,8 +1031,8 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   *devPtr = block->ptr;
   stats.increaseAllocated(block->size);
 
-  // c10::reportMemoryUsageToProfiler(
-  //     block, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
+  c10::reportMemoryUsageToProfiler(
+      block, block->size, 0, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
 
   update_stat_array(stats_.allocation, 1, stat_types);
   update_stat_array(stats_.allocated_bytes, block->size, stat_types);
@@ -1047,16 +1046,6 @@ static void NPUCachingDeleter(void* ptr) {
   caching_allocator.free(ptr);
 }
 
-bool forceUncachedAllocator() {
-  static bool force_uncached =
-      getenv("PYTORCH_NO_NPU_MEMORY_CACHING") != nullptr;
-  return force_uncached;
-}
-
-static void uncached_delete(void* ptr) {
-  C10_NPU_CHECK(aclrtFree(ptr));
-}
-
 // NB: I decided not to fold this into THNCachingAllocator, because the latter
 // has a lot more methods and it wasn't altogether clear that they should
 // actually be publically exposed
@@ -1065,16 +1054,6 @@ struct NPUCachingAllocator : public c10::Allocator {
     int device = 0;
     C10_NPU_CHECK(aclrtGetDevice(&device));
     void* r = nullptr;
-
-    if (forceUncachedAllocator()) {
-      // Deliberately don't use cudaMallocMaybeCapturing here, to force an error
-      // if someone tries to use forceUncachedAllocator while capturing.
-      if (size != 0) {
-        C10_NPU_CHECK(aclrtMalloc(&r, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST));
-      }
-      return {r, r, &uncached_delete, c10::Device(at_npu::key::NativeDeviceType, device)};
-    }
-
     if (size != 0) {
       caching_allocator.malloc(
           &r, size, c10_npu::getCurrentNPUStreamNoWait(device), device);
@@ -1082,12 +1061,7 @@ struct NPUCachingAllocator : public c10::Allocator {
     return {r, r, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
   }
   c10::DeleterFnPtr raw_deleter() const override {
-
-    if (forceUncachedAllocator()) {
-      return &uncached_delete;
-    } else {
-      return &NPUCachingDeleter;
-    }
+    return &NPUCachingDeleter;
   }
 };
 

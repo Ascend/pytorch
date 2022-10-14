@@ -35,6 +35,7 @@ namespace at_npu
     LOAD_FUNCTION(aclGenGraphAndDumpForOp)
     LOAD_FUNCTION(aclCreateGraphDumpOpt)
     LOAD_FUNCTION(aclDestroyGraphDumpOpt)
+    LOAD_FUNCTION(aclopCompileAndExecuteV2)
 
 aclError AclopSetCompileFlag(aclOpCompileFlag flag) {
   typedef aclError (*aclopSetCompileFlagFunc)(aclOpCompileFlag);
@@ -85,6 +86,26 @@ aclError AclDestroyGraphDumpOpt(aclGraphDumpOption* aclGraphDumpOpt) {
   }
   TORCH_CHECK(func, "Failed to find function ", "aclDestroyGraphDumpOpt");
   return func(aclGraphDumpOpt);
+}
+
+aclError AclopCompileAndExecuteV2(const char *opType,
+    int numInputs, aclTensorDesc *inputDesc[], aclDataBuffer *inputs[],
+    int numOutputs, aclTensorDesc *outputDesc[], aclDataBuffer *outputs[],
+    aclopAttr *attr, aclopEngineType engineType, aclopCompileType compileFlag,
+    const char *opPath, aclrtStream stream) {
+  typedef aclError(*AclopCompileAndExecuteV2Func)(const char *,
+      int, aclTensorDesc * [], aclDataBuffer * [],
+      int, aclTensorDesc * [], aclDataBuffer * [],
+      aclopAttr *, aclopEngineType, aclopCompileType,
+      const char *, aclrtStream);
+  static AclopCompileAndExecuteV2Func func = nullptr;
+  if (func == nullptr) {
+    func = (AclopCompileAndExecuteV2Func)GET_FUNC(aclopCompileAndExecuteV2);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclopCompileAndExecuteV2");
+  auto ret = func(opType, numInputs, inputDesc, inputs, numOutputs,
+      outputDesc, outputs, attr, engineType, compileFlag, opPath, stream);
+  return ret;
 }
 
   } // namespace native

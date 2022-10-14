@@ -14,7 +14,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -37,7 +37,7 @@ at::Tensor& bitwise_or_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::bitwise_or_out(
+at::Tensor& NPUNativeFunctions::bitwise_or_out(
     const at::Tensor& self,
     const at::Scalar& other,
     at::Tensor& result) {
@@ -55,9 +55,9 @@ at::Tensor& bitwise_or_out_npu_nocheck(
     const at::Tensor& other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    XLANativeFunctions::bitwise_or_out(self, other.item(), result);
+    NPUNativeFunctions::bitwise_or_out(self, other.item(), result);
   } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
-    XLANativeFunctions::bitwise_or_out(other, self.item(), result);
+    NPUNativeFunctions::bitwise_or_out(other, self.item(), result);
   } else {
     // executing the NPU operator
     string real_op_name =
@@ -74,7 +74,7 @@ at::Tensor& bitwise_or_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::bitwise_or_out(
+at::Tensor& NPUNativeFunctions::bitwise_or_out(
     const at::Tensor& self,
     const at::Tensor& other,
     at::Tensor& result) {
@@ -103,7 +103,7 @@ at::Tensor& XLANativeFunctions::bitwise_or_out(
   return result;
 }
 
-at::Tensor XLANativeFunctions::bitwise_or(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
   bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
 
@@ -116,7 +116,7 @@ at::Tensor XLANativeFunctions::bitwise_or(const at::Tensor& self, const at::Tens
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  // construct the output Tensor of the NPU
+  // construct the output Tensor of the NPUitwiseOrKerne
   at::Tensor result = OpPreparation::ApplyTensor(outputTensor, outputSize);
   // calculate the output result of the NPU
   bitwise_or_out_npu_nocheck(result, self, other);
@@ -124,36 +124,12 @@ at::Tensor XLANativeFunctions::bitwise_or(const at::Tensor& self, const at::Tens
   return result;
 }
 
-at::Tensor XLANativeFunctions::bitwise_or(const at::Tensor& self, const at::Scalar& other) {
+at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
   bitwise_or_out_npu_nocheck(result, self, other);
   return result;
-}
-
-at::Tensor& XLANativeFunctions::bitwise_or_(at::Tensor& self, const at::Tensor& other) {
-  OpPreparation::CheckMemory({self, other}, {self});
-
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = bitwise_or_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    bitwise_or_out_npu_nocheck(self, self, other);
-  }
-  return self;
-}
-
-at::Tensor& XLANativeFunctions::bitwise_or_(at::Tensor& self, const at::Scalar& other) {
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = bitwise_or_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    bitwise_or_out_npu_nocheck(self, self, other);
-  }
-  return self;
 }
 
 } // namespace native

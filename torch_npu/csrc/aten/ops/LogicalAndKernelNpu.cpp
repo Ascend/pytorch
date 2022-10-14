@@ -15,7 +15,7 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 
 namespace at_npu {
@@ -26,7 +26,7 @@ at::Tensor& logical_and_out_npu_nocheck(
     const at::Scalar other,
     at::Tensor& result) {
     auto selfCopy = (self.dtype() == at::kBool) ?
-        self : XLANativeFunctions::npu_dtype_cast(self, at::kBool);
+        self : NPUNativeFunctions::npu_dtype_cast(self, at::kBool);
     OpCommand cmd;
     cmd.Name("LogicalAnd")
         .Input(selfCopy)
@@ -46,9 +46,9 @@ at::Tensor& logical_and_out_npu_nocheck(
     logical_and_out_npu_nocheck(self, other.item(), result);
   } else {
     auto selfCopy = (self.dtype() == at::kBool) ? 
-        self : XLANativeFunctions::npu_dtype_cast(self, at::kBool);
+        self : NPUNativeFunctions::npu_dtype_cast(self, at::kBool);
     auto otherCopy = (other.dtype() == at::kBool) ?
-        other : XLANativeFunctions::npu_dtype_cast(other, at::kBool);
+        other : NPUNativeFunctions::npu_dtype_cast(other, at::kBool);
 
     OpCommand cmd;
     cmd.Name("LogicalAnd")
@@ -60,7 +60,7 @@ at::Tensor& logical_and_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::logical_and_out(
+at::Tensor& NPUNativeFunctions::logical_and_out(
     const at::Tensor& self, 
     const at::Tensor& other,
     at::Tensor& result) {
@@ -77,13 +77,13 @@ at::Tensor& XLANativeFunctions::logical_and_out(
     auto resultCopy = OpPreparation::ApplyTensorWithSizes(
         outputSize, self.options().dtype(at::kBool));
     logical_and_out_npu_nocheck(self, other, resultCopy);
-    resultCopy = XLANativeFunctions::npu_dtype_cast(resultCopy, self.scalar_type());
+    resultCopy = NPUNativeFunctions::npu_dtype_cast(resultCopy, self.scalar_type());
     NpuUtils::format_fresh_view(result, resultCopy);
   }
   return result;
 }
 
-at::Tensor XLANativeFunctions::logical_and(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::logical_and(const at::Tensor& self, const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       outputSize,
@@ -93,7 +93,7 @@ at::Tensor XLANativeFunctions::logical_and(const at::Tensor& self, const at::Ten
   return result;
 }
 
-at::Tensor& XLANativeFunctions::logical_and_(at::Tensor& self, const at::Tensor& other) {
+at::Tensor& NPUNativeFunctions::logical_and_(at::Tensor& self, const at::Tensor& other) {
   TORCH_CHECK(
       self.dtype() == other.dtype(),
       "Expected object of scalar type ", self.dtype(),

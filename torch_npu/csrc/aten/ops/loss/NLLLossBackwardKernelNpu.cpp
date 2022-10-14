@@ -16,12 +16,12 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& XLANativeFunctions::nll_loss_backward_out(
+at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& target,
@@ -40,12 +40,19 @@ at::Tensor& XLANativeFunctions::nll_loss_backward_out(
 
   if (ignore_index >= 0 && ignore_index < self.size(-1)) {
     at::Tensor zero = at::zeros(1, self.options());
-    CalcuOpUtil::AclrtMemcpyAsync(
-        {weight_tensor, ignore_index},
-        weight_tensor.itemsize(),
-        {zero, 0},
-        weight_tensor.itemsize(),
-        ACL_MEMCPY_DEVICE_TO_DEVICE);
+    if (c10_npu::NpuRunMode::IsGraphMode()) {
+      auto ignore_tensor = weight_tensor
+          .view({-1})
+          .slice(0, ignore_index, ignore_index + 1, 1);
+      ignore_tensor.copy_(zero);
+    } else {
+      CalcuOpUtil::AclrtMemcpyAsync(
+          {weight_tensor, ignore_index},
+          weight_tensor.itemsize(),
+          {zero, 0},
+          weight_tensor.itemsize(),
+          ACL_MEMCPY_DEVICE_TO_DEVICE);
+    }
   }
 
   string reductionStr = CalcuOpUtil::get_reduction_str(reduction);
@@ -77,7 +84,7 @@ at::Tensor& XLANativeFunctions::nll_loss_backward_out(
   return grad_input;
 }
 
-at::Tensor XLANativeFunctions::nll_loss_backward(
+at::Tensor NPUNativeFunctions::nll_loss_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& target,
@@ -93,7 +100,7 @@ at::Tensor XLANativeFunctions::nll_loss_backward(
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
 
   // calculate the output result of the NPU
-  XLANativeFunctions::nll_loss_backward_out(
+  NPUNativeFunctions::nll_loss_backward_out(
       grad_output,
       self,
       target,

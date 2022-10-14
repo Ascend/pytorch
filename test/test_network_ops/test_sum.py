@@ -143,6 +143,23 @@ class TestSum(TestCase):
             [np.float32, i, [32, 24, 18, 18]] for i in format_list 
         ]
         self.sum_result(shape_format)
+
+    def test_sum_shape_format_int32(self, device="npu"):
+        format_list = [0, 3, 4, 29]
+        shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
+        shape_format = [
+            [np.int32, i, j] for i in format_list for j in shape_list
+        ]
+        self.sum_result(shape_format)
+
+    def test_sum_shape_format_int64(self, device="npu"):
+        format_list = [0, 2, 30]
+        shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
+        shape_format = [
+            [np.int64, i, j] for i in format_list for j in shape_list
+        ]
+        self.sum_result(shape_format)
+
         
         # --------sum dim---------------------
         
@@ -203,6 +220,24 @@ class TestSum(TestCase):
             [np.float32, i, [32, 24, 18, 18]] for i in format_list 
         ]
         self.sum_dim_result(shape_format)
+
+    def test_sum_dim_shape_format_int32(self, device="npu"):
+        format_list = [0, 3, 4]
+        shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
+        shape_format = [
+            [np.int32, i, j] for i in format_list for j in shape_list
+        ]
+        self.sum_dim_result(shape_format)
+    
+    def test_sum_dim_shape_format_int64(self, device="npu"):
+        format_list = [0, 2,30]
+        shape_list = [[18], [256, 1000], [32, 48, 64], [32, 24, 18, 18]]
+        shape_format = [
+            [np.int64, i, j] for i in format_list for j in shape_list
+        ]
+        self.sum_dim_result(shape_format)
+
+    
 
     def test_sum_dim_with_zero_shape_format(self, device="npu"):
         format_list = [0, 3, 4]

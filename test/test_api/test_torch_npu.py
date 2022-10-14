@@ -166,6 +166,15 @@ class TorchNPUApiTestCase(TestCase):
         res = torch_npu.npu.reset_max_memory_cached()
         self.assertIsNone(res)
 
+    def test_npu_get_device_name(self):
+        res = torch_npu.npu.get_device_name(0)
+        self.assertIsInstance(res, str)
+
+    def test_npu_get_device_properties(self):
+        name = torch_npu.npu.get_device_properties(0).name
+        self.assertIsInstance(name, str)
+        total_memory = torch_npu.npu.get_device_properties(0).total_memory
+        self.assertIsInstance(total_memory, int)
 
 if __name__ == "__main__":
     run_tests()

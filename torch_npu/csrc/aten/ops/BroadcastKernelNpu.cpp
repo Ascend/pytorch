@@ -16,13 +16,13 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
-    at::Tensor &XLANativeFunctions::npu_broadcast_out(
+    at::Tensor &NPUNativeFunctions::npu_broadcast_out(
         const at::Tensor &self,
         at::IntArrayRef size,
         at::Tensor &result)
@@ -31,13 +31,13 @@ namespace at_npu
       OpCommand cmd;
       cmd.Name("BroadcastTo")
           .Input(self)
-          .Input(size, at::kInt)
+          .Input(size)
           .Output(result)
           .Run();
       return result;
     }
 
-    at::Tensor XLANativeFunctions::npu_broadcast(const at::Tensor &self, at::IntArrayRef size)
+    at::Tensor NPUNativeFunctions::npu_broadcast(const at::Tensor &self, at::IntArrayRef size)
     {
       at::Tensor input = self;
       if (self.dtype() == at::kBool)
@@ -50,7 +50,7 @@ namespace at_npu
           input.options(),
           CalcuOpUtil::get_tensor_npu_format(self));
 
-      XLANativeFunctions::npu_broadcast_out(input, size, result);
+      NPUNativeFunctions::npu_broadcast_out(input, size, result);
 
       if (self.dtype() == at::kBool)
       {

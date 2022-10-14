@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -48,7 +48,7 @@ at::Tensor& avg_pool2d_backward_out_npu_nocheck(
   OpPreparation::CheckMemory({grad_output, self}, {grad_input});
   OpCommand cmd;
   cmd.Name("AvgPoolV2Grad")
-     .Input(self.sizes(), at::kInt)
+     .Input(self.sizes())
      .Input(grad_output)
      .Output(grad_input)
      .Attr("ksize", kernelSize)
@@ -63,7 +63,7 @@ at::Tensor& avg_pool2d_backward_out_npu_nocheck(
   return grad_input;
 }
 
-at::Tensor& XLANativeFunctions::avg_pool2d_backward_out(
+at::Tensor& NPUNativeFunctions::avg_pool2d_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -105,7 +105,7 @@ at::Tensor& XLANativeFunctions::avg_pool2d_backward_out(
   return grad_input;
 }
 
-at::Tensor XLANativeFunctions::avg_pool2d_backward(
+at::Tensor NPUNativeFunctions::avg_pool2d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -116,7 +116,7 @@ at::Tensor XLANativeFunctions::avg_pool2d_backward(
     c10::optional<int64_t> divisor_override) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(self);
 
-  XLANativeFunctions::avg_pool2d_backward_out(
+  NPUNativeFunctions::avg_pool2d_backward_out(
       grad_output,
       self,
       kernel_size,

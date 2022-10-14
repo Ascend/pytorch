@@ -32,7 +32,8 @@
 
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/aten/common/ResizeNpu.h"
 
 #include "third_party/acl/inc/acl/acl_base.h"
 
@@ -114,7 +115,7 @@ at::Tensor alias_with_sizes_and_strides_npu(
   return self_;
 }
 
-at::Tensor XLANativeFunctions::view(const at::Tensor& self, c10::IntArrayRef size) {
+at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef size) {
   auto inferred_size = at::infer_size(size, self.numel());
   auto stride =
       at::detail::computeStride(self.sizes(), self.strides(), inferred_size);
@@ -131,7 +132,7 @@ at::Tensor XLANativeFunctions::view(const at::Tensor& self, c10::IntArrayRef siz
   return alias_with_sizes_and_strides_npu(dst, inferred_size, stride_value);
 }
 
-at::Tensor XLANativeFunctions::as_strided(
+at::Tensor NPUNativeFunctions::as_strided(
     const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
@@ -145,32 +146,32 @@ at::Tensor XLANativeFunctions::as_strided(
       c10::Storage(dst.storage()),
       dst.key_set(),
       dst.dtype());
-  at::native::setStrided(result, size, stride, storage_offset);
+  setStrided(result, size, stride, storage_offset);
   return result;
 }
 
-const at::Tensor& XLANativeFunctions::as_strided_(
+const at::Tensor& NPUNativeFunctions::as_strided_(
     const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
     c10::optional<int64_t> storage_offset_) {
-  at::Tensor reuslt = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, size)) {
-    reuslt = FormatCastHelper::CovertSelfToBaseFormat(self);
+  at::Tensor result = self;
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, size)) {
+    result = FormatCastHelper::CovertSelfToBaseFormat(result);
   }
-  auto storage_offset = storage_offset_.value_or(reuslt.storage_offset());
-  at::native::setStrided(reuslt, size, stride, storage_offset);
-  return reuslt;
+  auto storage_offset = storage_offset_.value_or(result.storage_offset());
+  at::native::setStrided(result, size, stride, storage_offset);
+  return result;
 }
 
-at::Tensor XLANativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
+at::Tensor NPUNativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
     dim = at::maybe_wrap_dim(dim, self.dim() + 1);
     auto g = inferUnsqueezeGeometry(self, dim);
     return self.as_strided(g.sizes, g.strides);
 
-    }
+}
 
-at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self) {
   auto g = inferSqueezeGeometry(self);
   at::Tensor result = self.as_strided(std::get<0>(g), std::get<1>(g));
   auto maybe_outnames = at::namedinference::compute_squeeze_outnames(self);
@@ -178,7 +179,7 @@ at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self) {
   return result;
 }
 
-at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
   int64_t dims = self.dim();
   dim = at::maybe_wrap_dim(dim, dims);
   if (dims == 0 || self.sizes()[dim] != 1) {
@@ -188,25 +189,6 @@ at::Tensor XLANativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
   auto result = self.as_strided(std::get<0>(g), std::get<1>(g));
   at::namedinference::propagate_names_except(result, self, {dim});
   return result;
-}
-
-at::Tensor & XLANativeFunctions::squeeze_(at::Tensor& self) {
-  auto g = inferSqueezeGeometry(self);
-  self.as_strided_(std::get<0>(g), std::get<1>(g));
-  return self;
-}
-
-at::Tensor & XLANativeFunctions::squeeze_(at::Tensor& self, int64_t dim) {
-  int64_t dims = self.dim();
-  dim = at::maybe_wrap_dim(dim, self.dim());
-
-  if (dims == 0 || self.sizes()[dim] != 1) {
-    self.as_strided_(self.sizes(), self.strides());
-    return self;
-  }
-  auto g = inferSqueezeGeometry(self, dim);
-  self.as_strided_(std::get<0>(g), std::get<1>(g));
-  return self;
 }
 
 } // namespace native

@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -198,8 +198,8 @@ namespace at_npu
         bool count_include_pad,
         c10::optional<int64_t> divisor_override)
     {
-      int H = self.size(2);
-      int W = self.size(3);
+      int H = self.size(-2);
+      int W = self.size(-1);
 
       int64_t kH = ceil_mode
                        ? (CeilDiv(H + 2 * padding[0] - kernel_size[0], stride[0]) + 1)
@@ -207,6 +207,16 @@ namespace at_npu
       int64_t kW = ceil_mode
                        ? (CeilDiv(W + 2 * padding[1] - kernel_size[1], stride[1]) + 1)
                        : ((W + 2 * padding[1] - kernel_size[1]) / stride[1] + 1);
+      if (ceil_mode) {
+        if ((kH - 1) * stride[0] >= H + padding[0]) {
+          --kH;
+        }
+      }
+      if (ceil_mode) {
+        if ((kW - 1) * stride[1] >= W + padding[1]) {
+          --kW;
+        }
+      }
       c10::SmallVector<int64_t, SIZE> outputSize = {self.size(0), self.size(1), kH, kW};
       return outputSize;
     }
@@ -681,8 +691,8 @@ namespace at_npu
     c10::SmallVector<int64_t, SIZE> nonzero_npu_output_size(const at::Tensor &self)
     {
       int64_t dim = self.dim();
-      at::Tensor boolSelf = XLANativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
-      at::Tensor intSelf = XLANativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
+      at::Tensor boolSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Bool);
+      at::Tensor intSelf = NPUNativeFunctions::npu_dtype_cast(boolSelf, at::ScalarType::Int);
 
       at::Tensor coutNonzeroSelf = intSelf;
       if (self.numel() > 10000000)
@@ -698,6 +708,13 @@ namespace at_npu
       int64_t nonzeroNum = coutNonzeroSelf.item().toInt();
       c10::SmallVector<int64_t, SIZE> outputSize = {nonzeroNum, dim};
       return outputSize;
+    }
+
+    c10::SmallVector<int64_t, SIZE> nonzero_npu_max_output_size(const at::Tensor& self) {
+      int64_t selfNumEl = self.numel();
+      int64_t selfDim = self.dim();
+      at::SmallVector<int64_t, SIZE> maxOutputSize = {selfNumEl, selfDim};
+      return maxOutputSize;
     }
 
     c10::SmallVector<int64_t, SIZE> pad_npu_output_size(
@@ -946,9 +963,7 @@ namespace at_npu
         c10::IntArrayRef stride,
         c10::IntArrayRef padding,
         c10::IntArrayRef output_padding,
-        c10::IntArrayRef dilation,
-        const at::Tensor &columns,
-        const at::Tensor &ones)
+        c10::IntArrayRef dilation)
     {
       return tuple<c10::IntArrayRef, c10::IntArrayRef, c10::IntArrayRef>(self.sizes(), weight.sizes(), grad_output.sizes());
     }
@@ -1085,6 +1100,42 @@ namespace at_npu
       shape[dim] = shape[dim] / 2;
 
       return shape;
+    }
+
+    c10::SmallVector<int64_t, SIZE> crop_and_resize_npu_output_size(
+        const at::Tensor &self,
+        const at::Tensor &boxes,
+        at::IntArrayRef crop_size)
+    {
+      TORCH_CHECK(self.dim() == 4, "input x size must be 4");
+      TORCH_CHECK(boxes.dim() == 2, "boxes size must be 2");
+      TORCH_CHECK(crop_size.size() == 2, "crop_size size must be 2");
+      int64_t N = boxes.size(0);
+      int64_t H = crop_size[0];
+      int64_t W = crop_size[1];
+      int64_t C = self.size(1);
+
+      c10::SmallVector<int64_t, SIZE> outputSize = {N, C, H, W};
+      return outputSize;
+    }
+
+    c10::SmallVector<int64_t, SIZE> decode_jpeg_npu_output_size(
+        at::IntArrayRef image_shape,
+        int64_t channels)
+    {
+      TORCH_CHECK(image_shape.size() == 3, "image_shape size must be 3");
+      int64_t H = image_shape[0];
+      int64_t W = image_shape[1];
+      int64_t C = image_shape[2];
+
+      c10::SmallVector<int64_t, SIZE> outputSize;
+      if (channels == 0) {
+        outputSize = {1, C, H, W};
+      } else {
+        outputSize = {1, channels, H, W};
+      }
+      
+      return outputSize;
     }
 
   } // namespace native

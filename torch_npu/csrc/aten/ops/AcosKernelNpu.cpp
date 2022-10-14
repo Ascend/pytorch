@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -29,7 +29,7 @@ at::Tensor& acos_out_npu_nocheck(const at::Tensor& self, at::Tensor& result) {
   return result;
 }
 
-at::Tensor& XLANativeFunctions::acos_out(const at::Tensor& self, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::acos_out(const at::Tensor& self, at::Tensor& result) {
   OpPipeWithDefinedOut pipe;
   OpPreparation::CheckOut(
       {self},
@@ -40,14 +40,14 @@ at::Tensor& XLANativeFunctions::acos_out(const at::Tensor& self, at::Tensor& res
    .Call(result);
 }
 
-at::Tensor XLANativeFunctions::acos(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::acos(const at::Tensor& self) {
   OpPipeWithApplyOut pipe;
   return pipe.ApplyOutputSameAs(self)
     .Func([&self](at::Tensor& result) {acos_out_npu_nocheck(self, result);})
     .Call();
 }
 
-at::Tensor& XLANativeFunctions::acos_(at::Tensor& self) {
+at::Tensor& NPUNativeFunctions::acos_(at::Tensor& self) {
   acos_out(self, self);
   return self;
 }

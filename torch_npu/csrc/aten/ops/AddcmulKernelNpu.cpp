@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -25,7 +25,7 @@ at::Tensor& addcmul_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    const at::Scalar value) {
+    const at::Scalar& value) {
   OpCommand cmd;
 
   cmd.Name("Addcmul")
@@ -39,7 +39,7 @@ at::Tensor& addcmul_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::addcmul_out(
+at::Tensor& NPUNativeFunctions::addcmul_out(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
@@ -61,7 +61,7 @@ at::Tensor& XLANativeFunctions::addcmul_out(
       .Call(result);
 }
 
-at::Tensor XLANativeFunctions::addcmul(
+at::Tensor NPUNativeFunctions::addcmul(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
@@ -76,7 +76,7 @@ at::Tensor XLANativeFunctions::addcmul(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::addcmul_(
+at::Tensor& NPUNativeFunctions::addcmul_(
     at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,

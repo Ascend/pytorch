@@ -16,6 +16,7 @@ import torch
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestNllloss2d(TestCase):
@@ -33,7 +34,8 @@ class TestNllloss2d(TestCase):
         output = output.detach().numpy()
         return output
 
-    def test_nll_loss2d_mean(self, device="npu"):
+    @graph_mode
+    def test_nll_loss2d_mean(self):
         m = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -50,7 +52,8 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_none(self, device="npu"):
+    @graph_mode
+    def test_nll_loss2d_none(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -67,7 +70,8 @@ class TestNllloss2d(TestCase):
 
         self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_nll_loss2d_sum(self, device="npu"):
+    @graph_mode
+    def test_nll_loss2d_sum(self):
         exp = torch.nn.LogSoftmax(dim=1)
         dim_n, dim_c = 5, 4
         loss = torch.nn.NLLLoss()
@@ -83,8 +87,9 @@ class TestNllloss2d(TestCase):
         npu_output = self.npu_op_exec(data_npu, target_npu, "sum")
 
         self.assertRtolEqual(cpu_output, npu_output)
-    
-    def test_nll_loss2d_case_in_ssdresnet34(self, device="npu"):
+
+    @graph_mode
+    def test_nll_loss2d_case_in_ssdresnet34(self):
         cpu_plabel = torch.rand(32, 81, 8732).uniform_(-2.3, 2)
         cpu_glabel = torch.rand(32, 8732).random_(0, 79).long()
         npu_plabel = cpu_plabel.npu()

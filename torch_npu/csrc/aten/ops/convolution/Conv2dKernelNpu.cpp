@@ -18,7 +18,7 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -45,7 +45,7 @@ bool isSpecialConv1d(
 } // isSpecialConv1d
 } // namespace
 
-at::Tensor& XLANativeFunctions::npu_conv2d_out(
+at::Tensor& NPUNativeFunctions::npu_conv2d_out(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt,
@@ -63,12 +63,12 @@ at::Tensor& XLANativeFunctions::npu_conv2d_out(
   c10::SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
   OpCommand cmd;
   cmd.Name("Conv2D")
-      .Input(input)
-      .Input(weight);
+      .Input(input, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW);
   if (bias.defined()) {
       cmd.Input(bias);
   }
-  cmd.Output(result)
+  cmd.Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -79,7 +79,7 @@ at::Tensor& XLANativeFunctions::npu_conv2d_out(
   return result;
 }
 
-at::Tensor XLANativeFunctions::npu_conv2d(
+at::Tensor NPUNativeFunctions::npu_conv2d(
     const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias,
@@ -115,7 +115,7 @@ at::Tensor XLANativeFunctions::npu_conv2d(
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NC1HWC0);
   // calculate the output result of the NPU
-  XLANativeFunctions::npu_conv2d_out(input, weight, bias, stride, padding, dilation, groups, result);
+  NPUNativeFunctions::npu_conv2d_out(input, weight, bias, stride, padding, dilation, groups, result);
   return result;
 }
 

@@ -16,7 +16,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
@@ -34,7 +34,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::zeros_like(
+    at::Tensor NPUNativeFunctions::zeros_like(
         const at::Tensor &self,
         c10::optional<c10::ScalarType> dtype_opt,
         c10::optional<c10::Layout> layout_opt,
@@ -56,7 +56,7 @@ namespace at_npu
 
       auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
-      at::Tensor result = XLANativeFunctions::empty_with_format(
+      at::Tensor result = NPUNativeFunctions::empty_with_format(
           outputSize, dtype_opt, layout_opt, device_opt, pin_memory_opt,
           CalcuOpUtil::get_tensor_npu_format(self));
 
@@ -64,7 +64,7 @@ namespace at_npu
       return result.zero_();
     }
 
-    at::Tensor &XLANativeFunctions::zero_(at::Tensor &self)
+    at::Tensor &NPUNativeFunctions::zero_(at::Tensor &self)
     {
       if (!NpuUtils::check_match(&self))
       {

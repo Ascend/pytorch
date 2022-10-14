@@ -13,27 +13,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 at::Tensor& nonzero_out_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
+  c10::SmallVector<int64_t, N> output_sync_idx = {0};
   OpCommand cmd;
-  cmd.Name("NonZero")
+  cmd.Sync(output_sync_idx)
+    .Name("NonZero")
     .Input(self)
     .Output(result)
     .Attr("transpose", false)
     .Run();
-
   return result;
 }
 
-at::Tensor& XLANativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& result) {
-  auto outputSize = nonzero_npu_output_size(self);
+at::Tensor& NPUNativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& result) {
+  auto outputSize = nonzero_npu_max_output_size(self);
   OpPreparation::CheckOut(
       {self},
       result,
@@ -47,9 +47,9 @@ at::Tensor& XLANativeFunctions::nonzero_out(const at::Tensor& self, at::Tensor& 
    .Call(result);
 }
 
-at::Tensor XLANativeFunctions::nonzero(const at::Tensor& self) {
+at::Tensor NPUNativeFunctions::nonzero(const at::Tensor& self) {
   // calculate the output size
-  auto outputSize = nonzero_npu_output_size(self);
+  auto outputSize = nonzero_npu_max_output_size(self);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(

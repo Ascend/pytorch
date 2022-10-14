@@ -22,6 +22,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class TestConvTranspose2dBackward(TestCase):
@@ -42,14 +43,8 @@ class TestConvTranspose2dBackward(TestCase):
         bias1.requires_grad = True
 
         res_forward = nn.functional.conv_transpose2d(input1, weight, padding=1, bias=bias1)
-        print("===cpu_res_forward===")
-        print(res_forward)
         grads = torch.ones_like(res_forward).float()
         res_forward.backward(grads, retain_graph=True)
-        print("===cpu_bias===")
-        print(bias1)
-        print("===cpu_bias_grad===")
-        print(bias1.grad)
         return res_forward
     
     def npu_op_exec(self, input1, weight, bias1):
@@ -61,15 +56,9 @@ class TestConvTranspose2dBackward(TestCase):
         bias1.requires_grad = True
 
         res_forward = nn.functional.conv_transpose2d(input1, weight, padding=1, bias=bias1)
-        print("===npu_res_forward===")
-        print(res_forward)
         grads = torch.ones_like(res_forward).float()
         grads = grads.to("npu")
         res_forward.backward(grads, retain_graph=True)
-        print("===npu_bias===")
-        print(bias1)
-        print("===npu_bias_grad===")
-        print(bias1.grad)
         res_forward = res_forward.to("cpu")
         return res_forward
     
@@ -90,11 +79,6 @@ class TestConvTranspose2dBackward(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, bias1=cpu_bias)
             npu_output = self.npu_op_exec(npu_input1, npu_input2, bias1=npu_bias)
 
-            print("===input_grad===")
-            print(self.input_grad)
-            print("===weight_grad===")
-            print(self.weight_grad)
-
             cpu_output = cpu_output.to(torch.float16)
             npu_output = npu_output.to(torch.float16)
             self.input_grad[0] = self.input_grad[0].to(torch.float16)
@@ -105,13 +89,14 @@ class TestConvTranspose2dBackward(TestCase):
             self.assertRtolEqual(self.input_grad[0].numpy(), self.input_grad[1].numpy())
             self.assertRtolEqual(self.weight_grad[0].numpy(), self.weight_grad[1].numpy())
 
-    def test_conv_transpose2d_backward_shape_format_fp16(self, device="npu"):
+    @graph_mode
+    def test_conv_transpose2d_backward_shape_format_fp16(self):
         shape_format = [
             [[np.float16, 0, [1, 4, 5, 5]], [np.float16, 0, [4, 4, 3, 3]]]
         ]
         self.conv_transpose2d_backward_result(shape_format)
 
-    def test_conv_transpose2d_backward_shape_format_fp32(self, device="npu"):
+    def test_conv_transpose2d_backward_shape_format_fp32(self):
         shape_format = [
             [[np.float32, 0, [1, 4, 5, 5]], [np.float32, 0, [4, 4, 3, 3]]]
         ]

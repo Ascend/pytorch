@@ -17,13 +17,13 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include <ATen/native/Pool.h>
 
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 
-at::Tensor& XLANativeFunctions::max_pool2d_with_indices_backward_out(
+at::Tensor& NPUNativeFunctions::max_pool2d_with_indices_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -50,10 +50,10 @@ at::Tensor& XLANativeFunctions::max_pool2d_with_indices_backward_out(
   c10::SmallVector<int64_t, N> dilations = {1, dilation[0], dilation[1], 1};
   OpCommand cmd;
   cmd.Name("MaxPoolGradWithArgmaxV1")
-      .Input(self)
-      .Input(grad_output)
-      .Input(indices, "", c10::nullopt, "uint16")
-      .Output(grad_input)
+      .Input(self, "x", ACL_FORMAT_NCHW)
+      .Input(grad_output, "grad", ACL_FORMAT_NCHW)
+      .Input(indices, "argmax", ACL_FORMAT_NCHW, "uint16")
+      .Output(grad_input, "y", ACL_FORMAT_NCHW)
       .Attr("ksize", kernelSize)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
@@ -63,7 +63,7 @@ at::Tensor& XLANativeFunctions::max_pool2d_with_indices_backward_out(
   return grad_input;
 }
 
-at::Tensor XLANativeFunctions::max_pool2d_with_indices_backward(
+at::Tensor NPUNativeFunctions::max_pool2d_with_indices_backward(
     const at::Tensor& grad_output_,
     const at::Tensor& self,
     at::IntArrayRef kernel_size,
@@ -121,7 +121,7 @@ at::Tensor XLANativeFunctions::max_pool2d_with_indices_backward(
   at::Tensor grad_input =  OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU
-  XLANativeFunctions::max_pool2d_with_indices_backward_out(
+  NPUNativeFunctions::max_pool2d_with_indices_backward_out(
       grad_output,
       self,
       kernel_sizess,

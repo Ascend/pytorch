@@ -52,15 +52,6 @@ def assert_never(x: NoReturn) -> NoReturn:
 #   and you're expected to populate information once during
 #   construction.
 
-# Represent a source location; used for better error reporting
-@dataclass(frozen=True)
-class Location:
-    file: str
-    line: int
-
-    def __str__(self) -> str:
-        return "{}:{}".format(self.file, self.line)
-
 # Valid values of the 'variants' field in native_functions.yaml
 Variant = Enum('Variant', ('function', 'method'))
 
@@ -247,10 +238,6 @@ class NativeFunction:
     # so you can make use of the normal binding if you need it.
     manual_cpp_binding: bool
 
-    # The location in the YAML file were this native function entry was
-    # defined.  This is for conveniently reporting error messages!
-    loc: 'Location'
-
     # Whether or not this out functions is a "structured kernel".  Structured
     # kernels are defined a little differently from normal kernels; in
     # particular, their shape checking logic is defined separately from
@@ -310,7 +297,6 @@ class NativeFunction:
     @staticmethod
     def from_yaml(
             ei: Dict[str, object],
-            loc: 'Location'
     ) -> Tuple['NativeFunction', Dict[DispatchKey, Dict['OperatorName', 'BackendMetadata']]]:
         """
         Parse a NativeFunction from a dictionary as directly parsed
@@ -412,7 +398,8 @@ class NativeFunction:
         elif not structured and structured_delegate is None:
             dispatch[DispatchKey.CompositeImplicitAutograd] = cpp.name(func)
 
-        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and DispatchKey.CompositeImplicitAutograd in dispatch), \
+        assert not (DispatchKey.CompositeExplicitAutograd in dispatch and 
+                    DispatchKey.CompositeImplicitAutograd in dispatch), \
             "cannot specify both CompositeExplicitAutograd and CompositeImplicitAutograd on a single kernel; each " \
             "strictly subsumes the other.  If you wanted to provide an explicit autograd " \
             "implementation, specify CompositeExplicitAutograd; otherwise specify CompositeImplicitAutograd only"
@@ -459,7 +446,6 @@ class NativeFunction:
             category_override=category_override,
             device_guard=device_guard,
             device_check=device_check,
-            loc=loc,
             cpp_no_default_args=cpp_no_default_args,
             is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
@@ -670,10 +656,6 @@ class BackendIndex:
     # is used to implement the others.
     # All in-tree ops use out kernels, while XLA uses functional kernels.
     use_out_as_primary: bool
-    # Whether the backend requires a device guard, and device checks.
-    # For in-tree backends, this is currently just CUDA/HIP
-    # For out-of-tree backends, this is currently just Intel XPU
-    device_guard: bool
     # Whether the backend is in-tree (CPU/CUDA) or out-of-tree (XLA)
     external: bool
     # Other backend-specific information that is on a per-operator basis

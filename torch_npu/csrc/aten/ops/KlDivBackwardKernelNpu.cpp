@@ -15,12 +15,12 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor XLANativeFunctions::kl_div_backward(
+at::Tensor NPUNativeFunctions::kl_div_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& target,

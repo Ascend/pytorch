@@ -54,11 +54,11 @@ function parse_script_args() {
             args_num=$((args_num-1))
             shift
             ;;
-        # --tocpu=*)
-        #     export 'NPU_TOCPU'=${1:8}
-        #     args_num=$((args_num-1))
-        #     shift
-        #     ;;
+        --tocpu=*)
+            export 'NPU_TOCPU'=${1:8}
+            args_num=$((args_num-1))
+            shift
+            ;;
         -*)
             echo "ERROR Unsupported parameters: ${1}"
             return 1

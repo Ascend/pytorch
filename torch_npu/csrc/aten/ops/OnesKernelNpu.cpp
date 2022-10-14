@@ -17,16 +17,16 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/KernelNpuOutputSize.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
-at::Tensor& XLANativeFunctions::ones_out(at::IntArrayRef size, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::ones_out(at::IntArrayRef size, at::Tensor& result) {
   result.resize_(size);
-  return XLANativeFunctions::one_(result);
+  return NPUNativeFunctions::one_(result);
 }
 
-at::Tensor XLANativeFunctions::ones(at::IntArrayRef size,
+at::Tensor NPUNativeFunctions::ones(at::IntArrayRef size,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -41,10 +41,10 @@ at::Tensor XLANativeFunctions::ones(at::IntArrayRef size,
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, option, ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  return XLANativeFunctions::one_(result);
+  return NPUNativeFunctions::one_(result);
 }
 
-at::Tensor XLANativeFunctions::ones(
+at::Tensor NPUNativeFunctions::ones(
     at::IntArrayRef size,
     c10::optional<at::DimnameList> names,
     c10::optional<at::ScalarType> dtype_opt,
@@ -61,7 +61,7 @@ at::Tensor XLANativeFunctions::ones(
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, option, ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  return XLANativeFunctions::one_(result);
+  return NPUNativeFunctions::one_(result);
 }
 
 } // namespace native

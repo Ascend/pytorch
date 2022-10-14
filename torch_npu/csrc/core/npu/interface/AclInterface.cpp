@@ -16,6 +16,7 @@ REGISTER_LIBRARY(libascendcl)
 LOAD_FUNCTION(aclGetRecentErrMsg)
 LOAD_FUNCTION(aclrtCreateEventWithFlag)
 LOAD_FUNCTION(aclrtQueryEventWaitStatus)
+LOAD_FUNCTION(aclrtQueryEventStatus)
 LOAD_FUNCTION(aclprofCreateStepInfo)
 LOAD_FUNCTION(aclprofGetStepTimestamp)
 LOAD_FUNCTION(aclprofDestroyStepInfo)
@@ -25,6 +26,7 @@ LOAD_FUNCTION(aclprofStop)
 LOAD_FUNCTION(aclprofFinalize)
 LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
+LOAD_FUNCTION(aclrtGetSocName)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -107,6 +109,33 @@ aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus,
   }
 }
 
+aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status) {
+  typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus *status);
+  static aclQueryEventStatus func = nullptr;
+  if (func == nullptr) {
+    func = (aclQueryEventStatus)GET_FUNC(aclrtQueryEventStatus);
+  }
+  if (func != nullptr) {
+    return func(event, status);
+  } else {
+    return ACL_ERROR_NONE;
+  }
+}
+
+bool IsExistQueryEventRecordedStatus()
+{
+  typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus *status);
+  static aclQueryEventStatus func = nullptr;
+  if (func == nullptr) {
+    func = (aclQueryEventStatus)GET_FUNC(aclrtQueryEventStatus);
+  }
+  if (func != nullptr) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
   typedef aclError (*AclProfInitFunc) (const char *, size_t);
   static AclProfInitFunc func = nullptr;
@@ -173,5 +202,26 @@ aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig) {
   return func(profilerConfig);
 }
 
+const char *AclrtGetSocName() {
+  typedef const char *(*aclrtGetSocNameFunc)();
+  static aclrtGetSocNameFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtGetSocNameFunc)GET_FUNC(aclrtGetSocName);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetSocName");
+  return func();
+}
+
+const char *AclGetSocName() {
+  typedef const char * (*AclGetSoc) ();
+  static AclGetSoc func = nullptr;
+  if (func == nullptr) {
+    func = (AclGetSoc)GET_FUNC(aclrtGetSocName);
+  }
+  if (func == nullptr) {
+    return nullptr;
+  }
+  return func();
+}
 } // namespace acl
 } // namespace c10

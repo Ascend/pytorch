@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu{
 namespace native{
@@ -36,7 +36,7 @@ at::Tensor& sign_bits_unpack_out_npu_nocheck(
   return result;
 }
 
-at::Tensor XLANativeFunctions::npu_sign_bits_unpack(
+at::Tensor NPUNativeFunctions::npu_sign_bits_unpack(
     const at::Tensor& input,
     int64_t size,
     c10::ScalarType dtype) {

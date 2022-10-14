@@ -77,6 +77,12 @@ namespace at_npu
       aclopSetAttrFloat(attr, name.c_str(), val);
     }
 
+    void OpAttrMaker::Set(aclopAttr* attr, const string& name, at::ScalarType value) 
+    {
+      aclDataType val = CalcuOpUtil::convert_to_acl_data_type(value);
+      aclopSetAttrDataType(attr, name.c_str(), val);
+    }
+
     void OpAttrMaker::Set(
         aclopAttr *attr,
         const string &name,
@@ -107,22 +113,36 @@ namespace at_npu
           attrValue.data());
     }
 
-    void OpCommandImpl::Run()
-    {
+    void OpCommandImpl::SetEnginePriority() {
+        auto stream = c10_npu::getCurrentNPUStream();
+        if (stream.isDataPreprocessStream()) {
+          AddAttr("_performance_prior", static_cast<std::string>("true"));
+          AddAttr("_exclude_engines", static_cast<std::string>("AICORE"));
+        }
+      }
+
+    void OpCommandImpl::Run(
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor) {
       NPU_LOGD("Op %s Run.", opName.c_str());
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
       if (PyGILState_Check()) {
         // we need to release GIL for NPU to compile op.
         Py_BEGIN_ALLOW_THREADS
-        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
         Py_END_ALLOW_THREADS
       } else {
-        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam), opName.c_str());
+        ACL_REQUIRE_OK_OP(InnerRun(opName, execParam, sync, sync_index, outputTensor), opName.c_str());
       }
     }
 
-    aclError OpCommandImpl::InnerRun(string name, AclExecParam &params)
-    {
+    aclError OpCommandImpl::InnerRun(
+        string name, 
+        AclExecParam &params, 
+        bool sync, 
+        c10::SmallVector<int64_t, N> &sync_index, 
+        c10::SmallVector<at::Tensor, N> &outputTensor) {
       auto stream = c10_npu::getCurrentNPUStream();
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
@@ -155,19 +175,45 @@ namespace at_npu
             TORCH_CHECK(false, "In aoe mode, AclGenGraphAndDumpForOp failed!");
           }
         }
-        ret = aclopCompileAndExecute(
-            name.c_str(),
-            inputSize,
-            params.inDesc.data(),
-            params.inBuffer.data(),
-            outputSize,
-            params.outDesc.data(),
-            params.outBuffer.data(),
-            params.attr,
-            ACL_ENGINE_SYS,
-            ACL_COMPILE_SYS,
-            NULL,
-            stream);
+        if (!sync) {
+          ret = aclopCompileAndExecute(
+              name.c_str(),
+              inputSize,
+              params.inDesc.data(),
+              params.inBuffer.data(),
+              outputSize,
+              params.outDesc.data(),
+              params.outBuffer.data(),
+              params.attr,
+              ACL_ENGINE_SYS,
+              ACL_COMPILE_SYS,
+              NULL,
+              stream);
+        } else {
+          int64_t dimSize;
+          ret = AclopCompileAndExecuteV2(
+              name.c_str(),
+              inputSize,
+              const_cast<aclTensorDesc**>(params.inDesc.data()),
+              const_cast<aclDataBuffer**>(params.inBuffer.data()),
+              outputSize,
+              const_cast<aclTensorDesc**>(params.outDesc.data()),
+              params.outBuffer.data(),
+              params.attr,
+              ACL_ENGINE_SYS,
+              ACL_COMPILE_SYS,
+              NULL,
+              stream);
+
+          for (size_t i = 0; i < sync_index.size(); i++) {
+            c10::SmallVector<int64_t, N> real_shape;
+            for (int64_t j = 0; j < outputTensor[sync_index[i]].dim(); j++) {
+              C10_NPU_CHECK(aclGetTensorDescDimV2(params.outDesc[sync_index[i]], j, &dimSize));
+              real_shape.emplace_back(dimSize);
+            }
+            outputTensor[sync_index[i]].resize_(real_shape);
+          }
+        }
         ++index;
       } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
       if (reset_flag)
@@ -298,13 +344,15 @@ namespace at_npu
       dstPtr->paramStream = srcPtr->paramStream;
       dstPtr->paramType = srcPtr->paramType;
       dstPtr->paramLen = srcPtr->paramLen;
-      memset(dstPtr->paramVal, 0, MAX_VAL_SIZE);
       if (srcPtr->paramType == c10_npu::queue::COMPILE_AND_EXECUTE) {
+        new(dstPtr->paramVal) ExecuteParas();
         (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
       } else if ((srcPtr->paramType == c10_npu::queue::ASYNC_MEMCPY)) {
+        new(dstPtr->paramVal) CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
       } else {
+        new(dstPtr->paramVal) EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }

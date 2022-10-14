@@ -15,13 +15,13 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
 
-at::Tensor& XLANativeFunctions::adaptive_avg_pool2d_out(
+at::Tensor& NPUNativeFunctions::adaptive_avg_pool2d_out(
     const at::Tensor& self,
     at::IntArrayRef output_size,
     at::Tensor& result) {
@@ -38,13 +38,13 @@ at::Tensor& XLANativeFunctions::adaptive_avg_pool2d_out(
 
   return result;
 }
-/*
-at::Tensor XLANativeFunctions::adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
+
+at::Tensor NPUNativeFunctions::adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
   // The logic is a little different from CPU_impl
   return at::_adaptive_avg_pool2d(self, output_size);
-}*/
+}
 
-at::Tensor XLANativeFunctions::_adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
+at::Tensor NPUNativeFunctions::_adaptive_avg_pool2d(const at::Tensor& self, at::IntArrayRef output_size) {
   for (int64_t i = 0; i < self.dim(); i++) {
     TORCH_CHECK(
         self.size(i) > 0,
@@ -66,7 +66,7 @@ at::Tensor XLANativeFunctions::_adaptive_avg_pool2d(const at::Tensor& self, at::
 
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
-  XLANativeFunctions::adaptive_avg_pool2d_out(self, output_size, result);
+  NPUNativeFunctions::adaptive_avg_pool2d_out(self, output_size, result);
 
   return result;
 }

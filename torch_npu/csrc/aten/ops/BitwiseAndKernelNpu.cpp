@@ -14,7 +14,7 @@
 
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -36,7 +36,7 @@ at::Tensor& bitwise_and_out_npu_nocheck(
   return result;
 }
 
-at::Tensor & XLANativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Scalar& other, at::Tensor & result) {
+at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Scalar& other, at::Tensor & result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -55,9 +55,9 @@ at::Tensor& bitwise_and_out_npu_nocheck(
     const at::Tensor& other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
   if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
-    XLANativeFunctions::bitwise_and_out(self, other.item(), result);
+    NPUNativeFunctions::bitwise_and_out(self, other.item(), result);
   } else if (self.dim() == 0 && !at_npu::key::isDeviceTensor(self)) {
-    XLANativeFunctions::bitwise_and_out(other, self.item(), result);
+    NPUNativeFunctions::bitwise_and_out(other, self.item(), result);
   } else {
     // executing the NPU operator
     string real_op_name = (self.dtype() == at::ScalarType::Bool) ? "LogicalAnd" : "BitwiseAnd";
@@ -74,7 +74,7 @@ at::Tensor& bitwise_and_out_npu_nocheck(
   return result;
 }
 
-at::Tensor & XLANativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & result) {
+at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Tensor & other, at::Tensor & result) {
   bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
 
   at::Tensor ref_tensor;
@@ -98,7 +98,7 @@ at::Tensor & XLANativeFunctions::bitwise_and_out(const at::Tensor & self, const 
   return result;
 }
 
-at::Tensor XLANativeFunctions::bitwise_and(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Tensor& other) {
   // calculate the output size
   bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
 
@@ -123,7 +123,7 @@ at::Tensor XLANativeFunctions::bitwise_and(const at::Tensor& self, const at::Ten
   return result;
 }
 
-at::Tensor XLANativeFunctions::bitwise_and(const at::Tensor& self, const at::Scalar& other) {
+at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Scalar& other) {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
 
@@ -137,7 +137,7 @@ at::Tensor XLANativeFunctions::bitwise_and(const at::Tensor& self, const at::Sca
   return result;
 }
 
-at::Tensor& XLANativeFunctions::bitwise_and_(at::Tensor& self, const at::Tensor& other) {
+at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, const at::Tensor& other) {
   c10::SmallVector<at::Tensor, N> inputs = {self, other};
   c10::SmallVector<at::Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);
@@ -153,7 +153,7 @@ at::Tensor& XLANativeFunctions::bitwise_and_(at::Tensor& self, const at::Tensor&
   return self;
 }
 
-at::Tensor& XLANativeFunctions::bitwise_and_(at::Tensor& self, const at::Scalar& other) {
+at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = bitwise_and_out_npu_nocheck(contiguousSelf, contiguousSelf, other);

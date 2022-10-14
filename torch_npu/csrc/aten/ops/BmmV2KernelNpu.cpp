@@ -17,7 +17,7 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -348,7 +348,7 @@ public:
   }
 };
 
-at::Tensor XLANativeFunctions::npu_bmmV2(const at::Tensor& self, const at::Tensor& mat2, at::IntArrayRef output_sizes) {
+at::Tensor NPUNativeFunctions::npu_bmmV2(const at::Tensor& self, const at::Tensor& mat2, at::IntArrayRef output_sizes) {
   return NPUBmmV2Function::apply(self, mat2, output_sizes);
 }
 

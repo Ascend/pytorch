@@ -13,9 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+from torch.testing._internal.common_utils import skipIfNotRegistered
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
@@ -23,6 +24,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestLayerNorm(TestCase):
+    @skipIfNotRegistered("LayerNorm", "Skipping as LayerNorm is not registered")
     def test_c10_layer_norm(self, device="npu"):
         # test that we can call c10 ops and they return a reasonable result
         X = torch.rand(5, 5, dtype=torch.float, device="cpu")

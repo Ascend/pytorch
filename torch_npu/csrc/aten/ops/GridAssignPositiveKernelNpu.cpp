@@ -15,7 +15,7 @@
 // limitations under the License.
 #include <torch/csrc/autograd/custom_function.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -34,7 +34,7 @@ static inline void grid_assign_positive_check(
       gt_argmax_overlaps.scalar_type());
 }
 
-at::Tensor XLANativeFunctions::npu_grid_assign_positive(
+at::Tensor NPUNativeFunctions::npu_grid_assign_positive(
     const at::Tensor& assigned_gt_inds,
     const at::Tensor& overlaps,
     const at::Tensor& box_responsible_flags,
@@ -52,8 +52,8 @@ at::Tensor XLANativeFunctions::npu_grid_assign_positive(
   at::Scalar s(num_gts);
   at::Tensor numOfGts = at::empty({}, option).fill_(s);
 
-  at::Tensor argmaxOverLaps = XLANativeFunctions::npu_dtype_cast(argmax_overlaps, at::ScalarType::Int);
-  at::Tensor gtArgmaxOverLaps = XLANativeFunctions::npu_dtype_cast(gt_argmax_overlaps, at::ScalarType::Int);
+  at::Tensor argmaxOverLaps = NPUNativeFunctions::npu_dtype_cast(argmax_overlaps, at::ScalarType::Int);
+  at::Tensor gtArgmaxOverLaps = NPUNativeFunctions::npu_dtype_cast(gt_argmax_overlaps, at::ScalarType::Int);
   
   OpCommand cmd;
   cmd.Name("GridAssignPositive")

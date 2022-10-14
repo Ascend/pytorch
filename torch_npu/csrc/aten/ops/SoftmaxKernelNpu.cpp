@@ -16,14 +16,14 @@
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu
 {
   namespace native
   {
 
-    at::Tensor XLANativeFunctions::softmax(
+    at::Tensor NPUNativeFunctions::softmax(
         const at::Tensor &self,
         int64_t dim,
         c10::optional<at::ScalarType> dtype)
@@ -39,15 +39,15 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor XLANativeFunctions::softmax(
+    at::Tensor NPUNativeFunctions::softmax(
         const at::Tensor &self,
         at::Dimname dim,
         c10::optional<at::ScalarType> dtype)
     {
-      return XLANativeFunctions::softmax(self, dimname_to_position(self, dim), dtype);
+      return NPUNativeFunctions::softmax(self, dimname_to_position(self, dim), dtype);
     }
 
-    at::Tensor XLANativeFunctions::_softmax(const at::Tensor &self, int64_t dim, bool half_to_float)
+    at::Tensor NPUNativeFunctions::_softmax(const at::Tensor &self, int64_t dim, bool half_to_float)
     {
 
       // construct the output tensor of the NPU

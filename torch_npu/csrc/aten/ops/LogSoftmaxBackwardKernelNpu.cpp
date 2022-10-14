@@ -18,28 +18,42 @@
 #include <c10/util/SmallVector.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor XLANativeFunctions::_log_softmax_backward_data(
+at::Tensor& log_softmax_backward_data_out_npu_nocheck(
+    at::Tensor& result,
     const at::Tensor& grad_output,
     const at::Tensor& output,
     int64_t dim,
     at::ScalarType input_dtype) {
   c10::SmallVector<int64_t, N> dimList = {dim};
-  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
-
   OpCommand cmd;
   cmd.Name("LogSoftmaxGrad")
       .Input(grad_output)
       .Input(output)
-      .Output(grad_input)
+      .Output(result)
       .Attr("axis", dimList)
       .Run();
+  return result;
+}
 
-  return grad_input;
+at::Tensor& NPUNativeFunctions::_log_softmax_backward_data_out(
+    const at::Tensor& grad_output,
+    const at::Tensor& output,
+    int64_t dim,
+    c10::ScalarType input_dtype,
+    at::Tensor& result) {
+  OpPreparation::CheckOut(
+      {grad_output, output},
+      result,
+      grad_output);
+
+  log_softmax_backward_data_out_npu_nocheck(result, grad_output, output, dim, input_dtype);
+
+  return result;
 }
 
 } // namespace native

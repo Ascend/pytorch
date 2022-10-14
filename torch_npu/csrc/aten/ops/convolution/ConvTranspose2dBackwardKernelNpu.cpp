@@ -19,7 +19,7 @@
 #include <torch/csrc/autograd/custom_function.h>
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -45,9 +45,9 @@ at::Tensor conv_transpose2d_backward_input_out_npu(
 
   OpCommand cmd;
   cmd.Name("Conv2D")
-      .Input(grad_output)
-      .Input(weight)
-      .Output(gradInput)
+      .Input(grad_output, "x", ACL_FORMAT_NCHW)
+      .Input(weight, "filter", ACL_FORMAT_NCHW)
+      .Output(gradInput, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -79,10 +79,10 @@ at::Tensor conv_transpose2d_backward_weight_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("Conv2DBackpropFilter")
-      .Input(grad_output)
+      .Input(grad_output, "x", ACL_FORMAT_NCHW)
       .Input(dimList, at::kInt)
-      .Input(input)
-      .Output(gradWeight)
+      .Input(input, "out_backprop", ACL_FORMAT_NCHW)
+      .Output(gradWeight, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -140,7 +140,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> conv_transpose2d_backward_out_npu(
   return std::tie(gradInput, gradWeight, gradBias);
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_conv_transpose2d_backward(
+tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv_transpose2d_backward(
     const at::Tensor& input,
     const at::Tensor& grad_output,
     const at::Tensor& weight,
@@ -177,7 +177,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> XLANativeFunctions::npu_conv_transpose
   return std::tie(gradInput, gradWeight, gradBias);
 }
 
-/*
+
 c10::SmallVector<int64_t, SIZE> convolution_transpose3d_npu_output_size(
     const at::Tensor& input,
     const at::Tensor& weight,
@@ -270,7 +270,7 @@ at::Tensor convolution_transpose3d_npu(
 
   return result;
 }
-*/
+
 at::Tensor convolution_transpose_kernel_npu(
     const at::Tensor& input,
     const at::Tensor& weight,
@@ -284,13 +284,13 @@ at::Tensor convolution_transpose_kernel_npu(
 
   at::Tensor output;
   if (dim == 4) {
-    output = XLANativeFunctions::npu_conv_transpose2d(
+    output = NPUNativeFunctions::npu_conv_transpose2d(
         input, weight, bias, padding, output_padding, stride, dilation, groups);
   }
 
   if (dim == 5) {
-    // output = convolution_transpose3d_npu(
-    //     input, weight, bias, padding, output_padding, stride, dilation, groups);
+    output = convolution_transpose3d_npu(
+        input, weight, bias, padding, output_padding, stride, dilation, groups);
   }
 
   return output;
@@ -311,7 +311,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> convolution_transpose_backward_npu(
 
   tuple<at::Tensor, at::Tensor, at::Tensor> output;
   if (dim == 4) {
-    output = XLANativeFunctions::npu_conv_transpose2d_backward(
+    output = NPUNativeFunctions::npu_conv_transpose2d_backward(
         input,
         grad,
         weight,
@@ -324,20 +324,20 @@ tuple<at::Tensor, at::Tensor, at::Tensor> convolution_transpose_backward_npu(
   }
 
   if (dim == 5) {
-    // output = XLANativeFunctions::npu_conv_transpose3d_backward(
-    //     input,
-    //     grad,
-    //     weight,
-    //     padding,
-    //     output_padding,
-    //     stride,
-    //     dilation,
-    //     groups,
-    //     grad_input_mask);
+    output = NPUNativeFunctions::npu_conv_transpose3d_backward(
+        input,
+        grad,
+        weight,
+        padding,
+        output_padding,
+        stride,
+        dilation,
+        groups,
+        grad_input_mask);
   }
   // Note:weight.grad should be equal weight
   if (std::get<1>(output).defined()) {
-    std::get<1>(output) = XLANativeFunctions::npu_dtype_cast(std::get<1>(output), weight.scalar_type());
+    std::get<1>(output) = NPUNativeFunctions::npu_dtype_cast(std::get<1>(output), weight.scalar_type());
   }
   return output;
 }
@@ -413,7 +413,7 @@ public:
   }
 };
 
-at::Tensor XLANativeFunctions::npu_convolution_transpose(const at::Tensor& input,
+at::Tensor NPUNativeFunctions::npu_convolution_transpose(const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt,
     at::IntArrayRef padding,

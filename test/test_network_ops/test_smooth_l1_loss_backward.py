@@ -19,6 +19,7 @@ import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
+from torch_npu.testing.decorator import graph_mode
 
 
 class Testcdist(TestCase):
@@ -50,6 +51,7 @@ class Testcdist(TestCase):
             gradient = gradient.astype(np.float16)
         return gradient
 
+    @graph_mode
     def test_smooth_l1_loss_backward_float16_3(self):
         shape_format1 = [
             [-1, 1, [100], [100], np.float16],
@@ -71,6 +73,7 @@ class Testcdist(TestCase):
             self.assertRtolEqual(cpu_output0, npu_output0)
             self.assertRtolEqual(cpu_output1, npu_output1)
 
+    @graph_mode
     def test_smooth_l1_loss_backward_float32_3(self):
         shape_format = [
             [-1, 1, [100], [100], np.float32],

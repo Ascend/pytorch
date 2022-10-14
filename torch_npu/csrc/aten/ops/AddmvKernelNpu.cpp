@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& XLANativeFunctions::addmv_out(
+at::Tensor& NPUNativeFunctions::addmv_out(
     const at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,
@@ -48,7 +48,7 @@ at::Tensor& XLANativeFunctions::addmv_out(
   return result;
 }
 
-at::Tensor XLANativeFunctions::addmv(
+at::Tensor NPUNativeFunctions::addmv(
     const at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,
@@ -61,7 +61,7 @@ at::Tensor XLANativeFunctions::addmv(
   return result;
 }
 
-at::Tensor& XLANativeFunctions::addmv_(
+at::Tensor& NPUNativeFunctions::addmv_(
     at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,

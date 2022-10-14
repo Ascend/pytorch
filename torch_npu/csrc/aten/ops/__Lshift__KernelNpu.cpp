@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -24,7 +24,7 @@ at::Tensor& lshift_out_npu_nocheck(
     const at::Tensor& self,
     at::Scalar other,
     at::Tensor& result) {
-  at::Tensor otherBroadcast = at::empty(self.sizes(), self.options()).fill_(other);
+  at::Tensor otherBroadcast = at::empty(self.sizes(), self.options()).fill_(other); 	
   OpCommand cmd;  
   cmd.Name("LeftShift")
      .Input(self)
@@ -48,13 +48,13 @@ at::Tensor& lshift_out_npu_nocheck(
   return result;
 }
 
-at::Tensor XLANativeFunctions::__lshift__(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::__lshift__(const at::Tensor& self, const at::Tensor& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   lshift_out_npu_nocheck(self, other, result);
   return result;
 }
 
-at::Tensor XLANativeFunctions::__lshift__(const at::Tensor& self, const at::Scalar& other) {
+at::Tensor NPUNativeFunctions::__lshift__(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   lshift_out_npu_nocheck(self, other, result);
   return result;

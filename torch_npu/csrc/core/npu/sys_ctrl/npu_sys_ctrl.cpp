@@ -133,10 +133,17 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
   }
 
-  auto ge_ret = ge::GEInitialize(config);
-  if (ge_ret != ge::SUCCESS) {
-    AT_ERROR("GE init failed!");
+  auto soc_name = c10_npu::acl::AclGetSocName();
+  if (soc_name != nullptr) {
+    config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
   }
+
+  if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
+    static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
+    config.emplace(HCOM_OPTIONS.data(), "1");
+  }
+
+  C10_NPU_CHECK(ge::GEInitialize(config));
 
   // set default compile cache mode and dir for users to improve op compile time
   MakeCompileCacheDirAndSetOption();
@@ -163,13 +170,13 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
     }
 
     this->RegisterReleaseFn([=]() ->void {
-        c10_npu::NPUEventManager::GetInstance().ClearEvent();
-        auto stream = c10_npu::getCurrentNPUStream();
-        (void)aclrtDestroyStream(stream);
-        C10_NPU_CHECK(ge::GEFinalize());
-        C10_NPU_CHECK(aclrtResetDevice(device_id_));
-        C10_NPU_CHECK(aclFinalize());
-    }, ReleasePriority::PriorityLast);
+          c10_npu::NPUEventManager::GetInstance().ClearEvent();
+          auto stream = c10_npu::getCurrentNPUStream();
+          (void)aclrtDestroyStream(stream);
+          C10_NPU_CHECK(ge::GEFinalize());
+          C10_NPU_CHECK(aclrtResetDevice(device_id_));
+          C10_NPU_CHECK(aclFinalize());
+        }, ReleasePriority::PriorityLast);
 
     init_flag_ = false;
 

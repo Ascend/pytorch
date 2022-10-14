@@ -16,8 +16,9 @@
 
 #include <ATen/ATen.h>
 #include <c10/util/Exception.h>
-#include "torch_npu/csrc/core/npu/NPUGuard.h"
 
+#include "torch_npu/csrc/core/npu/NPUGuard.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/framework/contiguous/ContiguousOpt.h"
 #include "torch_npu/csrc/framework/FormatHelper.h"
@@ -26,7 +27,7 @@
 #include "torch_npu/csrc/aten/common/FormatCastHelper.h"
 #include "torch_npu/csrc/aten/common/InnerNpuNativeFunction.h"
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
-#include "torch_npu/csrc/aten/XLANativeFunctions.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 
 namespace at_npu {
@@ -85,7 +86,7 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
     at::Tensor src_4D = FormatCastHelper::ApplyBaseFormatTensorBy(src);
     at::Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
     copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
-    XLANativeFunctions::npu_format_cast_(self, dst_4D);
+    NPUNativeFunctions::npu_format_cast_(self, dst_4D);
     return;
   }
   copy_d2d_dtype_baseformat(self, src, non_blocking);
@@ -93,7 +94,7 @@ void copy_d2d_dtype_format(at::Tensor& self, const at::Tensor& src, bool non_blo
 
 void copy_d2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (self.dtype() != src.dtype()) {
-    XLANativeFunctions::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
+    NPUNativeFunctions::npu_dtype_cast_(self, src); // npu_dtype_cast_ will call copy function.
     return;
   }
   copy_d2d_dtype(self, src, non_blocking);
@@ -107,15 +108,20 @@ void copy_between_host_and_device(
     const at::Tensor& src,
     aclrtMemcpyKind kind,
     bool non_blocking) {
-  void* dst_ptr = dst.data_ptr();
-  void* src_ptr = src.data_ptr();
   int64_t nbytes = dst.numel() * dst.element_size();
   c10_npu::NPUStream stream = c10_npu::getCurrentNPUStream();
-  C10_NPU_CHECK(aclrtMemcpyAsync(dst_ptr, nbytes, src_ptr, nbytes, kind, stream));
+  auto ret = CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+      std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
+      nbytes,
+      std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
+      nbytes,
+      kind,
+      stream);
+  C10_NPU_CHECK(ret);
 
   if (non_blocking) {
     NPU_LOGD("non_blocking copy without StreamSynchronize.");
-    void* ptr = at_npu::key::isDeviceTensor(dst) ? src_ptr : dst_ptr;
+    void* ptr = at_npu::key::isDeviceTensor(dst) ? src.data_ptr() : dst.data_ptr();
     C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(ptr, stream));
   } else {
     aclError error = aclrtSynchronizeStream(stream);
@@ -209,7 +215,7 @@ void copy_h2d(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (!FormatHelper::IsBaseFormatType(self)) {
     at::Tensor dst = OpPreparation::ApplyTensorWithSizes(self.sizes(), self.options());
     copy_h2d_baseformat(dst, src, non_blocking, true);
-    XLANativeFunctions::npu_format_cast_(self, dst);
+    NPUNativeFunctions::npu_format_cast_(self, dst);
     return;
   }
   copy_h2d_baseformat(self, src, non_blocking);
@@ -260,7 +266,7 @@ void copy_d2d_dtype(at::Tensor& self, const at::Tensor& src, bool non_blocking) 
     }
     at::Tensor dst_4D = FormatCastHelper::ApplyBaseFormatTensorBy(self);
     copy_d2d_dtype_baseformat(dst_4D, src_4D, non_blocking);
-    XLANativeFunctions::npu_format_cast_(self, dst_4D);
+    NPUNativeFunctions::npu_format_cast_(self, dst_4D);
     return;
   }
   copy_d2d_dtype_format(self, src, non_blocking);
@@ -285,10 +291,18 @@ void copy_d2d_dtype_baseformat(
       return;
     } else {
       // General trans-contiguous method
-      XLANativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
+      NPUNativeFunctions::npu_stride_copy_out(src, src.sizes(), src.strides(), src.storage_offset(), self);
       return;
     }
   } else {
+    if (c10_npu::NpuRunMode::IsGraphMode()) {
+      // In graph mode, in order to identify and call the corresponding npu operators,
+      // opt is necessary for contiguous tensor, such as reshape/slice/select. 
+      OptimizationCases contiguous_opt_cases = {"reshape", "slice", "select"};
+      if (TransContiguous::ContiguousOptimizeWithBaseFormat(self, src, contiguous_opt_cases)) {
+        return;
+      }
+    }
     // Contiguous source tensor copy to contiguous self tensor
     int64_t numel = self.numel();
     if (numel == src.numel()) {
@@ -308,7 +322,7 @@ bool try_to_optimize_copy_with_any_format(at::Tensor& self, const at::Tensor& sr
   return TransContiguous::ContiguousOptimizeWithAnyFormat(self, src);
 }
 
-at::Tensor& XLANativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
+at::Tensor& NPUNativeFunctions::copy_(at::Tensor& self, const at::Tensor& src, bool non_blocking) {
   if (self.numel() == 0) {
     return self;
   }
