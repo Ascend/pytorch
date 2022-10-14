@@ -16,13 +16,16 @@
 from statistics import mode
 import warnings
 import logging
+
 import torch
 from torch.distributed.algorithms.join import Join
-import torch_npu
+from torch.nn.modules.module import Module
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
+
+import torch_npu
+import torch_npu.distributed as dist
 from torch_npu.utils.tensor_methods import torch_device_guard
 
-import torch_npu.distributed as dist
 
 def npu(self, device=None):
     r"""Moves all model parameters and buffers to the npu.
@@ -416,7 +419,7 @@ def ddp_ddp_init_helper(
 def ddp__setstate__(self, state):
     # If serializable, then the process group should be the default one
     self.process_group = torch_npu.distributed.distributed_c10d._get_default_group()
-    super(DistributedDataParallel, self).__setstate__(state)
+    Module.__setstate__(self, state)
     self.__dict__.setdefault("require_forward_param_sync", True)
     self.__dict__.setdefault("require_backward_grad_sync", True)
     parameters, expect_sparse_gradient = self._build_params_for_reducer()
