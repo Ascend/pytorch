@@ -39,6 +39,9 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 | 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
 | 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
 | 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.8.1-3.0.rc3 | v1.8.1-3.0.rc3 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0-3.0.rc3 | v1.11.0-3.0.rc3 |
 
 # 安装方式
 
@@ -493,14 +496,53 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 
 验证torch_npu的引入，请切换至其他目录进行，在编译目录执行会提示如下错误。
 
-
 <img src="figures/FAQ torch_npu.png" style="zoom:150%;" />
 
-## 多卡训练初始化阶段卡住直到超时
+## 在执行import torch_npu时出现ModuleNotFooundError: NO module named '_lzma'报错问题
 
-init_process_group 函数中使用了IPV6地址例如::1(注意localhost 可能指向IPv6的地址)
-使用IPv4可以避免这个问题
+在python命令行下，执行import torch_npu测试时，出现ModuleNotFooundError: NO module named '_lzma'问题，可能由于Python环境失效，重装Python即可。<img src="figures/QA.png"  />
 
+## 编译过程中出现XNNPACK相关的Make Error报错
+
+编译原生pytorch时，未配置相关环境变量，导致编译不成功。
+
+![](figures/QA1.png)
+
+1. 执行命令设置环境变量
+
+   ```
+   export USE_XNNPACK=0
+   ```
+
+2. 执行命令清除当前编译内容
+
+   ```
+   make clean
+   ```
+
+3. 重新编译
+
+## 编译时出现Breakpad error: field 'regs' has incomplete type 'google_breakpad::user_regs_struct'报错
+
+编译原生pytorch时，未配置相关环境变量，导致编译不成功。
+
+1. 执行命令配置环境变量
+
+   ```
+   export BUILD_BREAKPAD=0
+   ```
+
+2. 执行命令清除当前编译内容
+
+   ```
+   make clean
+   ```
+
+3. 重新编译
+
+## 多卡训练初始化阶段卡顿至超时
+
+init_process_group 函数中使用了IPV6地址，例如::1(注意localhost 可能指向IPv6的地址)，使用IPv4可以避免这个问题
 # 版本说明
 
 版本说明请参阅[ReleseNote](docs/zh/RELEASENOTE)
