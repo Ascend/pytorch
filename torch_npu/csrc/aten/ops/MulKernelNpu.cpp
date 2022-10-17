@@ -92,8 +92,8 @@ namespace at_npu
       at::Tensor otherCast = other;
       if (self.dtype() == c10::ScalarType::Bool && other.dtype() == c10::ScalarType::Bool)
       {
-        selfCast = self.to(c10::ScalarType::Float);
-        otherCast = other.to(c10::ScalarType::Float);
+        selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::kFloat);
+        otherCast = NPUNativeFunctions::npu_dtype_cast(other, at::kFloat);
       }
 
       // calculate the output size
@@ -111,7 +111,7 @@ namespace at_npu
 
       if (self.dtype() == c10::ScalarType::Bool && other.dtype() == c10::ScalarType::Bool)
       {
-        result = result.to(c10::ScalarType::Bool);
+        result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
       }
 
       return result;
@@ -119,12 +119,7 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, const at::Scalar& other)
     {
-      // calculate the output size
-      auto outputSize = input_same_output_size(self);
-
-      // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      at::Tensor result = OpPreparation::ApplyTensor(self);
 
       // calculate the output result of the NPU
       muls_out_npu(result, self, other);
@@ -153,8 +148,10 @@ namespace at_npu
       }
       if (self.scalar_type() == at::kBool) {
         selfDtypeCast = NPUNativeFunctions::npu_dtype_cast(selfDtypeCast, at::kBool);
+        self.copy_(selfDtypeCast);
+      } else {
+        self = selfDtypeCast;
       }
-      self.copy_(selfDtypeCast);
 
       return self;
     }
