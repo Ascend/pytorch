@@ -756,24 +756,7 @@ _,idx_rank = loss_idx.to(torch.float32).sort(1)</div>
 </pre>
 </details>
 
-<details><summary>出现大量reshape、transpose等非连续转连续算子----配置BMMV2_ENABLE环境变量</summary>
-<pre style="background-color:Gray">
-<h3>场景解析</h3>整网profiling时，存在大量非连续转连续算子
-<h3>调优思路</h3>消除引入的转连续算子
-<h3>优化方法</h3>配置BMMV2_ENABLE环境变量，消除适配层的reshape、transpose等造成的非连续转连续。
-<h3>样例参考</h3>
-bert-squad_ID0470_for_PyTorch模型调用许多matmul算子时，引入了很多转连续算子，如：reshape、transpose、view等，并伴随了多余Transdata算子。
-<div>配置环境变量</div>
-<div>---------------------</div>
-<div>export BMMV2_ENABLE=1</div>
-<div>---------------------</div>
-<div>使能环境变量后，transpose算子完全消失，transdata算子大量减少，性能有提升。</div>
-使能前：
-<div><img src="figures/使能前.png"></div>
-使能后:
-<div><img src="figures/使能后.png"></div>
-</pre>
-</details>
+
 
 
 <details><summary>存在动态shape----开启模糊编译</summary>
@@ -804,6 +787,7 @@ bert-squad_ID0470_for_PyTorch模型调用许多matmul算子时，引入了很多
 		# 输出recompile_op_list.txt
 		python3.7.5  recompiled_op.py
 	3.重点关注recompile_op_list.txt中step3以后的compile的算子，视为动态shape引起的重编译算子。
+	4.固定动态shape,参考<a href="https://gitee.com/wangjiangben_hw/ascend-pytorch-crowdintelligence-doc/blob/master/pytorch-train-guide/%E5%9B%BA%E5%AE%9A%E5%8A%A8%E6%80%81shape%E8%8C%83%E4%BE%8B%E6%96%87%E6%A1%A3.md#%E5%9B%BA%E5%AE%9A%E5%8A%A8%E6%80%81shape%E8%8C%83%E4%BE%8B%E6%96%87%E6%A1%A3">固定动态shape范例</a>
 </pre>
 <h3>样例参考</h3>
 <pre>
@@ -982,7 +966,7 @@ torch.multiprocessing.spawn(train, nprocs=ngpus_per_node, args=(ngpus_per_node, 
 
 -   **[总体思路](#总体)**  
 
--   **[精度调优方法](#精度调优方法)**  
+-   **[精度比对工具](#精度比对工具)**  
 
 ### 总体思路
 
@@ -1567,15 +1551,15 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 -   **[编译选项设置](#编译选项设置)**  
 -   **[算子数据参考](#算子数据参考)**  
 
-## 亲和库
+### 亲和库
 
-### 来源介绍
+#### 来源介绍
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
 
 
-### 功能介绍
+#### 功能介绍
 
 亲和库详细说明请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中”亲和库“章节。
 

@@ -4,6 +4,7 @@
 -   [约束与限制](#约束与限制)
 -   [迁移流程](#迁移流程)
 -   [快速上手](#快速上手)
+-   [手工迁移样例参考](#手工迁移样例参考)
 -   [混合精度说明](#混合精度说明)
 -   [模型保存与转换](#模型保存与转换)
 -   [参考信息](#参考信息)
@@ -131,51 +132,68 @@
 
 ## 快速上手
 
-### 简介
-
-对ResNet50模型进行迁移，帮助用户快速了解迁移过程。
-
 ### 模型选取
 
 在选取模型时，尽可能选取权威Pytorch模型实现仓作为标杆，包括但不限于Pytorch\([example](https://github.com/pytorch/examples/tree/master/imagenet)/[vision](https://github.com/pytorch/vision)等\)、facebookresearch\([Detectron](https://github.com/facebookresearch/Detectron)/[detectron2](https://github.com/facebookresearch/detectron2)等\)和open-mmlab\([mmdetection](https://github.com/open-mmlab/mmdetection)/[mmpose](https://github.com/open-mmlab/mmpose)等\)。
 
-本样例基于PyTorch官网提供的Imagenet数据集训练模型[main.py](https://github.com/pytorch/examples/tree/master/imagenet/main.py)脚本进行适配昇腾910 AI处理器的迁移。
+本文档提供的手工迁移样例基于PyTorch官网提供的Imagenet数据集训练模型[main.py](https://github.com/pytorch/examples/tree/master/imagenet/main.py)脚本进行适配昇腾910 AI处理器的迁移。
 
 ### 模型移植评估<a name="模型移植评估md"></a>
 
-模型是否可以迁移成功主要取决于模型算子是否支持昇腾AI处理器。故需要对模型算子对昇腾AI处理器的支持性进行评估，一般有两种方式评估算子支持性
+模型是否可以迁移成功主要取决于模型算子是否支持昇腾AI处理器。故需要对模型算子对昇腾AI处理器的支持性进行评估。
 
-- 模型迁移前，使用dump op方法获取算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中自定义算子进行比较，确定是否支持。
-
-  查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用dump op方法获取当前模型算子列表并在[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中查找该算子查看是否支持。dump op方法参见<a href="#dump-op方法">dump op方法</a>，
+- 模型迁移前，查看算子适配情况。将原始模型及训练脚本迁移到昇腾AI处理器上之前，可以将原始模型及训练脚本在CPU上进行训练，使用Pytorch profiler功能获取当前模型算子列表并在[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中查找该算子查看是否支持，Pytorch profiler功能获取算子信息请参见[dump op方法](#dump op方法)。
 
 - 模型迁移后，在昇腾设备上进行运行训练脚本，若存在不支持昇腾AI设备的算子，会提示报错信息。
 
-  当有不支持算子时参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
-
-若存在不支持算子，可以采用修改模型用等价支持的算子替换或者参考[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
+  当有不支持算子时以采用修改模型用等价支持的算子替换或者参考[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
 ### 环境准备<a name="环境准备md"></a>
 
-请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行CANN软件安装、PyTorch框架及混合精度模块安装，并配置环境变量。
-
-参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
+- 请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc3/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md) 进行PyTorch框架及混合精度模块安装，并配置环境变量。
+- 请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/envdeployment/instg) 安装开发环境，安装CANN软件。
+- 参考PyTorch [examples](https://github.com/pytorch/examples/tree/master/imagenet) 准备模型运行所需要的Python环境及依赖。
 
 ### 硬件支持
 
-aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
+- aarch64架构推荐使用：Atlas800-9000+kunpeng920+Ascend910+NVMe 3.2T+750GRAM
 
-X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
+- X86_64架构推荐使用：Atlas800-9010+Intel Platinum8260+Ascend910+NVMe 3.2T+750GRAM
 
 ### 模型迁移<a name="模型迁移md"></a>
 
+#### 整体思路
+
+将基于PyTorch的训练脚本迁移到昇腾AI处理器上进行训练，目前有以下3种方式：自动迁移、工具迁移、手工迁移。
+
+- 自动迁移：训练时，在训练脚本中导入脚本转换库。导入后执行训练，训练脚本在运行的同时，会自动将脚本中的cuda接口替换为昇腾AI处理器支持的NPU接口。整体过程为：边训练边转换。
+- 工具迁移：训练前，通过脚本迁移工具，自动将训练脚本中的cuda接口替换为昇腾AI处理器支持的NPU接口，并生成迁移报告（脚本转换日志、不支持算子的列表、脚本修改记录）。训练时，运行转换后的脚本。整体过程为：先转换脚本，再进行训练。
+- 手工迁移：算法工程师通过对模型的分析、GPU与NPU代码的对比进而对训练脚本进行修改，以支持再昇腾AI处理器上执行训练。
+
+#### 自动迁移（推荐）
+
+**简介**
+
+自动迁移方式较简单，且修改内容最少，只需在训练脚本中添加引入库代码。
+
+**使用方法**
+
+```
+import torch
+import torch_npu
+.....
+from torch_npu.contrib import transfer_to_npu
+```
+
+
+
 #### 工具迁移
 
-Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://www.hiascend.com/document/detail/zh/mindstudio/304/msug)。
+Ascend平台提供了脚本转换工具使用户能通过命令行方式将训练脚本迁移到昇腾AI处理器上进行训练，命令行方式工具详细使用说明参见下文。
 
-##### 功能介绍
+除命令行方式外，用户也可通过MindStudio中集成的PyTorch GPU2Ascend功能进行迁移，详情请参见[《MindStudio 用户指南》](https://www.hiascend.com/document/detail/zh/mindstudio/304/msug/atlasms_02_0117.html)。
 
-**简介**<a name="zh-cn_topic_0000001133095885_section20874690446"></a>
+**工具简介**
 
 昇腾NPU是AI算力的后起之秀，但目前训练和在线推理脚本大多是基于GPU的。由于NPU与GPU的架构差异，基于GPU的训练和在线推理脚本不能直接在NPU上使用，脚本转换工具提供了将基于GPU的脚本转换为基于NPU的脚本的自动化方法，节省了人工手动进行脚本迁移的学习成本与工作量，大幅提升了迁移效率。
 
@@ -188,17 +206,24 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
 目前支持模型请参考[《昇腾Modelzoo社区》](https://www.hiascend.com/software/modelzoo) ，筛选类型分类：“训练”、框架分类：“Pytorch”的Pytorch训练模型。
 
-**系统要求**<a name="zh-cn_topic_0000001133095885_section1055723118446"></a>
+**执行命令行工具转换**<a name="zh-cn_topic_0000001086713630_section163061458103913"></a>
 
-脚本转换工具支持Ubuntu 18.04、CentOS 7.6或EulerOS 2.8。
+1. 进入脚本转换工具所在路径。
 
-**环境准备**<a name="zh-cn_topic_0000001133095885_section14907199142615"></a>
+   ```
+   cd Ascend-cann-toolkit安装目录/ascend-toolkit/{version}/tools/ms_fmk_transplt
+   ```
 
-详情请参考[《CANN 软件安装指南》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/envdeployment/instg) 安装开发环境。
+2. 执行脚本转换工具。
 
-##### 操作指南
+   ```
+   python3 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径] [-s] [-sim] [distributed -m 训练脚本的入口文件 -t 目标模型变量名]
+   ```
 
-**参数说明**<a name="zh-cn_topic_0000001086713630_section21951346163910"></a>
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >distributed及其参数-m、-t在语句最后指定。
+
+3. 完成脚本转换。
 
 **表 1**  参数说明
 
@@ -270,124 +295,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tr>
 </tbody>
 </table>
-
-**自定义规则文件** <a name="zh-cn_topic_0000001086713630_section1879318256392"></a>
-
-自定义转换规则样例如下：
-
-```
-{
-    "rules": {
-        "ArgsModifyRule": [
-            {
-                "func_name": "name1",
-                "arg_idx": 0,
-                "arg_new": "agrs0"
-            },
-            {
-                "func_name": "name2",
-                "arg_idx": 0,
-                "arg_new": "agrs0"
-            }
-        ],
-        "FuncNameModifyRule": [
-            {
-                "old_name": "func",
-                "new_name": "new_func"
-            }
-        ],
-        "ModuleNameModifyRule": [
-            {
-                "old_name": "module",
-                "new_name": "new_module",
-                "parent_module":"parent_module"
-            }
-        ]
-    }
-}
-```
-
-**表 2**  参数说明
-
-<a name="zh-cn_topic_0000001086713630_table1623617321279"></a>
-
-<table><thead align="left"><tr id="zh-cn_topic_0000001086713630_row20236153212276"><th class="cellrowborder" valign="top" width="30%" id="mcps1.2.3.1.1"><p id="zh-cn_topic_0000001086713630_p13236113220275"><a name="zh-cn_topic_0000001086713630_p13236113220275"></a><a name="zh-cn_topic_0000001086713630_p13236113220275"></a>参数</p>
-</th>
-<th class="cellrowborder" valign="top" width="70%" id="mcps1.2.3.1.2"><p id="zh-cn_topic_0000001086713630_p22366325276"><a name="zh-cn_topic_0000001086713630_p22366325276"></a><a name="zh-cn_topic_0000001086713630_p22366325276"></a>说明</p>
-</th>
-</tr>
-</thead>
-<tbody><tr id="zh-cn_topic_0000001086713630_row192361632122710"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p8236163222717"><a name="zh-cn_topic_0000001086713630_p8236163222717"></a><a name="zh-cn_topic_0000001086713630_p8236163222717"></a>ArgsModifyRule</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p62361632152712"><a name="zh-cn_topic_0000001086713630_p62361632152712"></a><a name="zh-cn_topic_0000001086713630_p62361632152712"></a>函数参数修改</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row923683292713"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p923633219273"><a name="zh-cn_topic_0000001086713630_p923633219273"></a><a name="zh-cn_topic_0000001086713630_p923633219273"></a>func_name</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p4236113252712"><a name="zh-cn_topic_0000001086713630_p4236113252712"></a><a name="zh-cn_topic_0000001086713630_p4236113252712"></a>函数名称</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row9236123219278"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p11236183218277"><a name="zh-cn_topic_0000001086713630_p11236183218277"></a><a name="zh-cn_topic_0000001086713630_p11236183218277"></a>arg_idx</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p723643215279"><a name="zh-cn_topic_0000001086713630_p723643215279"></a><a name="zh-cn_topic_0000001086713630_p723643215279"></a>参数的位置</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row16236153222714"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p923615322278"><a name="zh-cn_topic_0000001086713630_p923615322278"></a><a name="zh-cn_topic_0000001086713630_p923615322278"></a>arg_new</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p1923663214271"><a name="zh-cn_topic_0000001086713630_p1923663214271"></a><a name="zh-cn_topic_0000001086713630_p1923663214271"></a>新的参数</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row32361732192719"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p17236432122717"><a name="zh-cn_topic_0000001086713630_p17236432122717"></a><a name="zh-cn_topic_0000001086713630_p17236432122717"></a>FuncNameModifyRule</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p11236173212716"><a name="zh-cn_topic_0000001086713630_p11236173212716"></a><a name="zh-cn_topic_0000001086713630_p11236173212716"></a>函数名称修改</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row19236332172716"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p123693212273"><a name="zh-cn_topic_0000001086713630_p123693212273"></a><a name="zh-cn_topic_0000001086713630_p123693212273"></a>ModuleNameModifyRule</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p823623217276"><a name="zh-cn_topic_0000001086713630_p823623217276"></a><a name="zh-cn_topic_0000001086713630_p823623217276"></a>模块名称修改</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row293132093217"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p79311320153212"><a name="zh-cn_topic_0000001086713630_p79311320153212"></a><a name="zh-cn_topic_0000001086713630_p79311320153212"></a>old_name</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p79321420103212"><a name="zh-cn_topic_0000001086713630_p79321420103212"></a><a name="zh-cn_topic_0000001086713630_p79321420103212"></a>旧名称</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row0742203193210"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p974353111329"><a name="zh-cn_topic_0000001086713630_p974353111329"></a><a name="zh-cn_topic_0000001086713630_p974353111329"></a>new_name</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p87431931133212"><a name="zh-cn_topic_0000001086713630_p87431931133212"></a><a name="zh-cn_topic_0000001086713630_p87431931133212"></a>新名称</p>
-</td>
-</tr>
-<tr id="zh-cn_topic_0000001086713630_row4677165715235"><td class="cellrowborder" valign="top" width="30%" headers="mcps1.2.3.1.1 "><p id="zh-cn_topic_0000001086713630_p2434071544"><a name="zh-cn_topic_0000001086713630_p2434071544"></a><a name="zh-cn_topic_0000001086713630_p2434071544"></a>parent_module</p>
-</td>
-<td class="cellrowborder" valign="top" width="70%" headers="mcps1.2.3.1.2 "><p id="zh-cn_topic_0000001086713630_p571992311016"><a name="zh-cn_topic_0000001086713630_p571992311016"></a><a name="zh-cn_topic_0000001086713630_p571992311016"></a>父级模块全名</p>
-<p id="zh-cn_topic_0000001086713630_p1065614314599"><a name="zh-cn_topic_0000001086713630_p1065614314599"></a><a name="zh-cn_topic_0000001086713630_p1065614314599"></a>例如torch.cuda.amp，amp的父级模块全名为torch.cuda。</p>
-</td>
-</tr>
-</tbody>
-</table>
-
-
-
-**执行转换**<a name="zh-cn_topic_0000001086713630_section163061458103913"></a>
-
-1. 进入脚本转换工具所在路径。
-
-   ```
-   cd Ascend-cann-toolkit安装目录/ascend-toolkit/{version}/tools/ms_fmk_transplt
-   ```
-
-2. 执行脚本转换工具。
-
-   ```
-   python3 ms_fmk_transplt.py -i 原始脚本路径 -o 脚本转换结果输出路径 [-r 自定义规则json文件路径] [-s] [-sim] [distributed -m 训练脚本的入口文件 -t 目标模型变量名]
-   ```
-
-   >![](public_sys-resources/icon-note.gif) **说明：** 
-   >distributed及其参数-m、-t在语句最后指定。
-
-3. 完成脚本转换。
-
-##### 结果解析
+**结果解析**
 
 脚本转换完成后，进入脚本转换结果输出路径查看结果文件，以GPU单卡脚本转换为NPU多卡脚本为例。
 
@@ -401,6 +309,299 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 ```
 
 #### 手工迁移
+
+**简介**
+
+手工迁移需要用户对AI模型有迁移基础，了解GPU与NPU的代码的异同点以及各种迁移手段，手工迁移过程中各个模型的迁移方法均有不同，下文只给出手工迁移的核心要点，具体模型的迁移方法请参见[手工迁移样例参考](#手工迁移样例参考)。
+
+**迁移要点**
+
+- 单卡迁移
+
+  1. 导入NPU相关库。
+
+     ```
+     import torch
+     import torch_npu
+     ```
+
+  2. 迁移GPU代码，指定NPU作为训练设备。
+
+     ```
+     #GPU指定运行设备
+     device = torch.device('cuda:0')
+     torch.cuda.set_device(device)
+     # 修改↓ 
+     #NPU指定运行设备
+     device = torch.device('npu:0')
+     torch.npu.set_device(device)
+     ```
+
+  3. 将训练脚本中的cuda接口替换为Npu接口，例如cuda接口、模型、损失函数、训练数据集等迁移到NPU上。
+
+     - torch.cuda.xx()==>torch.npu.xx()
+     - tensor.to('cuda:0')==>tensor.to('npu:0')
+
+     参考样例
+
+     ```
+     #GPU模型
+     model = model.cuda() 
+     # 修改↓
+     #NPU模型
+     model = model.npu() 
+     
+     #GPU损失函数
+     cirterion = nn.CrossEntropyLoss().cuda()
+     # 修改↓
+     #NPU损失函数
+     cirterion = nn.CrossEntropyLoss().npu()
+     ```
+
+- 多卡迁移（分布式训练迁移）
+
+  除单卡迁移包含的3个修改要点外，在分布式场景下，还涉及以下迁移要点。
+
+  切换通信方式并修改入参
+
+  - 直接修改init_process_group的值。
+  
+    ```
+    #GPU使用nccl方式
+    dist.init_process_group(backend='nccl',init_method = "tcp//:127.0.0.1:29688", ...... ,rank = args.rank)
+    # 修改↓
+    #NPU使用hccl方式
+    dist.init_process_group(backend='hccl',init_method = "tcp//:127.0.0.1:29688", ...... ,rank = args.rank)
+    ```
+  
+  - 通过环境变量导入，init_process_group接口会优先读取环境变量值。
+  
+    ```
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29688'
+    
+    dist.init_process_group(backend='hccl', ...... ,rank = args.rank)
+    ```
+  
+    
+
+### 开启混合精度
+
+在迁移完成准备训练之前，需要开启混合精度，用户可以根据场景选择引入APEX混合精度模块或使用1.8.1框架自带的AMP功能，以保证模型的性能。APEX混合精度模块与amp功能只需使用一个，除在分布式训练时引入APEX模块combine_ddp参数的加速功能时的有区别外，其他训练场景无需区分DDP的使用。DistributedDataParallel模式的使用与原生框架无异，可参考[PyTorch官方文档](https://pytorch.org/docs/1.8.1/notes/ddp.html?highlight=distributed)使用。
+
+- 单卡训练迁移：
+  - 使用APEX混合精度模块。
+  - 使用框架自带AMP功能。
+- 单机多卡训练迁移：
+  - 使用APEX混合精度模块。
+  - 使用框架自带AMP功能。
+- 分布式训练迁移：
+  - 使用APEX混合精度并开启combine_ddp开关，并关闭框架DistributedDataParallel模式。
+  - 使用APEX混合精度并关闭combine_ddp开关，并开启框架DistributedDataParallel模式。
+  - 使用amp功能并开启框架DistributedDataParallel模式。
+
+
+
+### 模型训练
+
+**准备数据集**
+
+准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet。
+
+**执行命令** <a name="命令"></a>
+
+配置环境变量
+
+1. 配置框架相关环境变量
+
+   ```
+   source Pytorch安装目录/env.sh                                 #PyTorch环境变量
+   ```
+
+2. 配置训练相关环境变量shell脚本env_npu.sh。
+
+   ```
+   CANN_INSTALL_PATH_CONF='/etc/Ascend/ascend_cann_install.info'
+   
+   if [ -f $CANN_INSTALL_PATH_CONF ]; then
+       CANN_INSTALL_PATH=$(cat $CANN_INSTALL_PATH_CONF | grep Install_Path | cut -d "=" -f 2)
+   else
+       CANN_INSTALL_PATH="/usr/local/Ascend"
+   fi
+   
+   if [ -d ${CANN_INSTALL_PATH}/ascend-toolkit/latest ]; then
+       source ${CANN_INSTALL_PATH}/ascend-toolkit/set_env.sh
+   else
+       source ${CANN_INSTALL_PATH}/nnae/set_env.sh
+   fi
+   
+   
+   #将Host日志输出到串口,0-关闭/1-开启
+   export ASCEND_SLOG_PRINT_TO_STDOUT=0
+   #设置默认日志级别,0-debug/1-info/2-warning/3-error
+   export ASCEND_GLOBAL_LOG_LEVEL=3
+   #设置Event日志开启标志,0-关闭/1-开启
+   export ASCEND_GLOBAL_EVENT_ENABLE=0
+   #设置是否开启taskque,0-关闭/1-开启
+   export TASK_QUEUE_ENABLE=1
+   #设置是否开启combined标志,0-关闭/1-开启
+   export COMBINED_ENABLE=1
+   #HCCL白名单开关,1-关闭/0-开启
+   export HCCL_WHITELIST_DISABLE=1
+   export HCCL_IF_IP=$(hostname -I |awk '{print $1}')
+   
+   #设置device侧日志登记为error
+   msnpureport -g error -d 0
+   msnpureport -g error -d 1
+   msnpureport -g error -d 2
+   msnpureport -g error -d 3
+   msnpureport -g error -d 4
+   msnpureport -g error -d 5
+   msnpureport -g error -d 6
+   msnpureport -g error -d 7
+   #关闭Device侧Event日志
+   msnpureport -e disable
+   
+   #export SCALAR_TO_HOST_MEM=1
+   #export BMMV2_ENABLE=1
+   
+   ulimit -SHn 512000
+   
+   path_lib=$(python3.7 -c """
+   import sys
+   import re
+   result=''
+   for index in range(len(sys.path)):
+       match_sit = re.search('-packages', sys.path[index])
+       if match_sit is not None:
+           match_lib = re.search('lib', sys.path[index])
+   
+           if match_lib is not None:
+               end=match_lib.span()[1]
+               result += sys.path[index][0:end] + ':'
+   
+           result+=sys.path[index] + '/torch/lib:'
+   print(result)"""
+   )
+   
+   echo ${path_lib}
+   
+   export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib/:${path_lib}:$LD_LIBRARY_PATH
+   ```
+   
+3. 执行命令配置环境变量
+
+   ```
+   source env_npu.sh
+   ```
+
+4. 执行训练
+
+   单卡训练:
+
+   ```shell
+   python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
+                                                  --lr 0.1 \               # 学习率
+                                                  --epochs 90 \            # 训练迭代轮数
+                                                  --arch resnet50 \        # 模型架构
+                                                  --world-size 1 \
+                                                  --rank 0 \         
+                                                  --workers 40 \           # 加载数据进程数
+                                                  --momentum 0.9 \         # 动量  
+                                                  --weight-decay 1e-4      # 权重衰减
+   ```
+
+   分布式训练：
+
+   ```shell
+   python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
+                                                  --seed 49  \                      # 随机种子
+                                                  --workers 160 \                   # 加载数据进程数
+                                                  --lr 0.8 \
+                                                  --print-freq 1 \
+                                                  --arch resnet50 \                 # 模型架构
+                                                  --dist-url 'tcp://127.0.0.1:50000' \                   
+                                                  --dist-backend 'hccl' \
+                                                  --multiprocessing-distributed \   # 使用多卡训练
+                                                  --world-size 1 \
+                                                  --batch-size 2048 \               # 训练批次大小
+                                                  --epochs 90 \                     # 训练迭代轮数
+                                                  --rank 0 \
+                                                  --device-list '0,1,2,3,4,5,6,7' \
+                                                  --amp                             # 使用混合精度训练
+   ```
+
+   >![](public_sys-resources/icon-note.gif) **说明：** 
+   >dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
+   >
+   >执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
+
+
+
+### 训练调试
+
+**问题分类**
+
+执行训练过程中，用户可根据实际所遇错误选择排查方法，定位问题。
+
+- 脚本侧问题，如环境变量配置、CANN包安装、框架插件导入等问题可通过打屏堆栈定位，可参考[FAQ](#FAQ)章节，查找对应报错或参考下文中排查方法自主定位。
+- 非脚本侧问题，如明确的算子报错、torch._C报错信息、TVM/te/cce 报错error等，可参考[FAQ](#FAQ)章节，查找对应报错并结合Host、Device侧日志定位问题或参考下文排查方法自主定位。
+
+**排查方法**
+
+- 打点定位：由于Pytorch框架是异步执行框架，直接print可能无法准确定位问题所在位置，需要使用流通步接口辅助打点，该方法适用于问题定位场景。
+
+  ```
+  prinit(torch.npu.synchronize(),"打点")
+  
+  print(inputs.shape, inputs.dtype, inputs,storage().npu_format) #所需打印参数可根据实际情况变更
+  ```
+
+- 断点调试（pdb）：在代码中引入pdb模块，并运行set_trace函数触发调试器。
+
+  -  在需要设置断点的部分引入模块，脚本运行至此处会停留，通过在文本框中输入n执行下一行代码，输入p＋参数名可打印当前变量的值，更多参数介绍请参见[参考信息](#参考信息)。
+
+    ```
+    方法一：
+    import pdb;pdb.set_trace()
+    
+    ```
+
+  - 在需要设置断点部分引入函数，脚本运行至此处会停留，使用方法同pdb模块。
+
+    ```
+    方法二：
+    breakpoint()
+    ```
+
+- 命令行调试（gdb）
+
+  主要功能为在程序中设置断点、监视变量、单步骤运行、运行时改变变量值、跟踪路径、线程切换。此方法主要针对coredump，可使用gdb调试core文件，打印堆栈，gdb工具详细使用指南请用户参考[官方文档](http://www.sourceware.org/gdb/)。
+
+  ```
+  #调试core文件
+  gdb python3 core
+  ```
+
+- Hook定位
+
+  该方法主要针对定位模型中某个module的报错，通常适用于正反向module的报错定位，定位到具体行后，打印所有shape、dtype、format后配合hots日志辅助排查问题。
+
+  ```
+  def hook_func(name, module):
+      def hook_function(module, inputs, outputs):
+          print(name)
+      return hook_function
+  
+  for name, module in model.named_modules():
+      if module is not None:
+          module.register_forward_hook(hook_func('[forward]:' + name, module))
+          module.register_backward_hook(hook_func('[backward]:' + name, module))
+  ```
+
+  
+
+## 手工迁移样例参考
 
 在main.py训练脚本的基础上进行修改，实现模型的单卡训练和单机多卡训练迁移。
 
@@ -574,7 +775,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
                        help='distributed backend')
    ```
 
-3. 创建由device\_id到process\_id的映射函数，指定device进行训练（请指定相邻的device，如1，2卡或2，3卡）。在main.py函数中增加以下接口。
+3. 创建由device\_id到process\_id的映射函数，指定device进行训练（请指定相邻的device，如1，2号卡或2，3号卡）。在main.py函数中增加以下接口。
 
    ```python
    def device_id_to_process_device_map(device_list):
@@ -1293,7 +1494,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
    
    
 
-###### Shell脚本方式
+###### Shell脚本方式（推荐）
 
 1. 导入依赖
 
@@ -1692,158 +1893,7 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 </tbody>
 </table>
 
-### 开启混合精度
 
-在迁移完成准备训练之前，需要开启混合精度，用户可以根据场景选择引入APEX混合精度模块或使用1.8.1框架自带的AMP功能，以保证模型的性能。APEX混合精度模块与amp功能只需使用一个，除在分布式训练时引入APEX模块combine_ddp参数的加速功能时的有区别外，其他训练场景无需区分DDP的使用。DistributedDataParallel模式的使用与原生框架无异，可参考[PyTorch官方文档](https://pytorch.org/docs/1.8.1/notes/ddp.html?highlight=distributed)使用。
-
-- 单卡训练迁移：
-  - 使用APEX混合精度模块。
-  - 使用框架自带AMP功能。
-- 单机多卡训练迁移：
-  - 使用APEX混合精度模块。
-  - 使用框架自带AMP功能。
-- 分布式训练迁移：
-  - 使用APEX混合精度并开启combine_ddp开关，并关闭框架DistributedDataParallel模式。
-  - 使用APEX混合精度并关闭combine_ddp开关，并开启框架DistributedDataParallel模式。
-  - 使用amp功能并开启框架DistributedDataParallel模式。
-
-### 模型训练
-
-**准备数据集**
-
-准备数据集并上传到运行环境的目录下，例如：/home/data/resnet50/imagenet。
-
-**执行命令** <a name="命令"></a>
-
-配置环境变量
-
-1. 配置框架相关环境变量
-
-   ```
-   source Pytorch安装目录/env.sh                                 #PyTorch环境变量
-   ```
-
-2. 配置训练相关环境变量shell脚本env_npu.sh。
-
-   ```
-   CANN_INSTALL_PATH_CONF='/etc/Ascend/ascend_cann_install.info'
-   
-   if [ -f $CANN_INSTALL_PATH_CONF ]; then
-       CANN_INSTALL_PATH=$(cat $CANN_INSTALL_PATH_CONF | grep Install_Path | cut -d "=" -f 2)
-   else
-       CANN_INSTALL_PATH="/usr/local/Ascend"
-   fi
-   
-   if [ -d ${CANN_INSTALL_PATH}/ascend-toolkit/latest ]; then
-       source ${CANN_INSTALL_PATH}/ascend-toolkit/set_env.sh
-   else
-       source ${CANN_INSTALL_PATH}/nnae/set_env.sh
-   fi
-   
-   
-   #将Host日志输出到串口,0-关闭/1-开启
-   export ASCEND_SLOG_PRINT_TO_STDOUT=0
-   #设置默认日志级别,0-debug/1-info/2-warning/3-error
-   export ASCEND_GLOBAL_LOG_LEVEL=3
-   #设置Event日志开启标志,0-关闭/1-开启
-   export ASCEND_GLOBAL_EVENT_ENABLE=0
-   #设置是否开启taskque,0-关闭/1-开启
-   export TASK_QUEUE_ENABLE=1
-   #设置是否开启PTCopy,0-关闭/1-开启
-   export PTCOPY_ENABLE=1
-   #设置是否开启combined标志,0-关闭/1-开启
-   export COMBINED_ENABLE=1
-   #设置特殊场景是否需要重新编译,不需要修改
-   export DYNAMIC_OP="ADD#MUL"
-   #HCCL白名单开关,1-关闭/0-开启
-   export HCCL_WHITELIST_DISABLE=1
-   export HCCL_IF_IP=$(hostname -I |awk '{print $1}')
-   
-   #设置device侧日志登记为error
-   msnpureport -g error -d 0
-   msnpureport -g error -d 1
-   msnpureport -g error -d 2
-   msnpureport -g error -d 3
-   msnpureport -g error -d 4
-   msnpureport -g error -d 5
-   msnpureport -g error -d 6
-   msnpureport -g error -d 7
-   #关闭Device侧Event日志
-   msnpureport -e disable
-   
-   #export SCALAR_TO_HOST_MEM=1
-   #export BMMV2_ENABLE=1
-   
-   ulimit -SHn 512000
-   
-   path_lib=$(python3.7 -c """
-   import sys
-   import re
-   result=''
-   for index in range(len(sys.path)):
-       match_sit = re.search('-packages', sys.path[index])
-       if match_sit is not None:
-           match_lib = re.search('lib', sys.path[index])
-   
-           if match_lib is not None:
-               end=match_lib.span()[1]
-               result += sys.path[index][0:end] + ':'
-   
-           result+=sys.path[index] + '/torch/lib:'
-   print(result)"""
-   )
-   
-   echo ${path_lib}
-   
-   export LD_LIBRARY_PATH=/usr/local/python3.7.5/lib/:${path_lib}:$LD_LIBRARY_PATH
-   ```
-
-3. 执行命令配置环境变量
-
-   ```
-   source env_npu.sh
-   ```
-
-4. 执行训练
-
-   单卡训练:
-
-   ```shell
-   python3 main.py /home/data/resnet50/imagenet --batch-size 128 \       # 训练批次大小
-                                                  --lr 0.1 \               # 学习率
-                                                  --epochs 90 \            # 训练迭代轮数
-                                                  --arch resnet50 \        # 模型架构
-                                                  --world-size 1 \
-                                                  --rank 0 \         
-                                                  --workers 40 \           # 加载数据进程数
-                                                  --momentum 0.9 \         # 动量  
-                                                  --weight-decay 1e-4      # 权重衰减
-   ```
-
-   分布式训练：
-
-   ```shell
-   python3 main.py /home/data/resnet50/imagenet --addr='1.1.1.1' \                # 示例IP地址，请根据实际修改
-                                                  --seed 49  \                      # 随机种子
-                                                  --workers 160 \                   # 加载数据进程数
-                                                  --lr 0.8 \
-                                                  --print-freq 1 \
-                                                  --arch resnet50 \                 # 模型架构
-                                                  --dist-url 'tcp://127.0.0.1:50000' \                   
-                                                  --dist-backend 'hccl' \
-                                                  --multiprocessing-distributed \   # 使用多卡训练
-                                                  --world-size 1 \
-                                                  --batch-size 2048 \               # 训练批次大小
-                                                  --epochs 90 \                     # 训练迭代轮数
-                                                  --rank 0 \
-                                                  --device-list '0,1,2,3,4,5,6,7' \
-                                                  --amp                             # 使用混合精度训练
-   ```
-
-   >![](public_sys-resources/icon-note.gif) **说明：** 
-   >dist-backend需配置成hccl以支持在昇腾AI设备上进行分布式训练。
-   >
-   >执行“python3 xxx“命令时，须将python3软链接到与当前pytorch适配版本的python安装路径。
 
 ## 混合精度说明
 
@@ -2183,9 +2233,9 @@ if __name__ == "__main__":
 
 -   **[常用环境变量说明](#常用环境变量说明)**  
 -   **[dump op方法](#dump-op方法)**  
+-   **[算子提取脚本样例](#dump-op方法)**  
 -   **[安装7.3.0版本gcc](#安装7-3-0版本gcc)**  
--   **[编译安装hdf5](#编译安装hdf5)**  
--   **[AI Core和AI CPU算子数据参考](#AI Core和AI CPU算子数据参考)**  
+-   **[pdb参数说明](#pdb参数说明)**  
 
 ### 常用环境变量说明
 
@@ -2236,11 +2286,92 @@ if __name__ == "__main__":
         out = model(input_tensor)
         loss = out.sum()
         loss.backward()
-    # 也可导出文件    
+        
     print(prof.key_averages().table(sort_by="self_cpu_time_total"))
     ```
 
-2.  将改造后的训练脚本在CPU上进行训练，屏幕会打印相关算子信息。
+    用户也可参考profilier.py文件修改使能代码，该文件默认位于/{python_install_path}/site-packages/torch/autograd/profiler.py
+
+2.  运行训练脚本并将日志重定向。
+
+    ```
+    python3 train.py >profiler.log
+    ```
+
+3.  使用算子提取脚本解析日志生成all_ops.txt，脚本样例参考[算子提取脚本样例](#算子提取脚本样例)。
+
+    ```
+    python3 extract_ops_by_steop.py --profilier_file ./profiler.log
+    ```
+
+    
+
+### 算子提取脚本样例
+
+```
+import re
+from collections import defaultdict
+import argparse
+
+def dump_file(ops, file_path):
+    with open(file_path, 'w') as f:
+        for op in ops:
+            f.write(op)
+            f.write('\n')
+
+def parse_profiler(profiler_file):
+    ops_shapes = defaultdict(set)
+    ops_shapes_first_step = defaultdict(set)
+    ops_shapes_other_steps = defaultdict(set)
+    with open(profiler_file, 'r') as f:
+        lines = f.readlines()
+        step = 0
+        for line in lines:
+            if re.findall(r'^Name.*Input Shapes$', line.strip()):
+                step += 1
+                continue
+            if step == 0:
+                continue
+
+            if -1 == line.find('[[') and -1 == line.find('[]'):
+                continue
+
+            line_fields = [field.strip() for field in line.strip().split('  ') if field != '']
+            ops_shapes[line_fields[0]].add(line_fields[-1])
+            if step == 1:
+                ops_shapes_first_step[line_fields[0]].add(line_fields[-1])
+            else:
+                ops_shapes_other_steps[line_fields[0]].add(line_fields[-1])
+
+    all_ops = [k for k, v in ops_shapes.items()]
+
+    dynamic_ops = list()
+    for op_name, shape_set in ops_shapes_other_steps.items():
+        if op_name not in ops_shapes_first_step.keys():
+            dynamic_ops.append(op_name)
+        else:
+            if len(shape_set - ops_shapes_first_step[op_name]) > 0:
+                dynamic_ops.append(op_name)
+    return all_ops, dynamic_ops
+
+def extract_ops(profiler_file):
+    all_ops, dynamic_ops = parse_profiler(profiler_file)
+
+    print('all_ops:', all_ops)
+    print('dynamic_ops', dynamic_ops)
+
+    dump_file(all_ops, 'all_ops.txt')
+    dump_file(dynamic_ops, 'dynamic_ops.txt')
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser('extract ops')
+    parser.add_argument('--profiler_file', default='', type=str, metavar='PATH')
+
+    args = parser.parse_args()
+    extract_ops(args.profiler_file)
+```
+
+
 
 ### 安装7.3.0版本gcc
 
@@ -2323,41 +2454,25 @@ if __name__ == "__main__":
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
 
-### 编译安装hdf5
+### pdb参数说明
 
-以下步骤请在root用户下执行。
-
-1.  获取代码。
-
-    ```
-    git clone https://github.com/HDFGroup/hdf5.git 
-    ```
-
-2.  切换到hdf5-1\_10\_7分支。
-
-    ```
-    cd hdf5
-    git checkout remotes/origin/hdf5_1_10_7 
-    ```
-
-3.  编译hdf5。
-
-    ```
-    ./configure --prefix=/usr/local/hdf5 --enable-cxx
-    make -j72                 #-j 后的数值可以根据CPU的核数设置
-    make check                # run test suite.
-    make install
-    make check-install        # verify installation. 
-    ```
-
-4.  添加环境变量。
-
-    ```
-    export PATH=/usr/local/hdf5/bin:$PATH
-    export LD_LIBRARY_PATH=/usr/local/hdf5/lib:$LD_LIBRARY_PATH
-    export LIBRARY_PATH=/usr/local/hdf5/lib:$LIBRARY_PATH
-    export CPATH=/usr/local/hdf5/include:$CPATH 
-    ```
+| 命令              | 简写命令      | 命令说明                             |
+| ----------------- | ------------- | ------------------------------------ |
+| break             | b             | 设置断点                             |
+| continue          | c             | 继续执行程序，直到下一个断点或调用点 |
+| list              | l             | 查看当前行的代码段                   |
+| step              | s             | 进入函数                             |
+| return            | r             | 执行代码直到从当前函数返回           |
+| quit              | q             | 中止并退出                           |
+| next              | n             | 执行下一行                           |
+| print             | p             | 打印变量的值                         |
+| help              | h             | 帮助                                 |
+| args              | a             | 查看传入参数                         |
+| Enter键（键盘）   | \             | 重复上一条命令                       |
+| break lineno      | b lineno      | 在指定行设置断点                     |
+| break file:lineno | b file:lineno | 在指定文件的行设置断点               |
+| clear num         | \             | 删除指定断点                         |
+| bt                | \             | 查看函数调用栈帧                     |
 
 
 
