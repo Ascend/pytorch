@@ -4030,17 +4030,15 @@ Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D inputs wi
 - Example：
 
   ```
-     >>> output = self.npu_fast_batchnorm1d_op_exec(num_features, input1)
-     >>> repeat_time = 100
-     >>> torch.npu.synchronize()
-     >>> t2 = time.time()
-     >>> for _ in range(repeat_time):
-         self.npu_fast_batchnorm1d_op_exec(num_features, input1)
-     >>> torch.npu.synchronize()
-     >>> fast_time = (time.time() - t2) / repeat_time * 1000
-     >>> return output, fast_time
+  >>> import torch
+  >>> import torch_npu
+  >>> from torch_npu.contrib.module import FastBatchNorm1d
+  >>> fast_batchnorm1d = FastBatchNorm1d(100).npu()
+  >>> input1 = torch.randn(20,100).npu()
+  >>> output = fast_batchnorm1d(input1)
+  >>> output.sum().backward()
   ```
-
+  
   
 
 
@@ -4071,17 +4069,15 @@ Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs with add
 - Example：
 
   ```
-     >>> output = self.npu_fast_batchnorm2d_op_exec(num_features, input1)
-     >>> repeat_time = 100
-     >>> torch.npu.synchronize()
-     >>> t1 = time.time()
-     >>> for _ in range(repeat_time):
-       self.npu_fast_batchnorm2d_op_exec(num_features, input1)
-     >>> torch.npu.synchronize()
-     >>> fast_time = (time.time() - t1) / repeat_time * 1000      
-     >>> return output, fast_time
+  >>> import torch
+  >>> import torch_npu
+  >>> from torch_npu.contrib.module import FastBatchNorm2d
+  >>> fast_batchnorm2d = FastBatchNorm2d(5).npu()
+  >>> input1 = torch.randn(50,5,4,7).npu()
+  >>> output = fast_batchnorm2d(input1)
+  >>> output.sum().backward()
   ```
-
+  
   
 
 >   **class** **FastBatchNorm3d**(_BatchNorm):
@@ -4110,18 +4106,14 @@ Applies Batch Normalization over a 5D input1 (a mini-batch of 3D inputs with add
 - Example：
 
   ```
-     >>> output = self.npu_fast_batchnorm2d_op_exec(num_features, input1)
-     >>> repeat_time = 100
-     >>> torch.npu.synchronize()
-     >>> t2 = time.time()
-     >>> for _ in range(repeat_time):
-       self.npu_fast_batchnorm2d_op_exec(num_features, input1)
-     >>> torch.npu.synchronize()
-     >>> fast_time = (time.time() - t2) / repeat_time * 1000      
-     >>> return output, fast_time
+  >>> import torch
+  >>> import torch_npu
+  >>> from torch_npu.contrib.module import FastBatchNorm3d
+  >>> fast_batchnorm3d = FastBatchNorm3d(5).npu()
+  >>> input1 = torch.randn(50,5,4,7,9).npu()
+  >>> output = fast_batchnorm3d(input1)
+  >>> output.sum().backward()
   ```
-
-
 
 
 

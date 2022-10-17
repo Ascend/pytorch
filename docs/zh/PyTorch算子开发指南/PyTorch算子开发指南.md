@@ -9,7 +9,7 @@
     -   [获取PyTorch源码](#获取PyTorch源码md)
     -   [注册算子开发](#注册算子开发md)
         -   [概述](#概述md)
-        -   [PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)
+        -   [PyTorch1.11.0 注册算子开发](#PyTorch1-8-1-注册算子开发md)
     -   [算子适配插件开发](#算子适配插件开发md)
     -   [编译和安装PyTorch框架](#编译和安装PyTorch框架md)
 -   [算子功能验证](#算子功能验证md)
@@ -29,7 +29,7 @@
     -   [自定义算子导出方法](#自定义算子导出方法md)
 <h2 id="简介md">简介</h2>
 
-### 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
+## 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
 
 为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。
 
@@ -167,7 +167,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 -   当前昇腾AI处理器中支持的算子以及对应的算子约束可以通过以下两种方式查询。
     -   命令行开发方式下，您可以参见《CANN 算子清单 \(Ascend 910\)》进行离线查询。
     -   MindStudio开发方式下，您可以通过MindStudio进行在线查询，详细查看方法可参见《MindStudio 用户指南》中的“算子&模型速查”章节。
--   当前PyTorch适配的算子列表可以参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
+-   当前PyTorch适配的算子列表可以参见[《PyTorch API支持清单》](https://gitee.com/ascend/pytorch/blob/v1.11.0-3.0.rc3/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)。
 
 <h2 id="算子适配开发md">算子适配开发</h2>
 
@@ -189,13 +189,13 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h3 id="获取PyTorch源码md">获取PyTorch源码</h3>
 
-针对pytorch1.8.1版本，PyTorch源码获取请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.8.1"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
+针对pytorch1.11.0版本，PyTorch源码获取请参见[《PyTorch安装指南》](https://gitee.com/ascend/pytorch/blob/v1.11-3.0.rc3/docs/zh/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97/PyTorch%E5%AE%89%E8%A3%85%E6%8C%87%E5%8D%97.md)中“安装PyTorch框架”章节，完成在"pytorch/pytorch_v1.11.0"目录生成适配昇腾AI处理器的全量代码步骤。将在pytorch/pytorch目录中进行PyTorch 算子适配开发。
 
 <h3 id="注册算子开发md">注册算子开发</h3>
 
 -   **[概述](#概述md)**  
 
--   **[PyTorch1.8.1 注册算子开发](#PyTorch1-8-1-注册算子开发md)**  
+-   **[PyTorch1.11.0 注册算子开发](#PyTorch1-8-1-注册算子开发md)**  
 
 
 <h4 id="概述md">概述</h4>
@@ -576,7 +576,7 @@ custom_autograd:    # 自定义继承自Function的自定义算子
     bash ci/build.sh --python=3.9
     ```
     
-     请指定环境中python版本进行编译。编译成功后，会在pytorch/dist”文件夹目录下生成二进制包 torch_npu\*.whl ，例如：torch_npu-1.8.1rc1-cp37-cp37m-linux_x86_64.whl。
+     请指定环境中python版本进行编译。编译成功后，会在pytorch/dist”文件夹目录下生成二进制包 torch_npu\*.whl ，例如：torch_npu-1.11.0rc3-cp37-cp37m-linux_x86_64.whl。
 
 
 #### 安装PyTorch插件<a name="zh-cn_topic_0000001125736777_section119821419153412"></a>
@@ -584,7 +584,7 @@ custom_autograd:    # 自定义继承自Function的自定义算子
 进入“pytorch/dist“文件夹目录，执行如下命令安装。
 
 ```
-pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade torch_npu-1.11.0rc3-cp37-cp37m-linux_{arch}.whl
 ```
 
 **\{arch\}**表示架构信息，为aarch64或x86\_64。
