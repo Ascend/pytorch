@@ -29,7 +29,7 @@
     -   [自定义算子导出方法](#自定义算子导出方法md)
 <h2 id="简介md">简介</h2>
 
-### 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
+#### 概述<a name="zh-cn_topic_0000001125558589_section7405182695312"></a>
 
 为了实现PyTorch深度学习框架在昇腾AI处理器上运行，需要将框架算子用TBE自定义开发。
 
@@ -200,7 +200,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 <h4 id="概述md">概述</h4>
 
-当前制定的NPU适配派发原则是NPU算子的派发不经过框架公共函数，直接派发成NPU适配的函数，即算子执行调用栈中只包含NPU适配的函数调用，不包含框架公共函数。PyTorch框架在编译时，会根据 native\_functions.yaml 的定义，按框架中定义的类型和设备分发原则，生成相应的新算子的中间层的调用说明。对于NPU，会生成在 build/aten/src/ATen/NPUType.cpp。
+当前制定的NPU适配派发原则是NPU算子的派发不经过框架公共函数，直接派发成NPU适配的函数，即算子执行调用栈中只包含NPU适配的函数调用，不包含框架公共函数。PyTorch框架在编译时，会根据 native\_functions.yaml 的定义，按框架中定义的类型和设备分发原则，生成相应的新算子的中间层的调用说明。对于NPU，会生成在 torch_npu/csrc/aten/RegisterNPU.cpp。
 
 <h4 id="PyTorch1-8-1-注册算子开发md">PyTorch1.8.1 注册算子开发</h4>
 
@@ -208,7 +208,7 @@ PyTorch算子开发包含TBE算子开发和PyTorch框架下的算子适配。
 
 1.  打开native\_functions.yaml文件。
 
-    native\_functions.yaml 文件中，定义了所有算子函数原型，包括函数名称和参数等信息，每个算子函数支持不同硬件平台的派发信息。该文件所在路径为pytorch/aten/src/ATen/native/native\_functions.yaml。
+    native\_functions.yaml 文件中，定义了所有算子函数原型，包括函数名称和参数等信息，每个算子函数支持不同硬件平台的派发信息。该文件所在路径为scripts/codegen/native\_functions.yaml。
 
 2.  确定需要派发函数。
     -   yaml 中已存在的算子
@@ -688,7 +688,7 @@ pip3 install --upgrade torch_npu-1.8.1rc1-cp37-cp37m-linux_{arch}.whl
     
 3.  执行测试用例脚本
 
-    进入test\_add.py所在的目录，执行：
+    进入test\_add.py所在的目录/test/test_network_ops，执行：
 
     ```
     python3.7 test_add.py
@@ -831,7 +831,7 @@ pip3.7 install torchvision --no-deps
         至此步骤，不应该有错误，屏幕应该输出 "add" 中增加的日志打印。若出错，请完成代码清理排查，保证无新开发的代码影响测试。
 
     3.  将新开发的“自定义TBE算子”合并到"cann"中，在对应的在算子入口增加日志打印，作为运行标识。
-    4. 完成上面的"cann"编译、安装，调用“python3.7.5 test\_add.py”进行测试。
+    4. 完成上面的"cann"编译、安装，调用“python3.7  test\_add.py”进行测试。
 
        >![](public_sys-resources/icon-note.gif) **说明：** 
        >根据Ascend的设计逻辑，用户开发安装的“custom”算子包优先级高于“built-in”的内置算子包，在运行加载时，会优先加载调度“custom”包中的算子。过程中，若解析“custom”中的算子信息文件失败，则会跳过“custom”算子包，不加载调度任何“custom”算子包中的任何算子。
@@ -839,11 +839,11 @@ pip3.7 install torchvision --no-deps
        >-   若此步骤出错，或屏幕未输出 "add" 中增加的日志打印，则说明新开发的“自定义TBE算子”有错误，影响了“自定义算子包”的加载，建议**优先排查新开发的“自定义TBE算子”中的“算子信息定义”是否正确**。
        >-   若此步骤正确，至少说明  **新开发的“自定义TBE算子”中的“算子信息定义”不影响运行**。
     
-    5.  调用“python3.7.5 xxx\_testcase.py”进行测试；
+    5.  调用“python3.7  xxx\_testcase.py”进行测试，xxx为新增算子名称；
     
         >![](public_sys-resources/icon-note.gif) **说明：** 
         >-   若屏幕正常输出新开发的“自定义TBE算子”中增加的日志打印，则至少说明调度到了新开发的算子。
-        >-   若屏幕未输出新开发的“自定义TBE算子”中增加的日志打印，则问题可能出现在“PyTorch适配”中，需要排查这一部分的实现代码，较多的可能会出现在“XxxxKernelNpu.cpp”中的输入、输出未能正确适配。
+        >-   若屏幕未输出新开发的“自定义TBE算子”中增加的日志打印，则问题可能出现在“PyTorch适配”中，需要排查这一部分的实现代码，较多的可能会出现在“XxxxKernelNpu.cpp”中的输入、输出未能正确适配，XxxxKernelNpu.cpp为新增算子信息文件。
 
 
 
@@ -859,7 +859,7 @@ pip3.7 install torchvision --no-deps
 1.  打开安装在用户目录下的算子包安装目录。
 
     ```
-    cd ~/.local/Ascend/opp/op_impl/built-in/ai_core/tbe/impl
+    cd /usr/local/Ascend/ascend-toolkit/op_impl/build-in/ai_core/tbe/config/ascend910/
     ll
     ```
 
