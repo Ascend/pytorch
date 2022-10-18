@@ -193,15 +193,19 @@ namespace at_npu
       // calculate the output size
       at::Tensor outputTensor = add_dest_output(self, other);
       auto outputSize = broadcast_ops_npu_output_size(self, other);
-
+      at::ScalarType high_type = at::native::result_type(self, other);
+      at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
+          NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+      at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other)) ?
+          NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
-          outputTensor.options(),
+          outputTensor.options().dtype(high_type),
           CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
       // calculate the output result of the NPU
-      add_out_npu_nocheck(result, self, other, alpha);
+      add_out_npu_nocheck(result, selfCopy, otherCopy, alpha);
 
       return result;
     }
