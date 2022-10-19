@@ -91,6 +91,8 @@ def to(self, *args, **kwargs):
 
 
 def cast_weight(self, device):
+    if torch.npu.is_binary():
+        return
 
     def _format_cast(module, class_name):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
