@@ -2472,7 +2472,7 @@ count indexing result by begin,end,strides array.
   >>> input
   tensor([[1, 2, 3, 4],
         [5, 6, 7, 8]], device='npu:0', dtype=torch.int32)
-  >>> output = torch_npu.npu_indexing(input1, [0, 0], [2, 2], [1, 1])
+  >>> output = torch_npu.npu_indexing(input, [0, 0], [2, 2], [1, 1])
   >>> output
   tensor([[1, 2],
         [5, 6]], device='npu:0', dtype=torch.int32)
@@ -3513,6 +3513,42 @@ Taking into account the distance between the targets,the overlap rate of the dis
 
 ## 亲和库
 
+| 序号 | 亲和函数名称                                                 |
+| ---- | :----------------------------------------------------------- |
+| 1    | **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1) |
+| 2    | **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0) |
+| 3    | **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0) |
+| 4    | **class NpuFairseqDropout**(torch.nn.Dropout)                |
+| 5    | **class MultiheadAttention**(nn.Module)                      |
+| 6    | **def** **npu_single_level_responsible_flags**(featmap_size,gt_bboxes,stride,num_base_anchors): |
+| 7    | **def npu_bbox_coder_encode_xyxy2xywh**(bboxes,gt_bboxes,means=None,stds=None,is_normalized=False,normalized_scale=10000.,) |
+| 8    | **def** **npu_bbox_coder_decode_xywh2xyxy**(bboxes,pred_bboxes,means=None,stds=None,max_shape=None,wh_ratio_clip=16 / 1000,) |
+| 9    | **def** **npu_fast_condition_index_put**(x, condition, value) |
+| 10   | **class** **MatmulApply**(torch.autograd.Function)           |
+| 11   | **def npu_multiclass_nms**(multi_bboxes,multi_scores, score_thr=0.05,nms_thr=0.45,max_num=50,score_factors=None) |
+| 12   | **def npu_batched_multiclass_nms**(multi_bboxes,multi_scores,max_num=50,score_factors=None) |
+| 13   | **def** **dropout_with_byte_mask**(input1, p=0.5, training=True, inplace=False) |
+| 14   | **class** **NpuRollWithIndexSelect**()                       |
+| 15   | **class** **Mish**(nn.Module)                                |
+| 16   | **class** **SiLU**(nn.Module)                                |
+| 17   | **class** **FastBatchNorm1d**(_BatchNorm)                    |
+| 18   | **class** **FastBatchNorm2d**(_BatchNorm)                    |
+| 19   | **class** **FastBatchNorm3d**(_BatchNorm)                    |
+| 20   | **class** **BiLSTM**(torch.nn.Module)                        |
+| 21   | **class** **ChannelShuffle**(nn.Module)                      |
+| 22   | **class** **LabelSmoothingCrossEntropy**(nn.Module)          |
+| 23   | **class** **ModulatedDeformConv**(nn.Module)                 |
+| 24   | **class** **NpuDropPath**(nn.Module)                         |
+| 25   | **class** **NpuFairseqDropout**(torch.nn.Dropout)            |
+| 26   | **class** **Focus**(nn.Module)                               |
+| 27   | **class** **FusedColorJitter**(torch.nn.Module)              |
+| 28   | **class** **MultiheadAttention**(nn.Module)                  |
+| 29   | **class** **DropoutWithByteMask**(Module)                    |
+| 30   | **def** **__init__**(self, pooled_height=7, pooled_width=7, spatial_scale=1 / **16.0**, group_size=7, output_dim=22) |
+| 31   | **class** **ROIAlign**(nn.Module)                            |
+
+
+
 以下亲和库适用于PyTorch 1.8.1版本。
 
 >   **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1):
@@ -3724,7 +3760,7 @@ Using NPU OP to Get box regression transformation deltas
 
 
 
->   **npu_bbox_coder_encode_xyxy2xywh**(bboxes,gt_bboxes,means=None,stds=None,is_normalized=False,normalized_scale=10000.,):
+>   **def npu_bbox_coder_encode_xyxy2xywh**(bboxes,gt_bboxes,means=None,stds=None,is_normalized=False,normalized_scale=10000.,):
 
 Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
 
@@ -3761,8 +3797,7 @@ Applies an NPU based bboxes's format-encode operation from xyxy to xywh.
 
 
 
->   **def** 
->   **npu_bbox_coder_decode_xywh2xyxy**(bboxes,pred_bboxes,means=None,stds=None,max_shape=None,wh_ratio_clip=16 / 1000,):
+>   **def** **npu_bbox_coder_decode_xywh2xyxy**(bboxes,pred_bboxes,means=None,stds=None,max_shape=None,wh_ratio_clip=16 / 1000,):
 
  Applies an NPU based bboxes's format-encode operation from xywh to xyxy.
 
@@ -3885,9 +3920,7 @@ NMS for multi-class bboxes using npu api.
 
 
 
-
-
->   **npu_batched_multiclass_nms**(multi_bboxes,multi_scores,max_num=50,score_factors=None):
+>   **def npu_batched_multiclass_nms**(multi_bboxes,multi_scores,max_num=50,score_factors=None):
 
 NMS for batched multi-class bboxes using npu api.
 

@@ -39,9 +39,9 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 | 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
 | 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
 | 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.8.1-3.0.rc3 | v1.8.1-3.0.rc3 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0-3.0.rc3 | v1.11.0-3.0.rc3 |
+| 3.0.rc3           | CANN 6.0.RC1 | 1.5.0.post7     | v1.5.0-3.0.rc3  |
+| 3.0.rc3           | CANN 6.0.RC1 | 1.8.1.rc3       | v1.8.1-3.0.rc3  |
+| 3.0.rc3           | CANN 6.0.RC1 | 1.11.0.rc1      | v1.11.0-3.0.rc3 |
 
 # 安装方式
 
@@ -69,8 +69,8 @@ pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，
 编译生成pytorch插件的二进制安装包。
 
 ```
-# 下载master分支代码，进入插件根目录
-git clone -b master https://gitee.com/ascend/pytorch.git 
+# 下载1.8.1-3.0.rc3分支代码，进入插件根目录
+git clone -b 1.8.1-3.0.rc3 https://gitee.com/ascend/pytorch.git 
 cd pytorch    
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
