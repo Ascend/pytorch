@@ -28,8 +28,8 @@ Tensor& index_out_npu(
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(masks)
-      .Input(result.sizes());
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
   for (int i = 0; i < allDefinedIndices.size(); i++) {
     string inputName = "indices" + to_string(i);
     cmd.Input(allDefinedIndices[i], inputName);

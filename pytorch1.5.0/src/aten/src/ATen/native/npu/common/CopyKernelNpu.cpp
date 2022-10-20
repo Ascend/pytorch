@@ -61,13 +61,13 @@ void copy_kernel_npu(
      */
     cmd.Name("ViewCopy")
         .InputWithoutContiguous(self)
-        .Input(self_size)
-        .Input(self_stride)
-        .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+        .Input(self_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+        .Input(self_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+        .Input(at::Scalar(0), at::kLong)
         .InputWithoutContiguous(src)
-        .Input(src_size)
-        .Input(src_stride)
-        .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+        .Input(src_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+        .Input(src_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+        .Input(at::Scalar(0), at::kLong)
         .Output(self)
         .Run();
   }
