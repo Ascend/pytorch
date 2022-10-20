@@ -189,6 +189,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 | **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |            |
+| **v3.0.rc3**   | Maintained   | 2022-10-20           | Unmaintained <br> 2023-10-20 estimated |            |
 
 # FAQ
 
