@@ -272,7 +272,7 @@ PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs)
   pybind11::gil_scoped_release no_gil;
   static const std::string jit_compile_option_name = "dynamicCompileswitch";
   auto option_value = c10_npu::option::GetOption(jit_compile_option_name);
-  if (option_value.has_value() && (option_value.value() == "disable")) {
+  if (option_value.has_value() && (option_value.value() == "enable")) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;
