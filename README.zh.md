@@ -36,12 +36,12 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 | 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
 | 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
 | 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1   | v1.8.1-3.0.rc1 |
 | 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
-| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
-| 3.0.rc3           | CANN 6.0.RC1 | 1.5.0.post7     | v1.5.0-3.0.rc3  |
-| 3.0.rc3           | CANN 6.0.RC1 | 1.8.1.rc3       | v1.8.1-3.0.rc3  |
-| 3.0.rc3           | CANN 6.0.RC1 | 1.11.0.rc1      | v1.11.0-3.0.rc3 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2   | v1.8.1-3.0.rc2 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3  |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.8.1.rc3   | v1.8.1-3.0.rc3  |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1  | v1.11.0-3.0.rc3 |
 
 # 安装方式
 
@@ -189,6 +189,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 | **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 | **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |            |
+| **v3.0.rc3**   | Maintained   | 2022-10-20           | Unmaintained <br> 2023-10-20 estimated |            |
 
 # FAQ
 
