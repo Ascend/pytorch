@@ -142,6 +142,10 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
+  if (ASCEND_UNLIKELY(c10_npu::option::OptionsManager::CheckDisableAclopComAndExe())) {
+    aclCmds->Pop();
+    return;
+  }
   IF_GRAPH_MODE_THEN_RUN(return;)
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
