@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::nll_loss_backward_out(
   at::Tensor targetCast = target;
   auto scalar_type = target.scalar_type();
   if (scalar_type == at::kLong) {
-    targetCast = target.to(at::kInt);
+    targetCast = NPUNativeFunctions::npu_dtype_cast(target, at::kInt);
   }  else if (scalar_type == at::kInt) {
     ;
   }

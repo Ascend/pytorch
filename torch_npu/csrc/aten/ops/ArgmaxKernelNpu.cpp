@@ -41,7 +41,7 @@ at::Tensor NPUNativeFunctions::argmax(const at::Tensor& self, at::optional<int64
       .Attr("keep_dims", realKeepDim)
       .Run();
 
-  result = result.to(at::ScalarType::Long);
+  result = NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Long);
   return result;
 }
 

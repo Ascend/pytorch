@@ -351,7 +351,7 @@ at::Tensor get_mask(const at::Tensor& input, const at::Tensor& batchSizes, const
   for (int64_t i = 0; i < input.size(1); ++i){
     auto batchSizesTemp = at::sub(batchSizes , i);
     auto batchSizesBool = at::gt(batchSizesTemp, 0); 
-    auto batchSizesInt = batchSizesBool.to(at::ScalarType::Int);
+    auto batchSizesInt = NPUNativeFunctions::npu_dtype_cast(batchSizesBool, at::ScalarType::Int);
     auto coutLen = at::sum(batchSizesInt, at::ScalarType::Int);
     int64_t len = coutLen.item().toInt();
     lens.emplace_back(len);
@@ -372,7 +372,7 @@ at::Tensor get_mask(const at::Tensor& input, const at::Tensor& batchSizes, const
   }
   
   // mask mast be half
-  at::Tensor mask = at::cat(maskList, 0).to(at::ScalarType::Half);
+  at::Tensor mask = NPUNativeFunctions::npu_dtype_cast(at::cat(maskList, 0), at::ScalarType::Half);
 
   return mask;
 }

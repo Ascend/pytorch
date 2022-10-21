@@ -71,7 +71,7 @@ at::Tensor& NPUNativeFunctions::index_select_out(
       {index_select_out_npu_nocheck(input, dim, indexTmp, result);})
       .Call(result);
   if (self.dtype() == at::kBool) {
-    result = result.to(at::kBool);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
   }
   return result;
 }
