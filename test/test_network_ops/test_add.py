@@ -438,6 +438,32 @@ class TestAdd(TestCase):
         self.assertRtolEqual(caout, naout)
         self.assertRtolEqual(cbout, nbout)
 
+    def test_add_different_dtype(self):
+        cpu_x1 = torch.rand(2, 3, 4)
+        cpu_other1 = torch.rand(2, 3, 4).uniform_(1, 10).long()
+        npu_x1 = cpu_x1.npu()
+        npu_other1 = cpu_other1.npu()
+        cpu_out1 = cpu_x1 + cpu_other1
+        npu_out1 = npu_x1 + npu_other1
+
+        cpu_x2 = 1.5
+        cpu_other2 = torch.rand(2, 3, 4).uniform_(1, 10).long()
+        npu_x2 = 1.5
+        npu_other2 = cpu_other2.npu()
+        cpu_out2 = cpu_x2 + cpu_other2
+        npu_out2 = npu_x2 + npu_other2
+
+        cpu_x3 = torch.rand(2, 3, 4).int()
+        cpu_other3 = 3
+        npu_x3 = cpu_x3.npu()
+        npu_other3 = 3
+        cpu_out3 = cpu_x3 + cpu_other3
+        npu_out3 = npu_x3 + npu_other3
+
+        self.assertRtolEqual(cpu_out1, npu_out1.cpu())
+        self.assertRtolEqual(cpu_out2, npu_out2.cpu())
+        self.assertRtolEqual(cpu_out3, npu_out3.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
