@@ -40,7 +40,7 @@ at::Tensor& NPUNativeFunctions::linspace_out(at::Scalar start, at::Scalar end, c
     result.resize_({steps});
   }
   at::Tensor r = result.is_contiguous() ? result : result.contiguous();
-  r = r.to(at::kFloat);
+  r = NPUNativeFunctions::npu_dtype_cast(r, at::kFloat);
   if(steps == 0){
     // skip
   } else if (steps == 1) {
@@ -82,7 +82,7 @@ at::Tensor NPUNativeFunctions::linspace(at::Scalar start, at::Scalar end,
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensorWithFormat({steps}, option, ACL_FORMAT_ND);
-  at::Tensor resultCast = result.to(at::kFloat);
+  at::Tensor resultCast = NPUNativeFunctions::npu_dtype_cast(result, at::kFloat);
 
   // calculate the output result of the NPU
   NPUNativeFunctions::linspace_out(start, end, steps, resultCast);

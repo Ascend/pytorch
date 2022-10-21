@@ -68,7 +68,7 @@ at::Tensor NPUNativeFunctions::eye(
   NPUNativeFunctions::eye_out(n, result);
   
   if (option.dtype() == at::kBool) {
-    result = result.to(at::kBool);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
   }
 
   return result;

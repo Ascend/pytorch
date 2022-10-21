@@ -93,13 +93,13 @@ at::Tensor NPUNativeFunctions::arange(
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, option, ACL_FORMAT_ND);
 
   if(option.dtype() == at::kHalf) {
-    result = result.to(at::kFloat);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kFloat);
   }
 
   arange_out_npu_nocheck(result, start, end, step);
 
   if(option.dtype() == at::kHalf) {
-    result = result.to(at::kHalf);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kHalf);
   }
 
   return result;

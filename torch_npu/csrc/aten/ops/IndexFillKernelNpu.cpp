@@ -128,12 +128,12 @@ at::Tensor& index_fill_d_nocheck(
   at::Tensor assistHelp2 = index_fill_d_assist_help(self, index, dim, value, false);
   if (aclInput->scalar_type() == at::ScalarType::Int) 
   {
-    assistHelp1 = assistHelp1.to(at::ScalarType::Int);
-    assistHelp2 = assistHelp2.to(at::ScalarType::Int);
+    assistHelp1 = NPUNativeFunctions::npu_dtype_cast(assistHelp1, at::ScalarType::Int);
+    assistHelp2 = NPUNativeFunctions::npu_dtype_cast(assistHelp2, at::ScalarType::Int);
   } else if (aclInput->scalar_type() == at::ScalarType::Half)
   {
-    assistHelp1 = assistHelp1.to(at::ScalarType::Half);
-    assistHelp2 = assistHelp2.to(at::ScalarType::Half);
+    assistHelp1 = NPUNativeFunctions::npu_dtype_cast(assistHelp1, at::ScalarType::Half);
+    assistHelp2 = NPUNativeFunctions::npu_dtype_cast(assistHelp2, at::ScalarType::Half);
   }
 
   OpCommand cmd;
