@@ -87,7 +87,8 @@ namespace at_npu
           at::Tensor self, 
           at::ScalarType dtype) {
         at::AutoNonVariableTypeMode g;
-        ctx->save_for_backward({self});
+        at::Tensor temp_save_dtype = OpPreparation::ApplyTensorWithSizes(1, self.options().dtype(self.scalar_type())); 
+        ctx->save_for_backward({temp_save_dtype});
         return npu_dtype_cast_impl(self, dtype);
       }
 
