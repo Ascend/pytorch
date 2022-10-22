@@ -45,7 +45,7 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 
 # 安装方式
 
-## 安装Pytorch依赖环境
+## 安装PyTorch依赖环境
 
 如果使用非root用户安装，用户需要在本步骤的每句命令后加**--user**，示例如：pip3 install pyyaml --user。
 
@@ -489,7 +489,7 @@ warning如下图所示，由Tensor.set_data浅拷贝操作触发。主要原因�
 
 该warning不影响模型的精度和性能，可以忽略。
 
-待NPU 设备号合入社区或者后续Pytorch版本`_has_compatible_shallow_copy_type`注册方式发生变动，该warning会被解决。
+待NPU 设备号合入社区或者后续PyTorch版本`_has_compatible_shallow_copy_type`注册方式发生变动，该warning会被解决。
 
 ![输入图片说明](https://images.gitee.com/uploads/images/2022/0701/153621_2b5080c4_7902902.png)
 
