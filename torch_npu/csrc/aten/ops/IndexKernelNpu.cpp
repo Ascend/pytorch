@@ -21,14 +21,14 @@ namespace native {
 
 at::Tensor& index_out_nocheck_npu(
     const at::Tensor& self,
-    const at::Tensor& masksTensor,
+    const at::IntArrayRef masks,
     const at::TensorList& indices,
     at::Tensor& result) {
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(masksTensor)
-      .Input(result.sizes());
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
   for (int i = 0; i < indices.size(); i++) {
     std::string name = "indices" + std::to_string(i);
     cmd.Input(indices[i], name);
@@ -40,33 +40,30 @@ at::Tensor& index_out_nocheck_npu(
 
 at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {  
   at::native::checkIndexTensorTypes(orig);
-  // first expand BoolTensor (masks) or ByteTensor (masks) into 1 or more LongTensors
-  auto indices = at::native::expandTensors(self, orig);
-  at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
-
-  // calculate the output size
-  auto outputSize = index_npu_output_size(formatCastOfSelf, indices);
-
-  // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf,  outputSize, ACL_FORMAT_ND);
-
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
   std::vector<at::Tensor> allDefinedIndices;
-  for (int64_t i = 0; i < indices.size(); i++) {
-    if (indices[i].defined()) {
-      masks.emplace_back(1);
-      allDefinedIndices.emplace_back(indices[i]);
+  std::vector<at::Tensor> allValuedIndices;
+  for (c10::optional<at::Tensor> index_opt : orig) {
+    if (index_opt.has_value()) {
+      at::Tensor index = std::move(*index_opt);
+      allValuedIndices.emplace_back(index);
+      if (index.defined()) {
+        allDefinedIndices.emplace_back(index);
+        masks.emplace_back(1);
+      } else {
+        masks.emplace_back(0);
+      }
     } else {
       masks.emplace_back(0);
     }
   }
-
-  at::Tensor masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      at::from_blob(masks.data(), {masks.size()}, dtype(at::ScalarType::Long)));
+  at::Tensor formatCastOfSelf = NPUNativeFunctions::npu_format_cast(self, ACL_FORMAT_ND);
+  auto outputSize = index_npu_output_size(formatCastOfSelf, allValuedIndices);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(formatCastOfSelf,  outputSize, ACL_FORMAT_ND);
 
   // calculate the output result of the NPU
-  index_out_nocheck_npu(formatCastOfSelf, masksTensor, allDefinedIndices, result);
+  index_out_nocheck_npu(formatCastOfSelf, masks, allDefinedIndices, result);
 
   return result;
 }

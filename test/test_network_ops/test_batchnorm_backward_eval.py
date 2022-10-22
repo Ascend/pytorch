@@ -38,8 +38,8 @@ class Model(nn.Module):
 
 class TestBn2dEval(TestCase):
     def test_batchnorm_backward_eval(self, device="npu"):
-        model = Model(in_channels=256)
-        cpu_tensor = torch.randn(32,256,14,14)
+        model = Model(in_channels=64)
+        cpu_tensor = torch.randn(32,64,14,14)
         npu_tensor = cpu_tensor.npu()
         cpu_tensor.requires_grad = True
         npu_tensor.requires_grad = True

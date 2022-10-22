@@ -159,9 +159,9 @@ class TestBatchNormWithInt32Count(TestCase):
 
     def test_batchnorm2d_shape_format(self):
         shape_format = [      
-            [[np.float32, 2, [20,100,4,5]], 100],
+            [[np.float32, 0, [20,100,4,5]], 100],
             [[np.float32, 3, [50,100,4,8]], 100],
-            [[np.float16, 2, [20,5,8,3]], 5],
+            [[np.float16, 0, [20,5,8,3]], 5],
             [[np.float16, 3, [50,5,4,7]], 5],
         ]
         for item in shape_format:
