@@ -77,7 +77,7 @@ git submodule update --init --recursive
 
 ## 生成适配昇腾AI处理器的PyTorch全量代码。
 
-进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生Pytorch源代码和下面版本要对应，否则可能出错）
+进入到pytorch/scripts目录，根据选择的版本执行，执行脚本（注意：下载原生PyTorch源代码和下面版本要对应，否则可能出错）
 
 ```sh
 cd ../scripts/
