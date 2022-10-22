@@ -87,16 +87,14 @@ namespace at_npu
           at::Tensor self, 
           at::ScalarType dtype) {
         at::AutoNonVariableTypeMode g;
-        ctx->save_for_backward({self});
+        ctx->saved_data["dtype"] = self.scalar_type();
         return npu_dtype_cast_impl(self, dtype);
       }
 
       static tensor_list backward(AutogradContext *ctx,
           tensor_list grad_outputs) {
-        auto saved = ctx->get_saved_variables();
-        auto self = saved[0];
-
-        at::Tensor result = npu_dtype_cast_impl(grad_outputs[0], self.scalar_type());
+        auto dtype = ctx->saved_data["dtype"].toScalarType();
+        at::Tensor result = npu_dtype_cast_impl(grad_outputs[0], dtype);
         tensor_list output = {result, at::Tensor()};
 
         return output;
