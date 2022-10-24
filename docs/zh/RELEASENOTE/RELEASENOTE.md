@@ -1,4 +1,11 @@
-# FrameworkPTAdapter 3.0.RC2 版本说明书
+# FrameworkPTAdapter 3.0.RC3 版本说明书
+-   [FrameworkPTAdapter 3.0.RC3](#FrameworkPTAdapter-3-0-RC3md)
+    -   [用户须知](#用户须知md)
+    -   [新增特性](#新增特性md)
+    -   [特性修改](#特性修改md)
+    -   [已修复问题](#已修复问题md)
+    -   [已知问题](#已知问题md)
+    -   [兼容性](#兼容性md)
 -   [FrameworkPTAdapter 3.0.RC2](#FrameworkPTAdapter-3-0-RC2md)
     -   [用户须知](#用户须知md)
     -   [新增特性](#新增特性md)
@@ -34,6 +41,54 @@
     -   [已修复问题](#已修复问题-3md)
     -   [已知问题](#已知问题-4md)
     -   [兼容性](#兼容性-5md)
+
+<h2 id="FrameworkPTAdapter-3-0-RC3md">FrameworkPTAdapter 3.0.RC3</h2>
+
+<h3 id="用户须知md">用户须知</h3>
+
+本框架基于Facebook主导的开源PyTorch进行修改，延续原生的PyTorch特性，使用NPU进行动态图训练；以算子粒度进行模型适配，代码重用性好，支持现有的网络只修改设备类型或数据类型，即可迁移到NPU上使用。
+
+PyTorch1.8.1版本开始采用插件化适配方式，与原生PyTorch框架实现彻底解耦，功能、性能与PyTorch1.5.0基本保持一致，对后端算子适配提供较好开发体验。
+
+<h3 id="新增特性md">新增特性</h3>
+
+**表 1** PyTorch支持的版本特性列表
+
+| 一级特性                   | 二级特性                         | 说明                                           |
+| -------------------------- | -------------------------------- | ---------------------------------------------- |
+| 适配NPU的PyTorch1.5.0特性  | 框架基础功能                     | 适配CANN算子IR变更。                           |
+| 适配NPU的PyTorch1.8.1特性  | 精度对比工具                     | 支持NPU与CPU精度对比工具。                     |
+| profiling                  | 支持自定义算子profiling。        |                                                |
+| API满足度提升              | 新增部分API适配（详见API清单）。 |                                                |
+| 适配NPU的PyTorch1.11.0特性 | 框架基础功能                     | 支持模型训练功能，适配算子API（详见API清单）。 |
+| 混合精度                   | 支持apex混合精度训练。           |                                                |
+| 分布式                     | 支持DDP分布式训练功能。          |                                                |
+| profiling                  | 支持E2E profiling功能。          |                                                |
+
+<h3 id="特性修改md">特性修改</h3>
+
+不涉及
+
+<h3 id="已修复问题md">已修复问题</h3>
+
+不涉及
+
+<h3 id="已知问题md">已知问题</h3>
+
+| 已知问题                                      | 问题描述                                                     |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| 数据类型支持                                  | NPU不支持float16类型的inf/nan数据输入输出。                  |
+| 数据Format                                    | 出现4D以上的format时不能降维。                               |
+| 集合通信约束                                  | 要求一次训练任务中不同device上执行的图相同。                 |
+| 当前只支持1/2/4/8P粒度的分配。                |                                                              |
+| 只支持int8，int32，float16和float32数据类型。 |                                                              |
+| Apex功能支持                                  | Apex当前版本的实现方式主要为python实现，不支持APEX中的自定义优化CUDA Kernel。 |
+
+<h3 id="兼容性md">兼容性</h3>
+
+A800-9010：CentOS 7.6/Ubuntu 18.04, 2.04/BC-Linux 7.6/Debian 9.9/Debian 10/OpenEuler 20.03 LTS
+
+A800-9000：CentOS 7.6/Ubuntu 18.04, 2.04/Euler 2.8, 2.10/Kylin v10/BC-Linux 7.6/OpenEuler 20.03 LTS/UOS 20 1020e
 
 <h2 id="FrameworkPTAdapter-3-0-RC2md">FrameworkPTAdapter 3.0.RC2</h2>
 
