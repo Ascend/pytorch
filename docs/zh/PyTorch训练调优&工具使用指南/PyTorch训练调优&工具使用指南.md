@@ -681,10 +681,6 @@ torch.multiprocessing.spawn(train, nprocs=ngpus_per_node, args=(ngpus_per_node, 
 
     -   解决方案：建议联系华为方支撑人员，提供稳定复现的单P和多P脚本。
 
-### 精度比对工具
-
-Pytorch提供精度比对工具用于对比模型精度，具体参考[《精度比对工具使用指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%B2%BE%E5%BA%A6%E6%AF%94%E5%AF%B9%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/PyTorch%E7%B2%BE%E5%BA%A6%E6%AF%94%E5%AF%B9%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97.md)与[《精度比对工具需求背景》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%B2%BE%E5%BA%A6%E6%AF%94%E5%AF%B9%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%B2%BE%E5%BA%A6%E5%AF%B9%E6%AF%94%E5%B7%A5%E5%85%B7%E9%9C%80%E6%B1%82%E8%83%8C%E6%99%AF.md)。
-
 ## 模型调优样例
 
 ### ShuffleNet模型调优示例
