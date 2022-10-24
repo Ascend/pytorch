@@ -1755,16 +1755,10 @@ Returns a tensor filled with uninitialized data. The shape of the tensor is defi
 - Parameters：
 
   - **size** (int...) – a sequence of integers defining the shape of the output tensor. Can be a variable number of arguments or a collection like a list or tuple.
-
-  - **dtype** (torch.dtype, optional) – the desired data type of returned tensor. Default: if None, uses a global default (see torch.set_default_tensor_type()).
-
+- **dtype** (torch.dtype, optional) – the desired data type of returned tensor. Default: if None, uses a global default (see torch.set_default_tensor_type()).
   - **layout** (torch.layout, optional) – the desired layout of returned Tensor. Default: None.
-
-  - **device** (torch.device, optional) – the desired device of returned tensor. Default: None
-
-  - **pin_memory** (bool, optional) – If set, returned tensor would be allocated in the pinned memory. Default: None.
-
-  - **acl_format** (Number) – the desired memory format of returned Tensor. Default: 2.
+- **device** (torch.device, optional) – the desired device of returned tensor. Default: None
+  - **pin_memory** (bool, optional) – If set, returned tensor would be allocated in the pinned memory. Default: Nonacl_format** (Number) – the desired memory format of returned Tensor. Default: 2.
 
 - constraints：
 
@@ -3513,39 +3507,36 @@ Taking into account the distance between the targets,the overlap rate of the dis
 
 ## 亲和库
 
-| 序号 | 亲和函数名称                                                 |
-| ---- | :----------------------------------------------------------- |
-| 1    | **def fuse_add_softmax_dropout**(training, dropout, attn_mask, attn_scores, attn_head_size, p=0.5, dim=-1) |
-| 2    | **def** **npu_diou**(boxes1,boxes2,trans=True, is_cross=False, mode=0) |
-| 3    | **def** **npu_ciou**(boxes1,boxes2,trans=True, is_cross=False, mode=0) |
-| 4    | **class NpuFairseqDropout**(torch.nn.Dropout)                |
-| 5    | **class MultiheadAttention**(nn.Module)                      |
-| 6    | **def** **npu_single_level_responsible_flags**(featmap_size,gt_bboxes,stride,num_base_anchors): |
-| 7    | **def npu_bbox_coder_encode_xyxy2xywh**(bboxes,gt_bboxes,means=None,stds=None,is_normalized=False,normalized_scale=10000.,) |
-| 8    | **def** **npu_bbox_coder_decode_xywh2xyxy**(bboxes,pred_bboxes,means=None,stds=None,max_shape=None,wh_ratio_clip=16 / 1000,) |
-| 9    | **def** **npu_fast_condition_index_put**(x, condition, value) |
-| 10   | **class** **MatmulApply**(torch.autograd.Function)           |
-| 11   | **def npu_multiclass_nms**(multi_bboxes,multi_scores, score_thr=0.05,nms_thr=0.45,max_num=50,score_factors=None) |
-| 12   | **def npu_batched_multiclass_nms**(multi_bboxes,multi_scores,max_num=50,score_factors=None) |
-| 13   | **def** **dropout_with_byte_mask**(input1, p=0.5, training=True, inplace=False) |
-| 14   | **class** **NpuRollWithIndexSelect**()                       |
-| 15   | **class** **Mish**(nn.Module)                                |
-| 16   | **class** **SiLU**(nn.Module)                                |
-| 17   | **class** **FastBatchNorm1d**(_BatchNorm)                    |
-| 18   | **class** **FastBatchNorm2d**(_BatchNorm)                    |
-| 19   | **class** **FastBatchNorm3d**(_BatchNorm)                    |
-| 20   | **class** **BiLSTM**(torch.nn.Module)                        |
-| 21   | **class** **ChannelShuffle**(nn.Module)                      |
-| 22   | **class** **LabelSmoothingCrossEntropy**(nn.Module)          |
-| 23   | **class** **ModulatedDeformConv**(nn.Module)                 |
-| 24   | **class** **NpuDropPath**(nn.Module)                         |
-| 25   | **class** **NpuFairseqDropout**(torch.nn.Dropout)            |
-| 26   | **class** **Focus**(nn.Module)                               |
-| 27   | **class** **FusedColorJitter**(torch.nn.Module)              |
-| 28   | **class** **MultiheadAttention**(nn.Module)                  |
-| 29   | **class** **DropoutWithByteMask**(Module)                    |
-| 30   | **def** **__init__**(self, pooled_height=7, pooled_width=7, spatial_scale=1 / **16.0**, group_size=7, output_dim=22) |
-| 31   | **class** **ROIAlign**(nn.Module)                            |
+| 序号 | 原生函数/参考链接                                            | 亲和函数名称                             | 测试用例                                                     |
+| ---- | ------------------------------------------------------------ | :--------------------------------------- | ------------------------------------------------------------ |
+| 1    | [self.dropout()/nn.functional.softmax()/torch.add]( https://github.com/huggingface/transformers/blob/7999ec125fc31428ed6879bf01bb013483daf704/src/transformers/models/bert/modeling_bert.py#L346) | def fuse_add_softmax_dropout()           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_fuse_add_softmax_dropout.py |
+| 2    | [def bboexs_diou()]( https://arxiv.org/abs/1902.09630)       | def npu_diou()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_iou.py |
+| 3    | [def bboexs_giou()]( https://arxiv.org/abs/1902.09630)       | def npu_ciou()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_iou.py |
+| 4    | [class FairseqDropout()](https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/fairseq_dropout.py#L16) | class NpuFairseqDropout()                | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_ensemble_dropout.py |
+| 5    | [class MultiheadAttention()](    https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64) | class MultiheadAttention()               | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multihead_attention.py |
+| 6    | [def single_level_responsible_flags()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/anchor/anchor_generator.py#L821) | def npu_single_level_responsible_flags() | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_anchor_generator.py |
+| 7    | [def encode()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26) | def npu_bbox_coder_encode_xyxy2xywh()    | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bbox_coder.py |
+| 8    | [def decode()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26) | def npu_bbox_coder_decode_xywh2xyxy()    | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bbox_coder.py |
+| 9    | 无原函数，主要功能语句：input1[condition] = value，请查看测试用例。 | def npu_fast_condition_index_put()       | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_index_op.py |
+| 10   | [torch.matmul()](https://github.com/huggingface/transformers/blob/d6eeb871706db0d64ab9ffd79f9545d95286b536/src/transformers/models/bert/modeling_bert.py#L331) | class MatmulApply()                      | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_matmul_transpose.py |
+| 11   | [def multiclass_nms()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7) | def npu_multiclass_nms()                 | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multiclass_nms.py |
+| 12   | [def fast_nms()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7) | def npu_batched_multiclass_nms()         | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multiclass_nms.py |
+| 14   | [torch.roll()](https://pytorch.org/docs/stable/generated/torch.roll.html) | class NpuRollWithIndexSelect()           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_roll.py |
+|      |                                                              |                                          |                                                              |
+| 15   | [class Mish()](https://github.com/digantamisra98/Mish/blob/master/Mish/Torch/mish.py) | class Mish()                             | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_activations.py |
+| 16   | [class SiLu()](https://pytorch.org/docs/1.8.1/generated/torch.nn.SiLU.html?highlight=silu#torch.nn.SiLU) | class SiLU()                             | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_activations.py |
+| 17   | [class BatchNorm1d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm1d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 18   | [class BatchNorm2d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm2d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 19   | [class BatchNorm3d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm3d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 20   | [论文地址](https://ieeexplore.ieee.org/document/650093)      | class BiLSTM()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bidirectional_lstm.py |
+| 21   | [def channel_shuffle()](https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py#L21) | class ChannelShuffle()                   | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_channel_shuffle.py |
+| 22   | [class LabelSmoothingCrossEntropy()](https://arxiv.org/pdf/1512.00567.pdf) | class LabelSmoothingCrossEntropy()       | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_crossentropy.py |
+| 23   | [class ModulatedDeformConv2dFunciton()](    https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/modulated_deform_conv.py) | class ModulatedDeformConv()              | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_deform_conv.py |
+| 24   | [class DropPath()](    https://github.com/rwightman/pytorch-image-models/blob/e7f0db866412b9ae61332c205270c9fc0ef5083c/timm/models/layers/drop.py#L160) | class NpuDropPath()                      | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_drop_path.py |
+| 26   | [class Focus()](    https://github.com/ultralytics/yolov5/blob/4d05472d2b50108c0fcfe9208d32cb067a6e21b0/models/common.py#L227) | class Focus()                            | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_focus.py |
+| 28   | [class MultiheadAttention()](https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64) | class MultiheadAttention()               | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multihead_attention.py |
+| 30   | [class PSROIPool()](https://github.com/RebornL/RFCN-pytorch.1.0/blob/master/lib/model/roi_layers/ps_roi_pool.py) | class PSROIPool()                        | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_ps_roi_pooling.py |
+| 31   | [class ROIAlign()](        https://github.com/facebookresearch/detectron2/blob/master/detectron2/layers/roi_align.py#L7) | class ROIAlign()                         | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_roi_align.py |
 
 
 
@@ -4040,6 +4031,8 @@ Applies an NPU based Sigmoid Linear Unit (SiLU) function, element-wise. The SiLU
 
 Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D inputs with optional additional channel dimension)
 
+Changed the num_batches_tracked of the batnorm from int64 to int32 to improve the performance of the batchnorm.
+
 - math：
   $$
   y = \frac{x - \mathrm{E}[x]}{\sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
@@ -4080,6 +4073,8 @@ Applies Batch Normalization over a 2D or 3D input1 (a mini-batch of 1D inputs wi
 
 Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs with additional channel dimension) 
 
+Changed the num_batches_tracked of the batnorm from int64 to int32 to improve the performance of the batchnorm.
+
 - math：
   $$
   y = \frac{x - \mathrm{E}[x]}{ \sqrt{\mathrm{Var}[x] + \epsilon}} * \gamma + \beta
@@ -4116,6 +4111,8 @@ Applies Batch Normalization over a 4D input1 (a mini-batch of 2D inputs with add
 >   **class** **FastBatchNorm3d**(_BatchNorm):
 
 Applies Batch Normalization over a 5D input1 (a mini-batch of 3D inputs with additional channel dimension) 
+
+Changed the num_batches_tracked of the batnorm from int64 to int32 to improve the performance of the batchnorm.
 
 - math：
   $$
@@ -4443,7 +4440,7 @@ Applies an NPU compatible DropoutWithByteMask operation, Only supports npu devic
 
 
 
->   **def** **__init__**(self, pooled_height=7, pooled_width=7, spatial_scale=1 / **16.0**, group_size=7, output_dim=22):
+>   **class** **PSROIPool**(nn.Module):
 
 ROIAlign using npu api.
 
