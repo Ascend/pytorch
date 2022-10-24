@@ -1558,16 +1558,45 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
-
-
 #### 功能介绍
 
-亲和库详细说明请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中”亲和库“章节。
+当前框架中亲和函数可替换模型中1个或几个原生函数或几行关键代码，这取决与亲和函数的功能与模型中原生函数的功能，用户需明确模型内原生函数的功能并根据提供的亲和函数替换，此处提供原生函数的代码、算法或参考论文地址。亲和库详细说明请参见[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)中”亲和库“章节。
+
+| 序号 | 原生函数/参考链接                                            | 亲和函数名称                             | 测试用例                                                     |
+| ---- | ------------------------------------------------------------ | :--------------------------------------- | ------------------------------------------------------------ |
+| 1    | [self.dropout()/nn.functional.softmax()/torch.add]( https://github.com/huggingface/transformers/blob/7999ec125fc31428ed6879bf01bb013483daf704/src/transformers/models/bert/modeling_bert.py#L346) | def fuse_add_softmax_dropout()           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_fuse_add_softmax_dropout.py |
+| 2    | [def bboexs_diou()]( https://arxiv.org/abs/1902.09630)       | def npu_diou()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_iou.py |
+| 3    | [def bboexs_giou()]( https://arxiv.org/abs/1902.09630)       | def npu_ciou()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_iou.py |
+| 4    | [class FairseqDropout()](https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/fairseq_dropout.py#L16) | class NpuFairseqDropout()                | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_ensemble_dropout.py |
+| 5    | [class MultiheadAttention()](    https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64) | class MultiheadAttention()               | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multihead_attention.py |
+| 6    | [def single_level_responsible_flags()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/anchor/anchor_generator.py#L821) | def npu_single_level_responsible_flags() | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_anchor_generator.py |
+| 7    | [def encode()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26) | def npu_bbox_coder_encode_xyxy2xywh()    | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bbox_coder.py |
+| 8    | [def decode()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26) | def npu_bbox_coder_decode_xywh2xyxy()    | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bbox_coder.py |
+| 9    | 无原函数，主要功能语句：input1[condition] = value，请查看测试用例。 | def npu_fast_condition_index_put()       | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_index_op.py |
+| 10   | [torch.matmul()](https://github.com/huggingface/transformers/blob/d6eeb871706db0d64ab9ffd79f9545d95286b536/src/transformers/models/bert/modeling_bert.py#L331) | class MatmulApply()                      | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_matmul_transpose.py |
+| 11   | [def multiclass_nms()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7) | def npu_multiclass_nms()                 | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multiclass_nms.py |
+| 12   | [def fast_nms()](https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/post_processing/bbox_nms.py#L7) | def npu_batched_multiclass_nms()         | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multiclass_nms.py |
+| 14   | [torch.roll()](https://pytorch.org/docs/stable/generated/torch.roll.html) | class NpuRollWithIndexSelect()           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_roll.py |
+|      |                                                              |                                          |                                                              |
+| 15   | [class Mish()](https://github.com/digantamisra98/Mish/blob/master/Mish/Torch/mish.py) | class Mish()                             | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_activations.py |
+| 16   | [class SiLu()](https://pytorch.org/docs/1.8.1/generated/torch.nn.SiLU.html?highlight=silu#torch.nn.SiLU) | class SiLU()                             | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_activations.py |
+| 17   | [class BatchNorm1d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm1d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 18   | [class BatchNorm2d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm2d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 19   | [class BatchNorm3d()](https://github.com/pytorch/pytorch/blob/master/torch/nn/modules/batchnorm.py) | class FastBatchNorm3d()                  | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_batchnorm_with_count_int32.py |
+| 20   | [论文地址](https://ieeexplore.ieee.org/document/650093)      | class BiLSTM()                           | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_bidirectional_lstm.py |
+| 21   | [def channel_shuffle()](https://github.com/pytorch/vision/blob/master/torchvision/models/shufflenetv2.py#L21) | class ChannelShuffle()                   | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_channel_shuffle.py |
+| 22   | [class LabelSmoothingCrossEntropy()](https://arxiv.org/pdf/1512.00567.pdf) | class LabelSmoothingCrossEntropy()       | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_crossentropy.py |
+| 23   | [class ModulatedDeformConv2dFunciton()](    https://github.com/open-mmlab/mmcv/blob/master/mmcv/ops/modulated_deform_conv.py) | class ModulatedDeformConv()              | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_deform_conv.py |
+| 24   | [class DropPath()](    https://github.com/rwightman/pytorch-image-models/blob/e7f0db866412b9ae61332c205270c9fc0ef5083c/timm/models/layers/drop.py#L160) | class NpuDropPath()                      | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_drop_path.py |
+| 26   | [class Focus()](    https://github.com/ultralytics/yolov5/blob/4d05472d2b50108c0fcfe9208d32cb067a6e21b0/models/common.py#L227) | class Focus()                            | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_focus.py |
+| 28   | [class MultiheadAttention()](https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64) | class MultiheadAttention()               | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_multihead_attention.py |
+| 30   | [class PSROIPool()](https://github.com/RebornL/RFCN-pytorch.1.0/blob/master/lib/model/roi_layers/ps_roi_pool.py) | class PSROIPool()                        | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_ps_roi_pooling.py |
+| 31   | [class ROIAlign()](        https://github.com/facebookresearch/detectron2/blob/master/detectron2/layers/roi_align.py#L7) | class ROIAlign()                         | https://gitee.com/ascend/pytorch/blob/master/test/test_contrib/test_roi_align.py |
+
+
 
 >![](public_sys-resources/icon-note.gif) **说明：** 
 >该部分调优内容会随着版本不断增强和更新，请以实际PyTorch版本中对应路径下的内容为准。
-
-
 
 ### 单算子样例编写说明
 
