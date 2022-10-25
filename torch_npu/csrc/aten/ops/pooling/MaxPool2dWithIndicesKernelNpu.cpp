@@ -126,7 +126,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max_pool2d_with_indices(
   c10::SmallVector<int64_t, SIZE> indicesSize = {nbatch, nInputPlane, maskH, maskW};
 
   // construct the output tensor of the NPU
-  at::Tensor output = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
+  at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor indices = OpPreparation::ApplyTensorWithFormat(self, indicesSize, ACL_FORMAT_NC1HWC0);
 
   // calculate the output result of the NPU
