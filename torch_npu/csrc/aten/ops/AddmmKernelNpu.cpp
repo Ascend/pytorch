@@ -57,7 +57,9 @@ namespace at_npu
       auto outputSize = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
 
       // add算子支持NZ与1维且该轴能被16整除的ND相加，直接得到NZ result
-      int64_t resFormat = (self.dim() == 1 && self.size(0) % 16 == 0 && self.scalar_type() == at::kHalf) ? ACL_FORMAT_FRACTAL_NZ : ACL_FORMAT_ND;
+      int64_t resFormat = (self.dim() == 1 && self.size(0) % 16 == 0 && self.scalar_type() == at::kHalf)
+                          ? CalcuOpUtil::get_tensor_npu_format(self)
+                          : ACL_FORMAT_ND;
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), resFormat);
 
       // calculate the output result of the NPU
