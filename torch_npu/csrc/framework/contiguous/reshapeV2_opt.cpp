@@ -28,7 +28,7 @@ public:
           reshape_match_by_memory_repoint(src, result)) {
         return true;
       }
-      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_Reshape", std::vector<c10::IValue>({src}));
       NPUNativeFunctions::npu_reshape_out(src, src.sizes(), false, result);
       return true;
     }
@@ -50,7 +50,7 @@ private:
 
   bool reshape_match_by_memory_repoint(const at::Tensor &src,
                                        at::Tensor &self) {
-    RECORD_FUNCTION("memory_repoint", std::vector<c10::IValue>({src}));
+    RECORD_FUNCTION("contiguous_h_memcpy", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
     case at::ScalarType::Half:
       ResetDataPtr(src, self,

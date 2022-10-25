@@ -30,7 +30,7 @@ public:
     }
 
     if (can_use_broadcast(src_desc)) {
-      RECORD_FUNCTION("npuBroadcast", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_BroadcastTo", std::vector<c10::IValue>({src}));
       IF_GRAPH_MODE_THEN_RUN(
         at::IntArrayRef target_shape = self.sizes();
         OpCommand cmd;
