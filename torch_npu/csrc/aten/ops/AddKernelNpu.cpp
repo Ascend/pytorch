@@ -160,7 +160,7 @@ namespace at_npu
       {
         auto src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
         at::Tensor src_new = OpPreparation::ApplyTensorWithFormat(
-            src_desc.base_sizes_, src.options(), ACL_FORMAT_NC1HWC0);
+            src_desc.base_sizes_, src.options(),  CalcuOpUtil::get_tensor_npu_format(src));
         src_new.set_(
             src.storage(),
             src_new.storage_offset(),
