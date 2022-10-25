@@ -34,6 +34,13 @@ namespace at_npu
     at::Tensor &muls_out_npu(at::Tensor &result, const at::Tensor &self, const at::Scalar other)
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
+      if (!other.isFloatingPoint()) {
+        unified_result.common_type = self.scalar_type();
+        if (self.scalar_type() == at::kBool) {
+          unified_result.common_type = other.type();
+        }
+      }
+
       OpCommand cmd;
       cmd.Name("Mul")
           .Expect(unified_result)
@@ -119,12 +126,8 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, at::Scalar other)
     {
-      // calculate the output size
-      auto outputSize = input_same_output_size(self);
-
       // construct the output tensor of the NPU
-      at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-          outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
+      at::Tensor result = OpPreparation::ApplyTensor(self);
 
       // calculate the output result of the NPU
       muls_out_npu(result, self, other);

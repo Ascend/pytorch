@@ -114,15 +114,29 @@ class TestMuls(TestCase):
         self.assertRtolEqual(cpu_output, npu_output)
 
     def test_muls_scalar_dtype(self, device="npu"):
-        cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, (2, 3)], 1, 100)
-        cpu_output = self.cpu_op_exec(cpu_input1, 0.5)
-        npu_output = self.npu_op_exec(npu_input1, 0.5)
-        self.assertRtolEqual(cpu_output, npu_output)
+        shape_format = [
+                        [np.int8, 0, (2, 3, 8)],
+                        [np.int16, 0, (2, 3)],
+                        [np.int32, 0, (2, 3, 8)],
+                        [np.int64, 0, (2, 32, 8, 16)],
+                        [np.uint8, 0, (8)],
+                        [np.bool, 0, (2, 2, 3, 8)],
+                       ]
+        for item in shape_format:
+            cpu_input1, npu_input1 = create_common_tensor(item, 1, 100)
+            cpu_output = self.cpu_op_exec(cpu_input1, 0.5)
+            npu_output = self.npu_op_exec(npu_input1, 0.5)
+            self.assertRtolEqual(cpu_output, npu_output)
+
+            cpu_output = self.cpu_op_exec(cpu_input1, 0)
+            npu_output = self.npu_op_exec(npu_input1, 0)
+            self.assertRtolEqual(cpu_output, npu_output)
 
         # test mul with fp16 tensor * scalar(overflow with fp16 max value), Just test for functional correctness
         # PR: https://gitee.com/ascend/pytorch/pulls/849
         _, npu_input2 = create_common_tensor([np.float16, 0, (2, 3)], 1, 100)
         npu_output2 = self.npu_op_exec(npu_input2, 65536)
+
 
 if __name__ == "__main__":
     run_tests()
