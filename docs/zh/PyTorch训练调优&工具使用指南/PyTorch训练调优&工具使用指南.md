@@ -26,18 +26,204 @@
 
 ​		当模型训练过程中吞吐量（系统在单位时间内处理请求的数量）指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。基于NPU的pytorch在模型训练时，算子典型的执行流程是，算子通过pytorch框架多次分发后，调用ACL接口，然后在CANN层经过编译、GE/FE等模块的处理后，最终在NPU上计算执行，整个流程和调用栈较深。在ACL接口之前，调用栈和流程都是pytorch框架内，而在ACL接口之后，所有的流程全部在CANN内（基础软件包，通过so方式调用）。
 
-​		因此针对这一系列的流程，我们提供了两种不同层次的profiling方式，可以侧重记录不同层面的性能数据，分别是pytorch profiling、cann profiling和E2E profling：
+​		因此针对这一系列的流程，我们提供了三种不同层次的profiling方式，可以侧重记录不同层面的性能数据，分别是pytorch profiling、cann profiling和E2E profling：
 
 - pytorch profiling功能是继承自原生pytorch的功能，主要记录了pytorch框架层面的算子在多次分发中调用栈的耗时信息，而对于算子在CANN内的流程，只能作为一整块展示，无法详细展示内部流程。
+
 - cann profiling则是仅针对cann层内算子执行流程来记录性能信息，主要功能是分析算子在NPU设备上的执行性能，可以清晰看出算子在不同shape/format下耗时信息；
+
+- E2E profiling则将pytorch层面和CANN层面的性能数据结合起来，可以端到端地分析模型性能瓶颈所在，其展示的性能数据分模块展示，其在pytorch层面的数据与pytorch profiling的数据基本一致，而在CANN 层面展示的数据分为GE/ACL/RunTime/AI CPU/Device等多个模块，可以从整体上分析模型性能瓶颈。
+
+​		三种profiling的关系如下图所示，注意E2E profiling并不完全为pytorch和cann profiling的叠加。
+
+![](figures\profiler.png)
+
+采集算子OP_INFO则是通过日志信息，获取模型中所有调用到的算子信息，一般用于确认模型中是否有插入多余的transdata（主要用于数据类型和格式转换）。
+
+
 
 ### PyTorch Profiling数据采集
 
-PyTorch Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0197.html)"Profilign工具>高级功能>性能数据采集（AI框架方式）>PyTorch Profling"节。
+PyTorch Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0197.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>PyTorch Profling"章节。
 
 ### CANN Profiling数据采集
 
-CANN Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0198.html)"Profilign工具>高级功能>性能数据采集（AI框架方式）>CANN Profling"章节。
+CANN Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0198.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>CANN Profling"章节。
+
+###  E2E profiling数据采集
+
+1. 获取性能数据文件
+
+   添加with语句使能E2E prof功能
+
+   ```
+   with torch_npu.npu.profile(profiler_result_path="./result",use_e2e_profiler=True):
+   
+        model_train()
+   ```
+
+   - profiler_result_path表示prof结果保存路径，默认为当前路径。
+   - use_e2e_profiler表示是否开启E2E prof功能，默认为False（仅开启CANN prof功能）。
+
+   （因NPU算子需要编译后才能执行，为保证数据的准确性，建议先运行10个step，在第十个step后再进行E2E prof操作，并且一般只需要profiling1个或者2个setp即可。）
+
+2. 解析性能数据
+
+   通过E2E prof工具获得的结果为原始数据，需要通过解析后查看。
+
+   ​		a. 以使用教程中路径为例，工具会在profiler_result_path路径下创建文件夹以保存原始数据。![](C:/Users/ZoeJ/Desktop/docs/zh/PyTorch训练调优&工具使用指南/figures/1.png)
+
+   ​		b. 切换至如上图./result/PROF_XXX路径后，执行脚本。
+
+      ```
+   /usr/local/Ascend/ascend-toolkit/latest/toolkit/tools/profiler/bin/msprof --export=on --output=./
+   ### 具体路径请根据实际安装路径修改，并设置环境变量
+      ```
+
+      - output：原始数据路径。
+
+   ​		c. 运行完成后，在原始数据路径下输出timeline目录。如下图：
+
+      ![](C:/Users/ZoeJ/Desktop/docs/zh/PyTorch训练调优&工具使用指南/figures/2.png)
+
+   ​		d. timeline路径下为解析得到的性能数据，可以通过chrome://tracing/中打开。
+
+      浏览器进入chrome://tracing/。
+
+      点击load，上传文件查看。
+
+      内容示例如下图：
+
+      <img src="C:/Users/ZoeJ/Desktop/docs/zh/PyTorch训练调优&工具使用指南/figures/e2e_prof.png" style="zoom:80%;" />
+
+      该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（GeOPExecute）为GE层数据，第四层（Runtime）为Runtime调度层数据，第五层(Task Scheduler)为device上数据，第六层（如有则为是AICPU，示意图中没有第六层数据）为AICPU上数据。
+
+3. E2E profiling高级设置<a name="E2E"></a>
+   E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
+   
+   ```
+   with torch_npu.npu.profile(profiler_result_path="./results", use_e2e_profiler=True, \
+                           config=torch_npu.npu.profileConfig(ACL_PROF_ACL_API=True, \
+                           ACL_PROF_TASK_TIME=True, ACL_PROF_AICORE_METRICS=True, \
+                           ACL_PROF_AICPU=True, ACL_PROF_L2CACHE=False, \
+                           ACL_PROF_HCCL_TRACE=True, ACL_PROF_TRAINING_TRACE=False, \
+                           aiCoreMetricsType=0)):
+   
+   
+   # ACL_PROF_ACL_API：表示采集AscendCL接口的性能数据，默认True
+   
+   
+   # ACL_PROF_TASK_TIME：采集AI Core算子的执行时间，默认True
+   
+   
+   # ACL_PROF_AICORE_METRICS：表示采集AI Core性能指标数据，aicore_metrics入参处配置的性能指标采集项才有效，默认为True
+   
+   
+   # ACL_PROF_AICPU：0x0008，采集AI CPU任务的开始、结束轨迹数据，默认为True 
+   
+   # ACL_PROF_L2CACHE：表示采集L2 Cache数据，该数据会导致prof结果膨胀，默认False
+   
+   # ACL_PROF_HCCL_TRACE：表示采集HCCL数据，默认为True
+   
+   # ACL_PROF_TRAINING_TRACE：表示迭代轨迹数据，记录模型正向和反向等步骤，默认为False
+   
+   其中，aiCoreMetricsType的取值和定义如下，默认为0：
+   
+   # ACL_AICORE_ARITHMETIC_UTILIZATION = 0：表示各种计算类指标占比统计，包括采集项mac_fp16_ratio、mac_int8_ratio、vec_fp32_ratio、vec_fp16_ratio、vec_int32_ratio、vec_misc_ratio
+   
+   # ACL_AICORE_PIPE_UTILIZATION = 1：表示计算单元和搬运单元耗时占比，包括采集项vec_ratio、mac_ratio、scalar_ratio、mte1_ratio、mte2_ratio、mte3_ratio、icache_miss_rate
+   
+   # ACL_AICORE_MEMORY_BANDWIDTH = 2：表示外部内存读写类指令占比，包括采集项ub_read_bw、ub_write_bw、l1_read_bw、l1_write_bw、l2_read_bw、l2_write_bw、main_mem_read_bw、main_mem_write_bw
+   
+   # ACL_AICORE_L0B_AND_WIDTH ：表示内部内存读写类指令占比，包括采集项scalar_ld_ratio、scalar_st_ratio、l0a_read_bw、l0a_write_bw、l0b_read_bw、l0b_write_bw、l0c_read_bw、l0c_write_bw
+   
+   # ACL_AICORE_RESOURCE_CONFLICT_RATIO ：表示流水线队列类指令占比，包括采集项vec_bankgroup_cflt_ratio、vec_bank_cflt_ratio、vec_resc_cflt_ratio、mte1_iq_full_ratio、mte2_iq_full_ratio、mte3_iq_full_ratio、cube_iq_full_ratio、vec_iq_full_ratio、iq_full_ratio
+   
+   # ACL_AICORE_NONE = 0xFF：表示不采集
+   
+   ```
+   
+   
+
+### 获取算子信息OP\_INFO
+
+网络模型最终是以OP执行的，通过OPInfo日志，我们可以获取实际执行时的算子及其属性。通过get\_ascend\_op\_info.py脚本获取。
+
+1. 编写get\_ascend\_op\_info.py脚本获取算子信息，脚本内容如下。
+
+   ```
+   # -*- coding: utf-8 -*-
+   """用于导出OPINFO"""
+   import os
+   import sys
+   import argparse
+   
+   def func(host_log_folder):
+       """
+       :param host_log_folder: where host_log_folder addr is.
+       :return:
+       """
+       host_log_files = os.listdir(host_log_folder)
+       result = {}
+   
+       for host_log in host_log_files:
+           if not host_log.endswith('.log') or host_log.endswith('.out'):
+               continue
+           with open(os.path.join(host_log_folder, host_log), 'r')as f:
+               host_log_lines = f.readlines()
+               for line in host_log_lines:
+                   if line.startswith('[INFO] ASCENDCL') and "aclopCompile::aclOp" in line:
+                       op_info = line.split('OpType: ')[1][:-2]
+                       op_type = op_info.split(',')[0]
+                       op_param = op_info[len(op_type) + 2:]
+                       if op_type not in result.keys():
+                           result[op_type] = [op_param]
+                       else:
+                           result[op_type].append(op_param)
+   
+       with open('ascend_op_info_summary.txt', 'w')as f:
+           for k, v in result.items():
+               v_set = set(v)
+               for info in v_set:
+                   f.write(k + " " + info + "\n")
+   
+   if __name__ == "__main__":
+       parser = argparse.ArgumentParser(description='trans the log')
+       parser.add_argument('--host_log_folder', default="./",
+                           help="input the dir name, trans the current dir with default")
+       ags = parser.parse_args()
+       func(ags.host_log_folder)
+   ```
+
+2. 设置环境变量，用户可自定义将host日志打屏或写入文件中。
+
+   ```
+   export ASCEND_SLOG_PRINT_TO_STDOUT=0
+   ```
+
+   开启后，日志将不会保存在log文件中，而是将产生的日志直接打屏显示。
+
+   - 0：关闭日志打屏，即日志采用默认输出方式，将日志保存在log文件中。
+   - 1：开启日志打屏。
+   - 其他值为非法值
+
+3. 设置日志级别为info，详细日志内容修改参考[《故障管理》](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html)中“日志参考>日志操作”章节设置日志级别。
+
+   ```
+   export ASCEND_GLOBAL_LOG_LEVEL=1
+   ```
+
+4. 执行训练脚本，进行模型训练，训练模型一个epoch完成后，若未设置日志打屏，可获取host侧日志，默认位置为HOME/ascend/log/debug/plog目录下，该目录用户可根据自身需要自定义日志保存路径，HOME表示Host侧用户根目录。
+
+5. 解析host侧日志会在当前目录下得到OPInfo信息ascend\_op\_info\_summary.txt。
+
+   ```
+   python3 get_ascend_op_info.py --host_log_folder $HOME/ascend/log/debug/plog
+   ```
+
+   --host_log_folder：日志保存路径，用户可自定义。
+
+6. 分析TaskInfo中额外的task，尤其关注transdata。
 
 ## Profiling数据解析与导出
 
