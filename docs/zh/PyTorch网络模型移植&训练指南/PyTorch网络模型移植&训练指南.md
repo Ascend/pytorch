@@ -111,7 +111,7 @@
 </tr>
 <tr id="row94308194435"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p74301019144319"><a name="p74301019144319"></a><a name="p74301019144319"></a>精度调测</p>
 </td>
-<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="https://gitee.com/ascend/pytorch/tree/master/docs/zh/PyTorch%E7%B2%BE%E5%BA%A6%E6%AF%94%E5%AF%B9%E5%B7%A5%E5%85%B7%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97">《PyTorch精度比对工具使用指南》</a></a>。</p>
+<td class="cellrowborder" valign="top" width="71.82%" headers="mcps1.2.3.1.2 "><p id="p24301119174313"><a name="p24301119174313"></a><a name="p24301119174313"></a>详情请参见<a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/troublemanagement/logreference/logreference_0001.html">《PyTorch训练调优&工具使用指南》</a></a>。</p>
 </td>
 </tr>
 <tr id="row7630202112430"><td class="cellrowborder" valign="top" width="28.18%" headers="mcps1.2.3.1.1 "><p id="p1263012210438"><a name="p1263012210438"></a><a name="p1263012210438"></a>模型保存与转换</p>
@@ -131,6 +131,7 @@
 </tr>
 </tbody>
 </table>
+
 
 
 
@@ -170,28 +171,10 @@
 
 #### 整体思路
 
-将基于PyTorch的训练脚本迁移到昇腾AI处理器上进行训练，目前有以下3种方式：自动迁移、工具迁移、手工迁移。
+将基于PyTorch的训练脚本迁移到昇腾AI处理器上进行训练，目前有以下2种方式：工具迁移、手工迁移。
 
-- 自动迁移：训练时，在训练脚本中导入脚本转换库。导入后执行训练，训练脚本在运行的同时，会自动将脚本中的cuda接口替换为昇腾AI处理器支持的NPU接口。整体过程为：边训练边转换。
 - 工具迁移：训练前，通过脚本迁移工具，自动将训练脚本中的cuda接口替换为昇腾AI处理器支持的NPU接口，并生成迁移报告（脚本转换日志、不支持算子的列表、脚本修改记录）。训练时，运行转换后的脚本。整体过程为：先转换脚本，再进行训练。
 - 手工迁移：算法工程师通过对模型的分析、GPU与NPU代码的对比进而对训练脚本进行修改，以支持再昇腾AI处理器上执行训练。
-
-#### 自动迁移（推荐）
-
-**简介**
-
-自动迁移方式较简单，且修改内容最少，只需在训练脚本中添加引入库代码。
-
-**使用方法**
-
-```
-import torch
-import torch_npu
-.....
-from torch_npu.contrib import transfer_to_npu
-```
-
-
 
 #### 工具迁移
 
