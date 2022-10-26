@@ -49,21 +49,11 @@ namespace at_npu
         int64_t dim,
         const at::Tensor &self)
     {
-      // calculate the output size
-      auto outputSize = input_same_output_size(grad_output);
-
-      // output'format must be same with grad_output
-      at::Tensor temp_output = output;
-      if (CalcuOpUtil::get_tensor_npu_format(temp_output) == ACL_FORMAT_NC1HWC0)
-      {
-        NPUNativeFunctions::npu_format_cast_(temp_output, CalcuOpUtil::get_tensor_npu_format(grad_output));
-      }
-
       // construct the output tensor of the NPU
-      at::Tensor grad_input = OpPreparation::ApplyTensor(temp_output, outputSize);
+      at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
 
       // calculate the output result of the NPU
-      softmax_backward_out_npu(grad_input, grad_output, temp_output, dim, self);
+      softmax_backward_out_npu(grad_input, grad_output, output, dim, self);
 
       return grad_input;
     }
