@@ -50,7 +50,7 @@ private:
 
   bool reshape_match_by_memory_repoint(const at::Tensor &src,
                                        at::Tensor &self) {
-    RECORD_FUNCTION("contiguous_h_memcpy", std::vector<c10::IValue>({src}));
+    RECORD_FUNCTION("contiguous_h_memRepoint", std::vector<c10::IValue>({src}));
     switch (src.scalar_type()) {
     case at::ScalarType::Half:
       ResetDataPtr(src, self,
