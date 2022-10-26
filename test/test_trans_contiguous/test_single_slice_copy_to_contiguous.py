@@ -45,16 +45,16 @@ class SingleViewCopyToContiguous(TestCase):
             # for narrow with step=1, if narrow at the first axis, it will generate a contiguous tensor
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input[:,:16,:,:].contiguous()
-            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                True, "narrow_npuSlice is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                True, "contiguous_d_Slice is not called!")
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[:,:,1:16,:].contiguous()
-            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                True, "narrow_npuSlice is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                True, "contiguous_d_Slice is not called!")
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out3 = npu_input[:,:,:,2:16].contiguous()
-            self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                True, "narrow_npuSlice is not called!")
+            self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                True, "contiguous_d_Slice is not called!")
 
             cpu_out1 = cpu_input[:,:16,:,:].contiguous()
             cpu_out2 = cpu_input[:,:,1:16,:].contiguous()
@@ -82,15 +82,15 @@ class SingleViewCopyToContiguous(TestCase):
             if cpu_input.dim() == 4:
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out1 = npu_input[::2].contiguous()
-                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), \
+                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof), \
                     True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out2 = npu_input[:,1:17:4].contiguous()
-                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), \
+                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof), \
                     True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out3 = npu_input[:,:,2:16:5].contiguous()
-                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), \
+                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof), \
                     True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     # stridedSlice do not support slice at last dim 
@@ -99,7 +99,7 @@ class SingleViewCopyToContiguous(TestCase):
                     True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out5 = npu_input[::2,1:17:4,2:16:5,:].contiguous()
-                self.assertEqual(check_operators_in_prof(['npuStridedSlice'], prof), \
+                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof), \
                     True, "Error operators called!")
 
                 cpu_out1 = cpu_input[::2].contiguous()
@@ -132,8 +132,8 @@ class SingleViewCopyToContiguous(TestCase):
             for dim in range(1,len(item[2])):
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out = npu_input.select(dim,1).contiguous()
-                self.assertEqual(check_operators_in_prof(['select_npuStridedSlice'], prof), \
-                    True, "select_npuStridedSlice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_StridedSlice'], prof), \
+                    True, "contiguous_d_StridedSlice is not called!")
                 cpu_out = cpu_input.select(dim,1).contiguous()
                 self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())  
 
@@ -151,7 +151,7 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out = torch.as_strided(npu_input, \
                     shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['npuStridedSlice']), \
+            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_d_StridedSlice']), \
                 True, "Error operators called!")
             cpu_out = torch.as_strided(cpu_input, \
                 shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()

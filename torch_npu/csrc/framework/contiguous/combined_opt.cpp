@@ -49,7 +49,7 @@ public:
 
     if (can_use_combined(shape_stride_stacks, offset_stack, src_desc,
                          combined_cases_num)) {
-      RECORD_FUNCTION("npuCombined", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_h_combined", std::vector<c10::IValue>({src}));
       // Record src infos for recovering after trans-contiguous
       auto src_storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
 
@@ -91,7 +91,7 @@ private:
         (tensor.storage_offset() != npu_desc.base_offset_)) {
       return false;
     }
-    RECORD_FUNCTION("npuMatch", std::vector<c10::IValue>({tensor}));
+    RECORD_FUNCTION("contiguous_h_match", std::vector<c10::IValue>({tensor}));
     StorageDescHelper::SetDesc(tensor, array_to_small_vector(tensor.sizes()),
                                array_to_small_vector(tensor.strides()));
     return true;
