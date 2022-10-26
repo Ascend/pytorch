@@ -36,7 +36,8 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
 
         for item in shape_format1: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: unsqueeze+permute ==> can be optimized as single permute(contiguous_h_combined should not be called)
+            # case 1: unsqueeze+permute ==> can be optimized as single permute
+            # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.unsqueeze(1).transpose(2,3).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \
@@ -44,7 +45,8 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             cpu_out1 = cpu_input.unsqueeze(1).transpose(2,3).contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: permute+unsqueeze ==> can be optimized as single permute(contiguous_h_combined should not be called)
+            # case 2: permute+unsqueeze ==> can be optimized as single permute
+            # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input.permute(1,0,2,3).unsqueeze(0).contiguous()
             self.assertEqual(check_operators_in_prof(['contiguous_d_Transpose'], prof, ['contiguous_h_combined']), \

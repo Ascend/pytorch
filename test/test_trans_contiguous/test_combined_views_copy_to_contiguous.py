@@ -92,7 +92,8 @@ class CombinedViewsCopyToContiguous(TestCase):
 
         for item in shape_format3: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # case 1: permute+strideslice-no offset ==> all cannot be optimized(contiguous_h_combined should not be called)
+            # case 1: permute+strideslice-no offset ==> all cannot be optimized
+            # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.permute(1,3,2,0)[::2].contiguous()
             self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_h_combined']), \
@@ -100,7 +101,8 @@ class CombinedViewsCopyToContiguous(TestCase):
             cpu_out1 = cpu_input.permute(1,3,2,0)[::2].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
-            # case 2: strideslice+permute-with offset ==> all cannot be optimized(contiguous_h_combined should not be called)
+            # case 2: strideslice+permute-with offset ==> all cannot be optimized
+            # (contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[:,1:10:3].permute(1,3,0,2).contiguous()
             self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_h_combined']), \
