@@ -30,7 +30,7 @@ at::Tensor& masked_fill_out_npu_nocheck(const at::Tensor& self, const at::Tensor
   }
 
   if ((mask.dtype() != at::kBool)) {
-    maskBool = mask.to(at::kBool);
+    maskBool = NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
   }
   at::Tensor valueTensor = value;
   if (value.dtype() != self.dtype()) {
@@ -62,7 +62,7 @@ at::Tensor& masked_fill_out_npu_nocheck(const at::Tensor& self, const at::Tensor
   }
 
   if (!(mask.dtype() == at::kBool)) {
-    maskBool = mask.to(at::kBool);
+    maskBool = NPUNativeFunctions::npu_dtype_cast(mask, at::kBool);
   }
 
   OpCommand cmd;

@@ -65,7 +65,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::min_out(
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::min(const at::Tensor& self, int64_t dim, bool keepdim) {
   at::Tensor selfCast = self;
   if(self.dtype() == at::ScalarType::Bool){
-    selfCast = self.to(at::ScalarType::Float);
+    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   c10::SmallVector<int64_t, SIZE> dims = {dim};
   auto outputSize = reduce_ops_npu_output_size(selfCast, dims, keepdim);
@@ -83,7 +83,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::min(const at::Tensor& self, in
       .Return<at::Tensor, at::Tensor>();
 
   if(self.dtype() == at::ScalarType::Bool){
-    outputs = outputs.to(at::ScalarType::Bool);
+    outputs = NPUNativeFunctions::npu_dtype_cast(outputs, at::ScalarType::Bool);
   }
   return std::tie(outputs, indices);
 }

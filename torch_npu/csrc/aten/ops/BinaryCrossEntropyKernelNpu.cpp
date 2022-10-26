@@ -61,7 +61,7 @@ at::Tensor NPUNativeFunctions::binary_cross_entropy(
 
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   if (self.numel() == 0) {
-    result = result.to(at::kFloat).fill_(0);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kFloat).fill_(0);
     result = result / 0;
     return result;
   }

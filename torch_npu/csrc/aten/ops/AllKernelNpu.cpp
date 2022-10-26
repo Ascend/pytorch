@@ -71,10 +71,10 @@ at::Tensor NPUNativeFunctions::all(const at::Tensor& self, int64_t dim, bool kee
             outputSize.emplace_back(self.size(i));
         }
     }
-    at::Tensor res = OpPreparation::ApplyTensor(
+    at::Tensor res = NPUNativeFunctions::npu_dtype_cast(OpPreparation::ApplyTensor(
         outputSize,
         self.options().dtype(at::kInt),
-        self).fill_(1).to(at::ScalarType::Bool);
+        self).fill_(1), at::ScalarType::Bool);
     return res;
   }
 
@@ -95,7 +95,7 @@ at::Tensor NPUNativeFunctions::all(const at::Tensor& self) {
   TORCH_CHECK(self.scalar_type() == at::ScalarType::Bool || self.scalar_type() == at::ScalarType::Byte,
       "all only supports torch.uint8 and torch.bool dtypes");
   if (self.numel() == 0) {
-    at::Tensor res = OpPreparation::ApplyTensor({}, self.options().dtype(at::kInt), self).fill_(1).to(at::ScalarType::Bool);
+    at::Tensor res = NPUNativeFunctions::npu_dtype_cast(OpPreparation::ApplyTensor({}, self.options().dtype(at::kInt), self).fill_(1), at::ScalarType::Bool);
     return res;
   }
 

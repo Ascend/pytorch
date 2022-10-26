@@ -48,7 +48,7 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d_backward(
     c10::optional<double> scales_w) {
   at::Tensor grads = grad_output;
   if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
+    grads = NPUNativeFunctions::npu_dtype_cast(grad_output, at::kFloat);
   }
   at::Tensor grad_input = OpPreparation::ApplyTensor(
       input_size, grads.options(), grad_output);

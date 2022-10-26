@@ -88,12 +88,12 @@ at::Tensor NPUNativeFunctions::any(const at::Tensor& self) {
   // when self's dim = 0, convert [1] tensor and reduce it
   if (self.dim() == 0) {
       at::Tensor self_tmp = self;
-      self_tmp = OpPreparation::ApplyTensorWithFormat(
+      self_tmp = NPUNativeFunctions::npu_dtype_cast(OpPreparation::ApplyTensorWithFormat(
           {1}, 
           self.options().dtype(at::ScalarType::Float), 
           CalcuOpUtil::get_tensor_npu_format(self))
           .fill_(self.item())
-          .to(at::ScalarType::Bool);
+          , at::ScalarType::Bool);
       return NPUNativeFunctions::any(self_tmp, 0, false);
   }
 
