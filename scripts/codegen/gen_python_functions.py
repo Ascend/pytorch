@@ -344,6 +344,9 @@ static PyObject * ${pycname}(PyObject* self_, PyObject* args, PyObject* kwargs)
   }, /*traceable=*/${traceable});
   torch::ParsedArgs<${max_args}> parsed_args;
   auto _r = parser.parse(${self_}, args, kwargs, parsed_args);
+  if(_r.has_torch_function()) {
+    return torch::handle_torch_function(_r, args, kwargs, THPVariableFunctionsModule, "torch");
+  }
   switch (_r.idx) {
     ${dispatch}
   }
@@ -371,6 +374,9 @@ static PyObject * ${pycname}(PyObject* self_, PyObject* args, PyObject* kwargs)
   }, /*traceable=*/${traceable});
   torch::ParsedArgs<${max_args}> parsed_args;
   auto _r = parser.parse(${self_}, args, kwargs, parsed_args);
+  if(_r.has_torch_function()) {
+    return torch::handle_torch_function(_r, args, kwargs, THPVariableFunctionsModule, "torch");
+  }
   ${dispatch}
   ${method_footer}
 }
