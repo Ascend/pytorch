@@ -337,12 +337,14 @@ void CopyFunc(void* dst, void* src, uint32_t queueLen) {
   dstPtr->paramStream = srcPtr->paramStream;
   dstPtr->paramType = srcPtr->paramType;
   dstPtr->paramLen = srcPtr->paramLen;
-  memset(dstPtr->paramVal, 0, MAX_VAL_SIZE);
   if (srcPtr->paramType == COMPILE_AND_EXECUTE) {
+    new(dstPtr->paramVal) ExecuteParas();
     (static_cast<ExecuteParas* >(dstPtr->paramVal))->Copy(*(static_cast<ExecuteParas* >(srcPtr->paramVal)));
   } else if (srcPtr->paramType == ASYNC_MEMCPY) {
+    new(dstPtr->paramVal) CopyParas();
     (static_cast<CopyParas* >(dstPtr->paramVal))->Copy(*(static_cast<CopyParas* >(srcPtr->paramVal)));
   } else {
+    new(dstPtr->paramVal) EventParas();
     (static_cast<EventParas* >(dstPtr->paramVal))->Copy(*(static_cast<EventParas* >(srcPtr->paramVal)));
   }
 }
