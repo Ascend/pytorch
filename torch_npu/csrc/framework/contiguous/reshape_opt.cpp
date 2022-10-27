@@ -24,7 +24,7 @@ public:
                  const ContiguousTensorDesc &src_desc) override {
     ContiguousTensorDesc result_desc = TransContiguous::GetTensorDescInfo(result);
     if (check_reshape_match(result_desc, src_desc)) {
-      RECORD_FUNCTION("View_d2dCopyAsync", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_Reshape", std::vector<c10::IValue>({src}));
       NPUNativeFunctions::npu_reshape_out(src, src.sizes(), false, result);
       return true;
     }

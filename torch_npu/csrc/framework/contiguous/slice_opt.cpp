@@ -30,7 +30,7 @@ public:
     c10::SmallVector<int64_t, MAX_DIM> offsets;
     c10::SmallVector<int64_t, MAX_DIM> size;
     if (can_use_slice(src_desc, offsets, size)) {
-      RECORD_FUNCTION("narrow_npuSlice", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_Slice", std::vector<c10::IValue>({src}));
       slice_to_contiguous(self, src, offsets, size, src_desc);
       return true;
     }

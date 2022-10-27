@@ -30,7 +30,7 @@ public:
     c10::SmallVector<int64_t, MAX_DIM> perm;
     c10::SmallVector<int64_t, 5> sizes;
     if (can_use_permute(src_desc, perm, sizes)) {
-      RECORD_FUNCTION("npuTranspose", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_Transpose", std::vector<c10::IValue>({src}));
       // Refresh src Tensor to match output self Tensor
       auto src_desc_stored = torch_npu::NPUBridge::GetNpuStorageImpl(src)->get_npu_desc();
       auto &src_desc = torch_npu::NPUBridge::GetNpuStorageImpl(src)->npu_desc_;
