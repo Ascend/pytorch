@@ -146,7 +146,7 @@ class CombinedReshapeXCopyToContiguous(TestCase):
             # case 2: strideslice + view 
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof), \
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof), \
                 True, "Error operators called!")
             cpu_out2 = cpu_input[10:19:3,:,:].view(3, 2400, 5).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
