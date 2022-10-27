@@ -37,7 +37,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
   // Set the offset of input discontiguous tensor to be 0.
   // The accurate offset would be provided as a attr to op. 
   NpuStorageOffsetGuard guard_input(const_cast<at::Tensor &>(self));
-  RECORD_FUNCTION("npuAsStrided", std::vector<c10::IValue>({self}));
+  RECORD_FUNCTION("contiguous_d_AsStrided", std::vector<c10::IValue>({self}));
   OpCommand cmd;
   cmd.Name("AsStrided")
       .InputWithoutContiguous(self)
