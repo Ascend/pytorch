@@ -18,6 +18,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestIm2col(TestCase):
@@ -37,7 +38,8 @@ class TestIm2col(TestCase):
         output = output.numpy()
         return output
 
-    def test_im2col_float16_shape_format(self, device="npu"):
+    @graph_mode
+    def test_im2col_float16_shape_format(self):
         def cpu_op_exec_fp16(input1, ksizes, rates, padding, strides):
             input1 = input1.to(torch.float32)
             output = torch._C._nn.im2col(input1, ksizes, rates, padding, strides)

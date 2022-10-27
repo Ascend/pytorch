@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
 
 namespace at_npu {
 namespace native {
@@ -38,7 +40,18 @@ at::Tensor& index_out_nocheck_npu(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {  
+at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c10::optional<at::Tensor>>& orig) {
+  /**
+   * In the cann framework, index operator belongs to the fourth type of
+   * operator, which means that the execution of the index operator must go
+   * through the dynamic shape execution framework. In this case, constructing
+   * a large dynamic shape graph is not beneficial to the overall execution
+   * performance, because more dynamic shape operators are introduced.
+   * Therefore, when the fourth type of operator is encountered in graph
+   * mode, the single op mode is switched to execute by default.
+   */
+  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
+
   at::native::checkIndexTensorTypes(orig);
   // masks corresponds to indices. 0 indicates undefined tensor.
   at::SmallVector<int64_t, N> masks;
