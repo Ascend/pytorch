@@ -243,6 +243,14 @@ def lstm_forward(self, input, hx=None):
             batch_sizes_npu = batch_sizes.to(input.device)
             result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
+            # 根据TMG决策，pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
+            if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
+                result = list(result)
+                shape = [result[0].shape[0] * result[0].shape[1]]
+                if result[0].dim() > 2:
+                    shape = shape + list(result[0].shape[2:])
+                result[0] = result[0].reshape(shape)
+                result = tuple(result)
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
