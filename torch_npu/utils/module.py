@@ -13,12 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Optional
 from statistics import mode
 import warnings
 import logging
 
 import torch
+from torch import Tensor
 from torch.distributed.algorithms.join import Join
+from torch.nn.parameter import Parameter, UninitializedParameter, UninitializedBuffer
+from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
 from torch.nn.modules.module import Module
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
 
@@ -494,6 +498,72 @@ def ddp_set_static_graph(self):
         )
 
 
+def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float = 0.1, affine: bool = True,
+                    track_running_stats: bool = True, device=None, dtype=None) -> None:
+    factory_kwargs = {'device': device, 'dtype': dtype}
+    super(_NormBase, self).__init__()
+    self.num_features = num_features
+    self.eps = eps
+    self.momentum = momentum
+    self.affine = affine
+    self.track_running_stats = track_running_stats
+    if self.affine:
+        self.weight = Parameter(torch.empty(num_features, **factory_kwargs))
+        self.bias = Parameter(torch.empty(num_features, **factory_kwargs))
+    else:
+        self.register_parameter("weight", None)
+        self.register_parameter("bias", None)
+    if self.track_running_stats:
+        self.register_buffer('running_mean', torch.zeros(num_features, **factory_kwargs))
+        self.register_buffer('running_var', torch.ones(num_features, **factory_kwargs))
+        self.running_mean: Optional[Tensor]
+        self.running_var: Optional[Tensor]
+        self.register_buffer('num_batches_tracked',
+                                torch.tensor(0, dtype=torch.int32,
+                                            **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
+        self.num_batches_tracked: Optional[Tensor]
+    else:
+        self.register_buffer("running_mean", None)
+        self.register_buffer("running_var", None)
+        self.register_buffer("num_batches_tracked", None)
+    self.reset_parameters()
+
+
+def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys,
+                                    unexpected_keys, error_msgs):
+    version = local_metadata.get("version", None)
+
+    if (version is None or version < 2) and self.track_running_stats:
+        # at version 2: added num_batches_tracked buffer
+        #               this should have a default value of 0
+        num_batches_tracked_key = prefix + "num_batches_tracked"
+        if num_batches_tracked_key not in state_dict:
+            state_dict[num_batches_tracked_key] = torch.tensor(0, dtype=torch.int32)
+
+    super(_NormBase, self)._load_from_state_dict(
+        state_dict, prefix, local_metadata, strict,
+        missing_keys, unexpected_keys, error_msgs)
+
+
+def _lazynormbase__init__(self, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True,
+                          device=None, dtype=None) -> None:
+    factory_kwargs = {'device': device, 'dtype': dtype}
+    super(_LazyNormBase, self).__init__(
+        # affine and track_running_stats are hardcoded to False to
+        # avoid creating tensors that will soon be overwritten.
+        0, eps, momentum, False, False, **factory_kwargs)
+    self.affine = affine
+    self.track_running_stats = track_running_stats
+    if self.affine:
+        self.weight = UninitializedParameter(**factory_kwargs)
+        self.bias = UninitializedParameter(**factory_kwargs)
+    if self.track_running_stats:
+        self.running_mean = UninitializedBuffer(**factory_kwargs)
+        self.running_var = UninitializedBuffer(**factory_kwargs)
+        self.num_batches_tracked = torch.tensor(
+            0, dtype=torch.int32, **{k: v for k, v in factory_kwargs.items() if k != 'dtype'})
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
@@ -509,3 +579,6 @@ def apply_module_patch():
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
+    torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
+    torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
+    torch.nn.modules.batchnorm._LazyNormBase.__init__ = _lazynormbase__init__
