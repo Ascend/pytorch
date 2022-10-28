@@ -20,7 +20,10 @@ import logging
 import torch
 import torch.nn.functional as F
 
+from torch.nn.parameter import Parameter 
+from torch.nn.modules.batchnorm import _NormBase
 from torch.nn.modules._functions import SyncBatchNorm as sync_batch_norm
+
 from torch_npu.utils.tensor_methods import torch_device_guard
 
 import torch_npu
@@ -343,6 +346,45 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
 
+def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float = 0.1, affine: bool = True,
+                    track_running_stats: bool = True) -> None:
+    super(_NormBase, self).__init__()
+    self.num_features = num_features
+    self.eps = eps
+    self.momentum = momentum
+    self.affine = affine
+    self.track_running_stats = track_running_stats
+    if self.affine:
+        self.weight = Parameter(torch.Tensor(num_features))
+        self.bias = Parameter(torch.Tensor(num_features))
+    else:
+        self.register_parameter('weight', None)
+        self.register_parameter('bias', None)
+    if self.track_running_stats:
+        self.register_buffer('running_mean', torch.zeros(num_features))
+        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.int32))
+    else:
+        self.register_parameter('running_mean', None)
+        self.register_parameter('running_var', None)
+        self.register_parameter('num_batches_tracked', None)
+    self.reset_parameters()
+
+def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
+                                    missing_keys, unexpected_keys, error_msgs):
+    version = local_metadata.get('version', None)
+
+    if (version is None or version < 2) and self.track_running_stats:
+        # at version 2: added num_batches_tracked buffer
+        #               this should have a default value of 0
+        num_batches_tracked_key = prefix + 'num_batches_tracked'
+        if num_batches_tracked_key not in state_dict:
+            state_dict[num_batches_tracked_key] = torch.tensor(0, dtype=torch.int32)
+
+    super(_NormBase, self)._load_from_state_dict(
+        state_dict, prefix, local_metadata, strict,
+        missing_keys, unexpected_keys, error_msgs)
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
@@ -352,3 +394,5 @@ def apply_module_patch():
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
+    torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
+    torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
