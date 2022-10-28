@@ -43,19 +43,32 @@ at::Tensor &NPUNativeFunctions::sum_out(
     bool keepdim,
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
-  auto outputSize = sum_npu_output_size(self, dim, keepdim);
+  at::Tensor self_cp = self;
+  at::Tensor result_cp = result;
+
+  auto outputSize = sum_npu_output_size(self_cp, dim, keepdim);
   auto res_type = dtype.has_value() ? dtype.value() : result.scalar_type();
 
   OpPreparation::CheckOut(
-      {self},
-      result,
+      {self_cp},
+      result_cp,
       ACL_FORMAT_ND,
       res_type,
       outputSize);
   OpPipeWithDefinedOut pipe;
-  pipe.CheckMemory({self}, {result});
+  pipe.CheckMemory({self_cp}, {result_cp});
 
-  sum_out_npu_nocheck(result, self, dim, keepdim);
+  if (self.scalar_type() == at::kBool) {
+    self_cp = NPUNativeFunctions::npu_dtype_cast(self_cp, at::kFloat);
+    result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, at::kFloat);
+  }
+  sum_out_npu_nocheck(result_cp, self_cp, dim, keepdim);
+  if (result_cp.scalar_type() != res_type) {
+    result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, res_type);
+    result.copy_(result_cp);
+  } else {
+    result = result_cp;
+  }
   return result;
 }
 
@@ -73,8 +86,9 @@ at::Tensor NPUNativeFunctions::sum(
     at::IntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
-  auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
-  auto selfSize = self.sizes();
+  at::Tensor self_cp = self.scalar_type() == at::kBool ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+  auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
+  auto selfSize = self_cp.sizes();
   auto out_type = self.scalar_type();
 
   if (dtype.has_value()) {
@@ -85,13 +99,13 @@ at::Tensor NPUNativeFunctions::sum(
 
   for (int64_t i = 0; i < selfSize.size(); i++) {
     if (selfSize[i] == 0) {
-      return at::zeros(outputSize, self.options());
+      return at::zeros(outputSize, self_cp.options());
     }
   }
 
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options(), ACL_FORMAT_ND);
-  sum_out_npu_nocheck(result, self, dim, keepdim);
+      outputSize, self_cp.options(), ACL_FORMAT_ND);
+  sum_out_npu_nocheck(result, self_cp, dim, keepdim);
 
   if (result.scalar_type() != out_type) {
     result = NPUNativeFunctions::npu_dtype_cast(result, out_type);
