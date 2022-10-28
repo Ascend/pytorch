@@ -59,6 +59,7 @@ std::map<at::ScalarType, HcclDataType> hcclDataType = {
     {at::kHalf, HCCL_DATA_TYPE_FP16},
     {at::kShort, HCCL_DATA_TYPE_INT16},
     {at::kLong, HCCL_DATA_TYPE_INT64},
+    {at::kByte, HCCL_DATA_TYPE_UINT8},
 };
 
 int64_t physical_numel(at::Tensor self){

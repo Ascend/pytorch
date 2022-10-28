@@ -82,6 +82,7 @@ typedef enum {
     HCCL_DATA_TYPE_FP16 = 3,    /**< fp16 */
     HCCL_DATA_TYPE_FP32 = 4,    /**< fp32 */
     HCCL_DATA_TYPE_INT64 = 5,    /**< int 64 */
+    HCCL_DATA_TYPE_UINT8 = 7,    /**< uint8 */
     HCCL_DATA_TYPE_RESERVED     /**< reserved */
 } HcclDataType;
 
