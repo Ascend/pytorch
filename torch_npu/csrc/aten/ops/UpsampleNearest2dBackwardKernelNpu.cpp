@@ -30,14 +30,14 @@ at::Tensor& NPUNativeFunctions::upsample_nearest2d_backward_out(
   at::SmallVector<int64_t, N> outputSize = {input_size[2], input_size[3]};
   OpCommand cmd;
   cmd.Name("ResizeNearestNeighborV2Grad")
-      .Input(grads)
+      .Input(grads, "grads", ACL_FORMAT_NCHW)
       .Input(outputSize, at::kInt)
-      .Output(y)
+      .Output(y, "y", ACL_FORMAT_NCHW)
       .Attr("align_corners", false)
       .Attr("half_pixel_centers", false)
       .Run();
 
-   return y;
+  return y;
 }
 
 at::Tensor NPUNativeFunctions::upsample_nearest2d_backward(

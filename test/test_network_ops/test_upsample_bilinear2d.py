@@ -17,6 +17,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestUpsampleBilinear2d(TestCase):
@@ -43,6 +44,7 @@ class TestUpsampleBilinear2d(TestCase):
         output = output.numpy()
         return output
 
+    @graph_mode
     def test_UpsampleBilinear2d_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (1, 1, 3000, 3000)], (2500, 2500)],
@@ -62,11 +64,12 @@ class TestUpsampleBilinear2d(TestCase):
             cpu_output = cpu_output.astype(npu_output.dtype)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    @graph_mode
     def test_UpsampleBilinear2d_scale_common_shape_format(self):
         shape_format = [
             [[np.float32, -1, (1, 1, 3000, 3000)], [2, 2]],
             [[np.float32, 0, (4, 3, 1, 5)], [2, 2]],
-            [[np.float32, 2, (2, 3, 2, 1)], [3, 3]],
+            [[np.float32, -1, (2, 3, 2, 1)], [3, 3]],
             [[np.float32, 3, (1, 4, 2, 2)], [4, 4]],
             [[np.float16, 4, (4, 10, 16, 14)], [5, 5]],
             [[np.float16, 0, (8, 8, 8, 8)], [1, 2]],

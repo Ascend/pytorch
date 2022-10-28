@@ -115,7 +115,7 @@ at::Tensor& im2col_out_npu_nocheck(
 
   OpCommand cmd;
   cmd.Name("Im2col")
-      .Input(self)
+      .Input(self, "x", ACL_FORMAT_NCHW)
       .Output(result)
       .Attr("ksizes", kernelSize)
       .Attr("strides", stridesSize)
@@ -154,7 +154,7 @@ at::Tensor NPUNativeFunctions::im2col(
   auto outputSize =
       image_to_col_npu_output_size(self, kernel_size, stride, dilation, padding);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
-  im2col_out_npu_nocheck(result, self, kernel_size, dilation, padding, stride);
+  im2col_out(self, kernel_size, dilation, padding, stride, result);
   return result;
 }
 
