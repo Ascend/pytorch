@@ -95,7 +95,7 @@ class SingleViewCopyToContiguous(TestCase):
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     # stridedSlice do not support slice at last dim 
                     npu_out4 = npu_input[:,:,:,3:9:2].contiguous()
-                self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof), \
+                self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof), \
                     True, "Error operators called!")
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out5 = npu_input[::2,1:17:4,2:16:5,:].contiguous()
@@ -151,7 +151,7 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out = torch.as_strided(npu_input, \
                     shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_d_StridedSlice']), \
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_d_StridedSlice']), \
                 True, "Error operators called!")
             cpu_out = torch.as_strided(cpu_input, \
                 shape_list[1][0], shape_list[1][1], shape_list[1][2]).contiguous()

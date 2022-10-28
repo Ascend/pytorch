@@ -139,7 +139,7 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             # case 2: unfold+unsqueeze: size!=step ==> cannot be optimized
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input.unfold(2,2,3).unsqueeze(1).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_h_combined']),\
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']),\
                 True, "Error operators called!") 
             cpu_out2 = cpu_input.unfold(2,2,3).unsqueeze(1).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
@@ -160,14 +160,14 @@ class CombinedUnsqueezeXCopyToContiguous(TestCase):
             # case 1: squeeze + strideslice ==> cannot be optimized(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_h_combined']), \
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!") 
             cpu_out1 = cpu_input.unsqueeze(1)[:,:,20:150:3].contiguous()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
             # case 2: strideslice + squeeze ==> cannot be optimized(contiguous_h_combined should not be called)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[:,:,10:19:3].unsqueeze(0).contiguous()
-            self.assertEqual(check_operators_in_prof(['npuAsStrided'], prof, ['contiguous_h_combined']), \
+            self.assertEqual(check_operators_in_prof(['contiguous_d_AsStrided'], prof, ['contiguous_h_combined']), \
                 True, "Error operators called!") 
             cpu_out2 = cpu_input[:,:,10:19:3].unsqueeze(0).contiguous()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())

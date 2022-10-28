@@ -36,7 +36,7 @@ void copy_kernel_npu(
     at::Tensor& self,
     const at::Tensor& src,
     bool non_blocking) {
-  RECORD_FUNCTION("d2dCopyWithViewCopy", std::vector<c10::IValue>({src}));
+  RECORD_FUNCTION("contiguous_d_ViewCopy", std::vector<c10::IValue>({src}));
 
   auto self_size = self.sizes();
   auto self_stride = self.strides();
