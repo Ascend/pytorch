@@ -34,6 +34,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/distributed/HcclCompile.h"
 
 namespace c10d_npu {
 namespace {
@@ -67,6 +68,20 @@ int64_t physical_numel(at::Tensor self){
     n *= s;
   }
   return n;
+}
+
+// use tensor numel when the format is ACL_FORMAT_ND or ACL_FORMAT_NCHW
+uint64_t getNumelForHCCL(at::Tensor& self) {
+    aclFormat format = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.npu_format_;
+    if (format != ACL_FORMAT_ND and format != ACL_FORMAT_NCHW) {
+        if (self.storage().data_ptr().get() != self.data_ptr()) {
+            TORCH_WARN_ONCE("The storage data_ptr is different from tensor data_ptr."
+                            "Maybe this tensor is not suitable for HCCL.");
+        }
+        return physical_numel(self);
+    } else {
+        return self.numel();
+    }
 }
 
 // Helper function that gets the data type and issues error if not supported
@@ -593,9 +608,28 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_coalesc
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
-    std::vector<at::Tensor>& /* unused */,
-    const c10d::ReduceOptions& /* unused */) {
-  throw std::runtime_error("ProcessGroupHCCL does not support reduce");
+    std::vector<at::Tensor>& tensors,
+    const c10d::ReduceOptions& opts) {
+  check_npu_tensors_different_devices(tensors);
+  uint64_t rank = opts.rootRank;
+  return collective(
+      tensors,
+      tensors,
+      [&](at::Tensor& input,
+          at::Tensor& output,
+          HcclComm comm,
+          c10_npu::NPUStream& stream) {
+        RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
+        return hcclReduce(
+            input.data_ptr(),
+            output.data_ptr(),
+            getNumelForHCCL(input),
+            getHcclDataType(input.scalar_type()),
+            hcclOp[opts.reduceOp],
+            rank,
+            comm,
+            stream.stream());
+      });
 }
 
 c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
