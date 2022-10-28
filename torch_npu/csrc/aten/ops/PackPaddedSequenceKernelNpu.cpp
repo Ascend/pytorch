@@ -20,54 +20,62 @@ namespace at_npu {
 namespace native {
 
 std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pack_padded_sequence(
-    const at::Tensor& _input,
-    const at::Tensor& _lengths,
+    const at::Tensor& input,
+    const at::Tensor& lengths,
     bool batch_first) {
-  auto input = batch_first ? _input.transpose(0, 1) : _input;
-  auto lengths_t = _lengths.contiguous();
+  // 获取B、T的大小，输入是[T, B, *] or [B, T, *]
+  auto batchsize = batch_first ? input.size(0) : input.size(1);
+  auto timesize = batch_first ? input.size(1) : input.size(0);
 
-  int64_t batchSize = input.size(1);
-  int64_t * lengths = lengths_t.data_ptr<int64_t>();
+  // 与CPU对齐输入条件
   TORCH_CHECK(input.numel() > 0, "Cannot pack empty tensors.");
-  TORCH_CHECK(lengths_t.size(0) == batchSize,
-      "Expected `len(lengths)` to be equal to batch_size, but got ", lengths_t.size(0),
-      " (batch_size=", batchSize, ")");
-  TORCH_CHECK(lengths[batchSize - 1] > 0,
+
+  TORCH_CHECK(lengths.size(0) == batchsize,
+      "Expected 'len(lengths)' to be equal to batch_size, but got ", lengths.size(0),
+      " (batch_size=", batchsize, ")");
+
+  auto lengthsVec = lengths.contiguous().data_ptr<int64_t>();
+  TORCH_CHECK(lengthsVec[batchsize - 1] > 0,
       "Length of all samples has to be greater than 0, but found an element "
       "in 'lengths' that is <= 0");
-  for(auto i = 0; i < batchSize - 1; i++) {
-    if (lengths[batchSize - 1 - i] > lengths[batchSize - 2 - i]) {
-      // NB: enforce_sorted is implemented at a Python level, but the sortedness
-      // check lives here. If enforce_sorted=False then this error should never
-      // get called.
-      AT_ERROR("`lengths` array must be sorted in decreasing order when "
-               "`enforce_sorted` is True. You can pass `enforce_sorted=False` "
-               "to pack_padded_sequence and/or pack_sequence to sidestep this "
-               "requirement if you do not need ONNX exportability.");
-    }
+
+  // 根据TMG决策暂时采用适配规避方案一，保留有效T0内的填充, [B*T0, *]
+  auto output = batch_first ? input.transpose(0, 1) : input;
+  auto len = lengthsVec[0];
+  if (len < timesize) {
+    at::Scalar start = 0;
+    at::Scalar end = len - 1;
+    at::Tensor index = OpPreparation::ApplyTensorWithFormat(
+        {len}, input.options().dtype(at::kInt), ACL_FORMAT_ND);
+    NPUNativeFunctions::range_out(start, end, 1, index);
+    output = NPUNativeFunctions::index_select(output, 0, index);
+    timesize = len;
   }
 
-  at::Tensor batchSizesT = at::empty(lengths[0], _lengths.options());
-  int64_t * batchSizes = batchSizesT.data_ptr<int64_t>();
+  at::SmallVector<int64_t, N> shape;
+  shape.emplace_back(batchsize * timesize);
+  for (int i = 2; i < input.dim(); i++) {
+    shape.emplace_back(input.size(i));
+  }
 
-  int64_t prevL = 0;
-  for (int64_t i = 0; i < batchSize; ++i) {
-    int64_t l = lengths[batchSize - 1 - i];
-    if (l > prevL) {
-      auto currentBatchSize = batchSize - i;
-      for (int64_t j = 0; j < (l - prevL); ++j) {
-        *batchSizes = currentBatchSize;
-        batchSizes++;
+  output = output.contiguous();
+  output = output.reshape(shape);
+
+  // 计算输出的batch_size
+  at::Tensor batchsizes = at::empty({timesize}, lengths.options());
+  auto batchsizeVec = batchsizes.data_ptr<int64_t>();
+  int64_t last = batchsize - 1;
+  for (int ti = 0; ti < timesize; ti++) {
+    for (int bi = last; bi >= 0 ; bi--) {
+      if (lengthsVec[bi] > ti ) {
+        batchsizeVec[ti] = (bi + 1);
+        last = bi;
+        break;
       }
-      prevL = l;
     }
-    TORCH_CHECK(l >= prevL);
   }
 
-  int64_t lastDim = _input.size(2);
-  at::Tensor inputDim2 = _input.contiguous().view({-1, lastDim});
-  
-  return std::tie(inputDim2, batchSizesT);
+  return std::tie(output, batchsizes);
 }
 
 }
