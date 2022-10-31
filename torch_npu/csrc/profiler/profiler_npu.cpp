@@ -46,10 +46,16 @@ struct NPUMethods : public DeviceStubs {
         std::cout << "Warning! NPU destroy event error, status is not completed." << std::endl;
     }
   }
-  void record(int* device, aclrtEvent* event1, int64_t* cpu_ns) const override {
-    TORCH_NPU_CHECK(aclrtGetDevice(device));
-    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
-    auto stream = c10_npu::getCurrentNPUStream();
+  void record(int& device, aclrtEvent* event1, int64_t* cpu_ns) const override {
+    static int local_device = -1;
+    static bool init_flag = false;
+    if (!init_flag) {
+      TORCH_NPU_CHECK(aclrtGetDevice(&local_device));
+      init_flag = true;
+    }
+    device = local_device;
+    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
+    static auto stream = c10_npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
   }
