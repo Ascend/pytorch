@@ -27,11 +27,11 @@ Tensor iou_npu(
     int64_t mode) {
   Tensor bboxesFP16 = bboxes;
   if (bboxes.scalar_type() != at::ScalarType::Half) {
-    bboxesFP16 = bboxes.to(at::kHalf);
+    bboxesFP16 = bboxes.npu_dtype_cast(at::kHalf);
   }
   Tensor gtboxesFP16 = gtboxes;
   if (gtboxes.scalar_type() != at::ScalarType::Half) {
-    gtboxesFP16 = gtboxes.to(at::kHalf);
+    gtboxesFP16 = gtboxes.npu_dtype_cast(at::kHalf);
   }
 
   auto outputSize = {gtboxes.size(0), bboxes.size(0)};
@@ -49,7 +49,7 @@ Tensor iou_npu(
       .Attr("eps", static_cast<float>(0.01))
       .Run();
   if (overlap.scalar_type() != bboxes.scalar_type()) {
-    overlap = overlap.to(bboxes.scalar_type());
+    overlap = overlap.npu_dtype_cast(bboxes.scalar_type());
   }
   return overlap;
 }

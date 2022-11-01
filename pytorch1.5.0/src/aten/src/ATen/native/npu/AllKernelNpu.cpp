@@ -80,7 +80,7 @@ Tensor all_npu(const Tensor& self, int64_t dim, bool keepdim) {
     Tensor res = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         self.options().dtype(kInt), 
-        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(self.scalar_type());
+        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).npu_dtype_cast(self.scalar_type());
     return res;
   }
 
@@ -112,7 +112,7 @@ Tensor all_npu(const Tensor& self) {
     Tensor res = OpPreparation::ApplyTensorWithFormat(
         {}, 
         self.options().dtype(kInt), 
-        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).to(self.scalar_type());
+        CalcuOpUtil::get_tensor_npu_format(self)).fill_(1).npu_dtype_cast(self.scalar_type());
     return res;
   }
 

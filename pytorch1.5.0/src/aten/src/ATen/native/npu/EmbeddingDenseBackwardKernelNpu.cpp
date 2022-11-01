@@ -28,7 +28,7 @@ Tensor& embedding_dense_backward_nocheck(
     int64_t padding_idx,
     bool scale_grad_by_freq) {
   // indices must be int64 in pytorch, but npu can only support int32
-  auto indices_int32 = indices.to(at::kInt);
+  auto indices_int32 = indices.npu_dtype_cast(at::kInt);
 
   OpCommand cmd;
   cmd.Name("EmbeddingDenseGrad")

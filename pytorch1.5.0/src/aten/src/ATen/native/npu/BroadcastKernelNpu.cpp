@@ -39,7 +39,7 @@ Tensor& broadcast_out_npu(
 Tensor broadcast_npu(const Tensor& self, IntArrayRef size) {
   Tensor input = self;
   if (self.dtype() == at::kBool) {
-    input = input.to(at::kInt);
+    input = input.npu_dtype_cast(at::kInt);
   }
 
   Tensor result = at::empty_with_format(
@@ -50,7 +50,7 @@ Tensor broadcast_npu(const Tensor& self, IntArrayRef size) {
   broadcast_out_npu(result, input, size);
 
   if (self.dtype() == at::kBool) {
-    result = result.to(at::kBool);
+    result = result.npu_dtype_cast(at::kBool);
   }
 
   return result;

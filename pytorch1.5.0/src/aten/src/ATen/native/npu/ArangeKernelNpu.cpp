@@ -93,13 +93,13 @@ Tensor arange_npu(
       : at::empty_with_format(outputSize, options, ACL_FORMAT_ND);
 
   if(options.dtype() == at::kHalf) {
-    result = result.to(at::kFloat);
+    result = result.npu_dtype_cast(at::kFloat);
   }
 
   arange_out_npu_nocheck(result, start, end, step);
 
   if(options.dtype() == at::kHalf) {
-    result = result.to(at::kHalf);
+    result = result.npu_dtype_cast(at::kHalf);
   }
 
   return result;

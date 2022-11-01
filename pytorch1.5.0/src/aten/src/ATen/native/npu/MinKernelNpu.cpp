@@ -69,7 +69,7 @@ tuple<Tensor&, Tensor&> min_out_npu(
 tuple<Tensor, Tensor> min_npu(const Tensor& self, int64_t dim, bool keepdim) {
   Tensor selfCast = self;
   if(self.dtype() == ScalarType::Bool){
-    selfCast = self.to(ScalarType::Float);
+    selfCast = self.npu_dtype_cast(ScalarType::Float);
   }
 
   SmallVector<int64_t, SIZE> dims = {dim};
@@ -89,7 +89,7 @@ tuple<Tensor, Tensor> min_npu(const Tensor& self, int64_t dim, bool keepdim) {
       .Return<Tensor, Tensor>();
 
   if(self.dtype() == ScalarType::Bool){
-    outputs = outputs.to(ScalarType::Bool);
+    outputs = outputs.npu_dtype_cast(ScalarType::Bool);
   }
 
   return std::tie(outputs, indices);

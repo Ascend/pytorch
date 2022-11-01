@@ -28,7 +28,7 @@ Tensor& smooth_l1_loss_out_npu_nocheck(
   // Check the self empty
   if (self.numel()==0) {
     // In this scenario, needs to return nan. And the nan of the NPU can only be fp32.
-    result = result.to(at::kFloat).fill_(0);
+    result = result.npu_dtype_cast(at::kFloat).fill_(0);
     result = result / 0;
     return result;
   }

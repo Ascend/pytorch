@@ -66,7 +66,7 @@ Tensor binary_cross_entropy_npu(
   Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   if (self.numel() == 0) {
     // In this scenario, needs to return nan. And the nan of the NPU can only be fp32.
-    result = result.to(at::kFloat).fill_(0);
+    result = result.npu_dtype_cast(at::kFloat).fill_(0);
     result = result / 0;
     return result;
   }

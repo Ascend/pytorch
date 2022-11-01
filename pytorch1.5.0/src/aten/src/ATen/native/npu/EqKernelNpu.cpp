@@ -25,8 +25,8 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
   Tensor selfCast = self;
   Tensor otherCast = other;
   if (self.dtype() == ScalarType::Int || other.dtype() == ScalarType::Int) {
-    selfCast = self.to(ScalarType::Float);
-    otherCast = other.to(ScalarType::Float);
+    selfCast = self.npu_dtype_cast(ScalarType::Float);
+    otherCast = other.npu_dtype_cast(ScalarType::Float);
   }
   auto unified_result = OpPreparation::comparison_op_check(result, selfCast, otherCast, true);
   OpCommand cmd;
@@ -43,7 +43,7 @@ Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, const Tensor& oth
 Tensor& eq_out_npu_nocheck(Tensor& result, const Tensor& self, Scalar other) {
   Tensor selfCast = self;
   if (self.dtype() == ScalarType::Int) {
-    selfCast = self.to(ScalarType::Float);
+    selfCast = self.npu_dtype_cast(ScalarType::Float);
   }
   OpCommand cmd;
   cmd.Name("Equal")

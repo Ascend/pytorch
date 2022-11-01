@@ -48,7 +48,7 @@ Tensor upsample_nearest2d_backward_npu(
     c10::optional<double> scales_w) {
   Tensor grads = grad_output;
   if (grad_output.scalar_type() != at::ScalarType::Float) {
-    grads = grad_output.to(at::kFloat);
+    grads = grad_output.npu_dtype_cast(at::kFloat);
   }
 
   Tensor grad_input = OpPreparation::ApplyTensor(

@@ -26,10 +26,10 @@ Tensor& inverse_out_npu(
   Tensor selfCast = self;
   Tensor resultCast = result;
   if(self.scalar_type() == at::kHalf) {
-    selfCast = self.to(at::kFloat);
+    selfCast = self.npu_dtype_cast(at::kFloat);
   }
   if(result.scalar_type() == at::kHalf) {
-    resultCast = resultCast.to(at::kFloat);
+    resultCast = resultCast.npu_dtype_cast(at::kFloat);
   }
   OpCommand cmd;
   cmd.Name("MatrixInverse")

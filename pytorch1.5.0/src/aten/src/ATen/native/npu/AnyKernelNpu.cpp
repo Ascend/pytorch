@@ -94,7 +94,7 @@ Tensor any_npu(const Tensor& self) {
           self.options().dtype(ScalarType::Float), 
           CalcuOpUtil::get_tensor_npu_format(self))
           .fill_(self.item())
-          .to(ScalarType::Bool);
+          .npu_dtype_cast(ScalarType::Bool);
       return any_npu(self_tmp, 0, false);
   }
 

@@ -40,7 +40,7 @@ Tensor& linspace_out_npu(Tensor& result, Scalar start, Scalar end, int64_t steps
     result.resize_({steps});
   }
   Tensor r = result.is_contiguous() ? result : result.contiguous();
-  r = r.to(at::kFloat);
+  r = r.npu_dtype_cast(at::kFloat);
   if(steps == 0){
     // skip
   } else if (steps == 1) {
@@ -68,7 +68,7 @@ Tensor linspace_npu(Scalar start, Scalar end, int64_t steps, const TensorOptions
 
   // construct the output tensor of the NPU
   Tensor result = OpPreparation::ApplyTensorWithFormat({steps}, options, ACL_FORMAT_ND);
-  Tensor resultCast = result.to(at::kFloat);
+  Tensor resultCast = result.npu_dtype_cast(at::kFloat);
 
   // calculate the output result of the NPU
   linspace_out_npu(resultCast, start, end, steps);

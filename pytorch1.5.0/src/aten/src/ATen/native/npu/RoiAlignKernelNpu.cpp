@@ -67,8 +67,8 @@ Tensor roi_align_npu(
   Tensor selfCast = self;
   Tensor roisCast = rois;
   if (self.scalar_type() == kHalf || rois.scalar_type() == kHalf) {
-    selfCast = self.to(kFloat);
-    roisCast = rois.to(kFloat);
+    selfCast = self.npu_dtype_cast(kFloat);
+    roisCast = rois.npu_dtype_cast(kFloat);
   }
 
   // calculate the output size
@@ -91,7 +91,7 @@ Tensor roi_align_npu(
       roi_end_mode);
 
   if (self.scalar_type() == kHalf || rois.scalar_type() == kHalf) {
-    result = result.to(kHalf);
+    result = result.npu_dtype_cast(kHalf);
   }
 
   return result;

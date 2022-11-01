@@ -128,12 +128,12 @@ Tensor& index_fill_d_nocheck(
   Tensor assistHelp2 = index_fill_d_assist_help(self, index, dim, value, false);
   if (aclInput->scalar_type() == ScalarType::Int) // int32
   {
-    assistHelp1 = assistHelp1.to(ScalarType::Int);
-    assistHelp2 = assistHelp2.to(ScalarType::Int);
+    assistHelp1 = assistHelp1.npu_dtype_cast(ScalarType::Int);
+    assistHelp2 = assistHelp2.npu_dtype_cast(ScalarType::Int);
   } else if (aclInput->scalar_type() == ScalarType::Half) // fp16
   {
-    assistHelp1 = assistHelp1.to(ScalarType::Half);
-    assistHelp2 = assistHelp2.to(ScalarType::Half);
+    assistHelp1 = assistHelp1.npu_dtype_cast(ScalarType::Half);
+    assistHelp2 = assistHelp2.npu_dtype_cast(ScalarType::Half);
   }
 
   OpCommand cmd;

@@ -29,7 +29,7 @@ Tensor& index_add_out_npu(
     const Tensor& source) {
   Tensor indices = index;
   if (index.scalar_type() != at::ScalarType::Int) {
-    indices = index.to(at::kInt);
+    indices = index.npu_dtype_cast(at::kInt);
   }
   if (index.dim() == 0) {
     indices.unsqueeze_(0);

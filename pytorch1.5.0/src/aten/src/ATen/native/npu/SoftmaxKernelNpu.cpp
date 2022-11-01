@@ -27,7 +27,7 @@ Tensor softmax_npu(
     optional<ScalarType> dtype) {
   auto result = [&]() {
     NoNamesGuard guard;
-    Tensor converted = dtype.has_value() ? self.to(dtype.value()) : self;
+    Tensor converted = dtype.has_value() ? self.npu_dtype_cast(dtype.value()) : self;
     return at::_softmax(converted, dim, false);
   }();
   namedinference::propagate_names(result, self);
@@ -69,7 +69,7 @@ Tensor _softmax_npu(const Tensor& self, int64_t dim, bool half_to_float) {
     dstType = self.scalar_type();
   }
   Tensor converted =
-      dstType == self.scalar_type() ? self : self.to(dstType);
+      dstType == self.scalar_type() ? self : self.npu_dtype_cast(dstType);
 
   SmallVector<int64_t, N> dimList = {dim};
   OpCommand cmd;

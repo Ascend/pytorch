@@ -60,14 +60,14 @@ void cummin_helper_npu(const Tensor& self, Tensor& values, Tensor& indices, int6
 
       cummin_out_npu_nocheck(transposeValue, transposeIndices, transposeSelf, firstDim);
       // Indices must to be long
-      transposeIndices = transposeIndices.to(kLong);
+      transposeIndices = transposeIndices.npu_dtype_cast(kLong);
       at::npu_transpose_out(values, transposeValue, perm);
       at::npu_transpose_out(indices, transposeIndices, perm);
     } else {
       Tensor valuesTemp = OpPreparation::ApplyTensor(self);
       Tensor indicesTemp = OpPreparation::ApplyTensor(self, self.options().dtype(kInt)); 
       cummin_out_npu_nocheck(valuesTemp, indicesTemp, self, dim);
-      indicesTemp = indicesTemp.to(kLong);
+      indicesTemp = indicesTemp.npu_dtype_cast(kLong);
       values.copy_(valuesTemp);
       indices.copy_(indicesTemp);
     }  

@@ -24,7 +24,7 @@ Tensor one_hot_npu1(const Tensor& self, int64_t num_classes) {
   int64_t axis = -1;
   int64_t depth;
 
-  auto self_temp = self.to(at::kFloat);
+  auto self_temp = self.npu_dtype_cast(at::kFloat);
 
   // When run in NPU,the input tensor's dim must be smaller than 8.
   TORCH_CHECK(

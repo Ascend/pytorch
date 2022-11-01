@@ -62,7 +62,7 @@ std::tuple<Tensor&, Tensor&> median_out_npu_nocheck(
   Tensor topkIndices = std::get<1>(ret);
 
   if (topkIndices.dtype() == ScalarType::Long) {
-    topkIndices = topkIndices.to(at::kInt);
+    topkIndices = topkIndices.npu_dtype_cast(at::kInt);
   }
 
   Tensor index = at::empty_with_format(

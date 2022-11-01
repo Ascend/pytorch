@@ -42,7 +42,7 @@ Tensor argmax_npu(const Tensor& self, optional<int64_t> dim, bool keepdim) {
       .Attr("keep_dims", realKeepDim)
       .Run();
 
-  result = result.to(ScalarType::Long);
+  result = result.npu_dtype_cast(ScalarType::Long);
   return result;
 }
 } // namespace native

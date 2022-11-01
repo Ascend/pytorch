@@ -57,7 +57,7 @@ Tensor eye_npu(int64_t n, const TensorOptions& options) {
   eye_out_npu(result, n);
   
   if(options.dtype() == at::kBool){
-    result = result.to(at::kBool); 
+    result = result.npu_dtype_cast(at::kBool); 
   }
 
   return result;
@@ -75,7 +75,7 @@ Tensor eye_npu(int64_t n, int64_t m, const TensorOptions& options) {
   eye_out_npu_nocheck(result, n, m);
   
   if(options.dtype() == at::kBool){
-    result = result.to(at::kBool); 
+    result = result.npu_dtype_cast(at::kBool); 
   }
 
   return result;

@@ -69,7 +69,7 @@ tuple<Tensor&, Tensor&> max_out_npu(
 tuple<Tensor, Tensor> max_npu(const Tensor& self, int64_t dim, bool keepdim) {
   Tensor selfCast = self;
   if(self.dtype() == ScalarType::Bool || self.dtype() == ScalarType::Int){
-    selfCast = self.to(ScalarType::Float);
+    selfCast = self.npu_dtype_cast(ScalarType::Float);
   }
 
   SmallVector<int64_t, SIZE> dims = {dim};

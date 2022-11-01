@@ -81,7 +81,7 @@ Tensor& index_select_out_npu(
       .Call(result);
 
   if (self.dtype() == kBool) {
-    result = result.to(kBool);
+    result = result.npu_dtype_cast(kBool);
   }
 
   return result;
@@ -116,7 +116,7 @@ Tensor index_select_npu(const Tensor& self, int64_t dim, const Tensor& index) {
 
   if (self.dtype() == kBool) {
     // int to bool dtype  这里不转变回bool也能通过测试的比较
-    result = result.to(kBool);
+    result = result.npu_dtype_cast(kBool);
   }
 
   return result;
