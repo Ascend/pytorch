@@ -47,7 +47,10 @@ namespace at_npu
                          .SetName(descName)
                          .Get();
 
-      int64_t numel = at::prod_intlist(storageDims);
+      // if aclDataType != ACL_STRING, we use storageDims to calculate nums and use nums * tensor element size to
+      // calculate buffer size. But if aclDataType = ACL_STRING, STRING tensor size = 1 and storageDims = 0, we can not
+      // use it to calculate size, we need from storage_sizes_ to calculate STRING element real size.
+      int64_t numel = at::prod_intlist(npuDesc.storage_sizes_);
       AclTensorBufferMaker buffer(tensor, numel);
       auto aclBuff = buffer.Get();
       return std::tie(aclDesc, aclBuff);

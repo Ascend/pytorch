@@ -116,8 +116,8 @@ namespace at_npu
     void OpCommandImpl::SetEnginePriority() {
       auto stream = c10_npu::getCurrentNPUStream();
       if (stream.isDataPreprocessStream()) {
-        AddAttr("_performance_prior", static_cast<std::string>("true"));
-        AddAttr("_exclude_engines", static_cast<std::string>("AICORE"));
+        AddAttr("_performance_prior", true);
+        AddAttr<std::string>("_exclude_engines", "AiCore");
       }
     }
 
