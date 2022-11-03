@@ -61,6 +61,15 @@ def _pin_memory_loop(in_queue, out_queue, device_id, done_event):
                 continue
         del r  # save memory
 
+def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
+                  auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
+                  num_workers, persistent_workers):
+    torch_npu.npu.set_device(dataset.device)
+    torch_npu.npu.current_stream().set_data_preprocess_stream(True)
+    _utils.worker._worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
+                               auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
+                               num_workers, persistent_workers)
+
 class DataLoader(SrcDataLoader):
     def _get_iterator(self) -> '_BaseDataLoaderIter':
         if self.num_workers == 0:
@@ -103,8 +112,15 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
         assert self._num_workers > 0
         assert self._prefetch_factor > 0
 
+        worker_loop = _utils.worker._worker_loop
+        daemon = True
         if loader.multiprocessing_context is None:
             multiprocessing_context = multiprocessing
+            # if enable dvpp, worker process start method should be spawn and cannot be daemonic
+            if hasattr(self._dataset, 'accelerate_enable') and self._dataset.accelerate_enable:
+                multiprocessing_context = multiprocessing.get_context('spawn')
+                worker_loop = npu_worker_loop # set device and priority
+                daemon = False
         else:
             multiprocessing_context = loader.multiprocessing_context
 
@@ -120,13 +136,13 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
             index_queue = multiprocessing_context.Queue()  # type: ignore
             index_queue.cancel_join_thread()
             w = multiprocessing_context.Process(
-                target=_utils.worker._worker_loop,
+                target=worker_loop,
                 args=(self._dataset_kind, self._dataset, index_queue,
                       self._worker_result_queue, self._workers_done_event,
                       self._auto_collation, self._collate_fn, self._drop_last,
                       self._base_seed + i, self._worker_init_fn, i, self._num_workers,
                       self._persistent_workers))
-            w.daemon = True
+            w.daemon = daemon
             w.start()
             self._index_queues.append(index_queue)
             self._workers.append(w)
