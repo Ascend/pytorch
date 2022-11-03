@@ -21,9 +21,9 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestReverse(TestCase):
     def test_reverse(self, device="npu"):
-        cpu_input = np.array([1, 2, 3, 4, 5, 6]).astype(np.float32)
+        cpu_input = np.random.uniform(0, 255, (1, 3, 224, 224)).astype(np.uint8)
         npu_input = torch.from_numpy(cpu_input).npu()
-        cpu_output = cpu_input[::-1]
+        cpu_output = np.flip(cpu_input, 0)
         npu_output = torch_npu.reverse(npu_input, [0]).cpu().numpy()
         self.assertRtolEqual(cpu_output, npu_output)
 

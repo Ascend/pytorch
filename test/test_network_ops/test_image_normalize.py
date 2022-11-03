@@ -20,23 +20,23 @@ from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
-class TestCropAndResize(TestCase):
-    def result_error(self, npu_output, boxes, crop_size):
-        if npu_output.shape[0] != boxes.shape[0] or npu_output.shape[2] != crop_size[0] \
-            or npu_output.shape[3] != crop_size[1]:
+class TestImageNormalize(TestCase):
+    def result_error(self, npu_input, npu_output):
+        if npu_output.shape != npu_input.shape:
             self.fail("shape error")
+        if npu_output.dtype != npu_input.dtype:
+            self.fail("dtype error")
 
-    def test_crop_and_resize(self, device="npu"):
-        input1 = np.random.uniform(0, 255, (1, 3, 224, 224)).astype(np.uint8)
-        npu_input1 = torch.from_numpy(input1).npu()
-        boxes = torch.tensor([[0.3, 0, 1, 1]], dtype=torch.float32).npu()
-        box_index = torch.tensor([0], dtype=torch.int32).npu()
-        crop_size = [200, 100]
-        npu_output = torch_npu.crop_and_resize(npu_input1,
-                                               boxes=boxes, box_index=box_index,
-                                               crop_size=crop_size, method="nearest")
+    def test_image_normalize(self, device="npu"):
+        input = np.random.uniform(0, 1, (1, 3, 224, 224)).astype(np.float32)
+        npu_input = torch.from_numpy(input).npu()
 
-        self.result_error(npu_output, boxes, crop_size)
+        mean = torch.tensor([0.485, 0.456, 0.406]).npu()
+        variance = torch.tensor([0.229, 0.224, 0.225]).npu()
+
+        npu_output = torch_npu.image_normalize(npu_input, mean, variance, dtype = 0)
+
+        self.result_error(npu_input, npu_output)
 
 
 if __name__ == "__main__":

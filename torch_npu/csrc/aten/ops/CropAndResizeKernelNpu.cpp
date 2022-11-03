@@ -29,7 +29,7 @@ at::Tensor &crop_and_resize_out(
     at::Tensor &result)
 {
   OpCommand cmd;
-  cmd.Name("CropAndResize")
+  cmd.Name("CropAndResizeV2")
       .Input(self)
       .Input(boxes)
       .Input(box_index)
@@ -37,6 +37,7 @@ at::Tensor &crop_and_resize_out(
       .Output(result)
       .Attr<float>("extrapolation_value", extrapolation_value)
       .Attr("method", method)
+      .Attr("dtype", result.scalar_type())
       .Run();
 
   return result;
@@ -54,10 +55,7 @@ at::Tensor NPUNativeFunctions::crop_and_resize(
   auto outputSize = crop_and_resize_npu_output_size(self, boxes, crop_size);
 
   // construct the output tensor of the NPU
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(
-      outputSize,
-      self.options().dtype(boxes.dtype()),
-      CalcuOpUtil::get_tensor_npu_format(self));
+  at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
 
   // calculate the output result of the NPU
   crop_and_resize_out(
