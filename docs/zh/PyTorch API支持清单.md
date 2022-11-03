@@ -1,73 +1,73 @@
 ## [Tensors](https://pytorch.org/docs/1.8.1/torch.html)
 
-| 序号 | API名称                       |                支持情况                |
-| ---- | ----------------------------- | :------------------------------------: |
-| 1    | torch.is_tensor               |                   是                   |
-| 2    | torch.is_storage              |                   是                   |
+| 序号 | API名称                       | 支持情况                               |
+| ---- | ----------------------------- | -------------------------------------- |
+| 1    | torch.is_tensor               | 是                                     |
+| 2    | torch.is_storage              | 是                                     |
 | 3    | torch.is_complex              | 是，支持判断，但当前硬件限制不支持复数 |
-| 4    | torch.is_floating_point       |                   是                   |
-| 5    | torch.is_nonzero              |                   是                   |
-| 6    | torch.set_default_dtype       |       是，但是不支持NPU数据类型        |
-| 7    | torch.get_default_dtype       |       是，但是不支持NPU数据类型        |
-| 8    | torch.set_default_tensor_type |       是，但是不支持NPU数据类型        |
-| 9    | torch.numel                   |                   是                   |
-| 10   | torch.set_printoptions        |                   是                   |
-| 11   | torch.set_flush_denormal      |                   是                   |
-| 12   | torch.tensor                  |                   是                   |
-| 13   | torch.sparse_coo_tensor       |                   否                   |
-| 14   | torch.as_tensor               |                   是                   |
-| 15   | torch.as_strided              |                   是                   |
-| 16   | torch.from_numpy              |                   是                   |
-| 17   | torch.zeros                   |                   是                   |
-| 18   | torch.zeros_like              |                   是                   |
-| 19   | torch.ones                    |                   是                   |
-| 20   | torch.ones_like               |                   是                   |
-| 21   | torch.arange                  |                   是                   |
-| 22   | torch.range                   |                   是                   |
-| 23   | torch.linspace                |                   是                   |
-| 24   | torch.logspace                |                   是                   |
-| 25   | torch.eye                     |                   是                   |
-| 26   | torch.empty                   |                   是                   |
-| 27   | torch.empty_like              |                   是                   |
-| 28   | torch.empty_strided           |                   是                   |
-| 29   | torch.full                    |                   是                   |
-| 30   | torch.full_like               |                   是                   |
-| 31   | torch.quantize_per_tensor     |                   是                   |
-| 32   | torch.quantize_per_channel    |                   是                   |
-| 33   | torch.dequantize              |                   否                   |
-| 34   | torch.complex                 |                   是                   |
-| 35   | torch.polar                   |                   是                   |
-| 36   | torch.heaviside               |                   否                   |
-| 37   | torch.cat                     |                   是                   |
-| 38   | torch.chunk                   |                   是                   |
-| 39   | torch.column_stack            |                   是                   |
-| 40   | torch.dstack                  |                   是                   |
-| 41   | torch.hstack                  |                   是                   |
-| 42   | torch.gather                  |                   是                   |
-| 43   | torch.index_select            |                   是                   |
-| 44   | torch.masked_select           |                   是                   |
-| 45   | torch.movedim                 |                   是                   |
-| 46   | torch.moveaxis                |                   是                   |
-| 47   | torch.narrow                  |                   是                   |
-| 48   | torch.nonzero                 |                   是                   |
-| 49   | torch.reshape                 |                   是                   |
-| 50   | torch.row_stack               |                   是                   |
-| 51   | torch.scatter                 |                   是                   |
-| 52   | torch.scatter_add             |                   是                   |
-| 53   | torch.split                   |                   是                   |
-| 54   | torch.squeeze                 |                   是                   |
-| 55   | torch.stack                   |                   是                   |
-| 56   | torch.swapaxes                |                   是                   |
-| 57   | torch.swapdims                |                   是                   |
-| 58   | torch.t                       |                   是                   |
-| 59   | torch.take                    |                   是                   |
-| 60   | torch.tensor_split            |                   是                   |
-| 61   | torch.tile                    |                   是                   |
-| 62   | torch.transpose               |                   是                   |
-| 63   | torch.unbind                  |                   是                   |
-| 64   | torch.unsqueeze               |                   是                   |
-| 65   | torch.vstack                  |                   是                   |
-| 66   | torch.where                   |                   是                   |
+| 4    | torch.is_floating_point       | 是                                     |
+| 5    | torch.is_nonzero              | 是                                     |
+| 6    | torch.set_default_dtype       | 是，但是不支持NPU数据类型              |
+| 7    | torch.get_default_dtype       | 是，但是不支持NPU数据类型              |
+| 8    | torch.set_default_tensor_type | 是，但是不支持NPU数据类型              |
+| 9    | torch.numel                   | 是                                     |
+| 10   | torch.set_printoptions        | 是                                     |
+| 11   | torch.set_flush_denormal      | 是                                     |
+| 12   | torch.tensor                  | 是                                     |
+| 13   | torch.sparse_coo_tensor       | 否                                     |
+| 14   | torch.as_tensor               | 是                                     |
+| 15   | torch.as_strided              | 是                                     |
+| 16   | torch.from_numpy              | 是                                     |
+| 17   | torch.zeros                   | 是                                     |
+| 18   | torch.zeros_like              | 是                                     |
+| 19   | torch.ones                    | 是                                     |
+| 20   | torch.ones_like               | 是                                     |
+| 21   | torch.arange                  | 是                                     |
+| 22   | torch.range                   | 是                                     |
+| 23   | torch.linspace                | 是                                     |
+| 24   | torch.logspace                | 是                                     |
+| 25   | torch.eye                     | 是                                     |
+| 26   | torch.empty                   | 是                                     |
+| 27   | torch.empty_like              | 是                                     |
+| 28   | torch.empty_strided           | 是                                     |
+| 29   | torch.full                    | 是                                     |
+| 30   | torch.full_like               | 是                                     |
+| 31   | torch.quantize_per_tensor     | 是                                     |
+| 32   | torch.quantize_per_channel    | 是                                     |
+| 33   | torch.dequantize              | 否                                     |
+| 34   | torch.complex                 | 否                                     |
+| 35   | torch.polar                   | 否                                     |
+| 36   | torch.heaviside               | 否                                     |
+| 37   | torch.cat                     | 是                                     |
+| 38   | torch.chunk                   | 是                                     |
+| 39   | torch.column_stack            | 是                                     |
+| 40   | torch.dstack                  | 是                                     |
+| 41   | torch.hstack                  | 是                                     |
+| 42   | torch.gather                  | 是                                     |
+| 43   | torch.index_select            | 是                                     |
+| 44   | torch.masked_select           | 是                                     |
+| 45   | torch.movedim                 | 是                                     |
+| 46   | torch.moveaxis                | 是                                     |
+| 47   | torch.narrow                  | 是                                     |
+| 48   | torch.nonzero                 | 是                                     |
+| 49   | torch.reshape                 | 是                                     |
+| 50   | torch.row_stack               | 是                                     |
+| 51   | torch.scatter                 | 是                                     |
+| 52   | torch.scatter_add             | 是                                     |
+| 53   | torch.split                   | 是                                     |
+| 54   | torch.squeeze                 | 是                                     |
+| 55   | torch.stack                   | 是                                     |
+| 56   | torch.swapaxes                | 是                                     |
+| 57   | torch.swapdims                | 是                                     |
+| 58   | torch.t                       | 是                                     |
+| 59   | torch.take                    | 是                                     |
+| 60   | torch.tensor_split            | 是                                     |
+| 61   | torch.tile                    | 是                                     |
+| 62   | torch.transpose               | 是                                     |
+| 63   | torch.unbind                  | 是                                     |
+| 64   | torch.unsqueeze               | 是                                     |
+| 65   | torch.vstack                  | 是                                     |
+| 66   | torch.where                   | 是                                     |
 
 ## Generators
 
@@ -98,7 +98,7 @@
 | 17   | torch.randperm                | 是       |
 | 18   | torch.Tensor.bernoulli        | 是       |
 | 19   | torch.Tensor.bernoulli_       | 是       |
-| 20   | torch.Tensor.cauchy_          | 是       |
+| 20   | torch.Tensor.cauchy_          | 否       |
 | 21   | torch.Tensor.exponential_     | 否       |
 | 22   | torch.Tensor.geometric_       | 否       |
 | 23   | torch.Tensor.log_normal_      | 否       |
@@ -121,7 +121,7 @@
 | 1    | torch.abs                              | 是                                                           |
 | 2    | torch.absolute                         | 是                                                           |
 | 3    | torch.acos                             | 是                                                           |
-| 4    | torch.arccos                           | 否                                                           |
+| 4    | torch.arccos                           | 是                                                           |
 | 5    | torch.acosh                            | 是                                                           |
 | 6    | torch.arccosh                          | 是                                                           |
 | 7    | torch.add                              | 是                                                           |
@@ -181,10 +181,10 @@
 | 61   | torch.logical_or                       | 是                                                           |
 | 62   | torch.logical_xor                      | 否                                                           |
 | 63   | torch.logit                            | 是                                                           |
-| 64   | torch.hypot                            | 是                                                           |
+| 64   | torch.hypot                            | 否                                                           |
 | 65   | torch.i0                               | 否                                                           |
-| 66   | torch.igamma                           | 是                                                           |
-| 67   | torch.igammac                          | 是                                                           |
+| 66   | torch.igamma                           | 否                                                           |
+| 67   | torch.igammac                          | 否                                                           |
 | 68   | torch.mul                              | 是                                                           |
 | 69   | torch.multiply                         | 是                                                           |
 | 70   | torch.mvlgamma                         | 是                                                           |
@@ -215,11 +215,11 @@
 | 95   | torch.tanh                             | 是                                                           |
 | 96   | torch.true_divide                      | 是                                                           |
 | 97   | torch.trunc                            | 是                                                           |
-| 98   | torch.xlogy                            | 是                                                           |
+| 98   | torch.xlogy                            | 否                                                           |
 | 99   | torch.argmax                           | 是                                                           |
 | 100  | torch.argmin                           | 是                                                           |
-| 101  | torch.amax                             | 否                                                           |
-| 102  | torch.amin                             | 否                                                           |
+| 101  | torch.amax                             | 是                                                           |
+| 102  | torch.amin                             | 是                                                           |
 | 103  | torch.all                              | 是                                                           |
 | 104  | torch.any                              | 是                                                           |
 | 105  | torch.max                              | 是                                                           |
@@ -233,15 +233,15 @@
 | 113  | torch.norm                             | 是                                                           |
 | 114  | torch.nansum                           | 是                                                           |
 | 115  | torch.prod                             | 是                                                           |
-| 116  | torch.quantile                         | 否                                                           |
+| 116  | torch.quantile                         | 是                                                           |
 | 117  | torch.nanquantile                      | 否                                                           |
 | 118  | torch.std                              | 是                                                           |
 | 119  | torch.std_mean                         | 是                                                           |
 | 120  | torch.sum                              | 是                                                           |
 | 121  | torch.unique                           | 是                                                           |
 | 122  | torch.unique_consecutive               | 是，传参时必须使用关键字，否则精度不达标。return_inverse=return_inverse,return_counts=return_counts,dim=dim |
-| 123  | torch.var                              | 否                                                           |
-| 124  | torch.var_mean                         | 否                                                           |
+| 123  | torch.var                              | 是                                                           |
+| 124  | torch.var_mean                         | 是                                                           |
 | 125  | torch.count_nonzero                    | 否                                                           |
 | 126  | torch.allclose                         | 是                                                           |
 | 127  | torch.argsort                          | 是                                                           |
@@ -251,44 +251,44 @@
 | 131  | torch.greater_equal                    | 是                                                           |
 | 132  | torch.gt                               | 是                                                           |
 | 133  | torch.greater                          | 是                                                           |
-| 134  | torch.isclose                          | 否                                                           |
+| 134  | torch.isclose                          | 是                                                           |
 | 135  | torch.isfinite                         | 是                                                           |
 | 136  | torch.isinf                            | 是                                                           |
 | 137  | torch.isposinf                         | 是                                                           |
 | 138  | torch.isneginf                         | 是                                                           |
 | 139  | torch.isnan                            | 是                                                           |
 | 140  | torch.isreal                           | 是                                                           |
-| 141  | torch.kthvalue                         | 是                                                           |
-| 142  | torch.le                               | 是                                                           |
+| 141  | torch.kthvalue                         | 否                                                           |
+| 142  | torch.le                               | 否                                                           |
 | 143  | torch.less_equal                       | 是                                                           |
-| 144  | torch.lt                               | 是                                                           |
+| 144  | torch.lt                               | 否                                                           |
 | 145  | torch.less                             | 是                                                           |
 | 146  | torch.maximum                          | 是                                                           |
 | 147  | torch.minimum                          | 是                                                           |
 | 148  | torch.fmax                             | 否                                                           |
 | 149  | torch.fmin                             | 否                                                           |
-| 150  | torch.ne                               | 是                                                           |
+| 150  | torch.ne                               | 否                                                           |
 | 151  | torch.not_equal                        | 是                                                           |
-| 152  | torch.sort                             | 是                                                           |
-| 153  | torch.topk                             | 是                                                           |
-| 154  | torch.msort                            | 否                                                           |
+| 152  | torch.sort                             | 否                                                           |
+| 153  | torch.topk                             | 否                                                           |
+| 154  | torch.msort                            | 是                                                           |
 | 155  | torch.fft                              | 否                                                           |
 | 156  | torch.ifft                             | 否                                                           |
 | 157  | torch.rfft                             | 否                                                           |
 | 158  | torch.irfft                            | 否                                                           |
 | 159  | torch.stft                             | 否                                                           |
 | 160  | torch.istft                            | 否                                                           |
-| 161  | torch.bartlett_window                  | 是                                                           |
-| 162  | torch.blackman_window                  | 是                                                           |
-| 163  | torch.hamming_window                   | 是                                                           |
-| 164  | torch.hann_window                      | 是                                                           |
-| 165  | torch.kasier_window                    | 否                                                           |
+| 161  | torch.bartlett_window                  | 否                                                           |
+| 162  | torch.blackman_window                  | 否                                                           |
+| 163  | torch.hamming_window                   | 否                                                           |
+| 164  | torch.hann_window                      | 否                                                           |
+| 165  | torch.kaiser_window                    | 否                                                           |
 | 166  | torch.atleast_1d                       | 是                                                           |
 | 167  | torch.atleast_2d                       | 是                                                           |
 | 168  | torch.atleast_3d                       | 是                                                           |
 | 169  | torch.bincount                         | 是                                                           |
 | 170  | torch.block_diag                       | 是                                                           |
-| 171  | torch.broadcast_tensors                | 是                                                           |
+| 171  | torch.broadcast_tensors                | 否                                                           |
 | 172  | torch.broadcast_to                     | 是                                                           |
 | 173  | torch.broadcast_shapes                 | 是                                                           |
 | 174  | torch.bucketize                        | 是                                                           |
@@ -301,7 +301,7 @@
 | 181  | torch.cummin                           | 是                                                           |
 | 182  | torch.cumprod                          | 是                                                           |
 | 183  | torch.cumsum                           | 是                                                           |
-| 184  | torch.diag                             | 是，仅支持diagonal=0场景                                     |
+| 184  | torch.diag                             | 是                                                           |
 | 185  | torch.diag_embed                       | 是                                                           |
 | 186  | torch.diagflat                         | 是                                                           |
 | 187  | torch.diagonal                         | 是                                                           |
@@ -317,7 +317,7 @@
 | 197  | torch.histc                            | 否                                                           |
 | 198  | torch.meshgrid                         | 是                                                           |
 | 199  | torch.lcm                              | 否                                                           |
-| 200  | torhc.logcumsumexp                     | 否                                                           |
+| 200  | torch.logcumsumexp                     | 否                                                           |
 | 201  | torch.ravel                            | 是                                                           |
 | 202  | torch.renorm                           | 是                                                           |
 | 203  | torch.repeat_interleave                | 是                                                           |
@@ -329,9 +329,9 @@
 | 209  | torch.tril_indices                     | 是                                                           |
 | 210  | torch.triu                             | 是                                                           |
 | 211  | torch.triu_indices                     | 是                                                           |
-| 212  | torch.vander                           | 是                                                           |
-| 213  | torch.view_as_real                     | 是                                                           |
-| 214  | torch.view_as_complex                  | 是                                                           |
+| 212  | torch.vander                           | 否                                                           |
+| 213  | torch.view_as_real                     | 否                                                           |
+| 214  | torch.view_as_complex                  | 否                                                           |
 | 215  | torch.addbmm                           | 是                                                           |
 | 216  | torch.addmm                            | 是                                                           |
 | 217  | torch.addmv                            | 是                                                           |
@@ -358,7 +358,7 @@
 | 238  | torch.matmul                           | 是                                                           |
 | 239  | torch.matrix_power                     | 是                                                           |
 | 240  | torch.matrix_rank                      | 是                                                           |
-| 241  | torch.matrix_exp                       | 是                                                           |
+| 241  | torch.matrix_exp                       | 否                                                           |
 | 242  | torch.mm                               | 是                                                           |
 | 243  | torch.mv                               | 是                                                           |
 | 244  | torch.orgqr                            | 否                                                           |
@@ -403,7 +403,7 @@
 ## torch.Tensor
 
 | 序号 | API名称                                | 是否支持 |
-| :--- | -------------------------------------- | -------- |
+| ---- | -------------------------------------- | -------- |
 | 1    | torch.Tensor                           | 是       |
 | 2    | torch.Tensor.new_tensor                | 是       |
 | 3    | torch.Tensor.new_full                  | 是       |
@@ -421,18 +421,18 @@
 | 15   | torch.Tensor.acos_                     | 是       |
 | 16   | torch.Tensor.add                       | 是       |
 | 17   | torch.Tensor.add_                      | 是       |
-| 18   | torch.Tensor.addbmm                    | 是       |
-| 19   | torch.Tensor.addbmm_                   | 是       |
+| 18   | torch.Tensor.addbmm                    | 否       |
+| 19   | torch.Tensor.addbmm_                   | 否       |
 | 20   | torch.Tensor.addcdiv                   | 是       |
 | 21   | torch.Tensor.addcdiv_                  | 是       |
 | 22   | torch.Tensor.addcmul                   | 是       |
 | 23   | torch.Tensor.addcmul_                  | 是       |
-| 24   | torch.Tensor.addmm                     | 是       |
-| 25   | torch.Tensor.addmm_                    | 是       |
-| 26   | torch.Tensor.addmv                     | 是       |
-| 27   | torch.Tensor.addmv_                    | 是       |
-| 28   | torch.Tensor.addr                      | 是       |
-| 29   | torch.Tensor.addr_                     | 是       |
+| 24   | torch.Tensor.addmm                     | 否       |
+| 25   | torch.Tensor.addmm_                    | 否       |
+| 26   | torch.Tensor.addmv                     | 否       |
+| 27   | torch.Tensor.addmv_                    | 否       |
+| 28   | torch.Tensor.addr                      | 否       |
+| 29   | torch.Tensor.addr_                     | 否       |
 | 30   | torch.Tensor.allclose                  | 是       |
 | 31   | torch.Tensor.angle                     | 否       |
 | 32   | torch.Tensor.apply_                    | 否       |
@@ -446,12 +446,12 @@
 | 40   | torch.Tensor.atan2                     | 是       |
 | 41   | torch.Tensor.atan2_                    | 是       |
 | 42   | torch.Tensor.atan_                     | 是       |
-| 43   | torch.Tensor.baddbmm                   | 是       |
-| 44   | torch.Tensor.baddbmm_                  | 是       |
+| 43   | torch.Tensor.baddbmm                   | 否       |
+| 44   | torch.Tensor.baddbmm_                  | 否       |
 | 45   | torch.Tensor.bernoulli                 | 是       |
 | 46   | torch.Tensor.bernoulli_                | 是       |
 | 47   | torch.Tensor.bfloat16                  | 否       |
-| 48   | torch.Tensor.bincount                  | 是       |
+| 48   | torch.Tensor.bincount                  | 否       |
 | 49   | torch.Tensor.bitwise_not               | 是       |
 | 50   | torch.Tensor.bitwise_not_              | 是       |
 | 51   | torch.Tensor.bitwise_and               | 是       |
@@ -460,7 +460,7 @@
 | 54   | torch.Tensor.bitwise_or_               | 是       |
 | 55   | torch.Tensor.bitwise_xor               | 是       |
 | 56   | torch.Tensor.bitwise_xor_              | 是       |
-| 57   | torch.Tensor.bmm                       | 是       |
+| 57   | torch.Tensor.bmm                       | 否       |
 | 58   | torch.Tensor.bool                      | 是       |
 | 59   | torch.Tensor.byte                      | 是       |
 | 60   | torch.Tensor.cauchy_                   | 否       |
@@ -474,7 +474,7 @@
 | 68   | torch.Tensor.chunk                     | 是       |
 | 69   | torch.Tensor.clamp                     | 是       |
 | 70   | torch.Tensor.clamp_                    | 是       |
-| 71   | torch.Tensor.clone                     | 是       |
+| 71   | torch.Tensor.clone                     | 否       |
 | 72   | torch.Tensor.contiguous                | 是       |
 | 73   | torch.Tensor.copy_                     | 是       |
 | 74   | torch.Tensor.conj                      | 否       |
@@ -483,28 +483,28 @@
 | 77   | torch.Tensor.cosh                      | 是       |
 | 78   | torch.Tensor.cosh_                     | 是       |
 | 79   | torch.Tensor.cpu                       | 是       |
-| 80   | torch.Tensor.cross                     | 是       |
+| 80   | torch.Tensor.cross                     | 否       |
 | 81   | torch.Tensor.cuda                      | 否       |
-| 82   | torch.Tensor.cummax                    | 是       |
-| 83   | torch.Tensor.cummin                    | 是       |
-| 84   | torch.Tensor.cumprod                   | 是       |
-| 85   | torch.Tensor.cumsum                    | 是       |
+| 82   | torch.Tensor.cummax                    | 否       |
+| 83   | torch.Tensor.cummin                    | 否       |
+| 84   | torch.Tensor.cumprod                   | 否       |
+| 85   | torch.Tensor.cumsum                    | 否       |
 | 86   | torch.Tensor.data_ptr                  | 是       |
 | 87   | torch.Tensor.dequantize                | 否       |
 | 88   | torch.Tensor.det                       | 否       |
 | 89   | torch.Tensor.dense_dim                 | 否       |
-| 90   | torch.Tensor.diag                      | 是       |
-| 91   | torch.Tensor.diag_embed                | 是       |
-| 92   | torch.Tensor.diagflat                  | 是       |
-| 93   | torch.Tensor.diagonal                  | 是       |
+| 90   | torch.Tensor.diag                      | 否       |
+| 91   | torch.Tensor.diag_embed                | 否       |
+| 92   | torch.Tensor.diagflat                  | 否       |
+| 93   | torch.Tensor.diagonal                  | 否       |
 | 94   | torch.Tensor.fill_diagonal_            | 是       |
-| 95   | torch.Tensor.digamma                   | 否       |
-| 96   | torch.Tensor.digamma_                  | 否       |
+| 95   | torch.Tensor.digamma                   | 是       |
+| 96   | torch.Tensor.digamma_                  | 是       |
 | 97   | torch.Tensor.dim                       | 是       |
 | 98   | torch.Tensor.dist                      | 是       |
 | 99   | torch.Tensor.div                       | 是       |
 | 100  | torch.Tensor.div_                      | 是       |
-| 101  | torch.Tensor.dot                       | 是       |
+| 101  | torch.Tensor.dot                       | 否       |
 | 102  | torch.Tensor.double                    | 否       |
 | 103  | torch.Tensor.eig                       | 否       |
 | 104  | torch.Tensor.element_size              | 是       |
@@ -526,8 +526,8 @@
 | 120  | torch.Tensor.exponential_              | 否       |
 | 121  | torch.Tensor.fft                       | 否       |
 | 122  | torch.Tensor.fill_                     | 是       |
-| 123  | torch.Tensor.flatten                   | 是       |
-| 124  | torch.Tensor.flip                      | 是       |
+| 123  | torch.Tensor.flatten                   | 否       |
+| 124  | torch.Tensor.flip                      | 否       |
 | 125  | torch.Tensor.float                     | 是       |
 | 126  | torch.Tensor.floor                     | 是       |
 | 127  | torch.Tensor.floor_                    | 是       |
@@ -542,12 +542,12 @@
 | 136  | torch.Tensor.ge_                       | 是       |
 | 137  | torch.Tensor.geometric_                | 否       |
 | 138  | torch.Tensor.geqrf                     | 否       |
-| 139  | torch.Tensor.ger                       | 是       |
+| 139  | torch.Tensor.ger                       | 否       |
 | 140  | torch.Tensor.get_device                | 是       |
 | 141  | torch.Tensor.gt                        | 是       |
 | 142  | torch.Tensor.gt_                       | 是       |
 | 143  | torch.Tensor.half                      | 是       |
-| 144  | torch.Tensor.hardshrink                | 是       |
+| 144  | torch.Tensor.hardshrink                | 否       |
 | 145  | torch.Tensor.histc                     | 否       |
 | 146  | torch.Tensor.ifft                      | 否       |
 | 147  | torch.Tensor.index_add_                | 是       |
@@ -563,7 +563,7 @@
 | 157  | torch.Tensor.int                       | 是       |
 | 158  | torch.Tensor.int_repr                  | 否       |
 | 159  | torch.Tensor.inner                     | 是       |
-| 160  | torch.Tensor.inverse                   | 是       |
+| 160  | torch.Tensor.inverse                   | 否       |
 | 161  | torch.Tensor.irfft                     | 否       |
 | 162  | torch.Tensor.is_contiguous             | 是       |
 | 163  | torch.Tensor.is_complex                | 是       |
@@ -574,14 +574,14 @@
 | 168  | torch.Tensor.is_signed                 | 是       |
 | 169  | torch.Tensor.is_sparse                 | 是       |
 | 170  | torch.Tensor.item                      | 是       |
-| 171  | torch.Tensor.kthvalue                  | 是       |
-| 172  | torch.Tensor.le                        | 是       |
-| 173  | torch.Tensor.le_                       | 是       |
+| 171  | torch.Tensor.kthvalue                  | 否       |
+| 172  | torch.Tensor.le                        | 否       |
+| 173  | torch.Tensor.le_                       | 否       |
 | 174  | torch.Tensor.lerp                      | 是       |
 | 175  | torch.Tensor.lerp_                     | 是       |
-| 176  | torch.Tensor.lgamma                    | 否       |
-| 177  | torch.Tensor.lgamma_                   | 否       |
-| 178  | torch.Tensor.lobpcg                    | 是       |
+| 176  | torch.Tensor.lgamma                    | 是       |
+| 177  | torch.Tensor.lgamma_                   | 是       |
+| 178  | torch.Tensor.lobpcg                    | 否       |
 | 179  | torch.Tensor.log                       | 是       |
 | 180  | torch.Tensor.log_                      | 是       |
 | 181  | torch.Tensor.logdet                    | 否       |
@@ -603,38 +603,38 @@
 | 197  | torch.Tensor.logical_xor_              | 否       |
 | 198  | torch.Tensor.long                      | 是       |
 | 199  | torch.Tensor.lstsq                     | 否       |
-| 200  | torch.Tensor.lt                        | 是       |
-| 201  | torch.Tensor.lt_                       | 是       |
-| 202  | torch.Tensor.lu                        | 是       |
-| 203  | torch.Tensor.lu_solve                  | 是       |
-| 204  | torch.Tensor.lu_unpack                 | 是       |
+| 200  | torch.Tensor.lt                        | 否       |
+| 201  | torch.Tensor.lt_                       | 否       |
+| 202  | torch.Tensor.lu                        | 否       |
+| 203  | torch.Tensor.lu_solve                  | 否       |
+| 204  | torch.Tensor.lu_unpack                 | 否       |
 | 205  | torch.Tensor.map_                      | 否       |
 | 206  | torch.Tensor.masked_scatter_           | 是       |
 | 207  | torch.Tensor.masked_scatter            | 是       |
 | 208  | torch.Tensor.masked_fill_              | 是       |
 | 209  | torch.Tensor.masked_fill               | 是       |
 | 210  | torch.Tensor.masked_select             | 是       |
-| 211  | torch.Tensor.matmul                    | 是       |
-| 212  | torch.Tensor.matrix_power              | 是       |
-| 213  | torch.Tensor.matrix_rank               | 是       |
-| 214  | torch.Tensor.matrix_exp                | 是       |
+| 211  | torch.Tensor.matmul                    | 否       |
+| 212  | torch.Tensor.matrix_power              | 否       |
+| 213  | torch.Tensor.matrix_rank               | 否       |
+| 214  | torch.Tensor.matrix_exp                | 否       |
 | 215  | torch.Tensor.max                       | 是       |
 | 216  | torch.Tensor.mean                      | 是       |
 | 217  | torch.Tensor.median                    | 是       |
 | 218  | torch.Tensor.min                       | 是       |
-| 219  | torch.Tensor.mm                        | 是       |
-| 220  | torch.Tensor.mode                      | 否       |
+| 219  | torch.Tensor.mm                        | 否       |
+| 220  | torch.Tensor.mode                      | 是       |
 | 221  | torch.Tensor.mul                       | 是       |
 | 222  | torch.Tensor.mul_                      | 是       |
 | 223  | torch.Tensor.multinomial               | 是       |
-| 224  | torch.Tensor.mv                        | 是       |
-| 225  | torch.Tensor.mvlgamma                  | 否       |
-| 226  | torch.Tensor.mvlgamma_                 | 否       |
+| 224  | torch.Tensor.mv                        | 否       |
+| 225  | torch.Tensor.mvlgamma                  | 是       |
+| 226  | torch.Tensor.mvlgamma_                 | 是       |
 | 227  | torch.Tensor.narrow                    | 是       |
 | 228  | torch.Tensor.narrow_copy               | 是       |
 | 229  | torch.Tensor.ndimension                | 是       |
-| 230  | torch.Tensor.ne                        | 是       |
-| 231  | torch.Tensor.ne_                       | 是       |
+| 230  | torch.Tensor.ne                        | 否       |
+| 231  | torch.Tensor.ne_                       | 否       |
 | 232  | torch.Tensor.neg                       | 是       |
 | 233  | torch.Tensor.neg_                      | 是       |
 | 234  | torch.Tensor.nelement                  | 是       |
@@ -647,16 +647,16 @@
 | 241  | torch.Tensor.ormqr                     | 否       |
 | 242  | torch.Tensor.outer                     | 是       |
 | 243  | torch.Tensor.permute                   | 是       |
-| 244  | torch.Tensor.pca_lowrank               | 是       |
+| 244  | torch.Tensor.pca_lowrank               | 否       |
 | 245  | torch.Tensor.pin_memory                | 否       |
-| 246  | torch.Tensor.pinverse                  | 是       |
+| 246  | torch.Tensor.pinverse                  | 否       |
 | 247  | torch.Tensor.polygamma                 | 否       |
 | 248  | torch.Tensor.polygamma_                | 否       |
 | 249  | torch.Tensor.pow                       | 是       |
 | 250  | torch.Tensor.pow_                      | 是       |
 | 251  | torch.Tensor.prod                      | 是       |
 | 252  | torch.Tensor.put_                      | 是       |
-| 253  | torch.Tensor.qr                        | 是       |
+| 253  | torch.Tensor.qr                        | 否       |
 | 254  | torch.Tensor.qscheme                   | 否       |
 | 255  | torch.Tensor.q_scale                   | 否       |
 | 256  | torch.Tensor.q_zero_point              | 否       |
@@ -669,18 +669,18 @@
 | 263  | torch.Tensor.record_stream             | 是       |
 | 264  | torch.Tensor.remainder                 | 是       |
 | 265  | torch.Tensor.remainder_                | 是       |
-| 266  | torch.Tensor.renorm                    | 是       |
-| 267  | torch.Tensor.renorm_                   | 是       |
+| 266  | torch.Tensor.renorm                    | 否       |
+| 267  | torch.Tensor.renorm_                   | 否       |
 | 268  | torch.Tensor.repeat                    | 是       |
-| 269  | torch.Tensor.repeat_interleave         | 是       |
+| 269  | torch.Tensor.repeat_interleave         | 否       |
 | 270  | torch.Tensor.requires_grad_            | 是       |
 | 271  | torch.Tensor.reshape                   | 是       |
 | 272  | torch.Tensor.reshape_as                | 是       |
 | 273  | torch.Tensor.resize_                   | 是       |
 | 274  | torch.Tensor.resize_as_                | 是       |
 | 275  | torch.Tensor.rfft                      | 否       |
-| 276  | torch.Tensor.roll                      | 是       |
-| 277  | torch.Tensor.rot90                     | 是       |
+| 276  | torch.Tensor.roll                      | 否       |
+| 277  | torch.Tensor.rot90                     | 否       |
 | 278  | torch.Tensor.round                     | 是       |
 | 279  | torch.Tensor.round_                    | 是       |
 | 280  | torch.Tensor.rsqrt                     | 是       |
@@ -702,9 +702,9 @@
 | 296  | torch.Tensor.sinh                      | 是       |
 | 297  | torch.Tensor.sinh_                     | 是       |
 | 298  | torch.Tensor.size                      | 是       |
-| 299  | torch.Tensor.slogdet                   | 是       |
+| 299  | torch.Tensor.slogdet                   | 否       |
 | 300  | torch.Tensor.solve                     | 否       |
-| 301  | torch.Tensor.sort                      | 是       |
+| 301  | torch.Tensor.sort                      | 否       |
 | 302  | torch.Tensor.split                     | 是       |
 | 303  | torch.Tensor.sparse_mask               | 否       |
 | 304  | torch.Tensor.sparse_dim                | 否       |
@@ -724,9 +724,9 @@
 | 318  | torch.Tensor.sub_                      | 是       |
 | 319  | torch.Tensor.sum                       | 是       |
 | 320  | torch.Tensor.sum_to_size               | 是       |
-| 321  | torch.Tensor.svd                       | 是       |
-| 322  | torch.Tensor.svd_lowrank               | 是       |
-| 323  | torch.Tensor.symeig                    | 是       |
+| 321  | torch.Tensor.svd                       | 否       |
+| 322  | torch.Tensor.svd_lowrank               | 否       |
+| 323  | torch.Tensor.symeig                    | 否       |
 | 324  | torch.Tensor.t                         | 是       |
 | 325  | torch.Tensor.t_                        | 是       |
 | 326  | torch.Tensor.to                        | 是       |
@@ -737,17 +737,17 @@
 | 331  | torch.Tensor.tanh                      | 是       |
 | 332  | torch.Tensor.tanh_                     | 是       |
 | 333  | torch.Tensor.tolist                    | 是       |
-| 334  | torch.Tensor.topk                      | 是       |
+| 334  | torch.Tensor.topk                      | 否       |
 | 335  | torch.Tensor.to_sparse                 | 否       |
 | 336  | torch.Tensor.trace                     | 否       |
-| 337  | torch.Tensor.trapz                     | 是       |
+| 337  | torch.Tensor.trapz                     | 否       |
 | 338  | torch.Tensor.transpose                 | 是       |
 | 339  | torch.Tensor.transpose_                | 是       |
-| 340  | torch.Tensor.triangular_solve          | 是       |
-| 341  | torch.Tensor.tril                      | 是       |
-| 342  | torch.Tensor.tril_                     | 是       |
-| 343  | torch.Tensor.triu                      | 是       |
-| 344  | torch.Tensor.triu_                     | 是       |
+| 340  | torch.Tensor.triangular_solve          | 否       |
+| 341  | torch.Tensor.tril                      | 否       |
+| 342  | torch.Tensor.tril_                     | 否       |
+| 343  | torch.Tensor.triu                      | 否       |
+| 344  | torch.Tensor.triu_                     | 否       |
 | 345  | torch.Tensor.true_divide               | 是       |
 | 346  | torch.Tensor.true_divide_              | 是       |
 | 347  | torch.Tensor.trunc                     | 是       |
@@ -762,8 +762,8 @@
 | 356  | torch.Tensor.unsqueeze                 | 是       |
 | 357  | torch.Tensor.unsqueeze_                | 是       |
 | 358  | torch.Tensor.values                    | 否       |
-| 359  | torch.Tensor.var                       | 否       |
-| 360  | torch.Tensor.vdot                      | 是       |
+| 359  | torch.Tensor.var                       | 是       |
+| 360  | torch.Tensor.vdot                      | 否       |
 | 361  | torch.Tensor.view                      | 是       |
 | 362  | torch.Tensor.view_as                   | 是       |
 | 363  | torch.Tensor.where                     | 是       |
@@ -774,462 +774,462 @@
 
 ## Layers (torch.nn)
 
-| 序号 | API名称                                                  | 是否支持                     |
-| ---- | -------------------------------------------------------- | ---------------------------- |
-| 1    | torch.nn.Parameter                                       | 是                           |
-| 2    | torch.nn.UninitializedParameter                          | 是                           |
-| 3    | torch.nn.Module                                          | 是                           |
-| 4    | torch.nn.Module.add_module                               | 是                           |
-| 5    | torch.nn.Module.apply                                    | 是                           |
-| 6    | torch.nn.Module.bfloat16                                 | 否                           |
-| 7    | torch.nn.Module.buffers                                  | 是                           |
-| 8    | torch.nn.Module.children                                 | 是                           |
-| 9    | torch.nn.Module.cpu                                      | 是                           |
-| 10   | torch.nn.Module.cuda                                     | 否                           |
-| 11   | torch.nn.Module.double                                   | 否                           |
-| 12   | torch.nn.Module.dump_patches                             | 是                           |
-| 13   | torch.nn.Module.eval                                     | 是                           |
-| 14   | torch.nn.Module.extra_repr                               | 是                           |
-| 15   | torch.nn.Module.float                                    | 是                           |
-| 16   | torch.nn.Module.forward                                  | 是                           |
-| 17   | torch.nn.Module.half                                     | 是                           |
-| 18   | torch.nn.Module.load_state_dict                          | 是                           |
-| 19   | torch.nn.Module.modules                                  | 是                           |
-| 20   | torch.nn.Module.named_buffers                            | 是                           |
-| 21   | torch.nn.Module.named_children                           | 是                           |
-| 22   | torch.nn.Module.named_modules                            | 是                           |
-| 23   | torch.nn.Module.named_parameters                         | 是                           |
-| 24   | torch.nn.Module.parameters                               | 是                           |
-| 25   | torch.nn.Module.register_backward_hook                   | 是                           |
-| 26   | torch.nn.Module.register_buffer                          | 是                           |
-| 27   | torch.nn.Module.register_forward_hook                    | 是                           |
-| 28   | torch.nn.Module.register_forward_pre_hook                | 是                           |
-| 29   | torch.nn.Module.register_parameter                       | 是                           |
-| 30   | torch.nn.register_module_forward_pre_hook                | 否                           |
-| 31   | torch.nn.register_module_forward_hook                    | 否                           |
-| 32   | torch.nn.register_module_backward_hook                   | 否                           |
-| 33   | torch.nn.Module.requires_grad_                           | 是                           |
-| 34   | torch.nn.Module.state_dict                               | 是                           |
-| 35   | torch.nn.Module.to                                       | 是                           |
-| 36   | torch.nn.Module.train                                    | 是                           |
-| 37   | torch.nn.Module.type                                     | 是                           |
-| 38   | torch.nn.Module.zero_grad                                | 是                           |
-| 39   | torch.nn.Sequential                                      | 是                           |
-| 40   | torch.nn.ModuleList                                      | 是                           |
-| 41   | torch.nn.ModuleList.append                               | 是                           |
-| 42   | torch.nn.ModuleList.extend                               | 是                           |
-| 43   | torch.nn.ModuleList.insert                               | 是                           |
-| 44   | torch.nn.ModuleDict                                      | 是                           |
-| 45   | torch.nn.ModuleDict.clear                                | 是                           |
-| 46   | torch.nn.ModuleDict.items                                | 是                           |
-| 47   | torch.nn.ModuleDict.keys                                 | 是                           |
-| 48   | torch.nn.ModuleDict.pop                                  | 是                           |
-| 49   | torch.nn.ModuleDict.update                               | 是                           |
-| 50   | torch.nn.ModuleDict.values                               | 是                           |
-| 51   | torch.nn.ParameterList                                   | 是                           |
-| 52   | torch.nn.ParameterList.append                            | 是                           |
-| 53   | torch.nn.ParameterList.extend                            | 是                           |
-| 54   | torch.nn.ParameterDict                                   | 是                           |
-| 55   | torch.nn.ParameterDict.clear                             | 是                           |
-| 56   | torch.nn.ParameterDict.items                             | 是                           |
-| 57   | torch.nn.ParameterDict.keys                              | 是                           |
-| 58   | torch.nn.ParameterDict.pop                               | 是                           |
-| 59   | torch.nn.ParameterDict.update                            | 是                           |
-| 60   | torch.nn.ParameterDict.values                            | 是                           |
-| 61   | torch.nn.Conv1d                                          | 是                           |
-| 62   | torch.nn.Conv2d                                          | 是                           |
-| 63   | torch.nn.Conv3d                                          | 是                           |
-| 64   | torch.nn.ConvTranspose1d                                 | 是                           |
-| 65   | torch.nn.ConvTranspose2d                                 | 是                           |
-| 66   | torch.nn.ConvTranspose3d                                 | 是                           |
-| 67   | torch.nn.LazyConv1d                                      | 是                           |
-| 68   | torch.nn.LazyConv2d                                      | 是                           |
-| 69   | torch.nn.LazyConv3d                                      | 是                           |
-| 70   | torch.nn.LazyConvTranspose1d                             | 是                           |
-| 71   | torch.nn.LazyConvTranspose2d                             | 是                           |
-| 72   | torch.nn.LazyConvTranspose3d                             | 是                           |
-| 73   | torch.nn.Unfold                                          | 是                           |
-| 74   | torch.nn.Fold                                            | 是                           |
-| 75   | torch.nn.MaxPool1d                                       | 是                           |
-| 76   | torch.nn.MaxPool2d                                       | 是                           |
-| 77   | torch.nn.MaxPool3d                                       | 是                           |
-| 78   | torch.nn.MaxUnpool1d                                     | 是                           |
-| 79   | torch.nn.MaxUnpool2d                                     | 是                           |
-| 80   | torch.nn.MaxUnpool3d                                     | 是                           |
-| 81   | torch.nn.AvgPool1d                                       | 是                           |
-| 82   | torch.nn.AvgPool2d                                       | 是                           |
-| 83   | torch.nn.AvgPool3d                                       | 是                           |
-| 84   | torch.nn.FractionalMaxPool2d                             | 否                           |
-| 85   | torch.nn.LPPool1d                                        | 是                           |
-| 86   | torch.nn.LPPool2d                                        | 是                           |
-| 87   | torch.nn.AdaptiveMaxPool1d                               | 是                           |
-| 88   | torch.nn.AdaptiveMaxPool2d                               | 是                           |
-| 89   | torch.nn.AdaptiveMaxPool3d                               | 否                           |
-| 90   | torch.nn.AdaptiveAvgPool1d                               | 是                           |
-| 91   | torch.nn.AdaptiveAvgPool2d                               | 是                           |
-| 92   | torch.nn.AdaptiveAvgPool3d                               | 是，仅支持D=1，H=1，W=1场景  |
-| 93   | torch.nn.ReflectionPad1d                                 | 是                           |
-| 94   | torch.nn.ReflectionPad2d                                 | 是                           |
-| 95   | torch.nn.ReplicationPad1d                                | 是                           |
-| 96   | torch.nn.ReplicationPad2d                                | 是                           |
-| 97   | torch.nn.ReplicationPad3d                                | 否                           |
-| 98   | torch.nn.ZeroPad2d                                       | 是                           |
-| 99   | torch.nn.ConstantPad1d                                   | 是                           |
-| 100  | torch.nn.ConstantPad2d                                   | 是                           |
-| 101  | torch.nn.ConstantPad3d                                   | 是                           |
-| 102  | torch.nn.ELU                                             | 是                           |
-| 103  | torch.nn.Hardshrink                                      | 是                           |
-| 104  | torch.nn.Hardsigmoid                                     | 是                           |
-| 105  | torch.nn.Hardtanh                                        | 是                           |
-| 106  | torch.nn.Hardswish                                       | 是                           |
-| 107  | torch.nn.LeakyReLU                                       | 是                           |
-| 108  | torch.nn.LogSigmoid                                      | 是                           |
-| 109  | torch.nn.MultiheadAttention                              | 是                           |
-| 110  | torch.nn.PReLU                                           | 是                           |
-| 111  | torch.nn.ReLU                                            | 是                           |
-| 112  | torch.nn.ReLU6                                           | 是                           |
-| 113  | torch.nn.RReLU                                           | 是                           |
-| 114  | torch.nn.SELU                                            | 是                           |
-| 115  | torch.nn.CELU                                            | 是                           |
-| 116  | torch.nn.GELU                                            | 是                           |
-| 117  | torch.nn.Sigmoid                                         | 是                           |
-| 118  | torch.nn.SiLU                                            | 是                           |
-| 119  | torch.nn.Softplus                                        | 是                           |
-| 120  | torch.nn.Softshrink                                      | 是，SoftShrink场景暂不支持   |
-| 121  | torch.nn.Softsign                                        | 是                           |
-| 122  | torch.nn.Tanh                                            | 是                           |
-| 123  | torch.nn.Tanhshrink                                      | 是                           |
-| 124  | torch.nn.Threshold                                       | 是                           |
-| 125  | torch.nn.Softmin                                         | 是                           |
-| 126  | torch.nn.Softmax                                         | 是                           |
-| 127  | torch.nn.Softmax2d                                       | 是                           |
-| 128  | torch.nn.LogSoftmax                                      | 是                           |
-| 129  | torch.nn.AdaptiveLogSoftmaxWithLoss                      | 否                           |
-| 130  | torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob             | 否                           |
-| 131  | torch.nn.AdaptiveLogSoftmaxWithLoss.predict              | 否                           |
-| 132  | torch.nn.BatchNorm1d                                     | 是                           |
-| 133  | torch.nn.BatchNorm2d                                     | 是                           |
-| 134  | torch.nn.BatchNorm3d                                     | 是                           |
-| 135  | torch.nn.GroupNorm                                       | 是                           |
-| 136  | torch.nn.SyncBatchNorm                                   | 是                           |
-| 137  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 是                           |
-| 138  | torch.nn.InstanceNorm1d                                  | 是                           |
-| 139  | torch.nn.InstanceNorm2d                                  | 是                           |
-| 140  | torch.nn.InstanceNorm3d                                  | 是                           |
-| 141  | torch.nn.LayerNorm                                       | 是                           |
-| 142  | torch.nn.LocalResponseNorm                               | 是                           |
-| 143  | torch.nn.RNNBase                                         | 是                           |
-| 144  | torch.nn.RNNBase.flatten_parameters                      | 是                           |
-| 145  | torch.nn.RNN                                             | 是                           |
-| 146  | torch.nn.LSTM                                            | 是                           |
-| 147  | torch.nn.GRU                                             | 是，DynamicGRUV2场景暂不支持 |
-| 148  | torch.nn.RNNCell                                         | 是                           |
-| 149  | torch.nn.LSTMCell                                        | 是，非16对齐场景暂不支持     |
-| 150  | torch.nn.GRUCell                                         | 是                           |
-| 151  | torch.nn.Transformer                                     | 是                           |
-| 152  | torch.nn.Transformer.forward                             | 是                           |
-| 153  | torch.nn.Transformer.generate_square_subsequent_mask     | 是                           |
-| 154  | torch.nn.TransformerEncoder                              | 是                           |
-| 155  | torch.nn.TransformerEncoder.forward                      | 是                           |
-| 156  | torch.nn.TransformerDecoder                              | 是                           |
-| 157  | torch.nn.TransformerDecoder.forward                      | 是                           |
-| 158  | torch.nn.TransformerEncoderLayer                         | 是                           |
-| 159  | torch.nn.TransformerEncoderLayer.forward                 | 是                           |
-| 160  | torch.nn.TransformerDecoderLayer                         | 是                           |
-| 161  | torch.nn.TransformerDecoderLayer.forward                 | 是                           |
-| 162  | torch.nn.Identity                                        | 是                           |
-| 163  | torch.nn.Linear                                          | 是                           |
-| 164  | torch.nn.Bilinear                                        | 是                           |
-| 165  | torch.nn.LazyLinear                                      | 是                           |
-| 166  | torch.nn.Dropout                                         | 是                           |
-| 167  | torch.nn.Dropout2d                                       | 是                           |
-| 168  | torch.nn.Dropout3d                                       | 是                           |
-| 169  | torch.nn.AlphaDropout                                    | 是                           |
-| 170  | torch.nn.Embedding                                       | 是                           |
-| 171  | torch.nn.Embedding.from_pretrained                       | 是                           |
-| 172  | torch.nn.EmbeddingBag                                    | 是                           |
-| 173  | torch.nn.EmbeddingBag.from_pretrained                    | 是                           |
-| 174  | torch.nn.CosineSimilarity                                | 是                           |
-| 175  | torch.nn.PairwiseDistance                                | 是                           |
-| 176  | torch.nn.L1Loss                                          | 是                           |
-| 177  | torch.nn.MSELoss                                         | 是                           |
-| 178  | torch.nn.CrossEntropyLoss                                | 是                           |
-| 179  | torch.nn.CTCLoss                                         | 是                           |
-| 180  | torch.nn.NLLLoss                                         | 是                           |
-| 181  | torch.nn.PoissonNLLLoss                                  | 是                           |
-| 182  | torch.nn.GaussianNLLLoss                                 | 是                           |
-| 183  | torch.nn.KLDivLoss                                       | 是                           |
-| 184  | torch.nn.BCELoss                                         | 是                           |
-| 185  | torch.nn.BCEWithLogitsLoss                               | 是                           |
-| 186  | torch.nn.MarginRankingLoss                               | 是                           |
-| 187  | torch.nn.HingeEmbeddingLoss                              | 是                           |
-| 188  | torch.nn.MultiLabelMarginLoss                            | 是                           |
-| 189  | torch.nn.SmoothL1Loss                                    | 是                           |
-| 190  | torch.nn.SoftMarginLoss                                  | 是                           |
-| 191  | torch.nn.MultiLabelSoftMarginLoss                        | 是                           |
-| 192  | torch.nn.CosineEmbeddingLoss                             | 是                           |
-| 193  | torch.nn.MultiMarginLoss                                 | 否                           |
-| 194  | torch.nn.TripletMarginLoss                               | 是                           |
-| 195  | torch.nn.TripletMarginLossWithDistanceLoss               | 是                           |
-| 196  | torch.nn.PixelShuffle                                    | 是                           |
-| 197  | torch.nn.PixelUnshuffle                                  | 是                           |
-| 198  | torch.nn.Upsample                                        | 是                           |
-| 199  | torch.nn.UpsamplingNearest2d                             | 是                           |
-| 200  | torch.nn.UpsamplingBilinear2d                            | 是                           |
-| 201  | torch.nn.ChannelShuffle                                  | 是                           |
-| 202  | torch.nn.DataParallel                                    | 是                           |
-| 203  | torch.nn.parallel.DistributedDataParallel                | 是                           |
-| 204  | torch.nn.parallel.DistributedDataParallel.no_sync        | 是                           |
-| 205  | torch.nn.utils.clip_grad_norm_                           | 是                           |
-| 206  | torch.nn.utils.clip_grad_value_                          | 是                           |
-| 207  | torch.nn.utils.parameters_to_vector                      | 是                           |
-| 208  | torch.nn.utils.vector_to_parameters                      | 是                           |
-| 209  | torch.nn.utils.Prune.BasePruningMethod                   | 是                           |
-| 210  | torch.nn.utils.prune.PruningContainer                    | 是                           |
-| 211  | torch.nn.utils.prune.PruningContainer.add_pruning_method | 是                           |
-| 212  | torch.nn.utils.prune.PruningContainer.apply              | 是                           |
-| 213  | torch.nn.utils.prune.PruningContainer.apply_mask         | 是                           |
-| 214  | torch.nn.utils.prune.PruningContainer.compute_mask       | 是                           |
-| 215  | torch.nn.utils.prune.PruningContainer.prune              | 是                           |
-| 216  | torch.nn.utils.prune.PruningContainer.remove             | 是                           |
-| 217  | torch.nn.utils.prune.Identity                            | 是                           |
-| 218  | torch.nn.utils.prune.Identity.apply                      | 是                           |
-| 219  | torch.nn.utils.prune.Identity.apply_mask                 | 是                           |
-| 220  | torch.nn.utils.prune.Identity.prune                      | 是                           |
-| 221  | torch.nn.utils.prune.Identity.remove                     | 是                           |
-| 222  | torch.nn.utils.prune.RandomUnstructured                  | 是                           |
-| 223  | torch.nn.utils.prune.RandomUnstructured.apply            | 是                           |
-| 224  | torch.nn.utils.prune.RandomUnstructured.apply_mask       | 是                           |
-| 225  | torch.nn.utils.prune.RandomUnstructured.prune            | 是                           |
-| 226  | torch.nn.utils.prune.RandomUnstructured.remove           | 是                           |
-| 227  | torch.nn.utils.prune.L1Unstructured                      | 是                           |
-| 228  | torch.nn.utils.prune.L1Unstructured.apply                | 是                           |
-| 229  | torch.nn.utils.prune.L1Unstructured.apply_mask           | 是                           |
-| 230  | torch.nn.utils.prune.L1Unstructured.prune                | 是                           |
-| 231  | torch.nn.utils.prune.L1Unstructured.remove               | 是                           |
-| 232  | torch.nn.utils.prune.RandomStructured                    | 是                           |
-| 233  | torch.nn.utils.prune.RandomStructured.apply              | 是                           |
-| 234  | torch.nn.utils.prune.RandomStructured.apply_mask         | 是                           |
-| 235  | torch.nn.utils.prune.RandomStructured.compute_mask       | 是                           |
-| 236  | torch.nn.utils.prune.RandomStructured.prune              | 是                           |
-| 237  | torch.nn.utils.prune.RandomStructured.remove             | 是                           |
-| 238  | torch.nn.utils.prune.LnStructured                        | 是                           |
-| 239  | torch.nn.utils.prune.LnStructured.apply                  | 是                           |
-| 240  | torch.nn.utils.prune.LnStructured.apply_mask             | 是                           |
-| 241  | torch.nn.utils.prune.LnStructured.compute_mask           | 是                           |
-| 242  | torch.nn.utils.prune.LnStructured.prune                  | 是                           |
-| 243  | torch.nn.utils.prune.LnStructured.remove                 | 是                           |
-| 244  | torch.nn.utils.prune.CustomFromMask                      | 是                           |
-| 245  | torch.nn.utils.prune.CustomFromMask.apply                | 是                           |
-| 246  | torch.nn.utils.prune.CustomFromMask.apply_mask           | 是                           |
-| 247  | torch.nn.utils.prune.CustomFromMask.prune                | 是                           |
-| 248  | torch.nn.utils.prune.CustomFromMask.remove               | 是                           |
-| 249  | torch.nn.utils.prune.identity                            | 是                           |
-| 250  | torch.nn.utils.prune.random_unstructured                 | 是                           |
-| 251  | torch.nn.utils.prune.l1_unstructured                     | 是                           |
-| 252  | torch.nn.utils.prune.random_structured                   | 是                           |
-| 253  | torch.nn.utils.prune.ln_structured                       | 是                           |
-| 254  | torch.nn.utils.prune.global_unstructured                 | 是                           |
-| 255  | torch.nn.utils.prune.custom_from_mask                    | 是                           |
-| 256  | torch.nn.utils.prune.remove                              | 是                           |
-| 257  | torch.nn.utils.prune.is_pruned                           | 是                           |
-| 258  | torch.nn.utils.weight_norm                               | 是                           |
-| 259  | torch.nn.utils.remove_weight_norm                        | 是                           |
-| 260  | torch.nn.utils.spectral_norm                             | 是                           |
-| 261  | torch.nn.utils.remove_spectral_norm                      | 是                           |
-| 262  | torch.nn.utils.rnn.PackedSequence                        | 是                           |
-| 263  | torch.nn.utils.rnn.pack_padded_sequence                  | 是                           |
-| 264  | torch.nn.utils.rnn.pad_packed_sequence                   | 是                           |
-| 265  | torch.nn.utils.rnn.pad_sequence                          | 是                           |
-| 266  | torch.nn.utils.rnn.pack_sequence                         | 是                           |
-| 267  | torch.nn.Flatten                                         | 是                           |
-| 268  | torch.nn.Unflatten                                       | 是                           |
-| 269  | torch.nn.modules.lazy.LazyModuleMixin                    | 是                           |
-| 270  | torch.quantization.quantize                              | 否                           |
-| 271  | torch.quantization.quantize_dynamic                      | 否                           |
-| 272  | torch.quantization.quantize_qat                          | 否                           |
-| 273  | torch.quantization.prepare                               | 是                           |
-| 274  | torch.quantization.prepare_qat                           | 否                           |
-| 275  | torch.quantization.convert                               | 否                           |
-| 276  | torch.quantization.QConfig                               | 是                           |
-| 277  | torch.quantization.QConfigDynamic                        | 是                           |
-| 278  | torch.quantization.fuse_modules                          | 是                           |
-| 279  | torch.quantization.QuantStub                             | 是                           |
-| 280  | torch.quantization.DeQuantStub                           | 是                           |
-| 281  | torch.quantization.QuantWrapper                          | 是                           |
-| 282  | torch.quantization.add_quant_dequant                     | 是                           |
-| 283  | torch.quantization.add_observer_                         | 是                           |
-| 284  | torch.quantization.swap_module                           | 是                           |
-| 285  | torch.quantization.propagate_qconfig_                    | 是                           |
-| 286  | torch.quantization.default_eval_fn                       | 是                           |
-| 287  | torch.quantization.MinMaxObserver                        | 是                           |
-| 288  | torch.quantization.MovingAverageMinMaxObserver           | 是                           |
-| 289  | torch.quantization.PerChannelMinMaxObserver              | 是                           |
-| 290  | torch.quantization.MovingAveragePerChannelMinMaxObserver | 是                           |
-| 291  | torch.quantization.HistogramObserver                     | 否                           |
-| 292  | torch.quantization.FakeQuantize                          | 否                           |
-| 293  | torch.quantization.NoopObserver                          | 是                           |
-| 294  | torch.quantization.get_observer_dict                     | 是                           |
-| 295  | torch.quantization.RecordingObserver                     | 是                           |
-| 296  | torch.nn.intrinsic.ConvBn2d                              | 是                           |
-| 297  | torch.nn.intrinsic.ConvBnReLU2d                          | 是                           |
-| 298  | torch.nn.intrinsic.ConvReLU2d                            | 是                           |
-| 299  | torch.nn.intrinsic.ConvReLU3d                            | 是                           |
-| 300  | torch.nn.intrinsic.LinearReLU                            | 是                           |
-| 301  | torch.nn.intrinsic.qat.ConvBn2d                          | 否                           |
-| 302  | torch.nn.intrinsic.qat.ConvBnReLU2d                      | 否                           |
-| 303  | torch.nn.intrinsic.qat.ConvReLU2d                        | 否                           |
-| 304  | torch.nn.intrinsic.qat.LinearReLU                        | 否                           |
-| 305  | torch.nn.intrinsic.quantized.ConvReLU2d                  | 否                           |
-| 306  | torch.nn.intrinsic.quantized.ConvReLU3d                  | 否                           |
-| 307  | torch.nn.intrinsic.quantized.LinearReLU                  | 否                           |
-| 308  | torch.nn.qat.Conv2d                                      | 否                           |
-| 309  | torch.nn.qat.Conv2d.from_float                           | 否                           |
-| 310  | torch.nn.qat.Linear                                      | 否                           |
-| 311  | torch.nn.qat.Linear.from_float                           | 否                           |
-| 312  | torch.nn.quantized.functional.relu                       | 否                           |
-| 313  | torch.nn.quantized.functional.linear                     | 否                           |
-| 314  | torch.nn.quantized.functional.conv2d                     | 否                           |
-| 315  | torch.nn.quantized.functional.conv3d                     | 否                           |
-| 316  | torch.nn.quantized.functional.max_pool2d                 | 否                           |
-| 317  | torch.nn.quantized.functional.adaptive_avg_pool2d        | 否                           |
-| 318  | torch.nn.quantized.functional.avg_pool2d                 | 否                           |
-| 319  | torch.nn.quantized.functional.interpolate                | 否                           |
-| 320  | torch.nn.quantized.functional.upsample                   | 否                           |
-| 321  | torch.nn.quantized.functional.upsample_bilinear          | 否                           |
-| 322  | torch.nn.quantized.functional.upsample_nearest           | 否                           |
-| 323  | torch.nn.quantized.ReLU                                  | 否                           |
-| 324  | torch.nn.quantized.ReLU6                                 | 否                           |
-| 325  | torch.nn.quantized.Conv2d                                | 否                           |
-| 326  | torch.nn.quantized.Conv2d.from_float                     | 否                           |
-| 327  | torch.nn.quantized.Conv3d                                | 否                           |
-| 328  | torch.nn.quantized.Conv3d.from_float                     | 否                           |
-| 329  | torch.nn.quantized.FloatFunctional                       | 是                           |
-| 330  | torch.nn.quantized.QFunctional                           | 否                           |
-| 331  | torch.nn.quantized.Quantize                              | 是                           |
-| 332  | torch.nn.quantized.DeQuantize                            | 否                           |
-| 333  | torch.nn.quantized.Linear                                | 否                           |
-| 334  | torch.nn.quantized.Linear.from_float                     | 否                           |
-| 335  | torch.nn.quantized.dynamic.Linear                        | 否                           |
-| 336  | torch.nn.quantized.dynamic.Linear.from_float             | 否                           |
-| 337  | torch.nn.quantized.dynamic.LSTM                          | 否                           |
+| 序号 | API名称                                                  | 是否支持 |
+| ---- | -------------------------------------------------------- | -------- |
+| 1    | torch.nn.Parameter                                       | 是       |
+| 2    | torch.nn.UninitializedParameter                          | 是       |
+| 3    | torch.nn.Module                                          | 是       |
+| 4    | torch.nn.Module.add_module                               | 是       |
+| 5    | torch.nn.Module.apply                                    | 是       |
+| 6    | torch.nn.Module.bfloat16                                 | 是       |
+| 7    | torch.nn.Module.buffers                                  | 是       |
+| 8    | torch.nn.Module.children                                 | 是       |
+| 9    | torch.nn.Module.cpu                                      | 是       |
+| 10   | torch.nn.Module.cuda                                     | 是       |
+| 11   | torch.nn.Module.double                                   | 是       |
+| 12   | torch.nn.Module.dump_patches                             | 是       |
+| 13   | torch.nn.Module.eval                                     | 是       |
+| 14   | torch.nn.Module.extra_repr                               | 是       |
+| 15   | torch.nn.Module.float                                    | 是       |
+| 16   | torch.nn.Module.forward                                  | 是       |
+| 17   | torch.nn.Module.half                                     | 是       |
+| 18   | torch.nn.Module.load_state_dict                          | 是       |
+| 19   | torch.nn.Module.modules                                  | 是       |
+| 20   | torch.nn.Module.named_buffers                            | 是       |
+| 21   | torch.nn.Module.named_children                           | 是       |
+| 22   | torch.nn.Module.named_modules                            | 是       |
+| 23   | torch.nn.Module.named_parameters                         | 是       |
+| 24   | torch.nn.Module.parameters                               | 是       |
+| 25   | torch.nn.Module.register_backward_hook                   | 是       |
+| 26   | torch.nn.Module.register_buffer                          | 是       |
+| 27   | torch.nn.Module.register_forward_hook                    | 是       |
+| 28   | torch.nn.Module.register_forward_pre_hook                | 是       |
+| 29   | torch.nn.Module.register_parameter                       | 是       |
+| 30   | torch.nn.register_module_forward_pre_hook                | 是       |
+| 31   | torch.nn.register_module_forward_hook                    | 是       |
+| 32   | torch.nn.register_module_backward_hook                   | 是       |
+| 33   | torch.nn.Module.requires_grad_                           | 是       |
+| 34   | torch.nn.Module.state_dict                               | 是       |
+| 35   | torch.nn.Module.to                                       | 是       |
+| 36   | torch.nn.Module.train                                    | 是       |
+| 37   | torch.nn.Module.type                                     | 是       |
+| 38   | torch.nn.Module.zero_grad                                | 是       |
+| 39   | torch.nn.Sequential                                      | 是       |
+| 40   | torch.nn.ModuleList                                      | 是       |
+| 41   | torch.nn.ModuleList.append                               | 是       |
+| 42   | torch.nn.ModuleList.extend                               | 是       |
+| 43   | torch.nn.ModuleList.insert                               | 是       |
+| 44   | torch.nn.ModuleDict                                      | 是       |
+| 45   | torch.nn.ModuleDict.clear                                | 是       |
+| 46   | torch.nn.ModuleDict.items                                | 是       |
+| 47   | torch.nn.ModuleDict.keys                                 | 是       |
+| 48   | torch.nn.ModuleDict.pop                                  | 是       |
+| 49   | torch.nn.ModuleDict.update                               | 是       |
+| 50   | torch.nn.ModuleDict.values                               | 是       |
+| 51   | torch.nn.ParameterList                                   | 是       |
+| 52   | torch.nn.ParameterList.append                            | 是       |
+| 53   | torch.nn.ParameterList.extend                            | 是       |
+| 54   | torch.nn.ParameterDict                                   | 是       |
+| 55   | torch.nn.ParameterDict.clear                             | 是       |
+| 56   | torch.nn.ParameterDict.items                             | 是       |
+| 57   | torch.nn.ParameterDict.keys                              | 是       |
+| 58   | torch.nn.ParameterDict.pop                               | 是       |
+| 59   | torch.nn.ParameterDict.update                            | 是       |
+| 60   | torch.nn.ParameterDict.values                            | 是       |
+| 61   | torch.nn.Conv1d                                          | 是       |
+| 62   | torch.nn.Conv2d                                          | 是       |
+| 63   | torch.nn.Conv3d                                          | 是       |
+| 64   | torch.nn.ConvTranspose1d                                 | 是       |
+| 65   | torch.nn.ConvTranspose2d                                 | 是       |
+| 66   | torch.nn.ConvTranspose3d                                 | 是       |
+| 67   | torch.nn.LazyConv1d                                      | 是       |
+| 68   | torch.nn.LazyConv2d                                      | 是       |
+| 69   | torch.nn.LazyConv3d                                      | 是       |
+| 70   | torch.nn.LazyConvTranspose1d                             | 是       |
+| 71   | torch.nn.LazyConvTranspose2d                             | 是       |
+| 72   | torch.nn.LazyConvTranspose3d                             | 是       |
+| 73   | torch.nn.Unfold                                          | 是       |
+| 74   | torch.nn.Fold                                            | 是       |
+| 75   | torch.nn.MaxPool1d                                       | 是       |
+| 76   | torch.nn.MaxPool2d                                       | 是       |
+| 77   | torch.nn.MaxPool3d                                       | 是       |
+| 78   | torch.nn.MaxUnpool1d                                     | 是       |
+| 79   | torch.nn.MaxUnpool2d                                     | 是       |
+| 80   | torch.nn.MaxUnpool3d                                     | 是       |
+| 81   | torch.nn.AvgPool1d                                       | 是       |
+| 82   | torch.nn.AvgPool2d                                       | 是       |
+| 83   | torch.nn.AvgPool3d                                       | 是       |
+| 84   | torch.nn.FractionalMaxPool2d                             | 否       |
+| 85   | torch.nn.LPPool1d                                        | 是       |
+| 86   | torch.nn.LPPool2d                                        | 是       |
+| 87   | torch.nn.AdaptiveMaxPool1d                               | 是       |
+| 88   | torch.nn.AdaptiveMaxPool2d                               | 是       |
+| 89   | torch.nn.AdaptiveMaxPool3d                               | 否       |
+| 90   | torch.nn.AdaptiveAvgPool1d                               | 是       |
+| 91   | torch.nn.AdaptiveAvgPool2d                               | 是       |
+| 92   | torch.nn.AdaptiveAvgPool3d                               | 是       |
+| 93   | torch.nn.ReflectionPad1d                                 | 是       |
+| 94   | torch.nn.ReflectionPad2d                                 | 否       |
+| 95   | torch.nn.ReplicationPad1d                                | 是       |
+| 96   | torch.nn.ReplicationPad2d                                | 否       |
+| 97   | torch.nn.ReplicationPad3d                                | 是       |
+| 98   | torch.nn.ZeroPad2d                                       | 是       |
+| 99   | torch.nn.ConstantPad1d                                   | 是       |
+| 100  | torch.nn.ConstantPad2d                                   | 是       |
+| 101  | torch.nn.ConstantPad3d                                   | 是       |
+| 102  | torch.nn.ELU                                             | 是       |
+| 103  | torch.nn.Hardshrink                                      | 是       |
+| 104  | torch.nn.Hardsigmoid                                     | 是       |
+| 105  | torch.nn.Hardtanh                                        | 是       |
+| 106  | torch.nn.Hardswish                                       | 是       |
+| 107  | torch.nn.LeakyReLU                                       | 是       |
+| 108  | torch.nn.LogSigmoid                                      | 是       |
+| 109  | torch.nn.MultiheadAttention                              | 是       |
+| 110  | torch.nn.PReLU                                           | 是       |
+| 111  | torch.nn.ReLU                                            | 是       |
+| 112  | torch.nn.ReLU6                                           | 是       |
+| 113  | torch.nn.RReLU                                           | 是       |
+| 114  | torch.nn.SELU                                            | 是       |
+| 115  | torch.nn.CELU                                            | 是       |
+| 116  | torch.nn.GELU                                            | 是       |
+| 117  | torch.nn.Sigmoid                                         | 是       |
+| 118  | torch.nn.SiLU                                            | 是       |
+| 119  | torch.nn.Softplus                                        | 是       |
+| 120  | torch.nn.Softshrink                                      | 是       |
+| 121  | torch.nn.Softsign                                        | 是       |
+| 122  | torch.nn.Tanh                                            | 是       |
+| 123  | torch.nn.Tanhshrink                                      | 是       |
+| 124  | torch.nn.Threshold                                       | 是       |
+| 125  | torch.nn.Softmin                                         | 是       |
+| 126  | torch.nn.Softmax                                         | 是       |
+| 127  | torch.nn.Softmax2d                                       | 是       |
+| 128  | torch.nn.LogSoftmax                                      | 是       |
+| 129  | torch.nn.AdaptiveLogSoftmaxWithLoss                      | 否       |
+| 130  | torch.nn.AdaptiveLogSoftmaxWithLoss.log_prob             | 否       |
+| 131  | torch.nn.AdaptiveLogSoftmaxWithLoss.predict              | 否       |
+| 132  | torch.nn.BatchNorm1d                                     | 是       |
+| 133  | torch.nn.BatchNorm2d                                     | 是       |
+| 134  | torch.nn.BatchNorm3d                                     | 是       |
+| 135  | torch.nn.GroupNorm                                       | 是       |
+| 136  | torch.nn.SyncBatchNorm                                   | 是       |
+| 137  | torch.nn.SyncBatchNorm.convert_sync_batchnorm            | 是       |
+| 138  | torch.nn.InstanceNorm1d                                  | 是       |
+| 139  | torch.nn.InstanceNorm2d                                  | 是       |
+| 140  | torch.nn.InstanceNorm3d                                  | 是       |
+| 141  | torch.nn.LayerNorm                                       | 是       |
+| 142  | torch.nn.LocalResponseNorm                               | 是       |
+| 143  | torch.nn.RNNBase                                         | 是       |
+| 144  | torch.nn.RNNBase.flatten_parameters                      | 是       |
+| 145  | torch.nn.RNN                                             | 是       |
+| 146  | torch.nn.LSTM                                            | 是       |
+| 147  | torch.nn.GRU                                             | 是       |
+| 148  | torch.nn.RNNCell                                         | 是       |
+| 149  | torch.nn.LSTMCell                                        | 是       |
+| 150  | torch.nn.GRUCell                                         | 是       |
+| 151  | torch.nn.Transformer                                     | 是       |
+| 152  | torch.nn.Transformer.forward                             | 是       |
+| 153  | torch.nn.Transformer.generate_square_subsequent_mask     | 是       |
+| 154  | torch.nn.TransformerEncoder                              | 是       |
+| 155  | torch.nn.TransformerEncoder.forward                      | 是       |
+| 156  | torch.nn.TransformerDecoder                              | 是       |
+| 157  | torch.nn.TransformerDecoder.forward                      | 是       |
+| 158  | torch.nn.TransformerEncoderLayer                         | 是       |
+| 159  | torch.nn.TransformerEncoderLayer.forward                 | 是       |
+| 160  | torch.nn.TransformerDecoderLayer                         | 是       |
+| 161  | torch.nn.TransformerDecoderLayer.forward                 | 是       |
+| 162  | torch.nn.Identity                                        | 是       |
+| 163  | torch.nn.Linear                                          | 是       |
+| 164  | torch.nn.Bilinear                                        | 是       |
+| 165  | torch.nn.LazyLinear                                      | 是       |
+| 166  | torch.nn.Dropout                                         | 是       |
+| 167  | torch.nn.Dropout2d                                       | 是       |
+| 168  | torch.nn.Dropout3d                                       | 是       |
+| 169  | torch.nn.AlphaDropout                                    | 是       |
+| 170  | torch.nn.Embedding                                       | 是       |
+| 171  | torch.nn.Embedding.from_pretrained                       | 是       |
+| 172  | torch.nn.EmbeddingBag                                    | 是       |
+| 173  | torch.nn.EmbeddingBag.from_pretrained                    | 是       |
+| 174  | torch.nn.CosineSimilarity                                | 是       |
+| 175  | torch.nn.PairwiseDistance                                | 是       |
+| 176  | torch.nn.L1Loss                                          | 是       |
+| 177  | torch.nn.MSELoss                                         | 是       |
+| 178  | torch.nn.CrossEntropyLoss                                | 是       |
+| 179  | torch.nn.CTCLoss                                         | 是       |
+| 180  | torch.nn.NLLLoss                                         | 是       |
+| 181  | torch.nn.PoissonNLLLoss                                  | 是       |
+| 182  | torch.nn.GaussianNLLLoss                                 | 是       |
+| 183  | torch.nn.KLDivLoss                                       | 是       |
+| 184  | torch.nn.BCELoss                                         | 是       |
+| 185  | torch.nn.BCEWithLogitsLoss                               | 是       |
+| 186  | torch.nn.MarginRankingLoss                               | 是       |
+| 187  | torch.nn.HingeEmbeddingLoss                              | 是       |
+| 188  | torch.nn.MultiLabelMarginLoss                            | 是       |
+| 189  | torch.nn.SmoothL1Loss                                    | 是       |
+| 190  | torch.nn.SoftMarginLoss                                  | 是       |
+| 191  | torch.nn.MultiLabelSoftMarginLoss                        | 是       |
+| 192  | torch.nn.CosineEmbeddingLoss                             | 是       |
+| 193  | torch.nn.MultiMarginLoss                                 | 否       |
+| 194  | torch.nn.TripletMarginLoss                               | 是       |
+| 195  | torch.nn.TripletMarginLossDistanceLoss                   | 是       |
+| 196  | torch.nn.PixelShuffle                                    | 是       |
+| 197  | torch.nn.PixelUnshuffle                                  | 是       |
+| 198  | torch.nn.Upsample                                        | 是       |
+| 199  | torch.nn.UpsamplingNearest2d                             | 是       |
+| 200  | torch.nn.UpsamplingBilinear2d                            | 是       |
+| 201  | torch.nn.ChannelShuffle                                  | 是       |
+| 202  | torch.nn.DataParallel                                    | 是       |
+| 203  | torch.nn.parallel.DistributedDataParallel                | 是       |
+| 204  | torch.nn.parallel.DistributedDataParallel.no_sync        | 是       |
+| 205  | torch.nn.utils.clip_grad_norm_                           | 是       |
+| 206  | torch.nn.utils.clip_grad_value_                          | 是       |
+| 207  | torch.nn.utils.parameters_to_vector                      | 是       |
+| 208  | torch.nn.utils.vector_to_parameters                      | 是       |
+| 209  | torch.nn.utils.Prune.BasePruningMethod                   | 否       |
+| 210  | torch.nn.utils.prune.PruningContainer                    | 是       |
+| 211  | torch.nn.utils.prune.PruningContainer.add_pruning_method | 是       |
+| 212  | torch.nn.utils.prune.PruningContainer.apply              | 是       |
+| 213  | torch.nn.utils.prune.PruningContainer.apply_mask         | 是       |
+| 214  | torch.nn.utils.prune.PruningContainer.compute_mask       | 是       |
+| 215  | torch.nn.utils.prune.PruningContainer.prune              | 是       |
+| 216  | torch.nn.utils.prune.PruningContainer.remove             | 是       |
+| 217  | torch.nn.utils.prune.Identity                            | 是       |
+| 218  | torch.nn.utils.prune.Identity.apply                      | 是       |
+| 219  | torch.nn.utils.prune.Identity.apply_mask                 | 是       |
+| 220  | torch.nn.utils.prune.Identity.prune                      | 是       |
+| 221  | torch.nn.utils.prune.Identity.remove                     | 是       |
+| 222  | torch.nn.utils.prune.RandomUnstructured                  | 是       |
+| 223  | torch.nn.utils.prune.RandomUnstructured.apply            | 是       |
+| 224  | torch.nn.utils.prune.RandomUnstructured.apply_mask       | 是       |
+| 225  | torch.nn.utils.prune.RandomUnstructured.prune            | 是       |
+| 226  | torch.nn.utils.prune.RandomUnstructured.remove           | 是       |
+| 227  | torch.nn.utils.prune.L1Unstructured                      | 是       |
+| 228  | torch.nn.utils.prune.L1Unstructured.apply                | 是       |
+| 229  | torch.nn.utils.prune.L1Unstructured.apply_mask           | 是       |
+| 230  | torch.nn.utils.prune.L1Unstructured.prune                | 是       |
+| 231  | torch.nn.utils.prune.L1Unstructured.remove               | 是       |
+| 232  | torch.nn.utils.prune.RandomStructured                    | 是       |
+| 233  | torch.nn.utils.prune.RandomStructured.apply              | 是       |
+| 234  | torch.nn.utils.prune.RandomStructured.apply_mask         | 是       |
+| 235  | torch.nn.utils.prune.RandomStructured.compute_mask       | 是       |
+| 236  | torch.nn.utils.prune.RandomStructured.prune              | 是       |
+| 237  | torch.nn.utils.prune.RandomStructured.remove             | 是       |
+| 238  | torch.nn.utils.prune.LnStructured                        | 是       |
+| 239  | torch.nn.utils.prune.LnStructured.apply                  | 是       |
+| 240  | torch.nn.utils.prune.LnStructured.apply_mask             | 是       |
+| 241  | torch.nn.utils.prune.LnStructured.compute_mask           | 是       |
+| 242  | torch.nn.utils.prune.LnStructured.prune                  | 是       |
+| 243  | torch.nn.utils.prune.LnStructured.remove                 | 是       |
+| 244  | torch.nn.utils.prune.CustomFromMask                      | 是       |
+| 245  | torch.nn.utils.prune.CustomFromMask.apply                | 是       |
+| 246  | torch.nn.utils.prune.CustomFromMask.apply_mask           | 是       |
+| 247  | torch.nn.utils.prune.CustomFromMask.prune                | 是       |
+| 248  | torch.nn.utils.prune.CustomFromMask.remove               | 是       |
+| 249  | torch.nn.utils.prune.identity                            | 是       |
+| 250  | torch.nn.utils.prune.random_unstructured                 | 是       |
+| 251  | torch.nn.utils.prune.l1_unstructured                     | 是       |
+| 252  | torch.nn.utils.prune.random_structured                   | 是       |
+| 253  | torch.nn.utils.prune.ln_structured                       | 是       |
+| 254  | torch.nn.utils.prune.global_unstructured                 | 是       |
+| 255  | torch.nn.utils.prune.custom_from_mask                    | 是       |
+| 256  | torch.nn.utils.prune.remove                              | 是       |
+| 257  | torch.nn.utils.prune.is_pruned                           | 是       |
+| 258  | torch.nn.utils.weight_norm                               | 是       |
+| 259  | torch.nn.utils.remove_weight_norm                        | 是       |
+| 260  | torch.nn.utils.spectral_norm                             | 是       |
+| 261  | torch.nn.utils.remove_spectral_norm                      | 是       |
+| 262  | torch.nn.utils.rnn.PackedSequence                        | 是       |
+| 263  | torch.nn.utils.rnn.pack_padded_sequence                  | 是       |
+| 264  | torch.nn.utils.rnn.pad_packed_sequence                   | 是       |
+| 265  | torch.nn.utils.rnn.pad_sequence                          | 是       |
+| 266  | torch.nn.utils.rnn.pack_sequence                         | 是       |
+| 267  | torch.nn.Flatten                                         | 是       |
+| 268  | torch.nn.Unflatten                                       | 是       |
+| 269  | torch.nn.modules.lazy.LazyModuleMixin                    | 是       |
+| 270  | torch.quantization.quantize                              | 否       |
+| 271  | torch.quantization.quantize_dynamic                      | 否       |
+| 272  | torch.quantization.quantize_qat                          | 否       |
+| 273  | torch.quantization.prepare                               | 是       |
+| 274  | torch.quantization.prepare_qat                           | 否       |
+| 275  | torch.quantization.convert                               | 否       |
+| 276  | torch.quantization.QConfig                               | 是       |
+| 277  | torch.quantization.QConfigDynamic                        | 是       |
+| 278  | torch.quantization.fuse_modules                          | 是       |
+| 279  | torch.quantization.QuantStub                             | 是       |
+| 280  | torch.quantization.DeQuantStub                           | 是       |
+| 281  | torch.quantization.QuantWrapper                          | 是       |
+| 282  | torch.quantization.add_quant_dequant                     | 是       |
+| 283  | torch.quantization.add_observer_                         | 是       |
+| 284  | torch.quantization.swap_module                           | 是       |
+| 285  | torch.quantization.propagate_qconfig_                    | 是       |
+| 286  | torch.quantization.default_eval_fn                       | 是       |
+| 287  | torch.quantization.MinMaxObserver                        | 是       |
+| 288  | torch.quantization.MovingAverageMinMaxObserver           | 是       |
+| 289  | torch.quantization.PerChannelMinMaxObserver              | 是       |
+| 290  | torch.quantization.MovingAveragePerChannelMinMaxObserver | 是       |
+| 291  | torch.quantization.HistogramObserver                     | 否       |
+| 292  | torch.quantization.FakeQuantize                          | 否       |
+| 293  | torch.quantization.NoopObserver                          | 是       |
+| 294  | torch.quantization.get_observer_dict                     | 是       |
+| 295  | torch.quantization.RecordingObserver                     | 是       |
+| 296  | torch.nn.intrinsic.ConvBn2d                              | 是       |
+| 297  | torch.nn.intrinsic.ConvBnReLU2d                          | 是       |
+| 298  | torch.nn.intrinsic.ConvReLU2d                            | 是       |
+| 299  | torch.nn.intrinsic.ConvReLU3d                            | 是       |
+| 300  | torch.nn.intrinsic.LinearReLU                            | 是       |
+| 301  | torch.nn.intrinsic.qat.ConvBn2d                          | 否       |
+| 302  | torch.nn.intrinsic.qat.ConvBnReLU2d                      | 否       |
+| 303  | torch.nn.intrinsic.qat.ConvReLU2d                        | 否       |
+| 304  | torch.nn.intrinsic.qat.LinearReLU                        | 否       |
+| 305  | torch.nn.intrinsic.quantized.ConvReLU2d                  | 否       |
+| 306  | torch.nn.intrinsic.quantized.ConvReLU3d                  | 否       |
+| 307  | torch.nn.intrinsic.quantized.LinearReLU                  | 否       |
+| 308  | torch.nn.qat.Conv2d                                      | 否       |
+| 309  | torch.nn.qat.Conv2d.from_float                           | 否       |
+| 310  | torch.nn.qat.Linear                                      | 否       |
+| 311  | torch.nn.qat.Linear.from_float                           | 否       |
+| 312  | torch.nn.quantized.functional.relu                       | 否       |
+| 313  | torch.nn.quantized.functional.linear                     | 否       |
+| 314  | torch.nn.quantized.functional.conv2d                     | 否       |
+| 315  | torch.nn.quantized.functional.conv3d                     | 否       |
+| 316  | torch.nn.quantized.functional.max_pool2d                 | 否       |
+| 317  | torch.nn.quantized.functional.adaptive_avg_pool2d        | 否       |
+| 318  | torch.nn.quantized.functional.avg_pool2d                 | 否       |
+| 319  | torch.nn.quantized.functional.interpolate                | 否       |
+| 320  | torch.nn.quantized.functional.upsample                   | 否       |
+| 321  | torch.nn.quantized.functional.upsample_bilinear          | 否       |
+| 322  | torch.nn.quantized.functional.upsample_nearest           | 否       |
+| 323  | torch.nn.quantized.ReLU                                  | 否       |
+| 324  | torch.nn.quantized.ReLU6                                 | 否       |
+| 325  | torch.nn.quantized.Conv2d                                | 否       |
+| 326  | torch.nn.quantized.Conv2d.from_float                     | 否       |
+| 327  | torch.nn.quantized.Conv3d                                | 否       |
+| 328  | torch.nn.quantized.Conv3d.from_float                     | 否       |
+| 329  | torch.nn.quantized.FloatFunctional                       | 是       |
+| 330  | torch.nn.quantized.QFunctional                           | 否       |
+| 331  | torch.nn.quantized.Quantize                              | 是       |
+| 332  | torch.nn.quantized.DeQuantize                            | 否       |
+| 333  | torch.nn.quantized.Linear                                | 否       |
+| 334  | torch.nn.quantized.Linear.from_float                     | 否       |
+| 335  | torch.nn.quantized.dynamic.Linear                        | 否       |
+| 336  | torch.nn.quantized.dynamic.Linear.from_float             | 否       |
+| 337  | torch.nn.quantized.dynamic.LSTM                          | 否       |
 
 ## Functions(torch.nn.functional)
 
-| 序号 | API名称                                               | 是否支持                    |
-| ---- | ----------------------------------------------------- | --------------------------- |
-| 1    | torch.nn.functional.conv1d                            | 是                          |
-| 2    | torch.nn.functional.conv2d                            | 是                          |
-| 3    | torch.nn.functional.conv3d                            | 是                          |
-| 4    | torch.nn.functional.conv_transpose1d                  | 是                          |
-| 5    | torch.nn.functional.conv_transpose2d                  | 是                          |
-| 6    | torch.nn.functional.conv_transpose3d                  | 是                          |
-| 7    | torch.nn.functional.unfold                            | 是                          |
-| 8    | torch.nn.functional.fold                              | 是                          |
-| 9    | torch.nn.functional.avg_pool1d                        | 是                          |
-| 10   | torch.nn.functional.avg_pool2d                        | 是                          |
-| 11   | torch.nn.functional.avg_pool3d                        | 是                          |
-| 12   | torch.nn.functional.max_pool1d                        | 是                          |
-| 13   | torch.nn.functional.max_pool2d                        | 是                          |
-| 14   | torch.nn.functional.max_pool3d                        | 是                          |
-| 15   | torch.nn.functional.max_unpool1d                      | 是                          |
-| 16   | torch.nn.functional.max_unpool2d                      | 是                          |
-| 17   | torch.nn.functional.max_unpool3d                      | 是                          |
-| 18   | torch.nn.functional.lp_pool1d                         | 是                          |
-| 19   | torch.nn.functional.lp_pool2d                         | 是                          |
-| 20   | torch.nn.functional.adaptive_max_pool1d               | 是                          |
-| 21   | torch.nn.functional.adaptive_max_pool2d               | 是                          |
-| 22   | torch.nn.functional.adaptive_max_pool3d               | 否                          |
-| 23   | torch.nn.functional.adaptive_avg_pool1d               | 是                          |
-| 24   | torch.nn.functional.adaptive_avg_pool2d               | 是                          |
-| 25   | torch.nn.functional.adaptive_avg_pool3d               | 是，仅支持D=1，H=1，W=1场景 |
-| 26   | torch.nn.functional.threshold                         | 是                          |
-| 27   | torch.nn.functional.threshold_                        | 是                          |
-| 28   | torch.nn.functional.relu                              | 是                          |
-| 29   | torch.nn.functional.relu_                             | 是                          |
-| 30   | torch.nn.functional.hardtanh                          | 是                          |
-| 31   | torch.nn.functional.hardtanh_                         | 是                          |
-| 32   | torch.nn.functional.swish                             | 是                          |
-| 33   | torch.nn.functional.relu6                             | 是                          |
-| 34   | torch.nn.functional.elu                               | 是                          |
-| 35   | torch.nn.functional.elu_                              | 是                          |
-| 36   | torch.nn.functional.selu                              | 是                          |
-| 37   | torch.nn.functional.celu                              | 是                          |
-| 38   | torch.nn.functional.leaky_relu                        | 是                          |
-| 39   | torch.nn.functional.leaky_relu_                       | 是                          |
-| 40   | torch.nn.functional.prelu                             | 是                          |
-| 41   | torch.nn.functional.rrelu                             | 是                          |
-| 42   | torch.nn.functional.rrelu_                            | 是                          |
-| 43   | torch.nn.functional.glu                               | 是                          |
-| 44   | torch.nn.functional.gelu                              | 是                          |
-| 45   | torch.nn.functional.logsigmoid                        | 是                          |
-| 46   | torch.nn.functional.hardshrink                        | 是                          |
-| 47   | torch.nn.functional.tanhshrink                        | 是                          |
-| 48   | torch.nn.functional.softsign                          | 是                          |
-| 49   | torch.nn.functional.softplus                          | 是                          |
-| 50   | torch.nn.functional.softmin                           | 是                          |
-| 51   | torch.nn.functional.softmax                           | 是                          |
-| 52   | torch.nn.functional.softshrink                        | 是                          |
-| 53   | torch.nn.functional.gumbel_softmax                    | 否                          |
-| 54   | torch.nn.functional.log_softmax                       | 是                          |
-| 55   | torch.nn.functional.tanh                              | 是                          |
-| 56   | torch.nn.functional.sigmoid                           | 是                          |
-| 57   | torch.nn.functional.hardsigmoid                       | 是                          |
-| 58   | torch.nn.functional.hardswish                         | 是                          |
-| 59   | torch.nn.functional.feature_alpha_dropout             | 是                          |
-| 60   | torch.nn.functional.silu                              | 是                          |
-| 61   | torch.nn.functional.batch_norm                        | 是                          |
-| 62   | torch.nn.functional.instance_norm                     | 是                          |
-| 63   | torch.nn.functional.layer_norm                        | 是                          |
-| 64   | torch.nn.functional.local_response_norm               | 是                          |
-| 65   | torch.nn.functional.normalize                         | 是                          |
-| 66   | torch.nn.functional.linear                            | 是                          |
-| 67   | torch.nn.functional.bilinear                          | 是                          |
-| 68   | torch.nn.functional.dropout                           | 是                          |
-| 69   | torch.nn.functional.alpha_dropout                     | 是                          |
-| 70   | torch.nn.functional.dropout2d                         | 是                          |
-| 71   | torch.nn.functional.dropout3d                         | 是                          |
-| 72   | torch.nn.functional.embedding                         | 是                          |
-| 73   | torch.nn.functional.embedding_bag                     | 是                          |
-| 74   | torch.nn.functional.one_hot                           | 是                          |
-| 75   | torch.nn.functional.pairwise_distance                 | 是                          |
-| 76   | torch.nn.functional.cosine_similarity                 | 是                          |
-| 77   | torch.nn.functional.pdist                             | 是                          |
-| 78   | torch.nn.functional.binary_cross_entropy              | 是（参数y仅支持y=1,y=0）    |
-| 79   | torch.nn.functional.binary_cross_entropy_with_logits  | 是                          |
-| 80   | torch.nn.functional.poisson_nll_loss                  | 是                          |
-| 81   | torch.nn.functional.cosine_embedding_loss             | 是                          |
-| 82   | torch.nn.functional.cross_entropy                     | 是                          |
-| 83   | torch.nn.functional.ctc_loss                          | 是（仅支持2维输入）         |
-| 84   | torch.nn.functional.hinge_embedding_loss              | 是                          |
-| 85   | torch.nn.functional.kl_div                            | 是                          |
-| 86   | torch.nn.functional.l1_loss                           | 是                          |
-| 87   | torch.nn.functional.mse_loss                          | 是                          |
-| 88   | torch.nn.functional.margin_ranking_loss               | 是                          |
-| 89   | torch.nn.functional.multilabel_margin_loss            | 是                          |
-| 90   | torch.nn.functional.multilabel_soft_margin_loss       | 是                          |
-| 91   | torch.nn.functional.multi_margin_loss                 | 是                          |
-| 92   | torch.nn.functional.nll_loss                          | 是                          |
-| 93   | torch.nn.functional.smooth_l1_loss                    | 是                          |
-| 94   | torch.nn.functional.soft_margin_loss                  | 是                          |
-| 95   | torch.nn.functional.triplet_margin_loss               | 是                          |
-| 96   | torch.nn.functional.triplet_margin_with_distance_loss | 是                          |
-| 97   | torch.nn.functional.pixel_shuffle                     | 否                          |
-| 98   | torch.nn.functional.pixel_unshuffle                   | 否                          |
-| 99   | torch.nn.functional.pad                               | 是                          |
-| 100  | torch.nn.functional.interpolate                       | 是                          |
-| 101  | torch.nn.functional.upsample                          | 是                          |
-| 102  | torch.nn.functional.upsample_nearest                  | 是                          |
-| 103  | torch.nn.functional.upsample_bilinear                 | 是                          |
-| 104  | torch.nn.functional.grid_sample                       | 是                          |
-| 105  | torch.nn.functional.affine_grid                       | 是                          |
-| 106  | torch.nn.parallel.data_parallel                       | 否                          |
+| 序号 | API名称                                               | 是否支持 |
+| ---- | ----------------------------------------------------- | -------- |
+| 1    | torch.nn.functional.conv1d                            | 是       |
+| 2    | torch.nn.functional.conv2d                            | 是       |
+| 3    | torch.nn.functional.conv3d                            | 是       |
+| 4    | torch.nn.functional.conv_transpose1d                  | 是       |
+| 5    | torch.nn.functional.conv_transpose2d                  | 是       |
+| 6    | torch.nn.functional.conv_transpose3d                  | 是       |
+| 7    | torch.nn.functional.unfold                            | 是       |
+| 8    | torch.nn.functional.fold                              | 是       |
+| 9    | torch.nn.functional.avg_pool1d                        | 是       |
+| 10   | torch.nn.functional.avg_pool2d                        | 是       |
+| 11   | torch.nn.functional.avg_pool3d                        | 是       |
+| 12   | torch.nn.functional.max_pool1d                        | 是       |
+| 13   | torch.nn.functional.max_pool2d                        | 是       |
+| 14   | torch.nn.functional.max_pool3d                        | 是       |
+| 15   | torch.nn.functional.max_unpool1d                      | 是       |
+| 16   | torch.nn.functional.max_unpool2d                      | 是       |
+| 17   | torch.nn.functional.max_unpool3d                      | 是       |
+| 18   | torch.nn.functional.lp_pool1d                         | 是       |
+| 19   | torch.nn.functional.lp_pool2d                         | 是       |
+| 20   | torch.nn.functional.adaptive_max_pool1d               | 是       |
+| 21   | torch.nn.functional.adaptive_max_pool2d               | 是       |
+| 22   | torch.nn.functional.adaptive_max_pool3d               | 否       |
+| 23   | torch.nn.functional.adaptive_avg_pool1d               | 是       |
+| 24   | torch.nn.functional.adaptive_avg_pool2d               | 是       |
+| 25   | torch.nn.functional.adaptive_avg_pool3d               | 是       |
+| 26   | torch.nn.functional.threshold                         | 是       |
+| 27   | torch.nn.functional.threshold_                        | 是       |
+| 28   | torch.nn.functional.relu                              | 是       |
+| 29   | torch.nn.functional.relu_                             | 是       |
+| 30   | torch.nn.functional.hardtanh                          | 是       |
+| 31   | torch.nn.functional.hardtanh_                         | 是       |
+| 32   | torch.nn.functional.hardswish                         | 是       |
+| 33   | torch.nn.functional.relu6                             | 是       |
+| 34   | torch.nn.functional.elu                               | 是       |
+| 35   | torch.nn.functional.elu_                              | 是       |
+| 36   | torch.nn.functional.selu                              | 是       |
+| 37   | torch.nn.functional.celu                              | 是       |
+| 38   | torch.nn.functional.leaky_relu                        | 是       |
+| 39   | torch.nn.functional.leaky_relu_                       | 是       |
+| 40   | torch.nn.functional.prelu                             | 是       |
+| 41   | torch.nn.functional.rrelu                             | 是       |
+| 42   | torch.nn.functional.rrelu_                            | 是       |
+| 43   | torch.nn.functional.glu                               | 是       |
+| 44   | torch.nn.functional.gelu                              | 是       |
+| 45   | torch.nn.functional.logsigmoid                        | 是       |
+| 46   | torch.nn.functional.hardshrink                        | 是       |
+| 47   | torch.nn.functional.tanhshrink                        | 是       |
+| 48   | torch.nn.functional.softsign                          | 是       |
+| 49   | torch.nn.functional.softplus                          | 是       |
+| 50   | torch.nn.functional.softmin                           | 是       |
+| 51   | torch.nn.functional.softmax                           | 是       |
+| 52   | torch.nn.functional.softshrink                        | 是       |
+| 53   | torch.nn.functional.gumbel_softmax                    | 否       |
+| 54   | torch.nn.functional.log_softmax                       | 是       |
+| 55   | torch.nn.functional.tanh                              | 是       |
+| 56   | torch.nn.functional.sigmoid                           | 是       |
+| 57   | torch.nn.functional.hardsigmoid                       | 是       |
+| 58   | torch.nn.functional.hardswish                         | 是       |
+| 59   | torch.nn.functional.feature_alpha_dropout             | 是       |
+| 60   | torch.nn.functional.silu                              | 是       |
+| 61   | torch.nn.functional.batch_norm                        | 是       |
+| 62   | torch.nn.functional.instance_norm                     | 是       |
+| 63   | torch.nn.functional.layer_norm                        | 是       |
+| 64   | torch.nn.functional.local_response_norm               | 是       |
+| 65   | torch.nn.functional.normalize                         | 是       |
+| 66   | torch.nn.functional.linear                            | 是       |
+| 67   | torch.nn.functional.bilinear                          | 是       |
+| 68   | torch.nn.functional.dropout                           | 是       |
+| 69   | torch.nn.functional.alpha_dropout                     | 是       |
+| 70   | torch.nn.functional.dropout2d                         | 是       |
+| 71   | torch.nn.functional.dropout3d                         | 是       |
+| 72   | torch.nn.functional.embedding                         | 是       |
+| 73   | torch.nn.functional.embedding_bag                     | 是       |
+| 74   | torch.nn.functional.one_hot                           | 是       |
+| 75   | torch.nn.functional.pairwise_distance                 | 是       |
+| 76   | torch.nn.functional.cosine_similarity                 | 是       |
+| 77   | torch.nn.functional.pdist                             | 是       |
+| 78   | torch.nn.functional.binary_cross_entropy              | 是       |
+| 79   | torch.nn.functional.binary_cross_entropy_with_logits  | 是       |
+| 80   | torch.nn.functional.poisson_nll_loss                  | 是       |
+| 81   | torch.nn.functional.cosine_embedding_loss             | 是       |
+| 82   | torch.nn.functional.cross_entropy                     | 是       |
+| 83   | torch.nn.functional.ctc_loss                          | 是       |
+| 84   | torch.nn.functional.hinge_embedding_loss              | 是       |
+| 85   | torch.nn.functional.kl_div                            | 是       |
+| 86   | torch.nn.functional.l1_loss                           | 是       |
+| 87   | torch.nn.functional.mse_loss                          | 是       |
+| 88   | torch.nn.functional.margin_ranking_loss               | 是       |
+| 89   | torch.nn.functional.multilabel_margin_loss            | 是       |
+| 90   | torch.nn.functional.multilabel_soft_margin_loss       | 是       |
+| 91   | torch.nn.functional.multi_margin_loss                 | 是       |
+| 92   | torch.nn.functional.nll_loss                          | 是       |
+| 93   | torch.nn.functional.smooth_l1_loss                    | 是       |
+| 94   | torch.nn.functional.soft_margin_loss                  | 是       |
+| 95   | torch.nn.functional.triplet_margin_loss               | 是       |
+| 96   | torch.nn.functional.triplet_margin_with_distance_loss | 是       |
+| 97   | torch.nn.functional.pixel_shuffle                     | 是       |
+| 98   | torch.nn.functional.pixel_unshuffle                   | 是       |
+| 99   | torch.nn.functional.pad                               | 是       |
+| 100  | torch.nn.functional.interpolate                       | 是       |
+| 101  | torch.nn.functional.upsample                          | 是       |
+| 102  | torch.nn.functional.upsample_nearest                  | 是       |
+| 103  | torch.nn.functional.upsample_bilinear                 | 是       |
+| 104  | torch.nn.functional.grid_sample                       | 是       |
+| 105  | torch.nn.functional.affine_grid                       | 是       |
+| 106  | torch.nn.parallel.data_parallel                       | 否       |
 
 ## torch.distributed
 
 | 序号 | API名称                                   | 是否支持 |
 | ---- | ----------------------------------------- | -------- |
-| 1    | torch.distributed.is_available            | 是       |
+| 1    | torch.distributed.is_available            | 否       |
 | 2    | torch.distributed.init_process_group      | 是       |
 | 3    | torch.distributed.Backend                 | 是       |
 | 4    | torch.distributed.get_backend             | 是       |
@@ -1239,36 +1239,36 @@
 | 8    | torch.distributed.is_mpi_available        | 是       |
 | 9    | torch.distributed.is_nccl_available       | 是       |
 | 10   | torch.distributed.new_group               | 是       |
-| 11   | torch.distributed.Store                   | 是       |
-| 12   | torch.distributed.TCPStore                | 是       |
-| 13   | torch.distributed.HashStore               | 是       |
-| 14   | torch.distributed.FileStore               | 是       |
-| 15   | torch.distributed.PrefixStore             | 是       |
-| 16   | torch.distributed.Store.set               | 是       |
-| 17   | torch.distributed.Store.get               | 是       |
-| 18   | torch.distributed.Store.add               | 是       |
-| 19   | torch.distributed.Store.wait              | 是       |
-| 20   | torch.distributed.Store.num_keys          | 是       |
-| 21   | torch.distributed.Store.delete_keys       | 是       |
-| 22   | torch.distributed.Store.set_timeout       | 是       |
-| 23   | torch.distributed.send                    | 是       |
-| 24   | torch.distributed.recv                    | 是       |
+| 11   | torch.distributed.Store                   | 否       |
+| 12   | torch.distributed.TCPStore                | 否       |
+| 13   | torch.distributed.HashStore               | 否       |
+| 14   | torch.distributed.FileStore               | 否       |
+| 15   | torch.distributed.PrefixStore             | 否       |
+| 16   | torch.distributed.Store.set               | 否       |
+| 17   | torch.distributed.Store.get               | 否       |
+| 18   | torch.distributed.Store.add               | 否       |
+| 19   | torch.distributed.Store.wait              | 否       |
+| 20   | torch.distributed.Store.num_keys          | 否       |
+| 21   | torch.distributed.Store.delete_key        | 否       |
+| 22   | torch.distributed.Store.set_timeout       | 否       |
+| 23   | torch.distributed.send                    | 否       |
+| 24   | torch.distributed.recv                    | 否       |
 | 25   | torch.distributed.isend                   | 否       |
 | 26   | torch.distributed.irecv                   | 否       |
 | 27   | is_completed                              | 是       |
 | 28   | wait                                      | 是       |
 | 29   | torch.distributed.broadcast               | 是       |
-| 30   | torch.distributed.broadcast_object_list   | 是       |
+| 30   | torch.distributed.broadcast_object_list   | 否       |
 | 31   | torch.distributed.all_reduce              | 是       |
 | 32   | torch.distributed.reduce                  | 否       |
 | 33   | torch.distributed.all_gather              | 是       |
-| 34   | torch.distributed.all_gather_object       | 是       |
-| 35   | torch.distributed.gather_object           | 是       |
+| 34   | torch.distributed.all_gather_object       | 否       |
+| 35   | torch.distributed.gather_object           | 否       |
 | 36   | torch.distributed.gather                  | 否       |
 | 37   | torch.distributed.scatter                 | 否       |
-| 38   | torch.distributed.scatter_object_list     | 是       |
-| 39   | torch.distributed.reduce_scatter          | 是       |
-| 40   | torch.distributed.reduce_scatter_multigpu | 是       |
+| 38   | torch.distributed.scatter_object_list     | 否       |
+| 39   | torch.distributed.reduce_scatter          | 否       |
+| 40   | torch.distributed.reduce_scatter_multigpu | 否       |
 | 41   | torch.distributed.all_to_all              | 否       |
 | 42   | torch.distributed.barrier                 | 是       |
 | 43   | torch.distributed.ReduceOp                | 是       |
@@ -1279,97 +1279,97 @@
 | 48   | torch.distributed.all_gather_multigpu     | 否       |
 | 49   | torch.distributed.launch                  | 是       |
 | 50   | torch.multiprocessing.spawn               | 是       |
-| 51   | torch.distributed.all_to_all_single       | 是       |
+| 51   | torch.distributed.all_to_all_single       | 否       |
 
 ## torch_npu.npu
 
-| 序号 | API名称                                       | npu对应API名称                                   | 是否支持       |
-| ---- | --------------------------------------------- | ------------------------------------------------ | -------------- |
-| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer             | 是             |
-| 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | 否             |
-| 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | 是             |
-| 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | 是             |
-| 5    | torch.cuda.default_stream                     | torch_npu.npu.default_stream                     | 是             |
-| 6    | torch.cuda.device                             | torch_npu.npu.device                             | 是             |
-| 7    | torch.cuda.device_count                       | torch_npu.npu.device_count                       | 是             |
-| 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | 是             |
-| 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | 否             |
-| 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | 否             |
-| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | 否             |
-| 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | 是             |
-| 13   | torch.cuda.init                               | torch_npu.npu.init                               | 是             |
-| 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | 否             |
-| 15   | torch.cuda.is_available                       | torch_npu.npu.is_available                       | 是             |
-| 16   | torch.cuda.is_initialized                     | torch_npu.npu.is_initialized                     | 是             |
-| 17   | torch.cuda.set_device                         | torch_npu.npu.set_device                         | 是（部分支持） |
-| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | 是             |
-| 19   | torch.cuda.synchronize                        | torch_npu.npu.synchronize                        | 是             |
-| 20   | torch.cuda.get_arch_list                      | torch_npu.npu.get_arch_list                      | 是             |
-| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | 是             |
-| 22   | torch.cuda.get_rng_state_all                  | torch_npu.npu.get_rng_state_all                  | 是             |
-| 23   | torch.cuda.set_rng_state                      | torch_npu.npu.set_rng_state                      | 是             |
-| 24   | torch.cuda.set_rng_state_all                  | torch_npu.npu.set_rng_state_all                  | 是             |
-| 25   | torch.cuda.manual_seed                        | torch_npu.npu.manual_seed                        | 是             |
-| 26   | torch.cuda.manual_seed_all                    | torch_npu.npu.manual_seed_all                    | 是             |
-| 27   | torch.cuda.seed                               | torch_npu.npu.seed                               | 是             |
-| 28   | torch.cuda.seed_all                           | torch_npu.npu.seed_all                           | 是             |
-| 29   | torch.cuda.initial_seed                       | torch_npu.npu.initial_seed                       | 是             |
-| 30   | torch.cuda.comm.broadcast                     | torch_npu.npu.comm.broadcast                     | 否             |
-| 31   | torch.cuda.comm.broadcast_coalesced           | torch_npu.npu.comm.broadcast_coalesced           | 否             |
-| 32   | torch.cuda.comm.reduce_add                    | torch_npu.npu.comm.reduce_add                    | 否             |
-| 33   | torch.cuda.comm.scatter                       | torch_npu.npu.comm.scatter                       | 否             |
-| 34   | torch.cuda.comm.gather                        | torch_npu.npu.comm.gather                        | 否             |
-| 35   | torch.cuda.Stream                             | torch_npu.npu.Stream                             | 是             |
-| 36   | torch.cuda.Stream.query                       | torch_npu.npu.Stream.query                       | 否             |
-| 37   | torch.cuda.Stream.record_event                | torch_npu.npu.Stream.record_event                | 是             |
-| 38   | torch.cuda.Stream.synchronize                 | torch_npu.npu.Stream.synchronize                 | 是             |
-| 39   | torch.cuda.Stream.wait_event                  | torch_npu.npu.Stream.wait_event                  | 是             |
-| 40   | torch.cuda.Stream.wait_stream                 | torch_npu.npu.Stream.wait_stream                 | 是             |
-| 41   | torch.cuda.Event                              | torch_npu.npu.Event                              | 是             |
-| 42   | torch.cuda.Event.elapsed_time                 | torch_npu.npu.Event.elapsed_time                 | 是             |
-| 43   | torch.cuda.Event.from_ipc_handle              | torch_npu.npu.Event.from_ipc_handle              | 否             |
-| 44   | torch.cuda.Event.ipc_handle                   | torch_npu.npu.Event.ipc_handle                   | 否             |
-| 45   | torch.cuda.Event.query                        | torch_npu.npu.Event.query                        | 是             |
-| 46   | torch.cuda.Event.record                       | torch_npu.npu.Event.record                       | 是             |
-| 47   | torch.cuda.Event.synchronize                  | torch_npu.npu.Event.synchronize                  | 是             |
-| 48   | torch.cuda.Event.wait                         | torch_npu.npu.Event.wait                         | 是             |
-| 49   | torch.cuda.empty_cache                        | torch_npu.npu.empty_cache                        | 是             |
-| 50   | torch.cuda.list_gpu_processes                 | torch_npu.npu.list_gpu_processes                 | 是             |
-| 51   | torch.cuda.memory_stats                       | torch_npu.npu.memory_stats                       | 是             |
-| 52   | torch.cuda.memory_summary                     | torch_npu.npu.memory_summary                     | 是             |
-| 53   | torch.cuda.memory_snapshot                    | torch_npu.npu.memory_snapshot                    | 是             |
-| 54   | torch.cuda.memory_allocated                   | torch_npu.npu.memory_allocated                   | 是             |
-| 55   | torch.cuda.max_memory_allocated               | torch_npu.npu.max_memory_allocated               | 是             |
-| 56   | torch.cuda.reset_max_memory_allocated         | torch_npu.npu.reset_max_memory_allocated         | 是             |
-| 57   | torch.cuda.memory_reserved                    | torch_npu.npu.memory_reserved                    | 是             |
-| 58   | torch.cuda.max_memory_reserved                | torch_npu.npu.max_memory_reserved                | 是             |
-| 59   | torch.cuda.set_per_process_memory_fraction    | torch_npu.npu.set_per_process_memory_fraction    | 是             |
-| 60   | torch.cuda.memory_cached                      | torch_npu.npu.memory_cached                      | 是             |
-| 61   | torch.cuda.max_memory_cached                  | torch_npu.npu.max_memory_cached                  | 是             |
-| 62   | torch.cuda.reset_max_memory_cached            | torch_npu.npu.reset_max_memory_cached            | 是             |
-| 63   | torch.cuda.nvtx.mark                          | torch_npu.npu.nvtx.mark                          | 否             |
-| 64   | torch.cuda.nvtx.range_push                    | torch_npu.npu.nvtx.range_push                    | 否             |
-| 65   | torch.cuda.nvtx.range_pop                     | torch_npu.npu.nvtx.range_pop                     | 否             |
-| 66   | torch.cuda.amp.autocast                       | torch_npu.npu.amp.autocast                       | 是             |
-| 67   | torch.cuda.amp.custom_fwd                     | torch_npu.npu.amp.custom_fwd                     | 是             |
-| 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | 是             |
-| 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | 否             |
-| 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | 否             |
-| 71   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | 是             |
-| 72   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | 是             |
-| 73   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | 是             |
-| 74   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | 是             |
-| 75   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | 是             |
-| 76   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | 是             |
-| 77   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | 是             |
-| 78   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | 是             |
-| 79   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | 是             |
-| 80   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | 是             |
-| 81   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | 是             |
-| 82   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | 是             |
-| 83   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | 是             |
-| 84   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | 是             |
-| 85   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | 是             |
+| 序号 | API名称                                       | npu对应API名称                                   | 是否支持 |
+| ---- | --------------------------------------------- | ------------------------------------------------ | -------- |
+| 1    | torch.cuda.can_device_access_peer             | torch_npu.npu.can_device_access_peer             | 否       |
+| 2    | torch.cuda.current_blas_handle                | torch_npu.npu.current_blas_handle                | 否       |
+| 3    | torch.cuda.current_device                     | torch_npu.npu.current_device                     | 是       |
+| 4    | torch.cuda.current_stream                     | torch_npu.npu.current_stream                     | 是       |
+| 5    | torch.cuda.default_stream                     | torch_npu.npu.default_stream                     | 是       |
+| 6    | torch.cuda.device                             | torch_npu.npu.device                             | 是       |
+| 7    | torch.cuda.device_count                       | torch_npu.npu.device_count                       | 是       |
+| 8    | torch.cuda.device_of                          | torch_npu.npu.device_of                          | 是       |
+| 9    | torch.cuda.get_device_capability              | torch_npu.npu.get_device_capability              | 否       |
+| 10   | torch.cuda.get_device_name                    | torch_npu.npu.get_device_name                    | 否       |
+| 11   | torch.cuda.get_device_properties              | torch_npu.npu.get_device_properties              | 否       |
+| 12   | torch.cuda.get_gencode_flags                  | torch_npu.npu.get_gencode_flags                  | 否       |
+| 13   | torch.cuda.init                               | torch_npu.npu.init                               | 是       |
+| 14   | torch.cuda.ipc_collect                        | torch_npu.npu.ipc_collect                        | 否       |
+| 15   | torch.cuda.is_available                       | torch_npu.npu.is_available                       | 是       |
+| 16   | torch.cuda.is_initialized                     | torch_npu.npu.is_initialized                     | 是       |
+| 17   | torch.cuda.set_device                         | torch_npu.npu.set_device                         | 是       |
+| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | 否       |
+| 19   | torch.cuda.synchronize                        | torch_npu.npu.synchronize                        | 是       |
+| 20   | torch.cuda.get_arch_list                      | torch_npu.npu.get_arch_list                      | 否       |
+| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | 否       |
+| 22   | torch.cuda.get_rng_state_all                  | torch_npu.npu.get_rng_state_all                  | 是       |
+| 23   | torch.cuda.set_rng_state                      | torch_npu.npu.set_rng_state                      | 是       |
+| 24   | torch.cuda.set_rng_state_all                  | torch_npu.npu.set_rng_state_all                  | 是       |
+| 25   | torch.cuda.manual_seed                        | torch_npu.npu.manual_seed                        | 是       |
+| 26   | torch.cuda.manual_seed_all                    | torch_npu.npu.manual_seed_all                    | 是       |
+| 27   | torch.cuda.seed                               | torch_npu.npu.seed                               | 是       |
+| 28   | torch.cuda.seed_all                           | torch_npu.npu.seed_all                           | 是       |
+| 29   | torch.cuda.initial_seed                       | torch_npu.npu.initial_seed                       | 是       |
+| 30   | torch.cuda.comm.broadcast                     | torch_npu.npu.comm.broadcast                     | 否       |
+| 31   | torch.cuda.comm.broadcast_coalesced           | torch_npu.npu.comm.broadcast_coalesced           | 否       |
+| 32   | torch.cuda.comm.reduce_add                    | torch_npu.npu.comm.reduce_add                    | 否       |
+| 33   | torch.cuda.comm.scatter                       | torch_npu.npu.comm.scatter                       | 否       |
+| 34   | torch.cuda.comm.gather                        | torch_npu.npu.comm.gather                        | 否       |
+| 35   | torch.cuda.Stream                             | torch_npu.npu.Stream                             | 是       |
+| 36   | torch.cuda.Stream.query                       | torch_npu.npu.Stream.query                       | 是       |
+| 37   | torch.cuda.Stream.record_event                | torch_npu.npu.Stream.record_event                | 是       |
+| 38   | torch.cuda.Stream.synchronize                 | torch_npu.npu.Stream.synchronize                 | 是       |
+| 39   | torch.cuda.Stream.wait_event                  | torch_npu.npu.Stream.wait_event                  | 是       |
+| 40   | torch.cuda.Stream.wait_stream                 | torch_npu.npu.Stream.wait_stream                 | 是       |
+| 41   | torch.cuda.Event                              | torch_npu.npu.Event                              | 是       |
+| 42   | torch.cuda.Event.elapsed_time                 | torch_npu.npu.Event.elapsed_time                 | 是       |
+| 43   | torch.cuda.Event.from_ipc_handle              | torch_npu.npu.Event.from_ipc_handle              | 否       |
+| 44   | torch.cuda.Event.ipc_handle                   | torch_npu.npu.Event.ipc_handle                   | 否       |
+| 45   | torch.cuda.Event.query                        | torch_npu.npu.Event.query                        | 是       |
+| 46   | torch.cuda.Event.record                       | torch_npu.npu.Event.record                       | 是       |
+| 47   | torch.cuda.Event.synchronize                  | torch_npu.npu.Event.synchronize                  | 是       |
+| 48   | torch.cuda.Event.wait                         | torch_npu.npu.Event.wait                         | 是       |
+| 49   | torch.cuda.empty_cache                        | torch_npu.npu.empty_cache                        | 是       |
+| 50   | torch.cuda.list_gpu_processes                 | torch_npu.npu.list_gpu_processes                 | 否       |
+| 51   | torch.cuda.memory_stats                       | torch_npu.npu.memory_stats                       | 是       |
+| 52   | torch.cuda.memory_summary                     | torch_npu.npu.memory_summary                     | 是       |
+| 53   | torch.cuda.memory_snapshot                    | torch_npu.npu.memory_snapshot                    | 是       |
+| 54   | torch.cuda.memory_allocated                   | torch_npu.npu.memory_allocated                   | 是       |
+| 55   | torch.cuda.max_memory_allocated               | torch_npu.npu.max_memory_allocated               | 是       |
+| 56   | torch.cuda.reset_max_memory_allocated         | torch_npu.npu.reset_max_memory_allocated         | 是       |
+| 57   | torch.cuda.memory_reserved                    | torch_npu.npu.memory_reserved                    | 是       |
+| 58   | torch.cuda.max_memory_reserved                | torch_npu.npu.max_memory_reserved                | 是       |
+| 59   | torch.cuda.set_per_process_memory_fraction    | torch_npu.npu.set_per_process_memory_fraction    | 否       |
+| 60   | torch.cuda.memory_cached                      | torch_npu.npu.memory_cached                      | 是       |
+| 61   | torch.cuda.max_memory_cached                  | torch_npu.npu.max_memory_cached                  | 是       |
+| 62   | torch.cuda.reset_max_memory_cached            | torch_npu.npu.reset_max_memory_cached            | 是       |
+| 63   | torch.cuda.nvtx.mark                          | torch_npu.npu.nvtx.mark                          | 否       |
+| 64   | torch.cuda.nvtx.range_push                    | torch_npu.npu.nvtx.range_push                    | 否       |
+| 65   | torch.cuda.nvtx.range_pop                     | torch_npu.npu.nvtx.range_pop                     | 否       |
+| 66   | torch.cuda.amp.autocast                       | torch_npu.npu.amp.autocast                       | 是       |
+| 67   | torch.cuda.amp.custom_fwd                     | torch_npu.npu.amp.custom_fwd                     | 否       |
+| 68   | torch.cuda.amp.custom_bwd                     | torch_npu.npu.amp.custom_bwd                     | 否       |
+| 69   | torch.cuda._sleep                             | torch_npu.npu._sleep                             | 否       |
+| 70   | torch.cuda.Stream.priority_range              | torch_npu.npu.Stream.priority_range              | 否       |
+| 71   | torch.cuda.amp.GradScaler                     | torch_npu.npu.amp.GradScaler                     | 是       |
+| 72   | torch.cuda.amp.GradScaler.get_backoff_factor  | torch_npu.npu.amp.GradScaler.get_backoff_factor  | 是       |
+| 73   | torch.cuda.amp.GradScaler.get_growth_factor   | torch_npu.npu.amp.GradScaler.get_growth_factor   | 是       |
+| 74   | torch.cuda.amp.GradScaler.get_growth_interval | torch_npu.npu.amp.GradScaler.get_growth_interval | 是       |
+| 75   | torch.cuda.amp.GradScaler.get_scale           | torch_npu.npu.amp.GradScaler.get_scale           | 是       |
+| 76   | torch.cuda.amp.GradScaler.is_enabled          | torch_npu.npu.amp.GradScaler.is_enabled          | 是       |
+| 77   | torch.cuda.amp.GradScaler.load_state_dict     | torch_npu.npu.amp.GradScaler.load_state_dict     | 是       |
+| 78   | torch.cuda.amp.GradScaler.scale               | torch_npu.npu.amp.GradScaler.scale               | 是       |
+| 79   | torch.cuda.amp.GradScaler.set_backoff_factor  | torch_npu.npu.amp.GradScaler.set_backoff_factor  | 是       |
+| 80   | torch.cuda.amp.GradScaler.set_growth_factor   | torch_npu.npu.amp.GradScaler.set_growth_factor   | 是       |
+| 81   | torch.cuda.amp.GradScaler.set_growth_interval | torch_npu.npu.amp.GradScaler.set_growth_interval | 是       |
+| 82   | torch.cuda.amp.GradScaler.state_dict          | torch_npu.npu.amp.GradScaler.state_dict          | 是       |
+| 83   | torch.cuda.amp.GradScaler.step                | torch_npu.npu.amp.GradScaler.step                | 是       |
+| 84   | torch.cuda.amp.GradScaler.unscale_            | torch_npu.npu.amp.GradScaler.unscale_            | 是       |
+| 85   | torch.cuda.amp.GradScaler.update              | torch_npu.npu.amp.GradScaler.update              | 是       |
 
 torch_npu.npu.set_device()接口只支持在程序开始的位置通过set_device进行指定，不支持多次指定和with torch_npu.npu.device(id)方式的device切换
 
