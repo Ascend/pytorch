@@ -18,13 +18,13 @@
 
 ## 调优前准备
 
-1.  开启混合精度，保证性能不降低，如何开启混合精度请参考[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。
-2.  优先打通单卡迁移训练功能，再打通多卡迁移训练功能，训练迁移详细内容请参考[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。
-3.  分布式训练建议使用DDP功能（开启框架DistributedDataParallel模式或启用混合模块combine_ddp参数）。
+1.  开启混合精度，保证性能不降低，如何开启混合精度请参考[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。
+2.  优先打通单卡迁移训练功能，再打通多卡迁移训练功能，训练迁移详细内容请参考[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。
+3.  分布式训练建议使用DDP功能。
 
 ## Profiling数据采集<a name="Profiling数据采集"></a>
 
-​		当模型训练过程中吞吐量（系统在单位时间内处理请求的数量）指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。基于NPU的pytorch在模型训练时，算子典型的执行流程是，算子通过pytorch框架多次分发后，调用ACL接口，然后在CANN层经过编译、GE/FE等模块的处理后，最终在NPU上计算执行，整个流程和调用栈较深。在ACL接口之前，调用栈和流程都是pytorch框架内，而在ACL接口之后，所有的流程全部在CANN内（基础软件包，通过so方式调用）。
+​		当模型训练过程中吞吐量（系统在单位时间内处理请求的数量）指标不达标时，可以通过采集训练过程中的profiling数据，分析哪个环节、哪个算子导致的性能消耗。基于NPU的pytorch在模型训练时，算子典型的执行流程是，算子通过pytorch框架多次分发后，调用AscendCL接口，然后在CANN层经过编译、GE/FE等模块的处理后，最终在NPU上计算执行，整个流程和调用栈较深。在AscendCL接口之前，调用栈和流程都是pytorch框架内，而在AscendCL接口之后，所有的流程全部在CANN内（基础软件包，通过so方式调用）。
 
 ​		因此针对这一系列的流程，我们提供了三种不同层次的profiling方式，可以侧重记录不同层面的性能数据，分别是pytorch profiling、cann profiling和E2E profling：
 
@@ -44,11 +44,11 @@
 
 ### PyTorch Profiling数据采集
 
-PyTorch Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0197.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>PyTorch Profling"章节。
+PyTorch Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0197.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>PyTorch Profiling"章节。
 
 ### CANN Profiling数据采集
 
-CANN Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0198.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>CANN Profling"章节。
+CANN Profiling详细内容参见[开发工具](https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/atlasprofiling_16_0198.html)"Profiling工具>高级功能>性能数据采集（AI框架方式）>CANN Profiling"章节。
 
 ###  E2E profiling数据采集
 
@@ -96,7 +96,7 @@ CANN Profiling详细内容参见[开发工具](https://www.hiascend.com/document
 
       <img src="C:/Users/ZoeJ/Desktop/docs/zh/PyTorch训练调优&工具使用指南/figures/e2e_prof.png" style="zoom:80%;" />
 
-      该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为ACL层面数据，第三层（GeOPExecute）为GE层数据，第四层（Runtime）为Runtime调度层数据，第五层(Task Scheduler)为device上数据，第六层（如有则为是AICPU，示意图中没有第六层数据）为AICPU上数据。
+      该示例分为4个层次，由上到下，第一层（MsprofTx）为Pytorch框架数据，第二层（AscendCL）为AscendCL层面数据，第三层（GeOPExecute）为GE层数据，第四层（Runtime）为Runtime调度层数据，第五层(Task Scheduler)为device上数据，第六层（如有则为是AICPU，示意图中没有第六层数据）为AICPU上数据。
 
 3. E2E profiling高级设置<a name="E2E"></a>
    E2E prof工具默认配置获取上述所有层面数据。获取数据过程亦会影响性能，若获取数据过多，会导致性能数据不具备参考价值。因此，E2E prof工具提供了可配置选项，用于精细化控制获取部分层面数据。
@@ -246,14 +246,16 @@ Profiling 数据解析与导出详细内容参见[开发工具](https://www.hias
           #用户时间 #系统时间  #Nice时间 #空闲时间  #等待时间  #硬中断时间  #软中断时间  #丢失时间
   ```
 
-  - 表示CPU 执行用户进程的时间，包括nices时间。通常期望用户空间CPU 越高越好。
-  - 表示CPU 在内核运行时间，包括IRQ 和softirq 时间。系统CPU 占用率高，表明系统某部分存在瓶颈。通常值越低越好。
-  - 系统调整进程优先级所花费的时间。
-  - 系统处于空闲期，等待进程运行。
-  - 表示CPU在等待I/O 操作完成所花费的时间。系统不应该花费大量时间来等待I/O 操作，否则就说明I/O 存在瓶颈。
-  - 表示系统处理硬中断所花费的时间。
-  - 表示系统处理软中断所花费的时间。
-  - 表示系统被强制等待（involuntary wait）虚拟CPU的时间，此时 hypervisor 在为另一个虚拟处理器服务。
+  | 参数名称 | 参数说明                                                     |
+  | -------- | ------------------------------------------------------------ |
+  | us       | 表示CPU 执行用户进程的时间，包括nices时间。通常期望用户空间CPU 越高越好。 |
+  | sy       | 表示CPU 在内核运行时间，包括IRQ 和softirq 时间。系统CPU 占用率高，表明系统某部分存在瓶颈。通常值越低越好。 |
+  | ni       | 系统调整进程优先级所花费的时间。                             |
+  | id       | 系统处于空闲期，等待进程运行。                               |
+  | wa       | 表示CPU在等待I/O 操作完成所花费的时间。系统不应该花费大量时间来等待I/O 操作，否则就说明I/O 存在瓶颈。 |
+  | hi       | 表示系统处理硬中断所花费的时间。                             |
+  | si       | 表示系统处理软中断所花费的时间。                             |
+  | st       | 表示系统被强制等待（involuntary wait）虚拟CPU的时间，此时 hypervisor 在为另一个虚拟处理器服务。 |
 
 - 使用df -lh命令查看磁盘使用率，也可安装iostat查看磁盘负载，根据磁盘负载判断是否存在worker数太小问题。
 
@@ -274,7 +276,7 @@ Profiling 数据解析与导出详细内容参见[开发工具](https://www.hias
 
 #### NPU数据分析
 
-- 使用npu-smi info命令查看NPU使用情况
+- 使用npu-smi info命令查看NPU使用情况，具体命令参数请查阅使用的设备的对应[《硬件产品文档》](https://www.hiascend.com/document?tag=hardware)。
 
 - 通过Profiling数据OP_SUMMARY文件分析调度任务执行时间，排查算子耗时。
 
@@ -296,7 +298,7 @@ Profiling 数据解析与导出详细内容参见[开发工具](https://www.hias
 
   
 
-- 通过结合Profiling数据profiler.json文件和算子信息文件分析shape问题
+- 通过结合P有Torch Profiling数据的json文件和CANN Profiling获得的算子信息文件分析shape问题
 
   如果CPU轴无算子耗时，排除调度问题，结合算子信息文件，若算子耗时较大，大概率为编译耗时，可能存在动态shape。
 
@@ -315,7 +317,7 @@ Profiling 数据解析与导出详细内容参见[开发工具](https://www.hias
 
 <details ><summary>出现耗时较大算子-----单算子样例构建对比优化</summary>
 <pre style="background-color:Gray">
-<h3>场景解析</h3>已根据profiling数据定位出耗时较大的算子，通过构建单算子对比GPU与NPU耗时。
+<h3>场景解析</h3>已根据profiling数据定位出耗时较大的算子，通过构建单算子样例对比GPU与NPU耗时。
 在OP_SUMMARY算子信息文件中保存了算子的性能数据，其中按照TaskDuration耗时排序，可找出耗时算子较大的算子，再进行单算子的耗时分析。
 <img src="figures/TaskDuration.png" style="zoom:170%;" />
 <h3>调优思路</h3>从整网中获取profiling数据，再根据算子数据summary文件，判断出大耗时算子，为其单独构建样例，对比耗时情况。
@@ -413,16 +415,17 @@ model, optimizer = amp.initialize(model, optimizer, opt_level='O2', loss_scale=3
 optimizer = apex.optimizers.NpuFusedSGD(model.parameters(), lr=args.lr, momentum=args.momentum)  #NpuFusedSGD为亲和API
 model, optimizer = amp.initialize(model, optimizer, opt_level='O2', loss_scale=32.0, combine_grad=True)</div>
 </pre>
-    <p>更多亲和库接口请参考</p>
+    <p>更多亲和库接口请参考PyTorch API支持清单</p>
     </pre>
 </details>
 <details><summary>提升NPU资源利用率----AOE工具自动调优</summary>
 <pre style="background-color:Gray">
 <h3>场景解析</h3>算子输入参数的信息（shape/format等）会影响算子的性能，进而影响模型整体性能。为了使模型获得更良好的性能，可以将模型中所有的算子的输入参数信息获取至本地进行分析（dump），然后将每个算子在NPU上运行，调整算子运行时的策略，确定性能最佳的策略。
 <h3>调优思路</h3>参考AOE工具使用指南，开启自动调优。
-    <h3>优化方法</h3>参考<a href="https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/60RC1alpha003/developmenttools/devtool/aoe_16_017.html">《开发工具》>AOE工具>PyTorch训练场景下调优</a>
+    <h3>优化方法</h3>参考<a href="https://www.hiascend.com/document/detail/zh/canncommercial/51RC2/devtools/auxiliarydevtool/aoe_16_001.html">《开发工具》>AOE工具>PyTorch训练场景下调优</a>
 </pre>
 </details>
+
 
 
 
@@ -457,11 +460,12 @@ PID_END=$((PID_START + KERNEL_NUM - 1))
 nohup taskset -c $PID_START-$PID_END python3.7 xxx.py -j ${KERNEL_NUM} --local_rank $RANK_ID & 
 done
 </div>
-<h3>样例参考</h3>模型训练脚本参考链接<a href="https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/contrib/cv/classification/GhostNet/scripts/train_8p.sh">8P训练</a>
+<h3>样例参考</h3>模型训练脚本参考链接<a href="https://gitee.com/ascend/ModelZoo-PyTorch/blob/master/PyTorch/contrib/cv/classification/GhostNet/test/train_performance_8p.sh">8P训练</a>
 </div>
 </pre>
 </pre>
 </details>
+
 
 <details><summary>cpu性能不足（数据加载耗时长）----升级高性能处理库Pillow</summary>
 <pre style="background-color:Gray">
@@ -812,10 +816,11 @@ torch.multiprocessing.spawn(train, nprocs=ngpus_per_node, args=(ngpus_per_node, 
 <details><summary>NPU资源使用不充分----同比例增大Batchsize与LearningRates</summary>
     <pre style="background-color:Gray">
 <h3>场景解析</h3>小batchsize模型训练
-<h3>调优思路</h3>同比例增大Batchsize与LearningRates，能够更有效充分的利用NPU的算例资源。
+<h3>调优思路</h3>同比例增大Batchsize与LearningRates，能够更有效充分的利用NPU的算力资源。
 <h3>优化方法</h3>在模型脚本中，依据原始batchsize修改增大模型batchsize。
 </pre>
 </details>
+
 
 <details><summary>磁盘IO过低----更换nvme硬盘</summary></details>
 
@@ -891,25 +896,17 @@ torch.multiprocessing.spawn(train, nprocs=ngpus_per_node, args=(ngpus_per_node, 
     >![](public_sys-resources/icon-note.gif) **说明：** 
     >ShuffleNet为PyTorch内置模型，了解更多内置模型请前往[Pytorch官网](https://pytorch.org/)。
 
-**目录结构**<a name="section766832317011"></a>
-
-主要文件目录结构如下所示：
-
-```
-├──main.py 
-```
-
 #### 模型评估
 
-模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
+模型评估主要关注算子适配情况，使用dump op方法获取ShuffleNet网络算子信息，与[《PyTorch API 支持清单》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%20API%E6%94%AF%E6%8C%81%E6%B8%85%E5%8D%95.md)算子进行对比，若是发现某个算子当前暂不支持，对于简单场景我们可以考虑先暂时替换成类似的算子或者把该算子单独放到cpu上执行两种方式规避，复杂场景不支持算子需要参见[《PyTorch算子开发指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/PyTorch%E7%AE%97%E5%AD%90%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97.md)进行算子开发。
 
 #### 网络迁移
 
-训练脚本迁移请参见[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/master/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
+训练脚本迁移请参见[《PyTorch网络模型移植&训练指南》](https://gitee.com/ascend/pytorch/blob/v1.8.1-3.0.rc2/docs/zh/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97/PyTorch%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E7%A7%BB%E6%A4%8D&%E8%AE%AD%E7%BB%83%E6%8C%87%E5%8D%97.md)。脚本执行时注意选择参数--arch shufflenet\_v2\_x1\_0。
 
 #### 网络调测
 
-网络调测具体方法请参见[调测过程](#调测过程)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
+网络调测具体方法请参见[性能瓶颈分析与优化](#性能瓶颈分析与优化)。经排查ShuffleNet运行时相关算子耗时过大，以下给出耗时数据及解决方法。
 
 **前向排查**<a name="section7544311140"></a>
 
@@ -981,7 +978,7 @@ torch.multiprocessing.spawn(train, nprocs=ngpus_per_node, args=(ngpus_per_node, 
 -   由于原生实现的torch.transpose\(x, 1, 2\).contiguous\(\)是使用了View类框架算子transpose，造成了非连续场景，使用channel\_shuffle\_index\_select，在语义相同的情况下使用计算类算子替换框架类算子，从而减少耗时。
 -   由于shufflenetv2中含有大量的chunk操作，而chunk操作在Pytorch中为框架类算子，其结果会将一个tensor分割为几个等长的非连续的tensor，而非连续转连续这个操作目前耗时较长，故使用计算类算子消除非连续。
 -   适配层在适配算子时默认指定输出格式为输入格式，但是concat不支持C轴非16整数倍的5HD的格式，会转为4D进行处理，又由于concat后面接的是gatherv2算子，也是仅支持4D格式的算子，所以导致数据格式转换过程为5HD-\>4D-\>concat-\>5HD-\>4D-\>gatherv2-\>5HD，解决方法是修改concat输出格式，当非16整数倍时指定输出格式为4D，优化后数据格式转换过程为5HD-\>4D-\>concat-\>gatherv2-\>5HD，当前针对ShuffleNet的做法具体可参考pytorch/aten/src/ATen/native/npu/CatKernelNpu.cpp 第121行。
--   设置weight初始化格式避免计算过程中反复的transdata。
+-   参考[获取算子信息OP_INFO](#获取算子信息OP\_INFO)排查transdata算子，设置weight初始化格式避免计算过程中反复的transdata。
 -   修复了DWCONV weight输出格式指定，避免一些不必要5HD-\>4D。
 
 **整网排查**<a name="section1261194410241"></a>
@@ -1416,7 +1413,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 #### 来源介绍
 
-针对公版模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
+针对开源模型中常见的网络结构和函数，我们针对性地对其进行了优化，使得运算性能大幅度提升，同时，将其集成到Pytorch框架中，便于模型性能调优中使用。
 
 
 
@@ -1431,7 +1428,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 ### 单算子样例编写说明
 
-在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。单算子dump方法请参见[单算子dump方法](#单算子dump方法)。
+在模型中遇到问题时，使用整网复现问题成本较大，可以构建测试用例来复现精度或性能问题，便于定位解决。构建测试用例一般有如下两种方式。
 
 1. 单算子测试用例构建，直接调用该算子即可复现错误场景。
 
@@ -1530,7 +1527,7 @@ Python侧优化主要是通过一些同等语义的修改，使网络在NPU上�
 
 ### 编译选项设置
 
-用于配置算子编译过程中的属性，可用于提升性能，通过ACL接口实现。用法及解释如下：
+用于配置算子编译过程中的属性，可用于提升性能，通过AscendCL接口实现。用法及解释如下：
 
 ```
 import torch
