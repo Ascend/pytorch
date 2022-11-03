@@ -79,6 +79,11 @@ aclFormat InferFormat::GuessBaseFormat(const c10::IntArrayRef& size)
 
 aclFormat InferFormat::GuessStorageFormat(const c10::IntArrayRef& size, aclFormat format)
 {
+  if (format == ACL_FORMAT_FRACTAL_NZ && size.size() < 2) {
+    // scalar scene and rank=1 scene do not support NZ
+    return ACL_FORMAT_ND;
+  }
+
   int64_t dim = size.size();
   aclFormat baseFormat = FormatHelper::GetBaseFormat(format);
   bool isBaseFormat = (baseFormat == format);
