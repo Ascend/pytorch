@@ -144,7 +144,8 @@ public:
       "AvgPool3DGrad",
       "Pooling",
       "Conv2DTranspose",
-      "Conv3DTranspose"};
+      "Conv3DTranspose",
+      "ReluGradV2"};
 
 };
 
