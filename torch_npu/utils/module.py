@@ -19,6 +19,7 @@ import warnings
 import logging
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 from torch.distributed.algorithms.join import Join
 from torch.nn.parameter import Parameter, UninitializedParameter, UninitializedBuffer
@@ -45,8 +46,7 @@ def npu(self, device=None):
     Returns:
         Module: self
     """
-    if device is None:
-        device = torch.device("npu")
+    device = torch.device("npu")
     if torch_npu.npu.is_available():
         # Ref [cast weight in single op mode]
         is_graph_mode = torch_npu.npu.is_graph_mode()
@@ -134,7 +134,9 @@ def cast_weight(self, device):
             module.v_proj_weight.data = module.v_proj_weight.data.to(device)
             module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
-    if device is None or torch_npu.npu.native_device not in str(device):
+    # supported devices list: "npu"(from module.npu), "xla"(from module.to)
+    support_cast_devices = [torch_npu.npu.native_device, torch_npu.npu.npu_device]
+    if device is None or not any(support_cast_device in str(device) for support_cast_device in support_cast_devices):
         return
 
     current_class = self.__class__
