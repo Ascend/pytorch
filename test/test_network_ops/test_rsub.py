@@ -165,6 +165,13 @@ class TestRsub(TestCase):
         shape_format = [[[np.float16, i, [32, 64, 128, 28]]] for i in format_list]
         self.rsub_scalar_result(shape_format)
 
+    # byte scalar - tensor ----------------------------------------------------------------------------
+    def test_scalar_sub_byte(self, device="npu"):
+        s_cpu = torch.tensor([0, 1, 2, 3, 4]).byte()
+        s_npu = s_cpu.npu()
+        c_out = 1 - s_cpu
+        n_out = 1 - s_npu
+        self.assertRtolEqual(c_out.numpy(), n_out.numpy())
 
 if __name__ == "__main__":
     run_tests()
