@@ -31,7 +31,7 @@ at::Tensor& index_add_out_npu(
     const at::Scalar& alpha) {
   at::Tensor indices = index;
   if (index.scalar_type() != at::ScalarType::Int) {
-    indices = index.to(at::kInt);
+    indices = NPUNativeFunctions::npu_dtype_cast(index, at::kInt);
   }
   if (index.dim() == 0) {
     indices.unsqueeze_(0);

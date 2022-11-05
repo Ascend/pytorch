@@ -93,7 +93,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::max(
     bool keepdim) {
   at::Tensor selfCast = self;
   if(self.dtype() == at::ScalarType::Bool || self.dtype() == at::ScalarType::Int){
-    selfCast = self.to(at::ScalarType::Float);
+    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   at::SmallVector<int64_t, SIZE> dims = {dim};
   auto outputSize = reduce_ops_npu_output_size(selfCast, dims, keepdim);

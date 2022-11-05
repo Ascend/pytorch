@@ -60,7 +60,7 @@ std::tuple<at::Tensor&, at::Tensor&> median_out_value_nocheck(
   at::Tensor topkIndices = std::get<1>(ret);
 
   if (topkIndices.dtype() == at::ScalarType::Long) {
-    topkIndices = topkIndices.to(at::kInt);
+    topkIndices = NPUNativeFunctions::npu_dtype_cast(topkIndices, at::kInt);
   }
 
   //NCHW -> reflush base format

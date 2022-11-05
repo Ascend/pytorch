@@ -42,7 +42,7 @@ namespace at_npu
       at::Tensor input = self;
       if (self.dtype() == at::kBool)
       {
-        input = input.to(at::kInt);
+        input = NPUNativeFunctions::npu_dtype_cast(input, at::kInt);
       }
 
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
@@ -54,7 +54,7 @@ namespace at_npu
 
       if (self.dtype() == at::kBool)
       {
-        result = result.to(at::kBool);
+        result = NPUNativeFunctions::npu_dtype_cast(result, at::kBool);
       }
 
       return result;

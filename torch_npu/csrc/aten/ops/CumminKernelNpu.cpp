@@ -59,14 +59,14 @@ void NPUNativeFunctions::_cummin_helper(const at::Tensor& self, at::Tensor& valu
 
       cummin_out_npu_nocheck(transposeValue, transposeIndices, transposeSelf, firstDim);
       // Indices must to be long
-      transposeIndices = transposeIndices.to(at::kLong);
+      transposeIndices = NPUNativeFunctions::npu_dtype_cast(transposeIndices, at::kLong);
       NPUNativeFunctions::npu_transpose_out(transposeValue, perm, true, values);
       NPUNativeFunctions::npu_transpose_out(transposeIndices, perm, true, indices);
     } else {
       at::Tensor valuesTemp = OpPreparation::ApplyTensor(self);
       at::Tensor indicesTemp = OpPreparation::ApplyTensor(self, self.options().dtype(at::kInt)); 
       cummin_out_npu_nocheck(valuesTemp, indicesTemp, self, dim);
-      indicesTemp = indicesTemp.to(at::kLong);
+      indicesTemp = NPUNativeFunctions::npu_dtype_cast(indicesTemp, at::kLong);
       values.copy_(valuesTemp);
       indices.copy_(indicesTemp);
     }  

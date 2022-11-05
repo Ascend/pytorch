@@ -29,8 +29,8 @@ namespace at_npu
       at::Tensor otherCast = other;
       if (self.dtype() == c10::ScalarType::Int || other.dtype() == c10::ScalarType::Int)
       {
-        selfCast = self.to(c10::ScalarType::Float);
-        otherCast = other.to(c10::ScalarType::Float);
+        selfCast = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
+        otherCast = NPUNativeFunctions::npu_dtype_cast(other, c10::ScalarType::Float);
       }
       auto unified_result = OpPreparation::comparison_op_check(result, selfCast, otherCast, true);
       OpCommand cmd;
@@ -49,7 +49,7 @@ namespace at_npu
       at::Tensor selfCast = self;
       if (self.dtype() == c10::ScalarType::Int)
       {
-        selfCast = self.to(c10::ScalarType::Float);
+        selfCast = NPUNativeFunctions::npu_dtype_cast(self, c10::ScalarType::Float);
       }
       OpCommand cmd;
       cmd.Name("Equal")

@@ -66,8 +66,8 @@ at::Tensor NPUNativeFunctions::npu_roi_align(
   at::Tensor selfCast = self;
   at::Tensor roisCast = rois;
   if (self.scalar_type() == at::kHalf || rois.scalar_type() == at::kHalf) {
-    selfCast = self.to(at::kFloat);
-    roisCast = rois.to(at::kFloat);
+    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::kFloat);
+    roisCast = NPUNativeFunctions::npu_dtype_cast(rois, at::kFloat);
   }
 
   auto outputSize =
@@ -87,7 +87,7 @@ at::Tensor NPUNativeFunctions::npu_roi_align(
       roi_end_mode);
 
   if (self.scalar_type() == at::kHalf || rois.scalar_type() == at::kHalf) {
-    result = result.to(at::kHalf);
+    result = NPUNativeFunctions::npu_dtype_cast(result, at::kHalf);
   }
 
   return result;

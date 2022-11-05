@@ -31,8 +31,8 @@ namespace at_npu
       at::Tensor otherCast = other;
       if (self.dtype() == at::ScalarType::Bool || other.dtype() == at::ScalarType::Bool)
       {
-        selfCast = self.to(at::ScalarType::Float);
-        otherCast = other.to(at::ScalarType::Float);
+        selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
+        otherCast = NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Float);
       }
 
       OpCommand cmd;
@@ -68,7 +68,7 @@ namespace at_npu
       at::Tensor selfCast = self;
       if (self.dtype() == at::ScalarType::Bool)
       {
-        selfCast = self.to(at::ScalarType::Float);
+        selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
       }
 
       OpCommand cmd;

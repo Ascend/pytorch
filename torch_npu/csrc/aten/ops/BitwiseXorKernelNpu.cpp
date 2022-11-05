@@ -23,8 +23,8 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
     const at::Tensor& self,
     const at::Scalar other) {
   // executing the NPU operator
-  at::Tensor selfInput = (self.dtype() == at::ScalarType::Bool) ? self.to(at::ScalarType::Int) : self;
-  result = (result.dtype() == at::ScalarType::Bool) ? result.to(at::ScalarType::Int) : result;
+  at::Tensor selfInput = (self.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Int) : self;
+  result = (result.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Int) : result;
 
   OpCommand cmd;
   cmd.Name("BitwiseXor")
@@ -33,7 +33,7 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
       .Output(result)
       .Run();
 
-  return (result = (self.dtype() == at::ScalarType::Bool) ? result.to(at::ScalarType::Bool) : result);
+  return (result = (self.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Bool) : result);
 }
 
 at::Tensor& NPUNativeFunctions::bitwise_xor_out(
@@ -56,9 +56,9 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
     const at::Tensor& other) {
   auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
 
-  at::Tensor selfInput  = (self.dtype() == at::ScalarType::Bool) ? self.to(at::ScalarType::Int) : self;
-  at::Tensor otherInput = (other.dtype() == at::ScalarType::Bool) ? other.to(at::ScalarType::Int) : other;
-  result = (result.dtype() == at::ScalarType::Bool) ? result.to(at::ScalarType::Int) : result;
+  at::Tensor selfInput  = (self.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Int) : self;
+  at::Tensor otherInput = (other.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Int) : other;
+  result = (result.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Int) : result;
 
   if (otherInput.dim() == 0 && !at_npu::key::isDeviceTensor(otherInput)) {
     NPUNativeFunctions::bitwise_xor_out(selfInput, otherInput.item(), result);
@@ -75,7 +75,7 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
         .Run();
   }
 
-  return (result = (self.dtype() == at::ScalarType::Bool) ? result.to(at::ScalarType::Bool) : result);
+  return (result = (self.dtype() == at::ScalarType::Bool) ? NPUNativeFunctions::npu_dtype_cast(result, at::ScalarType::Bool) : result);
 }
 
 at::Tensor& NPUNativeFunctions::bitwise_xor_out(

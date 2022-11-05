@@ -31,7 +31,7 @@ namespace at_npu
       auto result = [&]()
       {
         at::NoNamesGuard guard;
-        at::Tensor converted = dtype.has_value() ? self.to(dtype.value()) : self;
+        at::Tensor converted = dtype.has_value() ? NPUNativeFunctions::npu_dtype_cast(self, dtype.value()) : self;
         return at::_softmax(converted, dim, false);
       }();
       at::namedinference::propagate_names(result, self);
@@ -77,7 +77,7 @@ namespace at_npu
         dstType = self.scalar_type();
       }
       at::Tensor converted =
-          dstType == self.scalar_type() ? self : self.to(dstType);
+          dstType == self.scalar_type() ? self : NPUNativeFunctions::npu_dtype_cast(self, dstType);
 
       c10::SmallVector<int64_t, N> dimList = {dim};
       OpCommand cmd;
