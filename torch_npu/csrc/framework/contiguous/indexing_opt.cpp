@@ -27,7 +27,7 @@ public:
     c10::SmallVector<int64_t, MAX_DIM> step;
 
     if (can_use_indexing(src_desc, start, end, step)) {
-      RECORD_FUNCTION("npuStridedSlice", std::vector<c10::IValue>({src}));
+      RECORD_FUNCTION("contiguous_d_StridedSlice", std::vector<c10::IValue>({src}));
       indexing_to_contiguous(self, src, start, end, step, src_desc);
       return true;
     }
