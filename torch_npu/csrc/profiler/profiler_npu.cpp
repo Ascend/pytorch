@@ -38,9 +38,10 @@ static inline void npuCheck(aclError result, const char * file, int line) {
 
 struct NPUMethods : public DeviceStubs {
   void npu_destropy_event(aclrtEvent event) const override {
-    aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
-    TORCH_NPU_CHECK(aclrtQueryEvent(event, &status));
-    if (status == ACL_EVENT_STATUS_COMPLETE) {
+    c10_npu::acl::aclrtEventRecordedStatus status =
+        c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    TORCH_NPU_CHECK(c10_npu::acl::AclQueryEventRecordedStatus(event, &status));
+    if (status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
     } else {
         std::cout << "Warning! NPU destroy event error, status is not completed." << std::endl;

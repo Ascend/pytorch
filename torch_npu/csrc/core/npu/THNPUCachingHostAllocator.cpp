@@ -213,14 +213,15 @@ struct HostAllocator {
       if (!findAndEraseCompleteEvent(event)) {
         break;
       }
-      aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
-      aclError err = aclrtQueryEvent(event, &status);
+      c10_npu::acl::aclrtEventRecordedStatus status =
+          c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+      aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
       if (err != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         insertCompleteEvent(event);
         return err;
       }
-      if (status != ACL_EVENT_STATUS_COMPLETE) {
+      if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         insertCompleteEvent(event);
         break;
       }

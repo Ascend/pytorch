@@ -71,11 +71,6 @@ const char *AclGetErrMsg();
  */
 aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
 
-/**
-  This API is used to query status of event task
-  */
-aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus);
-
 aclError AclProfilingInit(const char *profilerResultPath, size_t length);
 aclError AclProfilingStart(const aclprofConfig *profilerConfig);
 aclError AclProfilingStop(const aclprofConfig *profilerConfig);
