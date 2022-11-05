@@ -21,14 +21,14 @@ namespace native {
 
 at::Tensor& index_out_nocheck_npu(
     const at::Tensor& self,
-    const at::IntArrayRef masks,
+    const at::Tensor& masksTensor,
     const at::TensorList& indices,
     at::Tensor& result) {
   OpCommand cmd;
   cmd.Name("Index")
       .Input(self)
-      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-      .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
+      .Input(masksTensor)
+      .Input(result.sizes());
   for (int i = 0; i < indices.size(); i++) {
     std::string name = "indices" + std::to_string(i);
     cmd.Input(indices[i], name);
@@ -61,8 +61,12 @@ at::Tensor NPUNativeFunctions::index(const at::Tensor& self, const torch::List<c
       masks.emplace_back(0);
     }
   }
+
+  at::Tensor masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
+      at::from_blob(masks.data(), {masks.size()}, dtype(at::ScalarType::Long)));
+
   // calculate the output result of the NPU
-  index_out_nocheck_npu(formatCastOfSelf, masks, allDefinedIndices, result);
+  index_out_nocheck_npu(formatCastOfSelf, masksTensor, allDefinedIndices, result);
 
   return result;
 }

@@ -83,6 +83,9 @@ def set_mm_bmm_format_nd():
 def get_mm_bmm_format_nd():
     return _MM_BMM_ND_ENABLE
 
+def is_binary() -> bool:
+    return torch_npu._C._npu_is_jit_compile_false()
+
 class npuEvent(object):
     def __init__(self):    
         self.ACL_PROF_ACL_API            = 0x0001
