@@ -244,10 +244,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor running_var_cp = running_var;
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
-  at::Tensor running_mean_tensor = running_mean.defined() ? NPUNativeFunctions::npu_format_cast_(running_mean_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
-  at::Tensor running_var_tensor = running_var.defined() ? NPUNativeFunctions::npu_format_cast_(running_var_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor weight_tensor = weight.defined() ? NPUNativeFunctions::npu_format_cast_(weight_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor bias_tensor = bias.defined() ? NPUNativeFunctions::npu_format_cast_(bias_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
+  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
+  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
+  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
+  at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);

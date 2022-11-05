@@ -40,11 +40,11 @@ bool OptionsManager::CheckCombinedOptimizerEnable() {
 }
 
 bool OptionsManager::CheckAclDumpDateEnable() {
-  static int aclDumpDataEnable = -1;
-  if (aclDumpDataEnable == -1) {
-    aclDumpDataEnable = GetBoolTypeOption("ACL_DUMP_DATA");
-  }
-  return (aclDumpDataEnable == 1);
+  const static bool checkAclDumpDateEnable = []() -> bool {
+    int32_t acl_dump_data = OptionsManager::GetBoolTypeOption("ACL_DUMP_DATA");
+    return (acl_dump_data != 0) ? true : false;
+  }();
+  return checkAclDumpDateEnable;
 }
 
 bool OptionsManager::CheckSwitchMMOutputEnable() {
