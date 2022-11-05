@@ -199,19 +199,23 @@ at::Tensor& NPUNativeFunctions::slow_conv_transpose2d_out(
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv_transpose2d_npu_output_size(
       self, weight, kernel_size, bias, stride, padding, output_padding, dilation);
-  
+  auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
+      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
+      self,
+      ACL_FORMAT_NC1HWC0);
+
   if (bias.defined()) {
     OpPreparation::CheckOut(
         {self, weight, bias},
         {out},
-        ACL_FORMAT_NC1HWC0,
+        result_format,
         self.scalar_type(),
         outputSize);
   } else {
     OpPreparation::CheckOut(
         {self, weight},
         {out},
-        ACL_FORMAT_NC1HWC0,
+        result_format,
         self.scalar_type(),
         outputSize);
   }
@@ -232,8 +236,12 @@ at::Tensor NPUNativeFunctions::slow_conv_transpose2d(
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv_transpose2d_npu_output_size(
       self, weight, kernel_size, bias, stride, padding, output_padding, dilation);
+  auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
+      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
+      self,
+      ACL_FORMAT_NC1HWC0);
 
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, result_format);
   slow_conv_transpose2d_npu_nocheck(
       self, weight, kernel_size, bias_opt, stride, padding, output_padding, dilation, result);
 
