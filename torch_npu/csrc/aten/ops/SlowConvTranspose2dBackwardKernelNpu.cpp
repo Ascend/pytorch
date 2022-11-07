@@ -163,7 +163,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
   at::Tensor grad_bias;
   
   if (output_mask[0]) {
-    grad_input = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSizes));
+    grad_input = OpPreparation::ApplyTensor(self, std::get<0>(outputSizes));
   }
 
   if (output_mask[1]) {

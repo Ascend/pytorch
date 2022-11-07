@@ -63,12 +63,12 @@ at::Tensor NPUNativeFunctions::_softmax_backward_data(
     int64_t dim,
     at::ScalarType input_dtype) {
   // construct the output tensor of the NPU
-      at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
+  at::Tensor grad_input = OpPreparation::ApplyTensor(grad_output);
 
-      // calculate the output result of the NPU
-      softmax_backward_out_npu(grad_input, grad_output, output, dim, input_dtype);
+  // calculate the output result of the NPU
+  softmax_backward_out_npu(grad_input, grad_output, output, dim, input_dtype);
 
-      return grad_input;
+  return grad_input;
 }
 
 } // namespace native
