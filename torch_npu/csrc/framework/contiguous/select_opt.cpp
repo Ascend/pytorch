@@ -28,7 +28,7 @@ public:
 
     if (can_use_select(src_desc, start, length)) {
        RECORD_FUNCTION("contiguous_d_StridedSlice",
-                      std::vector<c10::IValue>({src}));
+           std::vector<c10::IValue>({src}));
       select_to_contiguous(self, src, start, length, src_desc);
       return true;
     }

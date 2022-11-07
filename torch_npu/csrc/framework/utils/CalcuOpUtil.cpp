@@ -351,8 +351,8 @@ namespace at_npu
     }
 
     int64_t CalcuOpUtil::judge_and_get_format_from_input(bool is_cast_weight,
-                                                           const at::Tensor &input,
-                                                           int64_t target_format) {
+                                                         const at::Tensor &input,
+                                                         int64_t target_format) {
         return is_cast_weight ? target_format : get_tensor_npu_format(input);
     }
     

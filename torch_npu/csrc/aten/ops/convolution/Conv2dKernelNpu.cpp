@@ -114,8 +114,8 @@ at::Tensor NPUNativeFunctions::npu_conv2d(
   c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
   // construct the output tensor of the NPU
   const int64_t result_format = CalcuOpUtil::judge_and_get_format_from_input(
-          CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
-          input, ACL_FORMAT_NC1HWC0);
+      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
+      input, ACL_FORMAT_NC1HWC0);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(input, outputSize, result_format);
   // calculate the output result of the NPU
   NPUNativeFunctions::npu_conv2d_out(input, weight, bias, stride, padding, dilation, groups, result);

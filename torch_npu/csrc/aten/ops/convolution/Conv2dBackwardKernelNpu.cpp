@@ -214,10 +214,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
   // construct the output tensor of the NPU
   if (grad_input_mask[0]) {
     const int64_t result_format = CalcuOpUtil::judge_and_get_format_from_input(
-            CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
-            input, ACL_FORMAT_NC1HWC0);
+        CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
+        input, ACL_FORMAT_NC1HWC0);
     gradInput = OpPreparation::ApplyTensorWithFormat(
-         std::get<0>(outputSizes), input.options(), result_format);
+        std::get<0>(outputSizes), input.options(), result_format);
   }
 
   if (grad_input_mask[1]) {
