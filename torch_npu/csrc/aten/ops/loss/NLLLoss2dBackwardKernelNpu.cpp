@@ -36,7 +36,7 @@ at::Tensor& NPUNativeFunctions::nll_loss2d_backward_out(
     weight_tensor = at::ones(self.size(1), self.options());
   }
 
-  if (ignore_index >= 0) {
+  if (ignore_index >= 0 && ignore_index < self.size(-1)) {
     at::Tensor zero = at::zeros(1, self.options());
     CalcuOpUtil::AclrtMemcpyAsync(
         {weight_tensor, ignore_index},
