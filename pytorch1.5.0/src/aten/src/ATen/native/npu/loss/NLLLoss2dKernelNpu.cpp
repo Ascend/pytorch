@@ -54,7 +54,7 @@ tuple<Tensor&, Tensor&> nll_loss2d_forward_out_npu(
     weight_tensor = at::ones(self.size(1), self.options());
   }
 
-  if (ignore_index >= 0) {
+  if (ignore_index >= 0 && ignore_index < self.size(-1)) {
     Tensor zero = at::zeros(1, self.options());
     CalcuOpUtil::AclrtMemcpyAsync(
         {weight_tensor, ignore_index},
