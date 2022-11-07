@@ -701,22 +701,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> _convolution_backward_nogroup_bac
   }
 }
 
-static inline at::MemoryFormat determine_backend_memory_format(
-    const at::Tensor& input,
-    const at::Tensor& weight) {
-  at::MemoryFormat backend_memory_format = at::MemoryFormat::Contiguous;
-  auto k = weight.ndimension();
-  return backend_memory_format;
-}
-
-static at::Tensor subtensor(at::Tensor& tensor, int dim, int groups, int g) {
-  if (!tensor.defined()) {
-    return at::Tensor();
-  }
-  int64_t n = tensor.sizes()[dim] / groups;
-  return tensor.narrow(dim, n * g, n).contiguous();
-}
-
 at::native::ConvBackend select_conv_backend(
     const at::Tensor& input,
     const at::Tensor& weight,
@@ -726,7 +710,7 @@ at::native::ConvBackend select_conv_backend(
 
   // don't send empty inputs through backends
   if (input.size(0) == 0 || input.size(1) == 0) {
-    return input.is_mkldnn() ? at::native::ConvBackend::MkldnnEmpty : at::native::ConvBackend::Empty;
+    return at::native::ConvBackend::Empty;
   } else if (input.numel() == 0) {
     TORCH_CHECK(false, "Only zero batch or zero channel inputs are supported, but got input shape: ", input.sizes());
   }
@@ -781,9 +765,6 @@ at::native::ConvBackend select_conv_backend(
   params.transposed = transposed_;
   params.output_padding = expand_param_if_needed(output_padding_, "output_padding", dim);
   params.groups = groups_;
-  params.benchmark = ctx.benchmarkCuDNN();
-  params.deterministic = ctx.deterministicCuDNN() || ctx.deterministicAlgorithms();
-  params.allow_tf32 = ctx.allowTF32CuDNN();
 
   auto input = input_r;
   auto weight = weight_r;
@@ -827,9 +808,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
   params.transposed = transposed;
   params.output_padding = expand_param_if_needed(output_padding, "output_padding", dim);
   params.groups = groups;
-  params.benchmark = ctx.benchmarkCuDNN();
-  params.deterministic = ctx.deterministicCuDNN() || ctx.deterministicAlgorithms();
-  params.allow_tf32 = ctx.allowTF32CuDNN();
 
   // Validate inputs.
   check_shape_backward(input, weight.sizes(), params);
@@ -858,7 +836,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
 
   // Select appropriate backend to use.
   at::native::ConvBackend backend = select_conv_backend(input, weight, bias_sizes_opt, true, params);
-  at::MemoryFormat backend_memory_format = determine_backend_memory_format(input, weight);
 
   // Call the backend.
   at::Tensor backend_grad_input, backend_grad_weight, backend_grad_bias;
@@ -896,33 +873,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
     case at::native::ConvBackend::SlowTranspose2d:
     case at::native::ConvBackend::SlowTranspose3d:
     {
-      input = input.contiguous();
-      if (params.groups == 1) {
-        std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
-          _convolution_backward_nogroup_backend(
-              grad_output, input, weight, output_mask, backend, params);
-      } else {
-        std::vector<at::Tensor> backend_grad_inputs(params.groups);
-        std::vector<at::Tensor> backend_grad_weights(params.groups);
-        std::vector<at::Tensor> backend_grad_biases(params.groups);
-        for (int g = 0; g < params.groups; ++g) {
-          auto grad_output_g = subtensor(grad_output, 1, params.groups, g);
-          auto input_g = subtensor(input, 1, params.groups, g);
-          auto weight_g = subtensor(weight, 0, params.groups, g);
-          std::tie(backend_grad_inputs[g], backend_grad_weights[g], backend_grad_biases[g]) =
-            _convolution_backward_nogroup_backend(
-                grad_output_g, input_g, weight_g, output_mask, backend, params);
-        }
-        if (output_mask[0]) {
-          backend_grad_input = at::cat(backend_grad_inputs, 1);
-        }
-        if (output_mask[1]) {
-          backend_grad_weight = at::cat(backend_grad_weights, 0);
-        }
-        if (output_mask[2]) {
-          backend_grad_bias = at::cat(backend_grad_biases, 0);
-        }
-      }
+      std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
+        _convolution_backward_nogroup_backend(
+            grad_output, input, weight, output_mask, backend, params);
       break;
     }
     // Backward is not supported for these backends.
