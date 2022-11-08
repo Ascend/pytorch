@@ -97,7 +97,10 @@ at::Tensor NPUNativeFunctions::_nnpack_spatial_convolution(
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = nnpack_spatial_convolution_npu_output_size(
       input, weight, padding, stride);
-  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), ACL_FORMAT_NC1HWC0);
+  auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
+      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
+      input, ACL_FORMAT_NC1HWC0);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(outputSize, input.options(), result_format);
   _nnpack_spatial_convolution_output_npu(
       input, weight, bias, padding, stride, result);
   return result;

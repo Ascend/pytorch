@@ -163,11 +163,11 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
   at::Tensor grad_bias;
   
   if (output_mask[0]) {
-    grad_input = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSizes), ACL_FORMAT_NC1HWC0);
+    grad_input = OpPreparation::ApplyTensor(self, std::get<0>(outputSizes));
   }
 
   if (output_mask[1]) {
-    grad_weight = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), weight.options().dtype(at::kFloat), ACL_FORMAT_FRACTAL_Z);
+    grad_weight = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
   }
 
   if (output_mask[flag]) {

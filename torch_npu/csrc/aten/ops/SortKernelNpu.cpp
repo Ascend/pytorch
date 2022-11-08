@@ -70,7 +70,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::sort_out(
   }
   
   // indices dtype transform Int64
-  indices = indices.to(at::kLong);
+  indices = NPUNativeFunctions::npu_dtype_cast(indices, at::kLong);
   
   return std::tie(values, indices);
 }

@@ -107,7 +107,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::adaptive_max_pool2d(
   int64_t maskH = kernel_sizeH * kernel_sizeW;
   int64_t maskW = (CeilDiv(Ho * Wo, BLOCKSIZE) + 1);
   c10::SmallVector<int64_t, SIZE> indicesSize = {n, c, maskH, maskW};
-  at::Tensor output = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
+  at::Tensor output = OpPreparation::ApplyTensor(self, outputSize);
   at::Tensor indices = OpPreparation::ApplyTensorWithFormat(indicesSize, self.options().dtype(at::kLong), ACL_FORMAT_NC1HWC0);
 
   NPUNativeFunctions::adaptive_max_pool2d_out(self, output_size, output, indices);

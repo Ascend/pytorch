@@ -24,8 +24,8 @@ at::Tensor& ge_out_npu_nocheck(const at::Tensor& self, const at::Tensor& other, 
   at::Tensor otherCast = other;
   if (self.dtype() == at::ScalarType::Int || other.dtype() == at::ScalarType::Int 
       || self.dtype() == at::ScalarType::Bool || other.dtype() == at::ScalarType::Bool) {
-    selfCast = self.to(at::ScalarType::Float);
-    otherCast = other.to(at::ScalarType::Float);
+    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
+    otherCast = NPUNativeFunctions::npu_dtype_cast(other, at::ScalarType::Float);
   }
   auto unified_result = OpPreparation::comparison_op_check(result, selfCast, otherCast, true);
   OpCommand cmd;
@@ -58,7 +58,7 @@ at::Tensor& NPUNativeFunctions::ge_out(const at::Tensor& self, const at::Tensor&
 at::Tensor& ge_out_npu_nocheck(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
   at::Tensor selfCast = self;
   if (self.dtype() == at::ScalarType::Int || self.dtype() == at::ScalarType::Bool) {
-    selfCast = self.to(at::ScalarType::Float);
+    selfCast = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
   }
   OpCommand cmd;
   cmd.Name("GreaterEqual")

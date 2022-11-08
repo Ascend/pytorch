@@ -39,7 +39,7 @@ class SingleViewCopyToContiguous(TestCase):
 
         for item in shape_format1: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # Directly using d2dcopy without transdata(View_d2dCopyAsync)
+            # Directly using d2dcopy without transdata(contiguous_d_Reshape)
             # case1. base format
             match_case1 = (item[1] == 0)
             with torch.autograd.profiler.profile(use_npu=True) as prof:
@@ -47,8 +47,8 @@ class SingleViewCopyToContiguous(TestCase):
             # case2. The key axis remains unchanged for NZ format
             match_case2 = (item[1] == 29)
             if match_case1 or match_case2:
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                   True, "View_d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                   True, "contiguous_d_Reshape is not called!")
             else:
                 self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
                    True, "d2dCopyAsync is not called!")
@@ -59,8 +59,8 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input.view(1, 6, npu_input.size(2)*npu_input.size(3), 1).clone()
             if match_case1:
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                    True, "View_d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                    True, "contiguous_d_Reshape is not called!")
             else:
                 self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
                     True, "d2dCopyAsync is not called!")
@@ -81,7 +81,7 @@ class SingleViewCopyToContiguous(TestCase):
         for i in range(3):
             for item in shape_format2: 
                 cpu_input, npu_input = create_common_tensor(item, 0, 100)
-                # Directly using d2dcopy without transdata(View_d2dCopyAsync)
+                # Directly using d2dcopy without transdata(contiguous_d_Reshape)
                 # case1. base format 
                 match_case1 = (item[1] == 2)
                 # case2. The key axis remains unchanged for NZ format
@@ -89,8 +89,8 @@ class SingleViewCopyToContiguous(TestCase):
                 with torch.autograd.profiler.profile(use_npu=True) as prof:
                     npu_out = npu_input.unsqueeze(i).clone()
                 if match_case1 or match_case2:
-                    self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                        True, "View_d2dCopyAsync is not called!")
+                    self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                        True, "contiguous_d_Reshape is not called!")
                 else:
                     self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
                         True, "d2dCopyAsync is not called!")
@@ -117,9 +117,9 @@ class SingleViewCopyToContiguous(TestCase):
                 self.assertEqual(check_operators_in_prof(['d2dCopyAsync'], prof), \
                     True, "d2dCopyAsync is not called!")
             else:
-                # Directly using d2dcopy without transdata(View_d2dCopyAsync)
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                    True, "View_d2dCopyAsync is not called!")
+                # Directly using d2dcopy without transdata(contiguous_d_Reshape)
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                    True, "contiguous_d_Reshape is not called!")
             
             cpu_out = torch.flatten(cpu_input, 0, 1).clone()
             self.assertRtolEqual(npu_out.to("cpu").numpy(), cpu_out.numpy())   
@@ -138,7 +138,7 @@ class SingleViewCopyToContiguous(TestCase):
 
         for item in shape_format4: 
             cpu_input, npu_input = create_common_tensor(item, 0, 100)
-            # Directly using d2dcopy without transdata(View_d2dCopyAsync)
+            # Directly using d2dcopy without transdata(contiguous_d_Reshape)
             # The key axis remains unchanged for NZ format in all cases.
             # case1. base format 
             match_case1 = (item[1] == 2)
@@ -151,11 +151,11 @@ class SingleViewCopyToContiguous(TestCase):
             # case3. NZ format with padding but no offset
             match_case3 = (item[1] == 29 and True)
             if match_case1 or match_case2 or match_case3:
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                    True, "View_d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                    True, "contiguous_d_Reshape is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                    True, "narrow_npuSlice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                    True, "contiguous_d_Slice is not called!")
             cpu_out1 = cpu_input[:10,:,:].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())  
             
@@ -164,11 +164,11 @@ class SingleViewCopyToContiguous(TestCase):
                 npu_out2 = npu_input[1:10,:,:].clone()
             match_case3 = False
             if match_case1 or match_case2 or match_case3:
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                    True, "View_d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                    True, "contiguous_d_Reshape is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                    True, "narrow_npuSlice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                    True, "contiguous_d_Slice is not called!")
             cpu_out2 = cpu_input[1:10,:,:].clone()
             self.assertRtolEqual(npu_out2.to("cpu").numpy(), cpu_out2.numpy())
     
@@ -187,19 +187,19 @@ class SingleViewCopyToContiguous(TestCase):
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out1 = npu_input[0].clone()
             if match_case:
-                self.assertEqual(check_operators_in_prof(['View_d2dCopyAsync'], prof), \
-                    True, "View_d2dCopyAsync is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Reshape'], prof), \
+                    True, "contiguous_d_Reshape is not called!")
             else:
-                self.assertEqual(check_operators_in_prof(['narrow_npuSlice'], prof), \
-                    True, "narrow_npuSlice is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_d_Slice'], prof), \
+                    True, "contiguous_d_Slice is not called!")
             cpu_out1 = cpu_input[0].clone()
             self.assertRtolEqual(npu_out1.to("cpu").numpy(), cpu_out1.numpy())
 
             with torch.autograd.profiler.profile(use_npu=True) as prof:
                 npu_out2 = npu_input[0] + 1
             if match_case:
-                self.assertEqual(check_operators_in_prof(['memory_repoint'], prof), \
-                    True, "memory_repoint is not called!")
+                self.assertEqual(check_operators_in_prof(['contiguous_h_memRepoint'], prof), \
+                    True, "contiguous_h_memRepoint is not called!")
             else:
                 # refresh storage desc after transdata
                 self.assertEqual(check_operators_in_prof(['Identity'], prof), \

@@ -27,8 +27,8 @@ public:
     c10::SmallVector<int64_t, MAX_DIM> length;
 
     if (can_use_select(src_desc, start, length)) {
-      RECORD_FUNCTION("select_npuStridedSlice",
-                      std::vector<c10::IValue>({src}));
+       RECORD_FUNCTION("contiguous_d_StridedSlice",
+           std::vector<c10::IValue>({src}));
       select_to_contiguous(self, src, start, length, src_desc);
       return true;
     }
