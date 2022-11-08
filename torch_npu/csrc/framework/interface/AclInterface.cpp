@@ -109,20 +109,6 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
   return func(event, flag);
 }
 
-aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus)
-{
-  typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *status);
-  static aclQueryEventWaitStatus func = nullptr;
-  if (func == nullptr) {
-    func = (aclQueryEventWaitStatus)GET_FUNC(aclrtQueryEventWaitStatus);
-  }
-  if (func != nullptr) {
-    return func(event, waitStatus);
-  } else {
-    return aclrtQueryEvent(event, recordStatus);
-  }
-}
-
 aclError AclProfilingInit(const char *profilerResultPath, size_t length) {
   typedef aclError (*AclProfInitFunc) (const char *, size_t);
   static AclProfInitFunc func = nullptr;

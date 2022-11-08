@@ -192,9 +192,11 @@ bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecution() {
 bool ProcessGroupHCCL::WorkHCCL::finishedNPUExecutionInternal() const {
   for (size_t i = 0; i < devices_.size(); ++i) {
     // Checking Event completed by Eventquery
-    aclrtEventStatus status;
-    auto ret = aclrtQueryEvent(npuEvents_[i], &status);
-    if (ret != ACL_ERROR_NONE || status == ACL_EVENT_STATUS_NOT_READY) {
+    c10_npu::acl::aclrtEventRecordedStatus status =
+        c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    aclError ret = c10_npu::acl::AclQueryEventRecordedStatus(npuEvents_[i], &status);
+    if (ret != ACL_ERROR_NONE ||
+        status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY) {
       return false;
     }
   }
