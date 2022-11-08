@@ -43,11 +43,12 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pack_padded_sequence(
   auto output = batch_first ? input.transpose(0, 1) : input;
   auto len = lengthsVec[0];
   if (len < timesize) {
-    at::Scalar start = 0;
-    at::Scalar end = len - 1;
-    at::Tensor index = OpPreparation::ApplyTensorWithFormat(
-        {len}, input.options().dtype(at::kInt), ACL_FORMAT_ND);
-    NPUNativeFunctions::range_out(start, end, 1, index);
+    vector<int> tmp_vector = {};
+    for (int i = 0; i < len; i++) {
+      tmp_vector.emplace_back(i);
+    }
+    auto index = at::from_blob(tmp_vector.data(), {len}, at::kInt);
+    index = CalcuOpUtil::copy_tensor_host_to_device(index);
     output = NPUNativeFunctions::index_select(output, 0, index);
     timesize = len;
   }
