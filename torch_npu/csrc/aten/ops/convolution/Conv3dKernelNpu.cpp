@@ -236,11 +236,7 @@ at::Tensor NPUNativeFunctions::slow_conv3d_forward(
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv3d_npu_output_size(
       self, weight, bias, stride, padding);
-  auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
-      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FRACTAL_Z_3D,
-      self,
-      ACL_FORMAT_NDC1HWC0);
-  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), result_format);
+  auto output = OpPreparation::ApplyTensorWithFormat(self, std::get<0>(outputSize), ACL_FORMAT_NDC1HWC0);
   auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
   auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 

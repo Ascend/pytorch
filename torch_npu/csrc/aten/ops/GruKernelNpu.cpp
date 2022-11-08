@@ -65,16 +65,32 @@ std::vector<at::Tensor> gru_npu(
   int64_t batchSize = input.size(1);
   int64_t hiddenSize = bias_input.size(0) / 3;
   c10::SmallVector<int64_t, SIZE> outputSize = {numStep, batchSize, hiddenSize};
+  int64_t npu_format = ACL_FORMAT_FRACTAL_NZ;
 
-  at::Tensor output_y = OpPreparation::ApplyTensor(bias_input, outputSize);
+  at::Tensor output_y = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      bias_input.options(),
+      npu_format);
   at::Tensor output_h = OpPreparation::ApplyTensorWithFormat(
       outputSize,
       bias_input.options(),
       ACL_FORMAT_ND);
-  at::Tensor output_updata = OpPreparation::ApplyTensor(bias_input, outputSize);
-  at::Tensor output_reset = OpPreparation::ApplyTensor(bias_input, outputSize);
-  at::Tensor output_new = OpPreparation::ApplyTensor(bias_input, outputSize);
-  at::Tensor hidden_new = OpPreparation::ApplyTensor(bias_input, outputSize);
+  at::Tensor output_updata = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      bias_input.options(),
+      npu_format);
+  at::Tensor output_reset = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      bias_input.options(),
+      npu_format);
+  at::Tensor output_new = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      bias_input.options(),
+      npu_format);
+  at::Tensor hidden_new = OpPreparation::ApplyTensorWithFormat(
+      outputSize,
+      bias_input.options(),
+      npu_format);
 
   OpCommand cmd;
   cmd.Name("DynamicGRUV2")
@@ -126,9 +142,9 @@ std::vector<at::Tensor> NPUNativeFunctions::npu_gru_backward(
   const at::Tensor& gradh = c10::value_or_else(gradh_opt, [] {return at::Tensor();});
   at::Tensor inh = at::squeeze(init_h, 0);
   auto grad_y =
-      grady.defined() ? grady : OpPreparation::ApplyTensor(output_y).mul(0);
+      grady.defined() ? grady : OpPreparation::ApplyTensorWithFormat(output_y.sizes(), output_y.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
   auto grad_h =
-      gradh.defined() ? gradh[input.size(0)-1] : OpPreparation::ApplyTensor(output_h, inh.sizes()).mul(0);
+      gradh.defined() ? gradh[input.size(0)-1] : OpPreparation::ApplyTensorWithFormat(inh.sizes(), output_h.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
 
   at::Tensor mask = at::zeros({}, input.options().dtype(at::kByte)); // uint8
   at::Tensor seq_lengths = at::zeros({}, input.options());
@@ -314,10 +330,10 @@ tuple<at::Tensor, at::Tensor> gru_single_layer_bidirec_npu(
     rev_bias_input = params.second.b_ih.to(input.dtype());
     rev_bias_hidden = params.second.b_hh.to(input.dtype());
   } else {
-    fw_bias_input = OpPreparation::ApplyTensor(input, fw_weight_input.size(1)).mul(0);
-    fw_bias_hidden = OpPreparation::ApplyTensor(input, fw_weight_hidden.size(1)).mul(0);
-    rev_bias_input = OpPreparation::ApplyTensor(input, rev_weight_input.size(1)).mul(0);
-    rev_bias_hidden = OpPreparation::ApplyTensor(input, rev_weight_hidden.size(1)).mul(0);
+    fw_bias_input = OpPreparation::ApplyTensorWithFormat(fw_weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    fw_bias_hidden = OpPreparation::ApplyTensorWithFormat(fw_weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    rev_bias_input = OpPreparation::ApplyTensorWithFormat(rev_weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    rev_bias_hidden = OpPreparation::ApplyTensorWithFormat(rev_weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
   }
   at::Tensor seq_length = OpPreparation::ApplyTensorWithFormat({}, input.options(), ACL_FORMAT_ND);
   auto results = NPUNativeFunctions::npu_gru(
@@ -379,8 +395,8 @@ tuple<at::Tensor, at::Tensor> gru_single_layer_direc_npu(
     bias_input = params.b_ih.to(input.dtype());
     bias_hidden = params.b_hh.to(input.dtype());
   } else {
-    bias_input = OpPreparation::ApplyTensor(input, weight_input.size(1)).mul(0);
-    bias_hidden = OpPreparation::ApplyTensor(input, weight_hidden.size(1)).mul(0);
+    bias_input = OpPreparation::ApplyTensorWithFormat(weight_input.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
+    bias_hidden = OpPreparation::ApplyTensorWithFormat(weight_hidden.size(1), input.options(), ACL_FORMAT_FRACTAL_NZ).mul(0);
   }
 
   at::Tensor seq_length = OpPreparation::ApplyTensorWithFormat({}, input.options(), ACL_FORMAT_ND);

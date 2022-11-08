@@ -51,11 +51,11 @@ std::vector<at::Tensor> npu_lstm_npu(
   at::Tensor yOutput = OpPreparation::ApplyTensor(input, outputSize);
   at::Tensor hOutput = OpPreparation::ApplyTensor(input, outputSize);
   at::Tensor cOutput = OpPreparation::ApplyTensor(input, outputSize);
-  at::Tensor iOutput = OpPreparation::ApplyTensor(input, outputSize);
-  at::Tensor jOutput = OpPreparation::ApplyTensor(input, outputSize);
-  at::Tensor fOutput = OpPreparation::ApplyTensor(input, outputSize);
-  at::Tensor oOutput = OpPreparation::ApplyTensor(input, outputSize);
-  at::Tensor tanhc = OpPreparation::ApplyTensor(input, outputSize); 
+  at::Tensor iOutput = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ);
+  at::Tensor jOutput = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ);
+  at::Tensor fOutput = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ);
+  at::Tensor oOutput = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ);
+  at::Tensor tanhc = OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_FRACTAL_NZ); 
  
   string direction = flagDirection? "REDIRECTIONAL" : "UNIDIRECTIONAL";
   OpCommand cmd;
