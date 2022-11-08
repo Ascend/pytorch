@@ -1302,10 +1302,10 @@
 | 15   | torch.cuda.is_available                       | torch_npu.npu.is_available                       | 是       |
 | 16   | torch.cuda.is_initialized                     | torch_npu.npu.is_initialized                     | 是       |
 | 17   | torch.cuda.set_device                         | torch_npu.npu.set_device                         | 是       |
-| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | 否       |
+| 18   | torch.cuda.stream                             | torch_npu.npu.stream                             | 是       |
 | 19   | torch.cuda.synchronize                        | torch_npu.npu.synchronize                        | 是       |
 | 20   | torch.cuda.get_arch_list                      | torch_npu.npu.get_arch_list                      | 否       |
-| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | 否       |
+| 21   | torch.cuda.get_rng_state                      | torch_npu.npu.get_rng_state                      | 是       |
 | 22   | torch.cuda.get_rng_state_all                  | torch_npu.npu.get_rng_state_all                  | 是       |
 | 23   | torch.cuda.set_rng_state                      | torch_npu.npu.set_rng_state                      | 是       |
 | 24   | torch.cuda.set_rng_state_all                  | torch_npu.npu.set_rng_state_all                  | 是       |
