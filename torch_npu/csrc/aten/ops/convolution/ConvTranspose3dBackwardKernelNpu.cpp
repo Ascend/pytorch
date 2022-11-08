@@ -183,17 +183,13 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv_transpose
 
   // construct the output tensor of the NPU
   if (output_mask[0]) {
-    auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
-        CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FRACTAL_Z_3D,
-        input,
-        ACL_FORMAT_NDC1HWC0);
     gradInput = OpPreparation::ApplyTensorWithFormat(
-        input, result_format);
+        input, ACL_FORMAT_NDC1HWC0);
   }
 
   if (output_mask[1]) {
     gradWeight = OpPreparation::ApplyTensorWithFormat(
-        weight.sizes(), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
+        weight.sizes(), weight.options().dtype(at::kFloat), ACL_FRACTAL_Z_3D);
   }
 
   if (output_mask[2]) {

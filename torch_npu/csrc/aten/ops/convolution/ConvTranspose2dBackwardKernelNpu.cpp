@@ -156,17 +156,13 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv_transpose
 
   // construct the output tensor of the NPU
   if (output_mask[0]) {
-    auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
-        CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_FRACTAL_Z,
-        input,
-        ACL_FORMAT_NC1HWC0);
     gradInput = OpPreparation::ApplyTensorWithFormat(
-        input, result_format);
+        input, ACL_FORMAT_NC1HWC0);
   }
 
   if (output_mask[1]) {
     gradWeight = OpPreparation::ApplyTensorWithFormat(
-        weight.sizes(), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
+        weight.sizes(), weight.options().dtype(at::kFloat), ACL_FORMAT_FRACTAL_Z);
   }
 
   if (output_mask[2]) {
@@ -265,12 +261,8 @@ at::Tensor convolution_transpose3d_npu(
       input, weight, bias, padding, output_padding, stride, dilation, groups);
 
   // construct the output tensor of the NPU
-  auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
-      CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FRACTAL_Z_3D,
-      input,
-      ACL_FORMAT_NDC1HWC0);
   at::Tensor result =
-      OpPreparation::ApplyTensorWithFormat(input, outputSize, result_format);
+      OpPreparation::ApplyTensorWithFormat(input, outputSize, ACL_FORMAT_NDC1HWC0);
 
   // calculate the output result of the NPU
   convolution_transpose3d_out_npu_nocheck(
