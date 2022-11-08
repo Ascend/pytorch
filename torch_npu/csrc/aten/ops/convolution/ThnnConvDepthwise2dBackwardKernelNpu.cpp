@@ -127,15 +127,11 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::thnn_conv_depthwise2d_backward
   at::Tensor grad_weight;
   // construct the output tensor of
   if (output_mask[0]) {
-    auto result_format = CalcuOpUtil::judge_and_get_format_from_input(
-        CalcuOpUtil::get_tensor_npu_format(weight) == ACL_FORMAT_NCHW,
-        self,
-        ACL_FORMAT_NC1HWC0);
-    grad_input = OpPreparation::ApplyTensorWithFormat(self, result_format);
+    grad_input = OpPreparation::ApplyTensorWithFormat(self, ACL_FORMAT_NC1HWC0);
   }
 
   if (output_mask[1]) {
-    grad_weight = OpPreparation::ApplyTensor(weight);
+    grad_weight = OpPreparation::ApplyTensorWithFormat(weight, ACL_FORMAT_NCHW);
   }
 
   return NPUNativeFunctions::thnn_conv_depthwise2d_backward_out(

@@ -57,7 +57,7 @@ at::Tensor NPUNativeFunctions::npu_roi_alignbk(
     int64_t sample_num,
     c10::optional<int64_t> roi_end_mode) {
   at::Tensor result =
-      OpPreparation::ApplyTensor(self, xdiff_shape);
+      OpPreparation::ApplyTensorWithFormat(self, xdiff_shape, ACL_FORMAT_NC1HWC0);
 
   // Check the self empty
   for (int i = 0; i < self.dim(); i++) {
