@@ -117,10 +117,10 @@ def _apply_patches(monkey_patches):
 
 
 def apply_class_patches():
+    add_storage_methods()
     apply_module_patch()
     add_tensor_methods()
     add_torch_funcs()
-    add_storage_methods()
     add_str_methods()
     add_dataloader_method()
     wrap_dtype_for_hccl()
