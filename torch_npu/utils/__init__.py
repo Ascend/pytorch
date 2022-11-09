@@ -21,6 +21,7 @@ from ._tensor_str import add_str_methods
 from .dataloader import add_dataloader_method
 from .utils import manual_seed, seed
 from .storage import add_storage_methods
+from .fx import add_fx_methods
 
 serialization_patches = [
     ["save", save],
