@@ -248,7 +248,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv3d_f
   auto finput = OpPreparation::ApplyTensorWithSizes({0}, self.options());
   auto fgrad_input = OpPreparation::ApplyTensorWithSizes({0}, self.options());
 
-
   slow_conv3d_forward_npu_nocheck(
       self,
       weight,

@@ -131,7 +131,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::thnn_conv_depthwise2d_backward
   }
 
   if (output_mask[1]) {
-    grad_weight = OpPreparation::ApplyTensorWithFormat(weight, ACL_FORMAT_NCHW);
+    grad_weight = OpPreparation::ApplyTensor(weight);
   }
 
   return NPUNativeFunctions::thnn_conv_depthwise2d_backward_out(

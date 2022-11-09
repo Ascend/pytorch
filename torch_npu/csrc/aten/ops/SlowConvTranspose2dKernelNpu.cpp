@@ -199,7 +199,7 @@ at::Tensor& NPUNativeFunctions::slow_conv_transpose2d_out(
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv_transpose2d_npu_output_size(
       self, weight, kernel_size, bias, stride, padding, output_padding, dilation);
-  
+
   if (bias.defined()) {
     OpPreparation::CheckOut(
         {self, weight, bias},

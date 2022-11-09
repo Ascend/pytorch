@@ -117,7 +117,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv3d_backwar
   if (grad_input_mask[1]) {
     // format should be FRACTAL_Z_3D
     gradWeight = OpPreparation::ApplyTensorWithFormat(
-        weight.sizes(), weight.options().dtype(at::kFloat), ACL_FRACTAL_Z_3D);
+        weight.sizes(), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
 
     conv3d_backward_weightmask(
         gradWeight, input, grad, weight, stride, padding, dilation, groups);
