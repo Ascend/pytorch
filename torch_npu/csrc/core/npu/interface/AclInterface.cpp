@@ -95,6 +95,7 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
   return func(event, flag);
 }
 
+
 aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus)
 {
   typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *status);
@@ -105,6 +106,7 @@ aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus,
   if (func != nullptr) {
     return func(event, waitStatus);
   } else {
+    // aclrtQueryEvent will be replaced by aclrtQueryEventStatus for better performance.
     return aclrtQueryEvent(event, recordStatus);
   }
 }
@@ -115,11 +117,8 @@ aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus 
   if (func == nullptr) {
     func = (aclQueryEventStatus)GET_FUNC(aclrtQueryEventStatus);
   }
-  if (func != nullptr) {
-    return func(event, status);
-  } else {
-    return ACL_ERROR_NONE;
-  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventStatus");
+  return func(event, status);
 }
 
 bool IsExistQueryEventRecordedStatus()

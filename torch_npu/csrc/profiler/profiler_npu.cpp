@@ -38,18 +38,25 @@ static inline void npuCheck(aclError result, const char * file, int line) {
 
 struct NPUMethods : public DeviceStubs {
   void npu_destropy_event(aclrtEvent event) const override {
-    aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
-    TORCH_NPU_CHECK(aclrtQueryEvent(event, &status));
-    if (status == ACL_EVENT_STATUS_COMPLETE) {
+    c10_npu::acl::aclrtEventRecordedStatus status =
+        c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    TORCH_NPU_CHECK(c10_npu::acl::AclQueryEventRecordedStatus(event, &status));
+    if (status == c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         TORCH_NPU_CHECK(aclrtDestroyEvent(event));
     } else {
         std::cout << "Warning! NPU destroy event error, status is not completed." << std::endl;
     }
   }
-  void record(int* device, aclrtEvent* event1, int64_t* cpu_ns) const override {
-    TORCH_NPU_CHECK(aclrtGetDevice(device));
-    TORCH_NPU_CHECK(c10_npu::acl::AclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
-    auto stream = c10_npu::getCurrentNPUStream();
+  void record(int& device, aclrtEvent* event1, int64_t* cpu_ns) const override {
+    static int local_device = -1;
+    static bool init_flag = false;
+    if (!init_flag) {
+      TORCH_NPU_CHECK(aclrtGetDevice(&local_device));
+      init_flag = true;
+    }
+    device = local_device;
+    TORCH_NPU_CHECK(aclrtCreateEventWithFlag(event1, ACL_EVENT_TIME_LINE));
+    static auto stream = c10_npu::getCurrentNPUStream();
     *cpu_ns = getTime();
     TORCH_NPU_CHECK(aclrtRecordEvent(*event1, stream));
   }

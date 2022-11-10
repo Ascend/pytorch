@@ -624,6 +624,7 @@ struct THNCachingAllocator {
     // and retries.
     aclError err = aclrtMalloc(
         devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+
     if (err != ACL_ERROR_NONE) {
       DeviceStats_& stats_ = get_stats_for_device_(device);
       stats_.num_alloc_retries += 1;
@@ -632,10 +633,13 @@ struct THNCachingAllocator {
       free_cached_blocks(device);
       err = aclrtMalloc(
           devPtr, size, aclrtMemMallocPolicy::ACL_MEM_MALLOC_HUGE_FIRST);
+      ASCEND_LOGD("pta_memory acl_malloc retry: malloc = %zu, ret = %d", size, err);
       if (err != ACL_ERROR_NONE) {
         C10_NPU_SHOW_ERR_MSG();
         return err;
       }
+    } else {
+      ASCEND_LOGD("pta_memory acl_malloc: malloc = %zu, ret = %d", size, err);
     }
     return ACL_ERROR_NONE;
   }
@@ -680,7 +684,7 @@ struct THNCachingAllocator {
 
         update_stat_array(stats_.segment, -1, stat_types);
         update_stat_array(stats_.reserved_bytes, -block->size, stat_types);
-
+        ASCEND_LOGD("pta_memory acl_free: free_size = %zu", block->size);
         auto cur = it;
         ++it;
         blocks.erase(cur);
@@ -796,12 +800,13 @@ struct THNCachingAllocator {
         }
       }
 
-      aclrtEventStatus status = ACL_EVENT_STATUS_RESERVED;
-      aclError err = aclrtQueryEvent(event, &status);
+      c10_npu::acl::aclrtEventRecordedStatus status =
+          c10_npu::acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+      aclError err = c10_npu::acl::AclQueryEventRecordedStatus(event, &status);
       if (err != ACL_ERROR_NONE) {
            C10_NPU_CHECK(err);
       }
-      if (status != ACL_EVENT_STATUS_COMPLETE) {
+      if (status != c10_npu::acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         break;
       }
 
@@ -904,7 +909,8 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   process_events();
   size = round_size(size);
   DeviceStats& stats = get_stats_for_device(device);
-
+  ASCEND_LOGD("pta_memory torch_malloc: malloc = %zu, torch_cached = %lu, torch_allocated = %lu",
+              size, stats.amount_cached, stats.amount_allocated);
   Block search_key(device, stream, size);
   auto& pool = get_pool(size);
 
@@ -1032,7 +1038,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   stats.increaseAllocated(block->size);
 
   c10::reportMemoryUsageToProfiler(
-      block, block->size, 0, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
+      block, block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, device));
 
   update_stat_array(stats_.allocation, 1, stat_types);
   update_stat_array(stats_.allocated_bytes, block->size, stat_types);

@@ -27,7 +27,7 @@ at::Tensor &reverse_out(
   OpCommand cmd;
   cmd.Name("ReverseV2")
       .Input(self)
-      .Input(axis)
+      .Input(axis, at::kInt)
       .Output(result)
       .Run();
 

@@ -59,7 +59,7 @@ void record_function_exit(const at::Tensor& handle);
 
 struct  DeviceStubs {
 
-  virtual void record(int* device, aclrtEvent* event, int64_t* cpu_ns) const {
+  virtual void record(int& device, aclrtEvent* event, int64_t* cpu_ns) const {
     fail();
   }
   virtual float elapsed(const aclrtEvent& event1, const aclrtEvent& event2) const {
@@ -242,14 +242,7 @@ struct LegacyEvent {
   }
 
   void updateMemoryStats(int64_t alloc_size, c10::Device device) {
-    if (device.type() == c10::DeviceType::CUDA ||
-        device.type() == c10::DeviceType::HIP) {
-      cuda_memory_usage_ = alloc_size;
-    } else if (device.type() == c10::DeviceType::CPU ||
-        device.type() == c10::DeviceType::MKLDNN ||
-        device.type() == c10::DeviceType::IDEEP) {
-      cpu_memory_usage_ = alloc_size;
-    } else if (device.type() == at_npu::key::NativeDeviceType) {
+    if (device.type() == at_npu::key::NativeDeviceType) {
         npu_memory_usage_ = alloc_size;
     }else {
       LOG(WARNING) << "Unsupported memory profiling device: " << device;

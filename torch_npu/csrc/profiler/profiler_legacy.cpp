@@ -200,18 +200,14 @@ void ProfilerThreadLocalState::mark(std::string name, bool include_device) {
   if (config_.state == ProfilerState::Disabled) {
     return;
   }
-  if (config_.state == ProfilerState::NVTX) {
-    device_stubs()->nvtxMarkA(name.c_str());
-  } else {
-    LegacyEvent evt(
-        EventKind::Mark,
-        at::StringView(std::move(name)),
-        at::RecordFunction::currentThreadId(),
-        include_device && (config_.state == ProfilerState::CUDA || config_.state == ProfilerState::NPU),
-        config_.state);
-    evt.setNodeId(at::RecordFunction::getDefaultNodeId());
-    getEventList().record(std::move(evt));
-  }
+  LegacyEvent evt(
+      EventKind::Mark,
+      at::StringView(std::move(name)),
+      at::RecordFunction::currentThreadId(),
+      include_device && config_.state == ProfilerState::NPU,
+      config_.state);
+  evt.setNodeId(at::RecordFunction::getDefaultNodeId());
+  getEventList().record(std::move(evt));
 }
 
 void ProfilerThreadLocalState::setOrAddRemoteProfiledEvents(
@@ -232,51 +228,42 @@ void ProfilerThreadLocalState::pushRange(
   if (config_.state == ProfilerState::Disabled) {
     return;
   }
-  if (config_.state == ProfilerState::NVTX) {
-    device_stubs()->nvtxRangePushA(getNvtxStr(
-        fn.name(), fn.seqNr(), shapes).c_str());
-  } else {
-    LegacyEvent evt(
-        EventKind::PushRange,
-        at::StringView(std::string(fn.name())),
-        at::RecordFunction::currentThreadId(),
-        record_device,
-        config_.state,
-        fn.handle(),
-        std::move(shapes),
-        at::RecordFunction::getDefaultNodeId());
-    evt.setSequenceNr(fn.seqNr());
-    evt.setFwdThreadId(fn.forwardThreadId());
-    evt.setScope((uint8_t)fn.scope());
-    if (config_.with_flops) {
-      evt.setExtraArgs(saveExtraArgs(fn));
-      evt.setFlops(computeFlops(std::string(fn.name()), evt.extraArgs()));
-    }
-    getEventList().record(std::move(evt));
+  LegacyEvent evt(
+      EventKind::PushRange,
+      at::StringView(std::string(fn.name())),
+      at::RecordFunction::currentThreadId(),
+      record_device,
+      config_.state,
+      fn.handle(),
+      std::move(shapes),
+      at::RecordFunction::getDefaultNodeId());
+  evt.setSequenceNr(fn.seqNr());
+  evt.setFwdThreadId(fn.forwardThreadId());
+  evt.setScope((uint8_t)fn.scope());
+  if (config_.with_flops) {
+    evt.setExtraArgs(saveExtraArgs(fn));
+    evt.setFlops(computeFlops(std::string(fn.name()), evt.extraArgs()));
   }
+  getEventList().record(std::move(evt));
 }
 
 void ProfilerThreadLocalState::popRange(const at::RecordFunction& fn, const bool record_device) {
   if (config_.state == ProfilerState::Disabled) {
     return;
   }
-  if (config_.state == ProfilerState::NVTX) {
-    device_stubs()->nvtxRangePop();
-  } else {
-    // In some cases RecordFunction (and popRange) may be
-    // called on a different thread than pushRange
-    // As a convention, we put the async pop on the original
-    // thread and save current thread id in pop event
-    LegacyEvent evt(
-        EventKind::PopRange,
-        at::StringView(""),
-        at::RecordFunction::currentThreadId(),
-        record_device,
-        config_.state,
-        fn.handle());
-    evt.setNodeId(at::RecordFunction::getDefaultNodeId());
-    getEventList(fn.threadId()).record(std::move(evt));
-  }
+  // In some cases RecordFunction (and popRange) may be
+  // called on a different thread than pushRange
+  // As a convention, we put the async pop on the original
+  // thread and save current thread id in pop event
+  LegacyEvent evt(
+      EventKind::PopRange,
+      at::StringView(""),
+      at::RecordFunction::currentThreadId(),
+      record_device,
+      config_.state,
+      fn.handle());
+  evt.setNodeId(at::RecordFunction::getDefaultNodeId());
+  getEventList(fn.threadId()).record(std::move(evt));
 }
 
 void ProfilerThreadLocalState::reportMemoryUsage(
@@ -291,7 +278,7 @@ void ProfilerThreadLocalState::reportMemoryUsage(
         EventKind::MemoryAlloc,
         at::StringView(""),
         thread_id,
-        config_.state == ProfilerState::CUDA || config_.state == ProfilerState::NPU,
+        config_.state == ProfilerState::NPU,
         config_.state);
     evt.updateMemoryStats(alloc_size, device);
     getEventList(thread_id).record(std::move(evt));
@@ -384,7 +371,9 @@ const std::unordered_set<std::string> disable_cuda_profiling = {
   "aten::unsqueeze",
   "aten::slice",
   "aten::_unsafe_view",
-  "aten::size"
+  "aten::size",
+  "StatelessDropOutGenMask",
+  "DropOutGenMaskV3"
 };
 
 ProfilerThreadLocalState* getProfilerTLSState() {
@@ -401,19 +390,16 @@ void pushProfilingCallbacksLegacy() {
         if (!state_ptr || state_ptr->config().state == ProfilerState::Disabled) {
           return nullptr;
         }
-        bool record_cuda =
-            state_ptr->config().state == ProfilerState::CUDA;
         bool record_npu =
             state_ptr->config().state == ProfilerState::NPU;
-        if (record_cuda && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
-          record_cuda = false;
+        if (record_npu && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
+          record_npu = false;
         }
-
         if (state_ptr->config().report_input_shapes) {
           auto sizes = inputSizes(fn);
-          state_ptr->pushRange(fn, record_cuda || record_npu, std::move(sizes));
+          state_ptr->pushRange(fn, record_npu, std::move(sizes));
         } else {
-          state_ptr->pushRange(fn, record_cuda || record_npu);
+          state_ptr->pushRange(fn, record_npu);
         }
 
         return nullptr;
@@ -423,14 +409,12 @@ void pushProfilingCallbacksLegacy() {
         if (!state_ptr || state_ptr->config().state == ProfilerState::Disabled) {
           return;
         }
-        bool record_cuda =
-            state_ptr->config().state == ProfilerState::CUDA;
         bool record_npu =
             state_ptr->config().state == ProfilerState::NPU;
-        if (record_cuda && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
-          record_cuda = false;
+        if (record_npu && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
+          record_npu = false;
         }
-        state_ptr->popRange(fn, record_cuda || record_npu);
+        state_ptr->popRange(fn, record_npu);
       })
     .needsInputs(state_ptr->config().report_input_shapes)
     .needsIds(true));
@@ -487,10 +471,6 @@ bool profilerEnabled() {
 }
 
 void enableProfilerLegacy(const ProfilerConfig& new_config) {
-  TORCH_CHECK(new_config.state != ProfilerState::NVTX || device_stubs()->enabled(),
-      "Can't use NVTX profiler - PyTorch was compiled without CUDA");
-
-  TORCH_CHECK(new_config.state != ProfilerState::KINETO);
 
   auto state_ptr = getProfilerTLSState();
   TORCH_CHECK(!state_ptr, "Profiler is already enabled on this thread");
@@ -499,24 +479,7 @@ void enableProfilerLegacy(const ProfilerConfig& new_config) {
 
   pushProfilingCallbacksLegacy();
 
-  if (new_config.state == ProfilerState::CUDA) {
-    // event recording appears to have some startup overhead, so we need to
-    // to generate some dummy events first before recording synchronization events
-    for (int idx = 0; idx < kCUDAWarmupStart; ++idx) {
-      device_stubs()->onEachDevice([state](int /* unused */) {
-          state->mark("__cuda_startup");
-          device_stubs()->synchronize();
-      });
-    }
-
-    // cuda events must be on the same device, so we need a start event recorded
-    // for each gpu. we then use this event to synchronize time on the GPU
-    // with the CPU clock.
-    device_stubs()->onEachDevice([state](int d) {
-        state->mark("__cuda_start_event");
-    });
-  }
-  else if (new_config.state == ProfilerState::NPU) {
+  if (new_config.state == ProfilerState::NPU) {
     // event recording appears to have some startup overhead, so we need to
     // to generate some dummy events first before recording synchronization events
     for (int idx = 0; idx < kNPUWarmupStart; ++idx) {
@@ -571,11 +534,8 @@ void addEventList(std::vector<LegacyEvent>&& profiledEvents) {
 }
 
 void LegacyEvent::record(bool record_device) {
-  if (record_device && state_ == ProfilerState::CUDA) {
-    device_stubs()->record(&device_, &cuda_event, &cpu_ns_);
-    return;
-  } else if (record_device && state_ == ProfilerState::NPU) {
-    device_stubs()->record(&device_, &npu_event, &cpu_ns_);
+  if (record_device && state_ == ProfilerState::NPU) {
+    device_stubs()->record(device_, &npu_event, &cpu_ns_);
     return;  
   }
   cpu_ns_ = getTime();

@@ -26,6 +26,8 @@ at::Tensor &image_normalize_out(
     int64_t dtype,
     at::Tensor &result)
 {
+  TORCH_CHECK(dtype == 0 || dtype == 1,
+      "output data type should be float16 or float32");
   OpCommand cmd;
   cmd.Name("NormalizeV2")
       .Input(self)
@@ -49,7 +51,7 @@ at::Tensor NPUNativeFunctions::image_normalize(
 
   // construct the output tensor of the NPU
   at::Tensor result;
-  if (dtype == 0) { // dtype can only be 0 or 1
+  if (dtype == 0) {
     result = OpPreparation::ApplyTensorWithFormat(
         outputSize,
         self.options().dtype(at::kFloat),
@@ -73,6 +75,8 @@ at::Tensor& NPUNativeFunctions::image_normalize_(
     const at::Tensor &variance,
     int64_t dtype)
 {
+  TORCH_CHECK(self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf,
+      "inplace image normalize can only support float16 or float32");
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = image_normalize_out(contiguousSelf, mean, variance, dtype, contiguousSelf);

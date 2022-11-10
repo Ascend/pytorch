@@ -132,12 +132,13 @@ struct NPUGuardImpl final : public c10::impl::DeviceGuardImplInterface {
     if (!event)
       return true;
     aclrtEvent npu_event = static_cast<aclrtEvent>(event);
-    aclrtEventStatus status;
-    const aclError err = aclrtQueryEvent(npu_event, &status);
+    acl::aclrtEventRecordedStatus status =
+        acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    aclError err = acl::AclQueryEventRecordedStatus(npu_event, &status);
     if (err != ACL_ERROR_NONE) {
       C10_NPU_CHECK(err);
     }
-    return (status == ACL_EVENT_STATUS_COMPLETE);
+    return (status == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE);
   }
 };
 
