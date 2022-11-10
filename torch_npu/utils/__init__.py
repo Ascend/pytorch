@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from torch.serialization import register_package
+
 from .module import apply_module_patch
 from .tensor_methods import add_tensor_methods
 from .torch_funcs import add_torch_funcs
-from .serialization import save, load
+from .serialization import save, load, _npu_tag, _npu_deserialize
 from ._tensor_str import add_str_methods
 from .dataloader import add_dataloader_method
 from .utils import manual_seed, seed
@@ -31,3 +33,5 @@ serialization_patches = [
     ["seed", seed],
     ["manual_seed", manual_seed]
 ]
+
+register_package(30, _npu_tag, _npu_deserialize)
