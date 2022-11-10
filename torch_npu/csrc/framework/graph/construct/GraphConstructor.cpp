@@ -18,9 +18,14 @@
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
 #include "torch_npu/csrc/framework/graph/scalar/ScalarMemoryOps.h"
+#include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 
 namespace at_npu {
 namespace native {
+namespace {
+const uint64_t kStringOffset = 16UL;
+const std::string kStringDType = "string";
+}
 
 void GraphCommandImpl::SetName(const std::string& name) {
   ir_node_ = std::make_shared<Node>(name);
@@ -101,6 +106,51 @@ void GraphCommandImpl::AddInput(
       NodeExtInfoType::INPUT_TYPE_LIST_LONG,
       std::make_tuple(input_index_++, std::move(val), to_type));
   ir_node_->UpdateNodeHash(dim_list, to_type);
+}
+
+void GraphCommandImpl::AddInput(const string& str) {
+  const auto length = str.length();
+  const uint64_t total_length = length + kStringOffset;
+  auto cpu_str_tensor = at::empty({total_length}, at::dtype(at::kByte)).pin_memory();
+  uint8_t* cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
+  const size_t head_size = sizeof(kStringOffset);
+  C10_NPU_CHECK(
+      aclrtMemcpy(cpu_ptr,
+                  head_size,
+                  &kStringOffset,
+                  head_size,
+                  ACL_MEMCPY_HOST_TO_HOST)
+  );
+  C10_NPU_CHECK(
+      aclrtMemcpy(cpu_ptr + head_size,
+                  head_size,
+                  &length,
+                  head_size,
+                  ACL_MEMCPY_HOST_TO_HOST)
+  );
+  C10_NPU_CHECK(
+      aclrtMemcpy(cpu_ptr + kStringOffset,
+                  length,
+                  str.c_str(),
+                  length,
+                  ACL_MEMCPY_HOST_TO_HOST)
+  );
+
+  auto input = at::empty({total_length}, at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
+  auto cal_stream = c10_npu::getCurrentNPUStream();
+  C10_NPU_CHECK(
+      aclrtMemcpyAsync(input.data_ptr(),
+                       total_length,
+                       cpu_ptr,
+                       total_length,
+                       ACL_MEMCPY_HOST_TO_DEVICE,
+                       cal_stream)
+  );
+
+  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
+                                                      cal_stream));
+  this->AddInput(input, "", kStringDType, c10::nullopt);
+  return;
 }
 
 void GraphCommandImpl::AddOutput(
@@ -223,5 +273,10 @@ void GraphCommandImpl::AddZeroDimInput(
       CalcuOpUtil::get_scalar_float_value(expect_scalar), dtype);
 }
 
+void GraphCommandImpl::Run() {
+  if (output_index_ == 0) {
+    GraphUtils::RetainNoneOutputNode(ir_node_);
+  }
+}
 } // namespace native
 } // namespace at_npu

@@ -107,6 +107,11 @@ void GraphUtils::RetainGraphDataTensor(const at::Tensor& data_tensor) {
       storage_ptr);
   storage_ptr.release();
 }
+
+void GraphUtils::RetainNoneOutputNode(at_npu::native::NodePtr none_output_node) {
+  NpuGraphContextManager::GetInstance().AddNoneOutputNode(none_output_node);
+}
+
 } // namespace native
 } // namespace at_npu
 
