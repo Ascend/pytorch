@@ -41,7 +41,7 @@ static void storage_resize_npu(
   }
 
   at::DataPtr new_data;
-  auto storage_desc = storage.npu_desc_;
+  auto storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_;
   size_t itemsize = storage_desc.data_type_.itemsize();
   if (size != 0) {
     new_data = storage.allocator()->allocate(size);
@@ -49,9 +49,7 @@ static void storage_resize_npu(
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
   storage.set_nbytes(size);
-  if (!c10_npu::NpuRunMode::IsGraphMode()) {
-    StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
-  }
+  StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
 
   if (old_data != nullptr) {
     ptrdiff_t copy_size = old_size;
@@ -76,14 +74,23 @@ static void storage_resize_npu(
 static inline void maybe_resize_storage_npu(
     at::TensorImpl* self,
     int64_t new_size,
-    c10::IntArrayRef size) {
+    c10::IntArrayRef size,
+    bool is_empty_tensor) {
   if (new_size > 0) {
     if (!THTensor_getStoragePtr(self)) {
       AT_ERROR("Try to resize a tensor with null storage");
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * self->dtype().itemsize();
-    if (new_size_bytes > self->storage().nbytes()) {
+
+    int64_t old_size_bytes;
+    if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
+      old_size_bytes = GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl());
+    } else {
+      old_size_bytes = self->storage().nbytes();
+    }
+
+    if (new_size_bytes > old_size_bytes) {
       storage_resize_npu(
           *torch_npu::NPUBridge::GetNpuStorageImpl((THTensor_getStoragePtr(self))),
           new_size_bytes,
@@ -98,6 +105,13 @@ inline at::TensorImpl* resize_impl_npu_(
     c10::optional<c10::IntArrayRef> stride) {
   if (self->sizes() == size && (!stride || self->strides() == stride)) {
     return self;
+  }
+  
+  // In graph mode, we cannot justify whether 
+  // a tensor is empty only using storage.
+  bool is_empty_tensor = false;
+  if (self->sizes()[0] == 0) {
+    is_empty_tensor = true;
   }
 
   int64_t storage_size = 1;
@@ -114,7 +128,7 @@ inline at::TensorImpl* resize_impl_npu_(
     self->set_sizes_contiguous(size);
     storage_size = self->numel();
   }
-  maybe_resize_storage_npu(self, storage_size, size);
+  maybe_resize_storage_npu(self, storage_size, size, is_empty_tensor);
 
   return self;
 }
