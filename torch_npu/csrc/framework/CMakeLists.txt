@@ -8,6 +8,7 @@ FILE(GLOB _FRAMEWORK_SRCS
     graph/execute/*.cpp
     graph/scalar/*.cpp
     graph/util/*.cpp
+    graph/tools/*.cpp
     interface/*.cpp
     utils/*.cpp)
 
