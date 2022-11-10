@@ -30,18 +30,18 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 
 
 # Ascend配套软件
-| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 |
-| :------------ | :----------- | :----------- | ------------- |
-| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 |
-| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 |
-| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 |
-| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 |
-| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 |
-| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.8.1.rc3 | v1.8.1-3.0.rc3 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1 | v1.11.0-3.0.rc3 |
+| AscendPyTorch版本 | CANN版本 | 支持PyTorch版本 | Gitee分支名称 | AscendHub镜像版本 |
+| :------------ | :----------- | :----------- | ------------- | ------------- |
+| 2.0.2 | CANN 5.0.2 | 1.5.0.post2 | 2.0.2.tr5 | 21.0.2 |
+| 2.0.3 | CANN 5.0.3 | 1.5.0.post3 | 2.0.3.tr5 | 21.0.3 |
+| 2.0.4 | CANN 5.0.4 | 1.5.0.post4 | 2.0.4.tr5 | 21.0.4 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.5.0.post5 | v1.5.0-3.0.rc1 | 22.0.RC1 |
+| 3.0.rc1 | CANN 5.1.RC1 | 1.8.1.rc1 | v1.8.1-3.0.rc1 | \ |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.5.0.post6 | v1.5.0-3.0.rc2 | 22.0.RC2 |
+| 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 | 22.0.RC2-1.8.1 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 | \ |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.8.1.rc3 | v1.8.1-3.0.rc3 | 22.0.RC3-1.8.1 |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1 | v1.11.0-3.0.rc3 | \ |
 
 # 安装方式
 
@@ -62,8 +62,10 @@ pip3 install wheel
 #x86_64
 pip3 install torch==1.11.0+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
-#aarch64
-#社区未提供arm架构cpu安装包，请参见FAQ第一条，使用源码编译安装pytorch
+#aarch64（推荐使用镜像）
+可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
+#镜像仓库地址：（https://ascendhub.huawei.com/#/detail/pytorch-modelzoo）
+#社区未提供arm架构cpu安装包，如需尝试编译安装PyTorch框架，可参见FAQ第一条，使用源码编译安装pytorch。
 ```
 
 编译生成pytorch插件的二进制安装包。
@@ -193,7 +195,7 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 # FAQ
 
-## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch1.8.1，需要使用源码编译安装。
+## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch，需要使用源码编译安装。
 
 下载PyTorch v1.11.0源码包。
 
@@ -207,6 +209,12 @@ git clone -b v1.11.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1
 cd pytorch_v1.11.0
 git submodule sync
 git submodule update --init --recursive 
+```
+
+配置环境变量
+
+```
+export USE_XNNPACK=0
 ```
 
 执行编译安装。
