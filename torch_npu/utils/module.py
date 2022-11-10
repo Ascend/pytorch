@@ -97,13 +97,24 @@ def to(self, *args, **kwargs):
 
 
 def cast_weight(self, device):
-    if torch.npu.is_binary():
-        return
-
     def _format_cast(module, class_name):
         if issubclass(class_name, torch.nn.Linear) and not torch.npu.get_mm_bmm_format_nd():
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data, 29) # ACL_FORMAT_FRACTAL_NZ
+        if "MultiheadAttention" in str(class_name) and \
+                hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
+                hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
+                hasattr(module,"v_proj_weight") and module.v_proj_weight is not None and \
+                not torch.npu.get_mm_bmm_format_nd():
+            module.q_proj_weight.data = module.q_proj_weight.data.to(device)
+            module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
+            module.k_proj_weight.data = module.k_proj_weight.data.to(device)
+            module.k_proj_weight.data = torch_npu.npu_format_cast(module.k_proj_weight.data, 29)
+            module.v_proj_weight.data = module.v_proj_weight.data.to(device)
+            module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
+
+        if torch.npu.is_jit_compile_false():
+            return
         if issubclass(class_name, (torch.nn.BatchNorm3d, torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
             if module.affine:
                 module.weight.data = module.weight.data.to(device)
@@ -125,16 +136,6 @@ def cast_weight(self, device):
         if issubclass(class_name, torch.nn.Conv3d):
             module.weight.data = module.weight.data.to(device)
             module.weight.data = torch_npu.npu_format_cast(module.weight.data.half(), 33).float()  # ACL_FRACTAL_Z_3D
-        if "MultiheadAttention" in str(class_name) and \
-            hasattr(module,"q_proj_weight") and module.q_proj_weight is not None and \
-            hasattr(module,"k_proj_weight") and module.k_proj_weight is not None and \
-            hasattr(module,"v_proj_weight") and module.v_proj_weight is not None:
-            module.q_proj_weight.data = module.q_proj_weight.data.to(device)
-            module.q_proj_weight.data = torch_npu.npu_format_cast(module.q_proj_weight.data, 29)
-            module.k_proj_weight.data = module.k_proj_weight.data.to(device)
-            module.k_proj_weight.data = torch_npu.npu_format_cast(module.k_proj_weight.data, 29)
-            module.v_proj_weight.data = module.v_proj_weight.data.to(device)
-            module.v_proj_weight.data = torch_npu.npu_format_cast(module.v_proj_weight.data, 29)
 
     if device is None or torch_npu.npu.native_device not in str(device):
         return
@@ -254,6 +255,14 @@ def lstm_forward(self, input, hx=None):
             batch_sizes_npu = batch_sizes.to(input.device)
             result = torch._VF.lstm(input, batch_sizes_npu, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)
+            # 根据TMG决策，pack-lstm-pad时，保持有效T0时序内pad进行lstm定长计算，输出为pack且shape转换[T0*B, *]
+            if isinstance(orig_input, torch.nn.utils.rnn.PackedSequence):
+                result = list(result)
+                shape = [result[0].shape[0] * result[0].shape[1]]
+                if result[0].dim() > 2:
+                    shape = shape + list(result[0].shape[2:])
+                result[0] = result[0].reshape(shape)
+                result = tuple(result)
         else:
             result = torch._VF.lstm(input, batch_sizes, hx, self._flat_weights, self.bias,
                                     self.num_layers, self.dropout, self.training, self.bidirectional)

@@ -20,44 +20,55 @@ namespace at_npu {
 namespace native {
 
 std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pad_packed_sequence(
-    const at::Tensor& data,
-    const at::Tensor& _batchSizes,
+    const at::Tensor& input,
+    const at::Tensor& batchSizes,
     bool batchFirst,
     const at::Scalar& paddingValue,
     int64_t totalLength) {
-  at::Tensor output = data;
-  auto batchSizesT = _batchSizes.contiguous().to("cpu");
-
-  int64_t * batchSizes = batchSizesT.data_ptr<int64_t>();
-  int64_t maxBatchSize = batchSizes[0];
-  int64_t maxRealSeqLength = batchSizesT.size(0);
-  int64_t maxSeqLength = maxRealSeqLength;
   if (totalLength > 0) {
-    TORCH_CHECK(totalLength >= maxSeqLength,
+    TORCH_CHECK(totalLength >= batchSizes.size(0),
         "Expected total_length to be at least the length of the longest "
         "sequence in input, but got total_length=", totalLength, " and "
-        "max sequence length being ", maxSeqLength);
-    maxSeqLength = totalLength;
+        "max sequence length being ", batchSizes.size(0));
   }
 
-  at::Tensor lengthsT = at::empty(maxBatchSize, batchSizesT.options().device(at::kCPU));
-  int64_t * lengths = lengthsT.data_ptr<int64_t>() + maxBatchSize - 1;
-  int64_t prevBatchSize = maxBatchSize;
-  for (int64_t i = 0; i <= maxRealSeqLength; ++i) {
-    int64_t batchSize = i != maxRealSeqLength ? batchSizes[i] : 0;
-    int64_t dec = prevBatchSize - batchSize;
-    if (dec > 0) {
-      for (int64_t j = 0; j < dec; ++j) {
-        *lengths = i;
-        lengths--;
+  // 输入shape为[B*T, *], 计算B和T
+  auto batchSizesCpu = batchSizes.to("cpu");
+  int64_t* batchSizeVec = batchSizesCpu.data_ptr<int64_t>();
+  auto batchsize = batchSizeVec[0];
+  auto timesize = batchSizes.size(0);
+
+  // 构造输出pad后的tensor, [B, T, *] 或 [T, B, *]
+  at::SmallVector<int64_t, N> shape;
+  shape.emplace_back(timesize);
+  shape.emplace_back(batchsize);
+
+  for (int i = 1; i < input.dim(); i++) {
+    shape.emplace_back(input.size(i));
+  }
+
+  auto output = input.reshape(shape);
+
+  if (batchFirst) {
+    output = output.transpose(0,1);
+  }
+  output = output.contiguous();
+
+  // 构造输出timesizes
+  auto batchsizes = at::empty({batchsize}, batchSizesCpu.options());
+  auto batchsizesVec = batchsizes.data_ptr<int64_t>();
+  int64_t last = timesize - 1;
+  for (int bi = 0; bi < batchsize; bi++) {
+    for (int ti = last; ti >= 0; ti--) {
+      if (batchSizeVec[ti] > bi ) {
+        batchsizesVec[bi] = (ti + 1);
+        last = ti;
+        break;
       }
     }
-    prevBatchSize = batchSize;
   }
-  if (batchFirst) {
-    output = data.transpose(0, 1);
-  }
-  return std::tie(output, lengthsT);
+
+  return std::tie(output, batchsizes);
 }
 
 } // namespace native

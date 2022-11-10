@@ -66,8 +66,8 @@ namespace at_npu
     {
       auto outputSize = reduce_ops_npu_output_size(self, dim, keepdim);
       int64_t npu_format = CalcuOpUtil::get_tensor_npu_format(result);
-      if (outputSize.empty())
-      {
+      // scalar scene and rank=1 scene do not support NZ
+      if (outputSize.size() < 2) {
         npu_format = ACL_FORMAT_NCHW;
       }
       OpPreparation::CheckOut(

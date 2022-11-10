@@ -68,10 +68,11 @@ struct NPUEvent {
     if (ret != SUCCESS) {
       NPU_LOGE("MakeSureQueueEmpty fail, ret: %s", ret.c_str());
     }
-    aclrtEventStatus currStatus = ACL_EVENT_STATUS_COMPLETE;
-    C10_NPU_CHECK(aclrtQueryEvent(event_, &currStatus));
+    acl::aclrtEventRecordedStatus currStatus =
+        acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    C10_NPU_CHECK(acl::AclQueryEventRecordedStatus(event_, &currStatus));
 
-    if (currStatus == ACL_EVENT_STATUS_COMPLETE) {
+    if (currStatus == acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
       return true;
     }
     return false;
