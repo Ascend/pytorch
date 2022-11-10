@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
 import torch_npu
@@ -21,6 +22,7 @@ from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMax(TestCase):
+
     def cpu_op_exec(self, input1):
         output = torch.max(input1)
         output = output.numpy()
@@ -62,7 +64,7 @@ class TestMax(TestCase):
         output1 = output1.numpy()
         output2 = output2.numpy()
         return output1, output2
-    
+
     def _cpu_op_dim_exec(self, input1, dim, keepdim):
         output1, output2 = torch._max(input1, dim, keepdim)
         output1 = output1.numpy()
@@ -80,18 +82,18 @@ class TestMax(TestCase):
     def cpu_op_dim_exec_out(self, input1, dim, keepdim):
         out = torch.tensor(0).to(input1.dtype)
         indices = torch.tensor(0).to(torch.long)
-        torch.max(input1, dim=dim, keepdim=keepdim, out=(out,indices))
+        torch.max(input1, dim=dim, keepdim=keepdim, out=(out, indices))
         out = out.numpy()
         indices = indices.numpy()
-        return out,indices
+        return out, indices
 
     def npu_op_dim_exec_out(self, input1, dim, keepdim):
-        out = torch.tensor(0).to(input1.dtype).npu() 
+        out = torch.tensor(0).to(input1.dtype).npu()
         indices = torch.tensor(0).to(torch.long).npu()
-        torch.max(input1, dim=dim, keepdim=keepdim, out=(out,indices))
+        torch.max(input1, dim=dim, keepdim=keepdim, out=(out, indices))
         out = out.to("cpu").numpy()
         indices = indices.to("cpu").numpy()
-        return out,indices
+        return out, indices
 
     def cpu_op_amax_exec(self, input1, dim, keepdim):
         output = torch.amax(input1, dim, keepdim)
@@ -125,11 +127,11 @@ class TestMax(TestCase):
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
-            cpu_output_dim, cpu_output_indices = self.cpu_op_dim_exec(cpu_input1, item[1], item[2])
-            npu_output_dim, npu_output_indices = self.npu_op_dim_exec(npu_input1, item[1], item[2])
+            cpu_output_dim, _ = self.cpu_op_dim_exec(cpu_input1, item[1], item[2])
+            npu_output_dim, _ = self.npu_op_dim_exec(npu_input1, item[1], item[2])
             cpu_output_dim = cpu_output_dim.astype(npu_output_dim.dtype)
             self.assertRtolEqual(cpu_output_dim, npu_output_dim)
-    
+
     def max_result_other(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
@@ -146,8 +148,7 @@ class TestMax(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], -100, 100)
             cpu_input2, npu_input2 = create_common_tensor(item[0], -100, 100)
-            cpu_input3, npu_input3 = create_common_tensor(item[0], -100, 100)
-            cpu_input4, npu_input4 = create_common_tensor(item[1], -100, 100)
+            _, npu_input4 = create_common_tensor(item[1], -100, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
             if cpu_input2.dtype == torch.float16:
@@ -184,7 +185,7 @@ class TestMax(TestCase):
                 self.assertRtolEqual(npu_output_dim, cpu_output_dim)
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
             else:
-                self.assertRtolEqual( npu_output_dim, cpu_output_dim.astype(np.float16))
+                self.assertRtolEqual(npu_output_dim, cpu_output_dim.astype(np.float16))
                 self.assertRtolEqual(npu_output_indices.astype(np.int32), cpu_output_indices.astype(np.int32))
 
     def max_name_out_result_other(self, shape_format):
@@ -194,18 +195,18 @@ class TestMax(TestCase):
             npu_input1.names = item[0][3]
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
-            cpu_output_dim, cpu_output_indices = self.cpu_op_dim_exec_out(cpu_input1, item[1], item[2])
-            npu_output_dim, npu_output_indices = self.npu_op_dim_exec_out(npu_input1, item[1], item[2])
+            cpu_output_dim, _ = self.cpu_op_dim_exec_out(cpu_input1, item[1], item[2])
+            npu_output_dim, _ = self.npu_op_dim_exec_out(npu_input1, item[1], item[2])
 
             if npu_output_dim.dtype != np.float16:
                 self.assertRtolEqual(npu_output_dim, cpu_output_dim)
             else:
-                self.assertRtolEqual( npu_output_dim, cpu_output_dim.astype(np.float16))
+                self.assertRtolEqual(npu_output_dim, cpu_output_dim.astype(np.float16))
 
     def amax_result(self, shape_format):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
-            cpu_input2, npu_input2 = create_common_tensor(item[0], 0, 100)
+            _, npu_input2 = create_common_tensor(item[0], 0, 100)
             if cpu_input1.dtype == torch.float16:
                 cpu_input1 = cpu_input1.to(torch.float32)
             cpu_output_amax = self.cpu_op_amax_exec(cpu_input1, item[1], item[2])
@@ -215,7 +216,7 @@ class TestMax(TestCase):
             self.assertRtolEqual(cpu_output_amax, npu_output_amax)
             self.assertRtolEqual(cpu_output_amax, npu_output_amax_out)
 
-    def test_max_out_result(self, device="npu"):
+    def test_max_out_result(self):
         shape_format = [
             [[np.float16, 0, [9, 10, 14, 14]], [np.float16, 0, [7, 10, 1, 1]]],
             [[np.float16, 0, [9, 7, 12, 12]],  [np.float16, 0, [7, 7, 1, 1]]],
@@ -224,14 +225,14 @@ class TestMax(TestCase):
         ]
         self.max_out_result_other(shape_format)
 
-    def test_max_shape_format_fp16_1d(self, device="npu"):
+    def test_max_shape_format_fp16_1d(self):
         format_list = [0, 3]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp32_1d(self, device="npu"):
+    def test_max_shape_format_fp32_1d(self):
         format_list = [0, 3]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in
@@ -239,7 +240,7 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp16_2d(self, device="npu"):
+    def test_max_shape_format_fp16_2d(self):
         format_list = [0, 3]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -247,7 +248,7 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp32_2d(self, device="npu"):
+    def test_max_shape_format_fp32_2d(self):
         format_list = [0, 3]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -255,7 +256,7 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp16_3d(self, device="npu"):
+    def test_max_shape_format_fp16_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -263,7 +264,7 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp32_3d(self, device="npu"):
+    def test_max_shape_format_fp32_3d(self):
         format_list = [0, 3]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -271,7 +272,7 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp16_4d(self, device="npu"):
+    def test_max_shape_format_fp16_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -279,31 +280,29 @@ class TestMax(TestCase):
                         ]
         self.max_result(shape_format)
 
-    def test_max_shape_format_fp32_4d(self, device="npu"):
+    def test_max_shape_format_fp32_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
-                        in
-                        keepdim_list
+                        in keepdim_list
                         ]
         self.max_result(shape_format)
 
-    def test_max_dim_shape_format_fp16_1d(self, device="npu"):
+    def test_max_dim_shape_format_fp16_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp32_1d(self, device="npu"):
+    def test_max_dim_shape_format_fp32_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in
-                        keepdim_list
+        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp16_2d(self, device="npu"):
+    def test_max_dim_shape_format_fp16_2d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -311,7 +310,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp32_2d(self, device="npu"):
+    def test_max_dim_shape_format_fp32_2d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -319,7 +318,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp16_3d(self, device="npu"):
+    def test_max_dim_shape_format_fp16_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -327,7 +326,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp32_3d(self, device="npu"):
+    def test_max_dim_shape_format_fp32_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -335,7 +334,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp16_4d(self, device="npu"):
+    def test_max_dim_shape_format_fp16_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -343,7 +342,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_dim_shape_format_fp32_4d(self, device="npu"):
+    def test_max_dim_shape_format_fp32_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -351,22 +350,21 @@ class TestMax(TestCase):
                         ]
         self.max_result_dim(shape_format)
 
-    def test_max_other_shape_format_fp16_1d(self, device="npu"):
+    def test_max_other_shape_format_fp16_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp32_1d(self, device="npu"):
+    def test_max_other_shape_format_fp32_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in
-                        keepdim_list
+        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp16_2d(self, device="npu"):
+    def test_max_other_shape_format_fp16_2d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -374,7 +372,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp32_2d(self, device="npu"):
+    def test_max_other_shape_format_fp32_2d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -382,7 +380,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp16_3d(self, device="npu"):
+    def test_max_other_shape_format_fp16_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -390,7 +388,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp32_3d(self, device="npu"):
+    def test_max_other_shape_format_fp32_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -398,7 +396,7 @@ class TestMax(TestCase):
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp16_4d(self, device="npu"):
+    def test_max_other_shape_format_fp16_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -406,71 +404,61 @@ class TestMax(TestCase):
                         ]
         self.max_result_other(shape_format)
 
-    def test_max_other_shape_format_fp32_4d(self, device="npu"):
+    def test_max_other_shape_format_fp32_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
-                        in
-                        keepdim_list
+                        in keepdim_list
                         ]
         self.max_result_other(shape_format)
-    
-    def test_max_dimname_shape_format(self, device="npu"):
+
+    def test_max_dimname_shape_format(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
-                        in
-                        keepdim_list
+                        np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j in keepdim_list
                         ]
         self.max_name_result_other(shape_format)
-    
-    def test_max_dimname_shape_format_fp16(self, device="npu"):
+
+    def test_max_dimname_shape_format_fp16(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
-                        in
-                        keepdim_list
+                        np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j in keepdim_list
                         ]
         self.max_name_result_other(shape_format)
-    
-    def test_max_dimname_out_shape_format(self, device="npu"):
+
+    def test_max_dimname_out_shape_format(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
-                        in
-                        keepdim_list
-                        ]
-        self.max_name_out_result_other(shape_format)
-    
-    def test_max_dimname_out_shape_format_fp16(self, device="npu"):
-        format_list = [0, 3, 4, 29]
-        keepdim_list = [True, False]
-        shape_format = [[[np.float16, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
-         np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j
-                        in
-                        keepdim_list
+                        np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j in keepdim_list
                         ]
         self.max_name_out_result_other(shape_format)
 
-    def test_amax_shape_format_fp16_1d(self, device="npu"):
+    def test_max_dimname_out_shape_format_fp16(self):
+        format_list = [0, 3, 4, 29]
+        keepdim_list = [True, False]
+        shape_format = [[[np.float16, i, [8, 7, 9, 10], ('N', 'C', 'H', 'W')],
+                        np.random.choice(['N', 'C', 'H', 'W']), j] for i in format_list for j in keepdim_list
+                        ]
+        self.max_name_out_result_other(shape_format)
+
+    def test_amax_shape_format_fp16_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp32_1d(self, device="npu"):
+    def test_amax_shape_format_fp32_1d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
-        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in
-                        keepdim_list
+        shape_format = [[[np.float32, i, [8]], np.random.randint(0, 1), j] for i in format_list for j in keepdim_list
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp16_2d(self, device="npu"):
+    def test_amax_shape_format_fp16_2d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -478,7 +466,7 @@ class TestMax(TestCase):
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp32_2d(self, device="npu"):
+    def test_amax_shape_format_fp32_2d(self):
         format_list = [0, 3, 4]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7]], np.random.randint(0, 2), j] for i in format_list for j in
@@ -486,7 +474,7 @@ class TestMax(TestCase):
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp16_3d(self, device="npu"):
+    def test_amax_shape_format_fp16_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -494,7 +482,7 @@ class TestMax(TestCase):
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp32_3d(self, device="npu"):
+    def test_amax_shape_format_fp32_3d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9]], np.random.randint(0, 3), j] for i in format_list for j in
@@ -502,7 +490,7 @@ class TestMax(TestCase):
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp16_4d(self, device="npu"):
+    def test_amax_shape_format_fp16_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float16, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -510,7 +498,7 @@ class TestMax(TestCase):
                         ]
         self.amax_result(shape_format)
 
-    def test_amax_shape_format_fp32_4d(self, device="npu"):
+    def test_amax_shape_format_fp32_4d(self):
         format_list = [0, 3, 4, 29]
         keepdim_list = [True, False]
         shape_format = [[[np.float32, i, [8, 7, 9, 10]], np.random.randint(0, 4), j] for i in format_list for j
@@ -526,6 +514,18 @@ class TestMax(TestCase):
         cpu_output = self.cpu_op_other_exec(a_cpu, b_cpu)
         npu_output_out2 = self.npu_op_exec_out(a_npu, b_npu, a_npu)
         self.assertRtolEqual(cpu_output, npu_output_out2)
+
+    def test_max_different_dtype(self):
+        cpu_input1, npu_input1 = create_common_tensor([np.int32, 0, [10, 20, 30]], -100, 100)
+        cpu_input2, npu_input2 = create_common_tensor([np.int64, 0, [10, 20, 30]], -100, 100)
+        cpu_output = self.cpu_op_other_exec(cpu_input1, cpu_input2)
+        npu_output = self.npu_op_other_exec(npu_input1, npu_input2)
+        npu_out = np.random.uniform(-100, 100, (10, 10)).astype(cpu_output.dtype)
+        npu_out = torch.from_numpy(npu_out).npu()
+        torch.max(npu_input1, npu_input2, out=npu_out)
+        npu_out = npu_out.cpu().numpy()
+        self.assertRtolEqual(cpu_output, npu_output)
+        self.assertRtolEqual(cpu_output, npu_out)
 
 
 if __name__ == "__main__":
