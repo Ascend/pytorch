@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <ATen/WrapDimUtilsMulti.h>
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -26,6 +27,7 @@ at::Tensor &sum_out_npu_nocheck(
     const at::Tensor &self,
     at::IntArrayRef dim,
     bool keepdim) {
+  at::dim_list_to_bitset(dim, self.dim());
   c10::SmallVector<int64_t, N> dimList = dim.empty() ? CalcuOpUtil::get_dimlist_for_tensor(self) : c10::SmallVector<int64_t, N>(dim);
   OpCommand cmd;
   cmd.Name("ReduceSum")

@@ -260,6 +260,14 @@ class TestSum(TestCase):
         self.sum_dim_result(shape_format)
         self.sum_result(shape_format)
 
+    def test_sum_same_dim(self):
+        npu_input = torch.randn(128, 256).npu()
+        dim = [1, -1]
+        try:
+            torch.sum(npu_input, dim=dim)
+        except RuntimeError as e:
+            self.assertRegex(str(e), "dim 1 appears multiple times in the list of dims")
+
 
 if __name__ == "__main__":
     run_tests()
