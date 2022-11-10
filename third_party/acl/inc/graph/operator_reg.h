@@ -101,6 +101,12 @@ using std::vector;
 #define ATTR_ListType(x, ...)
 #define ATTR_ListNamedAttrs(x, ...)
 
+#define REGISTER_TYPE_AscendString(...) AscendString(__VA_ARGS__)
+#define REGISTER_TYPE_String(...) REGISTER_TYPE_AscendString(__VA_ARGS__)
+
+#define REGISTER_TYPE_Int(...) OpInt(__VA_ARGS__)
+#define REGISTER_TYPE_Tensor(...) OpTensor(__VA_ARGS__)
+
 #define REQUIRED_ATTR_String(x)                                             \
   graphStatus get_attr_##x(AscendString &ret) const {                       \
     if (Operator::GetAttr(#x, ret) == GRAPH_FAILED) {                       \
@@ -224,7 +230,7 @@ class OpReg {
                                                                             \
  private:                                                                   \
   void __attr_##x() {                                                       \
-    Operator::AttrRegister(#x, Op##Type(__VA_ARGS__));                      \
+    Operator::AttrRegister(#x, REGISTER_TYPE_##Type(__VA_ARGS__));          \
     string attr_name(#x);                                                   \
     (void)OpReg()
 
