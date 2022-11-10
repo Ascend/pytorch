@@ -174,7 +174,6 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::slow_conv_trans
     at::Tensor& grad_bias) {
   auto outputSizes = slow_conv_transpose2d_backward_npu_output_size(
       grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation, columns, ones);
-
   OpPreparation::CheckOut(
       {grad_output, self, weight},
       grad_input,
@@ -184,7 +183,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::slow_conv_trans
   OpPreparation::CheckOut(
       {grad_output, self, weight},
       grad_weight,
-      ACL_FORMAT_FRACTAL_Z,
+      CalcuOpUtil::get_tensor_npu_format(weight),
       at::kFloat,
       std::get<1>(outputSizes));
   OpPreparation::CheckOut(
@@ -234,7 +233,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
   }
 
   if (output_mask[1]) {
-    grad_weight = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), weight.options().dtype(at::kFloat), ACL_FORMAT_FRACTAL_Z);
+    grad_weight = OpPreparation::ApplyTensorWithFormat(std::get<1>(outputSizes), weight.options().dtype(at::kFloat), CalcuOpUtil::get_tensor_npu_format(weight));
   }
 
   if (output_mask[flag]) {
