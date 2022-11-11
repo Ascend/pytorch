@@ -54,6 +54,9 @@ public:
   static bool IsTensorWithoutNode(const at::Tensor& tensor);
 
   static void RetainGraphDataTensor(const at::Tensor& data_tensor);
+
+  static void RetainNoneOutputNode(at_npu::native::NodePtr none_output_node);
 };
 } // namespace native
 } // namespace at_npu
+

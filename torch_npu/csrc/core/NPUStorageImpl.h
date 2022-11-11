@@ -52,32 +52,20 @@ struct NPUStorageImpl : public c10::StorageImpl {
   // not private
   NPUStorageDesc npu_desc_;
 
-#ifdef USE_GRAPH_MODE
   std::unique_ptr<NpuGraphDesc> npu_graph_desc = nullptr;
-#else
-  static std::unique_ptr<NpuGraphDesc> npu_graph_desc;
-#endif
 
   NPUStorageDesc get_npu_desc() const {
     return npu_desc_;
   }
 
-#ifdef USE_GRAPH_MODE
   const NpuGraphDesc& get_npu_graph_desc() const {
-#else
-  static const NpuGraphDesc& get_npu_graph_desc() {
-#endif
     if (npu_graph_desc == nullptr) {
       AT_ERROR("npu graph desc has not been initialized");
     }
     return *npu_graph_desc;
   }
 
-#ifdef USE_GRAPH_MODE
   NpuGraphDesc& get_mutable_npu_graph_desc() const {
-#else
-  static NpuGraphDesc& get_mutable_npu_graph_desc() {
-#endif
     if (npu_graph_desc == nullptr) {
       AT_ERROR("npu graph desc has not been initialized");
     }

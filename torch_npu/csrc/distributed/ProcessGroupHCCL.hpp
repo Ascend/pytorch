@@ -220,6 +220,12 @@ public:
       std::vector<at::Tensor>& tensors,
       const c10d::AllreduceOptions& opts = c10d::AllreduceOptions()) override;
 
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> allreduce_out(
+    std::vector<at::Tensor>& inputs,
+    std::vector<at::Tensor>& outputs,
+    int64_t fusion_id,
+    const c10d::AllreduceOptions& opts = c10d::AllreduceOptions());
+
   c10::intrusive_ptr<c10d::ProcessGroup::Work>allreduce_coalesced(
       std::vector<at::Tensor>& tensors,
       const c10d::AllreduceCoalescedOptions& opts =

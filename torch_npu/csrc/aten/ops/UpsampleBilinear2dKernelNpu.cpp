@@ -34,9 +34,9 @@ at::Tensor& upsample_bilinear2d_out_npu_nocheck(
   int64_t W = output_size[1];
   at::SmallVector<int64_t, N> attr_size = {H, W};
   cmd.Name("ResizeBilinearV2")
-      .Input(self)
+      .Input(self, "x", ACL_FORMAT_NCHW)
       .Input(attr_size, at::kInt)
-      .Output(result)
+      .Output(result, "y", ACL_FORMAT_NCHW)
       .Attr("align_corners", align_corners)
       .Attr("half_pixel_centers", half_pixel_centers)
       .Run();

@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestUpsampleNearest2DBackward(TestCase):
@@ -37,7 +38,8 @@ class TestUpsampleNearest2DBackward(TestCase):
         grad = grad.to("cpu")
         return out.detach().numpy(), grad.detach().numpy()
 
-    def test_upsample_bilinear2d_shape_format(self, device="npu"):
+    @graph_mode
+    def test_upsample_bilinear2d_shape_format(self):
         shape_format = [
                         [[np.float32, 0, (2, 3, 4, 4)], [2, 2]],
                         [[np.float16, 0, (2, 3, 4, 4)], [2, 2]],

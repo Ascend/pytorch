@@ -18,10 +18,12 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestIm2colBackward(TestCase):
-    def test_im2col_backward_fp16(self, device="npu"):
+    @graph_mode
+    def test_im2col_backward_fp16(self):
         fold_cpu = torch.nn.Fold(output_size=(18, 18), kernel_size=(3, 3))
         input_cpu = torch.rand(1, 16 * 3 * 3, 256).half()
         fold_npu = fold_cpu.npu()
@@ -31,7 +33,8 @@ class TestIm2colBackward(TestCase):
 
         self.assertRtolEqual(output_cpu.numpy(), output_npu.cpu().numpy())
 
-    def test_im2col_backward_fp32(self, device="npu"):
+    @graph_mode
+    def test_im2col_backward_fp32(self):
         fold_cpu = torch.nn.Fold(output_size=(18, 18), kernel_size=(3, 3))
         input_cpu = torch.rand(1, 16 * 3 * 3, 256)
         fold_npu = fold_cpu.npu()

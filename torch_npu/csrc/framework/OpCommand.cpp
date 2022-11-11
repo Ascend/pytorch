@@ -106,6 +106,14 @@ OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
   return AddHostTensorInput(scalarTensor, compileType);
 }
 
+OpCommand& OpCommand::Input(const string &str) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
+    graphCmd.AddInput(str);
+  )
+  AT_ERROR("single op mode do not support string input temporarily");
+  return *this;
+}
+
 OpCommand& OpCommand::Inputs(const at::TensorList &inputs)
 {
   for (auto &input : inputs)
@@ -142,7 +150,9 @@ OpCommand& OpCommand::Output(
 }
 
 void OpCommand::Run() {
-  IF_GRAPH_MODE_THEN_RUN(return;)
+  IF_GRAPH_MODE_THEN_RUN(
+    graphCmd.Run();
+    return;)
   aclCmd->SetEnginePriority();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;

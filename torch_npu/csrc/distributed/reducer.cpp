@@ -31,10 +31,12 @@
 #include <torch/csrc/utils/memory.h>
 
 #include "torch_npu/csrc/distributed/reducer.hpp"
+#include "torch_npu/csrc/distributed/ProcessGroupHCCL.hpp"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #include "torch_npu/csrc/framework/utils/OpPreparation.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "patch/include/c10d/debug.h"
 
 namespace c10d_npu {
@@ -367,62 +369,84 @@ void Reducer::mark_variable_ready_dense(size_t variable_index) {
       // to bucket_view. If grad has already been set as views of buckets in
       // previous iterations, no copy is needed.
       if (!grad.is_alias_of(bucket_view)) {
-        // make sure grad has the same format as variable
-        if (torch_npu::NPUBridge::GetNpuStorageImpl(grad)->npu_desc_.npu_format_ !=
-              torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_) {
-          grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
-              torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
-        }
-        if (comm_hook_ == nullptr) {
-          if (!grad.requires_grad()) {
-            // Divides while copying into the bucket view to save one scan over
-            // all the input parameters.
-            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
+        if (!c10_npu::NpuRunMode::IsGraphMode()) {
+          // make sure grad has the same format as variable
+          if (torch_npu::NPUBridge::GetNpuStorageImpl(grad)->npu_desc_.npu_format_ !=
+                torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_) {
+            grad = at_npu::native::NPUNativeFunctions::npu_format_cast(grad,
+                torch_npu::NPUBridge::GetNpuStorageImpl(variable)->npu_desc_.npu_format_);
+          }
+          if (comm_hook_ == nullptr) {
+            if (!grad.requires_grad()) {
+              // Divides while copying into the bucket view to save one scan over
+              // all the input parameters.
+              at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true);
+            } else {
+              // If DDP is running with create_graph=True, gradients require_grad
+              // themselves in order to compute higher order derivatives. However,
+              // DDP will not sync up these gradients currently (see
+              // https://github.com/pytorch/pytorch/issues/63812).
+              C10_LOG_EVERY_N(WARNING, 1000)
+                  << "Using DistributedDataParallel with create_graph=True "
+                  << " is not well-supported. The higher-order gradient will "
+                  << " not be synchronized across ranks, and backpropagation "
+                  << " through all_reduce operations will not occur. If you require "
+                  << " DDP to work with higher-order gradients for your use case, "
+                  << " please ping https://github.com/pytorch/pytorch/issues/63929";
+              at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+            }
           } else {
-            // If DDP is running with create_graph=True, gradients require_grad
-            // themselves in order to compute higher order derivatives. However,
-            // DDP will not sync up these gradients currently (see
-            // https://github.com/pytorch/pytorch/issues/63812).
-            C10_LOG_EVERY_N(WARNING, 1000)
-                << "Using DistributedDataParallel with create_graph=True "
-                << " is not well-supported. The higher-order gradient will "
-                << " not be synchronized across ranks, and backpropagation "
-                << " through all_reduce operations will not occur. If you require "
-                << " DDP to work with higher-order gradients for your use case, "
-                << " please ping https://github.com/pytorch/pytorch/issues/63929";
-            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad.mul(float(1.) / div_factor_), true); 
+            at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
+          }
+
+          if (gradient_as_bucket_view_) {
+            // Let grad point to bucket_view buffer.
+            grad = bucket_view;
+            // The grad is modified and need to be written back.
+            return true;
           }
         } else {
-          at_npu::native::NPUNativeFunctions::copy_memory_(bucket_view, grad, true);
-        }
-
-        if (gradient_as_bucket_view_) {
-          // Let grad point to bucket_view buffer.
-          grad = bucket_view;
-          // The grad is modified and need to be written back.
-          return true;
+          std::vector<at::Tensor> input{grad};
+          auto out = at::empty_like(grad);
+          std::vector<at::Tensor> output{out};
+          grad.div_(process_group_->getSize());
+          c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl = 
+            c10::dynamic_intrusive_pointer_cast<::c10d_npu::ProcessGroupHCCL>(process_group_);
+          bucket.work = process_group_hccl->allreduce_out(input, output, bucket_index.bucket_index);
+          grad = out;
         }
       } else {
-        // If grad and bucket view point to the same storage, no need to copy.
+        // If grad and bucket view point to the same storage, no need to copy
         if (comm_hook_ == nullptr) {
           bucket_view.div_(div_factor_);
         }
       }
     } else {
-      // Gradient is undefined. When find_unused_parameters=True, ensure it is
-      // not marked as locally used, otherwise we will be allreducing zero's
-      // instead of not touching .grad field of parameter.
-      if (this->dynamic_graph_find_unused() ||
-          this->static_graph_first_iteration()) {
-        REDUCER_CHECK(
-            local_used_map_[variable_index].item<int>() == 0,
-            logger_,
-            "Encountered gradient which is undefined, but still allreduced by "
-            "DDP reducer. This indicates a bug in DDP implementation, please "
-            "report a bug with a repro to PyTorch."
-        );
+      if (!c10_npu::NpuRunMode::IsGraphMode()) {
+        // Gradient is undefined. When find_unused_parameters=True, ensure it is
+        // not marked as locally used, otherwise we will be allreducing zero's
+        // instead of not touching .grad field of parameter.
+        if (this->dynamic_graph_find_unused() ||
+            this->static_graph_first_iteration()) {
+          REDUCER_CHECK(
+              local_used_map_[variable_index].item<int>() == 0,
+              logger_,
+              "Encountered gradient which is undefined, but still allreduced by "
+              "DDP reducer. This indicates a bug in DDP implementation, please "
+              "report a bug with a repro to PyTorch."
+          );
+        }
+        bucket_view.zero_();
+      } else {
+        at::Tensor zero_grad = at::empty(bucket_view.sizes(), bucket_view.options());
+        std::vector<at::Tensor> input{zero_grad};
+        auto out = at::empty_like(zero_grad);
+        std::vector<at::Tensor> output{out};
+        zero_grad.zero_();
+        c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL> process_group_hccl = 
+          c10::dynamic_intrusive_pointer_cast<::c10d_npu::ProcessGroupHCCL>(process_group_);
+        bucket.work = process_group_hccl->allreduce_out(input, output, bucket_index.bucket_index);
       }
-      bucket_view.zero_();
     }
     // The grad is not modified and doesn't need to be written back.
     return false;
@@ -586,23 +610,25 @@ void Reducer::autograd_hook(size_t index) {
   grad_ready_order_indices_.push_back(index);
 
   // // See Note [Skip allreducing local_used_map_dev]
-  if (dynamic_graph_find_unused() || static_graph_first_iteration()) {
-    // Since it gets here, this param has been used for this iteration. We want
-    // to mark it in local_used_map_. During no_sync session, the same var can
-    // be set multiple times, which is OK as does not affect correctness. As
-    // long as it is used once during no_sync session, it is marked as used.
-    // Only set it as locally used if the grad is defined. Otherwise, hooks can
-    // be fired  with undefined grads, such as when not all outputs are used in
-    // DDP when computing loss. In this case, we don't want to mark it as
-    // locally used to ensure we don't touch the parameter's .grad field.
-    auto& variable = get_param_from_index(index);
-    runGradCallbackForVariable(variable, [&](auto& grad) {
-      if (grad.defined()) {
-        local_used_map_[index] = 1;
-      }
-      // The gradient is never modified.
-      return false;
-    });
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    if (dynamic_graph_find_unused() || static_graph_first_iteration()) {
+      // Since it gets here, this param has been used for this iteration. We want
+      // to mark it in local_used_map_. During no_sync session, the same var can
+      // be set multiple times, which is OK as does not affect correctness. As
+      // long as it is used once during no_sync session, it is marked as used.
+      // Only set it as locally used if the grad is defined. Otherwise, hooks can
+      // be fired  with undefined grads, such as when not all outputs are used in
+      // DDP when computing loss. In this case, we don't want to mark it as
+      // locally used to ensure we don't touch the parameter's .grad field.
+      auto& variable = get_param_from_index(index);
+      runGradCallbackForVariable(variable, [&](auto& grad) {
+        if (grad.defined()) {
+          local_used_map_[index] = 1;
+        }
+        // The gradient is never modified.
+        return false;
+      });
+    }
   }
 
   if (static_graph_first_iteration()) {
@@ -815,19 +841,33 @@ void Reducer::mark_variable_ready(size_t variable_index) {
     mark_variable_ready_dense(variable_index);
   }
 
+  static c10_npu::ModeKind init_npu_mode = c10_npu::NpuRunMode::CurRunMode();
+  c10_npu::ModeKind cur_npu_mode = c10_npu::NpuRunMode::CurRunMode();
+  TORCH_CHECK((init_npu_mode == cur_npu_mode),
+              "The entire backward process should only use one npu mode while init mode is ",
+              static_cast<uint8_t>(init_npu_mode),
+              " current mode is ",
+              static_cast<uint8_t>(cur_npu_mode));
+  bool is_single_mode = (init_npu_mode == c10_npu::ModeKind::SINGLE_OP_MODE);
   // Check if this was the final gradient for this bucket.
   if (--replica.pending == 0) {
     // Kick off reduction if all replicas for this bucket are ready.
     if (--bucket.pending == 0) {
-      mark_bucket_ready(bucket_index.bucket_index);
+      if (is_single_mode) {
+        mark_bucket_ready(bucket_index.bucket_index);
+      } else {
+        next_bucket_++;
+      }
     }
   }
 
-  // Run finalizer function and kick off reduction for local_used_map once the
+  // Run finalizer function and kick off reduction for local_used_maps once the
   // final bucket was marked ready.
   if (next_bucket_ == buckets_.size()) {
     if (dynamic_graph_find_unused()) {
-      all_reduce_local_used_map();
+      if (is_single_mode) {
+        all_reduce_local_used_map();
+      }
     }
 
     torch::autograd::Engine::get_default_engine().queue_callback([=] {
@@ -1379,84 +1419,86 @@ void Reducer::finalize_bucket_dense(Bucket& bucket) {
     auto& variable = replica.variables[intra_bucket_index];
 
     bool global_unused = false;
-    // See Note [Skip allreducing local_used_map_dev]
-    if (static_graph_ || find_unused_parameters_) {
-      // Determine if this param has been used globally or not.
-      //
-      // If the variable was used locally, it is also used globally and then
-      // we don't need to wait for the reduction. Otherwise we lazily wait for
-      // the reduction to complete, only when we see a variable that was
-      // unused locally. Then we end up delaying the synchronization point
-      // that local_used_work_->wait() implies. If we don't have any unused
-      // parameters at all, we can skip waiting for the work to complete
-      // altogether, and cause negligible performance overhead for models
-      // where all parameters are used. Such lazily waiting means minimizing
-      // performance impact for the big majority of models where all
-      // parameters are always used. Then we only pay the overhead cost if
-      // there is indeed a parameter that is locally unused, because we need
-      // to check if it's also globally unused.
-      size_t variable_index = bucket.variable_indices[intra_bucket_index];
-      // Note: global_unused might not be global yet. As we lazily wait for
-      // the reduction to complete, it becomes really global only if we get to
-      // the point as below where we wait for the reduction work, make D2H
-      // copy, and update global_unused with the real global consensus, i.e.
-      // local_used_map_reduced_ is true.
-      global_unused =
-          local_used_map_[variable_index].item<int>() == 0;
-      if (global_unused && !local_used_map_reduced_) {
-        // Wait for local_used_map reduction to complete.
-        local_used_work_->wait();
-        // D2H from local_used_map_dev_ to local_used_map_
-        // Blocking copy, if local_used_map_dev_ is cuda
-        local_used_map_.copy_(local_used_map_dev_);
-
+    if (!c10_npu::NpuRunMode::IsGraphMode()) {
+      // See Note [Skip allreducing local_used_map_dev]
+      if (static_graph_ || find_unused_parameters_) {
+        // Determine if this param has been used globally or not.
+        //
+        // If the variable was used locally, it is also used globally and then
+        // we don't need to wait for the reduction. Otherwise we lazily wait for
+        // the reduction to complete, only when we see a variable that was
+        // unused locally. Then we end up delaying the synchronization point
+        // that local_used_work_->wait() implies. If we don't have any unused
+        // parameters at all, we can skip waiting for the work to complete
+        // altogether, and cause negligible performance overhead for models
+        // where all parameters are used. Such lazily waiting means minimizing
+        // performance impact for the big majority of models where all
+        // parameters are always used. Then we only pay the overhead cost if
+        // there is indeed a parameter that is locally unused, because we need
+        // to check if it's also globally unused.
+        size_t variable_index = bucket.variable_indices[intra_bucket_index];
+        // Note: global_unused might not be global yet. As we lazily wait for
+        // the reduction to complete, it becomes really global only if we get to
+        // the point as below where we wait for the reduction work, make D2H
+        // copy, and update global_unused with the real global consensus, i.e.
+        // local_used_map_reduced_ is true.
         global_unused =
             local_used_map_[variable_index].item<int>() == 0;
-        local_used_map_reduced_ = true;
-      }
-    }
+        if (global_unused && !local_used_map_reduced_) {
+          // Wait for local_used_map reduction to complete.
+          local_used_work_->wait();
+          // D2H from local_used_map_dev_ to local_used_map_
+          // Blocking copy, if local_used_map_dev_ is cuda
+          local_used_map_.copy_(local_used_map_dev_);
 
-    if (!gradient_as_bucket_view_) {
-      RECORD_FUNCTION(
-          "torch.distributed.ddp.reducer::copy_bucket_to_grad",
-          std::vector<c10::IValue>({variable}));
-      copy_bucket_to_grad(variable, replica, intra_bucket_index, global_unused);
-    } else {
-      const auto& bucket_view_out =
-          replica.bucket_views_out[intra_bucket_index];
-      auto& bucket_view_in = replica.bucket_views_in[intra_bucket_index];
-      // If communication_hook is registered, bucket_view_out stores
-      // allreduced results in a newly allocated tensor, copy bucket_view_out
-      // back to bucket_view_in that referring to replica.content tensor and
-      // grad.
-      if (!bucket_view_in.is_alias_of(bucket_view_out)) {
-        bucket_view_in.copy_(bucket_view_out);
-      }
-      runGradCallbackForVariable(variable, [&](auto& grad) {
-        // If a parameter is globally unused, we keep its grad untouched.
-        if (!global_unused) {
-          // If grad is globally used but locally unused, let grad point to
-          // bucket_view_in
-          if (!grad.defined()) {
-            grad = bucket_view_in;
-          } else {
-            if (!grad.is_alias_of(bucket_view_in)) {
-              REDUCER_CHECK(
-                  false,
-                  logger_,
-                  "Detected at least one parameter gradient is not the "
-                  "expected DDP bucket view with gradient_as_bucket_view=True. "
-                  "This may happen (for example) if multiple allreduce hooks "
-                  "were registered onto the same parameter. If you hit this error, "
-                  "please file an issue with a minimal repro.");
-            }
-          }
-          // The grad is modified and needs to be written back.
-          return true;
+          global_unused =
+              local_used_map_[variable_index].item<int>() == 0;
+          local_used_map_reduced_ = true;
         }
-        // The grad is not modified.
-        return false;
-      });
+      }
+
+      if (!gradient_as_bucket_view_) {
+        RECORD_FUNCTION(
+            "torch.distributed.ddp.reducer::copy_bucket_to_grad",
+            std::vector<c10::IValue>({variable}));
+        copy_bucket_to_grad(variable, replica, intra_bucket_index, global_unused);
+      } else {
+        const auto& bucket_view_out =
+            replica.bucket_views_out[intra_bucket_index];
+        auto& bucket_view_in = replica.bucket_views_in[intra_bucket_index];
+        // If communication_hook is registered, bucket_view_out stores
+        // allreduced results in a newly allocated tensor, copy bucket_view_out
+        // back to bucket_view_in that referring to replica.content tensor and
+        // grad.
+        if (!bucket_view_in.is_alias_of(bucket_view_out)) {
+          bucket_view_in.copy_(bucket_view_out);
+        }
+        runGradCallbackForVariable(variable, [&](auto& grad) {
+          // If a parameter is globally unused, we keep its grad untouched.
+          if (!global_unused) {
+            // If grad is globally used but locally unused, let grad point to
+            // bucket_view_in
+            if (!grad.defined()) {
+              grad = bucket_view_in;
+            } else {
+              if (!grad.is_alias_of(bucket_view_in)) {
+                REDUCER_CHECK(
+                    false,
+                    logger_,
+                    "Detected at least one parameter gradient is not the "
+                    "expected DDP bucket view with gradient_as_bucket_view=True. "
+                    "This may happen (for example) if multiple allreduce hooks "
+                    "were registered onto the same parameter. If you hit this error, "
+                    "please file an issue with a minimal repro.");
+              }
+            }
+            // The grad is modified and needs to be written back.
+            return true;
+          }
+          // The grad is not modified.
+          return false;
+        });
+      }
     }
   }
 }
@@ -1506,6 +1548,10 @@ void Reducer::finalize_backward() {
       // the allreduce is done, the sparse grads are automatically updated.
       finalize_bucket_dense(bucket);
     }
+  }
+
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return;
   }
 
   if (installed_futures_ != c10::nullopt) {

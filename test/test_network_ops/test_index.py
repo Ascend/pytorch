@@ -16,6 +16,7 @@ import numpy as np
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 
@@ -56,7 +57,8 @@ class TestIndex(TestCase):
         output = output.cpu().numpy()
         return output
 
-    def test_index_ellip(self, device="npu"):
+    @graph_mode
+    def test_index_ellip(self):
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
         shape_list = [[5, 256, 256, 100]]
@@ -71,7 +73,8 @@ class TestIndex(TestCase):
             npu_output = self.npu_op_exec_ellip(npu_input1, npu_index1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_semi(self, device="npu"):
+    @graph_mode
+    def test_index_semi(self):
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
         shape_list = [[5, 256, 256, 100]]
@@ -86,7 +89,8 @@ class TestIndex(TestCase):
             npu_output = self.npu_op_exec_semi(npu_input1, npu_index1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_shape_format_tensor(self, device="npu"):
+    @graph_mode
+    def test_index_shape_format_tensor(self):
         #test index is tensor
         dtype_list = [np.float32, np.float16, np.int32]  
         format_list = [0]         
@@ -102,7 +106,8 @@ class TestIndex(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_index1)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_shape_format_tensor_x(self, device="npu"):
+    @graph_mode
+    def test_index_shape_format_tensor_x(self):
         # 注：test index is [tensor, x] , (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]       
@@ -118,8 +123,9 @@ class TestIndex(TestCase):
                 cpu_output = self.cpu_op_exec(cpu_input1, (cpu_index1, i))
                 npu_output = self.npu_op_exec(npu_input1, (npu_index1, i))
                 self.assertRtolEqual(cpu_output, npu_output)
-                                
-    def test_index_shape_format_tensor_tensor(self, device="npu"):
+
+    @graph_mode                              
+    def test_index_shape_format_tensor_tensor(self):
         #test index is [tensor, tensor]
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
@@ -135,8 +141,9 @@ class TestIndex(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, (cpu_index1,cpu_index2))
             npu_output = self.npu_op_exec(npu_input1, (npu_index1, npu_index2))
             self.assertRtolEqual(cpu_output, npu_output)
-            
-    def test_index_shape_format_list(self, device="npu"):
+
+    @graph_mode       
+    def test_index_shape_format_list(self):
         #test index is list
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]   
@@ -150,8 +157,9 @@ class TestIndex(TestCase):
             cpu_output = self.cpu_op_exec(cpu_input1, item[1])
             npu_output = self.npu_op_exec(npu_input1, item[1])
             self.assertRtolEqual(cpu_output, npu_output)
-            
-    def test_index_shape_format_list_x(self, device="npu"):
+
+    @graph_mode
+    def test_index_shape_format_list_x(self):
         # 注：test index is [list, x],  (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
@@ -166,8 +174,9 @@ class TestIndex(TestCase):
                 cpu_output = self.cpu_op_exec(cpu_input1, (item[1], i))
                 npu_output = self.npu_op_exec(npu_input1, (item[1], i))
                 self.assertRtolEqual(cpu_output, npu_output)  
-                                
-    def test_index_shape_format_tensor_bool(self, device="npu"):      
+
+    @graph_mode
+    def test_index_shape_format_tensor_bool(self):      
         # 注：test index is bool tensor 
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]
@@ -183,7 +192,8 @@ class TestIndex(TestCase):
             npu_output = self.npu_op_exec(npu_input1, npu_index)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_index_shape_format_bool_x(self, device="npu"):     
+    @graph_mode
+    def test_index_shape_format_bool_x(self):     
         # 注：test index is [bool, x] , (x=1,bool,range)
         dtype_list = [np.float32, np.float16, np.int32]
         format_list = [0]

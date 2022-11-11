@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 project(TORCHNPU CXX C)
 
-option(USE_GRAPH_MODE "enable graph mode" OFF)
-
-if(USE_GRAPH_MODE)
-  add_definitions(-DUSE_GRAPH_MODE=1)
-endif()
-
 set(LINUX TRUE)
 set(CMAKE_INSTALL_MESSAGE NEVER)
 # set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -195,6 +189,7 @@ target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/lib
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_op_compiler.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libge_runner.so)
 target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libgraph.so)
+target_link_libraries(${PLUGIN_NAME} PUBLIC ${TORCHNPU_THIRD_PARTY_ROOT}/acl/libs/libacl_tdt_channel.so)
 
 target_link_libraries(${PLUGIN_NAME} PUBLIC torch torch_cpu c10 python3.7m)
 

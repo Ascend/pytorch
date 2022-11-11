@@ -134,6 +134,8 @@ public:
 
   void AddInput(const c10::IntArrayRef& dim_list, const at::ScalarType to_type);
 
+  void AddInput(const string& str);
+
   void AddOutput(
       const at::Tensor& output,
       const string& desc_name = "",
@@ -162,6 +164,7 @@ public:
         host_ptr_offset);
   }
 
+  void Run();
 private:
   void AddZeroDimInput(const at::Tensor& input, const string& desc_name);
 

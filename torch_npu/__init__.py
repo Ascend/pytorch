@@ -28,6 +28,7 @@ import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
 
+import torch_npu.npu.npu_print as _npu_print
 from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
@@ -36,6 +37,7 @@ from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 
 from .version import __version__ as __version__
 
+graph_printer = _npu_print.GraphPrinter()
 
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
