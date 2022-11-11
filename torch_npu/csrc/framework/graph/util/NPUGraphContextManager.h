@@ -1,15 +1,18 @@
 #pragma once
 
+#include <map>
+#include <mutex>
+
 #include <c10/core/Device.h>
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/intrusive_ptr.h>
 #include <c10/util/order_preserving_flat_hash_map.h>
 #include <c10/core/StorageImpl.h>
+
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
+#include "torch_npu/csrc/framework/graph/util/NPUGraph.h"
 
-#include <map>
-#include <mutex>
 namespace at_npu {
 namespace native {
 // do not affect the life cycle of StorageImpl by weak intrusive ptr
@@ -21,6 +24,7 @@ struct OutputContext {
       uint64_t,
       c10::weak_intrusive_ptr<c10::StorageImpl>>
       output_storage_impl;
+  std::vector<NodePtr> none_output_nodes;
 };
 
 // affect the life cycle of StorageImpl
@@ -80,6 +84,12 @@ public:
   std::vector<c10::StorageImpl*> GetAllInputStorages(c10::DeviceIndex device_idx);
 
   std::vector<c10::DeviceIndex> GetDevicesHasLiveTensor();
+
+  void AddNoneOutputNode(const NodePtr none_out_node);
+
+  std::vector<NodePtr> GetNoneOutputNode(c10::DeviceIndex device_idx);
+
+  void EraseNoneOutputNode(c10::DeviceIndex device_idx);
 
 private:
   NpuGraphContextManager() = default;

@@ -96,6 +96,9 @@ public:
   OpCommand& Input(const c10::Scalar &input, const at::ScalarType type,
                  CompileType compileType = CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
 
+  // String Input Node in graph mode
+  OpCommand& Input(const string &str);
+
   // A list of Tensor
   OpCommand& Inputs(const at::TensorList &inputs);
 

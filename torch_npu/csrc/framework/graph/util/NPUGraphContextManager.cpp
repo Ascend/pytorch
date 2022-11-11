@@ -1,4 +1,5 @@
 #include "torch_npu/csrc/framework/graph/util/NPUGraphContextManager.h"
+#include "torch_npu/csrc/core/npu/NPUFunctions.h"
 
 namespace at_npu {
 namespace native {
@@ -87,5 +88,28 @@ std::vector<c10::DeviceIndex> NpuGraphContextManager::GetDevicesHasLiveTensor() 
   }
   return res;
 }
+
+void NpuGraphContextManager::AddNoneOutputNode(const NodePtr none_out_node) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(c10_npu::current_device(),
+                                    output_contexts_);
+  std::lock_guard<std::mutex> lock(npu_output_ctx->ctx_lock);
+  npu_output_ctx->none_output_nodes.emplace_back(none_out_node);
+}
+
+std::vector<NodePtr> NpuGraphContextManager::GetNoneOutputNode(c10::DeviceIndex device_idx) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(device_idx,
+                                    output_contexts_);
+  return npu_output_ctx->none_output_nodes;
+}
+
+void NpuGraphContextManager::EraseNoneOutputNode(c10::DeviceIndex device_idx) {
+  auto npu_output_ctx =
+    GetDeviceContext<OutputContext>(device_idx,
+                                    output_contexts_);
+    npu_output_ctx->none_output_nodes.clear();
+}
 } // namespace native
 } // namespace at_npu
+
