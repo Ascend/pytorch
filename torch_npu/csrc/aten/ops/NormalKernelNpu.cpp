@@ -133,8 +133,11 @@ at::Tensor NPUNativeFunctions::normal(
     c10::optional<c10::Layout> layout_opt,
     c10::optional<c10::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
-  at::Tensor result = NPUNativeFunctions::empty_with_format(
-      size, dtype_opt, layout_opt, device_opt, pin_memory_opt, ACL_FORMAT_ND);
+  c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+                                                  .device(device_opt)
+                                                  .layout(layout_opt)
+                                                  .pinned_memory(pin_memory_opt);
+  at::Tensor result = OpPreparation::ApplyTensorWithFormat(size, option, ACL_FORMAT_ND);
   normal_out_npu_nocheck(result, generator);
   result.mul_(std).add_(mean);
 

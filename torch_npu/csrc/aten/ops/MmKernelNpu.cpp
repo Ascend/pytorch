@@ -152,8 +152,6 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
   // construct the output tensor of the NPU
   at::Tensor result;
 
-  const auto &options = self.options();
-
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
@@ -168,21 +166,12 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
         && mm_bmm_nd && isAligin()) {
-      result = NPUNativeFunctions::empty_with_format(
-          outputSize, optTypeMetaToScalarType(options.dtype_opt()),
-          options.layout_opt(), options.device_opt(),
-          options.pinned_memory_opt(), ACL_FORMAT_ND);
+      result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
-      result = NPUNativeFunctions::empty_with_format(
-          outputSize, optTypeMetaToScalarType(options.dtype_opt()),
-          options.layout_opt(), options.device_opt(),
-          options.pinned_memory_opt(), ACL_FORMAT_FRACTAL_NZ);
+      result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
     }
   } else {
-    result = NPUNativeFunctions::empty_with_format(
-        outputSize, optTypeMetaToScalarType(options.dtype_opt()),
-        options.layout_opt(), options.device_opt(), options.pinned_memory_opt(),
-        ACL_FORMAT_ND);
+    result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
   }
 
   // calculate the output result of the NPU
