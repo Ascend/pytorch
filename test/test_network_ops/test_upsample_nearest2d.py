@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import torch_npu
 
 from torch_npu.testing.testcase import TestCase, run_tests
+from torch_npu.testing.decorator import graph_mode
 from torch_npu.testing.common_utils import create_common_tensor
 
 class TestUpsamleNearest2D(TestCase):
@@ -32,7 +33,8 @@ class TestUpsamleNearest2D(TestCase):
         output = output.numpy()
         return output
 
-    def test_upsample_nearest2d_shape_format(self, device="npu"):
+    @graph_mode
+    def test_upsample_nearest2d_shape_format(self):
         shape_format = [
                         [[np.float32, 0, (5, 3, 6, 4)], [10, 10]],
                         [[np.float16, 0, (5, 3, 6, 4)], [10, 10]],

@@ -60,12 +60,12 @@ at::Tensor &conv3d_out_npu_nocheck(at::Tensor &result, const at::Tensor &input,
 
   OpCommand cmd;
   cmd.Name("Conv3D");
-  cmd.Input(input);
-  cmd.Input(filter);
+  cmd.Input(input, "x", ACL_FORMAT_NCDHW);
+  cmd.Input(filter, "filter", ACL_FORMAT_NCDHW);
   if (bias.defined()) {
     cmd.Input(bias);
   }
-  cmd.Output(result);
+  cmd.Output(result, "y", ACL_FORMAT_NCDHW);
   cmd.Attr("strides", stridesSize);
   cmd.Attr("pads", paddings);
   cmd.Attr("dilations", dilations);
@@ -160,12 +160,12 @@ at::Tensor& slow_conv3d_forward_npu_nocheck(
 
   OpCommand cmd;
   cmd.Name("Conv3D");
-  cmd.Input(input);
-  cmd.Input(filter);
+  cmd.Input(input, "x", ACL_FORMAT_NCDHW);
+  cmd.Input(filter, "filter", ACL_FORMAT_NCDHW);
   if (bias.defined()) {
     cmd.Input(bias);
   }
-  cmd.Output(output);
+  cmd.Output(output, "y", ACL_FORMAT_NCDHW);
   cmd.Attr("strides", stridesSize);
   cmd.Attr("pads", paddings);
   cmd.Attr("dilations", dilations);

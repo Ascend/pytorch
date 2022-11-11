@@ -217,6 +217,7 @@ namespace at_npu
       static aclDataType convert_to_acl_data_type(
           const at::ScalarType data_type,
           const string &realDataType);
+      static at::ScalarType convert_to_at_data_type(const aclDataType acl_type);
       static c10::Scalar ConvertTensorToScalar(const at::Tensor &tensor);
       static at::Tensor CopyScalarToDevice(
           const c10::Scalar &cpu_scalar,

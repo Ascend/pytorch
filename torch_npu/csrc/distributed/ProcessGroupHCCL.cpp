@@ -35,6 +35,8 @@
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/distributed/HcclCompile.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace c10d_npu {
 namespace {
@@ -62,7 +64,7 @@ std::map<at::ScalarType, HcclDataType> hcclDataType = {
     {at::kByte, HCCL_DATA_TYPE_UINT8},
 };
 
-int64_t physical_numel(at::Tensor self){
+int64_t physical_numel(at::Tensor& self){
   auto sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
   int64_t n = 1;
   for (auto s : sizes) {
@@ -142,6 +144,9 @@ void syncStreams(
     const std::vector<at::Device>& devices,
     std::vector<c10_npu::NPUEvent>& hcclEvents,
     std::vector<c10_npu::NPUStream>& hcclStreams) {
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    return;
+  }
   for (size_t i = 0; i < devices.size(); ++i) {
     c10_npu::NPUStream& hcclStream = hcclStreams[i];
     c10_npu::NPUEvent& hcclEvent = hcclEvents[i];
@@ -258,7 +263,9 @@ void ProcessGroupHCCL::WorkHCCL::synchronize() {
 
 // Same as calling synchronize().
 bool ProcessGroupHCCL::WorkHCCL::wait(std::chrono::milliseconds timeout) {
-  synchronize();
+  if (!c10_npu::NpuRunMode::IsGraphMode()){
+    synchronize();
+  }
   // Always return true, because abort API is not implemented.
   return true;
 }
@@ -504,20 +511,23 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
   auto work = initWork(devices);
   c10_npu::OptionalNPUGuard npuGuard;
   pre(hcclStreams);
-  for (const auto i : c10::irange(inputs.size())) {
-    npuGuard.set_index(devices[i].index());
-    c10_npu::NPUStream& hcclStream = hcclStreams[i];
 
-    // Both `inputs' and `outputs' are created on a worker stream and used in
-    // different hcclStreams.  Hence, both must record the hcclStream to
-    // prevent being freed before the collective finishes.
-    //
-    // We only record `inputs' here, and leave recording `outputs' to `fn' for
-    // operations where `inputs' and `outputs' are not the same.
-    //
-    // See [Sync Streams].
-    c10_npu::NPUCachingAllocator::recordStream(
-        inputs[i].storage().data_ptr(), hcclStream);
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    for (const auto i : c10::irange(inputs.size())) {
+      npuGuard.set_index(devices[i].index());
+      c10_npu::NPUStream& hcclStream = hcclStreams[i];
+
+      // Both `inputs' and `outputs' are created on a worker stream and used in
+      // different hcclStreams.  Hence, both must record the hcclStream to
+      // prevent being freed before the collective finishes.
+      //
+      // We only record `inputs' here, and leave recording `outputs' to `fn' for
+      // operations where `inputs' and `outputs' are not the same.
+      //
+      // See [Sync Streams].
+      c10_npu::NPUCachingAllocator::recordStream(
+          inputs[i].storage().data_ptr(), hcclStream);
+    }
   }
   {
     for (const auto i : c10::irange(inputs.size())) {
@@ -531,12 +541,15 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::collective(
     }
   }
   post(hcclStreams);
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    c10_npu::NPUStream& hcclStream = hcclStreams[i];
-    work->npuEvents_[i].record(hcclStream);
-    work->hcclComms_[i] = hcclComms[i];
-    work->blockingWait_ = blockingWait_;
-    work->opTimeout_ = opTimeout_;
+
+  if (!c10_npu::NpuRunMode::IsGraphMode()) {
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      c10_npu::NPUStream& hcclStream = hcclStreams_[key][i];
+      work->npuEvents_[i].record(hcclStream);
+      work->hcclComms_[i] = hcclComms[i];
+      work->blockingWait_ = blockingWait_;
+      work->opTimeout_ = opTimeout_;
+    }
   }
   return work;
 }
@@ -571,12 +584,43 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             hcclOp[opts.reduceOp],
             comm,
             stream.stream());
       });
+}
+
+c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
+    std::vector<at::Tensor>& inputs,
+    std::vector<at::Tensor>& outputs,
+    int64_t fusion_id,
+    const c10d::AllreduceOptions& opts) {
+    check_npu_tensors_different_devices(inputs);
+    check_npu_tensors_different_devices(outputs);
+    return collective(
+        inputs,
+        outputs,
+        [&](at::Tensor& input,
+            at::Tensor& output,
+            HcclComm comm,
+            c10_npu::NPUStream& stream) {
+              aclrtSetExceptionInfoCallback(exceptionCallback);
+              RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
+              int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
+              at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
+                  input,
+                  "sum",
+                  "hccl_world_group",
+                  2,
+                  fusion_id,
+                  1,
+                  0,
+                  hccl_comm,
+                  output);
+              return HCCL_SUCCESS;
+            });
 }
 
 int g_broadcastID = 100000;
@@ -595,7 +639,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::broadcast(
         const auto root = opts.rootRank * tensors.size() + opts.rootTensor;
         return HcclBroadcast(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             root,
             comm,
@@ -657,7 +701,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
         return HcclAllGather(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             comm,
             stream.stream());
@@ -708,7 +752,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
         return HcclReduceScatter(
             input.data_ptr(),
             output.data_ptr(),
-            (uint64_t)physical_numel(output),
+            getNumelForHCCL(output),
             getHcclDataType(input.scalar_type()),
             hcclOp[opts.reduceOp],
             comm,
@@ -749,7 +793,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::barrier(
   c10_npu::OptionalNPUGuard npuGuard;
   for (auto& device : devices) {
     npuGuard.set_index(device.index());
-    barrierTensors.push_back(at::empty(
+    barrierTensors.push_back(at::ones(
         {1},
         at::TensorOptions().device(at_npu::key::NativeDeviceType).dtype(at::kFloat)));
   }
@@ -793,7 +837,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::send(
         RECORD_FUNCTION("HcclSend", std::vector<c10::IValue>({input}));
         return HcclSend(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             dstRank,
             comm,
@@ -816,7 +860,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::recv(
         RECORD_FUNCTION("HcclRecv", std::vector<c10::IValue>({input}));
         return HcclRecv(
             input.data_ptr(),
-            (uint64_t)physical_numel(input),
+            getNumelForHCCL(input),
             getHcclDataType(input.scalar_type()),
             srcRank,
             comm,

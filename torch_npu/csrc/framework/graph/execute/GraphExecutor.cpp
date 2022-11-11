@@ -35,6 +35,24 @@
 #define RECORD_HOST_FUNCTION(a, b) ;
 namespace at_npu {
 namespace native {
+namespace {
+const char* kPytorchGraphName = "PytorchGraph";
+const std::string kDataNodeType = "Data";
+const char* kDataAttrIndex = "index";
+const std::string kEnqueNodeType = "OutfeedEnqueueOpV2";
+
+static ge::Tensor MakeGeTensor(
+    const ge::TensorDesc& tensor_desc,
+    void* device_ptr,
+    const size_t nbytes) {
+  ge::Tensor ge_tensor{tensor_desc};
+  ge_tensor.SetData(
+      reinterpret_cast<uint8_t*>(device_ptr), nbytes, [](uint8_t* device_ptr) {
+        return;
+      });
+  return ge_tensor;
+}
+} // namespace
 
 uint32_t GraphExecutor::graph_id = 0;
 
@@ -71,7 +89,7 @@ void GraphExecutor::ConstructAndExecuteGraph() {
   ScalarMemContext::GetContext().ExecuteH2D(c10_npu::getCurrentNPUStream());
   CombinedInfo inputs = GetInputCombinedInfo();
   CombinedInfo outputs = GetOutputCombinedInfo();
-  if (outputs.nodes.empty()) {
+  if ((outputs.nodes.empty()) && (outputs.none_output_nodes.empty())) {
     return;
   }
 
@@ -196,8 +214,24 @@ void GraphExecutor::ConstructOpsAndAddEdge(
     const CombinedInfo& output,
     std::vector<ge::Operator>& const_input_ops) {
   RECORD_FUNCTION("ConstructOpsAndAddEdge", std::vector<c10::IValue>({}));
+
+  std::vector<NodePtr> out_nodes = output.nodes;
+  const std::vector<NodePtr>& none_output_nodes = output.none_output_nodes;
+
+  NodePtr front_enque = nullptr;
+  for (auto& node_ptr : none_output_nodes) {
+    if (node_ptr->GetOpType() == kEnqueNodeType) {
+      ATenGeBridge::CheckAndBuildGeOpForNode(node_ptr, const_input_ops);
+      if (front_enque != nullptr) {
+        node_ptr->GetGeOp()->AddControlInput(*(front_enque->GetGeOp()));
+      }
+      front_enque = node_ptr;
+    }
+    out_nodes.emplace_back(node_ptr);
+  }
+
   std::set<NodePtr> searched_nodes;
-  for (const auto& output_node : output.nodes) {
+  for (const auto& output_node : out_nodes) {
     if (searched_nodes.find(output_node) != searched_nodes.end()) {
       continue;
     }
@@ -361,6 +395,13 @@ CombinedInfo GraphExecutor::GetOutputCombinedInfo() {
     output_infos.hash_of_shape.push_back(shape_hash);
   }
 
+  std::vector<NodePtr> none_output_nodes =
+    NpuGraphContextManager::GetInstance().
+    GetNoneOutputNode(init_device_id_);
+  for (auto& node_ptr : none_output_nodes) {
+    output_infos.none_output_nodes.emplace_back(node_ptr);
+    output_infos.hash_of_topo_and_attr.emplace_back(node_ptr->GetNodeHash());
+  }
   return output_infos;
 }
 
@@ -412,6 +453,7 @@ void GraphExecutor::ResetGraphOutputs() {
           GraphUtils::ResetOp(x);
         }
       });
+  NpuGraphContextManager::GetInstance().EraseNoneOutputNode(init_device_id_);
 }
 
 void GraphExecutor::RefreshGraphInputs() {
@@ -455,3 +497,4 @@ bool GraphExecutor::CheckDeviceIdAndInit() {
 }
 } // namespace native
 } // namespace at_npu
+

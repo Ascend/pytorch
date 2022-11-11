@@ -44,6 +44,7 @@ struct CombinedInfo {
   std::vector<hash_t> hash_of_topo_and_attr;
   std::vector<hash_t> hash_of_shape;
   std::vector<int64_t> unique_ids;
+  std::vector<NodePtr> none_output_nodes;
 };
 
 class GraphExecutor {

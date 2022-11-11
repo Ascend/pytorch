@@ -23,6 +23,9 @@
 #include "torch_npu/csrc/framework/StorageDescHelper.h"
 #include "torch_npu/csrc/core/NPUBridge.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/framework/graph/util/GraphUtils.h"
+#include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 
 namespace at_npu {
 namespace native {
@@ -37,13 +40,14 @@ static void storage_resize_npu(
   }
 
   at::DataPtr new_data;
+  auto storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_;
+  size_t itemsize = storage_desc.data_type_.itemsize();
   if (size != 0) {
     new_data = storage.allocator()->allocate(size);
   }
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
   storage.set_nbytes(size);
-
   StorageDescHelper::UpdateDesc(torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_, new_size);
 
   if (old_data != nullptr) {
@@ -52,11 +56,11 @@ static void storage_resize_npu(
       copy_size = storage.nbytes();
     }
     if (copy_size > 0) {
-      aclError error = c10_npu::queue::LaunchAsyncCopyTask(
-          storage.data(),
-          copy_size,
+      aclError error = CalcuOpUtil::LaunchAsyncCopyTaskWithModeSwitch(
+          storage,
+          itemsize * copy_size,
           old_data.get(),
-          copy_size,
+          itemsize * copy_size,
           ACL_MEMCPY_DEVICE_TO_DEVICE);
       if (error != ACL_ERROR_NONE) {
         AT_ERROR("ACL_Memcpy device to device error.");
@@ -69,7 +73,8 @@ static void storage_resize_npu(
 static inline void maybe_resize_storage_npu(
     at::TensorImpl* self,
     int64_t new_size,
-    c10::IntArrayRef size) {
+    c10::IntArrayRef size,
+    bool is_empty_tensor) {
   if (new_size == 0) {
     return;
   }
@@ -80,7 +85,14 @@ static inline void maybe_resize_storage_npu(
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * self->dtype().itemsize();
-    if (new_size_bytes > self->storage().nbytes()) {
+    int64_t old_size_bytes;
+    if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
+      old_size_bytes = GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl());
+    } else {
+      old_size_bytes = self->storage().nbytes();
+    }
+
+    if (new_size_bytes > old_size_bytes) {
       storage_resize_npu(
           *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
           new_size_bytes,
@@ -97,6 +109,13 @@ inline at::TensorImpl* resize_impl_npu_(
     return self;
   }
 
+  // In graph mode, we cannot justify whether 
+  // a tensor is empty only using storage.
+  bool is_empty_tensor = false;
+  if (self->sizes()[0] == 0) {
+    is_empty_tensor = true;
+  }
+  
   int64_t storage_size = 1;
   if (stride) {
     self->set_sizes_and_strides(size, *stride);
@@ -111,7 +130,7 @@ inline at::TensorImpl* resize_impl_npu_(
     self->set_sizes_contiguous(size);
     storage_size = self->numel();
   }
-  maybe_resize_storage_npu(self, storage_size, size);
+  maybe_resize_storage_npu(self, storage_size, size, is_empty_tensor);
 
   return self;
 }
@@ -145,7 +164,12 @@ static inline void checkInBoundsForStorage(
   }
 
   int64_t new_storage_size_bytes;
-  new_storage_size_bytes = new_storage.nbytes();
+  if (c10_npu::NpuRunMode::IsGraphMode()) {
+    new_storage_size_bytes = GraphUtils::GetTensorCapacity(new_storage.unsafeGetStorageImpl());
+  } else {
+    new_storage_size_bytes = new_storage.nbytes();
+  }
+  
   TORCH_CHECK(
       storage_size_bytes + storage_offset_bytes <= new_storage_size_bytes,
       "setStorage: sizes ",

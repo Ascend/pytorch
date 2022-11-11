@@ -39,6 +39,8 @@
 #include "patch/include/c10d/comm.hpp"
 #include "patch/include/c10d/logger.hpp"
 #include "patch/include/c10d/debug.h"
+#include "torch_npu/csrc/core/npu/NPURunMode.h"
+
 namespace c10d_npu {
 
 constexpr int kDefaultFirstBucketBytes = int(1024 * 1024);
@@ -204,7 +206,11 @@ public:
   // buckets once after the first iteration and never rebuild them if
   // find_unused_parameters_.
   inline bool should_rebuild_buckets() const {
-    return (static_graph_ || !find_unused_parameters_) && !has_rebuilt_bucket_;
+    if (!c10_npu::NpuRunMode::IsGraphMode()) {
+      return (static_graph_ || !find_unused_parameters_) && !has_rebuilt_bucket_;
+    } else {
+      return false;
+    }
   }
 
   // Pushes all parameters to be rebuilt.

@@ -20,6 +20,7 @@ from torch._tensor_str import PRINT_OPTS, _tensor_str_with_formatter, _add_suffi
 from torch.overrides import has_torch_function_unary, handle_torch_function
 
 import torch_npu
+import torch_npu.npu.npu_print
 
 
 class _Formatter(SrcFormatter):
@@ -45,6 +46,12 @@ def _tensor_str(self, indent):
         # an unnamed tensor to the formatting code as a workaround.
         self = self.rename(None)
 
+    if torch.npu.is_graph_mode():
+        tensor_manager = torch_npu.npu.npu_print.NpuTensorManager()
+        if tensor_manager.is_enter_npu_print:
+            tensor_manager.add_npu_tensor_to_print(self)
+            return '{}'
+    
     summarize = self.numel() > PRINT_OPTS.threshold
     if self.dtype is torch.float16 or self.dtype is torch.bfloat16:
         self = self.float()

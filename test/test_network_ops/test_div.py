@@ -112,7 +112,7 @@ class TestDiv(TestCase):
         npu_output = npu_input1 / torch.tensor(0.5).npu()
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
-    @graph_mode
+    
     def test_div_shape_format_fp32_1(self):
         format_list = [0, 3, 29]
         shape_list = [1, (64, 10), (32, 3, 3), (256, 2048, 7, 7)]
@@ -141,7 +141,8 @@ class TestDiv(TestCase):
     def npu_op_exec_mode_inp(self, input1, input2, mode):
         input1.div_(input2, rounding_mode=mode)
         return input1.cpu()
-
+    
+    @graph_mode
     def test_div_tensor_mode(self):
         shape_format = [
             [[np.float32, 0, (20, 16)], [np.float32, 0, (16)], [np.float32, 0, (20, 16)], 'floor'],

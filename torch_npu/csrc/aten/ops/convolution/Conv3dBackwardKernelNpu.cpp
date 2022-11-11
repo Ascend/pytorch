@@ -38,9 +38,9 @@ at::Tensor conv3d_backward_inputmask(at::Tensor &gradInput, const at::Tensor &in
   OpCommand cmd;
   cmd.Name("Conv3DBackpropInput")
     .Input(inputSize, at::kInt)
-    .Input(weightCast)
-    .Input(grad)
-    .Output(gradInput)
+    .Input(weightCast, "filter", ACL_FORMAT_NCDHW)
+    .Input(grad, "out_backprop", ACL_FORMAT_NCDHW)
+    .Output(gradInput, "y", ACL_FORMAT_NCDHW)
     .Attr("strides", stridesSize)
     .Attr("pads", paddings)
     .Attr("dilations", dilations)
@@ -62,10 +62,10 @@ at::Tensor conv3d_backward_weightmask(at::Tensor &gradWeight, const at::Tensor &
 
   OpCommand cmd;
   cmd.Name("Conv3DBackpropFilter")
-    .Input(input)
+    .Input(input, "x", ACL_FORMAT_NCDHW)
     .Input(inputSize, at::kInt)
-    .Input(grad)
-    .Output(gradWeight)
+    .Input(grad, "out_backprop", ACL_FORMAT_NCDHW)
+    .Output(gradWeight, "y", ACL_FORMAT_NCDHW)
     .Attr("strides", stridesSize)
     .Attr("pads", paddings)
     .Attr("dilations", dilations)

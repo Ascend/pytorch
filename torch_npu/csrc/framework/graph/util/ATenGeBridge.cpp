@@ -37,6 +37,7 @@ std::map<at::ScalarType, ge::DataType> kScalarTypeToGeDType{
 
 std::map<std::string, ge::DataType> kRealDtypeToGeType {
     {"uint16", ge::DataType::DT_UINT16},
+    {"string", ge::DataType::DT_STRING},
 };
 
 at::Tensor ConstructCpuTenosr(const c10::Scalar& scalar_input, c10::ScalarType type) {
@@ -136,6 +137,11 @@ ge::TensorDesc ATenGeBridge::InferGeTenosrDesc(
   } else {
     desc.SetShape(ATenGeBridge::GetGeShape(storage_desc.storage_sizes_));
     desc.SetFormat(ge::Format(storage_desc.npu_format_));
+  }
+
+  if (real_dtype.has_value() && (real_dtype.value() == "string")) {
+    desc.SetOriginShape(ge::Shape());
+    desc.SetShape(ge::Shape());
   }
 
   return desc;
