@@ -43,11 +43,12 @@ namespace at_npu
         return result.fill_(1.);
       }
 
-      auto outputSize = input_same_output_size(self);
       // construct the output tensor of the NPU
-      at::Tensor result = NPUNativeFunctions::empty_with_format(
-          outputSize, dtype_opt, layout_opt, device_opt, pin_memory_opt,
-          CalcuOpUtil::get_tensor_npu_format(self));
+      c10::TensorOptions option = c10::TensorOptions().dtype(dtype_opt)
+                                                      .device(device_opt)
+                                                      .layout(layout_opt)
+                                                      .pinned_memory(pin_memory_opt);
+      at::Tensor result = OpPreparation::ApplyTensor(self, option);
       // calculate the output result of the NPUc
       return NPUNativeFunctions::one_(result);
     }
