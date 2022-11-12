@@ -112,7 +112,7 @@ def cast_weight(self, device):
 
         if torch.npu.is_jit_compile_false():
             return
-        if issubclass(class_name, (torch.nn.BatchNorm3d, torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
+        if issubclass(class_name, (torch.nn.BatchNorm2d, torch.nn.BatchNorm1d)):
             if module.affine:
                 module.weight.data = module.weight.data.to(device)
                 module.weight.data = torch_npu.npu_format_cast(module.weight.data, 3)  # ACL_FORMAT_NC1HWC0
@@ -123,6 +123,9 @@ def cast_weight(self, device):
                 module.running_mean.data = torch_npu.npu_format_cast(module.running_mean.data, 3)
                 module.running_var.data = module.running_var.data.to(device)
                 module.running_var.data = torch_npu.npu_format_cast(module.running_var.data, 3)
+        if issubclass(class_name, torch.nn.BatchNorm3d):
+            # at present can not cast 1d to NDC1HWC0
+            return
         if issubclass(class_name, torch.nn.Conv2d):
             if module.groups > 1:
                 return
