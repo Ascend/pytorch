@@ -391,6 +391,12 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
     dist.init_process_group(backend='hccl', ...... ,rank = args.rank)
     ```
 
+- DeepSpeed 框架适配迁移
+
+  详细介绍请查看 DeepSpeed NPU 代码仓：[https://gitee.com/ascend/DeepSpeed](https://gitee.com/ascend/DeepSpeed)
+
+  DeepSpeed 框架下 T5 模型使用指导请查看：[https://gitee.com/ascend/DeepSpeed/tree/adaptor/t5](https://gitee.com/ascend/DeepSpeed/tree/adaptor/t5)
+
 ### 开启混合精度
 
 在迁移完成准备训练之前，需要开启混合精度，用户可以根据场景选择引入APEX混合精度模块或使用1.8.1框架自带的AMP功能，以保证模型的性能。APEX混合精度模块与amp功能只需使用一个，除在分布式训练时引入APEX模块combine_ddp参数的加速功能时的有区别外，其他训练场景无需区分DDP的使用。DistributedDataParallel模式的使用与原生框架无异，可参考[PyTorch官方文档](https://pytorch.org/docs/1.8.1/notes/ddp.html?highlight=distributed)使用。
