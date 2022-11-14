@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <ATen/WrapDimUtilsMulti.h>
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"

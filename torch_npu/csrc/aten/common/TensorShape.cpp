@@ -126,9 +126,6 @@ at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef siz
       " spans across two contiguous subspaces). Use .reshape(...) instead.");
   auto stride_value = *stride;
   auto dst = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size)) {
-    dst = FormatCastHelper::ApplyBaseFormatTensorBy(dst);
-  }
   return alias_with_sizes_and_strides_npu(dst, inferred_size, stride_value);
 }
 
