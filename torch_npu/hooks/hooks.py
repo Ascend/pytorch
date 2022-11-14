@@ -18,6 +18,7 @@ import os
 import json
 import stat
 import torch
+import numpy as np
 
 
 def set_dump_path(fpath=None):
@@ -42,13 +43,16 @@ def dump_tensor(x, prefix=""):
         for i, item in enumerate(x):
             dump_tensor(item, prefix="{}.{}".format(prefix, i))
     elif isinstance(x, torch.Tensor):
-        if os.envison['SAMPLE'] == '0':
+        if os.environ['SAMPLE'] == '0':
             list_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
         else:
-            np.random.seed(int(os.environ['PYTHONHASHSEED']))
-            sample_ratio=x.shape[0]//16 if x.shape[0]>=16 else x.shape[0]
-            sample_index=np.sort(np.random.choice(x.shape[0],sample_ratio,replace='False'))
-            list_tensor = x.contiguous()[sample_index].view(-1).cpu().detach().float().numpy().tolist()
+            if len(x.shape)==0:
+                list_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
+            else:
+                np.random.seed(int(os.environ['PYTHONHASHSEED']))
+                sample_ratio=x.shape[0]//16 if x.shape[0]>=16 else x.shape[0]
+                sample_index=np.sort(np.random.choice(x.shape[0],sample_ratio,replace='False'))
+                list_tensor = x.contiguous()[sample_index].view(-1).cpu().detach().float().numpy().tolist()
 
         json.dump([prefix, list_tensor, str(x.dtype), tuple(x.shape)], f)
         f.write('\n')
