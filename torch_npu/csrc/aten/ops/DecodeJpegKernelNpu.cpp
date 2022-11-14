@@ -19,17 +19,20 @@
 namespace at_npu {
 namespace native {
 
+namespace {
+  constexpr int64_t ratio = 1;
+  constexpr bool fancyUpscaling = true;
+  constexpr bool tryRecoverTruncated = false;
+  constexpr float acceptableFraction = 1.0;
+  const std::string dctMethod = "";
+  const std::string dstImgFormat = "CHW";
+}
+
 at::Tensor &decode_jpeg_out(
     const at::Tensor &self,
     int64_t channels,
     at::Tensor &result)
 {
-  int64_t ratio = 1;
-  bool fancyUpscaling = true;
-  bool tryRecoverTruncated = false;
-  float acceptableFraction = 1.0;
-  std::string dctMethod = "";
-  
   OpCommand cmd;
   cmd.Name("DecodeJpeg")
       .Input(self, "", c10::nullopt, "string")
@@ -40,6 +43,7 @@ at::Tensor &decode_jpeg_out(
       .Attr("try_recover_truncated", tryRecoverTruncated)
       .Attr("acceptable_fraction", acceptableFraction)
       .Attr("dct_method", dctMethod)
+      .Attr("dst_img_format", dstImgFormat)
       .Run();
 
   return result;
