@@ -74,7 +74,12 @@ def wrapper_hccl(fn):
 
 
 def patch_cuda():
-    patchs = [['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp]]
+    patchs = [
+        ['cuda', torch_npu.npu], ['cuda.amp', torch_npu.npu.amp],
+        ['cuda.amp.autocast_mode', torch_npu.npu.amp.autocast_mode],
+        ['cuda.amp.common', torch_npu.npu.amp.common],
+        ['cuda.amp.grad_scaler', torch_npu.npu.amp.grad_scaler]
+    ]
     torch_npu._apply_patches(patchs)
 
 
