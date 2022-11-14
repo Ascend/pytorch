@@ -23,6 +23,8 @@ import torch
 def set_dump_path(fpath=None):
     if fpath is None:
         return
+    if os.path.exists(fpath):
+        os.remove(fpath)
     os.environ["DUMP_PATH"] = fpath
 
 
