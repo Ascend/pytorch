@@ -82,13 +82,11 @@ at::Tensor conv3d_backward_biasmask(at::Tensor &gradBias, const at::Tensor &inpu
     at::IntArrayRef dilation, int64_t groups) {
   // constructs the input and output NPUTensorDesc
   if (input.numel() == input.size(0) * input.size(1) * input.size(2)) {
-    at::Tensor gradView =
-        grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2)});
-    at::sum_out(gradBias, gradView, c10::SmallVector<int64_t, N>{0});
+    at::Tensor gradView = grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2)});
+    NPUNativeFunctions::sum_out(gradView, c10::SmallVector<int64_t, N>{0}, false, gradView.scalar_type(), gradBias);
   } else {
-    at::Tensor gradView =
-        grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2), -1});
-    at::sum_out(gradBias, gradView, c10::SmallVector<int64_t, N>{0, 2, 3});
+    at::Tensor gradView = grad.contiguous().view({grad.size(0), grad.size(1), grad.size(2), -1});
+    NPUNativeFunctions::sum_out(gradView, c10::SmallVector<int64_t, N>{0, 2, 3}, false, gradView.scalar_type(), gradBias);
   }
 
   return gradBias;
