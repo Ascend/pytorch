@@ -132,6 +132,8 @@ namespace at_npu
       if (inputTensors.size() > 0)
       {
         dim_post_expr = inputTensors[0].dim();
+      } else {
+        return result;
       }
       dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
 
@@ -180,6 +182,8 @@ namespace at_npu
       if (inputTensors.size() > 0)
       {
         dim_post_expr = inputTensors[0].dim();
+      } else {
+        return result;
       }
       dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
       auto outputSize = cat_npu_output_size(inputTensors, dim);
@@ -205,6 +209,9 @@ namespace at_npu
       if (inputTensors.size() > 0)
       {
         dim_post_expr = inputTensors[0].dim();
+      } else {
+        at::Tensor result = OpPreparation::ApplyTensor(tensors[0]);
+        return result;
       }
       dim = CalcuOpUtil::make_wrap_dim(dim, dim_post_expr);
 
