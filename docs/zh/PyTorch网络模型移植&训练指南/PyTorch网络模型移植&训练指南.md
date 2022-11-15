@@ -382,7 +382,12 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
     
     dist.init_process_group(backend='hccl', ...... ,rank = args.rank)
     ```
-  
+
+- DeepSpeed 框架适配迁移
+
+  详细介绍请查看 DeepSpeed NPU 代码仓：[https://gitee.com/ascend/DeepSpeed](https://gitee.com/ascend/DeepSpeed)
+
+  DeepSpeed 框架下 T5 模型使用指导请查看：[https://gitee.com/ascend/DeepSpeed/tree/adaptor/t5](https://gitee.com/ascend/DeepSpeed/tree/adaptor/t5)
     
 
 ### 开启混合精度
