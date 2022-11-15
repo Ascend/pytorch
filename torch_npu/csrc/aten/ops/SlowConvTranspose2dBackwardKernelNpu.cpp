@@ -98,7 +98,7 @@ at::Tensor slow_conv_transpose2d_backward_bias_out_npu(
     const at::Tensor& columns,
     const at::Tensor& ones) {
   at::Tensor gradView = grad_output.contiguous().view({grad_output.size(0), grad_output.size(1), -1});
-  at::sum_out(grad_bias, gradView, c10::SmallVector<int64_t, N> {0, 2});
+  NPUNativeFunctions::sum_out(gradView, c10::SmallVector<int64_t, N>{0, 2}, false, gradView.scalar_type(), grad_bias);
 
   return grad_bias;
 }
