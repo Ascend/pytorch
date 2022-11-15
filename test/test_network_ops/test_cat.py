@@ -182,6 +182,20 @@ class TestCat(TestCase):
             npu_output = self.npu_op_exec([npu_input1], [npu_input2], dim)
             self.assertRtolEqual(cpu_output, npu_output)
 
+    def test_cat_null(self):
+        cpu_x = torch.tensor([])
+        npu_x = cpu_x.npu()
+        cpu_y = torch.cat([cpu_x, cpu_x], 0)
+        npu_y = torch.cat([npu_x, npu_x], 0)
+
+        cpu_out = torch.rand(2, 3, 4)
+        npu_out = cpu_out.npu()
+        torch.cat([cpu_x, cpu_x], 0, out=cpu_out)
+        torch.cat([npu_x, npu_x], 0, out=npu_out)
+
+        self.assertRtolEqual(cpu_y, npu_y.cpu())
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
