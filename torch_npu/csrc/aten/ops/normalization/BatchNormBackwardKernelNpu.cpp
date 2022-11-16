@@ -232,14 +232,16 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm_
   at::Tensor running_var_cp = running_var;
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format 1D Input tensor.
-  at::Tensor weight_tensor = weight.defined() ? NPUNativeFunctions::npu_format_cast_(weight_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor running_mean_tensor = running_mean.defined() ? NPUNativeFunctions::npu_format_cast_(running_mean_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
-  at::Tensor running_var_tensor = running_var.defined() ? NPUNativeFunctions::npu_format_cast_(running_var_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
+  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
+  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
+  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
 
   // construct the output tensor of the NPU
   at::Tensor grad_input = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
-  at::Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
-  at::Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
+  at::Tensor grad_weight = OpPreparation::ApplyTensor(
+      weight_tensor.sizes(), weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
+  at::Tensor grad_bias = OpPreparation::ApplyTensor(
+      weight_tensor.sizes(), weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
 
   // calculate the output result of the NPU
   batch_norm_backward_impl(
