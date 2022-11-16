@@ -14,21 +14,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/ExpandUtils.h>
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
+std::tuple<at::Tensor, at::Tensor> expand_outplace_npu(const at::Tensor &to_expand1, const at::Tensor &to_expand2) {
+  if (to_expand1.sizes().equals(to_expand2.sizes())) {
+    return std::make_tuple(to_expand1, to_expand2);
+  }
+
+  auto expanded_size = at::infer_size(to_expand1.sizes(), to_expand2.sizes());
+  return std::make_tuple(
+      to_expand1.expand(expanded_size, true),
+      to_expand2.expand(expanded_size, true));
+}
+
 at::SmallVector<int64_t, SIZE> masked_select_npu_output_size(
     const at::Tensor& self,
     const at::Tensor& mask) {
-  c10::MaybeOwned<at::Tensor> maskCast;
-  c10::MaybeOwned<at::Tensor> selfCast;
-  std::tie(maskCast, selfCast) = expand_outplace(mask, self);
-  auto outputSize = {maskCast->sum().item().toLong()};
+  at::Tensor maskCast;
+  at::Tensor selfCast;
+  std::tie(maskCast, selfCast) = expand_outplace_npu(mask, self);
+  auto outputSize = {maskCast.numel()};
   return outputSize;
 }
 
