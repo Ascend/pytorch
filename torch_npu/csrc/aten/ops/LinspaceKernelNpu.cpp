@@ -20,20 +20,9 @@
 
 namespace at_npu {
 namespace native {
-at::Tensor linspace_assist(int64_t steps) {
-  c10::SmallVector<float, N> assist;
-  assist.resize(steps);
-
-  for (int64_t i = 0; i < steps; i++) {
-    assist[i] = (float)(i);
-  }
-  at::Tensor assistTensor =
-      at::from_blob(assist.data(), {steps}, dtype(at::ScalarType::Float));
-  return CalcuOpUtil::copy_tensor_host_to_device(assistTensor);
-}
 
 at::Tensor& NPUNativeFunctions::linspace_out(at::Scalar start, at::Scalar end, c10::optional<int64_t> step, at::Tensor& result) {
-  int64_t steps = step.has_value()? step.value():-65530;
+  int64_t steps = step.has_value() ? step.value() : -65530;
   TORCH_CHECK(steps >= 0, "number of steps must be non-negative");
 
   if (result.numel() != steps) {
