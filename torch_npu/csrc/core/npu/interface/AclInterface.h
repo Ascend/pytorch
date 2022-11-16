@@ -60,9 +60,9 @@ const char *AclGetErrMsg();
 aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag);
 
 /**
-  This API is used to query status of event task
+  This API is used to query wait status of event task
   */
-aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus);
+aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus);
 
 /**
   This API is used to check whether aclrtQueryEventStatus exist
