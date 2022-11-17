@@ -95,16 +95,21 @@ aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
   return func(event, flag);
 }
 
-aclError AclQueryEventWaitStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus)
+
+aclError AclQueryEventStatus(aclrtEvent event, aclrtEventWaitStatus *waitStatus, aclrtEventStatus *recordStatus)
 {
-  typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *waitStatus);
+  typedef aclError (*aclQueryEventWaitStatus)(aclrtEvent event, aclrtEventWaitStatus *status);
   static aclQueryEventWaitStatus func = nullptr;
   if (func == nullptr) {
     func = (aclQueryEventWaitStatus)GET_FUNC(aclrtQueryEventWaitStatus);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclrtQueryEventWaitStatus");
-  return func(event, waitStatus);
+  if (func != nullptr) {
+    return func(event, waitStatus);
+  } else {
+    // aclrtQueryEvent will be replaced by aclrtQueryEventStatus for better performance.
+    return aclrtQueryEvent(event, recordStatus);
   }
+}
 
 aclError AclQueryEventRecordedStatus(aclrtEvent event, aclrtEventRecordedStatus *status) {
   typedef aclError (*aclQueryEventStatus)(aclrtEvent event, aclrtEventRecordedStatus *status);
