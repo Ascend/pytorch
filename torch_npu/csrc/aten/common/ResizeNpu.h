@@ -44,7 +44,7 @@ static void storage_resize_npu(
   auto storage_desc = torch_npu::NPUBridge::GetNpuStorageImpl(&storage)->npu_desc_;
   size_t itemsize = storage_desc.data_type_.itemsize();
   if (size != 0) {
-    new_data = storage.allocator()->allocate(size);
+    new_data = storage.allocator()->allocate(itemsize * size);
   }
   at::DataPtr old_data = storage.set_data_ptr(std::move(new_data));
   ptrdiff_t old_size = storage.nbytes();
