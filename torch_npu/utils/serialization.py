@@ -56,6 +56,12 @@ def _npu_deserialize(obj, location):
     return obj 
 
 
+def normalize_map_location_type(map_location):
+    if isinstance(map_location, torch_npu.utils.device_guard.device):
+        map_location = map_location.type + ':' + str(map_location.index)
+    return map_location
+
+
 def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
     """Saves the input data into a file.
 
@@ -83,6 +89,8 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     Returns:
     The loaded data.
     """
+    map_location = normalize_map_location_type(map_location)
+    
     se._check_dill_version(pickle_module)
 
     if 'encoding' not in pickle_load_args.keys():

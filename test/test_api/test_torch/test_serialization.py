@@ -84,6 +84,9 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path, map_location="npu:0")
             self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
             self.assertRtolEqual(x, x_loaded.cpu())
+            x_loaded = torch.load(path, map_location=torch.device("npu:0"))
+            self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
+            self.assertRtolEqual(x, x_loaded.cpu())
 
     def test_save_string(self):
         x = dict(ds_version='0.6.0+0b40f54')
