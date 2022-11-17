@@ -28,7 +28,8 @@ at::Tensor &sum_out_npu_nocheck(
     at::IntArrayRef dim,
     bool keepdim) {
   at::dim_list_to_bitset(dim, self.dim());
-  c10::SmallVector<int64_t, N> dimList = dim.empty() ? CalcuOpUtil::get_dimlist_for_tensor(self) : c10::SmallVector<int64_t, N>(dim);
+  c10::SmallVector<int64_t, N> dimList = dim.empty() ? CalcuOpUtil::get_dimlist_for_tensor(self) :
+      c10::SmallVector<int64_t, N>(dim);
   OpCommand cmd;
   cmd.Name("ReduceSum")
       .Input(self)
@@ -45,25 +46,23 @@ at::Tensor &NPUNativeFunctions::sum_out(
     bool keepdim,
     c10::optional<c10::ScalarType> dtype,
     at::Tensor &result) {
-  at::Tensor self_cp = self;
-  at::Tensor result_cp = result;
-
-  auto outputSize = sum_npu_output_size(self_cp, dim, keepdim);
+  auto outputSize = sum_npu_output_size(self, dim, keepdim);
   auto res_type = dtype.has_value() ? dtype.value() : result.scalar_type();
 
   OpPreparation::CheckOut(
-      {self_cp},
-      result_cp,
+      {self},
+      result,
       ACL_FORMAT_ND,
       res_type,
       outputSize);
   OpPipeWithDefinedOut pipe;
-  pipe.CheckMemory({self_cp}, {result_cp});
+  pipe.CheckMemory({self}, {result});
 
-  if (self.scalar_type() == at::kBool) {
-    self_cp = NPUNativeFunctions::npu_dtype_cast(self_cp, at::kFloat);
-    result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, at::kFloat);
-  }
+  at::Tensor result_cp = result.scalar_type() == at::kFloat ? result :
+      NPUNativeFunctions::npu_dtype_cast(result, at::kFloat);
+  at::Tensor self_cp = self.scalar_type() == result_cp.scalar_type() ? self :
+      NPUNativeFunctions::npu_dtype_cast(self, result_cp.scalar_type());
+
   sum_out_npu_nocheck(result_cp, self_cp, dim, keepdim);
   if (result_cp.scalar_type() != res_type) {
     result_cp = NPUNativeFunctions::npu_dtype_cast(result_cp, res_type);
@@ -88,7 +87,7 @@ at::Tensor NPUNativeFunctions::sum(
     at::IntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
-  at::Tensor self_cp = self.scalar_type() == at::kBool ? NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
+  at::Tensor self_cp = self.scalar_type() == at::kFloat ? self : NPUNativeFunctions::npu_dtype_cast(self, at::kFloat);
   auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
   auto selfSize = self_cp.sizes();
   auto out_type = self.scalar_type();
