@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-__all__ = ["register_acc_cmp_hook", "set_dump_path", "seed_all"]
+__all__ = ["register_acc_cmp_hook", "set_dump_path", "seed_all","set_sample"]
 
 
 import os
@@ -50,3 +50,10 @@ def seed_all(seed=1234):
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+def set_sample(sample = False):
+    if not sample:
+        os.environ['SAMPLE']=str(0)
+    else:
+        os.environ['SAMPLE']=str(1)
+
