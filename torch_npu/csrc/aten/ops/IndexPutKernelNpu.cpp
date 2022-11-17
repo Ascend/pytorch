@@ -32,9 +32,6 @@ at::Tensor& index_put_nocheck(
   if (value.numel() == 0) {
     return result;
   }
-  
-  auto masksTensor = CalcuOpUtil::copy_tensor_host_to_device(
-      at::from_blob(masks.data(), {masks.size()}, dtype(at::ScalarType::Long)));
 
   at::Tensor tempSelf = self;
   at::Tensor tempValue = value;
@@ -48,7 +45,7 @@ at::Tensor& index_put_nocheck(
   cmd.Name("IndexPut")
       .Input(tempSelf)
       .Input(tempValue)
-      .Input(masksTensor)
+      .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Inputs(allDefinedIndices)
       .Output(result)
       .Attr("accumulate", accumulate)
