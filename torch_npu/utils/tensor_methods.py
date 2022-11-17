@@ -17,8 +17,10 @@
 import warnings
 import numpy
 import torch
+
 import torch_npu
 from torch_npu.utils.device_guard import torch_device_guard, device
+from .storage import _reduce_ex
 
 
 warnings.filterwarnings(action="once")
@@ -64,6 +66,7 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
 @torch_device_guard
 def _npu(self, *args, **kwargs):
     return torch_npu._C.npu(self, *args, **kwargs)
+
 
 @property
 def _is_npu(self):
@@ -125,9 +128,11 @@ def _device(self):
         return device(type='npu', index=self.get_device())
     return torch.device("cpu")
 
+
 @torch_device_guard
 def _new_full(self, *args, **kwargs):
     return torch_npu._C.new_full(self, *args, **kwargs)
+
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
@@ -137,6 +142,7 @@ def _new_ones(self, *args, **kwargs):
         return torch._C._TensorBase.new_ones(self, *args, **kwargs).to(dst_device)
 
     return torch._C._TensorBase.new_ones(self, *args, **kwargs)
+
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
@@ -159,6 +165,7 @@ def _new_tensor(self, *args, **kwargs):
 
     return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
 
+
 @torch_device_guard
 def _new_zeros(self, *args, **kwargs):
     if isinstance(args[0], int):
@@ -170,6 +177,7 @@ def _new_zeros(self, *args, **kwargs):
             sizes.append(item)
         args = tuple([tuple(sizes)] + list_args[len(sizes):])
     return torch_npu._C.new_zeros(self, *args, **kwargs)
+
 
 def add_tensor_methods():
     torch.Tensor.npu_format_cast_ = npu_format_cast_
@@ -192,3 +200,4 @@ def add_tensor_methods():
     torch.Tensor.new_ones = _new_ones
     torch.Tensor.new_tensor = _new_tensor
     torch.Tensor.new_zeros = _new_zeros
+    torch.Tensor.__reduce_ex__ = _reduce_ex

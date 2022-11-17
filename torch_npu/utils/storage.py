@@ -13,52 +13,77 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
-import torch
+from typing import Any, Dict, Tuple, Union
+from collections import OrderedDict
+import torch 
 import torch._C as _C
+from torch import _storage_classes
+from torch.cuda import _CudaBase
+from torch.overrides import has_torch_function_unary, handle_torch_function, has_torch_function
+from torch._namedtensor_internals import check_serializing_named_tensor
+
 import torch_npu
 
-def _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride):
-    t = torch.tensor([0], dtype=storage.dtype).to(storage.device)
-    return t.npu_set_(storage, storage_offset, npu_format, size, stride)
 
-def _rebuild_tensor_v2(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_format=2):
-    if storage.device.type == 'npu':
-        tensor = _rebuild_npu_tensor(storage, npu_format, storage_offset, size, stride)
-    else:
-        tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
+def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks, npu_storage_info=True):
+    tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
     tensor.requires_grad = requires_grad
-    # NB: This line exists only for backwards compatibility; the
-    # general expectation is that backward_hooks is an empty
-    # OrderedDict.  See Note [Don't serialize hooks]
     tensor._backward_hooks = backward_hooks
+    if npu_storage_info:
+        tensor = tensor.npu()
     return tensor
 
-class _StorageBase(torch.storage._StorageBase):
-    _cdata: Any
-    is_cuda: bool = False
-    is_npu = False
-    is_sparse: bool = False
 
-    def share_memory_(self):
-        """Moves the storage to shared memory.
+def normalize_storage_type(storage):
+    if isinstance(storage, torch.storage._TypedStorage):
+        npu_flag = storage._storage.is_npu
+    else:
+        npu_flag = storage.is_npu
+    return npu_flag
 
-        This is a no-op for storages already in shared memory and for CUDA
-        storages, which do not need to be moved for sharing across processes.
-        Storages in shared memory cannot be resized.
 
-        Returns: self
-        """
-        from torch.multiprocessing import get_sharing_strategy
-        if self.is_cuda:
-            pass  # CUDA doesn't use POSIX shared memory
-        elif self.is_npu:
-            pass
-        elif get_sharing_strategy() == 'file_system':
-            self._share_filename_()
-        else:
-            self._share_fd_()
-        return self
+def _rebuild_tensor_v2(storage, storage_offset, size, stride, requires_grad, backward_hooks):
+    npu_flag = normalize_storage_type(storage)
+    if npu_flag:
+        tensor = _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, backward_hooks)
+    else:
+        tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
+        tensor.requires_grad = requires_grad
+        tensor._backward_hooks = backward_hooks
+    return tensor
+
+
+def _reduce_ex(self, proto):
+    if type(self) is torch.Tensor:
+        if has_torch_function_unary(self):
+            return handle_torch_function(torch.Tensor.__reduce_ex__, (self,), self, proto)
+        check_serializing_named_tensor(self)
+        torch.utils.hooks.warn_if_has_hooks(self)
+        backward_hooks: Dict[Any, Any] = OrderedDict()
+        if self.device.type == 'npu':
+            storage_info = self.cpu().storage()
+            storage_info.is_npu = True
+            device_info = 'npu:' + str(self.device.index)
+            arg_npu  = (storage_info,
+                        self.storage_offset(),
+                        tuple(self.size()),
+                        self.stride(),
+                        self.requires_grad,
+                        backward_hooks,
+                        storage_info.is_npu)
+            return (_rebuild_npu_tensor, arg_npu)
+        return self._reduce_ex_internal(proto)
+    relevant_args = (self,)
+    if type(self) is not torch.Tensor and has_torch_function(relevant_args):
+        return handle_torch_function(torch.Tensor.__reduce_ex__, relevant_args, self, proto)
+    func, args = self._reduce_ex_internal(proto)
+    return (torch._rebuild_from_type, (func, type(self), args, self.__dict__))
+
 
 def add_storage_methods():
     torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
+    torch._UntypedStorage.is_npu = False
+    for storage in iter(_storage_classes):
+        if isinstance(storage, _CudaBase):
+            continue
+        storage.is_npu = False

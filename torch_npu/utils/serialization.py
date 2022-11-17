@@ -15,13 +15,8 @@
 # limitations under the License.
 
 import pickle
-import argparse
-import copy
 import torch
-import torch.nn as nn
 import torch.serialization as se
-import collections.abc as container_abcs
-from torch._six import string_classes
 
 import torch_npu
 
@@ -29,109 +24,50 @@ import torch_npu
 DEFAULT_PROTOCOL = 2
 
 
-def is_device(data):
-    if isinstance(data, torch_npu.utils.device_guard.device):
-        return True
-    return False
+def _npu_tag(obj):
+    if type(obj).__module__ == 'torch_npu':
+        return 'npu:' + str(obj.get_devic())
+    return None
 
 
-def module_to_cpu(module):
-    cpu_module = copy.deepcopy(module).cpu()
-    for attr in dir(cpu_module):
-        attr_item = getattr(cpu_module, attr)
-        if isinstance(attr_item, torch.Tensor):
-            setattr(cpu_module, attr, attr_item.cpu())
-    return cpu_module
+def validate_npu_device(location):
+    device = torch.device(location)
+    index = device.index
+    if not torch_npu.npu.is_available():
+        raise RuntimeError('Attempting to deserialize object on a NPU '
+                           'device but torch_npu.npu.is_available() is False. '
+                           'If you are running on a CPU-only machine, '
+                           'please use torch.load with map_location=torch.device(\'cpu\') '
+                           'to map your storages to the CPU.')
+    device_count = torch_npu.npu.device_count()
+    if index >= device_count:
+        raise RuntimeError('Attempting to deserialize object on NPU device '
+                           f'{device} but torch_npu.npu.device_count() is {device_count}. Please use '
+                           'torch.load with map_location to map your storages '
+                           'to an existing device.')
+    return index
 
 
-def opt_to_cpu(opt):
-    cpu_opt = copy.deepcopy(opt)
-    new_state = type(cpu_opt.state)()
-    for stat_k in cpu_opt.state:
-        value = type(cpu_opt.state[stat_k])()
-        for k in cpu_opt.state[stat_k]:
-            if isinstance(cpu_opt.state[stat_k][k], torch.Tensor):
-                value[k] = cpu_opt.state[stat_k][k].cpu()
-            else:
-                value[k] = cpu_opt.state[stat_k][k]
-        if isinstance(stat_k, torch.Tensor):
-            new_state[stat_k.cpu()] = value
-        else:
-            new_state[stat_k] = value
-
-    cpu_opt.state = new_state
-    for i in range(len(cpu_opt.param_groups)):
-        for j in range(len(cpu_opt.param_groups[i]['params'])):
-            cpu_opt.param_groups[i]['params'][j] = cpu_opt.param_groups[i]['params'][j].cpu()
-
-    return cpu_opt
+def _npu_deserialize(obj, location):
+    if location.startswith('npu'):
+        device = validate_npu_device(location)
+        obj.is_npu = True
+        obj.npu_index = device
+    return obj 
 
 
-def to_cpu(data):
-    if isinstance(data, string_classes):
-        return data
-
-    if isinstance(data, torch.Tensor):
-        return data.cpu()
-
-    if isinstance(data, nn.Module):
-        return module_to_cpu(data)
-    
-    if isinstance(data, torch.optim.Optimizer):
-        return opt_to_cpu(data)
-
-    if isinstance(data, argparse.Namespace):
-        dict_obj = vars(data)
-        return argparse.Namespace(**to_cpu(dict_obj))
-
-    if isinstance(data, container_abcs.Sequence) and not is_device(data):
-        copy_data = list([None] * len(data))
-        for i, value in enumerate(data):
-            if isinstance(value, tuple):
-                list_value = list(value)
-                cpu_list_value = to_cpu(list_value)
-                copy_data[i] = type(value)(cpu_list_value)
-            elif isinstance(value, string_classes):
-                copy_data[i] = value
-            elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
-                copy_data[i] = to_cpu(value)
-            elif isinstance(value, torch.Tensor):
-                copy_data[i] = value.cpu()
-            elif isinstance(value, nn.Module):
-                copy_data[i] = module_to_cpu(value)
-            elif isinstance(value, torch.optim.Optimizer):
-                copy_data[i] = opt_to_cpu(value)
-            else:
-                copy_data[i] = value
-        return type(data)(copy_data)
-
-    if isinstance(data, container_abcs.Mapping):
-        copy_data = type(data)()
-        for key, value in data.items():
-            if isinstance(value, tuple) and not is_device(value):
-                list_value = list(value)
-                cpu_list_value = to_cpu(list_value)
-                copy_data[key] = type(value)(cpu_list_value)
-            elif isinstance(value, (container_abcs.Sequence, container_abcs.Mapping)):
-                copy_data[key] = to_cpu(value)
-            elif isinstance(value, torch.Tensor):
-                copy_data[key] = value.cpu()
-            elif isinstance(value, nn.Module):
-                copy_data[key] = module_to_cpu(value)
-            elif isinstance(value, torch.optim.Optimizer):
-                copy_data[key] = opt_to_cpu(value)
-            else:
-                copy_data[key] = value
-        return copy_data
-
-    return data
+def normalize_map_location_type(map_location):
+    if isinstance(map_location, torch_npu.utils.device_guard.device):
+        map_location = map_location.type + ':' + str(map_location.index)
+    return map_location
 
 
-def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=False):
+def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_new_zipfile_serialization=True):
     """Saves the input data into a file.
 
-    The saved data is transferred to PyTorch CPU device before being saved, so a
-    following `torch.load()` will load CPU data.
+    The saved data is saved by using the PyTorch CPU storage structure, but 
+    following `torch.load()`  will load the corresponding NPU data.
+
     Care must be taken when working with views. Instead of saving views it's
     recommended that you recreate them after the tensors have been loaded and
     moved to their destination device(s).
@@ -142,7 +78,7 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     path: The destination file for the data saving operation. all the writes from 
     the same host will override each other.
     """
-    se.save(to_cpu(obj), f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
 
 
 def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
@@ -153,4 +89,22 @@ def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
     Returns:
     The loaded data.
     """
-    return se.load(f, 'cpu', pickle_module, **pickle_load_args)
+    map_location = normalize_map_location_type(map_location)
+    
+    se._check_dill_version(pickle_module)
+
+    if 'encoding' not in pickle_load_args.keys():
+        pickle_load_args['encoding'] = 'utf-8'
+
+    with se._open_file_like(f, 'rb') as opened_file:
+        if se._is_zipfile(opened_file):
+            orig_position = opened_file.tell()
+            with se._open_zipfile_reader(opened_file) as opened_zipfile:
+                if se._is_torchscript_zip(opened_zipfile):
+                    warnings.warn("'torch.load' received a zip file that looks like a TorchScript archive"
+                                  " dispatching to 'torch.jit.load' (call 'torch.jit.load' directly to"
+                                  " silence this warning)", UserWarning)
+                    opened_file.seek(orig_position)
+                    return torch.jit.load(opened_file)
+                return se._load(opened_zipfile, map_location, pickle_module, **pickle_load_args)
+        return se._legacy_load(opened_file, 'cpu', pickle_module, **pickle_load_args)
