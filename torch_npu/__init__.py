@@ -123,6 +123,7 @@ def apply_class_patches():
     add_tensor_methods()
     add_torch_funcs()
     add_str_methods()
+    add_storage_methods()
     add_dataloader_method()
     wrap_dtype_for_hccl()
 

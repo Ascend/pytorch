@@ -63,19 +63,31 @@ class WN(torch.nn.Module):
 
 class TestSerialization(TestCase):
     '''
-    The saved data is transferred to PyTorch CPU device before being saved, so a
-    following `torch.load()` will load CPU data.
+    The saved data is saved by using the PyTorch CPU storage structure, but 
+    following `torch.load()`  will load the corresponding NPU data.
     '''
     def test_save(self):
         x = torch.randn(5).npu()
         with tempfile.TemporaryDirectory() as tmpdir:
             path = os.path.join(tmpdir, 'data.pt')
             torch.save(x, path)
-            self.assertExpectedInline(str(x.device), f'{torch_npu.npu.native_device}:0')
+            self.assertExpectedInline(f'{x.device.type}:{x.device.index}', f'{torch_npu.npu.npu_device}:0')
             x_loaded = torch.load(path, map_location="npu:0")
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
     
+    def test_load_maplocation(self):
+        x = torch.randn(2, 3)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'data.pt')
+            torch.save(x, path)
+            x_loaded = torch.load(path, map_location="npu:0")
+            self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
+            self.assertRtolEqual(x, x_loaded.cpu())
+            x_loaded = torch.load(path, map_location=torch.device("npu:0"))
+            self.assertExpectedInline(f'{x_loaded.device.type}', f'{torch_npu.npu.npu_device}')
+            self.assertRtolEqual(x, x_loaded.cpu())
+
     def test_save_string(self):
         x = dict(ds_version='0.6.0+0b40f54')
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -100,7 +112,7 @@ class TestSerialization(TestCase):
             path = os.path.join(tmpdir, 'data.pt')
             torch.save((x, model, number), path)
             x_loaded, model_loaded, number_loaded = torch.load(path)
-            self.assertRtolEqual(x.cpu(), x_loaded)
+            self.assertRtolEqual(x.cpu(), x_loaded.cpu())
             self.assertExpectedInline(str(model), str(model_loaded))
             self.assertTrue(number, number_loaded)
     
