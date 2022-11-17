@@ -21,25 +21,23 @@ aclError NPUEventManager::QueryAndDestroyEvent() {
   while (!npu_events_.empty())
   {
     aclrtEvent event = npu_events_.front();
-    acl::aclrtEventRecordedStatus recordStatus = acl::ACL_EVENT_RECORDED_STATUS_NOT_READY;
-    aclError err = acl::AclQueryEventRecordedStatus(event, &recordStatus);
+    acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
+    aclrtEventStatus recordStatus = ACL_EVENT_STATUS_RESERVED;
+    aclError err = acl::AclQueryEventStatus(event, &waitStatus, &recordStatus);
     if (err != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
       return err;
     }
-    if (recordStatus != acl::ACL_EVENT_RECORDED_STATUS_COMPLETE) {
+    if ((waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) &&
+      (recordStatus != ACL_EVENT_STATUS_COMPLETE)) {
       break;
-    } else {
-      acl::aclrtEventWaitStatus waitStatus = acl::ACL_EVENT_WAIT_STATUS_RESERVED;
-      // if the event usage is unknown, ensure the event id not destroyed in advance.
-      aclError err_wait = acl::AclQueryEventWaitStatus(event, &waitStatus);
-      if (err_wait != ACL_ERROR_NONE) {
-        C10_NPU_SHOW_ERR_MSG();
-        return err_wait;
-      }
-      if (waitStatus != acl::ACL_EVENT_WAIT_STATUS_COMPLETE) {
-        break;
-      }
+    }
+
+    {
+      thread_pool_->run(std::bind(
+          &NPUEventManager::run,
+          this,
+          event));
     }
 
     npu_events_.pop_front();
