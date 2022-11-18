@@ -238,8 +238,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm_
 
   // construct the output tensor of the NPU
   at::Tensor grad_input = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
-  at::Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
-  at::Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
+  at::Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor.sizes(), weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
+  at::Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor.sizes(), weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
 
   // calculate the output result of the NPU
   batch_norm_backward_impl(
