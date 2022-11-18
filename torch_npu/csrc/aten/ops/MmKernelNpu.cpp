@@ -163,7 +163,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
     };
     // There is a data trampling problem in non-aligned scenes. For the time
     // being, only aligned scenes are supported.
-    static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
+    static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
     if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2)
         && mm_bmm_nd && isAligin()) {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);

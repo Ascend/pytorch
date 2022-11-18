@@ -69,9 +69,9 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
              (!(static_cast<uint64_t>(mat2.size(1)) & 0x0000000F)) &&
              (!(static_cast<uint64_t>(mat2.size(2)) & 0x0000000F));
     };
-    static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
+    static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
-    if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2) && 
+    if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2) &&
         mm_bmm_nd && isAligin()) {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
