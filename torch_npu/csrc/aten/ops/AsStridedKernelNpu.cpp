@@ -55,7 +55,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
       .InputWithoutContiguous(self)
       .Input(shape)
       .Input(stride)
-      .InputScalarToNPUTensor(at::Scalar(0), at::kLong)
+      .Input(at::Scalar(0), at::kLong)
       .Output(result)
       .Run();
   return result;
