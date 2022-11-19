@@ -30,6 +30,7 @@
 #include "torch_npu/csrc/npu/Generator.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/utils/TensorMethods.h"
+#include "torch_npu/csrc/utils/TensorType.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 
 PyObject* module;
@@ -72,9 +73,18 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   Py_RETURN_NONE;
 }
 
+// Callback for python part. Used for additional initialization of python classes
+static PyObject * THPModule_initExtension(PyObject *_unused, PyObject *shm_manager_path) {
+  HANDLE_TH_ERRORS
+  torch_npu::utils::_initialize_python_bindings();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
   {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_NOARGS, nullptr},
+  {"_initExtension", THPModule_initExtension, METH_NOARGS, nullptr},
   {nullptr, nullptr, 0, nullptr}
 };
 

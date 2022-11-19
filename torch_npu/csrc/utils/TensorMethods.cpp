@@ -1,9 +1,26 @@
+// Copyright (c) 2022 Huawei Technologies Co., Ltd
+// Copyright (c) 2019, Facebook CORPORATION.
+// All rights reserved.
+//
+// Licensed under the BSD 3-Clause License  (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://opensource.org/licenses/BSD-3-Clause
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 #include "torch_npu/csrc/utils/TensorMethods.h"
 
 namespace torch_npu {
 namespace utils {
 
-static const char* _backend_to_string_npu(const at::Backend& backend) {
+const char* _backend_to_string_npu(const at::Backend& backend) {
   switch (backend) {
     case at::Backend::CPU: return "torch";
     case at_npu::key::NativeBackend: return "torch.npu";
@@ -15,6 +32,79 @@ std::string _options_to_string_npu(const at::TensorOptions options) {
   std::ostringstream ss;
   ss << _backend_to_string_npu(options.backend()) << "." << toString(at::typeMetaToScalarType(options.dtype())) << "Tensor";
   return ss.str();
+}
+
+std::string _type_to_string_npu(const at::DeprecatedTypeProperties& type) {
+  std::ostringstream ss;
+  ss << _backend_to_string_npu(type.backend()) << "." << toString(type.scalarType()) << "Tensor";
+  return ss.str();
+}
+
+std::vector<at::DeprecatedTypeProperties*> allTypesForBackends(at::ArrayRef<at::Backend> backends) {
+  std::vector<at::DeprecatedTypeProperties*> res;
+  res.reserve(backends.size());
+  for (auto p : backends) {
+    for (int64_t s = 0; s < static_cast<int64_t>(at::ScalarType::NumOptions); s++) {
+      auto& type = at::getDeprecatedTypeProperties(static_cast<at::Backend>(p), static_cast<at::ScalarType>(s));
+      res.emplace_back(&type);
+    }
+  }
+  return res;
+}
+
+std::vector<at::DeprecatedTypeProperties*> allNPUTypes() {
+  return allTypesForBackends({ at_npu::key::NativeBackend });
+}
+
+at::TensorOptions _options_from_string(const std::string& str) {
+  static std::string cuda_prefix("torch.cuda.");
+  static std::string npu_prefix("torch.npu.");
+  static std::once_flag cpu_once;
+  static std::once_flag cuda_once;
+  static std::once_flag npu_once;
+  static std::unordered_map<std::string, at::DeprecatedTypeProperties*> cpu_map;
+  static std::unordered_map<std::string, at::DeprecatedTypeProperties*> cuda_map;
+  static std::unordered_map<std::string, at::DeprecatedTypeProperties*> npu_map;
+
+  const std::unordered_map<std::string, at::DeprecatedTypeProperties*>* map = nullptr;
+
+  if (str == "torch.Tensor") {
+    auto backend = dispatchKeyToBackend(torch::tensors::get_default_dispatch_key());
+    auto scalar_type = torch::tensors::get_default_scalar_type();
+    return at::getDeprecatedTypeProperties(backend, scalar_type).options();
+  }
+
+  if (std::mismatch(cuda_prefix.begin(), cuda_prefix.end(), str.begin()).first == cuda_prefix.end()) {
+    // torch.cuda. is prefix of str
+    std::call_once(cuda_once, []() {
+      for (auto type : torch::autograd::VariableType::allCUDATypes()) {
+        cuda_map.emplace(torch::utils::type_to_string(*type), type);
+      }
+    });
+    map = &cuda_map;
+  } else if (std::mismatch(npu_prefix.begin(), npu_prefix.end(), str.begin())
+          .first == npu_prefix.end()) {
+    // torch.npu. is prefix of str
+    std::call_once(npu_once, []() {
+      for (auto type : allNPUTypes()) {
+        npu_map.emplace(_type_to_string_npu(*type), type);
+      }
+    });
+    map = &npu_map;
+  } else {
+    std::call_once(cpu_once, []() {
+      for (auto type : torch::autograd::VariableType::allCPUTypes()) {
+        cpu_map.emplace(torch::utils::type_to_string(*type), type);
+      }
+    });
+    map = &cpu_map;
+  }
+
+  auto it = map->find(str);
+  if (it == map->end()) {
+    throw torch::ValueError("invalid type: '%s'", str.c_str());
+  }
+  return it->second->options();
 }
 
 std::tuple<at::Tensor, c10::optional<at::Device>, c10::optional<at::ScalarType>, bool, bool, c10::optional<at::MemoryFormat>> parse_to_conversion(torch::PythonArgs& r, bool allow_copy);
@@ -144,7 +234,7 @@ static PyObject * THPVariable_type(PyObject* self, PyObject* args, PyObject* kwa
   if (is_dtype) {
     scalar_type = r.scalartype(1);
   } else {
-    at::TensorOptions options = torch::utils::options_from_string(type_name);
+    at::TensorOptions options = _options_from_string(type_name);
     scalar_type = at::typeMetaToScalarType(options.dtype());
     auto device_type = options.device().type();
     if (device_type != device.type()) {
