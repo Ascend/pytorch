@@ -60,7 +60,6 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d(
     at::IntArrayRef output_size,
     c10::optional<double> scales_h,
     c10::optional<double> scales_w) {
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
   at::SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_npu_output_size(self, output_size);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   NPUNativeFunctions::upsample_nearest2d_out(self, output_size, scales_h, scales_w, result);
@@ -72,11 +71,11 @@ at::Tensor NPUNativeFunctions::upsample_nearest2d(
     const at::Tensor& input,
     c10::optional<at::IntArrayRef> output_size,
     c10::optional<at::ArrayRef<double>> scale_factors) {
-  GraphModeGuard mode_guard(c10_npu::ModeKind::SINGLE_OP_MODE);
   auto osize = CalcuOpUtil::compute_output_size(input.sizes(), output_size, scale_factors);
+  at::SmallVector<int64_t, SIZE> outputSize = upsample_nearest2d_npu_output_size(input, osize);
   auto scale_h = CalcuOpUtil::get_scale_value(scale_factors, 0);
   auto scale_w = CalcuOpUtil::get_scale_value(scale_factors, 1);
-  at::Tensor result = OpPreparation::ApplyTensor(input, osize);
+  at::Tensor result = OpPreparation::ApplyTensor(input, outputSize);
   NPUNativeFunctions::upsample_nearest2d_out(input, osize, scale_h, scale_w, result);
   return result;
 }
