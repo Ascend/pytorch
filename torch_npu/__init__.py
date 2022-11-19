@@ -20,6 +20,7 @@ import types
 import atexit
 
 from builtins import isinstance as builtin_isinstance
+from typing import Set, Type
 
 import torch
 import torch_npu
@@ -39,6 +40,8 @@ from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 from .version import __version__ as __version__
 
 graph_printer = _npu_print.GraphPrinter()
+
+_tensor_classes: Set[Type] = set()
 
 NPU_TENSOR = set([
     "FloatTensor", "IntTensor", "DoubleTensor",
@@ -133,6 +136,7 @@ def apply_class_patches():
 # Apply monkey-patches.
 _apply_patches(all_monkey_patches)
 apply_class_patches()
+torch_npu._C._initExtension()
 
 
 # NPU exit, need to synchronize devices
