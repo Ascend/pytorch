@@ -65,13 +65,24 @@ namespace at_npu
       // calculate the output size
       at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
       auto outputSize = broadcast_ops_npu_output_size(self, other);
+      at::ScalarType high_type = at::native::result_type(self, other);
+      if (isIntegralType(high_type, true)) {
+        high_type = at::ScalarType::Float;
+      }
+      if (isFloatingType(result.scalar_type())) {
+        high_type = result.scalar_type();
+      }
       OpPreparation::CheckOut(
           {self},
           result,
           CalcuOpUtil::get_tensor_npu_format(outputTensor),
-          self.scalar_type(),
+          high_type,
           outputSize);
-      div_out_npu_nocheck(self, other, result);
+      at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self) &&
+          at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+      at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other) &&
+          at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
+      div_out_npu_nocheck(selfCopy, otherCopy, result);
 
       return result;
     }
@@ -83,15 +94,22 @@ namespace at_npu
       at::Tensor outputTensor = isSelfWrapped ? other : self;
 
       auto outputSize = broadcast_ops_npu_output_size(self, other);
-
+      at::ScalarType high_type = at::native::result_type(self, other);
+      if (isIntegralType(high_type, true)) {
+        high_type = at::ScalarType::Float;
+      }
+      at::Tensor selfCopy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self) &&
+          at_npu::key::isDeviceTensor(self)) ? NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+      at::Tensor otherCopy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other) &&
+          at_npu::key::isDeviceTensor(other)) ? NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
       // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(
           outputSize,
-          outputTensor.options(),
+          outputTensor.options().dtype(high_type),
           CalcuOpUtil::get_tensor_npu_format(outputTensor));
 
       // calculate the output result of the NPU
-      div_out_npu_nocheck(self, other, result);
+      div_out_npu_nocheck(selfCopy, otherCopy, result);
 
       return result;
     }
@@ -122,12 +140,12 @@ namespace at_npu
       if (!NpuUtils::check_match(&self))
       {
         at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-        at::Tensor result = div_out_npu_nocheck(contiguousSelf, other, contiguousSelf);
-        NpuUtils::format_fresh_view(self, result);
+        NPUNativeFunctions::div_out(contiguousSelf, other, contiguousSelf);
+        NpuUtils::format_fresh_view(self, contiguousSelf);
       }
       else
       {
-        div_out_npu_nocheck(self, other, self);
+        NPUNativeFunctions::div_out(self, other, self);
       }
 
       return self;
