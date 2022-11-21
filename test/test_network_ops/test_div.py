@@ -27,7 +27,10 @@ class TestDiv(TestCase):
     def get_outputs(self, cpu_args, npu_args, dtype):
         # cpu not support fp16 div
         cpu_args = [i.float() if dtype == torch.half else i for i in cpu_args]
-        cpu_output = torch.div(cpu_args[0], cpu_args[1]).to(dtype).numpy()
+        if dtype == torch.half:
+            cpu_output = torch.div(cpu_args[0], cpu_args[1]).to(dtype).numpy()
+        else:
+            cpu_output = torch.div(cpu_args[0], cpu_args[1]).numpy()
         npu_output = torch.div(npu_args[0], npu_args[1]).to("cpu").numpy()
         return cpu_output, npu_output
 
@@ -138,6 +141,10 @@ class TestDiv(TestCase):
         torch.div(input1, input2, rounding_mode=mode, out=output)
         return output.cpu()
 
+    def cpu_op_exec_mode_inp(self, input1, input2, mode):
+        input1.div_(input2, rounding_mode=mode)
+        return input1
+
     def npu_op_exec_mode_inp(self, input1, input2, mode):
         input1.div_(input2, rounding_mode=mode)
         return input1.cpu()
@@ -183,8 +190,20 @@ class TestDiv(TestCase):
             npu_output = self.npu_op_exec_mode(npu_input, item[1], item[2])
             self.assertRtolEqual(cpu_output, npu_output)
             # div_
+            try:
+                cpu_output_inp = self.cpu_op_exec_mode_inp(cpu_input, item[1], item[2])
+            except RuntimeError as e:
+                print("Warning: invaild input")
+                continue
             npu_output_inp = self.npu_op_exec_mode_inp(npu_input, item[1], item[2])
-            self.assertRtolEqual(cpu_output, npu_output_inp)
+            self.assertRtolEqual(cpu_output_inp, npu_output_inp)
+
+    def test_div_diff_dtype(self):
+        cpu_x = torch.tensor(1)
+        npu_x = cpu_x.npu()
+        cpu_out = cpu_x / 10
+        npu_out = npu_x / 10
+        self.assertRtolEqual(cpu_out, npu_out.cpu())
 
 
 if __name__ == "__main__":
