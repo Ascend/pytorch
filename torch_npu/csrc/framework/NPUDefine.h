@@ -88,7 +88,7 @@ namespace at_npu
     struct ExecuteParas
     {
       std::string opType;
-      bool isFuzzy = false;
+      bool isJitDisable = false;
       ACL_PARAMS paras;
       CONST_PARAMS constParams;
       const aclopAttr *attr;

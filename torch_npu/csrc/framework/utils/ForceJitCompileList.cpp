@@ -20,7 +20,7 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
-#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
+#include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 
 using std::string;
 using std::vector;
@@ -30,20 +30,20 @@ namespace at_npu
   namespace native
   {
 
-    FuzzyCompileBlacklist &FuzzyCompileBlacklist::GetInstance()
+    ForceJitCompileList &ForceJitCompileList::GetInstance()
     {
-      static FuzzyCompileBlacklist fuzzy_black_list;
-      return fuzzy_black_list;
+      static ForceJitCompileList jit_list;
+      return jit_list;
     }
 
-    void FuzzyCompileBlacklist::RegisterBlacklist(const std::string &blacklist)
+    void ForceJitCompileList::RegisterJitlist(const std::string &jitlist)
     {
-      if (blacklist.size() <= 0)
+      if (jitlist.empty())
       {
         return;
       }
 
-      auto value = blacklist;
+      auto value = jitlist;
       std::string delimiter = ",";
       auto start = 0U;
       auto end = value.find(delimiter);
@@ -51,35 +51,35 @@ namespace at_npu
       while (end != std::string::npos)
       {
         token = value.substr(start, end - start);
-        if (token.size() > 0)
-          black_list_.emplace(token);
+        if (!token.empty())
+          jit_list_.emplace(token);
         start = end + delimiter.size();
         end = value.find(delimiter, start);
       }
       // if start + end > value.size(), substring only split(start, value.size() - start)
       token = value.substr(start, end);
-      if (token.size() > 0)
-        black_list_.emplace(token);
-      DisplayBlacklist();
+      if (!token.empty())
+        jit_list_.emplace(token);
+      DisplayJitlist();
       return;
     }
 
-    bool FuzzyCompileBlacklist::IsInBlacklist(const std::string &opName) const
+    bool ForceJitCompileList::Inlist(const std::string &opName) const
     {
-      if (black_list_.find(opName) != black_list_.end())
+      if (jit_list_.find(opName) != jit_list_.end())
       {
         return true;
       }
       return false;
     }
 
-    void FuzzyCompileBlacklist::DisplayBlacklist() const
+    void ForceJitCompileList::DisplayJitlist() const
     {
-      if (black_list_.size() > 0)
+      if (!jit_list_.empty())
       {
-        for (auto &iter : black_list_)
+        for (auto &iter : jit_list_)
         {
-          NPU_LOGI("check op [%s] is in fuzzy compile blacklist, use default compile", iter.c_str());
+          NPU_LOGI("check op [%s] is in jitcompile list, use just in time compile", iter.c_str());
         }
       }
       return;

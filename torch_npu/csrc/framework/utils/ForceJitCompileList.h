@@ -14,8 +14,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef __PLUGIN_NATIVE_UTILS_fUZZY_BLACKLIST__
-#define __PLUGIN_NATIVE_UTILS_fUZZY_BLACKLIST__
+#ifndef __PLUGIN_NATIVE_UTILS_JITCOMPILELIST__
+#define __PLUGIN_NATIVE_UTILS_JITCOMPILELIST__
 
 #include <string>
 #include <set>
@@ -26,16 +26,16 @@ using std::vector;
 namespace at_npu {
 namespace native {
 
-class FuzzyCompileBlacklist {
+class ForceJitCompileList {
 public:
-  static FuzzyCompileBlacklist& GetInstance();
-  void RegisterBlacklist(const std::string& blacklist);
-  bool IsInBlacklist(const std::string& opName) const;
-  void DisplayBlacklist() const;
-  ~FuzzyCompileBlacklist() = default;
+  static ForceJitCompileList& GetInstance();
+  void RegisterJitlist(const std::string& blacklist);
+  bool Inlist(const std::string& opName) const;
+  void DisplayJitlist() const;
+  ~ForceJitCompileList() = default;
 private:
-  FuzzyCompileBlacklist() {}
-  std::set<std::string> black_list_;
+  ForceJitCompileList() {}
+  std::set<std::string> jit_list_;
 };
 
 }

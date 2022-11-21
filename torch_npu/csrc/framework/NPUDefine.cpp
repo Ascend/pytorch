@@ -46,7 +46,7 @@ namespace at_npu
       this->attr = other.attr;
       this->constParams = other.constParams;
       this->hostMemory = other.hostMemory;
-      this->isFuzzy = other.isFuzzy;
+      this->isJitDisable = other.isJitDisable;
     }
 
     void ExecuteParas::CopyEx(ExecuteParas& other)
