@@ -151,7 +151,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
 
   // construct the output tensor of the NPU
   at::Tensor result;
-
+  bool is_nz_out = false;
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
@@ -169,6 +169,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
+      is_nz_out = true;
     }
   } else {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
@@ -176,6 +177,9 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
 
   // calculate the output result of the NPU
   NPUNativeFunctions::mm_out(self, mat2, result);
+  if (is_nz_out) {
+    result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
+  }
   return result;
 }
 
