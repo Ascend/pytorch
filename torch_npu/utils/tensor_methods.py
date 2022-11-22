@@ -66,8 +66,10 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
 def _npu(self, *args, **kwargs):
     if args and isinstance(args[0], str) and 'npu' in args[0]:
         args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
-    if kwargs and 'npu' in kwargs.get("device", ""):
-        kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
+    if kwargs:
+        device = kwargs.get("device", "")
+        if device and 'npu' in device:
+            kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
     return torch_npu._C.npu(self, *args, **kwargs)
 
 
