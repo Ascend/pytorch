@@ -179,6 +179,8 @@ supported:
   - copysign.out
   - copysign.Scalar
   - copysign_.Scalar
+  - linalg_cross
+  - linalg_cross.out
   - logical_not
   - logical_not_
   - logical_not.out
