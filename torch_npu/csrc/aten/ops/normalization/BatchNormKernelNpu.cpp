@@ -137,8 +137,10 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
   }
 
   // calculate the output result of the NPU
-  at::Tensor sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
-  at::Tensor square_sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
+  at::Tensor sum = OpPreparation::ApplyTensor(
+      running_mean.sizes(), running_mean.options().dtype(at::kFloat), self);
+  at::Tensor square_sum = OpPreparation::ApplyTensor(
+      running_mean.sizes(), running_mean.options().dtype(at::kFloat), self);
 
   batch_norm_training_reduce_nocheck(
       sum,
@@ -244,10 +246,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor running_var_cp = running_var;
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
-  at::Tensor running_mean_tensor = running_mean.defined() ? NPUNativeFunctions::npu_format_cast_(running_mean_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
-  at::Tensor running_var_tensor = running_var.defined() ? NPUNativeFunctions::npu_format_cast_(running_var_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor weight_tensor = weight.defined() ? NPUNativeFunctions::npu_format_cast_(weight_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor bias_tensor = bias.defined() ? NPUNativeFunctions::npu_format_cast_(bias_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
+  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
+  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
+  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
+  at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
@@ -255,8 +257,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor save_mean;
   at::Tensor save_invstd;
   if (train) {
-    save_mean = OpPreparation::ApplyTensor(running_mean_tensor.sizes(), running_mean_tensor.options().dtype(at::kFloat), running_mean_tensor);
-    save_invstd = OpPreparation::ApplyTensor(running_var_tensor.sizes(), running_var_tensor.options().dtype(at::kFloat), running_var_tensor);
+    save_mean = OpPreparation::ApplyTensor(
+        running_mean_tensor.sizes(), running_mean_tensor.options().dtype(at::kFloat), self);
+    save_invstd = OpPreparation::ApplyTensor(
+        running_var_tensor.sizes(), running_var_tensor.options().dtype(at::kFloat), self);
   } else {
     save_mean = {};
     save_invstd = {};
