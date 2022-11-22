@@ -28,17 +28,14 @@ at::Tensor& range_out_nocheck(
     at::Tensor& result) {
   // generate x assistant tensor
   int value = result.size(0);
-  vector<int> tmp_vector = {};
+  c10::SmallVector<int64_t, N> tmp_vector = {};
   for (int i = 0; i < value; i++) {
     tmp_vector.emplace_back(i);
   }
-  at::Tensor assistDimInfo = at::from_blob(tmp_vector.data(), {value}, at::kInt);
-  at::Tensor assistTensor = CalcuOpUtil::copy_tensor_host_to_device(assistDimInfo);
-  assistTensor = NPUNativeFunctions::npu_dtype_cast(assistTensor, result.scalar_type());
 
   OpCommand cmd;
   cmd.Name("RangeD")
-     .Input(assistTensor)
+     .Input(tmp_vector, result.scalar_type())
      .Output(result)
      .Attr("start", start)
      .Attr("limit", end)
