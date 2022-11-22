@@ -13,17 +13,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import os
 import json
+import os
 import stat
+
 import torch
+
+import torch_npu
 
 
 def set_dump_path(fpath=None):
-    if fpath is None:
-        return
-    os.environ["DUMP_PATH"] = fpath
+    if fpath is not None:
+        dump_path = os.path.realpath(fpath)
+        if os.path.isdir(dump_path):
+            raise RuntimeError("set_dump_path '{}' error, please set a valid filename.".format(dump_path))
+        else:
+            dir_path = os.path.dirname(dump_path)
+            if not dir_path and not os.path.isdir(dir_path):
+                raise RuntimeError("set_dump_path error, the directory '{}' does not exist.".format(dir_path))
+            filename = os.path.basename(dump_path)
+            if os.path.exists(dump_path):
+                os.remove(dump_path)
+        new_dump_path = os.path.join(dir_path, filename)
+        os.environ["DUMP_PATH"] = new_dump_path
+    else:
+        raise RuntimeError("set_dump_path '{}' error, please set a valid filename".format(fpath))
 
 
 def get_dump_path():
@@ -43,14 +57,25 @@ def dump_tensor(x, prefix=""):
         list_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
         json.dump([prefix, list_tensor, str(x.dtype), tuple(x.shape)], f)
         f.write('\n')
-    
     f.close()
 
 
-def warp_acc_cmp_hook(name):
+def wrap_acc_cmp_hook(name):
+
     def acc_cmp_hook(module, in_feat, out_feat):
-        name_template = f"{name}"+ "_{}"
+        name_template = f"{name}" + "_{}"
         dump_tensor(in_feat, name_template.format("input"))
         dump_tensor(out_feat, name_template.format("output"))
 
     return acc_cmp_hook
+
+
+def wrap_checkoverflow_hook(name):
+
+    def checkoverflow_hook(module, in_feat, out_feat):
+        module_name = name
+        module.has_overflow = torch_npu._C._check_overflow_npu()
+        if module.has_overflow:
+            raise ValueError("[check overflow]:module name :'{}' is overflow!".format(module_name))
+
+    return checkoverflow_hook
