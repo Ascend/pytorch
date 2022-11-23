@@ -31,9 +31,10 @@ class  NpuRunMode{
 public:
   static void SetNpuRunMode(const ModeKind& mode);
   static ModeKind CurRunMode();
-  static inline bool IsGraphMode() {return cur_mode_ == ModeKind::GRAPH_MODE || cur_mode_ == ModeKind::REPLAY_MODE;};
+  static inline bool IsGraphMode() {return is_graph_mode;};
 
 private:
   static ModeKind cur_mode_;
+  static bool is_graph_mode;
 };
 } // namespace c10_npu
