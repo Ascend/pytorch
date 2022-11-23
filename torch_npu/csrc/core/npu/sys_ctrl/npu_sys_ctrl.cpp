@@ -18,8 +18,9 @@
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
-#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
+#include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -137,6 +138,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   if (soc_name != nullptr) {
     config.emplace(ge::AscendString(ge::SOC_VERSION.data()), soc_name);
   }
+
+  // set global soc name
+  c10_npu::SetSocVersion(soc_name);
 
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
     static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
