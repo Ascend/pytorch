@@ -28,9 +28,7 @@ class DropoutWithByteMask(Module):
     This DropoutWithByteMask method generates stateless random uint8 mask and do dropout according to the mask.
 
     .. note::
-        max_seed is a hyper-parameter strongly related to the underlying operator.
-        Please check the MAX(2 ** 31 - 1 / 2 ** 10 - 1) in dropout_v2.py in the opp package for matching settings.
-        By default, it is matched by the Pytorch and OPP packages.
+        The performance is improved only in the device 32 core scenario.
 
     Args:
         p: probability of an element to be zeroed. Default: 0.5

@@ -17,8 +17,9 @@ from .function import npu_iou, npu_ptiou, npu_giou, npu_diou, npu_ciou, npu_mult
      npu_bbox_coder_encode_yolo, npu_bbox_coder_encode_xyxy2xywh, npu_bbox_coder_decode_xywh2xyxy, \
      roll, matmul_transpose
 from .module import ChannelShuffle, Prefetcher, LabelSmoothingCrossEntropy, ROIAlign, DCNv2, \
-     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, MultiheadAttention, \
-     FusedColorJitter, NpuDropPath, Focus, FastBatchNorm1d, FastBatchNorm2d, FastBatchNorm3d, FastSyncBatchNorm
+     ModulatedDeformConv, Mish, BiLSTM, PSROIPool, SiLU, Swish, NpuFairseqDropout, NpuCachedDropout, \
+     MultiheadAttention, FusedColorJitter, NpuDropPath, Focus, FastBatchNorm1d, FastBatchNorm2d, \
+     FastBatchNorm3d, FastSyncBatchNorm
 
 
 __all__ = [
@@ -52,6 +53,7 @@ __all__ = [
     "SiLU",
     "Swish",
     "NpuFairseqDropout",
+    "NpuCachedDropout",
     "MultiheadAttention",
     "NpuDropPath",
     "Focus",
