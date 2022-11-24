@@ -1106,13 +1106,12 @@ namespace at_npu
 
     c10::SmallVector<int64_t, SIZE> crop_and_resize_npu_output_size(
         const at::Tensor &self,
-        const at::Tensor &boxes,
+        at::IntArrayRef box_index,
         at::IntArrayRef crop_size)
     {
-      TORCH_CHECK(self.dim() == 4, "input x size must be 4");
-      TORCH_CHECK(boxes.dim() == 2, "boxes size must be 2");
+      TORCH_CHECK(self.dim() == 4, "input x dim must be 4");
       TORCH_CHECK(crop_size.size() == 2, "crop_size size must be 2");
-      int64_t N = boxes.size(0);
+      int64_t N = box_index.size();
       int64_t H = crop_size[0];
       int64_t W = crop_size[1];
       int64_t C = self.size(1);
@@ -1132,9 +1131,9 @@ namespace at_npu
 
       c10::SmallVector<int64_t, SIZE> outputSize;
       if (channels == 0) {
-        outputSize = {1, C, H, W};
+        outputSize = {C, H, W};
       } else {
-        outputSize = {1, channels, H, W};
+        outputSize = {channels, H, W};
       }
       
       return outputSize;

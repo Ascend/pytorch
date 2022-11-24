@@ -1966,7 +1966,7 @@ custom:
   - func: npu_ciou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, Tensor? atan_sub, bool trans=False, bool is_cross=True, int mode=0) -> (Tensor, Tensor)
   - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
   - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3) -> Tensor
-  - func: crop_and_resize(Tensor self, Tensor boxes, Tensor box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
+  - func: crop_and_resize(Tensor self, Tensor boxes, int[] box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
   - func: reverse(Tensor self, int[] axis) -> Tensor
   - func: image_normalize(Tensor self, Tensor mean, Tensor variance, int dtype=0) -> Tensor
   - func: image_normalize_(Tensor(a!) self, Tensor mean, Tensor variance, int dtype=0) -> Tensor(a!)
