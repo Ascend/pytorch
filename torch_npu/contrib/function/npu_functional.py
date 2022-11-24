@@ -25,10 +25,12 @@ Tensor = torch.Tensor
 
 def dropout_with_byte_mask(input1, p=0.5, training=True, inplace=False):
     # type: (Tensor, float, bool, bool) -> Tensor
-    r"""
+    r"""Applies an NPU compatible dropout_with_byte_mask operation, Only supports npu devices. 
+
     This dropout_with_byte_mask method generates stateless random uint8 mask and do dropout according to the mask.
 
-    See :class:`~torch.nn.DropoutWithByteMask` for details.
+    .. note::
+        The performance is improved only in the device 32 core scenario.
 
     Args:
         p: probability of a channel to be zeroed. Default: 0.5

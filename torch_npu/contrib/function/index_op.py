@@ -25,6 +25,10 @@ def npu_fast_condition_index_put(x, condition, value):
     >>> x1 = copy.deepcopy(x)[condition] = value
     >>> x1_opt = npu_fast_condition_index_put(x, condition, value)
 
+    .. note::
+        Because the index operator has been optimized all the time, the native implementation 
+        performance of some scenarios is better.
+
     Args:
         x (torch.Tensor): Normal tensor.
         condition (torch.BoolTensor): Judgment condition, bool dtype.
