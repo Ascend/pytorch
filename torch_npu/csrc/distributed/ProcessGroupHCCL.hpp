@@ -310,6 +310,9 @@ protected:
   std::unordered_map<std::string, std::vector<std::shared_ptr<HCCLComm>>>
       devHCCLCommMap_;
 
+  // Mutex to guard maps like devHCCLCommMap_.
+  std::mutex mutex_;
+
   // Mutex to guard devNCCLCommMap_.
   std::mutex devHCCLCommMapLock_;
 
