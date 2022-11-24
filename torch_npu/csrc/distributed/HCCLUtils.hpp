@@ -43,7 +43,9 @@ public:
 
   HCCLComm() : HCCLComm(nullptr) {}
 
-  ~HCCLComm() = default;
+  ~HCCLComm() {
+    destropyHcclComm();
+  }
 
   static std::shared_ptr<HCCLComm> create(
       int numRanks,
@@ -53,7 +55,7 @@ public:
     C10D_HCCL_CHECK(
         HcclCommInitRootInfo(numRanks, &rootInfo, rank, &(comm->hcclComm_)));
     c10_npu::NpuSysCtrl::GetInstance().RegisterReleaseFn([=]() ->void {
-          HcclCommDestroy(comm->hcclComm_);
+          comm->destropyHcclComm();
         }, c10_npu::ReleasePriority::PriorityMiddle);
     return comm;
   }
@@ -77,7 +79,16 @@ public:
     return hcclComm_;
   }
 
+  void destropyHcclComm() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    if (hcclComm_) {
+      HcclCommDestroy(hcclComm_);
+      hcclComm_ = nullptr;
+    }
+  }
+
 protected:
   HcclComm hcclComm_;
+  mutable std::mutex mutex_;
 };
 } // namespace c10d_npu

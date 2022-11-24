@@ -283,7 +283,19 @@ ProcessGroupHCCL::ProcessGroupHCCL(
   }
 }
 
-ProcessGroupHCCL::~ProcessGroupHCCL() {}
+ProcessGroupHCCL::~ProcessGroupHCCL() {
+  {
+    // Destropy all HCCL Communicators on Process Group Destruction
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& it : devHCCLCommMap_) {
+      auto& hcclComms = it.second;
+
+      for (const auto& hcclComm : hcclComms) {
+        hcclComm->destropyHcclComm();
+      }
+    }
+  }
+}
 
 void ProcessGroupHCCL::broadcastMasterID(HcclRootInfo* hcclID) {
   // For every HCCL communicator that we create we need to broadcast
