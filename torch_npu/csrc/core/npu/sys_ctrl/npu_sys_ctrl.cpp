@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -113,6 +114,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
       {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
       {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
   };
+  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
+      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
+  config[ge::AscendString(ge::PRECISION_MODE.data())] = precision_mode;
 
   config["ge.session_device_id"] = ge::AscendString(npu_device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
