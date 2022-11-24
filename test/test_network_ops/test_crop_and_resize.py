@@ -30,7 +30,7 @@ class TestCropAndResize(TestCase):
         input1 = np.random.uniform(0, 255, (1, 3, 224, 224)).astype(np.uint8)
         npu_input1 = torch.from_numpy(input1).npu()
         boxes = torch.tensor([[0.3, 0, 1, 1]], dtype=torch.float32).npu()
-        box_index = torch.tensor([0], dtype=torch.int32).npu()
+        box_index = [0]
         crop_size = [200, 100]
         npu_output = torch_npu.crop_and_resize(npu_input1,
                                                boxes=boxes, box_index=box_index,

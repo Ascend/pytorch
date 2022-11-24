@@ -22,7 +22,7 @@ namespace native {
 at::Tensor &crop_and_resize_out(
     const at::Tensor &self,
     const at::Tensor &boxes,
-    const at::Tensor &box_index,
+    at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
     std::string method,
@@ -32,7 +32,7 @@ at::Tensor &crop_and_resize_out(
   cmd.Name("CropAndResizeV2")
       .Input(self)
       .Input(boxes)
-      .Input(box_index)
+      .Input(box_index, at::kInt)
       .Input(crop_size, at::kInt)
       .Output(result)
       .Attr<float>("extrapolation_value", extrapolation_value)
@@ -46,13 +46,13 @@ at::Tensor &crop_and_resize_out(
 at::Tensor NPUNativeFunctions::crop_and_resize(
     const at::Tensor &self,
     const at::Tensor &boxes,
-    const at::Tensor &box_index,
+    at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
     std::string method)
 {
   // calculate the output size
-  auto outputSize = crop_and_resize_npu_output_size(self, boxes, crop_size);
+  auto outputSize = crop_and_resize_npu_output_size(self, box_index, crop_size);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);

@@ -66,6 +66,7 @@ def npu_worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                   num_workers, persistent_workers):
     torch_npu.npu.set_device(dataset.device)
     torch_npu.npu.current_stream().set_data_preprocess_stream(True)
+    torch.npu.set_compile_mode(jit_compile=False)
     _utils.worker._worker_loop(dataset_kind, dataset, index_queue, data_queue, done_event,
                                auto_collation, collate_fn, drop_last, base_seed, init_fn, worker_id,
                                num_workers, persistent_workers)
