@@ -13,35 +13,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import functools
+
 import torch
 import torch.nn as nn
 import torch.utils.hooks as full_hooks
 
-from .hooks import warp_acc_cmp_hook, set_dump_path
+import torch_npu
+
+from .hooks import wrap_acc_cmp_hook, wrap_checkoverflow_hook
 
 
 class HOOKModule(nn.Module):
 
-    def __init__(self) -> None:
+    def __init__(self, hook) -> None:
         super(HOOKModule, self).__init__()
+        self.has_overflow = False
         prefix = ""
         if hasattr(self, "prefix_op_name_"):
             prefix = self.prefix_op_name_
- 
-        self.register_forward_hook(warp_acc_cmp_hook(prefix + "forward"))
-        self.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
+
+        self.register_forward_hook(hook(prefix + "forward"))
+        self.register_backward_hook(hook(prefix + "backward"))
 
     def __call__(self, *input, **kwargs):
         full_backward_hooks, non_full_backward_hooks = [], []
-        if len(self._backward_hooks) > 0 :
+        if len(self._backward_hooks) > 0:
             full_backward_hooks, non_full_backward_hooks = self._get_backward_hooks()
         for hook in self._forward_pre_hooks.values():
             result = hook(self, input)
             if result is not None:
                 if not isinstance(result, tuple):
-                    result = (result,)
+                    result = (result, )
                 input = result
         bw_hook = None
         if len(full_backward_hooks) > 0:
@@ -75,9 +78,9 @@ class HOOKModule(nn.Module):
                 self._maybe_warn_non_full_backward_hook(input, result, grad_fn)
         return result
 
-def register_acc_cmp_hook(model, dump_path=None):
+
+def register_acc_cmp_hook(model):
     assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
-    set_dump_path(dump_path)
     for _, module in model.named_modules():
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
             continue
@@ -86,5 +89,20 @@ def register_acc_cmp_hook(model, dump_path=None):
         if hasattr(module, "prefix_op_name_"):
             prefix = module.prefix_op_name_
 
-        module.register_forward_hook(warp_acc_cmp_hook(prefix + "forward"))
-        module.register_backward_hook(warp_acc_cmp_hook(prefix + "backward"))
+        module.register_forward_hook(wrap_acc_cmp_hook(prefix + "forward"))
+        module.register_backward_hook(wrap_acc_cmp_hook(prefix + "backward"))
+
+
+def register_overflow_hook(model):
+    assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
+    torch_npu._C._clear_overflow_npu()
+    for _, module in model.named_modules():
+        if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
+            continue
+
+        prefix = "Module_" + module.__class__.__name__ + "_"
+        if hasattr(module, "prefix_op_name_"):
+            prefix = module.prefix_op_name_
+
+        module.register_forward_hook(wrap_checkoverflow_hook(prefix + "forward"))
+        module.register_backward_hook(wrap_checkoverflow_hook(prefix + "backward"))
