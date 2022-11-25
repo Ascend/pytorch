@@ -46,23 +46,7 @@ class TestLstm(TestCase):
             cpu_lstm.training = item[4]
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
 
-            cut_value = item[3]
-            iw = cpu_lstm.weight_ih_l0.split(cut_value)
-            hw = cpu_lstm.weight_hh_l0.split(cut_value)
-            iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-            hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-            cpu_lstm.weight_ih_l0.data = iwt
-            cpu_lstm.weight_hh_l0.data = hwt
-            
-            if item[1] == 2:
-                iw1 = cpu_lstm.weight_ih_l1.split(cut_value)
-                hw1 = cpu_lstm.weight_hh_l1.split(cut_value)
-                iwt1 = torch.cat([iw1[0], iw1[2], iw1[1], iw1[3]], 0)
-                hwt1 = torch.cat([hw1[0], hw1[2], hw1[1], hw1[3]], 0)
-                cpu_lstm.weight_ih_l1.data = iwt1
-                cpu_lstm.weight_hh_l1.data = hwt1
-
-            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
+            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16).astype(np.float32)
             cpu_input1 = torch.from_numpy(input1)
             cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
 
@@ -94,35 +78,7 @@ class TestLstm(TestCase):
             cpu_lstm.training = item[4]
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
 
-            cut_value = item[3]
-            iw = cpu_lstm.weight_ih_l0.split(cut_value)
-            hw = cpu_lstm.weight_hh_l0.split(cut_value)
-            iwr = cpu_lstm.weight_ih_l0_reverse.split(cut_value)
-            hwr = cpu_lstm.weight_hh_l0_reverse.split(cut_value)
-            iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-            hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-            iwrt = torch.cat([iwr[0], iwr[2], iwr[1], iwr[3]], 0)
-            hwrt = torch.cat([hwr[0], hwr[2], hwr[1], hwr[3]], 0)
-            cpu_lstm.weight_ih_l0.data = iwt
-            cpu_lstm.weight_hh_l0.data = hwt
-            cpu_lstm.weight_ih_l0_reverse.data = iwrt
-            cpu_lstm.weight_hh_l0_reverse.data = hwrt
-            
-            if item[1] == 2:
-                iw1 = cpu_lstm.weight_ih_l1.split(cut_value)
-                hw1 = cpu_lstm.weight_hh_l1.split(cut_value)
-                iwr1 = cpu_lstm.weight_ih_l1_reverse.split(cut_value)
-                hwr1 = cpu_lstm.weight_hh_l1_reverse.split(cut_value)
-                iwt1 = torch.cat([iw1[0], iw1[2], iw1[1], iw1[3]], 0)
-                hwt1 = torch.cat([hw1[0], hw1[2], hw1[1], hw1[3]], 0)
-                iwrt1 = torch.cat([iwr1[0], iwr1[2], iwr1[1], iwr1[3]], 0)
-                hwrt1 = torch.cat([hwr1[0], hwr1[2], hwr1[1], hwr1[3]], 0)
-                cpu_lstm.weight_ih_l1.data = iwt1
-                cpu_lstm.weight_hh_l1.data = hwt1
-                cpu_lstm.weight_ih_l1_reverse.data = iwrt1
-                cpu_lstm.weight_hh_l1_reverse.data = hwrt1              
-
-            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
+            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16).astype(np.float32)
             cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(torch.from_numpy(input1))
             npu_output_y, (npu_output_h, npu_output_c) = npu_lstm(torch.from_numpy(input1.astype(item[0][0])).npu())
 
@@ -146,19 +102,6 @@ class TestLstm(TestCase):
 
         rnn = torch.nn.LSTM(embedding_size, hidden_size)
         rnn_npu = copy.deepcopy(rnn).npu()
-
-        iw = rnn.weight_ih_l0.split(hidden_size)
-        hw = rnn.weight_hh_l0.split(hidden_size)
-        ib = rnn.bias_ih_l0.split(hidden_size)
-        hb = rnn.bias_hh_l0.split(hidden_size)
-        iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-        hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-        ibt = torch.cat([ib[0], ib[2], ib[1], ib[3]], 0)
-        hbt = torch.cat([hb[0], hb[2], hb[1], hb[3]], 0)
-        rnn.weight_ih_l0.data = iwt
-        rnn.weight_hh_l0.data = hwt
-        rnn.bias_ih_l0.data = ibt
-        rnn.bias_hh_l0.data = hbt
 
         #Sorting from Large to Small
         input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
@@ -184,6 +127,7 @@ class TestLstm(TestCase):
         pad_seqs = torch.tensor(pad_seqs)
         embeded = embedding(pad_seqs)
         embeded = embeded.reshape(6,3,2)
+        embeded = embeded.to(torch.float16).to(torch.float32)
 
         #cacl cpu
         pack = torch.nn.utils.rnn.pack_padded_sequence(embeded, lengths, batch_first=False)
@@ -213,19 +157,6 @@ class TestLstm(TestCase):
         rnn = torch.nn.LSTM(embedding_size, hidden_size, num_layers=1, bidirectional=True, bias=False)
         rnn_npu = copy.deepcopy(rnn).npu()
 
-        iw = rnn.weight_ih_l0.split(hidden_size)
-        hw = rnn.weight_hh_l0.split(hidden_size)
-        iwr = rnn.weight_ih_l0_reverse.split(hidden_size)
-        hwr = rnn.weight_hh_l0_reverse.split(hidden_size)
-        iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-        hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-        iwrt = torch.cat([iwr[0], iwr[2], iwr[1], iwr[3]], 0)
-        hwrt = torch.cat([hwr[0], hwr[2], hwr[1], hwr[3]], 0)
-        rnn.weight_ih_l0.data = iwt
-        rnn.weight_hh_l0.data = hwt
-        rnn.weight_ih_l0_reverse.data = iwrt
-        rnn.weight_hh_l0_reverse.data = hwrt
-
         #Sorting from Large to Small
         input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
         lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
@@ -250,6 +181,7 @@ class TestLstm(TestCase):
         pad_seqs = torch.tensor(pad_seqs)
         embeded = embedding(pad_seqs)
         embeded = embeded.reshape(6,3,2)
+        embeded = embeded.to(torch.float16).to(torch.float32)
 
         #cacl cpu
         pack = torch.nn.utils.rnn.pack_padded_sequence(embeded, lengths, batch_first=False)
@@ -275,33 +207,6 @@ class TestLstm(TestCase):
             rnn = torch.nn.LSTM(embedding_size, hidden_size, num_layers=2, bidirectional=item, bias=False)
             rnn_npu = copy.deepcopy(rnn).npu()
       
-            iw0 = rnn.weight_ih_l0.split(hidden_size)
-            hw0 = rnn.weight_hh_l0.split(hidden_size)
-            iw1 = rnn.weight_ih_l1.split(hidden_size)
-            hw1 = rnn.weight_hh_l1.split(hidden_size)
-            iwt0 = torch.cat([iw0[0], iw0[2], iw0[1], iw0[3]], 0)
-            hwt0 = torch.cat([hw0[0], hw0[2], hw0[1], hw0[3]], 0)
-            iwt1 = torch.cat([iw1[0], iw1[2], iw1[1], iw1[3]], 0)
-            hwt1 = torch.cat([hw1[0], hw1[2], hw1[1], hw1[3]], 0)
-            rnn.weight_ih_l0.data = iwt0
-            rnn.weight_hh_l0.data = hwt0
-            rnn.weight_ih_l1.data = iwt1
-            rnn.weight_hh_l1.data = hwt1
-            
-            if item is True:
-                iwr0 = rnn.weight_ih_l0_reverse.split(hidden_size)
-                hwr0 = rnn.weight_hh_l0_reverse.split(hidden_size)
-                iwr1 = rnn.weight_ih_l1_reverse.split(hidden_size)
-                hwr1 = rnn.weight_hh_l1_reverse.split(hidden_size)
-                iwrt0 = torch.cat([iwr0[0], iwr0[2], iwr0[1], iwr0[3]], 0)
-                hwrt0 = torch.cat([hwr0[0], hwr0[2], hwr0[1], hwr0[3]], 0)
-                iwrt1 = torch.cat([iwr1[0], iwr1[2], iwr1[1], iwr1[3]], 0)
-                hwrt1 = torch.cat([hwr1[0], hwr1[2], hwr1[1], hwr1[3]], 0)
-                rnn.weight_ih_l0_reverse.data = iwrt0
-                rnn.weight_hh_l0_reverse.data = hwrt0
-                rnn.weight_ih_l1_reverse.data = iwrt1
-                rnn.weight_hh_l1_reverse.data = hwrt1
-      
             #Sorting from Large to Small
             input_seq = sorted(input_seq, key = lambda tp: len(tp), reverse=True)
             lengths = sorted(lengths, key = lambda tp: tp, reverse=True)
@@ -319,6 +224,7 @@ class TestLstm(TestCase):
             pad_seqs = torch.tensor(pad_seqs)
             embeded = embedding(pad_seqs)
             embeded = embeded.reshape(6,3,2)
+            embeded = embeded.to(torch.float16).to(torch.float32)
       
             #cacl cpu
             pack = torch.nn.utils.rnn.pack_padded_sequence(embeded, lengths, batch_first=False)

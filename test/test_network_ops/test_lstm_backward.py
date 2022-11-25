@@ -36,16 +36,8 @@ class TestLstmBackward(TestCase):
                                     num_layers=1, bidirectional=False, bias=False)
             cpu_lstm.training = item[3]
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
-
-            cut_value = item[2]
-            iw = cpu_lstm.weight_ih_l0.split(cut_value)
-            hw = cpu_lstm.weight_hh_l0.split(cut_value)
-            iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-            hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-            cpu_lstm.weight_ih_l0.data = iwt
-            cpu_lstm.weight_hh_l0.data = hwt
             
-            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
+            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16).astype(np.float32)
             cpu_input1 = torch.from_numpy(input1)
             cpu_input1.requires_grad_(True)
             cpu_output_y, (cpu_output_h, cpu_output_c) = cpu_lstm(cpu_input1)
@@ -85,22 +77,8 @@ class TestLstmBackward(TestCase):
                             hidden_size=item[2], num_layers=1, bidirectional=True, bias=False)
             cpu_lstm.training = item[3]
             npu_lstm = copy.deepcopy(cpu_lstm).npu()
-            
-            cut_value = item[2]
-            iw = cpu_lstm.weight_ih_l0.split(cut_value)
-            hw = cpu_lstm.weight_hh_l0.split(cut_value)
-            iwr = cpu_lstm.weight_ih_l0_reverse.split(cut_value)
-            hwr = cpu_lstm.weight_hh_l0_reverse.split(cut_value)
-            iwt = torch.cat([iw[0], iw[2], iw[1], iw[3]], 0)
-            hwt = torch.cat([hw[0], hw[2], hw[1], hw[3]], 0)
-            iwrt = torch.cat([iwr[0], iwr[2], iwr[1], iwr[3]], 0)
-            hwrt = torch.cat([hwr[0], hwr[2], hwr[1], hwr[3]], 0)
-            cpu_lstm.weight_ih_l0.data = iwt
-            cpu_lstm.weight_hh_l0.data = hwt
-            cpu_lstm.weight_ih_l0_reverse.data = iwrt
-            cpu_lstm.weight_hh_l0_reverse.data = hwrt
 
-            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float32)
+            input1 = np.random.uniform(0, 1, item[0][1]).astype(np.float16).astype(np.float32)
 
             cpu_input1 = torch.from_numpy(input1)
             cpu_input1.requires_grad_(True)
