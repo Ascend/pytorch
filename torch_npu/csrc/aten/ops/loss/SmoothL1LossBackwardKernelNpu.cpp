@@ -36,7 +36,7 @@ at::Tensor& NPUNativeFunctions::smooth_l1_loss_backward_out(
       .Input(grad_out)
       .Output(grad_input)
       .Attr("reduction", reductionStr)
-      .Attr("sigma", static_cast<float>(1.0))
+      .Attr("sigma", static_cast<float>(beta))
       .Run();
   return grad_input;
 }
