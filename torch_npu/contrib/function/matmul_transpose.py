@@ -15,6 +15,8 @@
 import torch
 import torch_npu
 
+__all__ = ["MatmulApply"]
+
 class MatmulApply(torch.autograd.Function):
     """Using NPU custom operator to replace the native writing method to improve performance.
     
@@ -25,6 +27,9 @@ class MatmulApply(torch.autograd.Function):
     https://github.com/huggingface/transformers/blob/d6eeb871706db0d64ab9ffd79f9545d95286b536/src/transformers/models/bert/modeling_bert.py#L331
 
     This interface is faster than the original on NPU.
+
+    .. note::
+        In the dynamic shape scene, Due to the operator restriction, the broadcast scene is not supported.
 
     Args:
         tensor1 (Tensor): the first tensor to be multiplied.

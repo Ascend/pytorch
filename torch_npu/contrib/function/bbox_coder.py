@@ -34,6 +34,12 @@ def npu_bbox_coder_encode_yolo(bboxes, gt_bboxes, stride):
     Reference implementation link:
     https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/yolo_bbox_coder.py#L26
 
+    .. note::
+        Does not support dynamic shape, because of the semantics of operators, only supports 
+        2-dimensional (n, 4) scenes, bboxes and gt_bboxes only support the same shape and the 
+        same dtype, dtype only supports f16 and fp32, The third input (stride) only supports 
+        1D and the first dimension is the same as the first input(bboxes).
+
     Args:
         bboxes (torch.Tensor): Source boxes, e.g., anchors. Support dtype: float, half.
         gt_bboxes (torch.Tensor): Target of the transformation, e.g.,
@@ -128,6 +134,11 @@ def npu_bbox_coder_decode_xywh2xyxy(bboxes,
 
     Reference implementation link:
     https://github.com/open-mmlab/mmdetection/blob/master/mmdet/core/bbox/coder/delta_xywh_bbox_coder.py#L144
+
+    .. note::
+        Supports dynamic shape, because of the semantics of operators, only supports 2D (n,4) scenes, 
+        max_shape must pass 2 numbers, dtype only supports f16 and fp32, the dtype of the first input 
+        and the second input should be the same.
 
     Args:
         anchors (torch.Tensor): Basic boxes, shape (N, 4). Support dtype: float, half.

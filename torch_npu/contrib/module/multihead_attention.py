@@ -21,9 +21,10 @@ from torch import Tensor
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_npu
-from torch_npu.contrib.module.ensemble_dropout import NpuFairseqDropout, DropOutTask
+from torch_npu.contrib.module.ensemble_dropout import NpuCachedDropout, DropOutTask
+from ..function import matmul_transpose
 
-dropout_class = NpuFairseqDropout
+dropout_class = NpuCachedDropout
 
 def quant_noise(module, p, block_size):
     """
@@ -145,23 +146,9 @@ class MHAConfig:
     def set_fussion(cls):
         from torch import npu_multi_head_attention
         cls.use_fussion_mha = True
-            
-            
-class MatmulApply(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, self, mat2):
-        ctx.save_for_backward(self, mat2)
-        result = torch.matmul(self, mat2.transpose(-2,-1))
-        return result.detach()
-    @staticmethod
-    def backward(ctx, grad):
-        self, mat2 = ctx.saved_tensors
-        self_grad = torch.npu_bmmV2(grad, mat2, [])
-        mat2_grad = torch.npu_bmmV2(grad.transpose(-2, -1), self, [])
-        return self_grad, mat2_grad
 
 def Matmul_transpose(tensor1, tensor2):
-    return MatmulApply.apply(tensor1, tensor2)
+    return matmul_transpose.MatmulApply.apply(tensor1, tensor2)
 
 
 class MultiheadAttention(nn.Module):
@@ -172,7 +159,9 @@ class MultiheadAttention(nn.Module):
     Reference implementation link:
     https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/multihead_attention.py#L64
 
-    
+    .. note::
+        Dynamic shapes are not supported.
+
     Args:
         embed_dim (int): Total dimension of the model.
         num_heads (int): Number of parallel attention heads. 
@@ -219,7 +208,7 @@ class MultiheadAttention(nn.Module):
         )
         self.dropout_prob = dropout
 
-        self.use_dropout_optim = (dropout_class is NpuFairseqDropout)
+        self.use_dropout_optim = (dropout_class is NpuCachedDropout)
 
         self.head_dim = embed_dim // num_heads
         assert (
