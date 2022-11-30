@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import functools
 import random
 import numpy as np
 
@@ -38,6 +39,24 @@ def initialize_hook(hook):
     for attr_name in dir(wrap_functional.HOOKFunctionalOP):
         if attr_name.startswith("wrap_"):
             setattr(torch.nn.functional, attr_name[5:], getattr(wrap_functional.HOOKFunctionalOP, attr_name))
+
+
+def register_hook(model, hook, **kwargs):
+    assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
+
+    sample = kwargs.get('sample', True)
+    hook = functools.partial(hook, sample=sample)
+    initialize_hook(hook)
+    for _, module in model.named_modules():
+        if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
+            continue
+
+        prefix = "Module_" + module.__class__.__name__ + "_"
+        if hasattr(module, "prefix_op_name_"):
+            prefix = module.prefix_op_name_
+
+        module.register_forward_hook(hook(prefix + "forward"))
+        module.register_backward_hook(hook(prefix + "backward"))
 
 
 def seed_all(seed=1234):

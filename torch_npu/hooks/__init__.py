@@ -14,10 +14,6 @@
 # limitations under the License.
 
 from .hooks import set_dump_path, wrap_acc_cmp_hook, wrap_checkoverflow_hook
-from .initialize import initialize_hook, seed_all
-from .module import register_acc_cmp_hook, register_overflow_hook
+from .initialize import register_hook, seed_all
 
-__all__ = [
-    "register_acc_cmp_hook", "set_dump_path", "seed_all", "register_overflow_hook", "initialize_hook",
-    "wrap_acc_cmp_hook", "wrap_checkoverflow_hook"
-]
+__all__ = ["set_dump_path", "seed_all", "wrap_acc_cmp_hook", "wrap_checkoverflow_hook", "register_hook"]
