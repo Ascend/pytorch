@@ -43,6 +43,9 @@ class NpuDropPath(nn.Module):
     Reference implementation link:
     https://github.com/rwightman/pytorch-image-models/blob/e7f0db866412b9ae61332c205270c9fc0ef5083c/timm/models/layers/drop.py#L160
 
+    .. note::
+        Dynamic shapes are not supported.
+
     Args:
         drop_prob (float): the dropout probabilities.
         x (Tensor): The input tensor to apply dropout.

@@ -25,7 +25,7 @@ import torch_npu
 
 logger = logging.getLogger(__name__)
 
-                        
+
 class DropOutTask:
     def __init__(self, shape, dtype, device, p):
         self.shape = shape
@@ -36,12 +36,14 @@ class DropOutTask:
         self.mask_queue = []
                 
                         
-class NpuFairseqDropout(torch.nn.Dropout):
+class NpuCachedDropout(torch.nn.Dropout):
     r"""FairseqDropout using on npu device
 
     Reference implementation link:
     https://github.com/facebookresearch/fairseq/blob/e0884db9a7ce83670e21af39bf785b616ce5e3e3/fairseq/modules/fairseq_dropout.py#L16
 
+    .. note::
+        Dynamic shapes are not supported.
 
     Args:
         p (float): probability of an element to be zeroed.
@@ -72,16 +74,16 @@ class NpuFairseqDropout(torch.nn.Dropout):
         if self.p == 0:
             return return_obj
         key = (shape, dtype, device, self.p)
-        if key not in NpuFairseqDropout.task_dict:
+        if key not in NpuCachedDropout.task_dict:
             dropout_task = DropOutTask(shape, dtype, device, self.p)
             dropout_task.request_count += 1
-            NpuFairseqDropout.task_dict[key] = dropout_task
+            NpuCachedDropout.task_dict[key] = dropout_task
             return return_obj
-        elif not NpuFairseqDropout.task_dict[key].mask_queue:
-            NpuFairseqDropout.task_dict[key].request_count += 1
+        elif not NpuCachedDropout.task_dict[key].mask_queue:
+            NpuCachedDropout.task_dict[key].request_count += 1
             return return_obj
         else:
-            mask, event = NpuFairseqDropout.task_dict[key].mask_queue.pop(0)
+            mask, event = NpuCachedDropout.task_dict[key].mask_queue.pop(0)
             if do_mask_flag:
                 return torch.npu_dropout_do_mask(x, mask, self.p)[0]
             else:
@@ -110,3 +112,5 @@ class NpuFairseqDropout(torch.nn.Dropout):
             return hook_function
 
         model.register_forward_hook(mask_gen_hook_func())
+
+NpuFairseqDropout = NpuCachedDropout

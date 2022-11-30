@@ -28,6 +28,10 @@ def npu_multiclass_nms(multi_bboxes,
 
     This interface is similar to the original interface, but not exactly the same.
 
+    .. note::
+        In the case of dynamic shape, because of the limitation of NPU op, only supports the maximum
+        number of categories(nmsed_classes) is 20, and the maximum number of boxes(nmsed_boxes) is 10000.
+
     Args:
         multi_bboxes (Tensor): shape (n, #class, 4) or (n, 4)
         multi_scores (Tensor): shape (n, #class+1), where the last column
@@ -81,6 +85,10 @@ def npu_batched_multiclass_nms(
 
     This interface is similar to the original interface, but not exactly the same.
     This interface implements the nms method under batch.
+
+    .. note::
+        In the case of dynamic shape, because of the limitation of NPU op, only supports the maximum
+        number of categories(nmsed_classes) is 20, and the maximum number of boxes(nmsed_boxes) is 10000.
 
     Args:
         multi_bboxes (Tensor): shape (bs, n, #class, 4) or (bs, n, 4)
