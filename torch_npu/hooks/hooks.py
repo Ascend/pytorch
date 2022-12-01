@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 import os
+import json
 import stat
 
 import torch
@@ -45,32 +45,44 @@ def get_dump_path():
     return os.environ.get("DUMP_PATH")
 
 
-def dump_tensor(x, prefix=""):
+def dump_tensor(x, prefix="", sample=True):
     if "DUMP_PATH" not in os.environ:
         return
 
-    f = os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a")
     if isinstance(x, (tuple, list)) and x:
         for i, item in enumerate(x):
             dump_tensor(item, prefix="{}.{}".format(prefix, i))
     elif isinstance(x, torch.Tensor):
-        list_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
-        json.dump([prefix, list_tensor, str(x.dtype), tuple(x.shape)], f)
+        if len(x.shape) == 0 or not x.is_floating_point():
+            return
+
+        f = os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a")
+        if sample:
+            tensor_sum = torch._C._VariableFunctionsClass.sum(x).cpu().detach().float().numpy().tolist()
+            tensor_mean = torch._C._VariableFunctionsClass.mean(x).cpu().detach().float().numpy().tolist()
+            save_tensor = x.contiguous().view(-1)[:10].cpu().detach().float().numpy().tolist() + [
+                tensor_sum, tensor_mean
+            ]
+        else:
+            save_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
+        json.dump([prefix, save_tensor, str(x.dtype), tuple(x.shape)], f)
         f.write('\n')
-    f.close()
+        f.close()
 
 
-def wrap_acc_cmp_hook(name):
+def wrap_acc_cmp_hook(name, **kwargs):
+
+    sample = kwargs.get('sample', True)
 
     def acc_cmp_hook(module, in_feat, out_feat):
         name_template = f"{name}" + "_{}"
-        dump_tensor(in_feat, name_template.format("input"))
-        dump_tensor(out_feat, name_template.format("output"))
+        dump_tensor(in_feat, name_template.format("input"), sample)
+        dump_tensor(out_feat, name_template.format("output"), sample)
 
     return acc_cmp_hook
 
 
-def wrap_checkoverflow_hook(name):
+def wrap_checkoverflow_hook(name, **kwargs):
 
     def checkoverflow_hook(module, in_feat, out_feat):
         module_name = name
