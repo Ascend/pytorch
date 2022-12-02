@@ -42,6 +42,7 @@
 #include "torch_npu/csrc/profiler/e2e_profiler.h"
 #include "torch_npu/csrc/framework/graph/execute/GraphExecutor.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
+#include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "torch_npu/csrc/aten/NPUGeneratorImpl.h"
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/npu/Module.h"
@@ -617,6 +618,12 @@ PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_get_soc_version(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  return PyLong_FromLong(static_cast<long>(c10_npu::GetSocVersion()));
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -651,6 +658,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_enable_e2e_profiler", (PyCFunction)THNPModule_enable_e2eProfiler, METH_VARARGS, nullptr},
     {"_disable_e2e_profiler", (PyCFunction)THNPModule_disable_e2eProfiler, METH_NOARGS, nullptr},
     {"_npu_deque_tensor", (PyCFunction)THNPModule_npu_deque_tensor, METH_VARARGS, nullptr},
+    {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {
