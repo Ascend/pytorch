@@ -78,7 +78,7 @@ def save(obj, f, pickle_module=pickle, pickle_protocol=DEFAULT_PROTOCOL, _use_ne
     path: The destination file for the data saving operation. all the writes from 
     the same host will override each other.
     """
-    se.save(obj, f, pickle_module, pickle_protocol, _use_new_zipfile_serialization)
+    se.save(obj, f, pickle_module, pickle_protocol, True)
 
 
 def load(f, map_location=None, pickle_module=pickle, **pickle_load_args):
