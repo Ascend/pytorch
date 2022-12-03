@@ -1998,6 +1998,31 @@ Ascend平台提供了脚本转换工具使用户能通过命令行方式将训�
 
   适配后的Apex针对adadelta/adam/sgd/lamb做了昇腾AI处理器亲和性优化，得到的NPU融合优化器与原生算法保持一致，但运算速度更快。使用时只需将原有优化器替换为apex.optimizers.\*（“\*”为优化器名称，例如NpuFusedSGD）。
 
+  当optimizer的可更新参数分为不同的多组，每组使用不同的策略，这种场景下，融合优化器只能优化掉第一个model分组的参数，因此，当优化器的参数相同时，尽量合并分组。
+
+  - 优化前：
+
+    ```
+    optimizer = apex.optimizers.NpuFusedSGD([
+                 {'params': model.sharedNet.parameters()},
+                 {'params': model.bottleneck.parameters()},
+                 {'params': model.domain_classifier.parameters()},
+                 {'params': model.dcis.parameters()},
+                 {'params': model.source_fc.parameters(), 'lr': LEARNING_RATE},
+             ], lr=LEARNING_RATE / 10, momentum=args.momentum, weight_decay=args.l2_decay)
+    ```
+
+  - 优化后：
+
+    ```
+    optimizer = apex.optimizers.NpuFusedSGD([
+                 {'params': list(model.sharedNet.parameters()) + list(model.bottleneck.parameters()) +  list(model.domain_classifier.parameters())+list(model.dcis.parameters())},
+                 {'params': model.source_fc.parameters(), 'lr': LEARNING_RATE},
+             ], lr=LEARNING_RATE / 10, momentum=args.momentum, weight_decay=args.l2_decay)
+    ```
+
+    
+
 - 分布式训练性能开关
 
   适配后的Apex针对数据并行场景做了昇腾AI处理器亲和性优化，支持利用融合grad进行加速，同时保持计算逻辑一致性。通过开启combine_ddp开关，也就是将amp.initialize()接口参数combine_ddp设置为True并关闭框架的DistributedDataParallel模式，即可开启该功能。
