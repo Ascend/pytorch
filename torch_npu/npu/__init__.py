@@ -61,6 +61,5 @@ from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, iteration_start, iteration_end, 
             profileConfig, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd)
-from .tensor import FloatTensor, IntTensor, DoubleTensor, LongTensor, ShortTensor, CharTensor, ByteTensor, HalfTensor
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile

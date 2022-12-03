@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import itertools
+
+import numpy as np
 import torch
 import torch_npu
 
@@ -227,6 +229,28 @@ class TestTensor(TestCase):
 
         res1 = torch.zeros_like(expected)
         self.assertEqual(res1.to('cpu'), expected.to('cpu'))
+
+    def test_scalar_tensortype(self):
+        np.random.seed(1024)
+        dtypes = {
+            np.bool_: [torch.npu.BoolTensor, torch.BoolTensor],
+            np.float64: [torch.npu.DoubleTensor, torch.DoubleTensor],
+            np.float32: [torch.npu.FloatTensor, torch.FloatTensor],
+            np.float16: [torch.npu.HalfTensor, torch.HalfTensor],
+            np.int64: [torch.npu.LongTensor, torch.LongTensor],
+            np.int32: [torch.npu.IntTensor, torch.IntTensor],
+            np.int16: [torch.npu.ShortTensor, torch.ShortTensor],
+            np.int8: [torch.npu.CharTensor, torch.CharTensor],
+            np.uint8: [torch.npu.ByteTensor, torch.ByteTensor],
+        }
+
+        for dt, tt in dtypes.items():
+            np_data = np.random.randn(2, 3, 4).astype(dt)
+            npu_tensor = tt[0](np_data)
+            cpu_tensor = tt[1](np_data)
+            self.assertEqual(npu_tensor.dtype, cpu_tensor.dtype)
+            self.assertEqual(npu_tensor.device.type, "npu")
+            self.assertEqual(npu_tensor.to("cpu"), cpu_tensor)
 
 
 if __name__ == '__main__':
