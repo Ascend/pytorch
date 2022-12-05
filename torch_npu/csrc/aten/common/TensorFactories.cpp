@@ -427,6 +427,9 @@ namespace at_npu
                                                      c10::optional<bool> pin_memory_opt,
                                                      int64_t dst_format)
     {
+      TORCH_CHECK(c10::device_or_default(device_opt).type() == at_npu::key::NativeDeviceType,
+          "Expected all tensors to be on the same device. "
+          "Expected NPU tensor, please check whether the input tensor device is correct.");
       caffe2::TypeMeta dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       c10::TensorOptions options = c10::TensorOptions().dtype(dtype_opt)
                                           .device(device_opt)
