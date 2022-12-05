@@ -110,13 +110,9 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
       {ge::AscendString(ge::OPTION_EXEC_DEVICE_ID),
        ge::AscendString(npu_device_id.data())},
       {ge::AscendString(ge::OPTION_GRAPH_RUN_MODE), "0"},
-      {ge::AscendString(ge::PRECISION_MODE.data()), "allow_fp32_to_fp16"},
       {ge::AscendString(ge::VARIABLE_MEMORY_MAX_SIZE), "1048576"},
       {ge::AscendString(ge::OP_SELECT_IMPL_MODE.data()), "high_precision"}
   };
-  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
-      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
-  config[ge::AscendString(ge::PRECISION_MODE.data())] = precision_mode;
 
   config["ge.session_device_id"] = ge::AscendString(npu_device_id.data());
   config["ge.exec.reuseZeroCopyMemory"] = ge::AscendString("1");
@@ -145,6 +141,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   // set global soc name
   c10_npu::SetSocVersion(soc_name);
+
+  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
+      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
+  config[ge::AscendString(ge::PRECISION_MODE.data())] = precision_mode;
 
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
     static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
