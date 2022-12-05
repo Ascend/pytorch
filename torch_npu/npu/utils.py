@@ -348,6 +348,10 @@ def finalize_dump():
     torch_npu.npu._lazy_init()
     return torch_npu._C._npu_finalizeDump()
 
+def get_soc_version():
+    soc_version = torch_npu._C._npu_get_soc_version()
+    return soc_version
+
 def get_npu_overflow_flag():
     float_status = torch.zeros(8).npu()
     result = torch_npu.npu_get_float_status(float_status)
@@ -357,7 +361,7 @@ def get_npu_overflow_flag():
         return False
 
 def npu_check_over_flow(grad):
-    soc_version = torch_npu._C._npu_get_soc_version()
+    soc_version = get_soc_version()
 
     if (soc_version >= 220):
         cpu_sum = float(grad.float().sum())
@@ -366,15 +370,10 @@ def npu_check_over_flow(grad):
         else:
             return False
     else:
-        float_status = torch.zeros(8).npu()
-        result = torch_npu.npu_get_float_status(float_status)
-        if (float_status.cpu()[0] != 0):
-            return True
-        else:
-            return False
+        return get_npu_overflow_flag()
 
 def clear_npu_overflow_flag():
-    soc_version = torch_npu._C._npu_get_soc_version()
+    soc_version = get_soc_version()
     if (soc_version >= 220):
         print("Unnessary operate when soc_version >= Ascend910B1 !")
         return
