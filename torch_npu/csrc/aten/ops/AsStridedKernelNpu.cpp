@@ -58,6 +58,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
       .Input(at::Scalar(0), at::kLong)
       .Output(result)
       .Run();
+  return result;
 }
 
 at::Tensor& NPUNativeFunctions::npu_stride_copy_out(
