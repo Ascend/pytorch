@@ -25,8 +25,10 @@
 
 ## **精度比对基本原理**
 
-普遍适用的方法是以模型为单位，采用hook机制挂在模型的上。当模型在CPU(或GPU)上进行正向传播时跟踪并dump每一层的数值输入与输出，在反向传播时跟踪并dump每一层的梯度输入值与输出值；同样的当模型在NPU中进行计算时采用相同的方式记录下相应的数据，通过对比dump出的数值，计算余弦相似度和均方根误差的方式,
+普遍适用的方法是以模型为单位，采用hook机制挂在模型的上。当模型在CPU上进行正向传播时跟踪并dump每一层的数值输入与输出，在反向传播时跟踪并dump每一层的梯度输入值与输出值；同样的当模型在NPU中进行计算时采用相同的方式记录下相应的数据，通过对比dump出的数值，计算余弦相似度和均方根误差的方式,
 定位和排查NPU算子存在的计算精度问题。
+
+精度比对工具dump数据说明：在实际使用场景中网络模型通常较大，基于整网全量数据的dump，耗时长且储存文件大。因此内部默认使用部分网络参数和统计量的方式dump数据来提升效率。如需dump全量数据，请将register_hook函数中的sample参数设为False（默认为True）。
 
 ![图1：精度比对逻辑图](figures/module_compare.png)
 
@@ -85,6 +87,57 @@ $$
 绝对百分比误差衡量计算误差的百分比，越接近0越好，但当其中的实际计算结果中存在0时是无法进行计算的
 
 ## **快速上手样例参考**
+相关函数导入
+```python
+from torch_npu.hooks import set_dump_path, seed_all, register_hook, wrap_acc_cmp_hook
+from torch_npu.hooks.tools import compare
+```
+相关函数说明：
+```python
+seed_all(seed=1234)->None
+功能:
+    设置随机数种子, 固定网络初始化中的随机数
+参数:
+    seed: 随机数种子
+例子:
+    >>>seed_all()
+    >>>seed_all(1234)
+```
+```python
+set_dump_path(fpath=None)->None
+功能:
+    设置dump数据文件
+参数:
+    fpath: dump数据文件
+例子:
+    >>>set_dump_path("./cpu_module_op.pkl")
+    >>>set_dump_path("/home/xxx/npu_module_op.pkl")
+```
+```python
+register_hook(model, hook, **kwargs)->None
+功能:
+    对模型注入hooks, 开启dump数据功能
+参数:
+    model: 需要dump数据的网络模型
+    hook: 需要注册的函数, 精度比对工具使用wrap_acc_cmp_hook函数
+    sample:是否使用数据采样方式dump数据, 默认为True
+例子:
+    >>>register_hook(model, wrap_acc_cmp_hook)
+    >>>register_hook(model, wrap_acc_cmp_hook, sample=False)
+    >>>register_hook(model, wrap_acc_cmp_hook, sample=True)
+```
+```python
+compare(pkl_path1, pkl_path2, output_path, shape_flag=False)->None
+功能:
+    对dump下来的两份数据进行比对
+参数:
+    pkl_path1: 模型dump数据文件1
+    pkl_path2: 模型dump数据文件2
+    output_path: 精度比对结果文件输出路径
+    shape_flag: False时只使用算子名字进行匹配, True时使用算子名称, 输入输出大小进行匹配
+例子:
+    >>>compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
+```
 
 使用精度比对工具进行模型的精度比对，样例代码如下：
 
@@ -94,7 +147,7 @@ import os
 import torch
 import torch.nn as nn
 
-from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
+from torch_npu.hooks import set_dump_path, seed_all, register_hook, wrap_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
 
@@ -113,10 +166,9 @@ class ModuleOP(nn.Module):
         r1 = self.relu(x2)
         return r1
 
-
-# 对该网络进行hook注入和数据dump
 module = ModuleOP()
-register_acc_cmp_hook(module) # 对模型注入forwar和backward的hooks
+# 对模型注入forwar和backward的hooks，采样功能默认开启，如需关闭，请使用register_hook(model_cpu, wrap_acc_cmp_hook, sample=False)
+register_hook(model_cpu, wrap_acc_cmp_hook) 
 seed_all()
 x = torch.randn(2, 2)
 
@@ -125,11 +177,11 @@ set_dump_path("./cpu_module_op.pkl")
 out = module(x)
 loss = out.sum()
 loss.backward()
-set_dump_path("./npu_module_op.pkl")
 
-# npu上计算，dump数据
 module.npu()
 x = x.npu()
+# npu上计算，dump数据
+set_dump_path("./npu_module_op.pkl")
 out = module(x)
 loss = out.sum()
 loss.backward()
@@ -140,7 +192,7 @@ compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
 ```
 
 
-使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu/gpu和npu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
+使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu和cpu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
 ```python
 import os
 import copy
@@ -148,7 +200,7 @@ import torch
 import torch.nn as nn
 from torchvision import models, datasets, transforms
 
-from torch_npu.hooks import set_dump_path, seed_all, register_acc_cmp_hook
+from torch_npu.hooks import set_dump_path, seed_all, register_hook, wrap_acc_cmp_hook
 from torch_npu.hooks.tools import compare
 
 
@@ -158,17 +210,17 @@ model_cpu.eval()
 model_npu = copy.deepcopy(model_cpu)
 model_npu.eval()
 
-# 对该计算进行hook注入和数据dump
-register_acc_cmp_hook(model_cpu)
-register_acc_cmp_hook(model_npu)
 seed_all()
+# 对该计算进行hook注入和数据dump，采样功能默认开启，如需关闭，请使用register_hook(model_cpu, wrap_acc_cmp_hook, sample=False)
+register_hook(model_cpu, wrap_acc_cmp_hook)
+register_hook(model_npu, wrap_acc_cmp_hook)
 
 # 需要根据不同的模型输入和标签生成相应的tensor(或读取实际数据)，损失函数等，如果是随机生成的标签需要保证数据的有效性
 inputs = torch.randn(1, 3, 244, 244)
 labels = torch.randn(1).long()
 criterion = nn.CrossEntropyLoss()
 
-# cpu，若需要使用gpu或npu进行对比采用model_gpu = model.to("cuda:0")或model_npu = model.to("npu:0")
+# cpu
 set_dump_path("./cpu_resnet50_op.pkl")
 output = model_cpu(inputs)
 loss = criterion(output, labels)
@@ -186,3 +238,18 @@ loss.backward()
 # 对比dump出的数据精度，生成csv文件
 compare("./npu_resnet50_op.pkl", "./cpu_resnet50_op.pkl", "./resnet50_result.csv")
 ```
+ 如需对生成的pkl文件解析读取数据，可参考下列代码
+```python
+import json
+
+pkl_file=open("./cpu_resnet50_op.pkl",'r') 
+tensor_line=pkl_file.readline() # 读取行数据
+tensor_data=json.loads(tensor_line)
+
+print(tensor_data[0]) # 算子名称
+print(tensor_data[1]) # 对应数据
+print(tensor_data[2]) # 数据类型
+print(tensor_data[3]) # 数据尺寸
+
+```
+

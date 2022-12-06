@@ -47,6 +47,7 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
+#include "torch_npu/csrc/utils/OverflowUtils.h"
 
 struct NPUDeviceProp {
   std::string name;
@@ -621,6 +622,31 @@ PyObject* THNPModule_set_run_yet_variable_to_false_wrap(
 PyObject* THNPModule_npu_get_soc_version(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
   return PyLong_FromLong(static_cast<long>(c10_npu::GetSocVersion()));
+    END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_check_overflow_npu(
+    PyObject* self,
+    PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  auto has_overflow=torch_npu::utils::OverflowUtil::GetInstance()->CheckOverflowNpu();
+  if (has_overflow)
+  {
+    Py_RETURN_TRUE;
+  }
+  else
+  {
+    Py_RETURN_FALSE;
+  }
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_clear_overflow_npu(
+    PyObject* self,
+    PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  torch_npu::utils::OverflowUtil::GetInstance()->ClearOverflowNpu();
+  Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
@@ -659,6 +685,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_disable_e2e_profiler", (PyCFunction)THNPModule_disable_e2eProfiler, METH_NOARGS, nullptr},
     {"_npu_deque_tensor", (PyCFunction)THNPModule_npu_deque_tensor, METH_VARARGS, nullptr},
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
+	  {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
+    {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {
