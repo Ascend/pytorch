@@ -169,7 +169,7 @@ at::Tensor NPUNativeFunctions::mm(const at::Tensor &self,
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
-      is_nz_out = true && (!mm_bmm_nd);
+      is_nz_out = (!mm_bmm_nd);
     }
   } else {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
