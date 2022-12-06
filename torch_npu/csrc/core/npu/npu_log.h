@@ -10,6 +10,15 @@
 #define ALLOC_ERROR "ALLOC_ERROR"
 #define FAILED "FAILED"
 
+#define ASCEND_LOGE(fmt, ...) \
+  aclAppLog(ACL_ERROR, __FILENAME__, __FUNCTION__, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__)
+#define ASCEND_LOGW(fmt, ...) \
+  aclAppLog(ACL_WARNING, __FILENAME__, __FUNCTION__, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__)
+#define ASCEND_LOGI(fmt, ...) \
+  aclAppLog(ACL_INFO, __FILENAME__, __FUNCTION__, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__)
+#define ASCEND_LOGD(fmt, ...) \
+  aclAppLog(ACL_DEBUG, __FILENAME__, __FUNCTION__, __LINE__, "[PTA]:"#fmt, ##__VA_ARGS__)
+
 #define NPU_LOGE(fmt, ...)          \
   printf(                           \
       "[ERROR]%s,%s:%u:" #fmt "\n", \
