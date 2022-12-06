@@ -685,48 +685,7 @@ void Reducer::autograd_hook(size_t index) {
 void Reducer::all_reduce_local_used_map() {
   // See Note [Skip allreducing local_used_map_dev]
   // H2D from local_used_map_ to local_used_map_dev_
-  if (at_npu::key::isDeviceTensor(local_used_map_dev_)) {
-    // Note [local_used_map_ -> local_used_map_dev copying]
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // We do async H2D to avoid the blocking overhead. The async copy and
-    // allreduce respect the current stream, so will be sequenced
-    // correctly.
-    //
-    // Correct sequencing with respect to host operations is also
-    // essential. The H2D copy_ is stream ordered, while the host's
-    // changes to local_used_map_ are host ordered. If a large backlog of
-    // cuda-stream work pushes the copy_ far into the future, and if no
-    // blocking calls occur between now and finalize_backward()** such
-    // that finalize_backward() re-zeroes local_used_map_ on the host
-    // before the stream executes the copy_, copy_ will read those zeros
-    // instead of the values we thought we told it to read here. Copying
-    // local_used_map_ to a pinned temporary (which the pinned caching
-    // allocator should supply asynchronously) avoids this nasty, rare
-    // race condition.
-    //
-    // ** In the hoped-for case where all params are used, DDP itself
-    // won't do any blocking work between now and the re-zeroing, so the
-    // danger is real.
-    //
-    // Defensively ensures local_used_map_tmp is distinct from
-    // local_used_map_
-    auto local_used_map_tmp = at::native::empty_like(
-        local_used_map_,
-        optTypeMetaToScalarType(local_used_map_.options().dtype_opt()),
-        local_used_map_.options().layout_opt(),
-        local_used_map_.options().device_opt(),
-        true /* pinned_memory */);
-    // Paranoid asserts here because in some workloads, the pinned
-    // allocator behaves in a way we don't understand, and may be bugged.
-    // See https://github.com/pytorch/pytorch/pull/54474
-    TORCH_INTERNAL_ASSERT(local_used_map_tmp.is_pinned());
-    TORCH_INTERNAL_ASSERT(
-        local_used_map_tmp.data_ptr() != local_used_map_.data_ptr());
-    local_used_map_tmp.copy_(local_used_map_);
-    local_used_map_dev_.copy_(local_used_map_tmp, true);
-  } else {
-    local_used_map_dev_.copy_(local_used_map_, true);
-  }
+  local_used_map_dev_.copy_(local_used_map_, true);
   std::vector<at::Tensor> temp_local_used_map_dev_vec_ = {local_used_map_dev_};
   local_used_work_ = process_group_->allreduce(temp_local_used_map_dev_vec_);
 }
