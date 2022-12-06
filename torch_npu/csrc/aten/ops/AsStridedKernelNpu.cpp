@@ -52,7 +52,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
 
   // When the last dimension of the input tensor stride is greater than 32, we use 
   // AsStrided + Transpose instead of AsStrided to get better performance.
-  if (stride.back() >= 32) {
+  if (stride.back() >= 256) {
     std::set<std::pair<int, std::pair<int, int>>> stride_perm_shape_set;
     int tensor_dim = stride.size();
     for (int i = 0; i < tensor_dim; i++) {
