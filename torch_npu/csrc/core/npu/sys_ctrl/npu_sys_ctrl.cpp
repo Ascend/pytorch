@@ -22,6 +22,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionRegister.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
+#include "third_party/acl/inc/acl/acl_op_compiler.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -142,16 +143,16 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
   // set global soc name
   c10_npu::SetSocVersion(soc_name);
 
-  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
-      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
-  config[ge::AscendString(ge::PRECISION_MODE.data())] = precision_mode;
-
   if (c10_npu::acl::IsExistQueryEventRecordedStatus()) {
     static const std::string HCOM_OPTIONS = "ge.exec.isUseHcom";
     config.emplace(HCOM_OPTIONS.data(), "1");
   }
 
   C10_NPU_CHECK(ge::GEInitialize(config));
+
+  auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
+      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
+  aclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode);
 
   // set default compile cache mode and dir for users to improve op compile time
   MakeCompileCacheDirAndSetOption();
