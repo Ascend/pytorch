@@ -1,4 +1,5 @@
 #include "AclInterface.h"
+#include "acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/register/FunctionLoader.h"
 #include "c10/util/Exception.h"
 
@@ -27,6 +28,7 @@ LOAD_FUNCTION(aclprofFinalize)
 LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
 LOAD_FUNCTION(aclrtGetSocName)
+LOAD_FUNCTION(aclrtSetDeviceSatMode)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -216,6 +218,16 @@ const char *AclGetSocName() {
     return nullptr;
   }
   return func();
+}
+
+aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {
+  typedef aclError (*AclrtSetDeviceSatMode)(aclrtFloatOverflowMode mode);
+  static AclrtSetDeviceSatMode func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetDeviceSatMode)GET_FUNC(aclrtSetDeviceSatMode);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode");
+  return func(mode);
 }
 } // namespace acl
 } // namespace c10
