@@ -265,6 +265,11 @@ c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
     int64_t repeats,
     int64_t dim);
 
+c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
+    const at::Tensor& self,
+    const at::Tensor& repeats,
+    int64_t dim);
+
 c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor& self,c10::IntArrayRef padding);
 
 c10::SmallVector<int64_t, SIZE> roi_align_backward_npu_output_size(
