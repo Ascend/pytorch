@@ -56,7 +56,7 @@ at::Tensor &NPUNativeFunctions::sum_out(
       res_type,
       outputSize);
 
-  at::Tensor self_cp = self.scalar_type() == at::kBool ?
+  at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
       NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
   at::Tensor result_cp = result.scalar_type() == self_cp.scalar_type() ? result :
       NPUNativeFunctions::npu_dtype_cast(result, self_cp.scalar_type());
@@ -85,7 +85,7 @@ at::Tensor NPUNativeFunctions::sum(
     at::IntArrayRef dim,
     bool keepdim,
     c10::optional<c10::ScalarType> dtype) {
-  at::Tensor self_cp = self.scalar_type() == at::kBool ?
+  at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
       NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
   auto outputSize = reduce_ops_npu_output_size(self_cp, dim, keepdim);
   auto selfSize = self_cp.sizes();
