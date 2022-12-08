@@ -56,12 +56,18 @@ def dump_tensor(x, prefix="", sample=True):
         if len(x.shape) == 0 or not x.is_floating_point():
             return
 
+        if hasattr(dump_tensor, "call_number"):
+            dump_tensor.call_number = dump_tensor.call_number + 1
+        else:
+            dump_tensor.call_number = 0
+        prefix = f"{dump_tensor.call_number}_{prefix}"
         with os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
             if sample:
-                tensor_sum = torch._C._VariableFunctionsClass.sum(x).cpu().detach().float().numpy().tolist()
+                tensor_max = torch._C._VariableFunctionsClass.max(x).cpu().detach().float().numpy().tolist()
+                tensor_min = torch._C._VariableFunctionsClass.min(x).cpu().detach().float().numpy().tolist()
                 tensor_mean = torch._C._VariableFunctionsClass.mean(x).cpu().detach().float().numpy().tolist()
                 save_tensor = x.contiguous().view(-1)[:10].cpu().detach().float().numpy().tolist() + [
-                    tensor_sum, tensor_mean
+                    tensor_max, tensor_min, tensor_mean
                 ]
             else:
                 save_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
