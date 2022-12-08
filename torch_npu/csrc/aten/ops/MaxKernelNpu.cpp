@@ -151,11 +151,26 @@ at::Tensor& NPUNativeFunctions::maximum_out(
     const at::Tensor& self, 
     const at::Tensor& other,
     at::Tensor& result) {
-  OpPreparation::CheckOut(
-      {self},
-      result,
-      self);
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self, other}, result, self, outputSize);
   max_out_npu_nocheck(self, other, result);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::maximum(
+    const at::Tensor& self,
+    const at::Tensor& other) {
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+
+  at::ScalarType high_type = at::native::result_type(self, other);
+  at::Tensor self_copy = (self.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(self)) ?
+      NPUNativeFunctions::npu_dtype_cast(self, high_type) : self;
+  at::Tensor other_copy = (other.scalar_type() != high_type && !CalcuOpUtil::is_scalar_wrapped_to_tensor(other)) ?
+      NPUNativeFunctions::npu_dtype_cast(other, high_type) : other;
+
+  at::Tensor result = OpPreparation::ApplyTensor(self_copy, outputSize);
+  max_out_npu_nocheck(self_copy, other_copy, result);
+
   return result;
 }
 
