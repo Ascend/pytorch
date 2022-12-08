@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import torch
-import torch_npu
 import contextlib
 import warnings
+import torch
+import torch_npu
 
 from .utils import _lazy_init, _lazy_call, device_count, current_device
 
@@ -173,6 +173,8 @@ def initial_seed():
     idx = current_device()
     default_generator = torch_npu.npu.default_generators[idx]
     return default_generator.initial_seed()
+
+_fork_rng_warned_already = False
 
 @contextlib.contextmanager
 def fork_rng(devices=None, enabled=True, _caller="fork_rng", _devices_kw="devices"):
