@@ -30,7 +30,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_aminmax(
     const at::Tensor& self,
     const int64_t dim,
     const bool keepdim) {
-  auto min = NPUNativeFunctions::min(self, {dim}, true);
+  auto min = NPUNativeFunctions::min(self, {dim}, keepdim);
   auto max = NPUNativeFunctions::max(self, {dim}, keepdim);
 
   return std::tie(std::get<0>(min), std::get<0>(max));
