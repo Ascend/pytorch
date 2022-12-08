@@ -87,6 +87,9 @@ def wrap_checkoverflow_hook(name, **kwargs):
         module_name = name
         module.has_overflow = torch_npu._C._check_overflow_npu()
         if module.has_overflow:
+            name_template = f"{name}" + "_{}"
+            dump_tensor(in_feat, name_template.format("input"), False)
+            dump_tensor(out_feat, name_template.format("output"), False)
             raise ValueError("[check overflow]:module name :'{}' is overflow!".format(module_name))
 
     return checkoverflow_hook
