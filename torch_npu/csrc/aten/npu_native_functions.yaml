@@ -733,6 +733,7 @@ supported:
   - negative.out
   - repeat
   - repeat_interleave.self_int
+  - repeat_interleave.self_Tensor
   - reshape
   - _mkldnn_reshape
   - reshape_as
