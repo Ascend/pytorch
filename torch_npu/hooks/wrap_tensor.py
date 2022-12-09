@@ -18,6 +18,7 @@ import yaml
 
 import torch
 
+from torch_npu.utils.device_guard import torch_device_guard
 from .module import HOOKModule
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
@@ -44,6 +45,7 @@ class TensorOPTemplate(HOOKModule):
         self.prefix_op_name_ = "Tensor_" + str(op_name) + "_"
         super().__init__(hook)
 
+    @torch_device_guard
     def forward(self, *args, **kwargs):
         return getattr(torch._C._TensorBase, str(self.op_name_))(*args, **kwargs)
 
