@@ -32,6 +32,57 @@ namespace native {
 // format are base format (the format of src and dst are all nchw now)
 // dtype are same
 // so the view_value and ReflushDescBySelf are base on the hypothesis above.
+bool AicoreValid(at::Tensor& self, const at::Tensor& src) {
+  const auto& dst_storage_sizes = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.storage_sizes_;
+  auto self_size = self.sizes();
+  auto self_stride = self.strides();
+  auto dst_storage_size_len = dst_storage_sizes.size();
+  auto self_size_len = self_size.size();
+
+  // count the difference between dst_storage and dst_size.
+  int diff = dst_storage_size_len - self_size_len;
+  if (diff < 0 || diff > 1) {
+    return false;
+  }
+
+  // record the index of the difference.
+  int diff_index = self_size_len;
+  for (int64_t i = 0; i < self_size_len; i++) {
+    if (dst_storage_sizes[i] != self_size[i]) {
+      ++diff;
+      if (diff > 1) {
+        return false;
+      }
+      // differece should be 1.
+      diff_index = i;
+    }
+  }
+
+  // if diff equals 0, no need viewcopy.
+  if (diff == 0) {
+    return false;
+  } 
+
+  const auto& dst_base_stride = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_.base_strides_;
+  // dst_base_stride should be equal to dst_storage_stride except for diff_index
+  if (self_stride.size() > dst_base_stride.size()) {
+    return false;
+  } 
+  
+  for (int64_t i = 0; i < self_stride.size(); i++) {
+    if (dst_base_stride[i] != self_stride[i] && i != diff_index) {
+      return false;
+    } 
+  }
+
+  // dtype cannot be double and dst_size has to be equal with src_size.
+  if (self.dtype() == at::ScalarType::Double || self_size != src.sizes()) {
+    return false;
+  } 
+  
+  return true;
+}
+
 void copy_kernel_npu(
     at::Tensor& self,
     const at::Tensor& src,
@@ -60,8 +111,23 @@ void copy_kernel_npu(
     return;
   };
 
-  OpCommand cmd;
-  cmd.Name("ViewCopy")
+  if (AicoreValid(self, src)) {
+    OpCommand cmd;
+    cmd.Name("ViewCopy")
+      .InputWithoutContiguous(self)
+      .Input(self_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(self_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(at::Scalar(0), at::kLong)
+      .Input(src)
+      .Input(src_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(src_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+      .Input(at::Scalar(0), at::kLong)
+      .Output(self)
+      .Run();
+  }
+  else {
+    OpCommand cmd;
+    cmd.Name("ViewCopy")
       .InputWithoutContiguous(self)
       .Input(self_size, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(self_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
@@ -71,8 +137,10 @@ void copy_kernel_npu(
       .Input(src_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
       .Input(at::Scalar(0), at::kLong)
       .Output(self)
+      .Attr("_exclude_engines", (string)"AiCore")
       .Run();
-
+  }
+  
   return;
 }
 
