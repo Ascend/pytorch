@@ -21,6 +21,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include <c10/util/Exception.h>
+#include "third_party/acl/inc/acl/acl_rt.h"
 
 #include <Python.h>
 #include <array>
@@ -164,14 +165,16 @@ static void initGlobalStreamState() {
   default_streams[device_id].device_index = device_id;
   npu_counters[device_id] = 0;
   auto& default_streamsi = default_streams[device_id];
-  C10_NPU_CHECK(aclrtCreateStream(&default_streamsi.stream));
+  C10_NPU_CHECK(
+      acl::AclrtCreateStreamWithConfig(&default_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   if (c10_npu::option::OptionsManager::CheckQueueEnable()) {
     default_streamsi.repo->InitRepo(device_id);
   }
   // Initializes secondary streams
   secondary_streams[device_id].device_index = device_id;
   auto& secondary_streamsi = secondary_streams[device_id];
-  C10_NPU_CHECK(aclrtCreateStream(&secondary_streamsi.stream));
+  C10_NPU_CHECK(
+      acl::AclrtCreateStreamWithConfig(&secondary_streamsi.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
 }
 
 static void initDeviceStreamState(c10::DeviceIndex device_index) {
@@ -183,7 +186,8 @@ static void initDeviceStreamState(c10::DeviceIndex device_index) {
 
     npu_streami.device_index = device_index;
 
-    C10_NPU_CHECK(aclrtCreateStream(&npu_streami.stream));
+    C10_NPU_CHECK(
+        acl::AclrtCreateStreamWithConfig(&npu_streami.stream, 0, (ACL_STREAM_FAST_LAUNCH | ACL_STREAM_FAST_SYNC)));
   }
 }
 
