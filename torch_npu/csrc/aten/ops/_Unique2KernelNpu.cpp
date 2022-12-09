@@ -26,7 +26,7 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> _unique2_out_npu(
     bool sorted,
     bool return_inverse,
     bool return_counts) {
-  c10::SmallVector<int64_t, N> output_sync_idx = {0, 2};
+  c10::SmallVector<int64_t, N> output_sync_idx = {0, 1, 2};
   OpCommand cmd;
   cmd.Sync(output_sync_idx)
       .Name("UniqueWithCountsAndSorting")
@@ -61,11 +61,11 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_unique2(
   }
   at::Tensor y = OpPreparation::ApplyTensor(self, self.numel());
   at::Tensor yInverse = !(return_counts || return_inverse) ?
-      OpPreparation::ApplyTensorWithFormat({0}, self.options().dtype(at::kLong), ACL_FORMAT_ND) :
+      OpPreparation::ApplyTensorWithFormat({1}, self.options().dtype(at::kLong), ACL_FORMAT_ND) :
       OpPreparation::ApplyTensorWithFormat(self.sizes(), self.options().dtype(at::kLong), ACL_FORMAT_ND);
   at::Tensor yCounts = return_counts ?
       OpPreparation::ApplyTensorWithFormat(self.numel(), self.options().dtype(at::kLong), ACL_FORMAT_ND) :
-      OpPreparation::ApplyTensorWithFormat({0}, self.options().dtype(at::kLong), ACL_FORMAT_ND);
+      OpPreparation::ApplyTensorWithFormat({1}, self.options().dtype(at::kLong), ACL_FORMAT_ND);
 
   _unique2_out_npu(y, yInverse, yCounts, self, sorted, return_inverse, return_counts);
   if (selfOp.scalar_type() == at::kHalf) {
