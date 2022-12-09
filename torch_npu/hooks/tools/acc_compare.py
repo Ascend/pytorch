@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import json
 import argparse
 import numpy as np
@@ -41,11 +40,13 @@ def get_mape(a, b):
 
 
 def check_op(a, b, shape_flag):
+    a_op_name = [_.split('_', 1)[1] for _ in a["op_name"]]
+    b_op_name = [_.split('_', 1)[1] for _ in b["op_name"]]
     if shape_flag:
-        return a["op_name"] == b["op_name"] and a["input_struct"] == b["input_struct"] \
+        return a_op_name == b_op_name and a["input_struct"] == b["input_struct"] \
             and a["output_struct"] == b["output_struct"]
     else:
-        return a["op_name"] == b["op_name"]
+        return a_op_name == b_op_name
 
 
 def merge_tensor(tensor_list):
@@ -84,19 +85,20 @@ def read_op(ops_queue, pkl_file_handle):
 
 def match_op(npu_queue, bench_queue, shape_flag):
     if check_op(npu_queue[-1], bench_queue[-1], shape_flag):
-        return len(npu_queue)-1, len(bench_queue)-1
-    for b_index, b_op in enumerate(bench_queue[0: -1]):
+        return len(npu_queue) - 1, len(bench_queue) - 1
+    for b_index, b_op in enumerate(bench_queue[0:-1]):
         if check_op(npu_queue[-1], b_op, shape_flag):
-            return len(npu_queue)-1, b_index
-    for n_index, n_op in enumerate(npu_queue[0: -1]):
+            return len(npu_queue) - 1, b_index
+    for n_index, n_op in enumerate(npu_queue[0:-1]):
         if check_op(n_op, bench_queue[-1], shape_flag):
-            return n_index, len(bench_queue)-1
+            return n_index, len(bench_queue) - 1
     return -1, -1
 
 
 def get_accuracy(result, n_dict, b_dict):
-    for index, name in enumerate(n_dict["op_name"]):
-        if name.find("input") != -1:
+    for index, n_name in enumerate(n_dict["op_name"]):
+        b_name = b_dict["op_name"][index]
+        if n_name.find("input") != -1:
             n_value = np.array(n_dict["input_value"][index])
             b_value = np.array(b_dict["input_value"][index])
             n_struct = n_dict["input_struct"][index]
@@ -116,8 +118,7 @@ def get_accuracy(result, n_dict, b_dict):
                 cos_sim = "nan"
             rmse = get_rmse(n_value, b_value)
             mape = get_mape(n_value, b_value)
-        result.append([name, n_struct[0], b_struct[0],
-                       n_struct[1], b_struct[1], cos_sim, rmse, mape])
+        result.append([n_name, b_name, n_struct[0], b_struct[0], n_struct[1], b_struct[1], cos_sim, rmse, mape])
 
 
 def compare(npu_pkl_path, bench_pkl_path, output_path, shape_flag=False):
@@ -138,11 +139,13 @@ def compare(npu_pkl_path, bench_pkl_path, output_path, shape_flag=False):
         n_match_data = npu_ops_queue[n_match_point]
         b_match_data = bench_ops_queue[b_match_point]
         get_accuracy(result, n_match_data, b_match_data)
-        del npu_ops_queue[0: n_match_point + 1]
-        del bench_ops_queue[0: b_match_point + 1]
-    result_df = pd.DataFrame(
-        result, columns=["Name", "NPU Tensor Dtype", "Bench Tensor Dtype",
-                         "NPU Tensor Shape", "Bench Tensor Shape", "Cosine", "RMSE", "MAPE"])
+        del npu_ops_queue[0:n_match_point + 1]
+        del bench_ops_queue[0:b_match_point + 1]
+    result_df = pd.DataFrame(result,
+                             columns=[
+                                 "NPU Name", "Bench Name", "NPU Tensor Dtype", "Bench Tensor Dtype", "NPU Tensor Shape",
+                                 "Bench Tensor Shape", "Cosine", "RMSE", "MAPE"
+                             ])
     result_df.to_csv(output_path, index=False)
     npu_pkl.close()
     bench_pkl.close()
@@ -153,8 +156,9 @@ if __name__ == "__main__":
     parser.add_argument('--npu_pkl', type=str, required=True)
     parser.add_argument('--bench_pkl', type=str, required=True)
     parser.add_argument('--out_path', type=str, required=True)
-    parser.add_argument('--shape', action='store_true', default=False,
-                    help='Enforce tensor.shape is same when op matches')
+    parser.add_argument('--shape',
+                        action='store_true',
+                        default=False,
+                        help='Enforce tensor.shape is same when op matches')
     args = parser.parse_args()
     compare(args.npu_pkl, args.bench_pkl, args.out_path, args.shape)
-
