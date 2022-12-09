@@ -49,6 +49,11 @@ NpdStatus stop_deliver_op(aclprofStepInfoPtr stepInfo, aclprofStepTag stepTag, a
 const char *AclGetErrMsg();
 
 /**
+ * This API is used to create fast streams through the param flag
+ */
+aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag);
+
+/**
  * @ingroup AscendCL
  * @brief create event instance
  *
