@@ -27,6 +27,8 @@ LOAD_FUNCTION(aclprofFinalize)
 LOAD_FUNCTION(aclprofCreateConfig)
 LOAD_FUNCTION(aclprofDestroyConfig)
 LOAD_FUNCTION(aclrtGetSocName)
+LOAD_FUNCTION(aclrtCreateStream)
+LOAD_FUNCTION(aclrtCreateStreamWithConfig)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -83,6 +85,19 @@ const char *AclGetErrMsg()
     return func();
   }
   return "";
+}
+
+aclError AclrtCreateStreamWithConfig(aclrtStream *stream, uint32_t priority, uint32_t flag) {
+  typedef aclError(*aclrtCreateStreamWithConfigFunc)(aclrtStream*, uint32_t, uint32_t);
+  static aclrtCreateStreamWithConfigFunc func = nullptr;
+  if (func == nullptr) {
+    func = (aclrtCreateStreamWithConfigFunc)GET_FUNC(aclrtCreateStreamWithConfig);
+  }
+
+  if (func != nullptr) {
+    return func(stream, priority, flag);
+  }
+  return aclrtCreateStream(stream);
 }
 
 aclError AclrtCreateEventWithFlag(aclrtEvent *event, uint32_t flag) {
