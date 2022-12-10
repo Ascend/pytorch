@@ -24,7 +24,7 @@ from torch_npu.testing.testcase import TestCase, run_tests
 
 class TestCheckOverFlow(TestCase):
 
-    def test_check_Ascend910PreminumA_over_flow(self):
+    def test_check_Ascend910PremiumA_over_flow(self):
         soc_version = utils.get_soc_version()
         if (soc_version < 220):
             rtn = utils.npu_check_over_flow(1.0)
