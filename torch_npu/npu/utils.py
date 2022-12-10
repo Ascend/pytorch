@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import os
+import sys
 import traceback
 import contextlib
 import threading
@@ -24,7 +25,12 @@ import torch
 import torch._six
 
 import torch_npu
-import torch_npu._C
+try:
+    import torch_npu._C
+except ImportError as e:
+    if str(e) == 'libhccl.so: cannot open shared object file: No such file or directory':
+        print("Cannot find libhccl.so, please run the 'source set_env.sh' command in the CANN installation directory.")
+        sys.exit()
 
 
 _initialized = False
