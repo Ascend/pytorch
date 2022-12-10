@@ -25,7 +25,7 @@ namespace c10_npu {
 static SocVersion g_curSocVersion = SocVersion::UnsupportedSocVersion;
 
 static std::map<std::string, SocVersion> socVersionMap = {
-    {"Ascend910PreminumA", SocVersion::Ascend910PreminumA},
+    {"Ascend910PremiumA", SocVersion::Ascend910PremiumA},
     {"Ascend910ProA", SocVersion::Ascend910ProA},
     {"Ascend910A", SocVersion::Ascend910A},
     {"Ascend910ProB", SocVersion::Ascend910ProB},
