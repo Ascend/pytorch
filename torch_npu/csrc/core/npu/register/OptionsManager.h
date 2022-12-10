@@ -34,7 +34,7 @@ public:
   static bool CheckUseNpuLogEnable();
   static std::string CheckDisableDynamicPath();
 private:
-  static int GetBoolTypeOption(const char* env_str);
+  static int GetBoolTypeOption(const char* env_str, int defaultVal = 0);
 };
 
 } // namespace option
