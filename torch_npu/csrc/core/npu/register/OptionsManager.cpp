@@ -25,7 +25,7 @@ using namespace std;
 
 bool OptionsManager::CheckQueueEnable() {
   const static bool checkQueueEnable = []() -> bool {
-    int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE");
+    int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE", 1);
     return (queue_enable != 0) ? true : false;
   }();
   return checkQueueEnable;
@@ -63,9 +63,9 @@ bool OptionsManager::CheckSwitchMMOutputEnable() {
   return (switchMMOutputEnable == 1);
 }
 
-int OptionsManager::GetBoolTypeOption(const char* env_str) {
+int OptionsManager::GetBoolTypeOption(const char* env_str, int defaultVal) {
   char* env_val = std::getenv(env_str);
-  int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : 0;
+  int64_t envFlag = (env_val != nullptr) ? strtol(env_val, nullptr, 10) : defaultVal;
   return (envFlag != 0) ? 1 : 0;
 }
 
