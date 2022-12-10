@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from .module import apply_module_patch
+from .checkpoint import add_ckpt_methods
 from .tensor_methods import add_tensor_methods
 from .torch_funcs import add_torch_funcs
 from .serialization import save, load
