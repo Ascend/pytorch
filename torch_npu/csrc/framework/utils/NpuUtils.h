@@ -69,8 +69,6 @@ namespace at_npu
       static bool IsOomError(aclError ret, int index);
       static void check_1d(const at::Tensor &t, const char *arg, const char *fn);
     };
-    const std::string AclDateTypeToString(aclDataType descDType);
-    const std::string AclFormatToString(aclFormat descFormat);
   } // namespace native
 } // namespace at_npu
 
