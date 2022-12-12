@@ -433,6 +433,9 @@ namespace at_npu
     }
 
     int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor) {
+      TORCH_CHECK(tensor.device().type() == at_npu::key::NativeDeviceType,
+          "Expected all tensors to be on the same device. "
+          "Expected NPU tensor, please check whether the input tensor device is correct.");
       if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor))
       {
         const torch_npu::NPUStorageDesc &tensor_desc =
