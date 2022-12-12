@@ -18,6 +18,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace at_npu {
 namespace native {
@@ -137,8 +138,12 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
   }
 
   // calculate the output result of the NPU
-  at::Tensor sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
-  at::Tensor square_sum = OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean);
+  at::Tensor sum = self.dim() == 5 ?
+      OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean) :
+      OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), self);
+  at::Tensor square_sum = self.dim() == 5 ?
+      OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), running_mean) :
+      OpPreparation::ApplyTensor(running_mean.sizes(), running_mean.options().dtype(at::kFloat), self);
 
   batch_norm_training_reduce_nocheck(
       sum,
@@ -169,6 +174,17 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
   if (train && (weight.scalar_type() != at::kFloat)) {
     weight_fp32 = NPUNativeFunctions::npu_dtype_cast(weight, at::kFloat);
   }
+  at::Tensor bias_cp = bias;
+  auto self_format = CalcuOpUtil::get_tensor_npu_format(self);
+  auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight_fp32);
+
+  bool check_bn_5hd = self_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND ? true : false;
+  if (check_bn_5hd) {
+    FormatHelper::unsafe_format_cast(weight_fp32, ACL_FORMAT_ND, ACL_FORMAT_NC1HWC0);
+    FormatHelper::unsafe_format_cast(bias_cp, ACL_FORMAT_ND, ACL_FORMAT_NC1HWC0);
+    FormatHelper::unsafe_format_cast(running_mean_fp32, ACL_FORMAT_ND, ACL_FORMAT_NC1HWC0);
+    FormatHelper::unsafe_format_cast(running_var_fp32, ACL_FORMAT_ND, ACL_FORMAT_NC1HWC0);
+  }
 
   batch_norm_training_update_nocheck(
       result,
@@ -178,12 +194,19 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> batch_norm_impl(
       sum,
       square_sum,
       weight_fp32,
-      bias,
+      bias_cp,
       running_mean_fp32,
       running_var_fp32,
       train,
       momentum,
       eps);
+
+  if (check_bn_5hd) {
+    FormatHelper::unsafe_format_cast(weight_fp32, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
+    FormatHelper::unsafe_format_cast(bias_cp, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
+    FormatHelper::unsafe_format_cast(running_mean_fp32, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
+    FormatHelper::unsafe_format_cast(running_var_fp32, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
+  }
 
   return tuple<at::Tensor&, at::Tensor&, at::Tensor&>(result, save_mean, save_invstd);
 }
@@ -244,10 +267,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor running_var_cp = running_var;
 
   // 2D/3D BN Ops support ACL_FORMAT_NC1HWC0 format tensor(1D).
-  at::Tensor running_mean_tensor = running_mean.defined() ? NPUNativeFunctions::npu_format_cast_(running_mean_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
-  at::Tensor running_var_tensor = running_var.defined() ? NPUNativeFunctions::npu_format_cast_(running_var_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor weight_tensor = weight.defined() ? NPUNativeFunctions::npu_format_cast_(weight_cp, ACL_FORMAT_NC1HWC0) : at::ones({dim_c}, options);
-  at::Tensor bias_tensor = bias.defined() ? NPUNativeFunctions::npu_format_cast_(bias_cp, ACL_FORMAT_NC1HWC0) : at::zeros({dim_c}, options);
+  at::Tensor running_mean_tensor = running_mean.defined() ? running_mean_cp : at::zeros({dim_c}, options);
+  at::Tensor running_var_tensor = running_var.defined() ? running_var_cp : at::ones({dim_c}, options);
+  at::Tensor weight_tensor = weight.defined() ? weight_cp : at::ones({dim_c}, options);
+  at::Tensor bias_tensor = bias.defined() ? bias_cp : at::zeros({dim_c}, options);
 
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
@@ -255,8 +278,16 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
   at::Tensor save_mean;
   at::Tensor save_invstd;
   if (train) {
-    save_mean = OpPreparation::ApplyTensor(running_mean_tensor.sizes(), running_mean_tensor.options().dtype(at::kFloat), running_mean_tensor);
-    save_invstd = OpPreparation::ApplyTensor(running_var_tensor.sizes(), running_var_tensor.options().dtype(at::kFloat), running_var_tensor);
+    save_mean = self.dim() == 5 ?
+        OpPreparation::ApplyTensor(running_mean_tensor.sizes(),
+            running_mean_tensor.options().dtype(at::kFloat), running_mean_tensor) :
+        OpPreparation::ApplyTensor(running_mean_tensor.sizes(),
+            running_mean_tensor.options().dtype(at::kFloat), self);
+    save_invstd = self.dim() == 5 ?
+        OpPreparation::ApplyTensor(running_var_tensor.sizes(),
+            running_var_tensor.options().dtype(at::kFloat), running_var_tensor) :
+        OpPreparation::ApplyTensor(running_var_tensor.sizes(),
+            running_var_tensor.options().dtype(at::kFloat), self);
   } else {
     save_mean = {};
     save_invstd = {};
