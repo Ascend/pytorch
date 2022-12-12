@@ -459,7 +459,6 @@ tensor:
   - put_
   - rad2deg
   - rad2deg_
-  - random_
   - ravel
   - real
   - reciprocal
