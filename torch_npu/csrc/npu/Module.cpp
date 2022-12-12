@@ -271,6 +271,19 @@ PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
   END_HANDLE_TH_ERRORS
 }
 
+PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs) {
+  HANDLE_TH_ERRORS
+  pybind11::gil_scoped_release no_gil;
+  static const std::string jit_compile_option_name = "dynamicCompileswitch";
+  auto option_value = c10_npu::option::GetOption(jit_compile_option_name);
+  if (option_value.has_value() && (option_value.value() == "enable")) {
+    Py_RETURN_TRUE;
+  } else {
+    Py_RETURN_FALSE;
+  }
+  END_HANDLE_TH_ERRORS
+}
+
 PyObject * THNPModule_emptyCache(PyObject *_unused, PyObject *noargs)
 {
   HANDLE_TH_ERRORS
@@ -647,6 +660,7 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_disable_replay_graph_mode", (PyCFunction)THNPModule_disable_replay_graph_mode_wrap, METH_NOARGS, nullptr},
     {"_npu_launch_graph", (PyCFunction)THNPModule_launch_graph_wrap, METH_NOARGS, nullptr},
     {"_npu_is_graph_mode", (PyCFunction)THNPModule_is_graph_mode_wrap, METH_NOARGS, nullptr},
+    {"_npu_is_jit_compile_false", (PyCFunction)THNPModule_is_jit_compile_false_wrap, METH_NOARGS, nullptr},
     {"_npu_emptyCache", (PyCFunction) THNPModule_emptyCache, METH_NOARGS, nullptr},
     {"_npu_memoryStats", (PyCFunction) THNPModule_memoryStats, METH_O, nullptr},
     {"_npu_resetAccumulatedMemoryStats", (PyCFunction) THNPModule_resetAccumulatedMemoryStats, METH_O, nullptr},
