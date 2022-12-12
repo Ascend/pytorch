@@ -418,10 +418,10 @@ std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inp
   size_t index = 0;
   for (auto& tensor: inputTensors) {
     if (at_npu::native::FormatHelper::IsBaseFormatType(tensor)) {
-      auto origin_format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.origin_format_;
-      inputTensors_[index] = at_npu::native::NPUNativeFunctions::npu_format_cast(tensor, origin_format);
-    } else {
       inputTensors_[index] = tensor;
+    } else {
+      auto origin_format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.origin_format_;
+      inputTensors_[index] = at_npu::native::NPUNativeFunctions::npu_format_cast(tensor, origin_format);  
     }
     index++;
   }
