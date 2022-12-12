@@ -83,6 +83,10 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
   aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
 })
 
+REGISTER_OPTION_HOOK(ACL_PRECISION_MODE, [](const std::string &val) {
+  aclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, val.c_str());
+})
+
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
   if (val == "high_precision" || val == "high_performance") {
     aclSetCompileopt(aclCompileOpt::ACL_OP_SELECT_IMPL_MODE, val.c_str());
