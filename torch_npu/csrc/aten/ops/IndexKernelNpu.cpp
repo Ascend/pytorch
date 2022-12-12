@@ -48,7 +48,7 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
   }
 
   if (indices.size() <= 2) {
-    // The type of indices can only be int64 or bool
+    // The dtype of indices can only be int64 or bool
     for (int i = 0; i < indices.size(); i++) {
       if (indices[i].scalar_type() != at::kLong && indices[i].scalar_type() != at::kBool) {
         return false;
@@ -59,8 +59,8 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
      * If there are two indices, their dtype must be the same.
      * When the dtype of indices is int64, if there are two, then both must be the same shape,
      * and the dim of input must be greater than or equal to the number of indices.
-     * When the dtype of indices is bool, the shape of the indices must be the same as input,
-     * and can only be one indices.
+     * When the dtype of indices is bool, the shape of the indices should be the same as input,
+     * or the shape in the 0 dimension of indices is the same as the input, and there is only one indices.
      */
     if (indices.size() == 2) {
       if (indices[0].scalar_type() != indices[1].scalar_type()) {
@@ -70,8 +70,11 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
           indices[0].sizes() == indices[1].sizes() && self.dim() >= 2) {
         return true;
       }
-    } else if (indices[0].scalar_type() == at::kBool && indices[0].sizes() == self.sizes() ||
-               indices[0].scalar_type() == at::kLong && indices[0].dim() == 1) {
+    } else if (indices[0].scalar_type() == at::kBool) {
+      if (indices[0].sizes() == self.sizes() || indices[0].size(0) == self.size(0) && indices[0].dim() == 1) {
+        return true;
+      }
+    } else if (indices[0].dim() == 1) {
       return true;
     }
   }
