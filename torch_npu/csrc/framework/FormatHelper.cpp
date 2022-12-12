@@ -48,12 +48,15 @@ namespace at_npu
       FormatShape InferShapeOfNCDHW(c10::IntArrayRef dims);
       FormatShape InferShapeOfNDC1HWC0(c10::IntArrayRef dims);
       FormatShape InferShapeOfFZ3D(c10::IntArrayRef dims);
+
+      FormatShape InferShapeofNHWC(c10::IntArrayRef dims);
     }
 
     std::unordered_map<aclFormat, FormatHelper::FormatInfo> FormatHelper::info = {
         {ACL_FORMAT_NC1HWC0, (FormatInfo){ACL_FORMAT_NC1HWC0, ACL_FORMAT_NCHW, InferShape4To5, "NC1HWC0", true}},
         {ACL_FORMAT_ND, (FormatInfo){ACL_FORMAT_ND, ACL_FORMAT_ND, InferShapeofND, "ND", false}},
         {ACL_FORMAT_NCHW, (FormatInfo){ACL_FORMAT_NCHW, ACL_FORMAT_NCHW, InferShapeofNCHW, "NCHW", false}},
+        {ACL_FORMAT_NHWC, (FormatInfo){ACL_FORMAT_NHWC, ACL_FORMAT_NHWC, InferShapeofNHWC, "NHWC", false}},
         {ACL_FORMAT_FRACTAL_NZ, (FormatInfo){ACL_FORMAT_FRACTAL_NZ, ACL_FORMAT_ND, InferShapeNDToNZ, "FRACTAL_NZ", true}},
         {ACL_FORMAT_FRACTAL_Z, (FormatInfo){ACL_FORMAT_FRACTAL_Z, ACL_FORMAT_NCHW, InferShapeNDToZ, "FRACTAL_Z", true}},
         {ACL_FORMAT_NDHWC, (FormatInfo){ACL_FORMAT_NDHWC, ACL_FORMAT_NCDHW, InferShapeOfNDHWC, "NDHWC", false}},
@@ -180,6 +183,18 @@ namespace at_npu
           AT_ERROR("dims of NCHW shape should not be greater than 4, which is ",
                    dims.size());
         }
+        return res;
+      }
+
+      FormatShape InferShapeofNHWC(c10::IntArrayRef dims)
+      {
+        FormatShape res;
+        res.resize(4);
+        AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC");
+        res[0] = dims[0];
+        res[1] = dims[2];
+        res[2] = dims[3];
+        res[3] = dims[1];
         return res;
       }
 
