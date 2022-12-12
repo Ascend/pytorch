@@ -30,7 +30,7 @@ namespace native {
 namespace 
 {
   template <typename ge_op_type>
-  at_npu::native::DynamicInputRegFunc concat_func =
+  at_npu::native::DynamicInputRegFunc indexput_func =
       [](DyNumAndIndex num_and_index,
         std::string op_name) -> ge::OperatorPtr 
         {
@@ -40,12 +40,26 @@ namespace
           return ge_op;
         };
 }
-bool is_aicpu_valid(at::Tensor& self,
-    std::vector<at::Tensor> allDefinedIndices,
-    at::SmallVector<int64_t, N> masks) {
+bool is_aicpu_valid(const at::Tensor& self,
+    const std::vector<at::Tensor>& allDefinedIndices,
+    const at::SmallVector<int64_t, N> masks,
+    const at::Tensor& value) {
   bool flag = true;
+  // allDefinedIndices size is more than two or the type of self tensor is double, implemented by AICPU
+  if (allDefinedIndices.size() > 2 || self.scalar_type() == at::kDouble) {
+    return true;
+  }
   // allDefinedIndices has only one tensor and is a bool type, implemented by AICore.
   if (allDefinedIndices.size() == 1 && allDefinedIndices[0].scalar_type() == at::kBool) {
+    // value may need broadcast, implemented by AICPU
+    if (value.sizes()[0] == 1 || value.dim() != self.dim()) {
+      return true;
+    }
+    for (int32_t i = self.dim() - 1; i >= allDefinedIndices.size(); i--) {
+      if (value.sizes()[i] != self.sizes()[i]) {
+        return true;
+      }
+    }
     return false;
   } else {
     for (int32_t i = 0; i < allDefinedIndices.size(); i++) {
@@ -65,22 +79,31 @@ bool is_aicpu_valid(at::Tensor& self,
       pre = pre + 1;
     }
   }
-  // allDefinedIndices size is more than two or the type of self tensor is double, implemented by AICPU
-  if (allDefinedIndices.size() > 2 || self.scalar_type() == at::kDouble) {
+  // value need broadcast, implemented by AICPU
+  if (allDefinedIndices.size() < self.dim()) {
+    if (value.dim() != self.dim()) {
+      return true;
+    }
+    for (int32_t i = self.dim() - 1; i >= allDefinedIndices.size(); i--) {
+      if (value.sizes()[i] != self.sizes()[i]){
+        return true;
+      }
+    }
+  }
+  if (allDefinedIndices[0].sizes()[0] != value.sizes()[0]) {
     return true;
   }
   return false;
 }
 at::Tensor& index_put_aicore_nocheck(
     at::Tensor& self,
-    std::vector<at::Tensor> allDefinedIndices,
+    const std::vector<at::Tensor>& allDefinedIndices,
     at::SmallVector<int64_t, N> masks,
     const at::Tensor& value,
     bool accumulate) {
   if (value.numel() == 0) {
     return self;
   }
-
   at::Tensor tempSelf = self;
   at::Tensor tempValue = value;
   auto masks_tensors = at::tensor(masks, self.options().dtype(at::kLong));
@@ -94,11 +117,10 @@ at::Tensor& index_put_aicore_nocheck(
     string inputName = "indices" +std::to_string(i);
     cmd.Input(allDefinedIndices[i], inputName);
   }
-  cmd.DynamicInputReg(concat_func<ge::op::IndexPutV2>, {{allDefinedIndices.size(), 4}})
+  cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{allDefinedIndices.size(), 4}})
       .Output(tempSelf, (string)"x")
       .Attr("accumulate", accumulate)
       .Run();
-  
   return tempSelf;
 }
 
@@ -182,7 +204,7 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
   at::Tensor valueCopy = value;
   at::Tensor selfCopy = self;
   OpPreparation::CastBackToOriFormat(valueCopy);
-  bool aicpu_true = is_aicpu_valid(selfCopy, allDefinedIndices, masks);
+  bool aicpu_true = is_aicpu_valid(self, allDefinedIndices, masks, value);
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);
     if (aicpu_true) {
