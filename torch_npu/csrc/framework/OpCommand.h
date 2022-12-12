@@ -81,6 +81,10 @@ public:
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
       const string &realData = "");
 
+  // Tensor Input with stride info, only used in OutfeedEnqueueOpV2
+  OpCommand& InputWithMetaInfo(const at::Tensor &input, const string &descName,
+                               string &meta);
+
   // Tensor Input which no need contiguous
   OpCommand& InputWithoutContiguous(const at::Tensor &input,
                                     const string &descName = "",
@@ -130,6 +134,8 @@ private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
                           const string &descName = "", const string &realData = "") ;
+  
+  OpCommand& AddTensorInput(const string &str);
 
   OpCommand& AddHostTensorInput(
       const at::Tensor &tensor,
@@ -166,7 +172,7 @@ private:
   bool sync = false;
   c10::SmallVector<int64_t, N> sync_index;
   c10::SmallVector<at::Tensor, N> outputTensor;
-
+  c10::SmallVector<at::Tensor, N> inputTensor;
 }; // class OpCommand
 } // namespace native
 } // namespace at_npu

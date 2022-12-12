@@ -216,6 +216,8 @@ namespace at_npu
         opName = name;
       }
 
+      const string &GetName() const { return opName; }
+
       void AddInput(
           const aclTensorDesc *desc,
           const aclDataBuffer *buffer)
@@ -232,6 +234,8 @@ namespace at_npu
         AddInput(desc, buffer);
         execParam.hostMem.emplace_back(hostTensor);
       }
+
+      void AddInput(const string &str);
 
       void AddOutput(
           const aclTensorDesc *desc,
