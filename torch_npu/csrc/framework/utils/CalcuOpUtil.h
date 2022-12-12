@@ -275,6 +275,9 @@ namespace at_npu
       static bool is_scalar_one(const c10::Scalar &scalar);
       static float get_scalar_float_value(const c10::Scalar &scalar);
       static int64_t get_tensor_npu_format(const at::Tensor &tensor);
+      static int64_t judge_and_get_format_from_input(bool is_cast_weight,
+                                                     const at::Tensor &input,
+                                                     int64_t target_format);
       static string get_reduction_str(int64_t reduction);
       static at::ScalarType GetNPUTensorDescScalarType(
           const NPUTensorDesc &npuTensorDesc);
