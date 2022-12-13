@@ -24,6 +24,7 @@ from .dataloader import add_dataloader_method
 from .utils import manual_seed, seed
 from .storage import add_storage_methods
 from .fx import add_fx_methods
+from .checkpoint import add_checkpoint_methods
 
 serialization_patches = [
     ["save", save],
