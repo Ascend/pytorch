@@ -32,7 +32,8 @@ __all__ = [
     "FloatTensor", "IntTensor", "DoubleTensor", "LongTensor", "ShortTensor", 
     "CharTensor", "ByteTensor", "HalfTensor", "set_mm_bmm_format_nd", "get_mm_bmm_format_nd",
     "get_npu_overflow_flag", "clear_npu_overflow_flag", "get_rng_state", "set_rng_state",
-    "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false"
+    "get_rng_state_all", "set_rng_state_all", "make_replay_graph", "is_jit_compile_false",
+    "dump_enable", "dump_disable",
 ]
 
 import torch
@@ -61,5 +62,6 @@ from . import profiler
 from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
             prof_start, prof_stop, prof_finalize, iteration_start, iteration_end, 
             profileConfig, set_compile_mode, set_mm_bmm_format_nd, get_mm_bmm_format_nd, is_jit_compile_false)
+from .datadump import dump_enable, dump_disable
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile

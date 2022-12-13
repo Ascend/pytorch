@@ -20,6 +20,8 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
+#include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 
 namespace at_npu {
 namespace native {
@@ -50,6 +52,36 @@ OpCommand& OpCommand::Input() {
       graphCmd.AddInput();
   )
   return AddNoneTensor();
+}
+
+OpCommand &OpCommand::InputWithMetaInfo(const at::Tensor &input,
+                                        const string &descName, string &meta) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(Input(input, descName);)
+
+  auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(input);
+  meta += '|';
+  std::stringstream sstream;
+  sstream << input.sizes();
+  meta += sstream.str();
+  meta += '#';
+  sstream.str("");
+  sstream << input.strides();
+  meta += sstream.str();
+  meta += '#';
+  meta += std::to_string(input.storage_offset());
+  meta += '#';
+  meta += std::to_string(desc.npu_format_);
+
+  auto tmpInput = const_cast<at::Tensor &>(input);
+  auto baseFormat = FormatHelper::GetBaseFormat(tmpInput);
+  if (desc.npu_format_ != baseFormat) {
+    tmpInput = NPUNativeFunctions::npu_format_cast(tmpInput, baseFormat);
+    inputTensor.emplace_back(tmpInput);
+  }
+
+  NpuStorageOffsetGuard guard(tmpInput);
+  AddTensorInput(tmpInput, c10::ScalarType::Undefined, descName, "");
+  return *this;
 }
 
 OpCommand& OpCommand::Input(
@@ -106,11 +138,9 @@ OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
   return AddHostTensorInput(scalarTensor, compileType);
 }
 
-OpCommand& OpCommand::Input(const string &str) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-    graphCmd.AddInput(str);
-  )
-  AT_ERROR("single op mode do not support string input temporarily");
+OpCommand &OpCommand::Input(const string &str) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(graphCmd.AddInput(str);)
+  aclCmd->AddInput(str);
   return *this;
 }
 
@@ -158,6 +188,7 @@ void OpCommand::Run() {
     return;
   }
   aclCmd->SetEnginePriority();
+  string opName = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
@@ -167,7 +198,11 @@ void OpCommand::Run() {
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
-  } 
+  }
+  if (at_npu::native::IsDatadumpEnable()) {
+    int opIdx = at_npu::native::DatadumpInputsEnqueue(inputTensor, opName);
+    at_npu::native::DatadumpOutputsEnqueue(outputTensor, opName, opIdx);
+  }
   aclCmds->Pop();
 }
 
@@ -186,6 +221,9 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
+  }
+  if (at_npu::native::IsDatadumpEnable()) {
+    inputTensor.emplace_back(tensor);
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (tensor.dim() == 0) {
