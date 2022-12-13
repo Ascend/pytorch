@@ -659,25 +659,25 @@ PyObject* THNPModule_npu_datadump_enable(PyObject* self, PyObject* args) {
   if (!PyList_Check(args)) {
     throw torch::TypeError("ops must be a list.");
   }
-  std::vector<std::string> opWriteList;
+  std::vector<std::string> opWhiteList;
   Py_ssize_t size = PyList_Size(args);
-  PyObject *item = nullptr;
+  PyObject* item = nullptr;
   for (Py_ssize_t i = 0; i < size; i++) {
     item = PyList_GetItem(args, i);
     if (item == nullptr || !PyUnicode_Check(item)) {
       throw torch::TypeError("op name is nullptr or is not string.");
     }
-    const char *pItem = PyUnicode_AsUTF8(item);
-    opWriteList.push_back(pItem);
+    const char* pItem = PyUnicode_AsUTF8(item);
+    opWhiteList.push_back(pItem);
   }
-  at_npu::native::EnableDatadump(opWriteList);
+  at_npu::native::NpuDataDumpMgr::GetInstance().EnableDatadump(opWhiteList);
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }
 
 PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
   HANDLE_TH_ERRORS
-  at_npu::native::DisableDatadump();
+  at_npu::native::NpuDataDumpMgr::GetInstance().DisableDatadump();
   Py_RETURN_NONE;
   END_HANDLE_TH_ERRORS
 }

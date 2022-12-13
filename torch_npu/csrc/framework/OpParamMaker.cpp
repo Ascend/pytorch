@@ -28,10 +28,6 @@
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/OpCmdHelper.h"
 
-namespace {
-const uint64_t kStringOffset = 16UL;
-const std::string kStringDType = "string";
-}  // namespace
 namespace at_npu
 {
   namespace native
@@ -116,35 +112,6 @@ namespace at_npu
           attrValue.size(),
           eachListIntNum.data(),
           attrValue.data());
-    }
-
-    void OpCommandImpl::AddInput(const string& str) {
-      const auto length = str.length();
-      const uint64_t total_length = length + kStringOffset;
-      auto cpu_str_tensor =
-          at::empty({total_length}, at::dtype(at::kByte)).pin_memory();
-      uint8_t* cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
-      const size_t head_size = sizeof(kStringOffset);
-      C10_NPU_CHECK(aclrtMemcpy(cpu_ptr, head_size, &kStringOffset, head_size,
-                                ACL_MEMCPY_HOST_TO_HOST));
-      C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + head_size, head_size, &length,
-                                head_size, ACL_MEMCPY_HOST_TO_HOST));
-      C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + kStringOffset, length, str.c_str(),
-                                length, ACL_MEMCPY_HOST_TO_HOST));
-
-      auto input =
-          at::empty({total_length},
-                    at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
-      auto cal_stream = c10_npu::getCurrentNPUStream();
-      C10_NPU_CHECK(aclrtMemcpyAsync(input.data_ptr(), total_length, cpu_ptr,
-                                     total_length, ACL_MEMCPY_HOST_TO_DEVICE,
-                                     cal_stream));
-                                     
-      C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(
-          cpu_str_tensor.data_ptr(), cal_stream));
-      std::tuple<aclTensorDesc*, aclDataBuffer*> res =
-          OpCmdHelper::CovertTensorToAclInput(input, "", kStringDType);
-      AddInput(std::get<0>(res), std::get<1>(res));
     }
 
     void OpCommandImpl::SetEnginePriority() {

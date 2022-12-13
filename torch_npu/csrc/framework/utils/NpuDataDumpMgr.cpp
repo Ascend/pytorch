@@ -22,70 +22,45 @@
 
 namespace at_npu {
 namespace native {
-
-class NpuDataDumpMgr {
-public:
-  int GetDatadumpOpIdx(const std::string &opName) {
-    if (opWhiteList_.empty() ||
-        (std::find(opWhiteList_.begin(), opWhiteList_.end(), opName) !=
-          opWhiteList_.end())) {
-      return index_++;
-    }
-    return -1;
-  }
-
-  void Enable(const std::vector<std::string> &opWrites) {
-    opWhiteList_ = opWrites;
-    enableFlag_ = true;
-  }
-
-  void Enable() { enableFlag_ = true; }
-
-  bool IsEnable() const { return enableFlag_; }
-
-  void Disable() { enableFlag_ = false; }
-
-private:
-  bool enableFlag_ = false;
-  c10::SmallVector<std::string, N> opWhiteList_;
-  int index_ = 0;
-};
-
-static NpuDataDumpMgr instance;
-
-int DatadumpInputsEnqueue(const at::TensorList &tensors, const string &opName) {
-  if (!instance.IsEnable()) {
-    return -1;
-  }
-  int idx = instance.GetDatadumpOpIdx(opName);
-  if ((idx < 0) || tensors.empty()) {
-    return idx;
-  }
-  std::string tensorName = std::to_string(idx) + '_' + opName + "_input";
-  instance.Disable();
-  at_npu::native::NPUNativeFunctions::npu_enque_tensor(tensors, tensorName);
-  instance.Enable();
-  return idx;
-}
-
-void DatadumpOutputsEnqueue(const at::TensorList &tensors, const string &opName,
-                            int idx) {
-  if ((idx < 0) || tensors.empty()) {
+void NpuDataDumpMgr::DatadumpEnqueue(const at::TensorList &inputs,
+                                     const at::TensorList &outputs,
+                                     const string &opName) {
+  if (!enableFlag_) {
     return;
   }
-  std::string tensorName = std::to_string(idx) + '_' + opName + "_output";
-  instance.Disable();
-  at_npu::native::NPUNativeFunctions::npu_enque_tensor(tensors, tensorName);
-  instance.Enable();
+  int idx = NpuDataDumpMgr::GetDatadumpOpIdx(opName);
+  if (idx < 0) {
+    return;
+  }
+  enableFlag_ = false;
+  string tensorName = std::to_string(idx) + '_' + opName;
+  if (!inputs.empty()) {
+    at_npu::native::NPUNativeFunctions::npu_enque_tensor(inputs,
+                                                         tensorName + "_input");
+  }
+  if (!outputs.empty()) {
+    at_npu::native::NPUNativeFunctions::npu_enque_tensor(
+        outputs, tensorName + "_output");
+  }
+  enableFlag_ = true;
 }
 
-void EnableDatadump(const std::vector<std::string> &opWrites) {
-  instance.Enable(opWrites);
+void NpuDataDumpMgr::EnableDatadump(
+    const std::vector<std::string> &opWhiteList) {
+  opWhiteList_ = opWhiteList;
+  enableFlag_ = true;
 }
+void NpuDataDumpMgr::DisableDatadump() { enableFlag_ = false; }
 
-void DisableDatadump() { instance.Disable(); }
+bool NpuDataDumpMgr::IsDatadumpEnable() { return enableFlag_; }
 
-bool IsDatadumpEnable() { instance.IsEnable(); }
-
+int NpuDataDumpMgr::GetDatadumpOpIdx(const std::string &opName) {
+  if (opWhiteList_.empty() ||
+      (std::find(opWhiteList_.begin(), opWhiteList_.end(), opName) !=
+       opWhiteList_.end())) {
+    return index_++;
+  }
+  return -1;
+}
 }  // namespace native
 }  // namespace at_npu
