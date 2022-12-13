@@ -32,6 +32,7 @@
 #include "torch_npu/csrc/distributed/HcclCompile.h"
 #include "torch_npu/csrc/core/npu/NPURunMode.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace c10d_npu {
 namespace {
@@ -397,6 +398,22 @@ void check_npu_tensors(const std::vector<at::Tensor>& tensors) {
   }
 }
 
+std::vector<at::Tensor> cast_to_origin_format(const std::vector<at::Tensor>& inputTensors) {
+  std::vector<at::Tensor> inputTensors_;
+  inputTensors_.resize(inputTensors.size());
+  size_t index = 0;
+  for (auto& tensor: inputTensors) {
+    if (at_npu::native::FormatHelper::IsBaseFormatType(tensor)) {
+      inputTensors_[index] = tensor;
+    } else {
+      auto origin_format = torch_npu::NPUBridge::GetNpuStorageImpl(tensor)->npu_desc_.origin_format_;
+      inputTensors_[index] = at_npu::native::NPUNativeFunctions::npu_format_cast(tensor, origin_format);
+    }
+    index++;
+  }
+  return inputTensors_;
+}
+
 // Flatten each list in `tensor_lists' for a gather or scatter operation, and
 // ensure compatibility with the corresponding tensor in `other'.
 std::vector<at::Tensor> flatten_for_scatter_gather(
@@ -643,12 +660,13 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allgather(
     std::vector<at::Tensor>& inputTensors,
     const c10d::AllgatherOptions& opts) {
   check_npu_tensors(inputTensors);
+  auto inputTensors_ = cast_to_origin_format(inputTensors);
   auto outputFlattened =
       flatten_for_scatter_gather(outputTensors, inputTensors, size_);
   check_npu_tensors(outputFlattened);
 
   return collective(
-      inputTensors,
+      inputTensors_,
       outputFlattened,
       [&](at::Tensor& input,
           at::Tensor& output,
