@@ -226,6 +226,8 @@ def get_src_py_and_dst():
     ret = []
     generated_python_files = glob.glob(
         os.path.join(BASE_DIR, "torch_npu", '**/*.py'),
+        recursive=True) + glob.glob(
+        os.path.join(BASE_DIR, "torch_npu", '**/*.yaml'),
         recursive=True)
     for src in generated_python_files:
         dst = os.path.join(
