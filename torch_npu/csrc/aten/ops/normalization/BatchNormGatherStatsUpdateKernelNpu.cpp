@@ -35,9 +35,9 @@ std::tuple<at::Tensor &, at::Tensor &> batch_norm_gather_stats_update_npu_impl(
 
   auto running_mean_dtype = running_mean.scalar_type();
   at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_mean.defined() ? 
-      running_mean : at::native::zeros({self.size(1)}, self.options())), ACL_FORMAT_ND), self.scalar_type());
+      running_mean : at::native::zeros({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
   at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_var.defined() ? 
-      running_var : at::native::ones({self.size(1)}, self.options())), ACL_FORMAT_ND), self.scalar_type());
+      running_var : at::native::ones({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
 
   OpCommand cmd;
   cmd.Name("SyncBatchNormGatherStats")
@@ -74,26 +74,18 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::batch_norm_gather_stats_u
     double momentum,
     double eps,
     const at::Tensor &counts) {
-  at::Tensor self_cp = (self.scalar_type() == at::kFloat) || (self.scalar_type() == at::kHalf) ? 
-      self : NPUNativeFunctions::npu_dtype_cast(self, at::kFloat);
-  auto options = self_cp.options();
-  c10::SmallVector<int64_t, N> output_size = {self_cp.size(1)};
+  c10::SmallVector<int64_t, N> output_size = {self.size(1)};
 
   const at::Tensor &running_mean = c10::value_or_else(running_mean_opt, 
                                                       []{ return at::Tensor(); });
   const at::Tensor &running_var = c10::value_or_else(running_var_opt, 
                                                      []{ return at::Tensor(); });
 
-  at::Tensor mean_all = OpPreparation::ApplyTensor(self_cp, output_size);
-  at::Tensor invstd_all = OpPreparation::ApplyTensor(self_cp, output_size);
+  at::Tensor mean_all = OpPreparation::ApplyTensor(sum, output_size);
+  at::Tensor invstd_all = OpPreparation::ApplyTensor(sum, output_size);
 
-  batch_norm_gather_stats_update_npu_impl(mean_all, invstd_all, self_cp, sum, square_sum,
+  batch_norm_gather_stats_update_npu_impl(mean_all, invstd_all, self, sum, square_sum,
                                           running_mean, running_var, momentum, eps, counts);
-
-  if (self.scalar_type() != mean_all.scalar_type()) {
-    mean_all = NPUNativeFunctions::npu_dtype_cast(mean_all, self_cp.scalar_type());
-    invstd_all = NPUNativeFunctions::npu_dtype_cast(invstd_all, self_cp.scalar_type());
-  }
 
   return std::make_tuple(mean_all, invstd_all);
 }
