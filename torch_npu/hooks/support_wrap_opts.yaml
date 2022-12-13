@@ -253,7 +253,6 @@ tensor:
   - clamp_min
   - clamp_min_
   - clip_
-  - copy_
   - copysign
   - copysign_
   - cos
@@ -484,7 +483,6 @@ tensor:
   - scatter
   - scatter_
   - scatter_add
-  - set_
   - scatter_add_
   - select
   - sgn
