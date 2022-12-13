@@ -19,6 +19,8 @@
 - 同一模型，从gpu(或cpu)移植到npu中存在精度下降问题，对比npu芯片中的算子计算数值与gpu(cpu)芯片中的算子计算数值，进行问题定位。
 - 同一模型，进行迭代(模型、算子或设备迭代)时存在的精度下降问题，对比相同模型在迭代前后版本的算子计算数值，进行问题定位。
 
+以gpu为参照定位精度问题，使用ptdbg_ascend插件来进行数据dump和比对，请参考[ptdbg_ascend](https://gitee.com/ascend/tools/tree/master/ptdbg_ascend)。
+
 ## **前提条件**
 
 已完成PyTorch Adapter插件的编译安装，具体操作请参考[《AscendPyTorch安装指南》](../PyTorch安装指南/PyTorch安装指南.md)。
@@ -192,7 +194,7 @@ compare("./npu_module_op.pkl", "./cpu_module_op.pkl", "./module_result.csv")
 ```
 
 
-使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu和cpu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
+使用精度比对工具进行torchvision下现有模型的计算精度比对，整体思路相同，其中cpu和npu的对比思路与npu和npu的对比思路也是相同，以resnet50模型为例代码如下：
 ```python
 import os
 import copy
