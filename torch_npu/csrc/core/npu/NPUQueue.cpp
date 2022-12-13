@@ -276,11 +276,9 @@ bool Repository::ReadQueue() {
   auto ret = manager().Call(datas, read_idx.idx, queueLen);
 
   if (ret != 0) {
+    ASCEND_LOGE("---Thread---%llu: device = %d, write_idx = %d, read_idx = %d, status = %d, ret = %d",
+                std::this_thread::get_id(), device_idx, write_idx.idx, read_idx.idx, GetStatus(), ret);
     while (!IsEmptyQueue()) { // ignore other tasks
-      std::cout << "---Thread---" << std::this_thread::get_id()
-              << ": device=" << device_idx << ", write_idx=" << write_idx.idx
-              << ", read_idx=" << read_idx.idx << ", status=" << GetStatus()
-              << ", ret = " << ret << std::endl;
       manager().Release(datas, read_idx.idx, releaseQueue);
       read_idx.idx = (read_idx.idx + 1) % kQueueCapacity;
     }
@@ -331,7 +329,7 @@ void Repository::Enqueue(void* cur_paras) {
             QUEUE_DEBUG("EINTR occurs on the eventfd_read");
             continue;
           }
-          NPU_LOGE("waiting queue not full failed. s=%zd, errno=%s.", s, strerror(errno));
+          NPU_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
         DisableInterrupt(RepoRole::WRITER);
@@ -397,7 +395,7 @@ void Repository::Dequeue() {
               QUEUE_DEBUG("EINTR occurs on the eventfd_read");
               continue;
             }
-            NPU_LOGE("waiting queue not empty failed. s=%zd, errno=%s.", s, strerror(errno));
+            NPU_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
             return;
           }
           DisableInterrupt(RepoRole::READER);
