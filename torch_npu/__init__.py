@@ -34,7 +34,7 @@ from torch_npu.contrib.function import npu_functional
 from torch_npu.contrib.module import npu_modules
 from torch_npu.utils import apply_module_patch, add_tensor_methods, add_torch_funcs, \
      serialization_patches, add_storage_methods, add_str_methods, add_dataloader_method, \
-     add_fx_methods
+     add_fx_methods, add_checkpoint_methods
 from torch_npu.distributed.hccl_dtype_wraper import wrap_dtype_for_hccl
 
 from .version import __version__ as __version__
@@ -131,6 +131,7 @@ def apply_class_patches():
     add_dataloader_method()
     wrap_dtype_for_hccl()
     add_fx_methods()
+    add_checkpoint_methods()
 
 
 # Apply monkey-patches.
