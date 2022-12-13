@@ -277,5 +277,55 @@ void NpuUtils::check_1d(const at::Tensor &t, const char *arg, const char *fn) {
   TORCH_CHECK(t.dim() == 1, fn, ": Expected 1-D argument ", arg, ", but got ",
               t.dim(), "-D");
 }
+
+const std::string AclDateTypeToString(aclDataType descDType)
+{
+  std::map<const aclDataType, const std::string>
+    ACL_TYPE_TO_STRING_TYPE_MAP = {
+        {ACL_DT_UNDEFINED, "ACL_DT_UNDEFINED"},
+        {ACL_FLOAT, "ACL_FLOAT"},
+        {ACL_FLOAT16, "ACL_FLOAT16"},
+        {ACL_INT8, "ACL_INT8"},
+        {ACL_INT32, "ACL_INT32"},
+        {ACL_UINT8, "ACL_UINT8"},
+        {ACL_INT16, "ACL_INT16"},
+        {ACL_UINT16, "ACL_UINT16"},
+        {ACL_UINT32, "ACL_UINT32"},
+        {ACL_INT64, "ACL_INT64"},
+        {ACL_UINT64, "ACL_UINT64"},
+        {ACL_DOUBLE, "ACL_DOUBLE"},
+        {ACL_BOOL, "ACL_BOOL"},
+        {ACL_STRING, "ACL_STRING"},
+        {ACL_COMPLEX64, "ACL_COMPLEX64"},
+        {ACL_COMPLEX128, "ACL_COMPLEX128"},
+        {ACL_BF16, "ACL_BF16"}};
+
+  const auto iter = ACL_TYPE_TO_STRING_TYPE_MAP.find(descDType);
+  return iter != ACL_TYPE_TO_STRING_TYPE_MAP.end() ?
+    iter->second : "DescDType not exists, descDType:" + std::to_string(descDType);
+}
+
+const std::string AclFormatToString(aclFormat descFormat)
+{
+  std::map<const aclFormat, const std::string>
+    ACL_FORMAT_TO_STRING_TYPE_MAP = {
+        {ACL_FORMAT_UNDEFINED, "ACL_FORMAT_UNDEFINED"},
+        {ACL_FORMAT_NCHW, "ACL_FORMAT_NCHW"},
+        {ACL_FORMAT_NHWC, "ACL_FORMAT_NHWC"},
+        {ACL_FORMAT_ND, "ACL_FORMAT_ND"},
+        {ACL_FORMAT_NC1HWC0, "ACL_FORMAT_NC1HWC0"},
+        {ACL_FORMAT_FRACTAL_Z, "ACL_FORMAT_FRACTAL_Z"},
+        {ACL_FORMAT_NC1HWC0_C04, "ACL_FORMAT_NC1HWC0_C04"},
+        {ACL_FORMAT_HWCN, "ACL_FORMAT_HWCN"},
+        {ACL_FORMAT_NDHWC, "ACL_FORMAT_NDHWC"},
+        {ACL_FORMAT_FRACTAL_NZ, "ACL_FORMAT_FRACTAL_NZ"},
+        {ACL_FORMAT_NCDHW, "ACL_FORMAT_NCDHW"},
+        {ACL_FORMAT_NDC1HWC0, "ACL_FORMAT_NDC1HWC0"},
+        {ACL_FRACTAL_Z_3D, "ACL_FRACTAL_Z_3D"}};
+
+  const auto iter = ACL_FORMAT_TO_STRING_TYPE_MAP.find(descFormat);
+  return iter != ACL_FORMAT_TO_STRING_TYPE_MAP.end() ?
+    iter->second : "DescFormat not exists, descFormat:" + std::to_string(descFormat);
+}
 } // namespace native
 } // namespace at_npu
