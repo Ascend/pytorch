@@ -32,7 +32,8 @@ typedef enum {
     ACL_DEBUG_DIR,
     ACL_OP_COMPILER_CACHE_MODE,
     ACL_OP_COMPILER_CACHE_DIR,
-    ACL_OP_PERFORMANCE_MODE
+    ACL_OP_PERFORMANCE_MODE,
+    ACL_OP_JIT_COMPILE
 } aclCompileOpt;
 
 typedef enum aclCompileFlag {

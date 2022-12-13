@@ -274,9 +274,9 @@ PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
 PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  static const std::string jit_compile_option_name = "dynamicCompileswitch";
+  static const std::string jit_compile_option_name = "jitCompile";
   auto option_value = c10_npu::option::GetOption(jit_compile_option_name);
-  if (option_value.has_value() && (option_value.value() == "enable")) {
+  if (option_value.has_value() && (option_value.value() == "disable")) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;

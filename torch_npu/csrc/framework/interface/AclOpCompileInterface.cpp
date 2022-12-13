@@ -31,21 +31,21 @@ namespace at_npu
   GET_FUNCTION(libacl_op_compiler, funcName)
 
     REGISTER_LIBRARY(libacl_op_compiler)
-    LOAD_FUNCTION(aclopSetCompileFlag)
+    LOAD_FUNCTION(aclSetCompileopt)
     LOAD_FUNCTION(aclGenGraphAndDumpForOp)
     LOAD_FUNCTION(aclCreateGraphDumpOpt)
     LOAD_FUNCTION(aclDestroyGraphDumpOpt)
     LOAD_FUNCTION(aclopCompileAndExecuteV2)
 
-aclError AclopSetCompileFlag(aclOpCompileFlag flag) {
-  typedef aclError (*aclopSetCompileFlagFunc)(aclOpCompileFlag);
-  static aclopSetCompileFlagFunc func = nullptr;
+aclError AclSetCompileopt(aclCompileOpt opt, const char *value) {
+  typedef aclError (*aclSetCompileoptFunc)(aclCompileOpt opt, const char *value);
+  static aclSetCompileoptFunc func = nullptr;
   if (func == nullptr)
   {
-    func = (aclopSetCompileFlagFunc)GET_FUNC(aclopSetCompileFlag);
+    func = (aclSetCompileoptFunc)GET_FUNC(aclSetCompileopt);
   }
-  TORCH_CHECK(func, "Failed to find function ", "aclopSetCompileFlag");
-  auto ret = func(flag);
+  TORCH_CHECK(func, "Failed to find function ", "aclSetCompileopt");
+  auto ret = func(opt, value);
   return ret;
 }
 

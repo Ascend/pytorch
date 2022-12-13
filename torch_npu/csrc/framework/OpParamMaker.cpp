@@ -147,9 +147,9 @@ namespace at_npu
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
       bool reset_flag = false;
-      if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name) && env::CheckFuzzyEnable())
+      if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable())
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
       aclError ret;
@@ -218,7 +218,7 @@ namespace at_npu
       } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
       if (reset_flag)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
       }
       return ret;
     }
@@ -230,9 +230,9 @@ namespace at_npu
 
       aclError ret;
       bool reset_flag = false;
-      if (!cur_paras->isFuzzy)
+      if (!cur_paras->isJitDisable)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
       if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
@@ -269,7 +269,7 @@ namespace at_npu
           stream);
       if (reset_flag)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
       }
 
       if (ret != ACL_ERROR_NONE)
