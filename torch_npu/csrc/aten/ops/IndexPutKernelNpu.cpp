@@ -18,11 +18,115 @@
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <ATen/native/TypeProperties.h>
+#include "torch_npu/csrc/framework/utils/AdvancedIndex.h"
+#include "torch_npu/csrc/framework/graph/util/GraphModeGuard.h"
+#include "torch_npu/csrc/framework/graph/construct/GraphConstructor.h"
+#include <third_party/acl/inc/op_proto/experiment_ops.h>
 
 namespace at_npu {
 namespace native {
 
-at::Tensor& index_put_nocheck(
+namespace 
+{
+  template <typename ge_op_type>
+  at_npu::native::DynamicInputRegFunc indexput_func =
+      [](DyNumAndIndex num_and_index,
+        std::string op_name) -> ge::OperatorPtr 
+        {
+          auto ge_op = std::make_shared<ge_op_type>(op_name.c_str());
+          ge_op->create_dynamic_input_byindex_indices(
+              num_and_index.front().first, num_and_index.front().second);
+          return ge_op;
+        };
+}
+bool is_aicpu_valid(const at::Tensor& self,
+    const std::vector<at::Tensor>& allDefinedIndices,
+    const at::SmallVector<int64_t, N> masks,
+    const at::Tensor& value) {
+  bool flag = true;
+  // allDefinedIndices size is more than two or the type of self tensor is double, implemented by AICPU
+  // Indices tensors are at the discontinuous axis position, implemented by AICPU, otherwise AICORE
+  if (allDefinedIndices.size() > 2 || self.scalar_type() == at::kDouble || masks.size() > allDefinedIndices.size()) {
+    return true;
+  }
+  // allDefinedIndices has only one tensor and is a bool type, implemented by AICore.
+  if (allDefinedIndices.size() == 1 && allDefinedIndices[0].scalar_type() == at::kBool) {
+    // value may need broadcast, implemented by AICPU
+    if (value.sizes()[0] == 1 || value.dim() != self.dim()) {
+      return true;
+    }
+    for (int32_t i = self.dim() - 1; i >= allDefinedIndices.size(); i--) {
+      if (value.sizes()[i] != self.sizes()[i]) {
+        return true;
+      }
+    }
+    return false;
+  } else {
+    for (int32_t i = 0; i < allDefinedIndices.size(); i++) {
+      // if all Indices tensor is int64, they are implemented by AICore; otherwise AICPU.
+      if (allDefinedIndices[i].scalar_type() == at::kBool) {
+        return true;
+      }
+    }
+  }
+
+  // value need broadcast, implemented by AICPU
+  if (allDefinedIndices.size() < self.dim()) {
+    if (value.dim() != self.dim()) {
+      return true;
+    }
+    for (int32_t i = self.dim() - 1; i >= allDefinedIndices.size(); i--) {
+      if (value.sizes()[i] != self.sizes()[i]){
+        return true;
+      }
+    }
+  }
+  if (allDefinedIndices[0].sizes()[0] != value.sizes()[0]) {
+    return true;
+  }
+  return false;
+}
+at::Tensor& index_put_aicore_nocheck(
+    at::Tensor& self,
+    const std::vector<at::Tensor>& allDefinedIndices,
+    at::SmallVector<int64_t, N> masks,
+    const at::Tensor& value,
+    bool accumulate) {
+  if (value.numel() == 0) {
+    return self;
+  }
+  at::Tensor tempSelf = self;
+  at::Tensor tempValue = value;
+  if (self.scalar_type() == at::ScalarType::Half) {
+    tempSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
+    tempValue = NPUNativeFunctions::npu_dtype_cast(value, at::ScalarType::Float);
+  }
+  auto masks_tensors = at::tensor(masks, self.options().dtype(at::kLong));
+  OpCommand cmd;
+  cmd.Name("IndexPutV2")
+      .Input(tempSelf, (string)"x")
+      .Input(tempValue, (string)"value")
+      .Input(masks_tensors, (string)"indexed_sizes")
+      .Input(masks_tensors, (string)"indexed_strides");
+  for (int i = 0; i < allDefinedIndices.size(); i++) {
+    string inputName = "indices" +std::to_string(i);
+    cmd.Input(allDefinedIndices[i], inputName);
+  }
+  cmd.DynamicInputReg(indexput_func<ge::op::IndexPutV2>, {{allDefinedIndices.size(), 4}})
+      .Output(tempSelf, (string)"x")
+      .Attr("accumulate", accumulate)
+      .Run();
+  if (self.scalar_type() == at::ScalarType::Half) {
+    tempSelf = NPUNativeFunctions::npu_dtype_cast(tempSelf, at::ScalarType::Half);
+    self.copy_(tempSelf);
+  } else {
+    self = tempSelf;
+  }
+  return self;
+}
+
+at::Tensor& index_put_aicpu_nocheck(
     at::Tensor& result,
     const at::Tensor& self,
     std::vector<at::Tensor> allDefinedIndices,
@@ -102,15 +206,26 @@ at::Tensor& NPUNativeFunctions::_index_put_impl_(
   at::Tensor valueCopy = value;
   at::Tensor selfCopy = self;
   OpPreparation::CastBackToOriFormat(valueCopy);
-
+  bool aicpu_true = is_aicpu_valid(self, allDefinedIndices, masks, value);
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(selfCopy);
-    at::Tensor result = index_put_nocheck(
-        contiguousSelf, contiguousSelf, allDefinedIndices, masks, valueCopy, accumulate);
-    self.copy_(result);
+    if (aicpu_true) {
+      at::Tensor result = index_put_aicpu_nocheck(
+          contiguousSelf, contiguousSelf, allDefinedIndices, masks, valueCopy, accumulate);
+      self.copy_(result);
+    } else {
+      index_put_aicore_nocheck(contiguousSelf, allDefinedIndices, masks, valueCopy, accumulate);
+      self.copy_(contiguousSelf);
+    }
+    
   } else {
-    index_put_nocheck(selfCopy, selfCopy, allDefinedIndices, masks, valueCopy, accumulate);
-    self.copy_(selfCopy);
+    if (aicpu_true) {
+      index_put_aicpu_nocheck(selfCopy, selfCopy, allDefinedIndices, masks, valueCopy, accumulate);
+      self.copy_(selfCopy);
+    } else {
+      index_put_aicore_nocheck(selfCopy, allDefinedIndices, masks, valueCopy, accumulate);
+      self.copy_(selfCopy);
+    } 
   }
   return self;
 }
