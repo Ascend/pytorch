@@ -24,13 +24,30 @@
 
 namespace at_npu {
 namespace native {
+class NpuDataDumpMgr {
+public:
+  ~NpuDataDumpMgr() {}
+  NpuDataDumpMgr(const NpuDataDumpMgr &) = delete;
+  NpuDataDumpMgr &operator=(const NpuDataDumpMgr &) = delete;
+  static NpuDataDumpMgr &GetInstance() {
+    static NpuDataDumpMgr instance;
+    return instance;
+  }
 
-void EnableDatadump(const std::vector<std::string> &opWrites);
-void DisableDatadump();
-int DatadumpInputsEnqueue(const at::TensorList &tensors,
-                          const std::string &opName);
-void DatadumpOutputsEnqueue(const at::TensorList &tensors,
-                            const std::string &opName, int idx);
-bool IsDatadumpEnable();
+  void EnableDatadump(const std::vector<std::string> &opWhiteList);
+  void DisableDatadump();
+  bool IsDatadumpEnable();
+  void DatadumpEnqueue(const at::TensorList &inputs,
+                                       const at::TensorList &outputs,
+                                       const string &opName);
+
+private:
+  NpuDataDumpMgr() {}
+
+  int GetDatadumpOpIdx(const std::string &opName);
+  bool enableFlag_ = false;
+  c10::SmallVector<std::string, N> opWhiteList_;
+  int index_ = 0;
+};
 }  // namespace native
 }  // namespace at_npu

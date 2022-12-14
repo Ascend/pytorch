@@ -23,6 +23,11 @@
 #include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 #include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
 
+namespace {
+const uint64_t kStringOffset = 16UL;
+const std::string kStringDType = "string";
+}  // namespace
+
 namespace at_npu {
 namespace native {
 
@@ -59,18 +64,13 @@ OpCommand &OpCommand::InputWithMetaInfo(const at::Tensor &input,
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(Input(input, descName);)
 
   auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(input);
-  meta += '|';
-  std::stringstream sstream;
-  sstream << input.sizes();
-  meta += sstream.str();
-  meta += '#';
-  sstream.str("");
-  sstream << input.strides();
-  meta += sstream.str();
-  meta += '#';
-  meta += std::to_string(input.storage_offset());
-  meta += '#';
-  meta += std::to_string(desc.npu_format_);
+  std::stringstream ss;
+  ss << '|';
+  ss << input.sizes() << '#';
+  ss << input.strides() << '#';
+  ss << std::to_string(input.storage_offset()) << '#';
+  ss << std::to_string(desc.npu_format_);
+  meta += ss.str();
 
   auto tmpInput = const_cast<at::Tensor &>(input);
   auto baseFormat = FormatHelper::GetBaseFormat(tmpInput);
@@ -139,8 +139,36 @@ OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
 }
 
 OpCommand &OpCommand::Input(const string &str) {
-  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(graphCmd.AddInput(str);)
-  aclCmd->AddInput(str);
+  const auto length = str.length();
+  const uint64_t total_length = length + kStringOffset;
+  auto cpu_str_tensor =
+      at::empty({total_length}, at::dtype(at::kByte)).pin_memory();
+  uint8_t *cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
+  const size_t head_size = sizeof(kStringOffset);
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr, head_size, &kStringOffset, head_size,
+                            ACL_MEMCPY_HOST_TO_HOST));
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + head_size, head_size, &length, head_size,
+                            ACL_MEMCPY_HOST_TO_HOST));
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + kStringOffset, length, str.c_str(),
+                            length, ACL_MEMCPY_HOST_TO_HOST));
+
+  auto input =
+      at::empty({total_length},
+                at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
+  auto cal_stream = c10_npu::getCurrentNPUStream();
+  C10_NPU_CHECK(aclrtMemcpyAsync(input.data_ptr(), total_length, cpu_ptr,
+                                 total_length, ACL_MEMCPY_HOST_TO_DEVICE,
+                                 cal_stream));
+
+  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
+                                                      cal_stream));
+
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
+      graphCmd.AddInput(input, "", kStringDType, c10::nullopt);)
+
+  std::tuple<aclTensorDesc *, aclDataBuffer *> res =
+      OpCmdHelper::CovertTensorToAclInput(input, "", kStringDType);
+  aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
   return *this;
 }
 
@@ -199,10 +227,7 @@ void OpCommand::Run() {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
   }
-  if (at_npu::native::IsDatadumpEnable()) {
-    int opIdx = at_npu::native::DatadumpInputsEnqueue(inputTensor, opName);
-    at_npu::native::DatadumpOutputsEnqueue(outputTensor, opName, opIdx);
-  }
+  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, opName);
   aclCmds->Pop();
 }
 
@@ -222,7 +247,7 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
   }
-  if (at_npu::native::IsDatadumpEnable()) {
+  if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
     inputTensor.emplace_back(tensor);
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
