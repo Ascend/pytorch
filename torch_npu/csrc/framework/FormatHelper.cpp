@@ -435,17 +435,5 @@ namespace at_npu
       }
 
     } // namespace
-
-    at::Tensor& FormatHelper::unsafe_format_cast(at::Tensor& self, int64_t self_format, int64_t result_format) {
-      torch_npu::NPUStorageDesc &self_desc = torch_npu::NPUBridge::GetNpuStorageImpl(self)->npu_desc_;
-      if (self_format == ACL_FORMAT_ND && result_format == ACL_FORMAT_NC1HWC0) {
-        self_desc.storage_sizes_ = InferShape4To5(self.sizes());
-        self_desc.npu_format_ = ACL_FORMAT_NC1HWC0;
-      } else if (self_format == ACL_FORMAT_NC1HWC0 && result_format == ACL_FORMAT_ND) {
-        self_desc.storage_sizes_ = self_desc.base_sizes_;
-        self_desc.npu_format_ = ACL_FORMAT_ND;
-      }
-      return self;
-    }
   }   // namespace native
 } // namespace at_npu
