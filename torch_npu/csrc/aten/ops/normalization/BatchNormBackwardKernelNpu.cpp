@@ -18,7 +18,6 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
-#include "torch_npu/csrc/framework/FormatHelper.h"
 
 namespace at_npu {
 namespace native {
@@ -72,28 +71,18 @@ at::Tensor& batch_norm_backward_training_reduce_nocheck(
   string name = (self.dim() == 5) ? "BN3DTrainingReduceGrad" : "BNTrainingReduceGrad";
   auto format = (self.dim() == 5) ? ACL_FORMAT_NCDHW : ACL_FORMAT_NCHW;
 
-  at::Tensor weight_cp = weight;
-  auto self_format = CalcuOpUtil::get_tensor_npu_format(self);
-  auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight);
-
-  bool check_bn_5hd = self_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND ? true : false;
-  if (check_bn_5hd) {
-    FormatHelper::unsafe_format_cast(weight_cp, ACL_FORMAT_ND, ACL_FORMAT_NC1HWC0);
-  }
   cmd.Name(name)
       .Input(grad_out, "grads", format)
       .Input(self, "x", format)
       .Input(grad_weight, "diff_scale", format)
       .Input(grad_bias, "diff_offset", format)
-      .Input(weight_cp, "scale", format)
+      .Input(weight, "scale", format)
       .Input(save_mean, "batch_mean", format)
       .Input(save_invstd, "batch_variance", format)
       .Output(grad_input, "y", format)
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
-  if (check_bn_5hd) {
-    FormatHelper::unsafe_format_cast(weight_cp, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
-  }
+
   return grad_input;
 }
 
@@ -249,14 +238,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm_
 
   // construct the output tensor of the NPU
   at::Tensor grad_input = OpPreparation::ApplyTensor(self_reshape.sizes(), self_reshape.options(), self_reshape);
-  at::Tensor grad_weight = self.dim() == 5 ?
-      OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float)) :
-      OpPreparation::ApplyTensor(weight_tensor.sizes(),
-          weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
-  at::Tensor grad_bias = self.dim() == 5 ?
-      OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float)) :
-      OpPreparation::ApplyTensor(weight_tensor.sizes(),
-          weight_tensor.options().dtype(at::ScalarType::Float), grad_out);
+  at::Tensor grad_weight = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
+  at::Tensor grad_bias = OpPreparation::ApplyTensor(weight_tensor, weight_tensor.options().dtype(at::ScalarType::Float));
 
   // calculate the output result of the NPU
   batch_norm_backward_impl(
@@ -300,14 +283,6 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm_
 
   if (!grad_input_mask[2]) {
     grad_bias = undefine_grad_bias;
-  }
-
-  auto weight_format = CalcuOpUtil::get_tensor_npu_format(weight);
-  auto grad_weight_format = CalcuOpUtil::get_tensor_npu_format(grad_weight);
-
-  if (grad_weight_format == ACL_FORMAT_NC1HWC0 && weight_format == ACL_FORMAT_ND) {
-    FormatHelper::unsafe_format_cast(grad_weight, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
-    FormatHelper::unsafe_format_cast(grad_bias, ACL_FORMAT_NC1HWC0, ACL_FORMAT_ND);
   }
 
   return std::make_tuple(grad_input, grad_weight, grad_bias);
