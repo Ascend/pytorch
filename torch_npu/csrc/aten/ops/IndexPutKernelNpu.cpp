@@ -47,11 +47,16 @@ bool is_aicpu_valid(const at::Tensor& self,
   bool flag = true;
   // allDefinedIndices size is more than two or the type of self tensor is double, implemented by AICPU
   // Indices tensors are at the discontinuous axis position, implemented by AICPU, otherwise AICORE
-  if (allDefinedIndices.size() > 2 || self.scalar_type() == at::kDouble || masks.size() > allDefinedIndices.size()) {
+  if (allDefinedIndices.size() == 0 || allDefinedIndices.size() > 2 ||
+      self.scalar_type() == at::kDouble || masks.size() > allDefinedIndices.size()) {
     return true;
   }
   // allDefinedIndices has only one tensor and is a bool type, implemented by AICore.
   if (allDefinedIndices.size() == 1 && allDefinedIndices[0].scalar_type() == at::kBool) {
+    // indices is bool and dim equal to self dim
+    if (allDefinedIndices[0].sizes() == self.sizes() && value.sizes()[0] != 1) {
+        return false;
+    }
     // value may need broadcast, implemented by AICPU
     if (value.sizes()[0] == 1 || value.dim() != self.dim()) {
       return true;
