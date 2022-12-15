@@ -258,6 +258,7 @@ def checkpoint_sequential(functions, segments, input, **kwargs):
                            preserve_rng_state=preserve)
     return run_function(end + 1, len(functions) - 1, functions)(input)
 
+
 def add_checkpoint_methods():
     r"""Overwrite the original functions for pulg-in adaptation."""
 
