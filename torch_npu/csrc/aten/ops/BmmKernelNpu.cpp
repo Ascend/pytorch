@@ -59,7 +59,7 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
 
   // construct the output tensor of the NPU
   at::Tensor result;
-  bool is_nz_out = false;
+
   // 检查是否指定mm输出为NCHW。待NLP模型总体策略制定后删去
   if ((self.scalar_type() == at::ScalarType::Half)) {
     // check is 16-algined with high-performance
@@ -69,14 +69,13 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
              (!(static_cast<uint64_t>(mat2.size(1)) & 0x0000000F)) &&
              (!(static_cast<uint64_t>(mat2.size(2)) & 0x0000000F));
     };
-    static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
+    static auto mm_bmm_nd = env::CheckMmBmmNDEnable();
     // There is a data trampling problem in non-aligned scenes. For the time being, only aligned scenes are supported.
-    if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2) &&
+    if (FormatHelper::IsBaseFormatType(self) && FormatHelper::IsBaseFormatType(mat2) && 
         mm_bmm_nd && isAligin()) {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
     } else {
       result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_FRACTAL_NZ);
-      is_nz_out = (!mm_bmm_nd);
     }
   } else {
     result = OpPreparation::ApplyTensorWithFormat(outputSize, self.options(), ACL_FORMAT_ND);
@@ -84,9 +83,7 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
 
   // calculate the output result of the NPU
   NPUNativeFunctions::bmm_out(self, mat2, result);
-  if (is_nz_out) {
-    result = NPUNativeFunctions::npu_format_cast(result, ACL_FORMAT_ND);
-  }
+
   return result;
 }
 
