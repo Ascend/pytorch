@@ -90,9 +90,28 @@ public:
                                     const string &descName = "",
                                     const string &realData = "");
 
+  // ArrayRef Input, usually hostmemory input, we will do h2d in launch kernel
+  template <typename T>
+  OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
+                   at::ScalarType toType,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "") {
+    at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
+                                             realShape,
+                                             c10::TensorOptions(at::kCPU).dtype(c10::CppTypeToScalarType<T>::value),
+                                             toType);
+    return AddHostTensorInput(cpuTensor, compileType, realDtype);
+  }
+  
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "");
+
+  // DoubleArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
+  OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+                   at::ScalarType toType = at::kDouble,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "");
 
@@ -156,7 +175,7 @@ private:
 
   at::Tensor CopyHostToDevice(const at::Tensor &cpuTensor);
 
-  at::Tensor& CreateHostTensor(void *data, size_t size,
+  at::Tensor& CreateHostTensor(void *data, at::IntArrayRef size,
                               const c10::TensorOptions &options, at::ScalarType toType);
 
   at::Tensor& CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type);

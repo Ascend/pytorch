@@ -121,11 +121,15 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
-  at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
-                                           dimListRef.size(),
-                                           c10::TensorOptions(at::kCPU).dtype(at::kLong),
-                                           toType);
-  return AddHostTensorInput(cpuTensor, compileType, realDtype);
+  return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype);
+}
+
+OpCommand& OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+    at::ScalarType toType, CompileType compileType, const string& realDtype) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
+      TORCH_CHECK(false, "In Graph Mode, DoubleArrayRef Input is not supported");
+  )
+  return Input<double>(dimListRef, realShape, toType, compileType, realDtype);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
@@ -328,12 +332,13 @@ at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
 }
 
 at::Tensor& OpCommand::CreateHostTensor(
-    void *data, size_t size,
+    void *data, at::IntArrayRef size,
     const c10::TensorOptions &options,
     at::ScalarType toType) {
+  at::ScalarType dtype = options.dtype().toScalarType();
   auto cpuTensor = at::empty(size, options);
-  std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
-  if (toType != at::kLong) {
+  std::memcpy(cpuTensor.data_ptr(), data, elementSize(dtype) * cpuTensor.numel());
+  if (toType != dtype) {
     cpuTensor = cpuTensor.to(toType);
   }
 
