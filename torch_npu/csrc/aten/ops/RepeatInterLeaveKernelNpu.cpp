@@ -32,7 +32,7 @@ at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self
   return result;
 }
 
-at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self, at::Tensor& repeats) {
+at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self, const at::Tensor& repeats) {
   OpCommand cmd;
   cmd.Name("RepeatInterleave")
     .Input(self)
@@ -104,9 +104,12 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
     selfTensor = selfTensor.transpose(0, realDim);
   }
 
+  repeatsTensor = NPUNativeFunctions::npu_dtype_cast(repeatsTensor, at::ScalarType::Int);
+  repeatsTensor = NPUNativeFunctions::npu_dtype_cast(repeatsTensor, at::ScalarType::Float);
   auto outputSize = repeat_interleave_npu_output_size(selfTensor, repeatsTensor, 0);
+
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(selfTensor, outputSize, ACL_FORMAT_ND);
-  repeat_interleave_out_npu(result, selfTensor, repeatsTensor);
+  repeat_interleave_out_npu(result, selfTensor, repeats);
   if (self_dim > 1 && realDim != 0) {
     result = result.transpose(0, realDim);
   }
