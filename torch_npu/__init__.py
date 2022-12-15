@@ -18,13 +18,23 @@ import builtins
 import inspect
 import types
 import atexit
+import traceback
 
 from builtins import isinstance as builtin_isinstance
 from typing import Set, Type
 
 import torch
 import torch_npu
-import torch_npu.npu
+try:
+    import torch_npu.npu
+except ImportError as e:
+    if "libhccl.so" in str(e):
+        ei = sys.exc_info()
+        newErr = ImportError(str(ei[1]) + ". Please run 'source set_env.sh' in the CANN installation path.")
+        traceback.print_exception(ei[0], newErr, ei[2])
+        sys.exit()
+    else:
+        traceback.print_exc()
 import torch_npu.npu.amp
 import torch_npu.distributed
 import torch_npu._C
