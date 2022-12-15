@@ -29,6 +29,7 @@
 namespace c10_npu {
 
 constexpr int32_t MAX_JUDGE_NUM = 1000000;
+struct timeval delay = {0, 1};
 
 namespace {
 
@@ -227,28 +228,6 @@ NPUStatus Repository::MakeSureQueueEmpty() {
   return SUCCESS;
 }
 
-void Repository::EnableInterrupt(RepoRole role) {
-  if (role == RepoRole::READER) {
-    read_idx.working = false;
-  } else {
-    write_idx.working = false;
-  }
-}
-
-void Repository::DisableInterrupt(RepoRole role) {
-  if (role == RepoRole::READER) {
-    read_idx.working = true;
-  } else {
-    write_idx.working = true;
-  }
-}
-
-bool Repository::NeedNotify(RepoRole role) const {
-  bool working =
-      (role == RepoRole::READER) ? read_idx.working : write_idx.working;
-  return !working;
-}
-
 bool Repository::WriteQueue(void* cur_paras) {
   std::lock_guard<std::mutex> lock(mu_enqueue);
   QUEUE_DEBUG("write_idx=%d, read_idx=%d", write_idx.idx, read_idx.idx);
@@ -310,11 +289,11 @@ void Repository::Enqueue(void* cur_paras) {
   ssize_t s;
   uint64_t u = 1;
 
-  DisableInterrupt(RepoRole::WRITER);
+  SetWriteWorking(true);
   while (ret == false) {
     ret = WriteQueue(cur_paras);
     if (ret == false) {
-      EnableInterrupt(RepoRole::WRITER);
+      SetWriteWorking(false);
       __sync_synchronize();
       if (IsFullQueue()) {
         // double check the current thread hold a Gil lock
@@ -332,13 +311,13 @@ void Repository::Enqueue(void* cur_paras) {
           NPU_LOGE("waiting dequeue failed. s=%zd, errno=%s.", s, strerror(errno));
           return;
         }
-        DisableInterrupt(RepoRole::WRITER);
+        SetWriteWorking(true);
         QUEUE_DEBUG("waiting ok, queue isn't full now");
       }
       continue;
     }
     __sync_synchronize();
-    while (NeedNotify(RepoRole::READER)) {
+    while (!IsReadWorking()) {
       QUEUE_DEBUG("need notify consumer");
       s = eventfd_write(efd_read, u);
       if (s != 0) {
@@ -352,7 +331,7 @@ void Repository::Enqueue(void* cur_paras) {
       break;
     }
   }
-  EnableInterrupt(RepoRole::WRITER);
+  SetWriteWorking(false);
 }
 
 void Repository::Dequeue() {
@@ -366,7 +345,7 @@ void Repository::Dequeue() {
   ssize_t s;
   uint64_t u = 1;
 
-  DisableInterrupt(RepoRole::READER);
+  SetReadWorking(true);
   while (ret == false && GetStatus() != RepoStatus::CAN_EXIT) {
     ret = ReadQueue();
     if (ret == false) {
@@ -374,33 +353,21 @@ void Repository::Dequeue() {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
       }
-      // reduce system wait time
-      bool emptyFlag = true;
-      for (int i = 0; i < MAX_JUDGE_NUM; ++i) {
-        if (IsEmptyQueue()) {
-          continue;
-        } else {
-          emptyFlag = false;
-          break;
-        }
-      }
 
-      if (emptyFlag) {
-        EnableInterrupt(RepoRole::READER);
-        __sync_synchronize();
-        if (IsEmptyQueue()) {
-          s = eventfd_read(efd_read, &u);
-          if (s != 0) {
-            if (errno == EINTR) {
-              QUEUE_DEBUG("EINTR occurs on the eventfd_read");
-              continue;
-            }
-            NPU_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
-            return;
+      SetReadWorking(false);
+      __sync_synchronize();
+      if (IsEmptyQueue()) {
+        s = eventfd_read(efd_read, &u);
+        if (s != 0) {
+          if (errno == EINTR) {
+            QUEUE_DEBUG("EINTR occurs on the eventfd_read");
+            continue;
           }
-          DisableInterrupt(RepoRole::READER);
-          QUEUE_DEBUG("waiting ok, queue isn't empty now");
+          NPU_LOGE("waiting enqueue failed. s=%zd, errno=%s.", s, strerror(errno));
+          return;
         }
+        SetReadWorking(true);
+        QUEUE_DEBUG("waiting ok, queue isn't empty now");
       }
       continue;
     }
@@ -421,7 +388,7 @@ void Repository::Dequeue() {
       break;
     }
     __sync_synchronize();
-    while (NeedNotify(RepoRole::WRITER)) {
+    while (!IsWriteWorking()) {
       QUEUE_DEBUG("need notify producer");
       s = eventfd_write(efd_write, u);
       if (s != 0) {
@@ -435,7 +402,7 @@ void Repository::Dequeue() {
       break;
     }
   }
-  EnableInterrupt(RepoRole::READER);
+  SetReadWorking(false);
 }
 
 void Repository::ReleaseResource() {
@@ -542,12 +509,10 @@ bool ReleaseQueue::WriteToReleaseQueue(void* cur_paras)
     QUEUE_DEBUG("Release queue is full");
     return false;
   }
-  std::unique_lock<std::mutex> lck(mtx);
   releaseManager().CopyRealseParam(datas, write_idx.idx, cur_paras);
 
   __sync_synchronize();
   write_idx.idx = (write_idx.idx + 1) % kReleaseQueueCapacity;
-  cv.notify_one();
   return true;
 }
 
@@ -593,10 +558,9 @@ void ReleaseQueue::PopFromReleaseQueue() {
       if (GetStatus() == RepoStatus::NEED_EXIT) {
         ChangeStatus(NEED_EXIT, CAN_EXIT);
         break;
-      } else {
-        std::unique_lock<std::mutex> lck(mtx);
-        cv.wait(lck);
       }
+      delay.tv_usec = 1;
+      select(0, nullptr, nullptr, nullptr, &delay);
     }
   }
 }
@@ -627,10 +591,6 @@ ReleaseQueue::~ReleaseQueue() {
   if (initialized) {
     if (releaser.joinable()) {
       SetStatus(NEED_EXIT);
-      {
-        std::unique_lock<std::mutex> lck(mtx);
-        cv.notify_one();
-      }
       releaser.join();
     }
   }
