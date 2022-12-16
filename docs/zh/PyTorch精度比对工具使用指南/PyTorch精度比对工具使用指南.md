@@ -2,6 +2,7 @@
 - [**PyTorch精度对比工具使用指南**](#pytorch精度对比工具使用指南)
   - [**使用场景**](#使用场景)
   - [**前提条件**](#前提条件)
+  - [**注意事项**](#注意事项)
   - [**精度比对基本原理**](#精度比对基本原理)
     - [**算子匹配条件**](#算子匹配条件)
     - [**计算精度评价指标**](#计算精度评价指标)
@@ -16,7 +17,7 @@
 
 主要的使用场景包括：
 
-- 同一模型，从gpu(或cpu)移植到npu中存在精度下降问题，对比npu芯片中的算子计算数值与gpu(cpu)芯片中的算子计算数值，进行问题定位。
+- 同一模型，从cpu(或npu)移植到npu中存在精度下降问题，对比npu芯片中的算子计算数值与cpu芯片中的算子计算数值，进行问题定位。
 - 同一模型，进行迭代(模型、算子或设备迭代)时存在的精度下降问题，对比相同模型在迭代前后版本的算子计算数值，进行问题定位。
 
 以gpu为参照定位精度问题，使用ptdbg_ascend插件来进行数据dump和比对，请参考[ptdbg_ascend](https://gitee.com/ascend/tools/tree/master/ptdbg_ascend)。
@@ -24,6 +25,15 @@
 ## **前提条件**
 
 已完成PyTorch Adapter插件的编译安装，具体操作请参考[《AscendPyTorch安装指南》](../PyTorch安装指南/PyTorch安装指南.md)。
+
+## **注意事项**
+
+训练脚本中使用torch.utils.data.DataLoader加载数据时，请将num_workers参数设为0。
+```python
+from torch.utils.data import DataLoader
+
+loader=DataLoader(...,num_workers=0,...)
+```
 
 ## **精度比对基本原理**
 

@@ -100,11 +100,15 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
 def wrap_acc_cmp_hook(name, **kwargs):
 
     sample = kwargs.get('sample', True)
+    pid = kwargs.get('pid')
+    if not pid:
+        return RuntimeError("Not get the specified process pid.")
 
     def acc_cmp_hook(module, in_feat, out_feat):
-        name_template = f"{name}" + "_{}"
-        dump_tensor_for_acc_cmp(in_feat, name_template.format("input"), sample)
-        dump_tensor_for_acc_cmp(out_feat, name_template.format("output"), sample)
+        if pid == os.getpid():
+            name_template = f"{name}" + "_{}"
+            dump_tensor_for_acc_cmp(in_feat, name_template.format("input"), sample)
+            dump_tensor_for_acc_cmp(out_feat, name_template.format("output"), sample)
 
     return acc_cmp_hook
 
