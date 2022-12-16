@@ -34,12 +34,11 @@ public:
     return instance;
   }
 
-  void EnableDatadump(const std::vector<std::string> &opWhiteList);
+  void EnableDatadump(const c10::SmallVector<std::string, N> &opWhiteList);
   void DisableDatadump();
-  bool IsDatadumpEnable();
+  bool IsDatadumpEnable() const;
   void DatadumpEnqueue(const at::TensorList &inputs,
-                                       const at::TensorList &outputs,
-                                       const string &opName);
+                       const at::TensorList &outputs, const string &opName);
 
 private:
   NpuDataDumpMgr() {}

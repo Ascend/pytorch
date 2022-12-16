@@ -128,6 +128,8 @@ def dump_enable(tensor: Tensor, path: str = "./", ops: List[str] = None,
         os.makedirs(path)
     if ops is None:
         ops = []
+    if dump_backward and not tensor.requires_grad:
+        raise RuntimeError("Before enable dump_backward, please ensure dump_enable input tensor requires_grad is true.")
     mgr.enable(path, ops, dump_backward)
     return DatadumpBeginOp.apply(tensor, mgr.getOps(), mgr.isDumpBackward())
 

@@ -32,6 +32,7 @@ void NpuDataDumpMgr::DatadumpEnqueue(const at::TensorList &inputs,
   if (idx < 0) {
     return;
   }
+  ASCEND_LOGI("Datadump enque: %s", opName.c_str());
   enableFlag_ = false;
   string tensorName = std::to_string(idx) + '_' + opName;
   if (!inputs.empty()) {
@@ -46,13 +47,17 @@ void NpuDataDumpMgr::DatadumpEnqueue(const at::TensorList &inputs,
 }
 
 void NpuDataDumpMgr::EnableDatadump(
-    const std::vector<std::string> &opWhiteList) {
+    const c10::SmallVector<std::string, N> &opWhiteList) {
+  ASCEND_LOGI("Datadump enable.");
   opWhiteList_ = opWhiteList;
   enableFlag_ = true;
 }
-void NpuDataDumpMgr::DisableDatadump() { enableFlag_ = false; }
+void NpuDataDumpMgr::DisableDatadump() {
+  ASCEND_LOGI("Datadump disable.");
+  enableFlag_ = false;
+}
 
-bool NpuDataDumpMgr::IsDatadumpEnable() { return enableFlag_; }
+bool NpuDataDumpMgr::IsDatadumpEnable() const { return enableFlag_; }
 
 int NpuDataDumpMgr::GetDatadumpOpIdx(const std::string &opName) {
   if (opWhiteList_.empty() ||

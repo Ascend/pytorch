@@ -659,7 +659,7 @@ PyObject* THNPModule_npu_datadump_enable(PyObject* self, PyObject* args) {
   if (!PyList_Check(args)) {
     throw torch::TypeError("ops must be a list.");
   }
-  std::vector<std::string> opWhiteList;
+  c10::SmallVector<std::string, at_npu::native::N> opWhiteList;
   Py_ssize_t size = PyList_Size(args);
   PyObject* item = nullptr;
   for (Py_ssize_t i = 0; i < size; i++) {
