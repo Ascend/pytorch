@@ -47,6 +47,7 @@ void thnn_conv_depthwise2d_backward_input_out_npu(
     .Attr("pads", paddings)
     .Attr("dilations", dilations)
     .Attr("data_format", (string)"NCHW")
+    .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Conv())
     .Run();
 }
 
@@ -73,6 +74,7 @@ void thnn_conv_depthwise2d_backward_weight_out_npu(
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
       .Attr("data_format", (string)"NCHW")
+      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Conv())
       .Run();
 }
 

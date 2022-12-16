@@ -37,6 +37,7 @@ __all__ = [
 ]
 
 import torch
+import torch_npu
 
 from .device import __device__ as native_device
 from .device import __npu_device__ as npu_device
@@ -65,3 +66,6 @@ from .npu_frontend_enhance import (set_option, set_aoe, profile, prof_init,
 from .datadump import dump_enable, dump_disable
 
 torch.optim.Optimizer._hook_for_profile = profiler._hook_for_profile
+
+matmul = npu_frontend_enhance.allowHF32Matmul()
+conv = npu_frontend_enhance.allowHF32Conv()
