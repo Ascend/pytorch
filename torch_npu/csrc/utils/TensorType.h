@@ -28,5 +28,7 @@ namespace utils {
 // torch.npu.DoubleTensor, etc. and binds them in their containing modules.
 void _initialize_python_bindings();
 
+PyMethodDef* npu_extension_functions();
+
 }
 }
