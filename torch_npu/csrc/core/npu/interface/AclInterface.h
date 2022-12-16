@@ -1,5 +1,6 @@
 #pragma once
 
+#include "acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
@@ -92,5 +93,6 @@ aclprofConfig * AclProfilingCreateConfig(
 aclError AclProfilingDestroyConfig(const aclprofConfig *profilerConfig);
 const char *AclrtGetSocName();
 const char *AclGetSocName();
+aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 } // namespace acl
 } // namespace c10_npu

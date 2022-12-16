@@ -85,4 +85,5 @@ aclFormat aclGetTensorDescFormat(const aclTensorDesc *desc) {return ACL_FORMAT_N
 const char *aclGetTensorDescName(aclTensorDesc *desc) {return NULL;}
 
 aclError aclSetTensorPlaceMent(aclTensorDesc *desc, aclMemType type) {return 0;};
+aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {return 0;};
 }

@@ -96,6 +96,12 @@ typedef enum aclrtGroupAttr {
     ACL_GROUP_GROUPID_INT
 } aclrtGroupAttr;
 
+typedef enum aclrtFloatOverflowMode {
+  ACL_RT_OVERFLOW_MODE_SATURATION = 0,
+  ACL_RT_OVERFLOW_MODE_INFNAN,
+  ACL_RT_OVERFLOW_MODE_UNDEF,
+} aclrtFloatOverflowMode;
+
 typedef struct tagRtGroupInfo aclrtGroupInfo;
 
 typedef struct rtExceptionInfo aclrtExceptionInfo;
@@ -1076,6 +1082,16 @@ ACL_FUNC_VISIBILITY aclError aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, si
  * @retval OtherValues Failure
  */
 ACL_FUNC_VISIBILITY aclError aclrtSetOpWaitTimeout(uint32_t timeout);
+
+/**
+ * @ingroup AscendCL
+ * @brief set saturation mode
+ * @param mode [IN]   target saturation mode
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 
 #ifdef __cplusplus
 }
