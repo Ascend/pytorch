@@ -48,7 +48,7 @@ at::Tensor& avg_pool2d_backward_out_npu_nocheck(
   OpPreparation::CheckMemory({grad_output, self}, {grad_input});
   OpCommand cmd;
   cmd.Name("AvgPoolV2Grad")
-     .Input(self.sizes(), at::kInt)
+     .Input(self.sizes())
      .Input(grad_output)
      .Output(grad_input)
      .Attr("ksize", kernelSize)
