@@ -79,7 +79,7 @@ Tensor& avg_pool2d_backward_out_npu(
   // executing the NPU operator
   OpCommand cmd;
   cmd.Name("AvgPoolV2Grad")
-     .Input(self.sizes(), at::kInt)
+     .Input(self.sizes())
      .Input(grad_output)
      .Output(grad_input)
      .Attr("ksize", kernelSize)
