@@ -73,18 +73,9 @@ PyObject * THPModule_npu_shutdown(PyObject * /* unused */)
   Py_RETURN_NONE;
 }
 
-// Callback for python part. Used for additional initialization of python classes
-static PyObject * THPModule_initExtension(PyObject *_unused, PyObject *shm_manager_path) {
-  HANDLE_TH_ERRORS
-  torch_npu::utils::_initialize_python_bindings();
-  Py_RETURN_NONE;
-  END_HANDLE_TH_ERRORS
-}
-
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
 static PyMethodDef TorchNpuMethods[] = {
   {"_npu_shutdown", (PyCFunction)THPModule_npu_shutdown, METH_NOARGS, nullptr},
-  {"_initExtension", THPModule_initExtension, METH_NOARGS, nullptr},
   {nullptr, nullptr, 0, nullptr}
 };
 
@@ -111,6 +102,7 @@ PyObject* initModule(){
   AddPyMethodDefs(methods, torch_npu::profiler::profiler_functions());
   AddPyMethodDefs(methods, torch_npu::distributed::python_functions());
   AddPyMethodDefs(methods, torch_npu::utils::tensor_functions());
+  AddPyMethodDefs(methods, torch_npu::utils::npu_extension_functions());
   static struct PyModuleDef torchnpu_module = {
      PyModuleDef_HEAD_INIT,
      "torch_npu._C",
