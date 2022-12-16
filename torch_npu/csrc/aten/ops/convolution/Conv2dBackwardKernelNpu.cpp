@@ -229,7 +229,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_conv2d_backwar
       gradWeight = OpPreparation::ApplyTensorWithFormat(
           std::get<1>(outputSizes),
           weight.options().dtype(at::kFloat),
-          ACL_FORMAT_FRACTAL_Z);
+          CalcuOpUtil::get_tensor_npu_format(weight));
     }
   }
 
