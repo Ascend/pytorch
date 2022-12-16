@@ -34,6 +34,18 @@ aclError AclopSetCompileFlag(aclOpCompileFlag flag);
 
 /**
  * @ingroup AscendCL
+ * @brief set compile option
+ *
+ * @param aclCompileOpt [IN]      compile option
+ * @param value [IN]              pointer for the option value
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError AclSetCompileopt(aclCompileOpt opt, const char *value);
+
+/**
+ * @ingroup AscendCL
  * @brief dump op graph for AOE
  *
  * @param opType [IN]           op type

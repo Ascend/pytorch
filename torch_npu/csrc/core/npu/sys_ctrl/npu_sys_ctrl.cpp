@@ -24,6 +24,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
+#include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #ifdef SUCCESS
 #undef SUCCESS
 #endif
@@ -156,9 +157,10 @@ NpuSysCtrl::NpuSysCtrl() : init_flag_(false), device_id_(0) {}
 
   C10_NPU_CHECK(ge::GEInitialize(config));
 
+  // set ACL_PRECISION_MODE by SocVersion("allow_fp32_to_fp16" or "must_keep_origin_dtype").
   auto precision_mode = c10_npu::GetSocVersion() >= c10_npu::SocVersion::Ascend910B1 ?
-      "must_keep_origin_dtype" : "allow_fp32_to_fp16";
-  aclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode);
+      "allow_fp32_to_fp16" : "allow_fp32_to_fp16";
+  at_npu::native::AclSetCompileopt(aclCompileOpt::ACL_PRECISION_MODE, precision_mode);
 
   // set default compile cache mode and dir for users to improve op compile time
   MakeCompileCacheDirAndSetOption();

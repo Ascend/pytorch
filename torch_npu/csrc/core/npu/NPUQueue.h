@@ -4,7 +4,6 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <condition_variable>
 
 #include <c10/core/Device.h>
 #include "torch_npu/csrc/core/npu/npu_log.h"
@@ -15,11 +14,6 @@ namespace c10_npu {
 struct sring_idx {
   bool working = false;
   volatile unsigned int idx = 0;
-};
-
-enum RepoRole {
-  WRITER = 0,
-  READER = 1,
 };
 
 enum RepoStatus {
@@ -57,8 +51,6 @@ private:
   sring_idx read_idx;
   sring_idx write_idx;
   std::atomic<RepoStatus> repo_status;
-  std::condition_variable cv;
-  std::mutex mtx;
   bool initialized = false;
 };
 
@@ -98,9 +90,10 @@ private:
   void ReleaseResource();
   inline bool IsEmptyQueue() {return read_idx.idx == write_idx.idx;};
   bool IsFullQueue() const;
-  void EnableInterrupt(RepoRole role);
-  void DisableInterrupt(RepoRole role);
-  bool NeedNotify(RepoRole role) const;
+  void SetWriteWorking(bool isWorking) {write_idx.working = isWorking;};
+  void SetReadWorking(bool isWorking) {read_idx.working = isWorking;};
+  bool IsWriteWorking() const {return write_idx.working;};
+  bool IsReadWorking() const {return read_idx.working;};
   bool WriteQueue(void* cur_paras);
   bool ReadQueue();
 

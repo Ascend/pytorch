@@ -733,6 +733,7 @@ supported:
   - negative.out
   - repeat
   - repeat_interleave.self_int
+  - repeat_interleave.self_Tensor
   - reshape
   - _mkldnn_reshape
   - reshape_as
@@ -1966,14 +1967,22 @@ custom:
   - func: npu_ciou_backward(Tensor grad, Tensor bboxes, Tensor gtboxes, Tensor? atan_sub, bool trans=False, bool is_cross=True, int mode=0) -> (Tensor, Tensor)
   - func: npu_sign_bits_unpack(Tensor input, int size, ScalarType dtype) -> Tensor
   - func: decode_jpeg(Tensor self, int[] image_shape, int channels=3) -> Tensor
-  - func: crop_and_resize(Tensor self, Tensor boxes, int[] box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
+  - func: crop_and_resize(Tensor self, float[]? boxes, int[] box_index, int[] crop_size, float extrapolation_value=0, str method="bilinear") -> Tensor
   - func: reverse(Tensor self, int[] axis) -> Tensor
-  - func: image_normalize(Tensor self, Tensor mean, Tensor variance, int dtype=0) -> Tensor
-  - func: image_normalize_(Tensor(a!) self, Tensor mean, Tensor variance, int dtype=0) -> Tensor(a!)
+  - func: image_normalize(Tensor self, float[]? mean, float[]? variance, int dtype=0) -> Tensor
+  - func: image_normalize_(Tensor(a!) self, float[]? mean, float[]? variance, int dtype=0) -> Tensor(a!)
+  - func: img_to_tensor(Tensor self) -> Tensor
   - func: npu_lstm_cell_backward(Tensor? grady, Tensor? gradh, Tensor? gradc, Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor y_output, Tensor h_output, Tensor c_output, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
     variants: function
   - func: batch_norm_reduce(Tensor input, float eps) -> (Tensor, Tensor)
   - func: batch_norm_gather_stats_update(Tensor input, Tensor mean, Tensor invstd, Tensor? running_mean, Tensor? running_var, float momentum, float eps, Tensor counts) -> (Tensor, Tensor)
+  - func: npu_fused_attention_score_backward(Tensor grad_output, Tensor softmax_output, Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool value_transpose=False, bool dx_transpose=False) -> (Tensor, Tensor, Tensor)
+  - func: npu_fused_attention_score_fwd(Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor attention_mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool bmm_score_transpose_a=False, bool bmm_score_transpose_b=False, bool value_transpose=False, bool dx_transpose=False) -> (Tensor, Tensor, Tensor)
+  - func: npu_fused_attention_score_grad(Tensor grad_output, Tensor softmax_output, Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool value_transpose=False, bool dx_transpose=False) -> (Tensor, Tensor, Tensor)
+  - func: npu_fused_attention_qkv_grad(Tensor grad_output_query, Tensor grad_output_key, Tensor grad_output_value, Tensor query_kernel, Tensor key_kernel, Tensor value_kernel, Tensor hidden_states, Tensor grad_output_ln) -> Tensor[]
+  - func: npu_fused_attention_layernorm_qkv_fwd(Tensor x, Tensor kernel_query, Tensor kernel_key, Tensor kernel_value, Tensor gamma, Tensor beta, Tensor bias_query=None, Tensor bias_key=None, Tensor bias_value=None, int seq_len, int num_heads, float eps=1e-05) -> Tensor[]
+    variants: function
+  - func: npu_layernorm_grad(Tensor grad_out, Tensor input, int[] normalized_shape, Tensor mean, Tensor rstd, Tensor? weight, Tensor? bias) -> (Tensor, Tensor, Tensor)
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
   - func: npu_convolution_transpose(Tensor input, Tensor weight, Tensor? bias, int[] padding, int[] output_padding, int[] stride, int[] dilation, int groups) -> Tensor
@@ -2018,4 +2027,4 @@ custom_autograd:
   - func: npu_lstm_cell(Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor? b_ih=None, Tensor? b_hh=None) -> Tensor[]
     variants: function
   - func: npu_enque_tensor(Tensor[] tensors, str format_string) -> ()
-
+  - func: npu_fused_attention_score(Tensor query_layer, Tensor key_layer, Tensor value_layer, Tensor attention_mask, Scalar scale, float keep_prob, bool query_transpose=False, bool key_transpose=False, bool bmm_score_transpose_a=False, bool bmm_score_transpose_b=False, bool value_transpose=False, bool dx_transpose=False) -> Tensor

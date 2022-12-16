@@ -25,7 +25,7 @@ namespace env {
   */
 bool AutoTuneEnabled();
 bool CheckBmmV2Enable();
-bool CheckFuzzyEnable();
+bool CheckJitDisable();
 bool CheckProfilingEnable();
 bool CheckMmBmmNDDisable();
 

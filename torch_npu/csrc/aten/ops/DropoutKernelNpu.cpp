@@ -64,10 +64,10 @@ std::tuple<at::Tensor, at::Tensor> dropout_do_mask_npu(
 }
 
 at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
-  bool isFuzzyCompile = env::CheckFuzzyEnable();
+  bool isNotJitCompile = env::CheckJitDisable();
   int64_t numels;
   auto desc_ = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
-  numels = isFuzzyCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
+  numels = isNotJitCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
@@ -75,7 +75,7 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
       self.options().dtype(at::kByte),
       ACL_FORMAT_ND);
 
-  at::IntArrayRef selfShape = isFuzzyCompile ? desc_.storage_sizes_ : self.sizes();
+  at::IntArrayRef selfShape = isNotJitCompile ? desc_.storage_sizes_ : self.sizes();
 
   OpCommand cmd;
   // DropOutGenMask use seed and seed1 to generator a seed, like this:

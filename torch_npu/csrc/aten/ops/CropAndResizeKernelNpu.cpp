@@ -21,17 +21,20 @@ namespace native {
 
 at::Tensor &crop_and_resize_out(
     const at::Tensor &self,
-    const at::Tensor &boxes,
+    c10::optional<c10::ArrayRef<double>> boxes,
     at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
     std::string method,
     at::Tensor &result)
 {
+  TORCH_CHECK(boxes.has_value(),
+      "[boxes] should be mandatory");
+  std::vector<int64_t> boxes_shape = {boxes->size()/4, 4};
   OpCommand cmd;
   cmd.Name("CropAndResizeV2")
       .Input(self)
-      .Input(boxes)
+      .Input(boxes.value(), boxes_shape, at::kFloat)
       .Input(box_index, at::kInt)
       .Input(crop_size, at::kInt)
       .Output(result)
@@ -45,7 +48,7 @@ at::Tensor &crop_and_resize_out(
 
 at::Tensor NPUNativeFunctions::crop_and_resize(
     const at::Tensor &self,
-    const at::Tensor &boxes,
+    c10::optional<c10::ArrayRef<double>> boxes,
     at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,

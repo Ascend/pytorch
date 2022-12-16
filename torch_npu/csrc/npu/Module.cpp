@@ -48,6 +48,7 @@
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
 #include "torch_npu/csrc/utils/OverflowUtils.h"
+#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
 
 struct NPUDeviceProp {
   std::string name;
@@ -274,9 +275,9 @@ PyObject* THNPModule_is_graph_mode_wrap(PyObject* self, PyObject* noargs) {
 PyObject *THNPModule_is_jit_compile_false_wrap(PyObject *self, PyObject *noargs) {
   HANDLE_TH_ERRORS
   pybind11::gil_scoped_release no_gil;
-  static const std::string jit_compile_option_name = "dynamicCompileswitch";
+  static const std::string jit_compile_option_name = "jitCompile";
   auto option_value = c10_npu::option::GetOption(jit_compile_option_name);
-  if (option_value.has_value() && (option_value.value() == "enable")) {
+  if (option_value.has_value() && (option_value.value() == "disable")) {
     Py_RETURN_TRUE;
   } else {
     Py_RETURN_FALSE;
@@ -567,16 +568,19 @@ PyObject* wrap_tuple_to_print(at_npu::native::TupleToPrint& tuple_to_print) {
 
 PyObject* THNPModule_npu_deque_tensor(PyObject* self, PyObject* args) {
   HANDLE_TH_ERRORS
-  pybind11::gil_scoped_release no_gil;
   at_npu::native::TupleToPrint tuple_to_print;
-  do {
-    tuple_to_print = at_npu::native::TdtChannelForPrint::GetInstance().GetTupleToPrint();
-    if (std::get<0>(tuple_to_print).size() == 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    } else {
-      break;
-    }
-  } while (true);
+  {
+    pybind11::gil_scoped_release no_gil;
+    do {
+      tuple_to_print =
+          at_npu::native::TdtChannelForPrint::GetInstance().GetTupleToPrint();
+      if (std::get<0>(tuple_to_print).size() == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      } else {
+        break;
+      }
+    } while (true);
+  }
   return wrap_tuple_to_print(tuple_to_print);
   END_HANDLE_TH_ERRORS
 }
@@ -650,6 +654,34 @@ PyObject* THNPModule_clear_overflow_npu(
   END_HANDLE_TH_ERRORS
 }
 
+PyObject* THNPModule_npu_datadump_enable(PyObject* self, PyObject* args) {
+  HANDLE_TH_ERRORS
+  if (!PyList_Check(args)) {
+    throw torch::TypeError("ops must be a list.");
+  }
+  std::vector<std::string> opWhiteList;
+  Py_ssize_t size = PyList_Size(args);
+  PyObject* item = nullptr;
+  for (Py_ssize_t i = 0; i < size; i++) {
+    item = PyList_GetItem(args, i);
+    if (item == nullptr || !PyUnicode_Check(item)) {
+      throw torch::TypeError("op name is nullptr or is not string.");
+    }
+    const char* pItem = PyUnicode_AsUTF8(item);
+    opWhiteList.push_back(pItem);
+  }
+  at_npu::native::NpuDataDumpMgr::GetInstance().EnableDatadump(opWhiteList);
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+PyObject* THNPModule_npu_datadump_disable(PyObject* self, PyObject* noargs) {
+  HANDLE_TH_ERRORS
+  at_npu::native::NpuDataDumpMgr::GetInstance().DisableDatadump();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
 static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_init", (PyCFunction)THNPModule_initExtension, METH_NOARGS, nullptr},
     {"_npu_set_run_yet_variable_to_false", (PyCFunction)THNPModule_set_run_yet_variable_to_false_wrap, METH_NOARGS, nullptr},
@@ -687,6 +719,8 @@ static struct PyMethodDef THNPModule_methods[] = {
     {"_npu_get_soc_version", (PyCFunction)THNPModule_npu_get_soc_version, METH_NOARGS, nullptr},
 	  {"_check_overflow_npu", (PyCFunction)THNPModule_check_overflow_npu, METH_NOARGS, nullptr},
     {"_clear_overflow_npu", (PyCFunction)THNPModule_clear_overflow_npu, METH_NOARGS, nullptr},
+    {"_npu_datadump_enable", (PyCFunction)THNPModule_npu_datadump_enable, METH_O, nullptr},
+    {"_npu_datadump_disable", (PyCFunction)THNPModule_npu_datadump_disable, METH_NOARGS, nullptr},
     {nullptr}};
 
 PyMethodDef* THNPModule_get_methods() {

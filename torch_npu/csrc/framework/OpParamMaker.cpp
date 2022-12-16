@@ -26,6 +26,7 @@
 #include "torch_npu/csrc/core/npu/NPUCachingAllocator.h"
 #include "torch_npu/csrc/core/npu/NPUEventManager.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
+#include "torch_npu/csrc/framework/OpCmdHelper.h"
 
 namespace at_npu
 {
@@ -147,9 +148,9 @@ namespace at_npu
       auto inputSize = params.inBuffer.size();
       auto outputSize = params.outBuffer.size();
       bool reset_flag = false;
-      if (FuzzyCompileBlacklist::GetInstance().IsInBlacklist(name) && env::CheckFuzzyEnable())
+      if (ForceJitCompileList::GetInstance().Inlist(name) && env::CheckJitDisable())
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
       aclError ret;
@@ -218,9 +219,36 @@ namespace at_npu
       } while (NpuUtils::IsOomError(ret, index) && (index < NPU_MAX_OP_EXEC_TRY_NUM));
       if (reset_flag)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
       }
       return ret;
+    }
+
+    void printErrorLog(ExecuteParas* cur_paras)
+    {
+      ASCEND_LOGE("---OpName---%s", (cur_paras->opType).c_str());
+      for (int i = 0; i < cur_paras->paras.input_num; i++) {
+        const aclTensorDesc *tensorDesc = cur_paras->paras.input_desc[i];
+        aclDataType dataType = aclGetTensorDescType(tensorDesc);
+        aclFormat descformat = aclGetTensorDescFormat(tensorDesc);
+
+        int descNumDims = aclGetTensorDescNumDims(tensorDesc);
+        std::string descShape = "[";
+        for (int j = 0; j < descNumDims; j++) {
+          int64_t dimSize = 0;
+          aclGetTensorDescDimV2(tensorDesc, j, &dimSize);
+          descShape = descShape + std::to_string(dimSize);
+          if (j < descNumDims - 1) {
+            descShape += ", ";
+          }
+        }
+        descShape += "]";
+
+        ASCEND_LOGE("InputDesc[%d]: DescType = %s, DescFormat = %s, DescShape = %s", i,
+                    (AclDateTypeToString(dataType)).c_str(),
+                    (AclFormatToString(descformat)).c_str(),
+                    descShape.c_str());
+      }
     }
 
     int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream)
@@ -230,9 +258,9 @@ namespace at_npu
 
       aclError ret;
       bool reset_flag = false;
-      if (!cur_paras->isFuzzy)
+      if (!cur_paras->isJitDisable)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
       if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
@@ -269,18 +297,15 @@ namespace at_npu
           stream);
       if (reset_flag)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
       }
 
       if (ret != ACL_ERROR_NONE)
       {
+        printErrorLog(cur_paras);
         C10_NPU_SHOW_ERR_MSG();
       }
 
-      if (ret != 0)
-      {
-        std::cout << "---OpName--- " << cur_paras->opType << std::endl;
-      }
       return ret;
     }
 
@@ -290,6 +315,8 @@ namespace at_npu
       aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
         cur_paras->srcLen, cur_paras->kind, stream);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
+                    ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -300,6 +327,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtRecordEvent(cur_paras->event, stream);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtRecordEvent error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
 
@@ -318,6 +346,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = aclrtStreamWaitEvent(stream, cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("aclrtStreamWaitEvent error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -327,6 +356,7 @@ namespace at_npu
       auto cur_paras = static_cast<c10_npu::queue::EventParas* >(in->paramVal);
       aclError ret = c10_npu::NPUEventManager::GetInstance().LazyDestroy(cur_paras->event);
       if (ret != ACL_ERROR_NONE) {
+        ASCEND_LOGE("LazyDestroy error! ret = %d", ret);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;

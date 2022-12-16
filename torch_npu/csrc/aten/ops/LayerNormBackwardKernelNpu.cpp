@@ -146,4 +146,16 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_layer_
   return layer_norm_backward_npu_support(dY, X, mean, variance, gamma, M, N, output_mask);
 }
 
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_layernorm_grad(
+    const at::Tensor& dY,
+    const at::Tensor& X,
+    at::IntArrayRef normalized_shape,
+    const at::Tensor& mean,
+    const at::Tensor& variance,
+    const c10::optional<at::Tensor>& gamma,
+    const c10::optional<at::Tensor>& beta) {
+  std::array<bool, 3> output_mask = {true, true, true};
+  return NPUNativeFunctions::native_layer_norm_backward(dY, X, normalized_shape, mean, variance, gamma, beta, output_mask);
+}
+
 }}  // namespace at_npu::native

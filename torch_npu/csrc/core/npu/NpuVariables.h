@@ -19,7 +19,7 @@
 namespace c10_npu {
 enum class SocVersion {
   UnsupportedSocVersion = -1,
-  Ascend910PreminumA = 100,
+  Ascend910PremiumA = 100,
   Ascend910ProA,
   Ascend910A,
   Ascend910ProB,

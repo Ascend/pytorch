@@ -45,7 +45,8 @@ def register_hook(model, hook, **kwargs):
     assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
 
     sample = kwargs.get('sample', True)
-    hook = functools.partial(hook, sample=sample)
+    pid = os.getpid()
+    hook = functools.partial(hook, sample=sample, pid=pid)
     initialize_hook(hook)
     for _, module in model.named_modules():
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:

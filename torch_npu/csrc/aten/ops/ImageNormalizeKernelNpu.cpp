@@ -21,18 +21,21 @@ namespace native {
 
 at::Tensor &image_normalize_out(
     const at::Tensor &self,
-    const at::Tensor &mean,
-    const at::Tensor &variance,
+    c10::optional<c10::ArrayRef<double>> mean,
+    c10::optional<c10::ArrayRef<double>> variance,
     int64_t dtype,
     at::Tensor &result)
 {
+  TORCH_CHECK(mean.has_value() && variance.has_value(),
+      "[mean] and [variance] should be mandatory");
   TORCH_CHECK(dtype == 0 || dtype == 1,
       "output data type should be float16 or float32");
+  std::vector<int64_t> para_shape = {1, 3, 1, 1};
   OpCommand cmd;
   cmd.Name("NormalizeV2")
       .Input(self)
-      .Input(mean)
-      .Input(variance)
+      .Input(mean.value(), para_shape, at::kFloat)
+      .Input(variance.value(), para_shape, at::kFloat)
       .Output(result)
       .Attr("dtype", dtype)
       .Run();
@@ -42,8 +45,8 @@ at::Tensor &image_normalize_out(
 
 at::Tensor NPUNativeFunctions::image_normalize(
     const at::Tensor &self,
-    const at::Tensor &mean,
-    const at::Tensor &variance,
+    c10::optional<c10::ArrayRef<double>> mean,
+    c10::optional<c10::ArrayRef<double>> variance,
     int64_t dtype)
 {
   // calculate the output size
@@ -71,8 +74,8 @@ at::Tensor NPUNativeFunctions::image_normalize(
 
 at::Tensor& NPUNativeFunctions::image_normalize_(
     at::Tensor &self,
-    const at::Tensor &mean,
-    const at::Tensor &variance,
+    c10::optional<c10::ArrayRef<double>> mean,
+    c10::optional<c10::ArrayRef<double>> variance,
     int64_t dtype)
 {
   TORCH_CHECK(self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf,

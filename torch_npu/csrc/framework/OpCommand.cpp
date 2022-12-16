@@ -20,6 +20,13 @@
 #include "torch_npu/csrc/core/npu/THNPUCachingHostAllocator.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
+#include "torch_npu/csrc/framework/utils/NpuDataDumpMgr.h"
+#include "torch_npu/csrc/framework/utils/NpuStorageOffsetGuard.h"
+
+namespace {
+const uint64_t kStringOffset = 16UL;
+const std::string kStringDType = "string";
+}  // namespace
 
 namespace at_npu {
 namespace native {
@@ -50,6 +57,31 @@ OpCommand& OpCommand::Input() {
       graphCmd.AddInput();
   )
   return AddNoneTensor();
+}
+
+OpCommand &OpCommand::InputWithMetaInfo(const at::Tensor &input,
+                                        const string &descName, string &meta) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(Input(input, descName);)
+
+  auto &desc = torch_npu::NPUBridge::GetNpuStorageImplDesc(input);
+  std::stringstream ss;
+  ss << '|';
+  ss << input.sizes() << '#';
+  ss << input.strides() << '#';
+  ss << std::to_string(input.storage_offset()) << '#';
+  ss << std::to_string(desc.npu_format_);
+  meta += ss.str();
+
+  auto tmpInput = const_cast<at::Tensor &>(input);
+  auto baseFormat = FormatHelper::GetBaseFormat(tmpInput);
+  if (desc.npu_format_ != baseFormat) {
+    tmpInput = NPUNativeFunctions::npu_format_cast(tmpInput, baseFormat);
+    inputTensor.emplace_back(tmpInput);
+  }
+
+  NpuStorageOffsetGuard guard(tmpInput);
+  AddTensorInput(tmpInput, c10::ScalarType::Undefined, descName, "");
+  return *this;
 }
 
 OpCommand& OpCommand::Input(
@@ -89,11 +121,15 @@ OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType t
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
-  at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
-                                           dimListRef.size(),
-                                           c10::TensorOptions(at::kCPU).dtype(at::kLong),
-                                           toType);
-  return AddHostTensorInput(cpuTensor, compileType, realDtype);
+  return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype);
+}
+
+OpCommand& OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+    at::ScalarType toType, CompileType compileType, const string& realDtype) {
+  IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
+      TORCH_CHECK(false, "In Graph Mode, DoubleArrayRef Input is not supported");
+  )
+  return Input<double>(dimListRef, realShape, toType, compileType, realDtype);
 }
 
 OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
@@ -106,11 +142,37 @@ OpCommand& OpCommand::Input(const c10::Scalar &input, const at::ScalarType type,
   return AddHostTensorInput(scalarTensor, compileType);
 }
 
-OpCommand& OpCommand::Input(const string &str) {
+OpCommand &OpCommand::Input(const string &str) {
+  const auto length = str.length();
+  const uint64_t total_length = length + kStringOffset;
+  auto cpu_str_tensor =
+      at::empty({total_length}, at::dtype(at::kByte)).pin_memory();
+  uint8_t *cpu_ptr = cpu_str_tensor.data_ptr<uint8_t>();
+  const size_t head_size = sizeof(kStringOffset);
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr, head_size, &kStringOffset, head_size,
+                            ACL_MEMCPY_HOST_TO_HOST));
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + head_size, head_size, &length, head_size,
+                            ACL_MEMCPY_HOST_TO_HOST));
+  C10_NPU_CHECK(aclrtMemcpy(cpu_ptr + kStringOffset, length, str.c_str(),
+                            length, ACL_MEMCPY_HOST_TO_HOST));
+
+  auto input =
+      at::empty({total_length},
+                at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
+  auto cal_stream = c10_npu::getCurrentNPUStream();
+  C10_NPU_CHECK(aclrtMemcpyAsync(input.data_ptr(), total_length, cpu_ptr,
+                                 total_length, ACL_MEMCPY_HOST_TO_DEVICE,
+                                 cal_stream));
+
+  C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
+                                                      cal_stream));
+
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-    graphCmd.AddInput(str);
-  )
-  AT_ERROR("single op mode do not support string input temporarily");
+      graphCmd.AddInput(input, "", kStringDType, c10::nullopt);)
+
+  std::tuple<aclTensorDesc *, aclDataBuffer *> res =
+      OpCmdHelper::CovertTensorToAclInput(input, "", kStringDType);
+  aclCmd->AddInput(std::get<0>(res), std::get<1>(res));
   return *this;
 }
 
@@ -158,6 +220,7 @@ void OpCommand::Run() {
     return;
   }
   aclCmd->SetEnginePriority();
+  string opName = aclCmd->GetName();
   if (c10_npu::option::OptionsManager::CheckQueueEnable() && !sync) {
     ExecuteParas execParams;
     aclCmd->ExportParams(execParams);
@@ -167,7 +230,8 @@ void OpCommand::Run() {
   } else {
     aclCmd->Run(sync, sync_index, outputTensor);
     aclCmd->releaseSource();
-  } 
+  }
+  at_npu::native::NpuDataDumpMgr::GetInstance().DatadumpEnqueue(inputTensor, outputTensor, opName);
   aclCmds->Pop();
 }
 
@@ -186,6 +250,9 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
   std::tuple < aclTensorDesc * , aclDataBuffer *> res;
   if (commonType.has_value() && commonType.value() != tensor.scalar_type()) {
     tensor = NPUNativeFunctions::npu_dtype_cast(tensor, commonType.value());
+  }
+  if (at_npu::native::NpuDataDumpMgr::GetInstance().IsDatadumpEnable()) {
+    inputTensor.emplace_back(tensor);
   }
   // 针对dim=0的场景，绝对不会有输入为uint16的情况，因为这个是TBE引入的，TBE没有dim=0的情况
   if (tensor.dim() == 0) {
@@ -265,12 +332,13 @@ at::Tensor OpCommand::CopyHostToDevice(const at::Tensor& cpuTensor) {
 }
 
 at::Tensor& OpCommand::CreateHostTensor(
-    void *data, size_t size,
+    void *data, at::IntArrayRef size,
     const c10::TensorOptions &options,
     at::ScalarType toType) {
+  at::ScalarType dtype = options.dtype().toScalarType();
   auto cpuTensor = at::empty(size, options);
-  std::memcpy(cpuTensor.data_ptr(), data, sizeof(int64_t) * cpuTensor.numel());
-  if (toType != at::kLong) {
+  std::memcpy(cpuTensor.data_ptr(), data, elementSize(dtype) * cpuTensor.numel());
+  if (toType != dtype) {
     cpuTensor = cpuTensor.to(toType);
   }
 

@@ -21,7 +21,7 @@
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
-#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
+#include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "torch_npu/csrc/core/NPUStorageImpl.h"
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
@@ -216,6 +216,8 @@ namespace at_npu
         opName = name;
       }
 
+      const string &GetName() const { return opName; }
+
       void AddInput(
           const aclTensorDesc *desc,
           const aclDataBuffer *buffer)
@@ -232,6 +234,8 @@ namespace at_npu
         AddInput(desc, buffer);
         execParam.hostMem.emplace_back(hostTensor);
       }
+
+      void AddInput(const string &str);
 
       void AddOutput(
           const aclTensorDesc *desc,
@@ -302,8 +306,8 @@ namespace at_npu
         params.paras.output_data_buf = aclDataOutputBuffArr;
         params.hostMemory = execParam.hostMem;
 
-        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName) && env::CheckFuzzyEnable()) {
-          params.isFuzzy = true;
+        if (!ForceJitCompileList::GetInstance().Inlist(opName) && env::CheckJitDisable()) {
+          params.isJitDisable = true;
         }
   }
 

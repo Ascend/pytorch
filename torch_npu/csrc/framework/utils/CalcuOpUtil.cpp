@@ -27,7 +27,7 @@
 #include "torch_npu/csrc/framework/InferFormat.h"
 #include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
-#include "torch_npu/csrc/framework/utils/NpuFuzzyBlacklist.h"
+#include "torch_npu/csrc/framework/utils/ForceJitCompileList.h"
 #include "torch_npu/csrc/framework/interface/EnvVariables.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
@@ -433,6 +433,9 @@ namespace at_npu
     }
 
     int64_t CalcuOpUtil::get_tensor_npu_format(const at::Tensor &tensor) {
+      TORCH_CHECK(tensor.device().type() == at_npu::key::NativeDeviceType,
+          "Expected all tensors to be on the same device. "
+          "Expected NPU tensor, please check whether the input tensor device is correct.");
       if (NpuUtils::check_match(&tensor) || NpuUtils::check_5d_5d_match(tensor))
       {
         const torch_npu::NPUStorageDesc &tensor_desc =
@@ -921,8 +924,8 @@ namespace at_npu
             inputs, outputs, cur_paras.paras, opName, attrs);
         auto attrRes = CalcuOpUtil::CreateNpuAttrDesc(attrs);
         cur_paras.attr = attrRes;
-        if (!FuzzyCompileBlacklist::GetInstance().IsInBlacklist(cur_paras.opType) && env::CheckFuzzyEnable()) {
-          cur_paras.isFuzzy = true;
+        if (!ForceJitCompileList::GetInstance().Inlist(cur_paras.opType) && env::CheckJitDisable()) {
+          cur_paras.isJitDisable = true;
         }
         c10_npu::queue::QueueParas params(c10_npu::queue::COMPILE_AND_EXECUTE, sizeof(ExecuteParas), &cur_paras);
         c10_npu::enCurrentNPUStream(&params);
@@ -937,10 +940,10 @@ namespace at_npu
       auto stream = c10_npu::getCurrentNPUStream();
       RECORD_FUNCTION(opName, std::vector<c10::IValue>({}));
       bool reset_flag = false;
-      if (env::CheckFuzzyEnable() &&
-          FuzzyCompileBlacklist::GetInstance().IsInBlacklist(opName))
+      if (env::CheckJitDisable() &&
+          ForceJitCompileList::GetInstance().Inlist(opName))
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_DEFAULT);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "enable");
         reset_flag = true;
       }
       NPU_LOGD("Op %s aclopCompileAndExecute Run.", opName.c_str());
@@ -994,7 +997,7 @@ namespace at_npu
       }
       if (reset_flag)
       {
-        AclopSetCompileFlag(aclOpCompileFlag::ACL_OP_COMPILE_FUZZ);
+        AclSetCompileopt(aclCompileOpt::ACL_OP_JIT_COMPILE, "disable");
       }
       aclopDestroyAttr(attr);
       NPUStatus ret = DestroyAclParams(params);

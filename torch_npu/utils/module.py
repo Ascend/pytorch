@@ -22,6 +22,7 @@ import torch.nn.functional as F
 
 from torch.nn.parameter import Parameter 
 from torch.nn.modules.batchnorm import _NormBase
+from torch.nn.parallel._functions import _streams
 
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
@@ -399,6 +400,17 @@ def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, st
         state_dict, prefix, local_metadata, strict,
         missing_keys, unexpected_keys, error_msgs)
 
+def _get_stream(device: int):
+    """Gets a background stream for copying between CPU and NPU"""
+    global _streams
+    if device == -1:
+        return None
+    if _streams is None:
+        _streams = [None] * torch.npu.device_count()
+    if _streams[device] is None:
+        _streams[device] = torch.npu.Stream(device)
+    return _streams[device]
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
@@ -410,3 +422,4 @@ def apply_module_patch():
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
     torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
     torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
+    torch.nn.parallel._functions._get_stream = _get_stream

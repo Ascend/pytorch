@@ -844,6 +844,26 @@ namespace at_npu
       return shape;
     }
 
+    c10::SmallVector<int64_t, SIZE> repeat_interleave_npu_output_size(
+        const at::Tensor &self,
+        const at::Tensor &repeats,
+        int64_t dim)
+    {
+      c10::SmallVector<int64_t, SIZE> shape;
+      for (int64_t i = 0; i < self.dim(); i++)
+      {
+        if (i == dim)
+        {
+          shape.emplace_back(repeats.sum().item().toLong());
+        }
+        else
+        {
+          shape.emplace_back(self.size(i));
+        }
+      }
+      return shape;
+    }
+
     c10::SmallVector<int64_t, SIZE> replication_pad2d_npu_output_size(const at::Tensor &self, c10::IntArrayRef padding)
     {
       int64_t N = self.size(0);

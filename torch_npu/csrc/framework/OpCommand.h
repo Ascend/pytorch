@@ -81,14 +81,37 @@ public:
       const c10::optional<aclFormat> &sensitive_format = c10::nullopt,
       const string &realData = "");
 
+  // Tensor Input with stride info, only used in OutfeedEnqueueOpV2
+  OpCommand& InputWithMetaInfo(const at::Tensor &input, const string &descName,
+                               string &meta);
+
   // Tensor Input which no need contiguous
   OpCommand& InputWithoutContiguous(const at::Tensor &input,
                                     const string &descName = "",
                                     const string &realData = "");
 
+  // ArrayRef Input, usually hostmemory input, we will do h2d in launch kernel
+  template <typename T>
+  OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
+                   at::ScalarType toType,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "") {
+    at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
+                                             realShape,
+                                             c10::TensorOptions(at::kCPU).dtype(c10::CppTypeToScalarType<T>::value),
+                                             toType);
+    return AddHostTensorInput(cpuTensor, compileType, realDtype);
+  }
+  
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
+                   CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
+                   const string& realDtype = "");
+
+  // DoubleArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
+  OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
+                   at::ScalarType toType = at::kDouble,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
                    const string& realDtype = "");
 
@@ -130,6 +153,8 @@ private:
   OpCommand& AddTensorInput(at::Tensor &tensor,
                           at::ScalarType forceScaleType = at::ScalarType::Undefined,
                           const string &descName = "", const string &realData = "") ;
+  
+  OpCommand& AddTensorInput(const string &str);
 
   OpCommand& AddHostTensorInput(
       const at::Tensor &tensor,
@@ -150,7 +175,7 @@ private:
 
   at::Tensor CopyHostToDevice(const at::Tensor &cpuTensor);
 
-  at::Tensor& CreateHostTensor(void *data, size_t size,
+  at::Tensor& CreateHostTensor(void *data, at::IntArrayRef size,
                               const c10::TensorOptions &options, at::ScalarType toType);
 
   at::Tensor& CreateScalarTensor(const c10::Scalar &scalar, at::ScalarType type);
@@ -166,7 +191,7 @@ private:
   bool sync = false;
   c10::SmallVector<int64_t, N> sync_index;
   c10::SmallVector<at::Tensor, N> outputTensor;
-
+  c10::SmallVector<at::Tensor, N> inputTensor;
 }; // class OpCommand
 } // namespace native
 } // namespace at_npu

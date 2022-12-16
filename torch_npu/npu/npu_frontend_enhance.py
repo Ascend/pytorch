@@ -51,8 +51,8 @@ def finalize_dump():
     option = {"mdldumpswitch": "disable"}
     torch_npu._C._npu_setOption(option)
 
-def set_compile_mode(jit_compile=True):
-    option = {"dynamicCompileswitch": "enable" if jit_compile is False else "disable"}
+def set_compile_mode(jit_compile=False):
+    option = {"jitCompile": "enable" if jit_compile else "disable"}
     torch_npu._C._npu_setOption(option)
 
 def set_aoe(dump_path):
