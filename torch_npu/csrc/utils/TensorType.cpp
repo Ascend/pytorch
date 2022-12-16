@@ -305,5 +305,23 @@ static void py_bind_tensor_types(const std::vector<PyTensorType>& tensor_types) 
   }
 }
 
+// Callback for python part. Used for additional initialization of python classes
+static PyObject * THPModule_initExtension(PyObject *_unused, PyObject *noargs) {
+  HANDLE_TH_ERRORS
+  _initialize_python_bindings();
+  Py_RETURN_NONE;
+  END_HANDLE_TH_ERRORS
+}
+
+// autograd methods on torch._C
+static PyMethodDef TorchNpuExtensionMethods[] = {
+  {"_initExtension", (PyCFunction)THPModule_initExtension, METH_NOARGS, nullptr},
+  {nullptr, nullptr, 0, nullptr}
+};
+
+PyMethodDef* npu_extension_functions() {
+  return TorchNpuExtensionMethods;
+}
+
 }
 }
