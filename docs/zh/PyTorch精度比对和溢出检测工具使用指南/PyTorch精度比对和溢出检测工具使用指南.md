@@ -1,4 +1,4 @@
-# **PyTorch精度对比工具使用指南**
+# **PyTorch精度对比和溢出检测工具使用指南**
 - [**PyTorch精度对比工具使用指南**](#pytorch精度对比工具使用指南)
   - [**使用场景**](#使用场景)
   - [**前提条件**](#前提条件)
@@ -264,4 +264,66 @@ print(tensor_data[2]) # 数据类型
 print(tensor_data[3]) # 数据尺寸
 
 ```
+
+- [**PyTorch溢出检测工具使用指南**](#pytorch精度对比工具使用指南)
+  - [**使用场景**](#使用场景)
+  - [**前提条件**](#前提条件)
+  - [**基本原理**](#基本原理)
+  - [**使用方法**](#使用方法)
+  - [**快速上手样例参考**](#快速上手样例参考)
+
+
+## **使用场景**
+
+在模型训练或调测中，遇到溢出问题，定位费时费力，可以使用溢出检测工具，快速定位溢出层位置。
+
+溢出检测工具，通过在pytorch模型中注入hook，监测网络每一层是否有溢出问题，从而进行问题的精准定位。
+
+## **前提条件**
+
+已完成PyTorch Adapter插件的编译安装，具体操作请参考[《AscendPyTorch安装指南》](../PyTorch安装指南/PyTorch安装指南.md)。
+
+## **基本原理**
+采用hook机制，对模型每一层执行前向和反向的过程调用溢出检测函数。溢出检测函数通过设定全局溢出标志位来判断是否有数值溢出情况，若有溢出，则会抛出error，输出对应api层名字，且在当前目录下自动生成含有溢出信息的文件。
+
+## **使用方法**
+步骤1：引入库代码
+```python
+from torch_npu.hooks import register_hook, wrap_checkoverflow_hook
+```
+步骤2：对模型注册溢出检测函数hook
+```python
+register_hook(model,wrap_checkoverflow_hook)
+```
+
+## **快速上手样例参考**
+使用溢出检测工具进行模型的溢出问题定位，样例代码如下：
+
+
+```python
+import os
+import copy
+import torch
+import torch.nn as nn
+from torchvision import models, datasets, transforms
+
+#import溢出检测工具相关函数
+from torch_npu.hooks import register_hook, wrap_checkoverflow_hook
+
+# 需要定位问题的网络模型
+model = models.resnet50()
+model.npu()
+
+#对模型注册溢出检测函数hook
+register_hook(model,wrap_checkoverflow_hook)
+
+inputs = torch.randn(1, 3, 244, 244)
+labels = torch.randn(1).long()
+criterion = nn.CrossEntropyLoss()
+
+inputs = inputs.npu()
+labels = labels.npu()
+output = model_npu(inputs)
+loss = criterion(output, labels)
+loss.backward()
 

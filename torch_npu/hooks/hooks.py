@@ -115,7 +115,14 @@ def wrap_acc_cmp_hook(name, **kwargs):
 
 def wrap_checkoverflow_hook(name, **kwargs):
 
+    pid = kwargs.get('pid')
+    if not pid:
+        return RuntimeError("Not get the specified process pid.")
+
     def checkoverflow_hook(module, in_feat, out_feat):
+        if pid != os.getpid():
+            return
+            
         module_name = name
         module.has_overflow = torch_npu._C._check_overflow_npu()
         if module.has_overflow:

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# List of opts that register hooks
+# List of ops that register hooks
 
 functional:
   - conv1d
