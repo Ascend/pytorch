@@ -33,11 +33,6 @@ at::Tensor NPUNativeFunctions::npu_layer_norm_eval(
   const auto input_shape = input.sizes();
   const auto input_ndim = input.dim();
   const int axis = input_ndim - normalized_ndim;
-  const int64_t M = std::accumulate(
-      input_shape.cbegin(),
-      input_shape.cbegin() + axis,
-      1LL,
-      std::multiplies<int64_t>());
   const int64_t N = std::accumulate(
       input_shape.cbegin() + axis,
       input_shape.cend(),
@@ -46,7 +41,7 @@ at::Tensor NPUNativeFunctions::npu_layer_norm_eval(
   at::Tensor result = OpPreparation::ApplyTensor(input);
   int64_t numels = 1;
   int64_t begin_dim = 0;
-  c10::SmallVector<int64_t, 8> tmpSize;
+  c10::SmallVector<int64_t, SIZE> tmpSize;
   for (int64_t i = input.dim() - 1; i >= 0; i--) {
     numels *= input.size(i);
     tmpSize.emplace_back(input.size(i));
@@ -68,8 +63,18 @@ at::Tensor NPUNativeFunctions::npu_layer_norm_eval(
   } else if (!resizeBias.sizes().equals(tmpSize)) {
     resizeBias.resize_(tmpSize);
   }
-  at::Tensor mean = OpPreparation::ApplyTensor(resizeWeight, {M});
-  at::Tensor rstd = OpPreparation::ApplyTensor(resizeWeight, {M});
+
+  c10::SmallVector<int64_t, SIZE> output_size;
+  for (int64_t i = 0; i < input_ndim; i++) {
+    if (i < begin_dim) {
+      output_size.emplace_back(input.size(i));
+    } else {
+      output_size.emplace_back(1);
+    }
+  }
+
+  at::Tensor mean = OpPreparation::ApplyTensor(resizeWeight, output_size);
+  at::Tensor rstd = OpPreparation::ApplyTensor(resizeWeight, output_size);
   OpCommand cmd;
   cmd.Name("LayerNorm")
     .Input(input)
