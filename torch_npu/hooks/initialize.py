@@ -20,6 +20,8 @@ import numpy as np
 
 import torch
 
+import torch_npu
+
 from . import wrap_tensor, wrap_torch, wrap_functional
 
 
@@ -45,7 +47,9 @@ def register_hook(model, hook, **kwargs):
     assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
 
     sample = kwargs.get('sample', True)
-    hook = functools.partial(hook, sample=sample)
+    pid = os.getpid()
+    hook = functools.partial(hook, sample=sample, pid=pid)
+    torch_npu._C._clear_overflow_npu()
     initialize_hook(hook)
     for _, module in model.named_modules():
         if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
