@@ -1,6 +1,5 @@
 #pragma once
 
-#include "acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_rt.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 #include "third_party/acl/inc/acl/acl_prof.h"
