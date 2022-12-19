@@ -144,7 +144,7 @@ void syncStreams(
 
 // exit call back for an AI Core exception
 void exceptionCallback(aclrtExceptionInfo* exceptionInfo) {
-  std::string err = "An AI Core exception occurred";
+  std::string err = "An exception occurred in AI CORE or HCCL, please analyze the Ascend log.";
   throw std::runtime_error(err);
 }
 } // namespace
