@@ -15,7 +15,6 @@
 
 #include "npu_sys_ctrl.h"
 #include <Python.h>
-#include "acl/acl_rt.h"
 #include "torch_npu/csrc/core/npu/npu_log.h"
 #include "torch_npu/csrc/core/npu/interface/AclInterface.h"
 #include "torch_npu/csrc/core/npu/NPUStream.h"
@@ -24,6 +23,7 @@
 #include "torch_npu/csrc/core/npu/register/OptionsManager.h"
 #include "torch_npu/csrc/core/npu/NpuVariables.h"
 #include "third_party/acl/inc/acl/acl_op_compiler.h"
+#include "third_party/acl/inc/acl/acl_rt.h"
 #include "torch_npu/csrc/framework/interface/AclOpCompileInterface.h"
 #ifdef SUCCESS
 #undef SUCCESS
