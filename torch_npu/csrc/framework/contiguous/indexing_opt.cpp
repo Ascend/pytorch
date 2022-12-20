@@ -56,6 +56,12 @@ private:
     const auto &indexing_size = src_desc.sizes_;
     const auto &indexing_stride = src_desc.strides_;
 
+    for (int64_t i = 0; i < indexing_size.size(); i++) {
+      if ((indexing_stride[i] < base_stride[i]) || ((indexing_stride[i] % base_stride[i]) != 0)) {
+        return false;
+      }
+    } 
+
     // indexing信息获取部分
     // Get step info(for indexing step at index aixs should > 1)
     for (int64_t i = 0; i < indexing_size.size(); i++) {
