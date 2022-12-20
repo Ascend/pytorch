@@ -66,7 +66,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::nll_loss2d_forward_out(
 
   OpPreparation::CheckMemory({self, target, weight_tensor}, {result, total_weight});
 
-  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction) ;
+  auto reductionStr = CalcuOpUtil::get_reduction_str(reduction);
   OpCommand cmd;
   cmd.Name("NLLLoss")
       .Input(self)
@@ -93,9 +93,11 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::nll_loss2d_forward(
   TORCH_CHECK(scalar_type == at::kLong || scalar_type == at::kInt, 
       "Expected object of scalar type ", at::kLong, " or ", at::kInt, " but got scalar type ", scalar_type,
       " for argument 'target'  in call to nll_loss2d_forward");
-  at::Tensor targetCast = NPUNativeFunctions::npu_dtype_cast(target, at::kInt);
+  at::Tensor targetCast = (scalar_type == at::kLong) ?
+      NPUNativeFunctions::npu_dtype_cast(target, at::kInt) : target;
 
   auto self_input = self.contiguous();
+  self_input = NPUNativeFunctions::npu_format_cast(self_input, ACL_FORMAT_ND);
   self_input = self_input.permute({0, 2, 3, 1});
   self_input = self_input.reshape({-1, self.size(1)});
 
