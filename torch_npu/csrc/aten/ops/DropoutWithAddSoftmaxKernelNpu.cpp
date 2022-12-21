@@ -53,9 +53,15 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_dropout_with_add_softmax_forw
     const at::Tensor& x1,
     at::Scalar alpha,
     double p,
-    int64_t dim){
-  at::Tensor result_softmax = OpPreparation::ApplyTensor(x1);
-  at::Tensor result_dropout = OpPreparation::ApplyTensor(self);
+    int64_t dim) {
+  auto self_type = self.scalar_type();
+  auto x1_type = x1.scalar_type();
+
+  at::Tensor self_cp = (self_type == at::kHalf) ? self : NPUNativeFunctions::npu_dtype_cast(self, at::kHalf);
+  at::Tensor x1_cp = (x1_type == at::kHalf) ? x1 : NPUNativeFunctions::npu_dtype_cast(x1, at::kHalf);
+
+  at::Tensor result_softmax = OpPreparation::ApplyTensor(x1_cp);
+  at::Tensor result_dropout = OpPreparation::ApplyTensor(self_cp);
   c10::SmallVector<int64_t, N> dimList = {dim};
   double retain = 1. - p;
   at::Scalar prob = at::Scalar(retain);
@@ -63,14 +69,14 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_dropout_with_add_softmax_forw
   auto original_stream = c10_npu::getCurrentNPUStream();
   {
     c10_npu::SecondaryStreamGuard guard(c10_npu::getCurrentSecondaryStream());
-    mask = dropout_genmask(x1, prob);
+    mask = dropout_genmask(x1_cp, prob);
   }
   c10_npu::NPUCachingAllocator::recordStream(mask.storage().data_ptr(), original_stream);
 
   OpCommand cmd;
   cmd.Name("AxpyWithSoftmaxAndDropOutDoMask")
-     .Input(x1)
-     .Input(self)
+     .Input(x1_cp)
+     .Input(self_cp)
      .Input(mask)
      .Output(result_softmax)
      .Output(result_dropout)
@@ -78,7 +84,11 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> npu_dropout_with_add_softmax_forw
      .Attr("input_keep_prob", prob)
      .Attr("axis", dimList)
      .Run();
-   return std::tie(mask, result_softmax, result_dropout);
+  if (x1_type != at::kHalf) {
+    result_softmax = NPUNativeFunctions::npu_dtype_cast(result_softmax, x1_type);
+    result_dropout = NPUNativeFunctions::npu_dtype_cast(result_dropout, x1_type);
+  }
+  return std::tie(mask, result_softmax, result_dropout);
 }
 
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax_backward(
@@ -87,22 +97,31 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax_b
     const at::Tensor& softmax_out,
     at::Scalar alpha,
     double p,
-    int64_t dim){
-  at::Tensor result = OpPreparation::ApplyTensor(softmax_out);
+    int64_t dim) {
+  auto softmax_dtype = softmax_out.scalar_type();
+  at::Tensor grad_out_cp = (grad_out.scalar_type() == at::kHalf) ?
+      grad_out : NPUNativeFunctions::npu_dtype_cast(grad_out, at::kHalf);
+  at::Tensor softmax_out_cp = (softmax_dtype == at::kHalf) ?
+      softmax_out : NPUNativeFunctions::npu_dtype_cast(softmax_out, at::kHalf);
+
+  at::Tensor result = OpPreparation::ApplyTensor(softmax_out_cp);
   c10::SmallVector<int64_t, N> dimList = {dim};
   double retain = 1. - p;
   at::Scalar prob = at::Scalar(retain);
 
   OpCommand cmd;
   cmd.Name("DropoutWithMulsAndSoftmaxGrad")
-     .Input(grad_out)
+     .Input(grad_out_cp)
      .Input(mask)
-     .Input(softmax_out)
+     .Input(softmax_out_cp)
      .Output(result)
      .Attr("alpha", alpha)
      .Attr("input_keep_prob", prob)
      .Attr("axes", dimList)
      .Run();
+  if (softmax_dtype != at::kHalf) {
+    result = NPUNativeFunctions::npu_dtype_cast(result, softmax_dtype);
+  }
   return std::tie(result, grad_out);
 }
 
