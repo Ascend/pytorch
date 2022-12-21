@@ -160,9 +160,8 @@ OpCommand &OpCommand::Input(const string &str) {
       at::empty({total_length},
                 at::dtype(at::kByte).device(at_npu::key::NativeDeviceType));
   auto cal_stream = c10_npu::getCurrentNPUStream();
-  C10_NPU_CHECK(aclrtMemcpyAsync(input.data_ptr(), total_length, cpu_ptr,
-                                 total_length, ACL_MEMCPY_HOST_TO_DEVICE,
-                                 cal_stream));
+  C10_NPU_CHECK(c10_npu::queue::LaunchAsyncCopyTask(input.data_ptr(), total_length, cpu_ptr,
+                                 total_length, ACL_MEMCPY_HOST_TO_DEVICE));
 
   C10_NPU_CHECK(THNPUCachingHostAllocator_recordEvent(cpu_str_tensor.data_ptr(),
                                                       cal_stream));
