@@ -177,6 +177,12 @@ class TestCreationOps(TestCase):
         cpu_output = torch.as_tensor(npu_input, device="cpu")
         self.assertRtolEqual(cpu_output.numpy(), npu_input.cpu().numpy())
     
+        # npu tesor to npu tensor
+        npu_input = torch.tensor([1, 2, 3]).npu()
+        npu_output = torch.as_tensor(npu_input)
+        self.assertEqual(npu_input.device, npu_output.device)
+        self.assertRtolEqual(npu_input.cpu().numpy(), npu_output.cpu().numpy())
+
     def test_as_strided(self):
         x = torch.randn(3, 3, device='npu:0')
         npu_output1 = torch.as_strided(x, (2, 2), (1, 2))
