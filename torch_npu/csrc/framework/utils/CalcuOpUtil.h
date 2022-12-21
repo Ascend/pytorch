@@ -253,6 +253,24 @@ namespace at_npu
           size_t count,
           aclrtMemcpyKind kind,
           aclrtStream stream);
+      static aclError AclrtMemcpyWithModeSwitch(
+          const StorageAndOffsetMemSizePair& dst,
+          size_t dstMax,
+          const StorageAndOffsetMemSizePair& src,
+          size_t count,
+          aclrtMemcpyKind kind);
+      static aclError AclrtMemcpyWithModeSwitch(
+          const StorageAndOffsetMemSizePair& dst,
+          size_t dstMax,
+          const void* src,
+          size_t count,
+          aclrtMemcpyKind kind);
+      static aclError AclrtMemcpyWithModeSwitch(
+          void* dst,
+          size_t dstMax,
+          const StorageAndOffsetMemSizePair& src,
+          size_t count,
+          aclrtMemcpyKind kind);
       static aclError LaunchAsyncCopyTaskWithModeSwitch(
           const at::Tensor& dst,
           size_t dstMax,
