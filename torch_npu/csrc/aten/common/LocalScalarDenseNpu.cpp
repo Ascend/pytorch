@@ -36,24 +36,24 @@ c10::Scalar NPUNativeFunctions::_local_scalar_dense(const at::Tensor& self) {
       [&] {
         scalar_t value = 0;
         c10_npu::NPUStream copy_stream = c10_npu::getCurrentNPUStream();
-        aclError error = CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
+        // Synchronous copy after stream synchronization
+        aclError error = aclrtSynchronizeStream(copy_stream);
+        if (error != ACL_ERROR_NONE) {
+          C10_NPU_SHOW_ERR_MSG();
+          AT_ERROR("ACL stream synchronize failed.");
+          return;
+        }
+
+        error = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
             &value,
             sizeof(scalar_t),
             std::make_pair(
                 self.storage().unsafeGetStorageImpl(), self.storage_offset() * self.itemsize()),
             sizeof(scalar_t),
-            ACL_MEMCPY_DEVICE_TO_HOST,
-            copy_stream);
+            ACL_MEMCPY_DEVICE_TO_HOST);
         if (error != ACL_ERROR_NONE) {
           C10_NPU_SHOW_ERR_MSG();
           AT_ERROR("aclrtMemcpy device to host error.");
-          return;
-        }
-
-        error = aclrtSynchronizeStream(copy_stream);
-        if (error != ACL_ERROR_NONE) {
-          C10_NPU_SHOW_ERR_MSG();
-          AT_ERROR("ACL stream synchronize failed.");
           return;
         }
         r = c10::Scalar(value);
