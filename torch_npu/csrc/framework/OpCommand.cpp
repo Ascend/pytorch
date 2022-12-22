@@ -117,11 +117,11 @@ OpCommand& OpCommand::InputWithoutContiguous(
 }
 
 OpCommand& OpCommand::Input(const c10::IntArrayRef &dimListRef, at::ScalarType toType,
-    CompileType compileType, const string& realDtype) {
+    CompileType compileType, const string& realDtype, const string& descName) {
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
       graphCmd.AddInput(dimListRef, toType);
   )
-  return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype);
+  return Input<int64_t>(dimListRef, dimListRef.size(), toType, compileType, realDtype, descName);
 }
 
 OpCommand& OpCommand::Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
@@ -271,9 +271,10 @@ OpCommand& OpCommand::AddTensorInput(at::Tensor &tensor,
 OpCommand& OpCommand::AddHostTensorInput(
     const at::Tensor &tensor,
     CompileType compileType,
-    const string& realDtype) {
+    const string& realDtype,
+    const string& descName) {
   std::tuple < aclTensorDesc *, aclDataBuffer *> res;
-  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype);
+  res = OpCmdHelper::CovertHostTensorToAclInput(tensor, tensor.scalar_type(), compileType, realDtype, descName);
   aclCmd->AddInput(std::get<0>(res), std::get<1>(res), tensor);
   return *this;
 }

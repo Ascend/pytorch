@@ -95,19 +95,21 @@ public:
   OpCommand& Input(const c10::ArrayRef<T> &dimListRef, at::IntArrayRef realShape,
                    at::ScalarType toType,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
-                   const string& realDtype = "") {
+                   const string& realDtype = "",
+                   const string& descName = "") {
     at::Tensor &cpuTensor = CreateHostTensor((void *) dimListRef.data(),
                                              realShape,
                                              c10::TensorOptions(at::kCPU).dtype(c10::CppTypeToScalarType<T>::value),
                                              toType);
-    return AddHostTensorInput(cpuTensor, compileType, realDtype);
+    return AddHostTensorInput(cpuTensor, compileType, realDtype, descName);
   }
   
   // IntArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::IntArrayRef &dimListRef,
                    at::ScalarType toType = at::kLong,
                    CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
-                   const string& realDtype = "");
+                   const string& realDtype = "",
+                   const string& descName = "");
 
   // DoubleArrayRef/SmallVector Input, usually hostmemory input, we will do h2d in launch kernel
   OpCommand& Input(const c10::ArrayRef<double> &dimListRef, at::IntArrayRef realShape,
@@ -159,7 +161,8 @@ private:
   OpCommand& AddHostTensorInput(
       const at::Tensor &tensor,
       CompileType compileType = CompileType::MEMORY_HOST_COMPILE_DEPENDENT,
-      const string& realDtype = "");
+      const string& realDtype = "",
+      const string& descName = "");
 
   OpCommand& AddScalarInput(const c10::Scalar& input, at::ScalarType type);
 
