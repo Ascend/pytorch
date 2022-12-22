@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import torch.nn.functional as F
-import torch_npu
+import numpy as np
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 
 
 class TestDropOutWithAddSoftMax(TestCase):
+
     def cpu_op_exec(self, x1, x2, alpha, axis):
         dropout = torch.nn.Dropout(p=0)
         add_out = torch.add(x1.float(), x2.float(), alpha=alpha)
@@ -32,17 +35,22 @@ class TestDropOutWithAddSoftMax(TestCase):
         return softmax_out.cpu().detach().numpy(), output.cpu().detach().numpy()
 
     def test_dropout_shape_format(self):
-        cpu_input1 = torch.rand(96, 12, 384, 384).half()
-        cpu_input2 = torch.rand(96, 12, 384, 384).half()
-        npu_input1 = cpu_input1.npu()
-        npu_input2 = cpu_input2.npu()
-        alpha = 0.125
-        axis = -1
-        prod_npu = 0
+        dtypes = [torch.half, torch.float]
+        for dtype in dtypes:
+            cpu_input1 = torch.rand(96, 12, 384, 384).to(dtype)
+            cpu_input2 = torch.rand(96, 12, 384, 384).to(dtype)
+            npu_input1 = cpu_input1.npu()
+            npu_input2 = cpu_input2.npu()
+            alpha = 0.125
+            axis = -1
+            prod_npu = 0
 
-        cpu_s_output, cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, alpha, axis)
-        npu_s_output, npu_output = self.npu_op_exec(npu_input1, npu_input2, alpha, prod_npu, axis)
-        self.assertRtolEqual(cpu_output, npu_output)
+            _, cpu_output = self.cpu_op_exec(cpu_input1, cpu_input2, alpha, axis)
+            _, npu_output = self.npu_op_exec(npu_input1, npu_input2, alpha, prod_npu, axis)
+            if dtype == torch.float:
+                cpu_output = cpu_output.astype(np.float32)
+            self.assertRtolEqual(cpu_output, npu_output)
+
 
 if __name__ == "__main__":
     run_tests()
