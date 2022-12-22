@@ -14,15 +14,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 import torch
 import numpy as np
-import torch_npu
 
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.common_utils import create_common_tensor
 
 
 class TestMedian(TestCase):
+
     def cpu_op_exec(self, input1):
         input1 = input1.float()
         output1 = torch.median(input1)
@@ -38,7 +40,7 @@ class TestMedian(TestCase):
         input1 = input1.float()
         output1, output2 = torch.median(input1, dim, keepdim)
         output1 = output1.half().numpy()
-        output2 = output2.int().numpy()
+        output2 = output2.numpy()
         return output1, output2
 
     def npu_op_exec_dim(self, input1, dim, keepdim):
@@ -53,7 +55,7 @@ class TestMedian(TestCase):
         output2 = input3.to("cpu").numpy()
         return output1, output2
 
-    def test_median_shape_format(self, device="npu"):
+    def test_median_shape_format(self):
         shape_format = [
             [np.float16, -1, (10,)],
             [np.float16, 3, (4, 4, 4)],
@@ -65,7 +67,7 @@ class TestMedian(TestCase):
             npu_output = self.npu_op_exec(npu_input)
             self.assertRtolEqual(cpu_output, npu_output)
 
-    def test_median_dim_shape_format(self, device="npu"):
+    def test_median_dim_shape_format(self):
         shape_format = [
             [[np.float16, -1, (10,)], 0, False],
             [[np.float16, 0, (1, 2, 3, 4)], 1, False],
@@ -74,7 +76,7 @@ class TestMedian(TestCase):
         for item in shape_format:
             cpu_input1, npu_input1 = create_common_tensor(item[0], 0, 100)
             npu_input2 = torch.empty(0).npu().to(cpu_input1.dtype)
-            npu_input3 = torch.empty(0).npu().int()
+            npu_input3 = torch.empty(0).npu().long()
             cpu_output1, cpu_output2 = self.cpu_op_exec_dim(cpu_input1, item[1], item[2])
             npu_output1, npu_output2 = self.npu_op_exec_dim(npu_input1, item[1], item[2])
             npu_output1_out, npu_output2_out = self.npu_op_exec_dim_out(npu_input1, item[1], item[2], npu_input2,
