@@ -20,7 +20,10 @@ import numpy as np
 
 import torch
 
+import torch_npu
+
 from . import wrap_tensor, wrap_torch, wrap_functional
+from .module import HOOKModule
 
 
 def initialize_hook(hook):
@@ -44,11 +47,18 @@ def initialize_hook(hook):
 def register_hook(model, hook, **kwargs):
     assert hasattr(model, "named_modules"), "Please register hooks to nn.Module."
 
+    seed = kwargs.get('seed', 1234)
+    seed_all(seed)
+
+    torch_npu._C._clear_overflow_npu()
+
     sample = kwargs.get('sample', True)
-    hook = functools.partial(hook, sample=sample)
+    pid = os.getpid()
+    hook = functools.partial(hook, sample=sample, pid=pid)
     initialize_hook(hook)
+
     for _, module in model.named_modules():
-        if not hasattr(module, "named_modules") or len(list(module.named_modules())) > 1:
+        if not isinstance(module, HOOKModule):
             continue
 
         prefix = "Module_" + module.__class__.__name__ + "_"

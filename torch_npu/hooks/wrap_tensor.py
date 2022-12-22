@@ -22,7 +22,7 @@ from torch_npu.utils.device_guard import torch_device_guard
 from .module import HOOKModule
 
 cur_path = os.path.dirname(os.path.realpath(__file__))
-yaml_path = os.path.join(cur_path, "support_wrap_opts.yaml")
+yaml_path = os.path.join(cur_path, "support_wrap_ops.yaml")
 with open(yaml_path, 'r') as f:
     WrapTensorOps = yaml.safe_load(f).get('tensor')
 

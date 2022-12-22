@@ -43,20 +43,27 @@ def set_dump_path(fpath=None):
             if os.path.exists(dump_path):
                 os.remove(dump_path)
         new_dump_path = os.path.join(dir_path, filename)
-        os.environ["DUMP_PATH"] = new_dump_path
+        DumpUtil.set_dump_path(new_dump_path)
     else:
         raise RuntimeError("set_dump_path '{}' error, please set a valid filename".format(fpath))
 
 
-def get_dump_path():
-    assert "DUMP_PATH" in os.environ, "Please set dump path for hook tools."
-    return os.environ.get("DUMP_PATH")
+class DumpUtil(object):
+    dump_path = None
+    dump_init_enable = False
+
+    @staticmethod
+    def set_dump_path(save_path):
+        DumpUtil.dump_path = save_path
+        DumpUtil.dump_init_enable = True
+
+    @staticmethod
+    def get_dump_path():
+        assert DumpUtil.dump_path is not None, "Please set dump path for hook tools."
+        return DumpUtil.dump_path
 
 
 def dump_tensor_for_acc_cmp(x, prefix="", sample=True):
-    if "DUMP_PATH" not in os.environ:
-        return
-
     if isinstance(x, (tuple, list)) and x:
         for i, item in enumerate(x):
             dump_tensor_for_acc_cmp(item, prefix="{}.{}".format(prefix, i), sample=sample)
@@ -64,12 +71,13 @@ def dump_tensor_for_acc_cmp(x, prefix="", sample=True):
         if len(x.shape) == 0 or not x.is_floating_point():
             return
 
-        if hasattr(dump_tensor_for_acc_cmp, "call_number"):
-            dump_tensor_for_acc_cmp.call_number = dump_tensor_for_acc_cmp.call_number + 1
-        else:
+        if DumpUtil.dump_init_enable:
             dump_tensor_for_acc_cmp.call_number = 0
+            DumpUtil.dump_init_enable = False
+        else:
+            dump_tensor_for_acc_cmp.call_number = dump_tensor_for_acc_cmp.call_number + 1
         prefix = f"{dump_tensor_for_acc_cmp.call_number}_{prefix}"
-        with os.fdopen(os.open(get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
+        with os.fdopen(os.open(DumpUtil.get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
             if sample:
                 tensor_max = torch._C._VariableFunctionsClass.max(x).cpu().detach().float().numpy().tolist()
                 tensor_min = torch._C._VariableFunctionsClass.min(x).cpu().detach().float().numpy().tolist()
@@ -88,12 +96,7 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
         for i, item in enumerate(x):
             dump_tensor_for_overflow(item, dump_file_name, prefix="{}.{}".format(prefix, i))
     else:
-        stack_str = [str(_) for _ in inspect.stack()[6:]]
-        stack_info = json.dumps(stack_str, indent=1)
-        with os.fdopen(os.open(dump_file_name, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a",
-                       newline='\n') as f:
-            f.write(stack_info)
-            f.write('\n')
+        with os.fdopen(os.open(dump_file_name, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
             if isinstance(x, torch.Tensor):
                 save_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
                 json.dump([prefix, save_tensor, str(x.dtype), tuple(x.shape)], f)
@@ -105,23 +108,36 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
 def wrap_acc_cmp_hook(name, **kwargs):
 
     sample = kwargs.get('sample', True)
+    pid = kwargs.get('pid')
+    if not pid:
+        return RuntimeError("Not get the specified process pid.")
 
     def acc_cmp_hook(module, in_feat, out_feat):
-        name_template = f"{name}" + "_{}"
-        dump_tensor_for_acc_cmp(in_feat, name_template.format("input"), sample)
-        dump_tensor_for_acc_cmp(out_feat, name_template.format("output"), sample)
+        if pid == os.getpid():
+            name_template = f"{name}" + "_{}"
+            dump_tensor_for_acc_cmp(in_feat, name_template.format("input"), sample)
+            dump_tensor_for_acc_cmp(out_feat, name_template.format("output"), sample)
 
     return acc_cmp_hook
 
 
 def wrap_checkoverflow_hook(name, **kwargs):
 
+    pid = kwargs.get('pid')
+    if not pid:
+        return RuntimeError("Not get the specified process pid.")
+
     def checkoverflow_hook(module, in_feat, out_feat):
+        if pid != os.getpid():
+            return
+
         module_name = name
         module.has_overflow = torch_npu._C._check_overflow_npu()
         if module.has_overflow:
             name_template = f"{name}" + "_{}"
             dump_file_name = f"Overflow_info_{get_time_stamp()}.pkl"
+            stack_str = [str(_) for _ in inspect.stack()[3:]]
+            dump_tensor_for_overflow(stack_str, dump_file_name, name_template.format("stack_info"))
             dump_tensor_for_overflow(in_feat, dump_file_name, name_template.format("input"))
             dump_tensor_for_overflow(out_feat, dump_file_name, name_template.format("output"))
             raise ValueError("[check overflow]: module name :'{}' is overflow and dump file is saved in '{}'.".format(
