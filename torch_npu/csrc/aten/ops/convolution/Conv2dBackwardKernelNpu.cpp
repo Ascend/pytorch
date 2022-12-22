@@ -87,6 +87,7 @@ at::Tensor conv2d_backward_input_out_npu(
       .Attr("dilations", dilations)
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
+      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Conv())
       .Run();
 
   return gradInput;
@@ -138,6 +139,7 @@ at::Tensor conv2d_backward_weight_out_npu(
       .Attr("dilations", dilations)
       .Attr("groups", groups)
       .Attr("data_format", dataFormat)
+      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Conv())
       .Run();
 
   return gradWeight;

@@ -144,6 +144,15 @@ public:
     return *this;
   }
 
+  // Attr depend on condition
+  template<typename dataType>
+  OpCommand& Attr(const string &name, dataType value, bool cond) {
+    if (!cond) {
+      return *this;
+    }
+    return Attr(name, value);
+  }
+
   // Run a single op
   void Run();
 

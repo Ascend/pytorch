@@ -101,6 +101,13 @@ class TestConvTranspose2dBackward(TestCase):
             [[np.float32, 0, [1, 4, 5, 5]], [np.float32, 0, [4, 4, 3, 3]]]
         ]
 
+    def test_conv_transpose2d_backward_allow_hf32(self):
+        torch.npu.conv.allow_hf32 = True
+        shape_format = [
+            [[np.float16, 0, [1, 4, 5, 5]], [np.float16, 0, [4, 4, 3, 3]]]
+        ]
+        self.conv_transpose2d_backward_result(shape_format)
+        torch.npu.conv.allow_hf32 = False
 
 if __name__ == "__main__":
     run_tests()

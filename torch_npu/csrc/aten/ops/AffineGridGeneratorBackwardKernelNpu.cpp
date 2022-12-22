@@ -51,6 +51,7 @@ at::Tensor& affine_grid_generator_backward_nocheck(
       .Attr("bias", (int64_t)0)
       .Attr("adj_x1", (bool)false)
       .Attr("adj_x2", (bool)false)
+      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
 
   return result;

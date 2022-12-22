@@ -132,6 +132,15 @@ class TestMatMul(TestCase):
         ]
         self.matmul_backward_result(shape_format)        
 
+    def test_matmul_allow_hf32(self, device="npu"):
+        torch.npu.matmul.allow_hf32 = True
+        shape_format = [
+            # mat1 1dim, mat2 1dim       
+            [[np.float16, 2, [5]], [np.float16, 2, [5]]],
+            [[np.float16, 2, [16]], [np.float16, 2, [16]]],
+        ]
+        self.matmul_backward_result(shape_format)
+        torch.npu.matmul.allow_hf32 = False
 
 if __name__ == "__main__":
     run_tests()

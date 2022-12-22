@@ -204,3 +204,17 @@ def iteration_start():
 def iteration_end():
     option = {"deliverswitch": "disable"}
     torch_npu._C._npu_setOption(option)
+
+class allowHF32Matmul:
+    @classmethod
+    def __setattr__(self, name, value):
+        if name == "allow_hf32":
+            option = {"ALLOW_MATMUL_HF32": "enable" if value else "disable"}
+            torch_npu._C._npu_setOption(option)
+
+class allowHF32Conv:
+    @classmethod
+    def __setattr__(self, name, value):
+        if name == "allow_hf32":
+            option = {"ALLOW_CONV_HF32": "enable" if value else "disable"}
+            torch_npu._C._npu_setOption(option)

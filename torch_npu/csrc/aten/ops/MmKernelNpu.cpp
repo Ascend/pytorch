@@ -127,6 +127,7 @@ at::Tensor &NPUNativeFunctions::mm_out(const at::Tensor &self,
       .Output(contiguousResult)
       .Attr("transpose_x1", isSelfT_flex)
       .Attr("transpose_x2", isMat2T_flex)
+      .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
       .Run();
 
   // Recover storage desc of view-transpose tensors, i.e. the inverse process of
