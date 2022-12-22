@@ -19,10 +19,12 @@ import multiprocessing.pool
 import os
 import re
 import shutil
+import stat 
 import subprocess
 import sys
 import traceback
 import platform
+from pathlib import Path
 
 import distutils.ccompiler
 import distutils.command.clean
@@ -36,7 +38,19 @@ from setuptools.command.build_clib import build_clib
 from setuptools.command.egg_info import egg_info
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VERSION = '1.8.1rc3'
+VERSION = '1.8.1'
+
+
+def generate_torch_npu_version():
+    torch_npu_root = Path(__file__).parent
+    version_path = torch_npu_root / "torch_npu" / "version.py"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    modes = stat.S_IWUSR | stat.S_IRUSR
+    with os.fdopen(os.open(version_path, flags, modes), 'w') as f: 
+        f.write("__version__ = '{version}'\n".format(version=VERSION))
+
+
+generate_torch_npu_version()
 
 
 def which(thefile):
