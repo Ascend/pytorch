@@ -232,27 +232,6 @@ namespace at_npu
 
       // Add some public interfaces for aclrtmemcpy process,
       // to launch graph in graph mode automatically.
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
-          const StorageAndOffsetMemSizePair& dst,
-          size_t dstMax,
-          const StorageAndOffsetMemSizePair& src,
-          size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
-          const StorageAndOffsetMemSizePair& dst,
-          size_t dstMax,
-          const void* src,
-          size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
-      static aclError AclrtMemcpyAsyncWithModeSwitch(
-          void* dst,
-          size_t dstMax,
-          const StorageAndOffsetMemSizePair& src,
-          size_t count,
-          aclrtMemcpyKind kind,
-          aclrtStream stream);
       static aclError AclrtMemcpyWithModeSwitch(
           const StorageAndOffsetMemSizePair& dst,
           size_t dstMax,

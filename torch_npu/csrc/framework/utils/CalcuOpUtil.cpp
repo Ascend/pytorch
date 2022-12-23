@@ -274,25 +274,6 @@ namespace at_npu
       return "SUCCESS";
     }
 
-    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
-        const StorageAndOffsetMemSizePair& dst,
-        size_t dstMax,
-        const StorageAndOffsetMemSizePair& src,
-        size_t count,
-        aclrtMemcpyKind kind,
-        aclrtStream stream) {
-      if (c10_npu::NpuRunMode::IsGraphMode()) {
-        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-      }
-
-      void* dst_ptr = static_cast<void*>(
-          static_cast<uint8_t*>(dst.first->data()) + dst.second);
-      void* src_ptr = static_cast<void*>(
-          static_cast<uint8_t*>(src.first->data()) + src.second);
-      return AclrtMemcpyAsyncParamCheck(
-          dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
-    }
-
     aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
         const StorageAndOffsetMemSizePair& dst,
         size_t dstMax,
@@ -311,23 +292,6 @@ namespace at_npu
           dst_ptr, dstMax, const_cast<void*>(src_ptr), count, kind);
     }
 
-    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
-        const StorageAndOffsetMemSizePair& dst,
-        size_t dstMax,
-        const void* src,
-        size_t count,
-        aclrtMemcpyKind kind,
-        aclrtStream stream) {
-      if (c10_npu::NpuRunMode::IsGraphMode()) {
-        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-      }
-
-      void* dst_ptr = static_cast<void*>(
-          static_cast<uint8_t*>(dst.first->data()) + dst.second);
-      return AclrtMemcpyAsyncParamCheck(
-          dst_ptr, dstMax, src, count, kind, stream);
-    }
-
     aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
         const StorageAndOffsetMemSizePair& dst,
         size_t dstMax,
@@ -342,23 +306,6 @@ namespace at_npu
           static_cast<uint8_t*>(dst.first->data()) + dst.second);
       return AclrtMemcpyParamCheck(
           dst_ptr, dstMax, src, count, kind);
-    }
-
-    aclError CalcuOpUtil::AclrtMemcpyAsyncWithModeSwitch(
-        void* dst,
-        size_t dstMax,
-        const StorageAndOffsetMemSizePair& src,
-        size_t count,
-        aclrtMemcpyKind kind,
-        aclrtStream stream) {
-      if (c10_npu::NpuRunMode::IsGraphMode()) {
-        GraphExecutor::GetInstance().ConstructAndExecuteGraph();
-      }
-
-      void* src_ptr = static_cast<void*>(
-          static_cast<uint8_t*>(src.first->data()) + src.second);
-      return AclrtMemcpyAsyncParamCheck(
-          dst, dstMax, const_cast<void*>(src_ptr), count, kind, stream);
     }
 
     aclError CalcuOpUtil::AclrtMemcpyWithModeSwitch(
