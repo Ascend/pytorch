@@ -59,13 +59,9 @@ std::tuple<at::Tensor&, at::Tensor&> median_out_value_nocheck(
   at::Tensor topkValues = std::get<0>(ret);
   at::Tensor topkIndices = std::get<1>(ret);
 
-  if (topkIndices.dtype() == at::ScalarType::Long) {
-    topkIndices = NPUNativeFunctions::npu_dtype_cast(topkIndices, at::kInt);
-  }
-
   //NCHW -> reflush base format
   at::Tensor index = OpPreparation::ApplyTensorWithFormat(
-      {1}, _self.options().dtype(at::kInt), ACL_FORMAT_NCHW);
+      {1}, _self.options().dtype(at::kLong), ACL_FORMAT_NCHW);
   index.fill_(k - 1);
   at::Tensor _values = index_select(topkValues, dim, index);
   at::Tensor _indices = index_select(topkIndices, dim, index);
@@ -107,7 +103,7 @@ std::tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::median_out(
       {self},
       indices,
       ACL_FORMAT_ND,
-      at::ScalarType::Int,
+      at::ScalarType::Long,
       outputSize);
 
   median_out_value_nocheck(values, indices, self, dim, keepdim);
@@ -140,7 +136,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::median(
       outputSize, self.options(), CalcuOpUtil::get_tensor_npu_format(self));
   //NCHW -> reflush base format
   at::Tensor indices = OpPreparation::ApplyTensorWithFormat(
-      outputSize, self.options().dtype(at::kInt), ACL_FORMAT_NCHW);
+      outputSize, self.options().dtype(at::kLong), ACL_FORMAT_NCHW);
 
   median_out_value_nocheck(values, indices, self, dim, keepdim);
   return tuple<at::Tensor&, at::Tensor&>(values, indices);
