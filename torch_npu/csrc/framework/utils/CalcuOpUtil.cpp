@@ -916,6 +916,14 @@ namespace at_npu
         c10::SmallVector<NPUTensorDesc, N> &outputs,
         const c10::SmallVector<NPUAttrDesc, N> &attrs)
     {
+      if (c10_npu::NpuRunMode::IsGraphMode()) {
+        AT_ERROR(
+            "In graph mode, can not use CalcuOpUtil::execute_npu_operate to execute op.",
+            "Try to use eager mode, or fix operator ",
+            opName,
+            " with OpCommand to solve this problem.");
+      }
+
       if (c10_npu::option::OptionsManager::CheckQueueEnable())
       {
         ExecuteParas cur_paras;
