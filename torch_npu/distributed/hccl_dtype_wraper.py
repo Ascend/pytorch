@@ -25,12 +25,11 @@ WRAP_DTYPE_DICT = {
     'torch.uint16': torch.int32,
     'torch.uint32': torch.int32,
     'torch.uint64': torch.int32,
-    'torch.int16': torch.int32,
     'torch.int64': torch.int32,
     'torch.float64': torch.float32,
 }
 
-WRAP_DTYPE_FNNAME_LIST_ONE_INPUT = ['all_reduce', 'reduce', 'broadcast']
+WRAP_DTYPE_FNNAME_LIST_ONE_INPUT = ['all_reduce', 'reduce']
 
 
 def fn_replace(src, tar, prefix=''):
