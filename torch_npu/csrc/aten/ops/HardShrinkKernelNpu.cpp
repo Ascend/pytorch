@@ -28,7 +28,7 @@ at::Tensor& hardshrink_nocheck(at::Tensor& result, const at::Tensor& self, at::S
     return result;
 }
 
-at::Tensor NPUNativeFunctions::hardshrink(const at::Tensor& self, at::Scalar lambd) {
+at::Tensor NPUNativeFunctions::hardshrink(const at::Tensor& self, const at::Scalar& lambd) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   hardshrink_nocheck(result, self, lambd);
 

@@ -22,8 +22,8 @@ namespace native {
 
 at::Tensor& NPUNativeFunctions::hardtanh_out(
     const at::Tensor& self,
-    at::Scalar min,
-    at::Scalar max,
+    const at::Scalar& min,
+    const at::Scalar& max,
     at::Tensor& result) {
   OpPreparation::CheckMemory({self}, {result});
   OpCommand cmd;
@@ -36,13 +36,13 @@ at::Tensor& NPUNativeFunctions::hardtanh_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::hardtanh(const at::Tensor& self, at::Scalar min, at::Scalar max) {
+at::Tensor NPUNativeFunctions::hardtanh(const at::Tensor& self, const at::Scalar& min, const at::Scalar& max) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   hardtanh_out(self, min, max, result);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::hardtanh_(at::Tensor& self, at::Scalar min, at::Scalar max) {
+at::Tensor& NPUNativeFunctions::hardtanh_(at::Tensor& self, const at::Scalar& min, const at::Scalar& max) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = hardtanh_out(contiguousSelf, min, max, contiguousSelf);

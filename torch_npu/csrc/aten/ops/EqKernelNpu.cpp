@@ -74,7 +74,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::eq_out(const at::Tensor &self, at::Scalar other, at::Tensor &result)
+    at::Tensor &NPUNativeFunctions::eq_out(const at::Tensor &self, const at::Scalar& other, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {self},
@@ -105,7 +105,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::eq(const at::Tensor &self, at::Scalar other)
+    at::Tensor NPUNativeFunctions::eq(const at::Tensor &self, const at::Scalar& other)
     {
       at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
 
@@ -152,7 +152,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor& NPUNativeFunctions::eq_(at::Tensor &self, at::Scalar other)
+    at::Tensor& NPUNativeFunctions::eq_(at::Tensor &self, const at::Scalar& other)
     {
       OpPreparation::CastBackToOriFormat(self);
       c10::SmallVector<at::Tensor, N> inputs = {self};

@@ -30,7 +30,7 @@ at::Tensor& le_out_npu_nocheck(const at::Tensor& self, at::Scalar other, at::Ten
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::le_out(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::le_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   auto outputSize = formatCastOfSelf.sizes();
   OpPreparation::CheckOut(
@@ -73,7 +73,7 @@ at::Tensor& NPUNativeFunctions::le_out(const at::Tensor& self, const at::Tensor&
   return result;
 }
 
-at::Tensor NPUNativeFunctions::le(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::le(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       formatCastOfSelf.sizes(),
@@ -97,7 +97,7 @@ at::Tensor NPUNativeFunctions::le(const at::Tensor& self, const at::Tensor& othe
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::le_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::le_(at::Tensor& self, const at::Scalar& other) {
   OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckMemory({self}, {self}); 
   at::Tensor result = OpPreparation::ApplyTensor(

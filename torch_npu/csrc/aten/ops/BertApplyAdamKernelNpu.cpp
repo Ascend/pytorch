@@ -62,29 +62,29 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> bert_apply_adam_out_npu_nocheck(
 }
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_bert_apply_adam(
-    c10::Scalar lr,
-    c10::Scalar beta1,
-    c10::Scalar beta2,
-    c10::Scalar epsilon,
+    const c10::Scalar& lr,
+    const c10::Scalar& beta1,
+    const c10::Scalar& beta2,
+    const c10::Scalar& epsilon,
     const at::Tensor& grad,
-    c10::Scalar max_grad_norm,
-    c10::Scalar global_grad_norm,
-    c10::Scalar weight_decay,
-    c10::optional<at::Scalar> step_size,
+    const c10::Scalar& max_grad_norm,
+    const c10::Scalar& global_grad_norm,
+    const c10::Scalar& weight_decay,
+    const c10::optional<at::Scalar>& step_size,
     int64_t adam_mode) {
   AT_ERROR("npu_bert_apply_adam is not implemented for Tensor");
 }
 
 tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::npu_bert_apply_adam_out(
-    at::Scalar lr,
-    at::Scalar beta1,
-    at::Scalar beta2,
-    at::Scalar epsilon,
+    const c10::Scalar& lr,
+    const c10::Scalar& beta1,
+    const c10::Scalar& beta2,
+    const c10::Scalar& epsilon,
     const at::Tensor& grad,
-    at::Scalar max_grad_norm,
-    at::Scalar global_grad_norm,
-    at::Scalar weight_decay,
-    c10::optional<at::Scalar> step_size,
+    const c10::Scalar& max_grad_norm,
+    const c10::Scalar& global_grad_norm,
+    const c10::Scalar& weight_decay,
+    const c10::optional<at::Scalar>& step_size,
     int64_t adam_mode,
     at::Tensor& var,
     at::Tensor& m,

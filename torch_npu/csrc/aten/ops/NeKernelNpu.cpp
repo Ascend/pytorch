@@ -66,7 +66,7 @@ at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, const at::Tensor&
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::ne_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckOut(
       {self},
@@ -92,7 +92,7 @@ at::Tensor NPUNativeFunctions::ne(const at::Tensor& self, const at::Tensor& othe
   return result;
 }
 
-at::Tensor NPUNativeFunctions::ne(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::ne(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
 
   at::Tensor result = OpPreparation::ApplyTensor(
@@ -124,7 +124,7 @@ at::Tensor& NPUNativeFunctions::ne_(at::Tensor& self, const at::Tensor& other) {
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::ne_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::ne_(at::Tensor& self, const at::Scalar& other) {
   OpPreparation::CastBackToOriFormat(self);
   OpPreparation::CheckMemory({self}, {self});
   at::Tensor result = OpPreparation::ApplyTensor(

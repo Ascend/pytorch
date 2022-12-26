@@ -56,13 +56,13 @@ at::Tensor& NPUNativeFunctions::fmod_out(const at::Tensor& self, const at::Tenso
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::fmod_out(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::fmod_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   OpPreparation::CheckOut({self}, result, self);
   fmod_out_npu_nocheck(result, self, other);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::fmod_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::fmod_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = fmod_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
@@ -87,7 +87,7 @@ at::Tensor& NPUNativeFunctions::fmod_(at::Tensor& self, const at::Tensor& other)
   return self;
 }
 
-at::Tensor NPUNativeFunctions::fmod(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::fmod(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   fmod_out_npu_nocheck(result, self, other);
   return result;

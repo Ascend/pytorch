@@ -62,8 +62,8 @@ void _rrelu_with_noise_train(
 at::Tensor& rrelu_with_noise_out_nocheck(
     const at::Tensor& self,
     const at::Tensor& noise,
-    at::Scalar lower,
-    at::Scalar upper,
+    const at::Scalar& lower,
+    const at::Scalar& upper,
     bool training,
     c10::optional<at::Generator> generator,
     at::Tensor& output) {
@@ -82,8 +82,8 @@ at::Tensor& rrelu_with_noise_out_nocheck(
 at::Tensor NPUNativeFunctions::rrelu_with_noise(
     const at::Tensor& self,
     const at::Tensor& noise,
-    at::Scalar lower,
-    at::Scalar upper,
+    const at::Scalar& lower,
+    const at::Scalar& upper,
     bool training,
     c10::optional<at::Generator> generator) {
   auto output = at::empty_like(self, LEGACY_CONTIGUOUS_MEMORY_FORMAT);
@@ -93,8 +93,8 @@ at::Tensor NPUNativeFunctions::rrelu_with_noise(
 at::Tensor& NPUNativeFunctions::rrelu_with_noise_(
     at::Tensor& self,
     const at::Tensor& noise,
-    at::Scalar lower,
-    at::Scalar upper,
+    const at::Scalar& lower,
+    const at::Scalar& upper,
     bool training,
     c10::optional<at::Generator> generator) {
   return NPUNativeFunctions::rrelu_with_noise_out(self, noise, lower, upper, training, generator, self);
@@ -103,8 +103,8 @@ at::Tensor& NPUNativeFunctions::rrelu_with_noise_(
 at::Tensor& NPUNativeFunctions::rrelu_with_noise_out(
     const at::Tensor& self,
     const at::Tensor& noise,
-    at::Scalar lower,
-    at::Scalar upper,
+    const at::Scalar& lower,
+    const at::Scalar& upper,
     bool training,
     c10::optional<at::Generator> generator,
     at::Tensor& output) {

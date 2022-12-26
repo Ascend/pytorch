@@ -95,7 +95,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax_b
     const at::Tensor& grad_out,
     const at::Tensor& mask,
     const at::Tensor& softmax_out,
-    at::Scalar alpha,
+    const at::Scalar& alpha,
     double p,
     int64_t dim) {
   auto softmax_dtype = softmax_out.scalar_type();
@@ -172,7 +172,7 @@ public:
 std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_dropout_with_add_softmax(
     const at::Tensor& self,
     const at::Tensor& x1,
-    at::Scalar alpha,
+    const at::Scalar& alpha,
     double p,
     int64_t dim){
   auto result = NPUdropoutwasFunction::apply(self, x1, alpha, p, dim);

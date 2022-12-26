@@ -48,7 +48,7 @@ tuple<at::Tensor, at::Tensor> nms_v4_npu_nocheck(
 tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_v4(
     const at::Tensor& self,
     const at::Tensor& scores,
-    at::Scalar max_output_size,
+    const at::Scalar& max_output_size,
     const at::Tensor& iou_threshold,
     const at::Tensor& scores_threshold,
     bool pad_to_max_output_size) {

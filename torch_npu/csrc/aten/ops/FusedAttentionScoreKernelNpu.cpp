@@ -38,7 +38,7 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> fused_at
       attention_score_output_shape, softmax_output_shape);
 }
 
-at::Tensor dropout_gen_mask_v3(const at::Tensor& self, at::Scalar prob) {
+at::Tensor dropout_gen_mask_v3(const at::Tensor& self, const at::Scalar& prob) {
   at::IntArrayRef selfShape = {self.size(0), self.size(1), self.size(2) / 16, self.size(3) / 16, 16, 16};
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
       {self.numel()},
@@ -66,7 +66,7 @@ tuple<at::Tensor&, at::Tensor&> npu_fused_attention_score_impl(
     const at::Tensor& value_layer,
     const at::Tensor& attention_mask,
     const at::Tensor& drop_mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     double keep_prob,
     bool query_transpose,
     bool key_transpose,
@@ -98,7 +98,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_fused_attentio
     const at::Tensor& key_layer,
     const at::Tensor& value_layer,
     const at::Tensor& drop_mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     double keep_prob,
     bool query_transpose,
     bool key_transpose,
@@ -143,7 +143,7 @@ public:
       const at::Tensor& key_layer,
       const at::Tensor& value_layer,
       const at::Tensor& attention_mask,
-      at::Scalar scale,
+      const at::Scalar& scale,
       double keep_prob,
       bool query_transpose,
       bool key_transpose,
@@ -214,7 +214,7 @@ at::Tensor NPUNativeFunctions::npu_fused_attention_score(
     const at::Tensor& key_layer,
     const at::Tensor& value_layer,
     const at::Tensor& attention_mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     double keep_prob,
     bool query_transpose,
     bool key_transpose,
@@ -233,7 +233,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_fused_attentio
     const at::Tensor& key_layer,
     const at::Tensor& value_layer,
     const at::Tensor& attention_mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     double keep_prob,
     bool query_transpose,
     bool key_transpose,
@@ -263,7 +263,7 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_fused_attentio
     const at::Tensor& key_layer,
     const at::Tensor& value_layer,
     const at::Tensor& drop_mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     double keep_prob,
     bool query_transpose,
     bool key_transpose,

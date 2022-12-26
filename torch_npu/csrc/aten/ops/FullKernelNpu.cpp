@@ -19,7 +19,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, at::Scalar fill_value, at::Tensor& out) {
+at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, const at::Scalar& fill_value, at::Tensor& out) {
   OpPreparation::CheckOut(
       {},
       out,
@@ -31,7 +31,7 @@ at::Tensor& NPUNativeFunctions::full_out(at::IntArrayRef size, at::Scalar fill_v
 
 at::Tensor NPUNativeFunctions::full(
     at::IntArrayRef size,
-    at::Scalar fill_value,
+    const at::Scalar& fill_value,
     c10::optional<at::DimnameList> names,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,

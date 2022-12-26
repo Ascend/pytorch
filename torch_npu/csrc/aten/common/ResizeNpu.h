@@ -106,7 +106,7 @@ inline at::TensorImpl* resize_impl_npu_(
   if (self->sizes() == size && (!stride || self->strides() == stride)) {
     return self;
   }
-  
+
   // In graph mode, we cannot justify whether 
   // a tensor is empty only using storage.
   bool is_empty_tensor = false;

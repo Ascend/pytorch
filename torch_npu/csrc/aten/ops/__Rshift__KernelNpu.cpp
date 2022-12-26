@@ -56,7 +56,7 @@ at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, const at::Tens
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__rshift__(const at::Tensor& self, const at::Scalar& other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 

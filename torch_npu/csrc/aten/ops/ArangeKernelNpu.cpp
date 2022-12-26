@@ -50,9 +50,9 @@ at::Tensor& arange_out_npu_nocheck(
 }
 
 at::Tensor NPUNativeFunctions::arange(
-    at::Scalar start,
-    at::Scalar end,
-    at::Scalar step,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    const at::Scalar& step,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -71,9 +71,11 @@ at::Tensor NPUNativeFunctions::arange(
   TORCH_CHECK(step_value != 0, "step must be nonzero");
   TORCH_CHECK(((step_value > 0) && (end_value >= start_value)) || ((step_value < 0) && (end_value <= start_value)),
       "upper bound and larger bound inconsistent with step sign");
-
+  at::Scalar start_opt = start;
+  at::Scalar end_opt = end;
+  at::Scalar step_opt = step;
   bool set_to_integral_dtype =
-      !option.has_dtype() && allIntegral({start, end, step});
+      !option.has_dtype() && allIntegral({start_opt, end_opt, step_opt});
 
   // check start == end
   if (set_to_integral_dtype) {
@@ -106,8 +108,8 @@ at::Tensor NPUNativeFunctions::arange(
 }
 
 at::Tensor NPUNativeFunctions::arange(
-    at::Scalar start, 
-    at::Scalar end, 
+    const at::Scalar& start,
+    const at::Scalar& end,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -118,7 +120,7 @@ at::Tensor NPUNativeFunctions::arange(
 
 
 at::Tensor NPUNativeFunctions::arange(
-    at::Scalar end, 
+    const at::Scalar& end,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -128,9 +130,9 @@ at::Tensor NPUNativeFunctions::arange(
 }
 
 at::Tensor& NPUNativeFunctions::arange_out(
-    at::Scalar start,
-    at::Scalar end,
-    at::Scalar step,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    const at::Scalar& step,
     at::Tensor& result) {
   float start_value = CalcuOpUtil::get_scalar_float_value(start);
   float end_value = CalcuOpUtil::get_scalar_float_value(end);
@@ -158,7 +160,7 @@ at::Tensor& arange_other_out_npu(at::Scalar start, at::Scalar end, at::Tensor& r
   return NPUNativeFunctions::arange_out(start, end, step, result);
 }
 
-at::Tensor& NPUNativeFunctions::arange_out(at::Scalar end, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::arange_out(const at::Scalar& end, at::Tensor& result) {
   return arange_other_out_npu(0, end, result);
 }
 

@@ -38,8 +38,8 @@ at::Tensor& NPUNativeFunctions::resize_(
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::resize_as_(
-    at::Tensor& self,
+const at::Tensor& NPUNativeFunctions::resize_as_(
+    const at::Tensor& self,
     const at::Tensor& the_template,
     c10::optional<c10::MemoryFormat> format) {
   TORCH_CHECK(
@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::resize_as_(
   TORCH_CHECK(
       !format.has_value(), "NPU does not support specify memory_format.");
 
-  at::Tensor& result = self.resize_(the_template.sizes());
+  const at::Tensor& result = self.resize_(the_template.sizes());
   at::namedinference::propagate_names(result, the_template);
   return result;
 }

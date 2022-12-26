@@ -58,12 +58,12 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> apply_adam_out_npu_nocheck(
 }
 
 std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_apply_adam(
-    at::Scalar beta1_power,
-    at::Scalar beta2_power,
-    at::Scalar lr,
-    at::Scalar beta1,
-    at::Scalar beta2,
-    at::Scalar epsilon,
+    const at::Scalar& beta1_power,
+    const at::Scalar& beta2_power,
+    const at::Scalar& lr,
+    const at::Scalar& beta1,
+    const at::Scalar& beta2,
+    const at::Scalar& epsilon,
     const at::Tensor& grad,
     c10::optional<bool> use_locking,
     c10::optional<bool> use_nesterov) {
@@ -71,12 +71,12 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_apply_ada
 }
 
 std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::npu_apply_adam_out(
-    at::Scalar beta1_power,
-    at::Scalar beta2_power,
-    at::Scalar lr,
-    at::Scalar beta1,
-    at::Scalar beta2,
-    at::Scalar epsilon,
+    const at::Scalar& beta1_power,
+    const at::Scalar& beta2_power,
+    const at::Scalar& lr,
+    const at::Scalar& beta1,
+    const at::Scalar& beta2,
+    const at::Scalar& epsilon,
     const at::Tensor& grad,
     c10::optional<bool> use_locking,
     c10::optional<bool> use_nesterov,

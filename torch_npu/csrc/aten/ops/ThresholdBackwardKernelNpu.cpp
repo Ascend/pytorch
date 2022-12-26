@@ -57,7 +57,7 @@ namespace at_npu
     at::Tensor NPUNativeFunctions::threshold_backward(
         const at::Tensor &grad_output,
         const at::Tensor &self,
-        at::Scalar threshold)
+        const at::Scalar &threshold)
     {
       // calculate the output size
       auto outputSize = input_same_output_size(self);

@@ -132,7 +132,7 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &oth
   return result;
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor &self, at::Scalar other)
+at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Scalar& other)
 {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
@@ -204,7 +204,7 @@ at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Tensor &other)
   return self;
 }
 
-at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, at::Scalar other)
+at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Scalar& other)
 {
   if (!NpuUtils::check_match(&self))
   {

@@ -124,9 +124,8 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, at::Scalar other)
+    at::Tensor NPUNativeFunctions::mul(const at::Tensor &self, const at::Scalar& other)
     {
-      // construct the output tensor of the NPU
       at::Tensor result = OpPreparation::ApplyTensor(self);
 
       // calculate the output result of the NPU
@@ -160,10 +159,11 @@ namespace at_npu
       } else {
         self = selfDtypeCast;
       }
+
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::mul_(at::Tensor &self, at::Scalar other)
+    at::Tensor &NPUNativeFunctions::mul_(at::Tensor &self, const at::Scalar& other)
     {
       if (!NpuUtils::check_match(&self))
       {

@@ -152,7 +152,7 @@ at::Tensor NPUNativeFunctions::index_fill(
     const at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
-    at::Scalar value) {
+    const at::Scalar& value) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   index_fill_d_nocheck(result, self, dim, index, value);
 
@@ -163,7 +163,7 @@ at::Tensor& NPUNativeFunctions::index_fill_(
     at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
-    at::Scalar value) {
+    const at::Scalar& value) {
 
   // In-Place-Scalar
   at::IntArrayRef shape_self = self.sizes();

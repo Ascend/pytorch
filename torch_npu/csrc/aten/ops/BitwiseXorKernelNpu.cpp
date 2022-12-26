@@ -38,7 +38,7 @@ at::Tensor& bitwise_xor_out_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::bitwise_xor_out(
     const at::Tensor& self,
-    const at::Scalar other,
+    const at::Scalar& other,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -126,7 +126,7 @@ at::Tensor NPUNativeFunctions::bitwise_xor(const at::Tensor& self, const at::Ten
   return result;
 }
 
-at::Tensor NPUNativeFunctions::bitwise_xor(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::bitwise_xor(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   bitwise_xor_out_npu_nocheck(result, self, other);
@@ -147,7 +147,7 @@ at::Tensor& NPUNativeFunctions::bitwise_xor_(at::Tensor& self, const at::Tensor&
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::bitwise_xor_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::bitwise_xor_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = bitwise_xor_out_npu_nocheck(contiguousSelf, contiguousSelf, other);

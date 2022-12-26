@@ -43,8 +43,8 @@ at::Tensor& softplus_backward_out_nocheck(
 at::Tensor& NPUNativeFunctions::softplus_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar beta,
-    at::Scalar threshold,
+    const at::Scalar& beta,
+    const at::Scalar& threshold,
     const at::Tensor& output,
     at::Tensor& grad_input) {
   OpPreparation::CheckOut(

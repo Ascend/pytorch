@@ -47,7 +47,7 @@ at::Tensor& clamp_min_out_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::clamp_min_out(
     const at::Tensor& self, 
-    at::Scalar min,
+    const at::Scalar& min,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::clamp_min_out(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::clamp_max_out(const at::Tensor& self, at::Scalar max, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::clamp_max_out(const at::Tensor& self, const at::Scalar& max, at::Tensor& result) {
   // Set min according to self.dtype()
   at::Scalar min;
   if (self.dtype() == at::kInt) {
@@ -105,8 +105,8 @@ at::Tensor& clamp_out_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::clamp_out(
     const at::Tensor& self,
-    c10::optional<at::Scalar> min,
-    c10::optional<at::Scalar> max,
+    const c10::optional<at::Scalar>& min,
+    const c10::optional<at::Scalar>& max,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -119,24 +119,24 @@ at::Tensor& NPUNativeFunctions::clamp_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::clamp_min(const at::Tensor& self, at::Scalar min) {
+at::Tensor NPUNativeFunctions::clamp_min(const at::Tensor& self, const at::Scalar& min) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   clamp_min_out_npu_nocheck(result, self, min);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::clamp_min_(at::Tensor& self, at::Scalar min) {
+at::Tensor& NPUNativeFunctions::clamp_min_(at::Tensor& self, const at::Scalar& min) {
   NPUNativeFunctions::clamp_min_out(self, min, self);
   return self;
 }
 
-at::Tensor NPUNativeFunctions::clamp_max(const at::Tensor& self, at::Scalar max) {
+at::Tensor NPUNativeFunctions::clamp_max(const at::Tensor& self, const at::Scalar& max) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   NPUNativeFunctions::clamp_max_out(self, max, result);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::clamp_max_(at::Tensor& self, at::Scalar max) {
+at::Tensor& NPUNativeFunctions::clamp_max_(at::Tensor& self, const at::Scalar& max) {
   OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
@@ -150,14 +150,14 @@ at::Tensor& NPUNativeFunctions::clamp_max_(at::Tensor& self, at::Scalar max) {
 
 at::Tensor NPUNativeFunctions::clamp(
     const at::Tensor& self,
-    c10::optional<at::Scalar> min,
-    c10::optional<at::Scalar> max) {
+    const c10::optional<at::Scalar>& min,
+    const c10::optional<at::Scalar>& max) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   clamp_out_npu_nocheck(result, self, min, max);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::clamp_(at::Tensor& self, c10::optional<at::Scalar> min, c10::optional<at::Scalar> max) {
+at::Tensor& NPUNativeFunctions::clamp_(at::Tensor& self, const c10::optional<at::Scalar>& min, const c10::optional<at::Scalar>& max) {
   NPUNativeFunctions::clamp_out(self, min, max, self);
   return self;
 }
