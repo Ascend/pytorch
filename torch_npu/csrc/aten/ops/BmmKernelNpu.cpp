@@ -91,13 +91,5 @@ at::Tensor NPUNativeFunctions::bmm(const at::Tensor& self, const at::Tensor& mat
   return result;
 }
 
-at::Tensor NPUNativeFunctions::_bmm(const at::Tensor& self, const at::Tensor& mat2, bool deterministic) {
-  return NPUNativeFunctions::bmm(self, mat2);
-}
-
-at::Tensor& NPUNativeFunctions::_bmm_out(const at::Tensor& self, const at::Tensor& mat2, bool deterministic, at::Tensor& result) {
-  return NPUNativeFunctions::bmm_out(self, mat2, result);
-}
-
 } // namespace native
 } // namespace at

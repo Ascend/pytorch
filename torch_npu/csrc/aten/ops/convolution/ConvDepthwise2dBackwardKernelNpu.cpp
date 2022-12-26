@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <ATen/Tensor.h>
-#include <c10/util/SmallVector.h>
-
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 
 namespace at_npu {
 namespace native {
 
-
-void thnn_conv_depthwise2d_backward_input_out_npu(
+void _conv_depthwise2d_backward_input_out_npu(
     at::Tensor& grad_input,
     const at::Tensor& grad_output,
     const at::Tensor& self,
@@ -49,7 +45,7 @@ void thnn_conv_depthwise2d_backward_input_out_npu(
     .Run();
 }
 
-void thnn_conv_depthwise2d_backward_weight_out_npu(
+void _conv_depthwise2d_backward_weight_out_npu(
     at::Tensor& grad_weight,
     const at::Tensor& grad_output,
     const at::Tensor& self,
@@ -76,7 +72,7 @@ void thnn_conv_depthwise2d_backward_weight_out_npu(
       .Run();
 }
 
-tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::thnn_conv_depthwise2d_backward_out(
+tuple<at::Tensor&, at::Tensor&> _conv_depthwise2d_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& weight,
@@ -88,7 +84,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::thnn_conv_depthwise2d_backwa
     at::Tensor& grad_weight) {
   at::Tensor weight_ex = weight.permute({1, 0, 2, 3});
   if (grad_input.defined()) {
-      thnn_conv_depthwise2d_backward_input_out_npu(
+      _conv_depthwise2d_backward_input_out_npu(
           grad_input,
           grad_output,
           self,
@@ -99,7 +95,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::thnn_conv_depthwise2d_backwa
           dilation);
   }
   if (grad_weight.defined()) {
-    thnn_conv_depthwise2d_backward_weight_out_npu(
+    _conv_depthwise2d_backward_weight_out_npu(
         grad_weight,
         grad_output,
         self,
@@ -113,7 +109,7 @@ tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::thnn_conv_depthwise2d_backwa
   return tuple<at::Tensor&, at::Tensor&>(grad_input, grad_weight);
 }
 
-tuple<at::Tensor, at::Tensor> NPUNativeFunctions::thnn_conv_depthwise2d_backward(
+tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_conv_depthwise2d_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     const at::Tensor& weight,
@@ -134,7 +130,7 @@ tuple<at::Tensor, at::Tensor> NPUNativeFunctions::thnn_conv_depthwise2d_backward
     grad_weight = OpPreparation::ApplyTensor(weight);
   }
 
-  return NPUNativeFunctions::thnn_conv_depthwise2d_backward_out(
+  return _conv_depthwise2d_backward_out(
       grad_output,
       self,
       weight,

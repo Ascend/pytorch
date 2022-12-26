@@ -26,9 +26,7 @@ at::Tensor slow_conv_transpose2d_backward_grad_output_out_npu(
     at::IntArrayRef stride,
     at::IntArrayRef padding,
     at::IntArrayRef output_padding,
-    at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones) {
+    at::IntArrayRef dilation) {
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   c10::SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1], padding[1]};
   c10::SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
@@ -59,9 +57,7 @@ at::Tensor slow_conv_transpose2d_backward_weight_out_npu(
     at::IntArrayRef stride,
     at::IntArrayRef padding,
     at::IntArrayRef output_padding,
-    at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones) {
+    at::IntArrayRef dilation) {
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   c10::SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1], padding[1]};
   c10::SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
@@ -95,9 +91,7 @@ at::Tensor slow_conv_transpose2d_backward_bias_out_npu(
     at::IntArrayRef stride,
     at::IntArrayRef padding,
     at::IntArrayRef output_padding,
-    at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones) {
+    at::IntArrayRef dilation) {
   at::Tensor gradView = grad_output.contiguous().view({grad_output.size(0), grad_output.size(1), -1});
   NPUNativeFunctions::sum_out(gradView, c10::SmallVector<int64_t, N>{0, 2}, false, gradView.scalar_type(), grad_bias);
 
@@ -113,8 +107,6 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv_transpose2d_backward_npu_
     at::IntArrayRef padding,
     at::IntArrayRef output_padding,
     at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones,
     at::Tensor& grad_input,
     at::Tensor& grad_weight,
     at::Tensor& grad_bias) {
@@ -127,9 +119,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv_transpose2d_backward_npu_
       stride,
       padding,
       output_padding,
-      dilation,
-      columns,
-      ones);
+      dilation);
 
   slow_conv_transpose2d_backward_weight_out_npu(
       grad_weight,
@@ -140,9 +130,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv_transpose2d_backward_npu_
       stride,
       padding,
       output_padding,
-      dilation,
-      columns,
-      ones);
+      dilation);
   slow_conv_transpose2d_backward_bias_out_npu(
       grad_bias,
       grad_output,
@@ -152,62 +140,9 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv_transpose2d_backward_npu_
       stride,
       padding,
       output_padding,
-      dilation,
-      columns,
-      ones);
+      dilation);
       
   return tuple<at::Tensor&, at::Tensor&, at::Tensor&>(grad_input, grad_weight, grad_bias);
-}
-
-tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::slow_conv_transpose2d_backward_out(
-    const at::Tensor& grad_output,
-    const at::Tensor& self,
-    const at::Tensor& weight,
-    at::IntArrayRef kernel_size,
-    at::IntArrayRef stride,
-    at::IntArrayRef padding,
-    at::IntArrayRef output_padding,
-    at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones,
-    at::Tensor& grad_input,
-    at::Tensor& grad_weight,
-    at::Tensor& grad_bias) {
-  auto outputSizes = slow_conv_transpose2d_backward_npu_output_size(
-      grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation, columns, ones);
-  OpPreparation::CheckOut(
-      {grad_output, self, weight},
-      grad_input,
-      ACL_FORMAT_NC1HWC0,
-      self.scalar_type(),
-      std::get<0>(outputSizes));
-  OpPreparation::CheckOut(
-      {grad_output, self, weight},
-      grad_weight,
-      CalcuOpUtil::get_tensor_npu_format(weight),
-      at::kFloat,
-      std::get<1>(outputSizes));
-  OpPreparation::CheckOut(
-      {grad_output, self, weight},
-      grad_bias,
-      ACL_FORMAT_NCHW,
-      grad_output.scalar_type(),
-      {grad_output.size(1)});
-
-  return slow_conv_transpose2d_backward_npu_nocheck(
-      grad_output,
-      self,
-      weight,
-      kernel_size,
-      stride,
-      padding,
-      output_padding,
-      dilation,
-      columns,
-      ones,
-      grad_input,
-      grad_weight,
-      grad_bias);
 }
 
 tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpose2d_backward(
@@ -219,12 +154,10 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
     at::IntArrayRef padding,
     at::IntArrayRef output_padding,
     at::IntArrayRef dilation,
-    const at::Tensor& columns,
-    const at::Tensor& ones,
     std::array<bool, 3> output_mask) {
   auto flag = 2;
   auto outputSizes = slow_conv_transpose2d_backward_npu_output_size(
-      grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation, columns, ones);
+      grad_output, self, weight, kernel_size, stride, padding, output_padding, dilation);
   at::Tensor grad_input;
   at::Tensor grad_weight;
   at::Tensor grad_bias;
@@ -250,8 +183,6 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv_transpos
       padding,
       output_padding,
       dilation,
-      columns,
-      ones,
       grad_input,
       grad_weight,
       grad_bias);

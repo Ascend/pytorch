@@ -131,6 +131,7 @@ at::Tensor NPUNativeFunctions::avg_pool3d(
       1, 1, 1,
       itime, iheight, iwidth,
       otime, oheight, owidth,
+      "avg_pool3d()",
       true);
 
   at::Tensor input = self;

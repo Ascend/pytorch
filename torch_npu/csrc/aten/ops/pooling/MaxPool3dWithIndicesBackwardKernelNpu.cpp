@@ -151,7 +151,8 @@ namespace at_npu
           pT, pH, pW,
           dilationT, dilationH, dilationW,
           itime, iheight, iwidth,
-          otime, oheight, owidth);
+          otime, oheight, owidth,
+          "max_pool3d_with_indices_backward()");
       at::Tensor selfCp = self;
       at::Tensor grad_outputCp = grad_output.clone();
       at::Tensor indicesCp = indices;

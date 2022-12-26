@@ -19,12 +19,12 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor cross_dest_output(const at::Tensor& self, const at::Tensor& other) {
+at::Tensor linalg_cross_dest_output(const at::Tensor& self, const at::Tensor& other) {
   bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
   return isSelfWrapped ? other : self;
 }
 
-at::Tensor& cross_out_npu_nocheck(
+at::Tensor& linalg_cross_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<int64_t> dim,
@@ -40,31 +40,31 @@ at::Tensor& cross_out_npu_nocheck(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::cross_out(
+at::Tensor& NPUNativeFunctions::linalg_cross_out(
     const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<int64_t> dim,
     at::Tensor& result){
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor outputTensor = cross_dest_output(self, other);
+  at::Tensor outputTensor = linalg_cross_dest_output(self, other);
   OpPreparation::CheckOut(
       {self},
       result,
       CalcuOpUtil::get_tensor_npu_format(outputTensor),
       self.scalar_type(),
       outputSize);
-  cross_out_npu_nocheck(self, other, dim, result);
+  linalg_cross_out_npu_nocheck(self, other, dim, result);
   return result;
 }
 
-at::Tensor NPUNativeFunctions::cross(
-    const at::Tensor& self, 
+at::Tensor NPUNativeFunctions::linalg_cross(
+    const at::Tensor& self,
     const at::Tensor& other,
     c10::optional<int64_t> dim) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
-  at::Tensor outputTensor = cross_dest_output(self, other);
+  at::Tensor outputTensor = linalg_cross_dest_output(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options(), outputTensor);
-  cross_out_npu_nocheck(self, other, dim, result);
+  linalg_cross_out_npu_nocheck(self, other, dim, result);
   return result;
 }
 

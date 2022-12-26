@@ -52,7 +52,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
     const int64_t mode,
     bool sparse,
     const c10::optional<at::Tensor>& per_sample_weights_opt,
-    bool include_last_offset) {
+    bool include_last_offset,
+    int64_t padding_idx) {
   const at::Tensor& per_sample_weights = c10::value_or_else(per_sample_weights_opt, [] {return at::Tensor();});
 
   at::Tensor weight_cpu = weight.to("cpu").requires_grad_();
@@ -80,8 +81,9 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
     const int64_t mode,
     bool sparse,
     const c10::optional<at::Tensor>& per_sample_weights_opt,
-    bool include_last_offset) {
-  return _embedding_bag(weight, indices, offsets, scale_grad_by_freq, mode, sparse, per_sample_weights_opt, include_last_offset);
+    bool include_last_offset,
+    int64_t padding_idx) {
+  return _embedding_bag(weight, indices, offsets, scale_grad_by_freq, mode, sparse, per_sample_weights_opt, include_last_offset, padding_idx);
 }
 } // namespace native
 } // namespace at_npu

@@ -43,6 +43,8 @@ at::Tensor& NPUNativeFunctions::searchsorted_out(
     const at::Tensor& self,
     bool out_int32,
     bool right,
+    const c10::optional<c10::string_view> side_opt,
+    const c10::optional<at::Tensor>& sorter_opt,
     at::Tensor& result) {
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
   OpPreparation::CheckOut(
@@ -59,7 +61,9 @@ at::Tensor NPUNativeFunctions::searchsorted(
     const at::Tensor& sorted_sequence,
     const at::Tensor& self,
     bool out_int32,
-    bool right) {
+    bool right,
+    const c10::optional<c10::string_view> side_opt,
+    const c10::optional<at::Tensor>& sorter_opt) {
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
   at::Tensor result = OpPreparation::ApplyTensor(self.sizes(), self.options().dtype(scalar_type), self);
   searchsorted_out_npu_nocheck(sorted_sequence, self, out_int32, right, result);
@@ -70,7 +74,9 @@ at::Tensor NPUNativeFunctions::searchsorted(
     const at::Tensor& sorted_sequence,
     const at::Scalar& self,
     bool out_int32,
-    bool right) {
+    bool right,
+    const c10::optional<c10::string_view> side_opt,
+    const c10::optional<at::Tensor>& sorter_opt) {
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;
   at::Tensor selfOp = CalcuOpUtil::CopyScalarToDevice(self, sorted_sequence.scalar_type());
   selfOp = selfOp.unsqueeze(0);

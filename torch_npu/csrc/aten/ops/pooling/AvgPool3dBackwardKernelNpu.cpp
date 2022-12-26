@@ -132,7 +132,8 @@ at::Tensor& NPUNativeFunctions::avg_pool3d_backward_out(
       dT, dH, dW,
       padT, padH, padW,
       itime, iheight, iwidth,
-      otime_for_shape_check, oheight_for_shape_check, owidth_for_shape_check);
+      otime_for_shape_check, oheight_for_shape_check, owidth_for_shape_check,
+      "avg_pool3d_backward_out()");
 
   avg_pool3d_backward_out_npu_nocheck(
       grad_output,
