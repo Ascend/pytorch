@@ -28,7 +28,7 @@ namespace at_npu {
 namespace native {
 namespace {
 const int32_t kChannelTimeOut = 500;
-const int32_t kChannelCapacity = 1024;
+const int32_t kChannelCapacity = 3;
 }
 using namespace c10_npu;
 bool TdtChannelForPrint::Init() {
