@@ -69,6 +69,7 @@ void copy_kernel_npu(
         .Input(src_stride, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
         .Input(at::Scalar(0), at::kLong)
         .Output(self)
+        .Attr("_exclude_engines", (string)"AiCore")
         .Run();
   }
 

@@ -35,6 +35,7 @@ Tensor& index_out_npu(
     cmd.Input(allDefinedIndices[i], inputName);
   }
   cmd.Output(result)
+      .Attr("_exclude_engines", (string)"AiCore")
       .Run();
   return result;
 }
