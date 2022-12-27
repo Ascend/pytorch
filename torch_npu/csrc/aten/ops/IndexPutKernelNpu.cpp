@@ -68,7 +68,8 @@ bool is_aicpu_valid(const at::Tensor& self,
         return true;
       }
     }
-    return false;
+    // Using AICPU when dim not equal to self dim.
+    return true;
   } else {
     for (int32_t i = 0; i < allDefinedIndices.size(); i++) {
       // Using AICore when all Indices tensor is int64, they are implemented, otherwise AICPU.
