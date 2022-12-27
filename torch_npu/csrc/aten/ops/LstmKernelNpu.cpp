@@ -697,8 +697,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNative
   at::Tensor grad_input = OpPreparation::ApplyTensor(input); 
   at::Tensor grad_weight = OpPreparation::ApplyTensor(weight);
   at::Tensor grad_bias = OpPreparation::ApplyTensor(bias);
-  at::Tensor grad_ht = OpPreparation::ApplyTensor(init_h);
-  at::Tensor grad_ct = OpPreparation::ApplyTensor(init_c);
+  at::Tensor grad_ht = OpPreparation::ApplyTensor(inh);
+  at::Tensor grad_ct = OpPreparation::ApplyTensor(inc);
   
   auto grad_y = grady.defined() ? grady : at::zeros(y.sizes(), y.options());
   auto grad_h = gradh.defined() ? gradh[input.size(0)-1] : at::zeros(inh.sizes(), h.options());
