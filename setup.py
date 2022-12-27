@@ -44,6 +44,8 @@ VERSION = '1.8.1.post1'
 def generate_torch_npu_version():
     torch_npu_root = Path(__file__).parent
     version_path = torch_npu_root / "torch_npu" / "version.py"
+    if version_path.exists():
+        version_path.unlink()
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     modes = stat.S_IWUSR | stat.S_IRUSR
     with os.fdopen(os.open(version_path, flags, modes), 'w') as f: 
