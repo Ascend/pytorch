@@ -20,6 +20,7 @@ from .index_op import npu_fast_condition_index_put
 from .fuse_add_softmax_dropout import fuse_add_softmax_dropout
 from .roll import roll
 from .matmul_transpose import matmul_transpose
+from .fused_attention import npu_fused_attention_with_layernorm, npu_fused_attention
 
 __all__ = [
     "npu_iou",
@@ -37,4 +38,6 @@ __all__ = [
     "fuse_add_softmax_dropout",
     "roll",
     "matmul_transpose",
+    "npu_fused_attention",
+    "npu_fused_attention_with_layernorm",
 ]
