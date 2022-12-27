@@ -50,13 +50,26 @@ std::map<c10d::ReduceOp, HcclReduceOp> hcclOp = {
 };
 
 // HCCL DataType mapping
-std::map<at::ScalarType, HcclDataType> hcclDataType = {
+std::map<at::ScalarType, HcclDataType> kScalarTypeToHcclDataType = {
+    {at::kByte, HCCL_DATA_TYPE_UINT8},
     {at::kChar, HCCL_DATA_TYPE_INT8},
-    {at::kFloat, HCCL_DATA_TYPE_FP32},
-    {at::kInt, HCCL_DATA_TYPE_INT32},
-    {at::kHalf, HCCL_DATA_TYPE_FP16},
     {at::kShort, HCCL_DATA_TYPE_INT16},
+    {at::kInt, HCCL_DATA_TYPE_INT32},
     {at::kLong, HCCL_DATA_TYPE_INT64},
+    {at::kHalf, HCCL_DATA_TYPE_FP16},
+    {at::kFloat, HCCL_DATA_TYPE_FP32},
+    {at::kDouble, HCCL_DATA_TYPE_FP64},
+};
+
+std::map <HcclDataType, std::string> kHcclDataTypeToStringMap = {
+    {HCCL_DATA_TYPE_UINT8, "at::kByte"},
+    {HCCL_DATA_TYPE_INT8,  "at::kChar"},
+    {HCCL_DATA_TYPE_INT16, "at::kShort"},
+    {HCCL_DATA_TYPE_INT32, "at::kInt"},
+    {HCCL_DATA_TYPE_INT64, "at::kLong"},
+    {HCCL_DATA_TYPE_FP16,  "at::kHalf"},
+    {HCCL_DATA_TYPE_FP32,  "at::kFloat"},
+    {HCCL_DATA_TYPE_FP64,  "at::kDouble"},
 };
 
 int64_t physical_numel(at::Tensor& self){
@@ -85,10 +98,30 @@ uint64_t getNumelForHCCL(at::Tensor& self) {
 // Helper function that gets the data type and issues error if not supported
 HcclDataType getHcclDataType(at::ScalarType type) {
   try {
-    return hcclDataType.at(type);
+    return kScalarTypeToHcclDataType.at(type);
   } catch (std::out_of_range& e) {
     throw std::runtime_error("Unsupported data type for HCCL process group");
   }
+}
+
+std::string getHcclDataTypeSerialString(HcclDataType type){
+  const auto &iter = kHcclDataTypeToStringMap.find(type);
+  if (iter != kHcclDataTypeToStringMap.end()){
+    return iter->second;
+  } else {
+    TORCH_WARN_ONCE("Can not serialize undefined hccl data type.");
+    return "";
+  }
+}
+
+// AllGather & Broadcast support all data type, no need do more check.
+void checkSupportedDataTypeOfAllReduce(HcclDataType type) {
+  static std::set <HcclDataType> allReduceSupportedDataTypes = {HCCL_DATA_TYPE_INT8, HCCL_DATA_TYPE_INT16,
+                                                                HCCL_DATA_TYPE_INT32, HCCL_DATA_TYPE_FP16,
+                                                                HCCL_DATA_TYPE_FP32};
+  TORCH_CHECK(allReduceSupportedDataTypes.count(type) != 0,
+              "HCCL AllReduce & Reduce: Unsupported data type ",
+              getHcclDataTypeSerialString(type));
 }
 
 // Get the deviceList String from the list of devices
@@ -570,12 +603,15 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce(
           HcclComm comm,
           c10_npu::NPUStream& stream) {
         aclrtSetExceptionInfoCallback(exceptionCallback);
+
+        auto hcclType = getHcclDataType(input.scalar_type());
+        checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
         return HcclAllReduce(
             input.data_ptr(),
             output.data_ptr(),
             getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
+            hcclType,
             hcclOp[opts.reduceOp],
             comm,
             stream.stream());
@@ -597,6 +633,9 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::allreduce_out(
             HcclComm comm,
             c10_npu::NPUStream& stream) {
               aclrtSetExceptionInfoCallback(exceptionCallback);
+
+              auto hcclType = getHcclDataType(input.scalar_type());
+              checkSupportedDataTypeOfAllReduce(hcclType);
               RECORD_FUNCTION("HcclAllreduce", std::vector<c10::IValue>({input}));
               int64_t hccl_comm = static_cast<int64_t>(reinterpret_cast<intptr_t>(comm));
               at_npu::native::NPUNativeFunctions::npu_hcom_allreduce_out(
@@ -656,12 +695,14 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce(
           at::Tensor& output,
           HcclComm comm,
           c10_npu::NPUStream& stream) {
+        auto hcclType = getHcclDataType(input.scalar_type());
+        checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclReduce", std::vector<c10::IValue>({input}));
         return hcclReduce(
             input.data_ptr(),
             output.data_ptr(),
             getNumelForHCCL(input),
-            getHcclDataType(input.scalar_type()),
+            hcclType,
             hcclOp[opts.reduceOp],
             rank,
             comm,
@@ -737,6 +778,8 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
           at::Tensor& output,
           HcclComm comm,
           c10_npu::NPUStream& stream) {
+        auto hcclType = getHcclDataType(input.scalar_type());
+        checkSupportedDataTypeOfAllReduce(hcclType);
         RECORD_FUNCTION("HcclReduceScatter", std::vector<c10::IValue>({input}));
         c10_npu::NPUCachingAllocator::recordStream(
             output.storage().data_ptr(), stream);
@@ -744,7 +787,7 @@ c10::intrusive_ptr<c10d::ProcessGroup::Work> ProcessGroupHCCL::reduce_scatter(
             input.data_ptr(),
             output.data_ptr(),
             getNumelForHCCL(output),
-            getHcclDataType(input.scalar_type()),
+            hcclType,
             hcclOp[opts.reduceOp],
             comm,
             stream.stream());
