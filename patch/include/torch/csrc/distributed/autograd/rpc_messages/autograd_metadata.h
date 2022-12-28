@@ -1,6 +1,5 @@
 #pragma once
 
-#include <torch/csrc/WindowsTorchApiMacro.h>
 #include <cstdint>
 
 namespace torch {

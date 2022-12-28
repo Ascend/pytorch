@@ -5,11 +5,13 @@ __all__ = [
     "Backend", "_backend", "group", "GroupMember", "is_hccl_available", "is_initialized",
     "get_backend", "init_process_group", "destroy_process_group", "get_rank", "get_world_size",
     "isend", "irecv", "send", "recv", "P2POp", "batch_isend_irecv", "broadcast", "all_reduce",
-    "all_reduce_coalesced", "reduce",  "all_gather", "all_gather_coalesced", "gather", "scatter",
+    "all_reduce_coalesced", "reduce", "all_gather", "all_gather_coalesced", "gather", "scatter",
     "reduce_scatter", "all_to_all_single", "all_to_all", "barrier", "new_group", "ProcessGroupHCCL",
     "Reducer", "_DEFAULT_FIRST_BUCKET_BYTES", "_register_comm_hook", "_register_builtin_comm_hook",
-    "_broadcast_coalesced", "_compute_bucket_assignment_by_size", "_set_construction_logging_data",
-    "_get_ddp_logging_data", "_get_global_rank"
+    "_broadcast_coalesced", "_compute_bucket_assignment_by_size", "_get_global_rank",
+    "_verify_params_across_processes", "DebugLevel", "get_debug_level", "set_debug_level",
+    "_create_process_group_wrapper", "_rank_not_in_group", "Logger", "all_gather_object",
+    "broadcast_object_list"
 ]
 
 
@@ -36,8 +38,7 @@ from torch_npu._C._distributed_c10d import (
     _register_builtin_comm_hook, 
     _broadcast_coalesced,
     _compute_bucket_assignment_by_size,
-    _set_construction_logging_data,
-    _get_ddp_logging_data
+    _verify_params_across_processes,
 )
 from .distributed_c10d import Group as group
 from .distributed_c10d import (
@@ -45,5 +46,9 @@ from .distributed_c10d import (
     init_process_group, destroy_process_group, get_rank, get_world_size, isend,
     irecv, send, recv, P2POp, batch_isend_irecv, broadcast, all_reduce, all_reduce_coalesced,
     reduce, all_gather, all_gather_coalesced, gather, scatter, reduce_scatter,
-    all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL, _get_global_rank
+    all_to_all_single, all_to_all, barrier, new_group, ProcessGroupHCCL, _get_global_rank, DebugLevel,
+    get_debug_level, set_debug_level, set_debug_level_from_env, _create_process_group_wrapper,
+    _rank_not_in_group, Logger, all_gather_object, broadcast_object_list
 )
+
+set_debug_level_from_env()

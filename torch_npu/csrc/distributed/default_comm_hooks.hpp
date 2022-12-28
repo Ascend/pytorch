@@ -11,7 +11,7 @@ enum class BuiltinCommHookType {
 };
 
 class AllReduceCommHook : public CppCommHookInterface<ProcessGroup*> {
- public:
+public:
   explicit AllReduceCommHook(ProcessGroup* state)
       : CppCommHookInterface<ProcessGroup*>(state) {}
 
@@ -21,7 +21,7 @@ class AllReduceCommHook : public CppCommHookInterface<ProcessGroup*> {
 };
 
 class FP16CompressCommHook : public CppCommHookInterface<ProcessGroup*> {
- public:
+public:
   explicit FP16CompressCommHook(ProcessGroup* state)
       : CppCommHookInterface<ProcessGroup*>(state) {}
 
@@ -36,7 +36,7 @@ class FP16CompressCommHook : public CppCommHookInterface<ProcessGroup*> {
 // Only used internally and not released as a public built-in communication hook.
 class _AllReduceBySumCommHook
     : public CppCommHookInterface<ProcessGroup*> {
- public:
+public:
   explicit _AllReduceBySumCommHook(ProcessGroup* state)
       : CppCommHookInterface<ProcessGroup*>(state) {}
 
