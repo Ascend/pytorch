@@ -264,6 +264,43 @@ print(tensor_data[2]) # 数据类型
 print(tensor_data[3]) # 数据尺寸
 
 ```
+基于step粒度控制精度对比数据导出，通过在register_hook方法设置schedule参数控制需要导出数据的step。
+* **schedule**用于控制使能的step，入参分别为：**起始step(begin=0)、终止step(end=sys.maxsize)、步长(stride=1)**，例：  
+schedule() 使能所有step；  
+schedule(4, 10, 2) 使能的step为：4,6,8,10；  
+schedule(begin=5, stride=3) 使能的step为：5,8,11,14...；  
+schedule(end=10, stride=3) 使能的step为：0,3,6,9。
+* 变量step_num用于记录step数，调用**step_schedule.step**使变量step_num加1，step_num初始值为0;**step_schedule.reset_step**初始化step_num为0。
+```python
+from torch_npu.hooks import register_hook, wrap_acc_cmp_hook, schedule, step_schedule
+
+# add step schedule, begin=4 end=10 stride=2
+register_hook(model, wrap_acc_cmp_hook, schedule=schedule(4, 10, 2))
+
+for epoch in range(num_train_epochs):
+    # init step_num as 0
+    step_schedule.reset_step()
+    for step, inputs in enumerate(dataloader):
+        output = model(inputs)
+        loss = output.sum()
+        loss.backward()
+        # step_num increase 1
+        step_schedule.step()
+```
+异步算子数据导出wrap_async_datadump_hook（仅应用于npu算子导出）；针对精度对比工具同步tensor数据导出，npu同cpu数据同步耗时较长的问题，利用npu上tdtchannel实现tensor数据的异步导出。
+* 通过register_hook方法注册异步导出hook wrap_async_datadump_hook，并通过path参数指定导出tensor数据的路径。
+* 导出的文件名为：唯一索引_算子名_前反向_输入输出_shape_stride_offset_format.npy，例：16_Functional_relu_backward_input0_shape[2,1]_stride[1,1]_offset[0]_format[2].npy；导出的文件可以使用numpy.load方便导入。
+* wrap_async_datadump_hook依赖OutfeedEnqueueOpV2算子，该算子不支持runtime2.0；需设置环境变量规避**export RUNTIME_V2_BLACKLIST=OutfeedEnqueueOpV2**。
+```python
+from torch_npu.hooks import register_hook, wrap_async_datadump_hook, schedule, step_schedule
+
+# register wrap_async_datadump_hook and add datadump path
+register_hook(module, wrap_async_datadump_hook, path='./output', schedule=schedule(1, 2))
+
+# load datadump data by numpy
+numpy.load('./output/16_Functional_relu_backward_input0_shape[2,1]_stride[1,1]_offset[0]_format[2].npy')
+```
+
 
 - [**PyTorch溢出检测工具使用指南**](#pytorch精度对比工具使用指南)
   - [**使用场景**](#使用场景)
