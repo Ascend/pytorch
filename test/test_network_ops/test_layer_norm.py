@@ -89,6 +89,28 @@ class TestLayerNorm(TestCase):
             cpu_output = cpu_output.to(torch.float16)
             self.assertRtolEqual(cpu_output.detach().numpy(), npu_output.detach().numpy())
 
+    def test_layer_norm_case_in_trocr(self):
+        cpu_input = torch.rand(10, 1, 1024).uniform_(-22., 66.).half()
+        cpu_weight = torch.rand(1024).uniform_(0.5, 1.1).half()
+        cpu_bias = torch.rand(1024).uniform_(-0.1, 0.1).half()
+        npu_input = cpu_input.npu()
+        npu_weight = cpu_weight.npu()
+        npu_bias = cpu_bias.npu()
+        normalized_shape = (1024,)
+        eps = 1e-05
+
+        cpu_out1 = torch.layer_norm(cpu_input.float(), normalized_shape, cpu_weight.float(), cpu_bias.float(),
+                                    eps, torch.backends.cudnn.enabled).half()
+        npu_out1 = torch.layer_norm(npu_input, normalized_shape, npu_weight, npu_bias,
+                                    eps, torch.backends.cudnn.enabled)
+        self.assertRtolEqual(cpu_out1, npu_out1.cpu())
+
+        cpu_out2 = torch.layer_norm(cpu_input.float(), normalized_shape, cpu_weight.float(), cpu_bias.float(),
+                                    eps, torch.backends.cudnn.enabled).half()
+        npu_out2 = torch.layer_norm(npu_input, normalized_shape, npu_weight, npu_bias,
+                                    eps, torch.backends.cudnn.enabled)
+        self.assertRtolEqual(cpu_out2, npu_out2.cpu())
+
 
 if __name__ == "__main__":
     run_tests()
