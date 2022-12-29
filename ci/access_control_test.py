@@ -141,7 +141,7 @@ def exec_ut(ut_files):
         cmd = "python3 {}".format(ut_file)
         p = subprocess.Popen(['python3', ut_file], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
         try:
-            msg = p.communicate(timeout=300)
+            msg = p.communicate(timeout=2000)
             ret = p.poll()
             if ret:
                 print(msg)
@@ -150,7 +150,7 @@ def exec_ut(ut_files):
             p.kill()
             p.terminate()
             ret = 1
-            print("Timeout: Command '" + cmd + "' timed out after 300 seconds")
+            print("Timeout: Command '" + cmd + "' timed out after 2000 seconds")
         except Exception as err:
             ret = 1
             print(err)

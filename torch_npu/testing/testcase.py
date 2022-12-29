@@ -21,6 +21,7 @@ no NPU calls shall be made, including torch.npu.device_count(), etc.
 torch.testing._internal.common_npu.py can freely initialize NPU context when imported.
 """
 from collections import OrderedDict
+from collections.abc import Sequence
 from contextlib import contextmanager
 from numbers import Number
 from unittest.result import TestResult
@@ -155,47 +156,63 @@ class TestCase(expecttest.TestCase):
             self.assertEqual(tc._values(), t._values())
 
         return tg
+    
+    def assertRtolEqual(self, x, y, prec=1.e-4, prec16=1.e-3, auto_trans_dtype=False, message=None):
 
-    def assertRtolEqual(self, x, y, prec=None, prec16=None):
-        def compare_res(pre, minimum):
-            result = np.abs(y - x)
-            deno = np.maximum(np.abs(x), np.abs(y))
-            result_atol = np.less_equal(result, pre)
-            result_rtol = np.less_equal(result / np.add(deno, minimum), pre)
-            if not result_rtol.all() and not result_atol.all():
-                if np.sum(result_rtol == False) > size * pre and np.sum(result_atol == False) > size * pre:
+        def _assertRtolEqual(x, y, prec, prec16, message):
+            def compare_res(pre, minimum):
+                result = np.abs(y - x)
+                deno = np.maximum(np.abs(x), np.abs(y))
+                result_atol = np.less_equal(result, pre)
+                result_rtol = np.less_equal(result / np.add(deno, minimum), pre)
+                if not result_rtol.all() and not result_atol.all():
+                    if np.sum(result_rtol == False) > size * pre and np.sum(result_atol == False) > size * pre:
+                        self.fail("result error")
+
+            minimum16 = 6e-8
+            minimum = 10e-10
+
+            if isinstance(x, Sequence) and isinstance(y, Sequence):
+                for x_, y_ in zip(x, y):
+                    _assertRtolEqual(x_, y_, prec, prec16, message)
+                return
+
+            if isinstance(x, torch.Tensor) and isinstance(y, Sequence):
+                y = torch.as_tensor(y, dtype=x.dtype, device=x.device)
+            elif isinstance(x, Sequence) and isinstance(y, torch.Tensor):
+                x = torch.as_tensor(x, dtype=y.dtype, device=y.device)
+
+            if torch.is_tensor(x) and torch.is_tensor(y):
+                if auto_trans_dtype:
+                    x = x.to(y.dtype)
+                x = x.detach().cpu().numpy()
+                y = y.detach().cpu().numpy()  
+            elif isinstance(x, Number) and isinstance(y, Number):
+                x = np.array(x)
+                y = np.array(y)
+
+            size = x.size
+            if (x.shape != y.shape):
+                self.fail("shape error")
+            if (x.dtype != y.dtype):
+                self.fail("dtype error")
+            dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, 
+                        np.float32, np.int8, np.uint8, np.int64, np.float64]
+            if x.dtype not in dtype_list:
+                self.fail("required dtype in [np.bool, np.uint16, np.int16, " +
+                        "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
+            if x.dtype == np.bool:
+                result = np.equal(x, y)
+                if result.all() is False:
                     self.fail("result error")
-        threshold = 1.e-4
-        threshold2 = 1.e-3
-        minimum16 = 6e-8
-        minimum = 10e-10
-        if prec is None:
-            prec = threshold
-        if prec16 is None:
-            prec16 = threshold2
-        if torch.is_tensor(x) and torch.is_tensor(y):
-            x = x.numpy()
-            y = y.numpy()
-        size = x.size
-        if (x.shape != y.shape):
-            self.fail("shape error")
-        if (x.dtype != y.dtype):
-            self.fail("dtype error")
-        dtype_list = [np.bool, np.uint16, np.int16, np.int32, np.float16, 
-                      np.float32, np.int8, np.uint8, np.int64, np.float64]
-        if x.dtype not in dtype_list:
-            self.fail("required dtype in [np.bool, np.uint16, np.int16, " +
-                      "np.int32, np.float16, np.float32, np.int8, np.uint8, np.int64]")
-        if x.dtype == np.bool:
-            result = np.equal(x, y)
-            if result.all() is False:
-                self.fail("result error")
-        elif (x.dtype == np.float16):
-            compare_res(prec16, minimum16)
-        elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64, np.float64]):
-            compare_res(prec, minimum)
-        else:
-            self.fail("required numpy object")
+            elif (x.dtype == np.float16):
+                compare_res(prec16, minimum16)
+            elif (x.dtype in [np.float32, np.int8, np.uint8, np.uint16, np.int16, np.int32, np.int64, np.float64]):
+                compare_res(prec, minimum)
+            else:
+                self.fail("required numpy object")
+
+        _assertRtolEqual(x, y, prec, prec16, message)
 
     def _assert_tensor_equal(self, a, b, message, exact_dtype, allow_inf, prec):
         super(TestCase, self).assertEqual(a.size(), b.size(), message)
