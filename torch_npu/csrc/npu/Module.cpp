@@ -17,7 +17,6 @@
 #include <torch/csrc/python_headers.h>
 
 #include <ATen/ATen.h>
-#include <TH/TH.h>
 #include <torch/csrc/autograd/utils/wrap_outputs.h>
 #include "torch_npu/csrc/core/npu/NPUException.h"
 #include "torch_npu/csrc/core/npu/NPUFunctions.h"

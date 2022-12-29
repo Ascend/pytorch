@@ -100,7 +100,7 @@ static PyObject * Tensor_instancecheck(PyObject* _self, PyObject* arg) {
   HANDLE_TH_ERRORS
   auto self = (PyTensorType*)_self;
   if (THPVariable_Check(arg)) {
-    auto& var = ((THPVariable*)arg)->cdata;
+    const auto& var = THPVariable_Unpack(arg);
 
     if (legacyExtractDispatchKey(var.key_set()) == self->get_dispatch_key() &&
         var.scalar_type() == static_cast<ScalarType>(self->scalar_type)) {

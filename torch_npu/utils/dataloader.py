@@ -15,6 +15,7 @@
 
 import threading
 import itertools
+import queue
 import torch
 from torch.utils.data import _utils
 from torch.utils.data.dataloader import _SingleProcessDataLoaderIter as SrcSingleProcessDataLoaderIter
@@ -23,7 +24,7 @@ from torch.utils.data.dataloader import DataLoader as SrcDataLoader
 from torch.utils.data.dataloader import _DatasetKind
 from torch._utils import ExceptionWrapper
 import torch.multiprocessing as multiprocessing
-from torch._six import queue, string_classes
+from torch._six import string_classes
 import torch_npu
 
 MP_STATUS_CHECK_INTERVAL = 5.0
@@ -141,7 +142,7 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
                 args=(self._dataset_kind, self._dataset, index_queue,
                       self._worker_result_queue, self._workers_done_event,
                       self._auto_collation, self._collate_fn, self._drop_last,
-                      self._base_seed + i, self._worker_init_fn, i, self._num_workers,
+                      self._base_seed, self._worker_init_fn, i, self._num_workers,
                       self._persistent_workers))
             w.daemon = daemon
             w.start()
@@ -168,11 +169,35 @@ class _MultiProcessingDataLoaderIter(SrcMultiProcessingDataLoaderIter):
         else:
             self._data_queue = self._worker_result_queue
 
+        # In some rare cases, persistent workers (daemonic processes)
+        # would be terminated before `__del__` of iterator is invoked
+        # when main process exits
+        # It would cause failure when pin_memory_thread tries to read
+        # corrupted data from worker_result_queue
+        # atexit is used to shutdown thread and child processes in the
+        # right sequence before main process exits
+        if self._persistent_workers and self._pin_memory:
+            import atexit
+            for w in self._workers:
+                atexit.register(_MultiProcessingDataLoaderIter._clean_up_worker, w)
+
         # .pid can be None only before process is spawned (not the case, so ignore)
         _utils.signal_handling._set_worker_pids(id(self), tuple(w.pid for w in self._workers))  # type: ignore
         _utils.signal_handling._set_SIGCHLD_handler()
         self._worker_pids_set = True
         self._reset(loader, first_iter=True)
 
+    # staticmethod is used to remove reference to `_MultiProcessingDataLoaderIter`
+    @staticmethod
+    def _clean_up_worker(w):
+        try:
+            w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+        finally:
+            if w.is_alive():
+                w.terminate()
+
+    def __del__(self):
+        self._shutdown_workers()
+        
 def add_dataloader_method():
     torch.utils.data.DataLoader = DataLoader
