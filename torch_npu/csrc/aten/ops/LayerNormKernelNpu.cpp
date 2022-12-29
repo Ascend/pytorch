@@ -64,6 +64,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
       }
     }
 
+    at::SmallVector<int64_t, SIZE> ori_weight_shape = array_to_small_vector(weight_.sizes());
+    at::SmallVector<int64_t, SIZE> ori_bias_shape = array_to_small_vector(bias_.sizes());
+
     if (!weight.defined()) {
       weight = at::ones(weightDims, input.options());
     } else if (!weight.sizes().equals(weightDims)) {
@@ -92,6 +95,8 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> layer_norm_npu_support(
       .Attr("epsilon", static_cast<float>(eps))
       .Run();
 
+    weight.resize_(ori_weight_shape);
+    bias.resize_(ori_bias_shape);
   }
 
   mean = mean.reshape({M});
