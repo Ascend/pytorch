@@ -292,7 +292,7 @@ struct THNCachingAllocator {
     block->allocated = false;
 
     c10::reportMemoryUsageToProfiler(
-        block, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
+        block, -block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, block->device));
 
     DeviceStats_& stats_ = get_stats_for_device_(block->device);
     StatTypes stat_types;
@@ -1038,7 +1038,7 @@ void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream,
   stats.increaseAllocated(block->size);
 
   c10::reportMemoryUsageToProfiler(
-      block, block->size, c10::Device(at_npu::key::NativeDeviceType, device));
+      block, block->size, 0, -block->size, c10::Device(at_npu::key::NativeDeviceType, device));
 
   update_stat_array(stats_.allocation, 1, stat_types);
   update_stat_array(stats_.allocated_bytes, block->size, stat_types);
