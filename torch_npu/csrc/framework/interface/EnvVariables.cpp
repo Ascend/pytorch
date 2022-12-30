@@ -48,7 +48,7 @@ REGISTER_OPTION_HOOK(autotunegraphdumppath, [](const std::string& val) {
 REGISTER_OPTION_INIT_BY_ENV(bmmv2_enable)
 REGISTER_OPTION_BOOL_FUNCTION(CheckBmmV2Enable, bmmv2_enable, "0", "1")
 
-REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string &val){ 
+REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string &val){
   if (val == "enable") {
     aclmdlInitDump();
   } else {
@@ -56,7 +56,7 @@ REGISTER_OPTION_HOOK(mdldumpswitch, [](const std::string &val){
   }
 })
 REGISTER_OPTION_HOOK(mdldumpconfigpath, [](const std::string &val) {
-  aclmdlSetDump(val.c_str()); 
+  aclmdlSetDump(val.c_str());
 })
 
 REGISTER_OPTION_HOOK(dynamicCompileswitch, [](const std::string &val) {
@@ -71,7 +71,7 @@ REGISTER_OPTION_BOOL_FUNCTION(CheckFuzzyEnable, dynamicCompileswitch, "disable",
 REGISTER_OPTION_HOOK(ACL_OP_DEBUG_LEVEL, [](const std::string &val) {
   aclSetCompileopt(aclCompileOpt::ACL_OP_DEBUG_LEVEL, val.c_str());
 })
-REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string &val) { 
+REGISTER_OPTION_HOOK(ACL_DEBUG_DIR, [](const std::string &val) {
   aclSetCompileopt(aclCompileOpt::ACL_DEBUG_DIR, val.c_str());
 })
 
@@ -80,7 +80,7 @@ REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_MODE, [](const std::string &val) {
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_COMPILER_CACHE_DIR, [](const std::string &val) {
-  aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str()); 
+  aclSetCompileopt(aclCompileOpt::ACL_OP_COMPILER_CACHE_DIR, val.c_str());
 })
 
 REGISTER_OPTION_HOOK(ACL_OP_SELECT_IMPL_MODE, [](const std::string &val) {
@@ -106,7 +106,7 @@ REGISTER_OPTION_HOOK(deliverswitch, [](const std::string &val) {
 })
 
 REGISTER_OPTION_HOOK(profilerResultPath, [](const std::string &val) {
-  torch_npu::profiler::NpuProfiling::Instance().Init(val); 
+  torch_npu::profiler::NpuProfiling::Instance().Init(val);
 })
 
 REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
@@ -120,7 +120,7 @@ REGISTER_OPTION_HOOK(profiling, [](const std::string &val) {
 })
 
 REGISTER_OPTION(MM_BMM_ND_ENABLE)
-REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDEnable, MM_BMM_ND_ENABLE, "disable", "enable")
+REGISTER_OPTION_BOOL_FUNCTION_UNIQ(CheckMmBmmNDDisable, MM_BMM_ND_ENABLE, "enable", "disable")
 } // namespace env
 } // namespace native
 } // namespace at_npu
