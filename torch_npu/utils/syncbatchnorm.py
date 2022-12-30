@@ -23,9 +23,10 @@ class SyncBatchNorm(Function):
     @staticmethod
     def forward(self, input_tensor, weight, bias, running_mean, running_var, eps, momentum, process_group, world_size):
         input_tensor = input_tensor.contiguous()
-
+        input_shape = input_tensor.shape
+        input_tensor_ = input_tensor.reshape(input_shape[0], input_shape[1], 1, -1)
         # calculate sum/sum_square for input.
-        sum_val, sum_square_val = torch.batch_norm_reduce(input_tensor, eps)
+        sum_val, sum_square_val = torch.batch_norm_reduce(input_tensor_, eps)
 
         count = torch.full((1,), 
                            input_tensor.numel() // input_tensor.size(1),
@@ -37,7 +38,6 @@ class SyncBatchNorm(Function):
         combined = torch.cat([sum_val, sum_square_val, count], dim=0)
         # world_size * (2C + 1)
         combined_list = [torch.empty_like(combined) for k in range(world_size)]
-        # Use allgather instead of allreduce since I don't trust in-place operations ..
         dist.all_gather(combined_list, combined, process_group, async_op=False)
         combined = torch.stack(combined_list, dim=0)
         # world_size * (2C + 1) -> world_size * C, world_size * C, world_size * 1
