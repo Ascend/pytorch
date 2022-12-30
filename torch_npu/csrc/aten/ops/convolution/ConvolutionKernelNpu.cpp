@@ -668,38 +668,6 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
       output_mask);
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> _convolution_backward_nogroup_backend(
-    const at::Tensor& grad_output,
-    const at::Tensor& input,
-    const at::Tensor& weight,
-    const std::array<bool, 3> output_mask,
-    const at::native::ConvBackend backend,
-    const ConvParams& params) {
-  auto kernel_size = weight.sizes().slice(2);
-  auto k = weight.ndimension();
-  int64_t dim = k - 2;
-  switch(backend) {
-    case at::native::ConvBackend::Slow2d:
-      return NPUNativeFunctions::_slow_conv2d_backward(
-          grad_output, input, weight, kernel_size, params.stride, params.padding, output_mask);
-    // NB: nnpack backward does not support strided convolutions; use slow impl instead
-    case at::native::ConvBackend::NnpackSpatial:
-    case at::native::ConvBackend::SlowDilated2d:
-      return NPUNativeFunctions::slow_conv_dilated2d_backward(
-          grad_output, input, weight, kernel_size, params.stride, params.padding, params.dilation, output_mask);
-    case at::native::ConvBackend::SlowTranspose2d:
-      return NPUNativeFunctions::slow_conv_transpose2d_backward(
-          grad_output, input, weight, kernel_size, params.stride, params.padding,
-          params.output_padding, params.dilation, output_mask);
-    case at::native::ConvBackend::SlowTranspose3d:
-      return NPUNativeFunctions::npu_conv_transpose3d_backward(
-          input, grad_output, weight, params.padding, params.output_padding, params.stride, 
-          params.dilation, params.groups, output_mask);
-    default:
-      TORCH_CHECK(false, "Unsupported conv nogroup backend encountered");
-  }
-}
-
 at::native::ConvBackend select_conv_backend(
     const at::Tensor& input,
     const at::Tensor& weight,
@@ -922,31 +890,25 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::convolution_b
     case at::native::ConvBackend::SlowTranspose2d:
     case at::native::ConvBackend::SlowTranspose3d:
     {
-      if (params.groups == 1) {
-        std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) =
-          _convolution_backward_nogroup_backend(
-              grad_output, input, weight, output_mask, backend, params);
+      if (!params.transposed) {
+        std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) = NPUNativeFunctions::npu_convolution_backward(input,
+          grad_output,
+          weight,
+          params.stride,
+          params.padding,
+          params.dilation,
+          params.groups,
+          output_mask);
       } else {
-        if (!params.transposed) {
-          std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) = NPUNativeFunctions::npu_convolution_backward(input,
-            grad_output,
-            weight,
-            params.stride,
-            params.padding,
-            params.dilation,
-            params.groups,
-            output_mask);
-        } else {
-          std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) = npu_convolution_transpose_backward(input,
-            grad_output,
-            weight,
-            params.padding,
-            params.output_padding,
-            params.stride,
-            params.dilation,
-            params.groups,
-            output_mask);
-        }
+        std::tie(backend_grad_input, backend_grad_weight, backend_grad_bias) = npu_convolution_transpose_backward(input,
+          grad_output,
+          weight,
+          params.padding,
+          params.output_padding,
+          params.stride,
+          params.dilation,
+          params.groups,
+          output_mask);
       }
       break;
     }
