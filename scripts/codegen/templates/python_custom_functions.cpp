@@ -31,6 +31,7 @@
 #include <torch/csrc/utils/structseq.h>
 #include <torch/csrc/utils/cuda_lazy_init.h>
 #include <ATen/ATen.h>
+#include <ATen/record_function.h>
 
 #include <functional>
 #include <initializer_list>

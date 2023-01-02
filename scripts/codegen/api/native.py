@@ -17,8 +17,7 @@
 from typing import Union, Sequence, List, Optional
 
 from codegen.model import (Argument, FunctionSchema, Return,
-                           SelfArgument, TensorOptionsArguments, Type, UseC10Dispatcher,
-                           assert_never)
+                           SelfArgument, TensorOptionsArguments, Type)
 
 from codegen.api.types import (ArgName, BaseCType, Binding,
                                ConstRefCType, NamedCType, CType, MutRefCType, ListCType,
@@ -26,6 +25,7 @@ from codegen.api.types import (ArgName, BaseCType, Binding,
                                deviceT, boolT, scalarTypeT)
 from codegen.api import cpp
 from codegen import local
+from codegen.model import assert_never
 
 # This file describes the translation of JIT schema to the native functions API.
 # This looks a lot like the C++ API (which makes historical sense, because the
@@ -120,15 +120,4 @@ def arguments(func: FunctionSchema) -> List[Binding]:
     args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
     args.extend(func.arguments.non_out)
     args.extend(func.arguments.out)
-    return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]
-
-def native_arguments(func: FunctionSchema, dispatch: UseC10Dispatcher) -> List[Binding]:
-    args: List[Union[Argument, TensorOptionsArguments, SelfArgument]] = []
-    if dispatch is UseC10Dispatcher.full:
-        args.extend(func.arguments.non_out)
-        args.extend(func.arguments.out)
-    else:
-        args.extend(func.arguments.out)
-        args.extend(func.arguments.non_out)
-
     return [r for arg in args for r in argument(arg, is_out=func.is_out_fn())]

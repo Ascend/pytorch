@@ -95,6 +95,7 @@ class DispatchKey(Enum):
     PrivateUse3 = auto()
     EndOfBackendKeys = PrivateUse3
 
+    ZeroTensor = auto()
     Meta = auto()
     BackendSelect = auto()
     Named = auto()
@@ -172,6 +173,19 @@ class DeviceCheckType(Enum):
     NoCheck = 0
     ExactSame = 1
 
+class Tag(Enum):
+    inplace_view = 0
+
+    def __str__(self) -> str:
+        return self.name
+
+    @staticmethod
+    def parse(value: str) -> 'Tag':
+        for k, v in Tag.__members__.items():
+            if k == value:
+                return v
+        raise AssertionError(f'unknown tag {value}')
+
 # The basic input to the code generation is native_functions.yaml.
 # The name "native", BTW, comes from the distinction between native
 # functions and legacy TH functions.  The legacy TH functions are gone,
@@ -192,10 +206,6 @@ class NativeFunction:
     # defined later in the file.  I opted for this ordering of the
     # classes for expository clarity.)
     func: 'FunctionSchema'
-
-    # Corresponds to the 'use_c10_dispatcher' field.  The default
-    # is 'full'
-    use_c10_dispatcher: UseC10Dispatcher
 
     # Whether or not to generate mutable tensor arguments like regular
     # ones
@@ -273,6 +283,11 @@ class NativeFunction:
     has_composite_implicit_autograd_kernel: bool
     has_composite_explicit_autograd_kernel: bool
 
+    # Tags are used to describe semantic information about (groups of) operators,
+    # That aren't easily inferrable directly from the operator's schema.
+    # For now operators have at most one tag.
+    tag: Optional['Tag']
+
     # NB: The benefit of defining a dataclass is that we automatically get
     # a constructor defined for all the fields we specify.  No need
     # to explicitly write it out.
@@ -295,19 +310,6 @@ class NativeFunction:
             cpp_no_default_args = set(cpp_no_default_args_list)
             return cpp_no_default_args
 
-        def parse_use_dispatcher(e):
-            use_c10_dispatcher_s = e.pop('use_c10_dispatcher', None)
-            assert use_c10_dispatcher_s != 'full', \
-                "No need to specify 'use_c10_dispatcher: full' anymore. This is the default now. Just remove the line."
-            if use_c10_dispatcher_s is None:
-                use_c10_dispatcher = UseC10Dispatcher.full
-            elif use_c10_dispatcher_s == 'hacky_wrapper_for_legacy_signatures':
-                use_c10_dispatcher = UseC10Dispatcher.hacky_wrapper_for_legacy_signatures
-            else:
-                raise AssertionError(f'use_c10_dispatcher must be full or hacky_wrapper_for_legacy_signatures,'
-                                     f' got {use_c10_dispatcher_s}')
-            return use_c10_dispatcher
-
         def parse_variants(e):
             variants_s = e.pop('variants', 'function')
             assert isinstance(variants_s, str)
@@ -323,7 +325,6 @@ class NativeFunction:
 
         func = parse_func(e)
         cpp_no_default_args = parse_cpp_no_default_args(e)
-        use_c10_dispatcher = parse_use_dispatcher(e)        
         variants = parse_variants(e)
 
         use_const_ref_for_mutable_tensors = e.pop('use_const_ref_for_mutable_tensors', False)
@@ -373,6 +374,14 @@ class NativeFunction:
             return precomputed
 
         precomputed = parse_precomputed(e, structured)
+
+        def parse_tag(e, structured):
+            tag_str = e.pop('tags', None)
+            assert tag_str is None or isinstance(tag_str, str), f'not a str: {tag_str}'
+            tag = Tag.parse(tag_str) if tag_str else None
+            return tag
+        
+        tag = parse_tag(e, structured)
 
         from codegen.api import cpp
 
@@ -433,7 +442,7 @@ class NativeFunction:
                         f"if structured_delegate, then must not have {key} in dispatch dictionary " \
                         "(it is delegated!)"
         assert_last(e, structured_delegate, dispatch)
-        return NativeFunction(func=func, use_c10_dispatcher=use_c10_dispatcher,
+        return NativeFunction(func=func,
             use_const_ref_for_mutable_tensors=use_const_ref_for_mutable_tensors,
             variants=variants, structured=structured, structured_delegate=structured_delegate,
             structured_inherits=structured_inherits, precomputed=precomputed,
@@ -441,7 +450,7 @@ class NativeFunction:
             python_module=python_module, category_override=category_override, device_guard=device_guard,
             device_check=device_check, cpp_no_default_args=cpp_no_default_args, is_abstract=is_abstract,
             has_composite_implicit_autograd_kernel=has_composite_implicit_autograd_kernel,
-            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel), backend_metadata
+            has_composite_explicit_autograd_kernel=has_composite_explicit_autograd_kernel, tag=tag), backend_metadata
 
 
     def validate_unstructured(self) -> None:
@@ -481,9 +490,6 @@ class NativeFunction:
                                if a.default is not None}
         invalid_args = set.difference(self.cpp_no_default_args, defaulted_arguments)
         assert len(invalid_args) == 0, f'Invalid cpp_no_default_args: {invalid_args}'
-        if self.structured or self.structured_delegate:
-            assert self.use_c10_dispatcher is UseC10Dispatcher.full, \
-                "Structured kernels MUST be use_c10_dispatcher: full; port your argument order"
         if self.structured_inherits is not None:
             assert self.structured, "structured_inherits must also imply structured: True"
         if str(self.func.name).startswith('_foreach'):
@@ -771,7 +777,9 @@ class FunctionSchema:
     def parse(func: str) -> 'FunctionSchema':
         # We should probably get a proper parser here
         assert ' -> ' in func, "function schema missing return type (spaces are mandatory)"
-        func_decl, return_decl = [x.strip() for x in func.split(' -> ')]
+        last_index = func.rfind(" -> ")
+        func_decl = func[:last_index]
+        return_decl = func[last_index + len(" -> "):]
         ops, args = func_decl.split('(', 1)
         assert args[-1] == ")", "Expecting closing )"
         args = args[:-1]
@@ -912,19 +920,30 @@ class Annotation:
     # we can conveniently assume it is canonically ordered
     alias_set: Tuple[str, ...]
     is_write: bool
+    alias_set_after: str
 
     @staticmethod
     def parse(ann: str) -> 'Annotation':
-        m = re.match(r'^([a-z])(!?)(!?)$', ann)
+        # Only handling afterSet == Wildcard for now
+        becomes_wildcard_index = ann.find(" -> *")
+        if becomes_wildcard_index != -1:
+            after_set = "*"
+            # TODO: im not good enough with regexes to ignore -> *
+            m = re.match(r'^([a-z])(!?)(!?)$', ann[:becomes_wildcard_index] + ann[becomes_wildcard_index + len(" -> *"):])
+        else:
+            after_set = ""
+            m = re.match(r'^([a-z])(!?)(!?)$', ann)
         assert m is not None, f'unrecognized alias annotation {ann}'
         alias_set = (m.group(1),)
         is_write = m.group(2) == '!'
-        r = Annotation(alias_set=alias_set, is_write=is_write)
+        r = Annotation(alias_set=alias_set, is_write=is_write, alias_set_after=after_set)
         assert str(r) == ann, f'{r} != {ann}'
         return r
 
     def __str__(self) -> str:
         alias_set = '|'.join(self.alias_set)
+        if self.alias_set_after:
+            alias_set = f'{alias_set}{" -> "}{self.alias_set_after}'
         is_write = '!' if self.is_write else ''
         return f'{alias_set}{is_write}'
 

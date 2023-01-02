@@ -29,7 +29,6 @@ from codegen.selective_build.selector import SelectiveBuilder
 from codegen.utils import Target, concat_map, context
 from codegen.context import native_function_manager
 import codegen.dest as dest
-import codegen.dest.utils as utils
 import codegen.api.dispatcher as dispatcher
 from codegen.api.signature import DispatcherSignature
 
@@ -265,28 +264,9 @@ but expected {expected_overload_count} kernel(s). The expected function schemas 
     if unsupported_ops_list != "":
         print(f"Unsupported Ops List:\n{unsupported_ops_list}")
 
-def error_on_cpu_kernels(
-        cur_backend_key: DispatchKey,
-        native_functions: Sequence[NativeFunction],
-        backend_indices: Dict[DispatchKey, BackendIndex],
-) -> None:
-
-    expected_backend_op_names: List[OperatorName] = \
-        list(backend_indices[cur_backend_key].index.keys())
-    expected_backend_native_funcs: List[NativeFunction] = \
-        [f for f in native_functions if f.func.name in expected_backend_op_names]
-    expected_backend_kernel_name_counts: Dict[str, List[NativeFunction]] = defaultdict(list)
-    for native_f in expected_backend_native_funcs:
-        expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
-
-    for expected_name, funcs in expected_backend_kernel_name_counts.items():
-        for func in funcs:
-            backend_indices[DispatchKey.CPU].index.pop(func.func.name, None)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Generate backend stub files')
-    parser.add_argument(
-        '--to_cpu', type=str, default="TRUE", help='move op which npu does not support to cpu')
     parser.add_argument(
         '-s',
         '--source_yaml',
@@ -299,9 +279,9 @@ def main() -> None:
         '--impl_path', type=str, default=None, help='path to the source C++ file containing kernel definitions')
     options = parser.parse_args()
 
-    run(options.to_cpu, options.source_yaml, options.output_dir, options.dry_run, options.impl_path)
+    run(options.source_yaml, options.output_dir, options.dry_run, options.impl_path)
 
-def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
+def run(source_yaml: str, output_dir: str, dry_run: bool, impl_path: Optional[str]) -> None:
 
     template_dir = os.path.join(pathlib.Path(__file__).parent.absolute(), "templates")
 
@@ -316,13 +296,14 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
     grouped_native_functions = get_grouped_native_functions(native_functions)
     parsed_backend_yaml = parse_backend_yaml(source_yaml, grouped_native_functions, backend_indices)
     true_backend = parsed_backend_yaml.true_backend
-    utils.backend = true_backend
     backend_key = parsed_backend_yaml.backend_key
     autograd_key = parsed_backend_yaml.autograd_key
     cpp_namespace = parsed_backend_yaml.cpp_namespace
     backend_indices = parsed_backend_yaml.backend_indices
 
     selector = SelectiveBuilder.get_nop_selector()
+
+
     if backend_key is not None:
         backend_dispatch_key: DispatchKey = backend_key
         autograd_dispatch_key: DispatchKey = autograd_key
@@ -393,53 +374,6 @@ def run(to_cpu: str, source_yaml: str, output_dir: str, dry_run: bool, impl_path
                     grouped_native_functions
                 )),
             })
-
-        if to_cpu.upper() in ['OFF', '0', 'NO', 'FALSE', 'F', 'N']:
-            return
-
-        backend_list = [backend_key, autograd_key, DispatchKey.Math, DispatchKey.CompositeExplicitAutograd]
-        for key in backend_list:
-            error_on_cpu_kernels(key, native_functions, backend_indices)
-
-        dispatch_key = true_backend
-        native_func_header = f'#include "torch_npu/csrc/aten/NPUNativeFunctions.h"\n'
-        fm.write_with_template(f'RegisterCPU.cpp', 'RegisterDispatchKey.cpp', lambda: {
-            'external_backend_headers': native_func_header,
-            'namespaced_headers': '',
-            'DispatchKey': dispatch_key,
-            'dispatch_namespace': dispatch_key.lower(),
-            'dispatch_helpers': dest.gen_registration_helpers(backend_indices[DispatchKey.CPU]),
-            'dispatch_namespaced_definitions': list(concat_map(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.NAMESPACED_DEFINITION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-            'dispatch_anonymous_definitions': list(concat_map(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.ANONYMOUS_DEFINITION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-            'dispatch_registrations': list(concat_map(
-                dest.RegisterDispatchKeyCPU(
-                    backend_indices[DispatchKey.CPU],
-                    Target.REGISTRATION,
-                    selector,
-                    rocm=False,
-                    cpp_namespace=cpp_namespace,
-                    class_method_name=f'NPUNativeFunctions'),
-                grouped_native_functions
-            )),
-        })
 
 if __name__ == '__main__':
     main()
