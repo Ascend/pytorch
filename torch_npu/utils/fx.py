@@ -22,7 +22,7 @@ import torch
 import torch.nn as nn
 from torch.nn.modules.module import _addindent
 from torch.fx import Node, map_arg
-from torch.fx.graph import _type_repr, _format_target, _format_args, get_qualified_name, magic_methods
+from torch.fx.graph import _type_repr, _format_target, _format_args, _get_qualified_name, magic_methods
 
 import torch_npu
 
@@ -119,7 +119,7 @@ def python_code(self, root_module: str) -> str:
                 body.append(f'{node.name} = \
                     {magic_methods[node.target.__name__].format(*(repr(a) for a in node.args))}')
                 return
-            qualified_name = get_qualified_name(node.target)
+            qualified_name = _get_qualified_name(node.target)
             register_modules_used(qualified_name)
             if qualified_name == 'getattr' and \
                 isinstance(node.args, tuple) and \
