@@ -27,8 +27,6 @@
 #include <forward_list>
 #include <tuple>
 #include <ATen/ATen.h>
-#include <torch/csrc/WindowsTorchApiMacro.h>
-#include <torch/csrc/autograd/profiler_utils.h>
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
 #ifndef _WIN32
 #include <ctime>
@@ -546,7 +544,6 @@ struct  ProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   void pushRange(
       const at::RecordFunction& fn,
       const bool record_cuda,
-      const char* msg = "",
       std::vector<std::vector<int64_t>>&& shapes = {});
 
   void popRange(const at::RecordFunction& fn, const bool record_cuda);
@@ -566,14 +563,15 @@ struct  ProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
   void reportMemoryUsage(
       void* /* unused */,
       int64_t alloc_size,
+      int64_t /* total_allocated, unused for legacy */,
+      int64_t /* total_reserved, unused for legacy */,
       c10::Device device) override;
 
   bool memoryProfilingEnabled() const override;
 
 protected:
   std::string getNvtxStr(
-      const at::StringView& name,
-      const char* msg,
+      const char* name,
       int64_t sequence_nr,
       const std::vector<std::vector<int64_t>>& shapes) const;
 
