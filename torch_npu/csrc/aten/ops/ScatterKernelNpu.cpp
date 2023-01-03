@@ -23,7 +23,7 @@ namespace native {
 
 at::Tensor& scatter_out_npu_nocheck(
     at::Tensor& result,
-    const at::Tensor& self,
+    at::Tensor& self,
     int64_t dim,
     const at::Tensor& index,
     const at::Tensor& src) {
@@ -38,6 +38,41 @@ at::Tensor& scatter_out_npu_nocheck(
   return result;
 }
 
+at::Tensor& scatter_npu_src_impl(
+    at::Tensor& result,
+    const at::Tensor& self_ex,
+    int64_t dim,
+    const at::Tensor& index_ex,
+    const at::Tensor& src_ex) {
+  at::Tensor self = self_ex;
+  at::Tensor result_ex = result;
+  at::ScalarType selfType = self.scalar_type();
+  if (selfType == at::ScalarType::Half) {
+    self = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
+    result_ex = NPUNativeFunctions::npu_dtype_cast(result_ex, at::ScalarType::Float);
+  }
+
+  at::Tensor index(index_ex);
+  if (index.scalar_type() == at::ScalarType::Half) {
+    index = NPUNativeFunctions::npu_dtype_cast(index, at::ScalarType::Float);
+  }
+
+  at::Tensor src(src_ex);
+  if (src.scalar_type() != self.scalar_type()) {
+    src = NPUNativeFunctions::npu_dtype_cast(src, self.scalar_type());
+  }
+  scatter_out_npu_nocheck(result_ex, self, dim, index, src);
+  
+  if(result_ex.scalar_type() != selfType){
+    result_ex = NPUNativeFunctions::npu_dtype_cast(result_ex, selfType);
+    result.copy_(result_ex);
+  } else {
+    result = result_ex;
+  }
+
+  return result;
+}
+
 at::Tensor& NPUNativeFunctions::scatter_out(
     const at::Tensor& self,
     int64_t dim,
@@ -48,7 +83,7 @@ at::Tensor& NPUNativeFunctions::scatter_out(
       {self, src, index},
       result,
       self);
-  scatter_out_npu_nocheck(result, self, dim, index, src);
+  scatter_npu_src_impl(result, self, dim, index, src);
   return result;
 }
 
@@ -58,14 +93,14 @@ at::Tensor& NPUNativeFunctions::scatter_out(
     const at::Tensor& index,
     const at::Scalar& value,
     at::Tensor& result) {
-  OpPreparation::CheckOut(
-      {self, index},
-      result,
-      self);
   at::Tensor srcTensor = scalar_to_tensor(value).to(at::ScalarType::Float);
   srcTensor = CalcuOpUtil::copy_tensor_host_to_device(srcTensor);
   at::Tensor srcTensor_broadcast = NPUNativeFunctions::npu_broadcast(srcTensor, array_to_small_vector(index.sizes()));
-  scatter_out_npu_nocheck(result, self, dim, index, srcTensor_broadcast);
+  OpPreparation::CheckOut(
+      {self, index, srcTensor_broadcast},
+      result,
+      self);
+  scatter_npu_src_impl(result, self, dim, index, srcTensor_broadcast);
   return result;
 }
 } // namespace native
