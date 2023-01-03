@@ -64,6 +64,8 @@ class TestScatter(TestCase):
 
             if cpu_input.dtype == torch.float16:
                 cpu_input = cpu_input.to(torch.float32)
+            if npu_input.dtype == torch.float16:
+                npu_input = npu_input.to(torch.float32)
             cpu_output = self.cpu_op_exec(item[1], item[0], index, cpu_input)
             npu_output = self.npu_op_exec(item[1], item[0], index, npu_input)
 
@@ -87,9 +89,9 @@ class TestScatter(TestCase):
             self.assertRtolEqual(cpu_output, npu_output)
 
     def test_scatter_debug(self):
-        a = np.random.uniform(-2,2,(31, 43, 41, 97)).astype(np.float16)
-        b = np.random.uniform(0,30,(31, 43, 41, 97)).astype(np.int32)
-        c = np.random.uniform(-2,2,(31, 43, 41, 97)).astype(np.float16)
+        a = np.random.uniform(-2, 2, (31, 43, 41, 97)).astype(np.float16)
+        b = np.random.uniform(0, 30, (31, 43, 41, 97)).astype(np.int32)
+        c = np.random.uniform(-2, 2, (31, 43, 41, 97)).astype(np.float16)
         ca = torch.from_numpy(a)
         cb = torch.from_numpy(b).long()
         cc = torch.from_numpy(c)
@@ -99,6 +101,18 @@ class TestScatter(TestCase):
         dim = 0
         cpu_output = torch.scatter(ca, dim, cb, cc)
         npu_output = torch.scatter(na, dim, nb, nc)
+        self.assertRtolEqual(cpu_output, npu_output.cpu())
+
+    def test_scatter_value(self):
+        a = np.random.uniform(-2, 2, (31, 43, 41, 97)).astype(np.float16)
+        b = np.random.uniform(0, 30, (31, 43, 41, 97)).astype(np.int32)
+        ca = torch.from_numpy(a)
+        cb = torch.from_numpy(b).long()
+        na = ca.npu()
+        nb = cb.npu()
+        dim = 0
+        cpu_output = torch.scatter(ca, dim, cb, 10)
+        npu_output = torch.scatter(na, dim, nb, 10)
         self.assertRtolEqual(cpu_output, npu_output.cpu())
 
 if __name__ == "__main__":
