@@ -283,7 +283,9 @@ void ATenGeBridge::CheckAndBuildGeOpForNode(
   const std::string op_type = node->GetOpType();
   TORCH_CHECK(
       ge::OperatorFactory::IsExistOp(op_type.c_str()),
-      "Cur op type: %s is not exit",
+      "Current operator, type: %s has no prototype definition in CANN, ",
+      "and it cannot be used in graph mode.",
+      "Try to use eager mode, or add definition in CANN to solve this problem.",
       op_type);
   std::string op_name = op_type + std::to_string(op_index++);
   ge::OperatorPtr ge_op = nullptr;
