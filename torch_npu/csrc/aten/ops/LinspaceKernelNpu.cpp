@@ -20,9 +20,7 @@
 
 namespace at_npu {
 namespace native {
-
-at::Tensor& NPUNativeFunctions::linspace_out(const at::Scalar& start, const at::Scalar& end, c10::optional<int64_t> step, at::Tensor& result) {
-  int64_t steps = step.has_value() ? step.value() : -65530;
+at::Tensor& NPUNativeFunctions::linspace_out(const at::Scalar& start, const at::Scalar& end, int64_t steps, at::Tensor& result) {
   TORCH_CHECK(steps >= 0, "number of steps must be non-negative");
 
   if (result.numel() != steps) {
@@ -53,13 +51,12 @@ at::Tensor& NPUNativeFunctions::linspace_out(const at::Scalar& start, const at::
 }
 
 at::Tensor NPUNativeFunctions::linspace(const at::Scalar& start,const at::Scalar& end,
-    c10::optional<int64_t> step, 
+    int64_t steps,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt
 ) {
-  int64_t steps = step.has_value()? step.value():-65530;
   TORCH_CHECK(steps >= 0, "number of steps must be non-negative");
 
   auto device =  device_or_default(device_opt);

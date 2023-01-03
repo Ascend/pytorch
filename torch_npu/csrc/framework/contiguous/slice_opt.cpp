@@ -63,8 +63,8 @@ private:
     if (view_strides[view_strides.size() - 1] != 1 &&
         FormatHelper::IsBaseFormatType(src_desc.npu_format_) &&
         view_strides.size() < base_strides.size() &&
-        at::prod_intlist(view_sizes) <
-            at::prod_intlist(base_sizes) / base_sizes[base_sizes.size() - 1]) {
+        c10::multiply_integers(view_sizes) <
+            c10::multiply_integers(base_sizes) / base_sizes[base_sizes.size() - 1]) {
       view_sizes.emplace_back(1);
       view_strides.emplace_back(1);
     }

@@ -43,7 +43,7 @@ at::Tensor& cross_out_npu_nocheck(
 at::Tensor& NPUNativeFunctions::cross_out(
     const at::Tensor& self,
     const at::Tensor& other,
-    c10::optional<int64_t> dim,
+    const int64_t dim,
     at::Tensor& result){
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor outputTensor = cross_dest_output(self, other);
@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::cross_out(
 at::Tensor NPUNativeFunctions::cross(
     const at::Tensor& self, 
     const at::Tensor& other,
-    c10::optional<int64_t> dim) {
+    const int64_t dim) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor outputTensor = cross_dest_output(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options(), outputTensor);

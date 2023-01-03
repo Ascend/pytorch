@@ -54,7 +54,7 @@ at::Tensor& NPUNativeFunctions::npu_reshape_out(
     copy_d2d_by_memcpy(
         result,
         src,
-        at::prod_intlist(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
+        c10::multiply_integers(torch_npu::NPUBridge::GetNpuStorageImpl(result)->get_npu_desc().storage_sizes_));
   }
   return result;
 }
