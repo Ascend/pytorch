@@ -226,7 +226,7 @@ namespace at_npu
     int ExecFunc(c10_npu::queue::QueueParas* in, aclrtStream stream)
     {
       auto cur_paras = static_cast<ExecuteParas* >(in->paramVal);
-      NPU_LOGD("Op %s Run.", cur_paras->opType.c_str());
+      NPU_LOGD("Op %s Run.", cur_paras->opType);
 
       aclError ret;
       bool reset_flag = false;
@@ -238,7 +238,7 @@ namespace at_npu
       if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
           at_npu::native::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
         ret = at_npu::native::AclGenGraphAndDumpForOp(
-            (cur_paras->opType).c_str(),
+            cur_paras->opType,
             cur_paras->paras.input_num,
             cur_paras->paras.input_desc,
             cur_paras->paras.input_data_buf,
@@ -255,7 +255,7 @@ namespace at_npu
         }
       }
       ret = aclopCompileAndExecute(
-          (cur_paras->opType).c_str(),
+          cur_paras->opType,
           cur_paras->paras.input_num,
           cur_paras->paras.input_desc,
           cur_paras->paras.input_data_buf,
@@ -356,6 +356,7 @@ namespace at_npu
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
+      dstPtr->paramCopyFinished = 1;
     }
 
     void ReleaseFunc(void* ptr, c10_npu::ReleaseQueue& releaseQueue)
@@ -388,8 +389,20 @@ namespace at_npu
     };
 
     int AsncExecFunc(void* data, uint32_t queueLen) {
-      auto queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
-      auto type = queueParam->paramType;
+      c10_npu::queue::QueueParas* queueParam;
+      QueueParamType type;
+      int count = 10;
+      while(count > 0) {
+        count--;        
+        queueParam = static_cast<c10_npu::queue::QueueParas* >(data);
+        type = queueParam->paramType;
+        if (queueParam->paramCopyFinished != 1) {  
+          TORCH_WARN_ONCE("queue param copy not finished, try get param again.");
+          usleep(10);
+        } else {
+          break;
+        }
+      }
       aclrtStream stream = queueParam->paramStream;
       auto ret = funcMap[type](queueParam, stream);
       return ret;
