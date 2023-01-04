@@ -13,16 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import inspect
 import json
+import os
 import stat
-
+import threading
 from datetime import datetime, timezone
 
+import numpy
 import torch
 
 import torch_npu
+from .initialize import step_schedule
 
 
 def get_time_stamp():
@@ -77,7 +79,8 @@ def dump_tensor_for_acc_cmp(x, prefix="", sample=True):
         else:
             dump_tensor_for_acc_cmp.call_number = dump_tensor_for_acc_cmp.call_number + 1
         prefix = f"{dump_tensor_for_acc_cmp.call_number}_{prefix}"
-        with os.fdopen(os.open(DumpUtil.get_dump_path(), os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
+        with os.fdopen(os.open(DumpUtil.get_dump_path(), os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR),
+                       "a") as f:
             if sample:
                 tensor_max = torch._C._VariableFunctionsClass.max(x).cpu().detach().float().numpy().tolist()
                 tensor_min = torch._C._VariableFunctionsClass.min(x).cpu().detach().float().numpy().tolist()
@@ -96,7 +99,7 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
         for i, item in enumerate(x):
             dump_tensor_for_overflow(item, dump_file_name, prefix="{}.{}".format(prefix, i))
     else:
-        with os.fdopen(os.open(dump_file_name, os.O_RDWR|os.O_CREAT, stat.S_IWUSR|stat.S_IRUSR), "a") as f:
+        with os.fdopen(os.open(dump_file_name, os.O_RDWR | os.O_CREAT, stat.S_IWUSR | stat.S_IRUSR), "a") as f:
             if isinstance(x, torch.Tensor):
                 save_tensor = x.contiguous().view(-1).cpu().detach().float().numpy().tolist()
                 json.dump([prefix, save_tensor, str(x.dtype), tuple(x.shape)], f)
@@ -106,13 +109,14 @@ def dump_tensor_for_overflow(x, dump_file_name, prefix=""):
 
 
 def wrap_acc_cmp_hook(name, **kwargs):
-
     sample = kwargs.get('sample', True)
     pid = kwargs.get('pid')
     if not pid:
         return RuntimeError("Not get the specified process pid.")
 
     def acc_cmp_hook(module, in_feat, out_feat):
+        if not step_schedule.is_step_enable():
+            return
         if pid == os.getpid():
             name_template = f"{name}" + "_{}"
             dump_tensor_for_acc_cmp(in_feat, name_template.format("input"), sample)
@@ -122,7 +126,6 @@ def wrap_acc_cmp_hook(name, **kwargs):
 
 
 def wrap_checkoverflow_hook(name, **kwargs):
-
     pid = kwargs.get('pid')
     if not pid:
         return RuntimeError("Not get the specified process pid.")
@@ -144,3 +147,75 @@ def wrap_checkoverflow_hook(name, **kwargs):
                 module_name, os.path.realpath(dump_file_name)))
 
     return checkoverflow_hook
+
+
+datadump_deque_thread = None
+
+
+def wrap_async_datadump_hook(name, **kwargs):
+    pid = kwargs.get('pid')
+    path = kwargs.get('path')
+    if not pid:
+        raise RuntimeError("Not get the specified process pid.")
+
+    def async_datadump_hook(module, in_feat, out_feat):
+        if pid != os.getpid():
+            return
+        if not step_schedule.is_step_enable():
+            return
+        if not datadump_deque_thread:
+            start_datadump_deque_thread(path)
+        name_template = f"{name}" + "_{}"
+        datadump_enque(in_feat, name_template.format("input"))
+        datadump_enque(out_feat, name_template.format("output"))
+
+    return async_datadump_hook
+
+
+def datadump_enque(x, prefix):
+    if isinstance(x, (tuple, list)) and x:
+        tensors = []
+        for i in x:
+            if isinstance(i, torch.Tensor):
+                tensors.append(i)
+        if tensors:
+            torch_npu.npu_enque_tensor(tensors, prefix)
+    elif isinstance(x, torch.Tensor):
+        torch_npu.npu_enque_tensor([x], prefix)
+
+
+def start_datadump_deque_thread(path):
+    device_id = torch_npu._C._npu_getDevice()
+    print("Start datadump deque thread. device id: " + str(device_id))
+    global datadump_deque_thread
+    datadump_deque_thread = threading.Thread(target=deque_and_dump, kwargs={'device_id': device_id, 'path': path})
+    datadump_deque_thread.daemon = True
+    datadump_deque_thread.start()
+
+
+def deque_and_dump(device_id, path):
+    torch_npu._C._npu_setDevice(device_id)
+    index = 0
+    if not path.endswith("/"):
+        path = path + "/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+    while True:
+        try:
+            tensorTuple = torch_npu._C._npu_deque_tensor()
+            length = len(tensorTuple)
+            info = str(tensorTuple[length - 1].decode())
+            infos = info.split('|')
+            opName = infos[0]
+            for i in range(length - 1):
+                t = tensorTuple[i].numpy()
+                metas = infos[i + 1].split('#')
+                savePath = path + str(index) + '_' + opName + str(i) + '_shape' + metas[0].replace(' ', '') \
+                           + '_stride' + metas[1].replace(' ', '') + '_offset[' + metas[2] + \
+                           ']_format[' + metas[3] + '].npy'
+                numpy.save(savePath, t)
+            print("Datadump: " + opName)
+        except Exception as e:
+            print("datadump deque thread exception", e)
+        finally:
+            index = index + 1
