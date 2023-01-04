@@ -33,32 +33,46 @@ DynamicInputRegFunc index_func =
 
 // Limitations of the aicore branch
 bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, const at::IntArrayRef masks) {
-  // The bool index only supports the input of 2D and 3D
-  // The Int64 index only supports the input of 1D and 2D
+  // The bool index only supports the input of 2D and 3D.
+  // The Int64 index only supports the input of 1D and 2D.
   if ((self.dim() == 1 && indices[0].scalar_type() == at::kBool) ||
       (self.dim() > 2 && indices[0].scalar_type() == at::kLong) ||
       (self.dim() > 3 && indices[0].scalar_type() == at::kBool)) {
     return false;
   }
 
-  // The input of the aicore branch does not support float64, Indices should start from dimension 0 of x and continuous
+  // The input of the aicore does not support float64.
+  // Indices should start from dimension 0 of x and continuous.
   if (self.scalar_type() == at::kDouble || masks[0] == 0 || masks.size() > indices.size()) {
     return false;
   }
 
+  if (indices.size() == 2) {
+    // The dtype of indices only support int64, when there are 2 indices.
+    if (indices[0].scalar_type() != at::kLong || indices[1].scalar_type() != at::kLong) {
+      return false;
+    }
+    // In this scenario, x'shape must be 2D, and indices's shape should be 1D,
+    // and the shapes of two indices should be the same.
+    if (self.dim() == 2 && indices[0].dim() == 1 && indices[1].dim() == 1 && 
+        indices[0].sizes() == indices[1].sizes()) {
+      return true;
+    }
+  }
+
   if (indices.size() < 2) {
-    // The dtype of indices can only be int64 or bool
+    // The dtype of indices can only be int64 or bool.
     if (indices[0].scalar_type() != at::kLong && indices[0].scalar_type() != at::kBool) {
       return false;
     }
-
     /**
-     * Only support one indices.
-     * When the dtype of indices is int64, the shape of the indices should be 1d,
-     * When the dtype of indices is bool, the shape of the indices should be the same as input,
+     * When the dtype of indices is int64, the shape of the indices should be 1d.
+     * When the dtype of indices is bool, support indices'shape is the same as x'shape.
+     * When the dtype of indices is bool, support indices'shape is 1D but x'shape should not be (n, 1).
      */
     if (indices[0].scalar_type() == at::kBool) {
-      if (indices[0].sizes() == self.sizes()) {
+      if (indices[0].sizes() == self.sizes() ||
+          (indices[0].size(0) == self.size(0) && indices[0].dim() == 1 && self.size(1) > 1)) {
         return true;
       }
     } else if (indices[0].dim() == 1) {
@@ -88,13 +102,29 @@ at::Tensor& index_out_nocheck_npu(
         .Attr("_exclude_engines", (string)"AiCore")
         .Run();
   } else {
-    cmd.Name("Index")
-        .Input(self)
-        .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-        .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
-    cmd.Input(indices[0], "indices0");
-    cmd.Output(result)
-        .Run();
+    if (indices.size() > 1) {
+      at::Tensor make_sizes_tensor = at::tensor(masks, self.options().dtype(at::kLong));
+      at::Tensor make_strides_tensor = at::tensor(result.sizes(), self.options().dtype(at::kLong));
+      cmd.Name("Index")
+          .Input(self, (string)"x")
+          .Input(make_sizes_tensor, (string)"indexed_sizes")
+          .Input(make_strides_tensor, (string)"indexed_strides");
+      for (int i = 0; i < indices.size(); i++) {
+        std::string name = "indices" + std::to_string(i);
+        cmd.Input(indices[i], name);
+      }
+      cmd.DynamicInputReg(index_func, {{indices.size(), 3}})
+          .Output(result)
+          .Run();
+    } else {
+      cmd.Name("Index")
+          .Input(self)
+          .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+          .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
+          .Input(indices[0], "indices0")
+          .Output(result)
+          .Run();
+    }
   }
   return result;
 }
