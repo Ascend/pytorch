@@ -14,11 +14,12 @@
 
 
 import itertools
-import torch
-import numpy as np
-import torch.nn.functional as F
-import torch_npu
 
+import numpy as np
+import torch
+import torch.nn.functional as F
+
+import torch_npu
 from torch_npu.testing.testcase import TestCase, run_tests
 from torch_npu.testing.decorator import graph_mode
 
