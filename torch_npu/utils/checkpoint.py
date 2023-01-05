@@ -118,9 +118,9 @@ class CheckpointFunction(torch.autograd.Function):
         # run backward() with only tensor that requires grad
         outputs_with_grad = []
         args_with_grad = []
-        for i in range(len(outputs)):
-            if outputs[i].requires_grad:
-                outputs_with_grad.append(outputs[i])
+        for i, output in enumerate(outputs):
+            if output.requires_grad:
+                outputs_with_grad.append(output)
                 args_with_grad.append(args[i])
         if len(outputs_with_grad) == 0:
             raise RuntimeError(
@@ -264,4 +264,3 @@ def add_checkpoint_methods():
 
     torch.utils.checkpoint.checkpoint = checkpoint
     torch.utils.checkpoint.checkpoint_sequential = checkpoint_sequential
-

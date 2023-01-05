@@ -15,14 +15,13 @@
 import expecttest
 
 import torch
-import torch_npu
-import torch_npu._C
-
 import numpy as np
 
+import torch_npu
+import torch_npu._C
 import torch_npu.npu.utils as utils
-
 from torch_npu.testing.testcase import TestCase, run_tests
+
 
 class TestCheckOverFlow(TestCase):
 
@@ -36,7 +35,7 @@ class TestCheckOverFlow(TestCase):
         else:
             rtn = utils.npu_check_over_flow(a)
             self.assertTrue(rtn)
-    
+
 
 if __name__ == "__main__":
     run_tests()

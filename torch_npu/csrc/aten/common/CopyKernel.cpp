@@ -120,11 +120,11 @@ void copy_between_host_and_device(
   } else {
     aclError error = aclrtSynchronizeStream(stream);
     auto ret = CalcuOpUtil::AclrtMemcpyWithModeSwitch(
-      std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
-      nbytes,
-      std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
-      nbytes,
-      kind);
+        std::make_pair(dst.storage().unsafeGetStorageImpl(), dst.storage_offset() * dst.itemsize()),
+        nbytes,
+        std::make_pair(src.storage().unsafeGetStorageImpl(), src.storage_offset() * src.itemsize()),
+        nbytes,
+        kind);
     C10_NPU_CHECK(ret);
     if (error != ACL_ERROR_NONE) {
       C10_NPU_SHOW_ERR_MSG();
