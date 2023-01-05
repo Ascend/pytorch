@@ -815,7 +815,7 @@ namespace at_npu
       if (c10_npu::option::OptionsManager::CheckQueueEnable())
       {
         ExecuteParas cur_paras;
-        cur_paras.opType = opName;
+        opName.copy(cur_paras.opType, opName.length() + 1);
         CalcuOpUtil::CreateAclTensorDescInfo(
             inputs, outputs, cur_paras.paras, opName, attrs);
         auto attrRes = CalcuOpUtil::CreateNpuAttrDesc(attrs);
