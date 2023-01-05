@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import wraps
+from functools import wraps, partialmethod
 
 import os
 import logging
@@ -45,7 +45,7 @@ def instantiate_tests(arg=None, **kwargs):
                 func_key = None
                 if k == "format":
                     test_name += ("_" + str(v))
-                if k == "dtype":
+                elif k == "dtype":
                     test_name += ("_" + str(v).split('.')[1])
                 for _func_key in func_args:
                     if k in _func_key:
@@ -75,6 +75,63 @@ def instantiate_tests(arg=None, **kwargs):
 
     return wrapper(arg)
 
+
+def gen_ops_testcase(cls, func, name, keys, value, op_info):
+    new_kwargs = {}
+    test_name = f'{func.__name__}_{name}'
+
+    for k, v in zip(keys, value):
+        if k == "npu_format":
+            test_name += ("_" + str(v))
+        elif k == "dtype":
+            test_name += ("_" + str(v).split('.')[1])
+        new_kwargs[k] = v
+
+    new_kwargs['op'] = op_info
+    new_func = partialmethod(func, **new_kwargs)
+
+    setattr(cls, test_name, new_func)
+    for decorator in op_info.get_decorators(cls.__name__, func.__name__, 'cpu', value[0]):
+        setattr(cls, test_name, decorator(new_func))
+
+
+def gen_op_input(testcase, func, op_info):
+    data = {
+        'dtype': func.dtypes if hasattr(func, "dtypes") else op_info.dtypesIfNPU, 
+        'npu_format': func.formats if hasattr(func, "formats") else op_info.formats
+    }
+
+    if 'test_variant_consistency_eager' in testcase:
+        if torch.float32 in op_info.dtypesIfNPU:
+            data['dtype'] = {torch.float32}
+        else:
+            data['dtype'] = {list(op_info.dtypesIfNPU)[-1]}
+
+    return data
+
+
+def instantiate_ops_tests(op_db):
+
+    def wrapper(cls):
+        testcases = [x for x in dir(cls) if x.startswith('test_')]
+        for testcase in testcases: 
+            if hasattr(cls, testcase):
+                func = getattr(cls, testcase)
+                for op_info in op_db:
+                    data = gen_op_input(testcase, func, op_info)
+                    keys = data.keys()
+                    values = [data.get(key) for key in keys]
+
+                    for value in itertools.product(*values):
+                        gen_ops_testcase(cls, func, op_info.name, keys, value, op_info)
+
+                delattr(cls, testcase)
+
+        return cls
+        
+    return wrapper
+
+
 def graph_mode(func):
     if os.getenv("GRAPH_MODE_TEST") == '1':
         logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -90,6 +147,7 @@ def graph_mode(func):
     def wrapper(*args, **kw):
         func(*args, **kw)
     return wrapper
+
 
 class Dtypes(object):
 
