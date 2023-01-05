@@ -289,8 +289,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::native_batch_norm(
         OpPreparation::ApplyTensor(running_var_tensor.sizes(),
             running_var_tensor.options().dtype(at::kFloat), self);
   } else {
-    save_mean = {};
-    save_invstd = {};
+    save_mean = at::empty({0}, self.options());
+    save_invstd = at::empty({0}, self.options());
   }
 
   // calculate the output result of the NPU

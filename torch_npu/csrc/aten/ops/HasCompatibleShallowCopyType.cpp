@@ -34,7 +34,7 @@ bool _has_compatible_shallow_copy_type(const at::Tensor &self,
   return (self_key == from_key) || (is_dense(self_key) && is_dense(from_key));
 }
 
-TORCH_LIBRARY_IMPL(aten, Math, m) {
+TORCH_LIBRARY_IMPL(aten, CatchAll, m) {
   m.impl("_has_compatible_shallow_copy_type",
          TORCH_FN(_has_compatible_shallow_copy_type));
 }
