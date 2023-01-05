@@ -51,15 +51,11 @@ namespace at_npu
         at::Scalar alpha)
     {
       auto unified_result = OpPreparation::binary_op_check(result, self, other, true);
-      if (other.dim() == 0)
-      {
+      if (other.dim() == 0 && !at_npu::key::isDeviceTensor(other)) {
         sub_scalar_out_npu(result, self, other.item(), alpha);
-      }
-      else
-      {
+      } else {
         at::Tensor otherMulResult = other;
-        if (!CalcuOpUtil::is_scalar_one(alpha))
-        {
+        if (!CalcuOpUtil::is_scalar_one(alpha)) {
           otherMulResult = at::mul(other, alpha);
         }
 
