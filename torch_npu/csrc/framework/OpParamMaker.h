@@ -251,7 +251,9 @@ namespace at_npu
       // export op execute params
       void ExportParams(ExecuteParas &params)
       {
-        params.opType = opName;
+        TORCH_CHECK(sizeof(ExecuteParas::opType) >= opName.length() + 1, "Too long Ascend IR Name: ", opName);
+        memset(params.opType, '\0', sizeof(params.opType));
+        opName.copy(params.opType, opName.length() + 1);
         params.attr = execParam.attr;
         // make params
         int inputNum = execParam.inDesc.size();
