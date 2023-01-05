@@ -32,5 +32,7 @@ def torch_device_guard(func):
             namedtuple_device = kwargs.get("device")
             if "type='npu'" in str(namedtuple_device):
                 kwargs['device'] = torch_npu.new_device(type=torch_npu.npu.native_device, index=namedtuple_device.index)
+        if kwargs and 'device' in kwargs and not kwargs['device']:
+            kwargs['device'] = 'cpu'
         return func(*args, **kwargs)
     return wrapper

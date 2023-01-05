@@ -14,20 +14,24 @@
 # limitations under the License.
 
 
+from typing import Optional
 from statistics import mode
 import warnings
 import logging
+
 import torch
 import torch.nn.functional as F
-
-from torch.nn.parameter import Parameter 
-from torch.nn.modules.batchnorm import _NormBase
+from torch import Tensor
+from torch.distributed.algorithms.join import Join
+from torch.nn.parameter import Parameter, UninitializedParameter, UninitializedBuffer
+from torch.nn.modules.batchnorm import _NormBase, _LazyNormBase
+from torch.nn.modules.module import Module
 from torch.nn.parallel._functions import _streams
 
+import torch_npu
+import torch_npu.distributed as dist
 from torch_npu.utils.syncbatchnorm import SyncBatchNorm as sync_batch_norm
 from torch_npu.utils.tensor_methods import torch_device_guard
-
-import torch_npu
 
 
 def npu(self, device=None):
@@ -163,55 +167,60 @@ def layernorm_forward(self, input: torch.Tensor) -> torch.Tensor:
 
 
 def ddp_forward(self, *inputs, **kwargs):
-    if self.ddp_uneven_inputs_config.ddp_join_enabled:
-        ones = torch.ones(
-            1, device=self.device
-        )
-        work = torch_npu.distributed.all_reduce(ones, group=self.process_group, async_op=True)
-        self.reducer._set_forward_pass_work_handle(
-            work, self.ddp_uneven_inputs_config.ddp_join_divide_by_initial_world_size
-        )
+    with torch.autograd.profiler.record_function("DistributedDataParallel.forward"):
+        if torch.is_grad_enabled() and self.require_backward_grad_sync:
+            self.num_iterations += 1
+            self.reducer.prepare_for_forward()
 
-    # Calling _rebuild_buckets before forward compuation,
-    # It may allocate new buckets before deallocating old buckets
-    # inside _rebuild_buckets. To save peak memory usage,
-    # call _rebuild_buckets before the peak memory usage increases
-    # during forward computation.
-    # This should be called only once during whole training period.
-    if self.reducer._rebuild_buckets():
-        logging.info("Reducer buckets have been rebuilt in this iteration.")
+        # Notify the join context that this process has not joined, if
+        # needed
+        work = Join.notify_join_context(self)
+        if work:
+            self.reducer._set_forward_pass_work_handle(
+                work, self._divide_by_initial_world_size
+            )
 
-    if self.require_forward_param_sync:
-        self._sync_params()
+        # Calling _rebuild_buckets before forward compuation,
+        # It may allocate new buckets before deallocating old buckets
+        # inside _rebuild_buckets. To save peak memory usage,
+        # call _rebuild_buckets before the peak memory usage increases
+        # during forward computation.
+        # This should be called only once during whole training period.
+        if torch.is_grad_enabled() and self.reducer._rebuild_buckets():
+            logging.info("Reducer buckets have been rebuilt in this iteration.")
+            self._has_rebuilt_buckets = True
 
-    if self.ddp_uneven_inputs_config.ddp_join_enabled:
-        # Notify joined ranks whether they should sync in backwards pass or not.
-        self._check_global_requires_backward_grad_sync(is_joined_rank=False)
-    # Note: module.device_type was builded from device.type("npu") inside Class Module
-    if self.device_ids and self.device_type != torch_npu.npu.npu_device:
-        if len(self.device_ids) == 1:
-            inputs, kwargs = self.to_kwargs(inputs, kwargs, self.device_ids[0])
-            output = self.module(*inputs[0], **kwargs[0])
-        else:
-            inputs, kwargs = self.scatter(inputs, kwargs, self.device_ids)
-            outputs = self.parallel_apply(self._module_copies[:len(inputs)], inputs, kwargs)
-            output = self.gather(outputs, self.output_device)
-    else:
+        # sync params according to location (before/after forward) user
+        # specified as part of hook, if hook was specified.
+        buffer_hook_registered = hasattr(self, 'buffer_hook')
+        if self._check_sync_bufs_pre_fwd():
+            self._sync_buffers()
+
+        if self._join_config.enable:
+            # Notify joined ranks whether they should sync in backwards pass or not.
+            self._check_global_requires_backward_grad_sync(is_joined_rank=False)
+
         output = self.module(*inputs, **kwargs)
 
-    if torch.is_grad_enabled() and self.require_backward_grad_sync:
-        self.require_forward_param_sync = True
-        # We'll return the output object verbatim since it is a freeform
-        # object. We need to find any tensors in this object, though,
-        # because we need to figure out which parameters were used during
-        # this forward pass, to ensure we short circuit reduction for any
-        # unused parameters. Only if `find_unused_parameters` is set.
-        if self.find_unused_parameters:
-            self.reducer.prepare_for_backward(list(torch.nn.parallel.distributed._find_tensors(output)))
+        # sync params according to location (before/after forward) user
+        # specified as part of hook, if hook was specified.
+        if self._check_sync_bufs_post_fwd():
+            self._sync_buffers()
+
+        if torch.is_grad_enabled() and self.require_backward_grad_sync:
+            self.require_forward_param_sync = True
+            # We'll return the output object verbatim since it is a freeform
+            # object. We need to find any tensors in this object, though,
+            # because we need to figure out which parameters were used during
+            # this forward pass, to ensure we short circuit reduction for any
+            # unused parameters. Only if `find_unused_parameters` is set.
+            if self.find_unused_parameters and not self.static_graph:
+                # Do not need to populate this for static graph.:
+                self.reducer.prepare_for_backward(list(torch.nn.parallel.distributed._find_tensors(output)))
+            else:
+                self.reducer.prepare_for_backward([])
         else:
-            self.reducer.prepare_for_backward([])
-    else:
-        self.require_forward_param_sync = False
+            self.require_forward_param_sync = False
 
     return output
 
@@ -296,6 +305,7 @@ def pad_packed_sequence(sequence, batch_first=False, padding_value=0.0, total_le
         return padded_output.index_select(batch_dim, unsorted_indices), lengths[unsorted_indices]
     return padded_output, lengths
 
+
 def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
     # currently only NPU or GPU input is supported
     if (not input1.is_cuda) and (not input1.is_npu):
@@ -361,8 +371,154 @@ def syncbn_forward(self, input1: torch.Tensor) -> torch.Tensor:
             input1, self.weight, self.bias, running_mean, running_var,
             self.eps, exponential_average_factor, process_group, world_size)
 
+
+def DDPJoinHook__init__(self, ddp, divide_by_initial_world_size):
+    """
+    Sets config variables for internal usage.
+    """
+    assert isinstance(ddp, DistributedDataParallel), (
+        "DDP join hook requires passing in a DistributedDataParallel "
+        "instance as the state"
+    )
+    self.ddp = ddp
+    self.ddp._divide_by_initial_world_size = divide_by_initial_world_size
+    super().__init__()
+
+
+def ddp_ddp_init_helper(
+    self, parameters, expect_sparse_gradient, param_to_name_mapping):
+    """
+    Initialization helper function that does the following:
+    (1) bucketing the parameters for reductions
+    (2) resetting the bucketing states
+    (3) registering the grad hooks
+    (4) Logging constructin-time DDP logging data
+    (5) passing a handle of DDP to SyncBatchNorm Layer
+    """
+    self.num_iterations = 0
+    # The bucket size limit is specified in the constructor.
+    # Additionally, we allow for a single small bucket for parameters
+    # that are defined first, such that their gradients don't spill into
+    # a much larger bucket, adding unnecessary latency after gradient
+    # computation finishes. Experiments showed 1MB is a reasonable value.
+    bucket_indices, per_bucket_size_limits = dist._compute_bucket_assignment_by_size(
+        parameters,
+        [dist._DEFAULT_FIRST_BUCKET_BYTES, self.bucket_bytes_cap],
+        expect_sparse_gradient,
+    )
+
+    # Note: reverse list of buckets because we want to approximate the
+    # order in which their gradients are produced, and assume they
+    # are used in the forward pass in the order they are defined.
+    self.reducer = dist.Reducer(
+        parameters,
+        list(reversed(bucket_indices)),
+        list(reversed(per_bucket_size_limits)),
+        self.process_group,
+        expect_sparse_gradient,
+        self.bucket_bytes_cap,
+        self.find_unused_parameters,
+        self.gradient_as_bucket_view,
+        param_to_name_mapping,
+        # User can set dist._DEFAULT_FIRST_BUCKET_BYTES to tune DDP first
+        # bucket.
+        dist._DEFAULT_FIRST_BUCKET_BYTES
+    )
+
+    # don't support logger
+    self.logger = None
+
+    has_sync_bn = False
+    for submodule in self.module.modules():
+        if isinstance(submodule, torch.nn.SyncBatchNorm):
+            has_sync_bn = True
+            break
+
+    # passing a handle to torch.nn.SyncBatchNorm layer
+    self._passing_sync_batchnorm_handle(self.module)
+
+
+def ddp__setstate__(self, state):
+    # If serializable, then the process group should be the default one
+    self.process_group = torch_npu.distributed.distributed_c10d._get_default_group()
+    Module.__setstate__(self, state)
+    self.__dict__.setdefault("require_forward_param_sync", True)
+    self.__dict__.setdefault("require_backward_grad_sync", True)
+    parameters, expect_sparse_gradient = self._build_params_for_reducer()
+    # In debug mode, build a mapping of parameter index -> parameter.
+    if dist.get_debug_level() != dist.DebugLevel.OFF:
+        param_to_name_mapping = self._build_param_to_name_mapping(parameters)
+    else:
+        param_to_name_mapping = {}
+    # Builds reducer
+    self._ddp_init_helper(parameters, expect_sparse_gradient, param_to_name_mapping)
+    if self.static_graph:
+        self.reducer._set_static_graph()
+
+
+def ddp_register_builtin_comm_hook(self, comm_hook_type):
+    r"""
+    Registers a built-in communication hook that specifies how DDP
+    aggregates gradients across multiple workers.
+    The built-in hooks aim to provide efficient C++ implementations for certain hooks,
+    which might not be as efficient if implemented in Python using a Python communication hook.
+
+    Args:
+        comm_hook_type (dist.BuiltinCommHookType): type of communication hook, such as ALLREDUCE, FP16_COMPRESS, etc.
+
+    .. warning ::
+        DDP communication hook can only be registered once and should be registered
+        before calling backward.
+
+    Example::
+        Below is an example of a FP16 compression where gradients are
+        compressed into 16-bit floating-point numbers before allreduce, and
+        then decompressed after allreduce.
+
+        >>> ddp._register_builtin_comm_hook(dist.BuiltinCommHookType.FP16_COMPRESS)
+
+    """
+    dist._register_builtin_comm_hook(self.reducer, comm_hook_type)
+
+
+def ddp_get_ddp_logging_data(self):
+    r"""
+    This interface can be called after DistributedDataParallel() is
+    constructed. It returns a dictionary of logging data. It could help
+    for debugging and analysis. The loggind data includes DistributedDataParallel
+    constructor input parameters, some internal states of DistributedDataParallel
+    and performance metrics. Simply print the dictorinary and see what
+    these metrics are.
+    This is a prototype interface and subject to change in the future.
+    """
+    raise AttributeError('ddp is not supported get_ddp_logging_data')
+
+
+def ddp_set_static_graph(self):
+    """
+    It is recommended to set static graph in the DDP constructor, which will
+    call this private API internally.
+    """
+    # If self.static_graph has been set, no need to set it again
+    if self.static_graph:
+        warnings.warn(
+            "You've set static_graph to be True, no need to set it again.")
+        return
+    self.static_graph = True
+    self.reducer._set_static_graph()
+    if self.find_unused_parameters:
+        warnings.warn(
+            "You passed find_unused_parameters=true to DistributedDataParallel, "
+            "`_set_static_graph` will detect unused parameters automatically, so "
+            "you do not need to set find_unused_parameters=true, just be sure these "
+            "unused parameters will not change during training loop while calling "
+            "`_set_static_graph`."
+        )
+
+
 def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float = 0.1, affine: bool = True,
-                    track_running_stats: bool = True) -> None:
+                    track_running_stats: bool = True, device=None, dtype=None) -> None:
+    factory_kwargs = {'device': device, 'dtype': dtype}
     super(_NormBase, self).__init__()
     self.num_features = num_features
     self.eps = eps
@@ -370,24 +526,30 @@ def _normbase_init_(self, num_features: int, eps: float = 1e-5, momentum: float 
     self.affine = affine
     self.track_running_stats = track_running_stats
     if self.affine:
-        self.weight = Parameter(torch.Tensor(num_features))
-        self.bias = Parameter(torch.Tensor(num_features))
+        self.weight = Parameter(torch.empty(num_features, **factory_kwargs))
+        self.bias = Parameter(torch.empty(num_features, **factory_kwargs))
     else:
         self.register_parameter('weight', None)
         self.register_parameter('bias', None)
     if self.track_running_stats:
-        self.register_buffer('running_mean', torch.zeros(num_features))
-        self.register_buffer('running_var', torch.ones(num_features))
-        self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.int32))
+        self.register_buffer('running_mean', torch.zeros(num_features, **factory_kwargs))
+        self.register_buffer('running_var', torch.ones(num_features, **factory_kwargs))
+        self.running_mean: Optional[Tensor]
+        self.running_var: Optional[Tensor]
+        self.register_buffer('num_batches_tracked',
+                                torch.tensor(0, dtype=torch.int32,
+                                            **{k: v for k, v in factory_kwargs.items() if k != 'dtype'}))
+        self.num_batches_tracked: Optional[Tensor]
     else:
-        self.register_parameter('running_mean', None)
-        self.register_parameter('running_var', None)
-        self.register_parameter('num_batches_tracked', None)
+        self.register_buffer('running_mean', None)
+        self.register_buffer('running_var', None)
+        self.register_buffer('num_batches_tracked', None)
     self.reset_parameters()
+
 
 def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
                                     missing_keys, unexpected_keys, error_msgs):
-    version = local_metadata.get('version', None)
+    version = local_metadata.get("version", None)
 
     if (version is None or version < 2) and self.track_running_stats:
         # at version 2: added num_batches_tracked buffer
@@ -400,6 +562,7 @@ def _normbase__load_from_state_dict(self, state_dict, prefix, local_metadata, st
         state_dict, prefix, local_metadata, strict,
         missing_keys, unexpected_keys, error_msgs)
 
+
 def _get_stream(device: int):
     """Gets a background stream for copying between CPU and NPU"""
     global _streams
@@ -411,15 +574,42 @@ def _get_stream(device: int):
         _streams[device] = torch.npu.Stream(device)
     return _streams[device]
 
+
+def _lazynormbase__init__(self, eps=1e-5, momentum=0.1, affine=True, track_running_stats=True,
+                          device=None, dtype=None) -> None:
+    factory_kwargs = {'device': device, 'dtype': dtype}
+    super(_LazyNormBase, self).__init__(
+        # affine and track_running_stats are hardcoded to False to
+        # avoid creating tensors that will soon be overwritten.
+        0, eps, momentum, False, False, **factory_kwargs)
+    self.affine = affine
+    self.track_running_stats = track_running_stats
+    if self.affine:
+        self.weight = UninitializedParameter(**factory_kwargs)
+        self.bias = UninitializedParameter(**factory_kwargs)
+    if self.track_running_stats:
+        self.running_mean = UninitializedBuffer(**factory_kwargs)
+        self.running_var = UninitializedBuffer(**factory_kwargs)
+        self.num_batches_tracked = torch.tensor(
+            0, dtype=torch.int32, **{k: v for k, v in factory_kwargs.items() if k != 'dtype'})
+
+
 def apply_module_patch():
     torch.nn.Module.npu = npu
     torch.nn.Module.to = to
     torch.nn.Module.cast_weight = cast_weight
     torch.nn.LayerNorm.forward = layernorm_forward
+    torch.nn.parallel.distributed._DDPJoinHook.__init__ = DDPJoinHook__init__
+    torch.nn.parallel.DistributedDataParallel.__setstate__ = ddp__setstate__
+    torch.nn.parallel.DistributedDataParallel._ddp_init_helper = ddp_ddp_init_helper
+    torch.nn.parallel.DistributedDataParallel._get_ddp_logging_data = ddp_get_ddp_logging_data
+    torch.nn.parallel.DistributedDataParallel._register_builtin_comm_hook = ddp_register_builtin_comm_hook
+    torch.nn.parallel.DistributedDataParallel._set_static_graph = ddp_set_static_graph
     torch.nn.parallel.DistributedDataParallel.forward = ddp_forward
     torch.nn.modules.rnn.LSTM.forward = lstm_forward
     torch.nn.utils.rnn.pad_packed_sequence = pad_packed_sequence
     torch.nn.modules.batchnorm.SyncBatchNorm.forward = syncbn_forward
     torch.nn.modules.batchnorm._NormBase.__init__ = _normbase_init_
     torch.nn.modules.batchnorm._NormBase._load_from_state_dict = _normbase__load_from_state_dict
+    torch.nn.modules.batchnorm._LazyNormBase.__init__ = _lazynormbase__init__
     torch.nn.parallel._functions._get_stream = _get_stream
