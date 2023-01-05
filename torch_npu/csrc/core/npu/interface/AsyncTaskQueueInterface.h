@@ -11,7 +11,7 @@ struct CopyParas {
   size_t dstLen = 0;
   void *src = nullptr;
   size_t srcLen = 0;
-  aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
+  aclrtMemcpyKind kind = RESERVED;
   void Copy(CopyParas& other);
 };
 
@@ -42,6 +42,7 @@ struct QueueParas {
   QueueParas(QueueParamType type, size_t len, void *val) : paramType(type), paramLen(len), paramVal(val) {}
   aclrtStream paramStream = nullptr;
   QueueParamType paramType = COMPILE_AND_EXECUTE;
+  int paramCopyFinished = 0;
   size_t paramLen = 0;
   void* paramVal = nullptr;
 };
