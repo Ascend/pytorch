@@ -116,7 +116,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::b
   at::Tensor grad_weight_;
   at::Tensor grad_bias_;
 
-  at::Tensor weight_ = weight.defined() ? weight : at::native::ones({n_input}, self.options().dtype(
+  at::Tensor weight_ = weight.defined() ? weight : at::ones({n_input}, self.options().dtype(
       isFullyFp16 ? at::kHalf : at::kFloat));
 
   if (input_g) {

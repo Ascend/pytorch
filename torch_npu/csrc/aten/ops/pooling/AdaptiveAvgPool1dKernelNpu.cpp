@@ -28,14 +28,14 @@ static void check1d(
 }
 
 at::Tensor NPUNativeFunctions::adaptive_avg_pool1d(const at::Tensor& self, at::IntArrayRef output_size) {
-  at::checkDim("adaptive_avg_pool1d", at::TensorArg(self, "self", 1), 3);
+  at::checkDimRange("adaptive_avg_pool1d", at::TensorArg(self, "self", 1), 2, 4 /* exclusive */);
   check1d("adaptive_avg_pool1d", "output_size", output_size);
-// construct the output tensor of the NPU
+
   auto output = NPUNativeFunctions::adaptive_avg_pool2d(
-      self.unsqueeze(2),
+      self.unsqueeze(-2),
       {1, output_size[0]});
 
-  return output.squeeze(2);
+  return output.squeeze(-2);
 }
 
 } // namespace native
