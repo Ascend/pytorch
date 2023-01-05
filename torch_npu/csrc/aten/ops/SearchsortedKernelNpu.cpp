@@ -68,7 +68,7 @@ at::Tensor NPUNativeFunctions::searchsorted(
 
 at::Tensor NPUNativeFunctions::searchsorted(
     const at::Tensor& sorted_sequence,
-    at::Scalar self,
+    const at::Scalar& self,
     bool out_int32,
     bool right) {
   at::ScalarType scalar_type = out_int32 ? at::kInt : at::kLong;

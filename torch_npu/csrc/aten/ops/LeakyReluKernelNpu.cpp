@@ -31,7 +31,7 @@ at::Tensor& leaky_relu_out_nocheck(at::Tensor& result, const at::Tensor& self, a
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::leaky_relu_out(const at::Tensor& self, at::Scalar negval, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::leaky_relu_out(const at::Tensor& self, const at::Scalar& negval, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -48,14 +48,14 @@ at::Tensor& NPUNativeFunctions::leaky_relu_out(const at::Tensor& self, at::Scala
   return result;
 }
 
-at::Tensor NPUNativeFunctions::leaky_relu(const at::Tensor& self, at::Scalar negval) {
+at::Tensor NPUNativeFunctions::leaky_relu(const at::Tensor& self, const at::Scalar& negval) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   leaky_relu_out_nocheck(result, self, negval);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::leaky_relu_(at::Tensor& self, at::Scalar neg_val) {
+at::Tensor& NPUNativeFunctions::leaky_relu_(at::Tensor& self, const at::Scalar& neg_val) {
   NPUNativeFunctions::leaky_relu_out(self, neg_val, self);
 
   return self;

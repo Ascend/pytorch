@@ -81,7 +81,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::gt_out(const at::Tensor &self, at::Scalar other, at::Tensor &result)
+    at::Tensor &NPUNativeFunctions::gt_out(const at::Tensor &self, const at::Scalar& other, at::Tensor &result)
     {
       at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
       auto outputSize = formatCastOfSelf.sizes();
@@ -114,7 +114,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::gt(const at::Tensor &self, at::Scalar other)
+    at::Tensor NPUNativeFunctions::gt(const at::Tensor &self, const at::Scalar& other)
     {
       at::Tensor formatCastOfSelf = OpPreparation::CastBackToOriFormat(self);
       // calculate the output size
@@ -160,7 +160,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::gt_(at::Tensor &self, at::Scalar other)
+    at::Tensor &NPUNativeFunctions::gt_(at::Tensor &self, const at::Scalar& other)
     {
       OpPreparation::CastBackToOriFormat(self);
       c10::SmallVector<at::Tensor, N> inputs = {self};

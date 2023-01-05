@@ -36,7 +36,7 @@ at::Tensor& remainder_out_scalar_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::remainder_out(
     const at::Tensor& self,
-    const at::Scalar other,
+    const at::Scalar& other,
     at::Tensor& result) {
   OpPreparation::CheckOut({self}, result, self);
   remainder_out_scalar_npu_nocheck(result, self, other);
@@ -99,7 +99,7 @@ at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, const at::Tenso
   return result;
 }
 
-at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::remainder(const at::Tensor& self, const at::Scalar& other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
@@ -126,7 +126,7 @@ at::Tensor& NPUNativeFunctions::remainder_(at::Tensor& self, const at::Tensor& o
 }
 
 
-at::Tensor& NPUNativeFunctions::remainder_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::remainder_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = remainder_out_scalar_npu_nocheck(contiguousSelf, contiguousSelf, other);

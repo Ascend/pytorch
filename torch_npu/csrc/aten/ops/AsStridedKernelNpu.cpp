@@ -103,7 +103,7 @@ at::Tensor& NPUNativeFunctions::npu_stride_copy_out(
     const at::Tensor& self,
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
-    c10::Scalar storage_offset,
+    const c10::Scalar& storage_offset,
     at::Tensor& result) {
   stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
   return result;
@@ -113,7 +113,7 @@ at::Tensor NPUNativeFunctions::npu_stride_copy(
     const at::Tensor& self,
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
-    c10::Scalar storage_offset) {
+    const c10::Scalar& storage_offset) {
   // AsStrided OP only supports ND input
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       shape, self.options(), ACL_FORMAT_ND);

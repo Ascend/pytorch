@@ -39,7 +39,7 @@ at::Tensor& bitwise_or_out_npu_nocheck(
 
 at::Tensor& NPUNativeFunctions::bitwise_or_out(
     const at::Tensor& self,
-    const at::Scalar other,
+    const at::Scalar& other,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -116,7 +116,7 @@ at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Tens
 
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
-  // construct the output Tensor of the NPU
+  // construct the output Tensor of the NPUitwiseOrKerne
   at::Tensor result = OpPreparation::ApplyTensor(outputTensor, outputSize);
   // calculate the output result of the NPU
   bitwise_or_out_npu_nocheck(result, self, other);
@@ -124,7 +124,7 @@ at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Tens
   return result;
 }
 
-at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
   // calculate the output result of the NPU

@@ -37,8 +37,8 @@ at::Tensor& softplus_out_nocheck(
 
 at::Tensor& NPUNativeFunctions::softplus_out(
     const at::Tensor& self,
-    at::Scalar beta,
-    at::Scalar threshold,
+    const at::Scalar& beta,
+    const at::Scalar& threshold,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -49,8 +49,8 @@ at::Tensor& NPUNativeFunctions::softplus_out(
 
 at::Tensor NPUNativeFunctions::softplus(
     const at::Tensor& self,
-    at::Scalar beta,
-    at::Scalar threshold) {
+    const at::Scalar& beta,
+    const at::Scalar& threshold) {
   auto outputSize = input_same_output_size(self);
   at::Tensor result = OpPreparation::ApplyTensor(
       outputSize, self.options(), self);

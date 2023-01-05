@@ -54,8 +54,8 @@ at::Tensor NPUNativeFunctions::npu_one_hot(
     const at::Tensor& self,
     int64_t axis,
     int64_t depth,
-    at::Scalar on_value,
-    at::Scalar off_value) {
+    const at::Scalar& on_value,
+    const at::Scalar& off_value) {
   auto outputSize = array_to_small_vector(self.sizes());
   outputSize.emplace_back(depth);
 

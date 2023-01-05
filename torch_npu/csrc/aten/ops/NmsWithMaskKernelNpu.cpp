@@ -41,7 +41,7 @@ tuple<at::Tensor&, at::Tensor&, at::Tensor&> nms_with_mask_npu_nocheck(
 
 tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_nms_with_mask(
     const at::Tensor& input,
-    at::Scalar iou_threshold) {
+    const at::Scalar& iou_threshold) {
   auto outputSizes = nms_with_mask_npu_output_size(input);
   at::Tensor boxes = OpPreparation::ApplyTensor(input, std::get<0>(outputSizes));
   at::Tensor idx = OpPreparation::ApplyTensor(std::get<1>(outputSizes), input.options().dtype(at::kInt), input);

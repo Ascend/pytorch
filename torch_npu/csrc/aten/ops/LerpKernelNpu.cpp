@@ -75,7 +75,7 @@ at::Tensor& NPUNativeFunctions::lerp_out(
 at::Tensor& NPUNativeFunctions::lerp_out(
     const at::Tensor& self, 
     const at::Tensor& end, 
-    at::Scalar weight, 
+    const at::Scalar& weight,
     at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
@@ -97,7 +97,7 @@ at::Tensor NPUNativeFunctions::lerp(const at::Tensor& start, const at::Tensor& e
   return result;
 }
 
-at::Tensor NPUNativeFunctions::lerp(const at::Tensor& start, const at::Tensor& end, at::Scalar weight) {
+at::Tensor NPUNativeFunctions::lerp(const at::Tensor& start, const at::Tensor& end, const at::Scalar& weight) {
   at::Tensor result = OpPreparation::ApplyTensor(start);
   lerp_out_npu_nocheck(start, end, weight, result);
   return result;
@@ -109,7 +109,7 @@ at::Tensor& NPUNativeFunctions::lerp_(at::Tensor& self, const at::Tensor& end, c
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::lerp_(at::Tensor& self, const at::Tensor& end, at::Scalar weight) {
+at::Tensor& NPUNativeFunctions::lerp_(at::Tensor& self, const at::Tensor& end, const at::Scalar& weight) {
   OpPreparation::CheckMemory({self, end}, {self});
   lerp_out(self, end, weight, self);
   return self;

@@ -46,7 +46,7 @@ at::Tensor& and_out_npu(at::Tensor& result, const at::Tensor& self, const at::Te
   return result;
 }
 
-at::Tensor& and_out_npu(at::Tensor& result, const at::Tensor& self, const at::Scalar other) {
+at::Tensor& and_out_npu(at::Tensor& result, const at::Tensor& self, const at::Scalar& other) {
   OpCommand cmd;
   cmd.Name("LogicalAnd")
       .Input(self)
@@ -56,7 +56,7 @@ at::Tensor& and_out_npu(at::Tensor& result, const at::Tensor& self, const at::Sc
   return result;
 }
 
-at::Tensor& or_out_npu(at::Tensor& result, const at::Tensor& self, const at::Scalar other) {
+at::Tensor& or_out_npu(at::Tensor& result, const at::Tensor& self, const at::Scalar& other) {
   OpCommand cmd;
   cmd.Name("LogicalOr")
       .Input(self)
@@ -106,7 +106,7 @@ at::Tensor& xor_out_npu(
 at::Tensor& xor_out_npu(
     at::Tensor& result,
     const at::Tensor& self,
-    const at::Scalar other) {
+    const at::Scalar& other) {
   // executing the NPU operator
   if (self.dtype() == at::ScalarType::Bool) {
     auto not_self_result = OpPreparation::ApplyTensor(self);
@@ -152,7 +152,7 @@ at::Tensor NPUNativeFunctions::__xor__(const at::Tensor& self, const at::Tensor&
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__xor__(const at::Tensor& self, const at::Scalar other) {
+at::Tensor NPUNativeFunctions::__xor__(const at::Tensor& self, const at::Scalar& other) {
   // construct the output tensor of the NPU
   at::Tensor result = OpPreparation::ApplyTensor(self);
 

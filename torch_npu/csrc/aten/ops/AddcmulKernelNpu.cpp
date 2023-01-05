@@ -25,7 +25,7 @@ at::Tensor& addcmul_out_npu_nocheck(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    const at::Scalar value) {
+    const at::Scalar& value) {
   OpCommand cmd;
 
   cmd.Name("Addcmul")
@@ -43,7 +43,7 @@ at::Tensor& NPUNativeFunctions::addcmul_out(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    const at::Scalar value,
+    const at::Scalar& value,
     at::Tensor& result) {
   auto mulOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), mulOutputSize);
@@ -65,7 +65,7 @@ at::Tensor NPUNativeFunctions::addcmul(
     const at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    at::Scalar value) {
+    const at::Scalar& value) {
   auto mulOutputSize = broadcast_ops_npu_output_size(tensor1, tensor2);
   auto outputSize = broadcast_ops_npu_output_size(self.sizes(), mulOutputSize);
 
@@ -80,7 +80,7 @@ at::Tensor& NPUNativeFunctions::addcmul_(
     at::Tensor& self,
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    at::Scalar value) {
+    const at::Scalar& value) {
   OpPreparation::CheckMemory({self}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

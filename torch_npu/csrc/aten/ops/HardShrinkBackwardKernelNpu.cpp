@@ -37,7 +37,7 @@ at::Tensor& hardshrink_backward_nocheck(
 at::Tensor NPUNativeFunctions::hardshrink_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar lambd) {
+    const at::Scalar& lambd) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(self);
   // calculate the output result of the NPU
   hardshrink_backward_nocheck(grad_input, grad_output, self, lambd);

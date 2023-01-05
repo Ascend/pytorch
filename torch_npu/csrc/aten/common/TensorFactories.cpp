@@ -124,7 +124,7 @@ namespace at_npu
       }
     } // namespace
 
-    at::Tensor NPUNativeFunctions::scalar_tensor(c10::Scalar s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
+    at::Tensor NPUNativeFunctions::scalar_tensor(const c10::Scalar& s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
                                                  c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
       at::tracer::impl::NoTracerDispatchMode tracer_guard;
       at::AutoNonVariableTypeMode non_var_type_mode(true);
@@ -761,7 +761,7 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::full(
         c10::IntArrayRef size,
-        c10::Scalar fill_value,
+        const c10::Scalar& fill_value,
         c10::optional<at::ScalarType> dtype_opt,
         c10::optional<at::Layout> layout_opt,
         c10::optional<at::Device> device_opt,

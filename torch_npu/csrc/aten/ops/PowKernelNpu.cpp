@@ -80,7 +80,7 @@ namespace at_npu
     }
 
     // pow.Tensor_Scalar_out
-    at::Tensor &NPUNativeFunctions::pow_out(const at::Tensor &self, at::Scalar exp, at::Tensor &result)
+    at::Tensor &NPUNativeFunctions::pow_out(const at::Tensor &self, const at::Scalar& exp, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {self},
@@ -95,7 +95,7 @@ namespace at_npu
     }
 
     // pow.Scalar_out
-    at::Tensor &NPUNativeFunctions::pow_out(at::Scalar self, const at::Tensor &exp, at::Tensor &result)
+    at::Tensor &NPUNativeFunctions::pow_out(const at::Scalar& self, const at::Tensor &exp, at::Tensor &result)
     {
       OpPreparation::CheckOut(
           {exp},
@@ -118,14 +118,14 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::pow(const at::Tensor &self, at::Scalar exp)
+    at::Tensor NPUNativeFunctions::pow(const at::Tensor &self, const at::Scalar& exp)
     {
       at::Tensor result = OpPreparation::ApplyTensor(self);
       pow_tensor_scalar_out_npu_nocheck(self, exp, result);
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::pow(at::Scalar self, const at::Tensor &exp)
+    at::Tensor NPUNativeFunctions::pow(const at::Scalar& self, const at::Tensor &exp)
     {
       // calculate the output size
       auto outputSize = input_same_output_size(exp);
@@ -144,7 +144,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::pow_(at::Tensor &self, at::Scalar exp)
+    at::Tensor &NPUNativeFunctions::pow_(at::Tensor &self, const at::Scalar& exp)
     {
       NPUNativeFunctions::pow_out(self, exp, self);
       return self;

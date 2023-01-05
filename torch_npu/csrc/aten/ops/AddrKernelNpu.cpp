@@ -21,8 +21,8 @@ at::Tensor& NPUNativeFunctions::addr_out(
     const at::Tensor& self,
     const at::Tensor& vec1,
     const at::Tensor& vec2,
-    at::Scalar beta,
-    at::Scalar alpha,
+    const at::Scalar& beta,
+    const at::Scalar& alpha,
     at::Tensor& result) {
   NpuUtils::check_1d(vec1, "vec1", "addr");
   NpuUtils::check_1d(vec2, "vec2", "addr");
@@ -46,8 +46,8 @@ at::Tensor NPUNativeFunctions::addr(
     const at::Tensor& self,
     const at::Tensor& vec1,
     const at::Tensor& vec2,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   auto outputSize = addr_npu_output_size(self, vec1, vec2, beta, alpha);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   addr_out(self, vec1, vec2, beta, alpha, result);
@@ -59,8 +59,8 @@ at::Tensor& NPUNativeFunctions::addr_(
     at::Tensor& self,
     const at::Tensor& vec1,
     const at::Tensor& vec2,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   OpPreparation::CheckMemory({self, vec1, vec2}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

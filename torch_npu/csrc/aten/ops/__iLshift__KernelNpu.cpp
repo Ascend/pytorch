@@ -62,7 +62,7 @@ at::Tensor& NPUNativeFunctions::__ilshift__(at::Tensor& self, const at::Tensor& 
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::__ilshift__(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::__ilshift__(at::Tensor& self, const at::Scalar& other) {
   if(!NpuUtils::check_match(&self)){
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     ilshift_out_npu(contiguousSelf, contiguousSelf, other);

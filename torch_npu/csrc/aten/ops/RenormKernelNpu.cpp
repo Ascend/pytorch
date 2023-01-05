@@ -103,9 +103,9 @@ at::Tensor& renorm_out_nocheck(
 
 at::Tensor& NPUNativeFunctions::renorm_out(
     const at::Tensor& self,
-    at::Scalar p,
+    const at::Scalar& p,
     int64_t dim,
-    at::Scalar maxnorm,
+    const at::Scalar& maxnorm,
     at::Tensor& result) {
   auto outputSize = input_same_output_size(self);
   OpPreparation::CheckOut(
@@ -129,7 +129,7 @@ at::Tensor& NPUNativeFunctions::renorm_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::renorm(const at::Tensor& self, at::Scalar p, int64_t dim, at::Scalar maxnorm) {
+at::Tensor NPUNativeFunctions::renorm(const at::Tensor& self, const at::Scalar& p, int64_t dim, const at::Scalar& maxnorm) {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
   at::Tensor result = OpPreparation::ApplyTensor(self);
@@ -137,7 +137,7 @@ at::Tensor NPUNativeFunctions::renorm(const at::Tensor& self, at::Scalar p, int6
   return renorm_out_nocheck(result, self, p, dim, maxnorm);
 }
 
-at::Tensor& NPUNativeFunctions::renorm_(at::Tensor& self, at::Scalar p, int64_t dim, at::Scalar maxnorm) {
+at::Tensor& NPUNativeFunctions::renorm_(at::Tensor& self, const at::Scalar& p, int64_t dim, const at::Scalar& maxnorm) {
 
     return renorm_out(self, p, dim, maxnorm, self);
 }

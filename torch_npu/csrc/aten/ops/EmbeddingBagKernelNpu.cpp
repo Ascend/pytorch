@@ -48,8 +48,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
     const at::Tensor& weight,
     const at::Tensor& indices,
     const at::Tensor& offsets,
-    bool scale_grad_by_freq,
-    int64_t mode,
+    const bool scale_grad_by_freq,
+    const int64_t mode,
     bool sparse,
     const c10::optional<at::Tensor>& per_sample_weights_opt,
     bool include_last_offset) {
@@ -76,8 +76,8 @@ tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_embed
     const at::Tensor& weight,
     const at::Tensor& indices,
     const at::Tensor& offsets,
-    bool scale_grad_by_freq,
-    int64_t mode,
+    const bool scale_grad_by_freq,
+    const int64_t mode,
     bool sparse,
     const c10::optional<at::Tensor>& per_sample_weights_opt,
     bool include_last_offset) {

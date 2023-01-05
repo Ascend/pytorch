@@ -21,7 +21,7 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::linspace_out(at::Scalar start, at::Scalar end, c10::optional<int64_t> step, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::linspace_out(const at::Scalar& start, const at::Scalar& end, c10::optional<int64_t> step, at::Tensor& result) {
   int64_t steps = step.has_value() ? step.value() : -65530;
   TORCH_CHECK(steps >= 0, "number of steps must be non-negative");
 
@@ -52,7 +52,7 @@ at::Tensor& NPUNativeFunctions::linspace_out(at::Scalar start, at::Scalar end, c
   return result.copy_(r);
 }
 
-at::Tensor NPUNativeFunctions::linspace(at::Scalar start, at::Scalar end, 
+at::Tensor NPUNativeFunctions::linspace(const at::Scalar& start,const at::Scalar& end,
     c10::optional<int64_t> step, 
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,

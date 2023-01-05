@@ -30,7 +30,7 @@ at::Tensor& xlogy_out_npu_nocheck(const at::Tensor& self, const at::Tensor& othe
   return result;
 }
 
-at::Tensor& xlogy_out_npu_nocheck(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
+at::Tensor& xlogy_out_npu_nocheck(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   OpCommand cmd;
   cmd.Name("Xlogy")
       .Input(self)
@@ -40,7 +40,7 @@ at::Tensor& xlogy_out_npu_nocheck(const at::Tensor& self, at::Scalar other, at::
   return result;
 }
 
-at::Tensor& xlogy_out_npu_nocheck(at::Scalar& self, const at::Tensor& other, at::Tensor& result) {
+at::Tensor& xlogy_out_npu_nocheck(const at::Scalar& self, const at::Tensor& other, at::Tensor& result) {
   OpCommand cmd;
   cmd.Name("Xlogy")
       .Input(self, other.scalar_type())
@@ -65,7 +65,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, const at::Tens
     return result;
 }
 
-at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, at::Scalar other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, const at::Scalar& other, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -76,7 +76,7 @@ at::Tensor& NPUNativeFunctions::xlogy_out(const at::Tensor& self, at::Scalar oth
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::xlogy_out(at::Scalar self, const at::Tensor& other, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::xlogy_out(const at::Scalar& self, const at::Tensor& other, at::Tensor& result) {
    OpPreparation::CheckOut(
        {other},
        result,
@@ -102,14 +102,14 @@ at::Tensor NPUNativeFunctions::xlogy(const at::Tensor& self, const at::Tensor& o
     return result;
 }
 
-at::Tensor NPUNativeFunctions::xlogy(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::xlogy(const at::Tensor& self, const at::Scalar& other) {
     at::Tensor result = OpPreparation::ApplyTensor(self);
     xlogy_out_npu_nocheck(self, other, result);
     return result;
 
 }
 
-at::Tensor NPUNativeFunctions::xlogy(at::Scalar self, const at::Tensor& other) {
+at::Tensor NPUNativeFunctions::xlogy(const at::Scalar& self, const at::Tensor& other) {
     at::Tensor result = OpPreparation::ApplyTensor(other);
     xlogy_out_npu_nocheck(self, other, result);
     return result;
@@ -133,7 +133,7 @@ at::Tensor& NPUNativeFunctions::xlogy_(at::Tensor& self, const at::Tensor& other
     return self;
 }
 
-at::Tensor& NPUNativeFunctions::xlogy_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::xlogy_(at::Tensor& self, const at::Scalar& other) {
     if (!NpuUtils::check_match(&self))
     {
       at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

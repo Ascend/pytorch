@@ -58,8 +58,8 @@ at::Tensor& logspace_out_npu_nocheck(
 }
 
 at::Tensor& NPUNativeFunctions::logspace_out(
-    at::Scalar start,
-    at::Scalar end,
+    const at::Scalar& start,
+    const at::Scalar& end,
     c10::optional<int64_t> steps_opt,
     double base,
     at::Tensor& result) {
@@ -79,8 +79,8 @@ at::Tensor& NPUNativeFunctions::logspace_out(
 }
 
 at::Tensor NPUNativeFunctions::logspace(
-    at::Scalar start,
-    at::Scalar end,
+    const at::Scalar& start,
+    const at::Scalar& end,
     c10::optional<int64_t> steps_opt,
     double base,
     c10::optional<at::ScalarType> dtype_opt,

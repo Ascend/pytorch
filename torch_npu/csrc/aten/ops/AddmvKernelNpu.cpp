@@ -21,8 +21,8 @@ at::Tensor& NPUNativeFunctions::addmv_out(
     const at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,
-    at::Scalar beta,
-    at::Scalar alpha,
+    const at::Scalar& beta,
+    const at::Scalar& alpha,
     at::Tensor& result) {
   NpuUtils::check_1d(vec, "vec", "addmv");
 
@@ -52,8 +52,8 @@ at::Tensor NPUNativeFunctions::addmv(
     const at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   auto outputSize = addmv_npu_output_size(self, mat, vec, beta, alpha);
   at::Tensor result = OpPreparation::ApplyTensor(self, outputSize);
   addmv_out(self, mat, vec, beta, alpha, result);
@@ -65,8 +65,8 @@ at::Tensor& NPUNativeFunctions::addmv_(
     at::Tensor& self,
     const at::Tensor& mat,
     const at::Tensor& vec,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   OpPreparation::CheckMemory({self, mat, vec}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

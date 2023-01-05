@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::__and__(const at::Tensor& self, const at::Tensor&
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__and__(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__and__(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   and_out_npu_nocheck(self, other,result);
 

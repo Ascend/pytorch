@@ -112,7 +112,7 @@ at::Tensor NPUNativeFunctions::floor_divide(const at::Tensor& self, const at::Te
   return result;
 }
 
-at::Tensor NPUNativeFunctions::floor_divide(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::floor_divide(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor selfCast = self;
   check_self_dtype_npu(selfCast);
   at::Tensor result = OpPreparation::ApplyTensor(selfCast);
@@ -137,7 +137,7 @@ at::Tensor& NPUNativeFunctions::floor_divide_(at::Tensor& self, const at::Tensor
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::floor_divide_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::floor_divide_(at::Tensor& self, const at::Scalar& other) {
   check_self_dtype_npu(self);
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

@@ -46,8 +46,8 @@ at::Tensor& range_out_nocheck(
 }
 
 at::Tensor NPUNativeFunctions::range(
-    at::Scalar start,
-    at::Scalar end,
+    const at::Scalar& start,
+    const at::Scalar& end,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -60,9 +60,9 @@ at::Tensor NPUNativeFunctions::range(
 }
 
 at::Tensor NPUNativeFunctions::range(
-    at::Scalar start,
-    at::Scalar end,
-    at::Scalar step,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    const at::Scalar& step,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
     c10::optional<at::Device> device_opt,
@@ -86,9 +86,9 @@ at::Tensor NPUNativeFunctions::range(
 }
 
 at::Tensor& NPUNativeFunctions::range_out(
-    at::Scalar start,
-    at::Scalar end,
-    at::Scalar step,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    const at::Scalar& step,
     at::Tensor& result) {
   float start_value = CalcuOpUtil::get_scalar_float_value(start);
   float end_value = CalcuOpUtil::get_scalar_float_value(end);
