@@ -60,15 +60,6 @@ bool is_aicpu_valid(const at::Tensor& self,
         return false;
     }
     // Using AICPU when value may need broadcast.
-    if (value.sizes()[0] == 1 || value.sizes()[0] == 0 || value.dim() != self.dim()) {
-      return true;
-    }
-    for (int32_t i = self.dim() - 1; i >= allDefinedIndices.size(); i--) {
-      if (value.sizes()[i] != self.sizes()[i]) {
-        return true;
-      }
-    }
-    // Using AICPU when dim not equal to self dim.
     return true;
   } else {
     for (int32_t i = 0; i < allDefinedIndices.size(); i++) {
@@ -78,7 +69,10 @@ bool is_aicpu_valid(const at::Tensor& self,
       }
     }
   }
-
+  // value size over 100 may cause aicore failed
+  if (allDefinedIndices.size() == 1 && self.dim() == 1 && allDefinedIndices[0].sizes()[0] < 100) {
+    return false;
+  }
   // Using AICPU when value need broadcast, otherwise AICPU.
   if (allDefinedIndices.size() < self.dim()) {
     if (value.dim() != self.dim()) {
@@ -117,11 +111,16 @@ at::Tensor& index_put_aicore_nocheck(
     tempSelf = NPUNativeFunctions::npu_dtype_cast(self, at::ScalarType::Float);
     tempValue = NPUNativeFunctions::npu_dtype_cast(value, at::ScalarType::Float);
   }
+  at::Tensor tempValue_broadcast = tempValue;
+  if (self.dim() == 1 && allDefinedIndices.size() == 1 && allDefinedIndices[0].scalar_type() == at::kLong &&
+      allDefinedIndices[0].sizes()[0] != value.sizes()[0]) {
+        tempValue_broadcast = NPUNativeFunctions::npu_broadcast(tempValue, allDefinedIndices[0].sizes());
+  }
   auto masks_tensors = at::tensor(masks, self.options().dtype(at::kLong));
   OpCommand cmd;
   cmd.Name("IndexPutV2")
       .Input(tempSelf, (string)"x")
-      .Input(tempValue, (string)"value")
+      .Input(tempValue_broadcast, (string)"value")
       .Input(masks_tensors, (string)"indexed_sizes")
       .Input(masks_tensors, (string)"indexed_strides");
   for (int i = 0; i < allDefinedIndices.size(); i++) {
