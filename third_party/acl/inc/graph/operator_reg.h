@@ -106,6 +106,7 @@ using std::vector;
 
 #define REGISTER_TYPE_Int(...) OpInt(__VA_ARGS__)
 #define REGISTER_TYPE_Tensor(...) OpTensor(__VA_ARGS__)
+#define REGISTER_TYPE_Bool(...) OpBool(__VA_ARGS__)
 
 #define REQUIRED_ATTR_String(x)                                             \
   graphStatus get_attr_##x(AscendString &ret) const {                       \
