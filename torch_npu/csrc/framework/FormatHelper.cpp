@@ -188,14 +188,8 @@ namespace at_npu
 
       FormatShape InferShapeofNHWC(c10::IntArrayRef dims)
       {
-        FormatShape res;
-        res.resize(4);
         AT_ASSERT(dims.size() == 4, "input dim should be equal to 4 when InferShapeofNHWC");
-        res[0] = dims[0];
-        res[1] = dims[2];
-        res[2] = dims[3];
-        res[3] = dims[1];
-        return res;
+        return FormatShape(dims.begin(), dims.end());
       }
 
       FormatShape InferShape4To5(c10::IntArrayRef dims)
