@@ -41,7 +41,7 @@ namespace at_npu
 
     void ExecuteParas::Copy(ExecuteParas &other)
     {
-      this->opType = other.opType;
+      strncpy(this->opType, other.opType, sizeof(ExecuteParas::opType) - 1);
       this->paras = other.paras;
       this->attr = other.attr;
       this->constParams = other.constParams;

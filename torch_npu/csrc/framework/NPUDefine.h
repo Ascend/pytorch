@@ -87,22 +87,13 @@ namespace at_npu
 
     struct ExecuteParas
     {
-      std::string opType;
+      char opType[50]{};
       bool isJitDisable = false;
       ACL_PARAMS paras;
       CONST_PARAMS constParams;
       const aclopAttr *attr;
       int64_t constIdx = -1;
       c10::SmallVector<at::Tensor, N> hostMemory;
-      ExecuteParas(
-          std::string opName,
-          aclopAttr *acl_attr,
-          aclopAttr *acl_compile_attr,
-          aclopAttr *acl_run_attr,
-          const ACL_PARAMS &aclPars)
-          : opType(opName),
-            paras(aclPars),
-            attr(acl_attr) {}
       ExecuteParas() = default;
       void Release();
       void Copy(ExecuteParas &other);
