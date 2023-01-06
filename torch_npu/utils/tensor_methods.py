@@ -106,7 +106,7 @@ def _storage(self):
 
 @torch_device_guard
 def _new_empty(self, *args, **kwargs):
-    if isinstance(args[0], int):
+    if args and isinstance(args[0], int):
         list_args = list(args)
         sizes = []
         for item in list_args:
@@ -168,7 +168,7 @@ def _new_tensor(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_zeros(self, *args, **kwargs):
-    if isinstance(args[0], int):
+    if args and isinstance(args[0], int):
         list_args = list(args)
         sizes = []
         for item in list_args:
