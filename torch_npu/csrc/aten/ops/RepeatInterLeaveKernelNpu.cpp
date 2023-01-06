@@ -47,7 +47,8 @@ at::Tensor& repeat_interleave_out_npu(at::Tensor& result, const at::Tensor& self
 at::Tensor NPUNativeFunctions::repeat_interleave(
     const at::Tensor& self,
     int64_t repeats,
-    c10::optional<int64_t> dim) {
+    c10::optional<int64_t> dim,
+    c10::optional<int64_t> output_size) {
   int64_t realDim = dim.value_or(0);
   int64_t self_dim = self.dim();
   TORCH_CHECK(
@@ -80,7 +81,8 @@ at::Tensor NPUNativeFunctions::repeat_interleave(
 at::Tensor NPUNativeFunctions::repeat_interleave(
     const at::Tensor& self,
     const at::Tensor& repeats,
-    c10::optional<int64_t> dim) {
+    c10::optional<int64_t> dim,
+    c10::optional<int64_t> output_size) {
   int64_t realDim = dim.value_or(0);
   int64_t self_dim = self.dim();
   TORCH_CHECK(

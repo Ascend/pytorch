@@ -58,12 +58,10 @@ def name(func: FunctionSchema, *, faithful_name_for_out_overloads: bool = False)
 # types.  Returns None if the type in question is not a value type.
 def valuetype_type(t: Type, *, binds: ArgName) -> Optional[NamedCType]:
     if isinstance(t, BaseType):
-        if t.name == BaseTy.Tensor:
+        if t.name == BaseTy.Tensor or t.name == BaseTy.Scalar:
             return None
-        elif t.name in BaseTypeToCppMapping:
-            return NamedCType(binds, BaseCType(BaseTypeToCppMapping[t.name]))
-        else:
-            raise AssertionError(f"unsupported type {repr(t)}")
+        # All other BaseType currently map directly to BaseCppTypes.
+        return NamedCType(binds, BaseCType(BaseTypeToCppMapping[t.name]))
     elif isinstance(t, OptionalType):
         elem = valuetype_type(t.elem, binds=binds)
         if elem is None:

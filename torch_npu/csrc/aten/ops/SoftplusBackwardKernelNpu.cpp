@@ -26,8 +26,7 @@ at::Tensor& softplus_backward_out_nocheck(
     const at::Tensor& grad_output,
     const at::Tensor& self,
     at::Scalar beta,
-    at::Scalar threshold,
-    const at::Tensor& output) {
+    at::Scalar threshold) {
   OpCommand cmd;
   cmd.Name("SoftplusV2Grad")
       .Input(grad_output)
@@ -43,28 +42,14 @@ at::Tensor& softplus_backward_out_nocheck(
 at::Tensor& NPUNativeFunctions::softplus_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar beta,
-    at::Scalar threshold,
-    const at::Tensor& output,
+    const at::Scalar& beta,
+    const at::Scalar& threshold,
     at::Tensor& grad_input) {
   OpPreparation::CheckOut(
       {self},
       grad_input,
       self);
-  return softplus_backward_out_nocheck(grad_input, grad_output, self, beta, threshold, output);
-}
-
-at::Tensor NPUNativeFunctions::softplus_backward(
-    const at::Tensor& grad_output,
-    const at::Tensor& self,
-    at::Scalar beta,
-    at::Scalar threshold,
-    const at::Tensor& output) {
-  auto outputSize = input_same_output_size(self);
-  at::Tensor result = OpPreparation::ApplyTensor(
-      outputSize, self.options(), self);
-  softplus_backward_out_nocheck(result, grad_output, self, beta, threshold, output);
-  return result;
+  return softplus_backward_out_nocheck(grad_input, grad_output, self, beta, threshold);
 }
 
 } // namespace native

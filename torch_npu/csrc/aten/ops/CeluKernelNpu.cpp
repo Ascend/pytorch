@@ -30,13 +30,13 @@ at::Tensor celu_out_npu_nocheck(at::Tensor& result, const at::Tensor& self, at::
   return result;
 }
 
-at::Tensor NPUNativeFunctions::celu(const at::Tensor& self, at::Scalar alpha) {
+at::Tensor NPUNativeFunctions::celu(const at::Tensor& self, const at::Scalar& alpha) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   celu_out_npu_nocheck(result, self, alpha);
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::celu_(at::Tensor& self, at::Scalar alpha) {
+at::Tensor& NPUNativeFunctions::celu_(at::Tensor& self, const at::Scalar& alpha) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = celu_out_npu_nocheck(contiguousSelf, contiguousSelf, alpha);

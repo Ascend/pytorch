@@ -59,4 +59,3 @@ at::Tensor NPUNativeFunctions::npu_clear_float_status(const at::Tensor& self) {
 
 } // namespace native
 } // namespace at_npu
-

@@ -85,7 +85,7 @@ at::Tensor &norm_out_npu_nocheck(
 // norm.out
 at::Tensor &NPUNativeFunctions::norm_out(
     const at::Tensor &self,
-    c10::optional<at::Scalar> p,
+    const c10::optional<at::Scalar>& p,
     at::IntArrayRef dim,
     bool keepdim,
     at::Tensor &out) {
@@ -103,7 +103,7 @@ at::Tensor &NPUNativeFunctions::norm_out(
 // norm.dtype_out
 at::Tensor &NPUNativeFunctions::norm_out(
     const at::Tensor &self,
-    c10::optional<at::Scalar> p,
+    const c10::optional<at::Scalar> &p,
     at::IntArrayRef dim,
     bool keepdim,
     at::ScalarType dtype,
@@ -122,7 +122,7 @@ at::Tensor &NPUNativeFunctions::norm_out(
 // norm.ScalarOpt_dim_dtype
 at::Tensor NPUNativeFunctions::norm(
     const at::Tensor &self,
-    c10::optional<at::Scalar> p,
+    const c10::optional<at::Scalar>& p,
     at::IntArrayRef dim,
     bool keepdim,
     at::ScalarType dtype)
@@ -136,7 +136,7 @@ at::Tensor NPUNativeFunctions::norm(
 // norm.ScalarOpt_dtype
 at::Tensor NPUNativeFunctions::norm(
     const at::Tensor &self,
-    c10::optional<at::Scalar> p,
+    const c10::optional<at::Scalar>& p,
     at::ScalarType dtype)
 {
   return NPUNativeFunctions::norm(self, p, {}, false, dtype);
@@ -145,7 +145,7 @@ at::Tensor NPUNativeFunctions::norm(
 // norm.Scalar
 at::Tensor NPUNativeFunctions::norm(
     const at::Tensor &self,
-    at::Scalar p)
+    const at::Scalar &p)
 {
   return NPUNativeFunctions::norm(self, p, {}, false, self.scalar_type());
 }
@@ -153,7 +153,7 @@ at::Tensor NPUNativeFunctions::norm(
 // norm.ScalarOpt_dim
 at::Tensor NPUNativeFunctions::norm(
     const at::Tensor &self,
-    c10::optional<at::Scalar> p,
+    const c10::optional<at::Scalar>& p,
     at::IntArrayRef dim,
     bool keepdim)
 {

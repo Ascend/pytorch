@@ -76,7 +76,7 @@ at::Tensor NPUNativeFunctions::__or__(const at::Tensor& self, const at::Tensor& 
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__or__(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__or__(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   or___out_scalar_npu(result, self, other);
 

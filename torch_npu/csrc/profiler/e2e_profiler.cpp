@@ -95,7 +95,7 @@ void PushStartTime(at::RecordFunction& fn) {
     return;
   }
   auto ret = at_npu::native::AclprofSetStampTraceMessage(
-      local_stamp_, fn.name().str(), strlen(fn.name().str()));
+      local_stamp_, fn.name(), strlen(fn.name()));
   CheckProfilerRet(ret, "In npu e2e profiling, AclprofSetStampTraceMessage set failed.");
   uint32_t range_id_ = 0;
   ret = at_npu::native::AclprofRangeStart(local_stamp_, &range_id_);

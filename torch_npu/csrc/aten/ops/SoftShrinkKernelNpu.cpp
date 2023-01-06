@@ -36,7 +36,7 @@ at::Tensor& softshrink_out_nocheck(
 
 at::Tensor& NPUNativeFunctions::softshrink_out(
     const at::Tensor& self,
-    at::Scalar lambd,
+    const at::Scalar& lambd,
     at::Tensor& result) {
   TORCH_CHECK(lambd.toFloat() > 0, "lambd should be greater than 0");
   OpPreparation::CheckOut(
@@ -55,7 +55,7 @@ at::Tensor& NPUNativeFunctions::softshrink_out(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::softshrink(const at::Tensor& self, at::Scalar lambd) {
+at::Tensor NPUNativeFunctions::softshrink(const at::Tensor& self, const at::Scalar& lambd) {
   TORCH_CHECK(lambd.toFloat() > 0, "lambd should be greater than 0");
   at::Tensor result = OpPreparation::ApplyTensor(self);
 

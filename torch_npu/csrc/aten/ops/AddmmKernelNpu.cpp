@@ -30,8 +30,8 @@ namespace at_npu
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha,
+        const at::Scalar &beta,
+        const at::Scalar &alpha,
         at::Tensor &result)
     {
       // mat1*alpha
@@ -50,8 +50,8 @@ namespace at_npu
         const at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha)
+        const at::Scalar &beta,
+        const at::Scalar &alpha)
     {
       // calculate the output size
       auto outputSize = addmm_npu_output_size(self, mat1, mat2, beta, alpha);
@@ -70,8 +70,8 @@ namespace at_npu
         at::Tensor &self,
         const at::Tensor &mat1,
         const at::Tensor &mat2,
-        at::Scalar beta,
-        at::Scalar alpha)
+        const at::Scalar &beta,
+        const at::Scalar &alpha)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, mat1, mat2};
       c10::SmallVector<at::Tensor, N> outputs = {self};

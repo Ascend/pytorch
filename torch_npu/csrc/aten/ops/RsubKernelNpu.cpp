@@ -73,7 +73,7 @@ at::Tensor& rsub_out_npu_nocheck(
   return result;
 }
 
-at::Tensor NPUNativeFunctions::rsub(const at::Tensor& self, const at::Tensor& other, at::Scalar alpha) {
+at::Tensor NPUNativeFunctions::rsub(const at::Tensor& self, const at::Tensor& other, const at::Scalar& alpha) {
   at::Tensor outputTensor = rsub_dest_output(self, other);
   auto outputSize = broadcast_ops_npu_output_size(self, other);
 
@@ -84,7 +84,7 @@ at::Tensor NPUNativeFunctions::rsub(const at::Tensor& self, const at::Tensor& ot
   return result;
 }
 
-at::Tensor NPUNativeFunctions::rsub(const at::Tensor& self, at::Scalar other, at::Scalar alpha) {
+at::Tensor NPUNativeFunctions::rsub(const at::Tensor& self, const at::Scalar& other, const at::Scalar& alpha) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
 
   rsub_out_npu_nocheck(result, self, other, alpha);

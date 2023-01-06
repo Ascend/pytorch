@@ -58,12 +58,11 @@ at::Tensor& logspace_out_npu_nocheck(
 }
 
 at::Tensor& NPUNativeFunctions::logspace_out(
-    at::Scalar start,
-    at::Scalar end,
-    c10::optional<int64_t> steps_opt,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    int64_t steps,
     double base,
     at::Tensor& result) {
-  int64_t steps = steps_opt.value();
   OpPreparation::CheckOut(
       { },
       result,
@@ -88,7 +87,6 @@ at::Tensor NPUNativeFunctions::logspace(
     c10::optional<at::Device> device_opt,
     c10::optional<bool> pin_memory_opt) {
   auto device = device_or_default(device_opt);
-  int64_t steps = steps_opt.value();
   at::TensorOptions options;
   options = options.dtype(dtype_opt)
                    .layout(layout_opt)

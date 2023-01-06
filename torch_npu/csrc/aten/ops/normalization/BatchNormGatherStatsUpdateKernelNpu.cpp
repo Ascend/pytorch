@@ -35,9 +35,9 @@ std::tuple<at::Tensor &, at::Tensor &> batch_norm_gather_stats_update_npu_impl(
 
   auto running_mean_dtype = running_mean.scalar_type();
   at::Tensor running_mean_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_mean.defined() ? 
-      running_mean : at::native::zeros({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
+      running_mean : at::zeros({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
   at::Tensor running_var_ = NPUNativeFunctions::npu_dtype_cast(NPUNativeFunctions::npu_format_cast((running_var.defined() ? 
-      running_var : at::native::ones({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
+      running_var : at::ones({self.size(1)}, sum.options())), ACL_FORMAT_ND), sum.scalar_type());
 
   OpCommand cmd;
   cmd.Name("SyncBatchNormGatherStats")

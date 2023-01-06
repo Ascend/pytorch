@@ -24,8 +24,8 @@ at::Tensor NPUNativeFunctions::rrelu_with_noise_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self_or_result,
     const at::Tensor& noise,
-    at::Scalar lower,
-    at::Scalar upper,
+    const at::Scalar& lower,
+    const at::Scalar& upper,
     bool training,
     bool is_result) {
   auto minimum = 1E-6;

@@ -22,8 +22,8 @@ at::Tensor& NPUNativeFunctions::addbmm_out(
     const at::Tensor& self, 
     const at::Tensor& batch1, 
     const at::Tensor& batch2,
-    at::Scalar beta,
-    at::Scalar alpha,
+    const at::Scalar& beta,
+    const at::Scalar& alpha,
     at::Tensor& result) {
   at::Tensor MulResult = at::mul(batch1, alpha);
   at::Tensor bmmResult = at::bmm(MulResult,batch2);
@@ -38,8 +38,8 @@ at::Tensor NPUNativeFunctions::addbmm(
     const at::Tensor& self,
     const at::Tensor& batch1,
     const at::Tensor& batch2,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   // calculate the output size
   auto outputSize = addbmm_npu_output_size(self, batch1, batch2, beta, alpha);
   // construct the output tensor of the NPU
@@ -53,8 +53,8 @@ at::Tensor& NPUNativeFunctions::addbmm_(
     at::Tensor& self,
     const at::Tensor& batch1,
     const at::Tensor& batch2,
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   OpPreparation::CheckMemory({self, batch1, batch2}, {self});
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);

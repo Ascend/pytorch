@@ -42,7 +42,7 @@ at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Tensor& other)
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, at::Scalar value) {
+at::Tensor& NPUNativeFunctions::fill_(at::Tensor& self, const at::Scalar& value) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = fills_out_npu(contiguousSelf, contiguousSelf, value);

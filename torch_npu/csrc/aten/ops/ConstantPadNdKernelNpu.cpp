@@ -55,7 +55,7 @@ bool is_backward(at::IntArrayRef pad) {
   return false;
 }
 
-at::Tensor NPUNativeFunctions::constant_pad_nd(const at::Tensor& self, at::IntArrayRef pad, at::Scalar value) {
+at::Tensor NPUNativeFunctions::constant_pad_nd(const at::Tensor& self, at::IntArrayRef pad, const at::Scalar& value) {
   TORCH_CHECK(pad.size() % 2 == 0, "Length of pad must be even but instead it equals ", pad.size());
 
   auto input_sizes = self.sizes();

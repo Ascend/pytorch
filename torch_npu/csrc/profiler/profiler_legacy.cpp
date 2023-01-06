@@ -16,7 +16,6 @@
 
 #include "torch_npu/csrc/profiler/profiler.h"
 #include <torch/csrc/autograd/function.h>
-#include <torch/csrc/jit/frontend/code_template.h>
 
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/csrc/jit/runtime/operator.h>
@@ -225,52 +224,53 @@ void ProfilerThreadLocalState::setOrAddRemoteProfiledEvents(
 void ProfilerThreadLocalState::pushRange(
     const at::RecordFunction& fn,
     const bool record_device,
-    const char* msg,
     std::vector<std::vector<int64_t>>&& shapes) {
   if (config_.state == ProfilerState::Disabled) {
     return;
   }
-    LegacyEvent evt(
-        EventKind::PushRange,
-        fn.name(),
-        at::RecordFunction::currentThreadId(),
-        record_device,
-        config_.state,
-        fn.handle(),
-        std::move(shapes),
-        at::RecordFunction::getDefaultNodeId());
-    evt.setSequenceNr(fn.seqNr());
-    evt.setFwdThreadId(fn.forwardThreadId());
-    evt.setScope((uint8_t)fn.scope());
-    if (config_.with_flops) {
-      evt.setExtraArgs(saveExtraArgs(fn));
-      evt.setFlops(computeFlops(std::string(fn.name().str()), evt.extraArgs()));
-    }
-    getEventList().record(std::move(evt));
+  LegacyEvent evt(
+      EventKind::PushRange,
+      at::StringView(std::string(fn.name())),
+      at::RecordFunction::currentThreadId(),
+      record_device,
+      config_.state,
+      fn.handle(),
+      std::move(shapes),
+      at::RecordFunction::getDefaultNodeId());
+  evt.setSequenceNr(fn.seqNr());
+  evt.setFwdThreadId(fn.forwardThreadId());
+  evt.setScope((uint8_t)fn.scope());
+  if (config_.with_flops) {
+    evt.setExtraArgs(saveExtraArgs(fn));
+    evt.setFlops(computeFlops(std::string(fn.name()), evt.extraArgs()));
+  }
+  getEventList().record(std::move(evt));
 }
 
 void ProfilerThreadLocalState::popRange(const at::RecordFunction& fn, const bool record_device) {
   if (config_.state == ProfilerState::Disabled) {
     return;
   }
-    // In some cases RecordFunction (and popRange) may be
-    // called on a different thread than pushRange
-    // As a convention, we put the async pop on the original
-    // thread and save current thread id in pop event
-    LegacyEvent evt(
-        EventKind::PopRange,
-        at::StringView(""),
-        at::RecordFunction::currentThreadId(),
-        record_device,
-        config_.state,
-        fn.handle());
-    evt.setNodeId(at::RecordFunction::getDefaultNodeId());
-    getEventList(fn.threadId()).record(std::move(evt));
+  // In some cases RecordFunction (and popRange) may be
+  // called on a different thread than pushRange
+  // As a convention, we put the async pop on the original
+  // thread and save current thread id in pop event
+  LegacyEvent evt(
+      EventKind::PopRange,
+      at::StringView(""),
+      at::RecordFunction::currentThreadId(),
+      record_device,
+      config_.state,
+      fn.handle());
+  evt.setNodeId(at::RecordFunction::getDefaultNodeId());
+  getEventList(fn.threadId()).record(std::move(evt));
 }
 
 void ProfilerThreadLocalState::reportMemoryUsage(
     void* /* unused */,
     int64_t alloc_size,
+    int64_t /* total_allocated, unused for legacy */,
+    int64_t /* total_reserved, unused for legacy */,
     c10::Device device) {
   if (config_.profile_memory && config_.state != ProfilerState::Disabled) {
     uint64_t thread_id = at::RecordFunction::currentThreadId();
@@ -290,11 +290,10 @@ bool ProfilerThreadLocalState::memoryProfilingEnabled() const {
 }
 
 std::string ProfilerThreadLocalState::getNvtxStr(
-    const at::StringView& name,
-    const char* msg,
+    const char* name,
     int64_t sequence_nr,
     const std::vector<std::vector<int64_t>>& shapes) const {
-    return name.str();
+    return name;
 }
 
 RangeEventList& ProfilerThreadLocalState::getEventList(int64_t thread_id) {
@@ -393,15 +392,14 @@ void pushProfilingCallbacksLegacy() {
         }
         bool record_npu =
             state_ptr->config().state == ProfilerState::NPU;
-        if (record_npu && disable_cuda_profiling.find(fn.name().str()) != disable_cuda_profiling.end()) {
+        if (record_npu && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
           record_npu = false;
         }
-        auto* msg = (fn.seqNr() >= 0) ? ", seq = " : "";
         if (state_ptr->config().report_input_shapes) {
           auto sizes = inputSizes(fn);
-          state_ptr->pushRange(fn, record_npu, msg, std::move(sizes));
+          state_ptr->pushRange(fn, record_npu, std::move(sizes));
         } else {
-          state_ptr->pushRange(fn, record_npu, msg);
+          state_ptr->pushRange(fn, record_npu);
         }
 
         return nullptr;
@@ -413,7 +411,7 @@ void pushProfilingCallbacksLegacy() {
         }
         bool record_npu =
             state_ptr->config().state == ProfilerState::NPU;
-        if (record_npu && disable_cuda_profiling.find(fn.name().str()) != disable_cuda_profiling.end()) {
+        if (record_npu && disable_cuda_profiling.find(fn.name()) != disable_cuda_profiling.end()) {
           record_npu = false;
         }
         state_ptr->popRange(fn, record_npu);

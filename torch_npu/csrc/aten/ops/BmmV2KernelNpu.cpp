@@ -30,7 +30,7 @@ bool is_transpose_last_two_dims_v2(const at::Tensor& Tensors) {
     return false;
   }
   auto storage_size = torch_npu::NPUBridge::GetNpuStorageImpl(Tensors)->get_npu_desc().storage_sizes_;
-  int64_t numel = at::prod_intlist(storage_size);
+  int64_t numel = c10::multiply_integers(storage_size);
 
   int64_t dim1 = Tensors.dim() - 1;
   int64_t dim2 = Tensors.dim() - 2;

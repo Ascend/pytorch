@@ -23,7 +23,7 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_pad_packed_sequence(
     const at::Tensor& input,
     const at::Tensor& batchSizes,
     bool batchFirst,
-    at::Scalar paddingValue,
+    const at::Scalar& paddingValue,
     int64_t totalLength) {
   if (totalLength > 0) {
     TORCH_CHECK(totalLength >= batchSizes.size(0),

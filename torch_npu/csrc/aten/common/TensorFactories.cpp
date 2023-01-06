@@ -105,7 +105,7 @@ namespace at_npu
           return;
         }
 
-        int64_t new_storage_size_bytes = at::prod_intlist(size) * data_type.itemsize();
+        int64_t new_storage_size_bytes = c10::multiply_integers(size) * data_type.itemsize();
         TORCH_CHECK(
             storage_size_bytes <= new_storage_size_bytes,
             "setStorage: sizes ",
@@ -124,7 +124,7 @@ namespace at_npu
       }
     } // namespace
 
-    at::Tensor NPUNativeFunctions::scalar_tensor(c10::Scalar s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
+    at::Tensor NPUNativeFunctions::scalar_tensor(const c10::Scalar& s, c10::optional<at::ScalarType> dtype, c10::optional<at::Layout> layout,
                                                  c10::optional<at::Device> device, c10::optional<bool> pin_memory) {
       at::tracer::impl::NoTracerDispatchMode tracer_guard;
       at::AutoNonVariableTypeMode non_var_type_mode(true);
@@ -144,7 +144,7 @@ namespace at_npu
       TORCH_CHECK(!pinned_memory_or_default(pin_memory_opt), "Only dense CPU tensors can be pinned");
       check_size_nonnegative(size);
       c10::Allocator *allocator = c10_npu::NPUCachingAllocator::get();
-      int64_t nelements = at::prod_intlist(size);
+      int64_t nelements = c10::multiply_integers(size);
       auto dtype = c10::scalarTypeToTypeMeta(dtype_or_default(dtype_opt));
       int64_t size_bytes = nelements * dtype.itemsize();
       c10::intrusive_ptr<c10::StorageImpl> storage_impl = c10::make_intrusive<torch_npu::NPUStorageImpl>(
@@ -761,7 +761,7 @@ namespace at_npu
 
     at::Tensor NPUNativeFunctions::full(
         c10::IntArrayRef size,
-        c10::Scalar fill_value,
+        const c10::Scalar& fill_value,
         c10::optional<at::ScalarType> dtype_opt,
         c10::optional<at::Layout> layout_opt,
         c10::optional<at::Device> device_opt,

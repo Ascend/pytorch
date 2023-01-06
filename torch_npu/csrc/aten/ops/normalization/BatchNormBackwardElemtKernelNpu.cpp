@@ -64,7 +64,8 @@ at::Tensor NPUNativeFunctions::batch_norm_backward_elemt(
     const at::Tensor& invstd,
     const c10::optional<at::Tensor>& weight_opt,
     const at::Tensor& mean_dy,
-    const at::Tensor& mean_dy_xmu) {
+    const at::Tensor& mean_dy_xmu,
+    const at::Tensor& count) {
   const at::Tensor& weight = c10::value_or_else(weight_opt, [] {return at::Tensor();});
   int64_t input_ndim = input.dim();
   TORCH_CHECK(input_ndim > 1, "input.dim() <= 1")

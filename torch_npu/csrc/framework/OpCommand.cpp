@@ -167,7 +167,8 @@ OpCommand &OpCommand::Input(const string &str) {
                                                       cal_stream));
 
   IF_GRAPH_MODE_THEN_RUN_WITH_RET_THIS(
-      graphCmd.AddInput(input, "", kStringDType, c10::nullopt);)
+      graphCmd.AddInput(str);)
+  AT_ERROR("single op mode do not support string input temporarily");
 
   std::tuple<aclTensorDesc *, aclDataBuffer *> res =
       OpCmdHelper::CovertTensorToAclInput(input, "", kStringDType);

@@ -74,7 +74,7 @@ namespace at_npu
     at::Tensor &NPUNativeFunctions::sub_out(
         const at::Tensor &self,
         const at::Tensor &other,
-        at::Scalar alpha,
+        const at::Scalar &alpha,
         at::Tensor &result)
     {
       at::Tensor outputTensor = CalcuOpUtil::is_scalar_wrapped_to_tensor(self) ? other : self;
@@ -90,7 +90,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::sub(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+    at::Tensor NPUNativeFunctions::sub(const at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha)
     {
       bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);
       at::Tensor outputTensor = isSelfWrapped ? other : self;
@@ -110,7 +110,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::sub(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+    at::Tensor NPUNativeFunctions::sub(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       // calculate the output size
       auto outputSize = input_same_output_size(self);
@@ -125,7 +125,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::sub_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+    at::Tensor &NPUNativeFunctions::sub_(at::Tensor &self, const at::Tensor &other, const at::Scalar &alpha)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
@@ -145,7 +145,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::sub_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+    at::Tensor &NPUNativeFunctions::sub_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       if (!NpuUtils::check_match(&self))
       {

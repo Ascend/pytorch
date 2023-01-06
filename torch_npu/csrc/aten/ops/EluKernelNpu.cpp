@@ -39,7 +39,7 @@ at::Tensor& elu_out_nocheck(const at::Tensor& self, at::Scalar alpha, at::Scalar
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::elu_out(const at::Tensor& self, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale, at::Tensor& result) {
+at::Tensor& NPUNativeFunctions::elu_out(const at::Tensor& self, const at::Scalar& alpha, const at::Scalar& scale, const at::Scalar& input_scale, at::Tensor& result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -114,11 +114,11 @@ public:
   }
 };
 
-at::Tensor NPUNativeFunctions::elu(const at::Tensor& self, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale) {
+at::Tensor NPUNativeFunctions::elu(const at::Tensor& self, const at::Scalar& alpha, const at::Scalar& scale, const at::Scalar& input_scale) {
   return NPUEluFunction::apply(self, alpha, scale, input_scale);
 }
 
-at::Tensor& NPUNativeFunctions::elu_(at::Tensor& self, at::Scalar alpha, at::Scalar scale, at::Scalar input_scale) {
+at::Tensor& NPUNativeFunctions::elu_(at::Tensor& self, const at::Scalar& alpha, const at::Scalar& scale, const at::Scalar& input_scale) {
   auto result = NPUEluFunction::apply(self, alpha, scale, input_scale);
   self.copy_(result);
   return self;

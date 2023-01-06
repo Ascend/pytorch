@@ -124,7 +124,7 @@ at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Ten
   return result;
 }
 
-at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, at::Scalar other)
+at::Tensor NPUNativeFunctions::true_divide(const at::Tensor &self, const at::Scalar &other)
 {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
@@ -154,7 +154,7 @@ at::Tensor &NPUNativeFunctions::true_divide_(at::Tensor &self, const at::Tensor 
   return self;
 }
 
-at::Tensor &NPUNativeFunctions::true_divide_(at::Tensor &self, at::Scalar other)
+at::Tensor &NPUNativeFunctions::true_divide_(at::Tensor &self, const at::Scalar &other)
 {
   if (!NpuUtils::check_match(&self))
   {

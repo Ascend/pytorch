@@ -54,8 +54,8 @@ at::Tensor& NPUNativeFunctions::baddbmm_out(
     const at::Tensor& self,	
     const at::Tensor& tensor1,
     const at::Tensor& tensor2,
-    at::Scalar beta,
-    at::Scalar alpha,
+    const at::Scalar& beta,
+    const at::Scalar& alpha,
     at::Tensor& result){
       
   OpPreparation::CheckOut(
@@ -71,8 +71,8 @@ at::Tensor NPUNativeFunctions::baddbmm(
     const at::Tensor& self, 
     const at::Tensor& tensor1, 
     const at::Tensor& tensor2, 
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   at::Tensor outputTensor = self;
   auto outputSize = baddbmm_npu_output_size(tensor1, tensor2);
   at::Tensor result = OpPreparation::ApplyTensor(
@@ -86,8 +86,8 @@ at::Tensor& NPUNativeFunctions::baddbmm_(
     at::Tensor& self, 
     const at::Tensor& tensor1, 
     const at::Tensor& tensor2, 
-    at::Scalar beta,
-    at::Scalar alpha) {
+    const at::Scalar& beta,
+    const at::Scalar& alpha) {
   c10::SmallVector<at::Tensor, N> inputs = {self, tensor1, tensor2};
   c10::SmallVector<at::Tensor, N> outputs = {self};
   CalcuOpUtil::check_memory_over_laps(inputs, outputs);

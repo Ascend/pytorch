@@ -80,7 +80,7 @@ at::Tensor NPUNativeFunctions::npu_min_backward(
     newIndices = indices.squeeze(dim);
   }
   auto gradInput = NPUNativeFunctions::npu_scatter(
-      at::native::zeros(sizes, newGrad.options()), newIndices, newGrad, dim);
+      at::zeros(sizes, newGrad.options()), newIndices, newGrad, dim);
   return gradInput;
 }
 

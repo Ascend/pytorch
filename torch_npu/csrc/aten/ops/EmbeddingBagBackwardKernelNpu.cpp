@@ -30,7 +30,8 @@ at::Tensor NPUNativeFunctions::_embedding_bag_backward(
     bool scale_grad_by_freq,
     int64_t mode,
     bool sparse,
-    const c10::optional<at::Tensor>& per_sample_weights_opt) {
+    const c10::optional<at::Tensor>& per_sample_weights_opt,
+    int64_t padding_idx) {
   const at::Tensor& per_sample_weights = c10::value_or_else(per_sample_weights_opt, [] {return at::Tensor();});
 
   at::Tensor grad_cpu = grad.to("cpu");

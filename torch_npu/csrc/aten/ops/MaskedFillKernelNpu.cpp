@@ -91,7 +91,7 @@ at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor&
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, at::Scalar value) {
+at::Tensor& NPUNativeFunctions::masked_fill_(at::Tensor& self, const at::Tensor& mask, const at::Scalar& value) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = masked_fill_out_npu_nocheck(contiguousSelf, mask, value, contiguousSelf);

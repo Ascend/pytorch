@@ -67,7 +67,6 @@ supported:
   - real
   - imag
   - conj
-  - conj.out
   - _conj
   - acos
   - acos_
@@ -89,7 +88,6 @@ supported:
   - addmv
   - addmv_
   - addmv.out
-  - _addmv_impl_
   - addr
   - addr_
   - addr.out
@@ -150,7 +148,6 @@ supported:
   - atleast_3d.Sequence
   - baddbmm
   - baddbmm_
-  - _baddbmm_mkl_
   - baddbmm.out
   - bartlett_window
   - bartlett_window.periodic
@@ -179,6 +176,8 @@ supported:
   - copysign.out
   - copysign.Scalar
   - copysign_.Scalar
+  - linalg_cross
+  - linalg_cross.out
   - logical_not
   - logical_not_
   - logical_not.out
@@ -194,9 +193,7 @@ supported:
   - blackman_window
   - blackman_window.periodic
   - bmm
-  - _bmm
   - bmm.out
-  - _bmm.out
   - broadcast_tensors
   - broadcast_to
   - cat
@@ -233,11 +230,13 @@ supported:
   - constant_pad_nd
   - contiguous
   - convolution
+  - convolution_backward
   - convolution_overrideable
   - convolution_backward_overrideable
   - _convolution
-  - _convolution_nogroup
   - _convolution_double_backward
+  - _conv_depthwise2d
+  - _conv_depthwise2d.out
   - conv1d
   - conv2d
   - conv3d
@@ -261,18 +260,7 @@ supported:
   - cudnn_affine_grid_generator_backward
   - cudnn_batch_norm
   - cudnn_batch_norm_backward
-  - cudnn_convolution.deprecated
-  - cudnn_convolution.deprecated2
   - cudnn_convolution
-  - cudnn_convolution_backward_input
-  - cudnn_convolution_backward
-  - cudnn_convolution_backward_weight
-  - cudnn_convolution_transpose.deprecated
-  - cudnn_convolution_transpose.deprecated2
-  - cudnn_convolution_transpose
-  - cudnn_convolution_transpose_backward
-  - cudnn_convolution_transpose_backward_input
-  - cudnn_convolution_transpose_backward_weight
   - cudnn_grid_sampler
   - cudnn_grid_sampler_backward
   - cummax
@@ -314,12 +302,12 @@ supported:
   - div.Tensor
   - div_.Tensor
   - div.out
+  - div.out_mode
   - div.Scalar
+  - div.Scalar_mode
   - div_.Scalar
   - div.Tensor_mode
   - div_.Tensor_mode
-  - div.out_mode
-  - div.Scalar_mode
   - div_.Scalar_mode
   - divide.Tensor
   - divide_.Tensor
@@ -356,7 +344,6 @@ supported:
   - _embedding_bag_sparse_backward
   - _embedding_bag_dense_backward
   - _embedding_bag_per_sample_weights_backward
-  - empty_meta
   - empty.memory_format
   - new_empty
   - new_empty_strided
@@ -461,7 +448,6 @@ supported:
   - instance_norm
   - inverse
   - inverse.out
-  - _inverse_helper
   - isclose
   - isnan
   - is_distributed
@@ -534,6 +520,7 @@ supported:
   - log_softmax.Dimname
   - _log_softmax
   - _log_softmax_backward_data
+  - _log_softmax_backward_data.out
   - _logcumsumexp
   - _logcumsumexp.out
   - logcumsumexp
@@ -558,6 +545,8 @@ supported:
   - _compute_linear_combination.out
   - max.dim
   - max.dim_max
+  - maximum
+  - maximum.out
   - max.names_dim
   - max.names_dim_max
   - value_selecting_reduction_backward
@@ -593,31 +582,17 @@ supported:
   - amin
   - amin.out
   - mkldnn_convolution
-  - mkldnn_convolution_backward_input
-  - mkldnn_convolution_backward_weights
-  - mkldnn_convolution_backward
   - miopen_batch_norm
   - miopen_batch_norm_backward
   - miopen_convolution
-  - miopen_convolution_backward_input
-  - miopen_convolution_backward
-  - miopen_convolution_backward_bias
-  - miopen_convolution_backward_weight
   - miopen_convolution_transpose
-  - miopen_convolution_transpose_backward
-  - miopen_convolution_transpose_backward_input
-  - miopen_convolution_transpose_backward_weight
   - miopen_depthwise_convolution
-  - miopen_depthwise_convolution_backward_input
-  - miopen_depthwise_convolution_backward
-  - miopen_depthwise_convolution_backward_weight
   - miopen_rnn
   - miopen_rnn_backward
   - mm
   - mm.out
   - _sparse_mm
   - _sparse_sparse_matmul
-  - _sparse_matrix_mask_helper
   - mode
   - mode.values
   - mode.dimname
@@ -654,9 +629,6 @@ supported:
   - is_vulkan_available
   - _nnpack_available
   - _nnpack_spatial_convolution
-  - _nnpack_spatial_convolution_backward
-  - _nnpack_spatial_convolution_backward_input
-  - _nnpack_spatial_convolution_backward_weight
   - ones.names
   - ones
   - ones.out
@@ -680,7 +652,7 @@ supported:
   - pixel_unshuffle
   - channel_shuffle
   - is_pinned
-  - pin_memory
+  - _pin_memory
   - pinverse
   - poisson_nll_loss
   - rad2deg
@@ -789,13 +761,13 @@ supported:
   - softmax.Dimname
   - _softmax
   - _softmax_backward_data
+  - _softmax_backward_data.out
   - unsafe_split.Tensor
   - split.Tensor
   - unsafe_split_with_sizes
   - split_with_sizes
   - squeeze
   - squeeze.dim
-  - squeeze.dimname
   - squeeze_
   - squeeze_.dim
   - squeeze_.dimname
@@ -1081,14 +1053,16 @@ supported:
   - index_add_
   - index_add
   - index_add.dimname
+  - index_add.out
   - index_fill_.int_Scalar
   - index_fill.int_Scalar
   - index_fill_.int_Tensor
   - index_fill.int_Tensor
   - scatter_.src
   - scatter.src
-  - scatter_.value
+  - scatter.src_out
   - scatter.value
+  - scatter.value_out
   - scatter.dimname_src
   - scatter.dimname_value
   - scatter_add_
@@ -1237,7 +1211,6 @@ supported:
   - less_.Tensor
   - take.out
   - take
-  - take_backward
   - index_select.out
   - index_select
   - index_select.dimname_out
@@ -1264,7 +1237,6 @@ supported:
   - lstsq
   - triangular_solve.X
   - triangular_solve
-  - _triangular_solve_helper
   - symeig.e
   - symeig
   - _symeig_helper
@@ -1272,14 +1244,13 @@ supported:
   - eig
   - svd.U
   - svd
-  - _svd_helper
+  - _linalg_svd.U
   - swapaxes
   - swapaxes_
   - swapdims
   - swapdims_
   - cholesky.out
   - cholesky
-  - _cholesky_helper
   - cholesky_solve.out
   - cholesky_solve
   - _cholesky_solve_helper
@@ -1299,7 +1270,6 @@ supported:
   - _lu_with_info
   - lu_solve.out
   - lu_solve
-  - _lu_solve_helper
   - multinomial.out
   - multinomial
   - lgamma.out
@@ -1414,14 +1384,7 @@ supported:
   - normal.float_float_out
   - alias
   - _index_copy_
-  - _cumsum
-  - _cumsum.out
-  - _cumprod
-  - _cumprod.out
-  - _var
-  - _std
   - _amp_foreach_non_finite_check_and_unscale_
-  - _amp_update_scale
   - _cat
   - _cat.out
   - _foreach_add.Scalar
@@ -1515,8 +1478,6 @@ supported:
   - _foreach_addcmul.ScalarList
   - _foreach_maximum.List
   - _foreach_minimum.List
-  - _mode
-  - _mode.values
   - bucketize.Tensor
   - bucketize.Tensor_out
   - bucketize.Scalar
@@ -1605,10 +1566,11 @@ supported:
   - mkldnn_adaptive_avg_pool2d
   - _adaptive_avg_pool2d
   - _adaptive_avg_pool2d_backward
+  - _adaptive_avg_pool3d
   - adaptive_avg_pool3d.out
   - adaptive_avg_pool3d
+  - _adaptive_avg_pool3d_backward
   - adaptive_avg_pool3d_backward.grad_input
-  - adaptive_avg_pool3d_backward
   - adaptive_max_pool2d.out
   - adaptive_max_pool2d
   - adaptive_max_pool2d_backward.grad_input
@@ -1616,7 +1578,6 @@ supported:
   - adaptive_max_pool3d.out
   - adaptive_max_pool3d
   - adaptive_max_pool3d_backward.grad_input
-  - adaptive_max_pool3d_backward
   - avg_pool2d.out
   - avg_pool2d
   - avg_pool2d_backward.grad_input
@@ -1719,34 +1680,19 @@ supported:
   - tanh_backward
   - slow_conv_transpose2d.out
   - slow_conv_transpose2d
-  - slow_conv_transpose2d_backward.grad_output
-  - slow_conv_transpose2d_backward.output_mask
   - slow_conv_transpose3d.out
   - slow_conv_transpose3d
-  - slow_conv_transpose3d_backward.grad_output
-  - slow_conv_transpose3d_backward.output_mask
   - thnn_conv2d.out
   - thnn_conv2d
-  - thnn_conv2d_forward.output
-  - thnn_conv2d_forward
-  - thnn_conv2d_backward.grad_input
-  - thnn_conv2d_backward.output_mask
-  - thnn_conv_depthwise2d.out
-  - thnn_conv_depthwise2d
-  - thnn_conv_depthwise2d_forward.out
-  - thnn_conv_depthwise2d_forward
-  - thnn_conv_depthwise2d_backward.grad_input
-  - thnn_conv_depthwise2d_backward.output_mask
+  - _slow_conv2d_forward
+  - _slow_conv2d_forward.output
+  - _slow_conv2d_backward.output_mask
   - slow_conv3d.out
   - slow_conv3d
   - slow_conv3d_forward.output
   - slow_conv3d_forward
-  - slow_conv3d_backward.grad_input
-  - slow_conv3d_backward.output_mask
   - slow_conv_dilated2d
-  - slow_conv_dilated2d_backward
   - slow_conv_dilated3d
-  - slow_conv_dilated3d_backward
   - col2im.out
   - col2im
   - col2im_backward.grad_input
@@ -1806,7 +1752,6 @@ supported:
   - det
   - linalg_slogdet
   - linalg_slogdet.out
-  - _syevd_helper
   - linalg_eigh
   - linalg_eigh.eigvals
   - linalg_eigvalsh
@@ -1834,7 +1779,6 @@ supported:
   - linalg_pinv.rcond_tensor
   - linalg_pinv.out
   - linalg_pinv.out_rcond_tensor
-  - _linalg_solve_out_helper_
   - linalg_solve
   - linalg_solve.out
   - linalg_tensorinv
@@ -1972,6 +1916,9 @@ custom:
   - func: image_normalize(Tensor self, float[]? mean, float[]? variance, int dtype=0) -> Tensor
   - func: image_normalize_(Tensor(a!) self, float[]? mean, float[]? variance, int dtype=0) -> Tensor(a!)
   - func: img_to_tensor(Tensor self) -> Tensor
+  - func: _conv_depthwise2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[2] output_mask) -> (Tensor grad_input, Tensor grad_weight)
+  - func: slow_conv_dilated2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
+  - func: slow_conv_transpose2d_backward(Tensor grad_output, Tensor self, Tensor weight, int[2] kernel_size, int[2] stride, int[2] padding, int[2] output_padding, int[2] dilation, bool[3] output_mask) -> (Tensor grad_input, Tensor grad_weight, Tensor grad_bias)
   - func: npu_lstm_cell_backward(Tensor? grady, Tensor? gradh, Tensor? gradc, Tensor input, Tensor w_ih, Tensor w_hh, Tensor h, Tensor c, Tensor y_output, Tensor h_output, Tensor c_output, Tensor i, Tensor j, Tensor f, Tensor o, Tensor tanhc) -> (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor)
     variants: function
   - func: batch_norm_reduce(Tensor input, float eps) -> (Tensor, Tensor)

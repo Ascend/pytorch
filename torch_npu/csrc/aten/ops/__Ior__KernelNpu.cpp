@@ -52,7 +52,7 @@ at::Tensor& NPUNativeFunctions::__ior__(at::Tensor& self, const at::Tensor& othe
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::__ior__(at::Tensor& self, at::Scalar other) {    
+at::Tensor& NPUNativeFunctions::__ior__(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = ior_out_npu_nocheck(contiguousSelf, other, contiguousSelf);

@@ -38,7 +38,7 @@ at::Tensor& softshrink_backward_out_nocheck(
 at::Tensor& NPUNativeFunctions::softshrink_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar lambd,
+    const at::Scalar& lambd,
     at::Tensor& grad_input) {
 
   OpPreparation::CheckOut(
@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::softshrink_backward_out(
 at::Tensor NPUNativeFunctions::softshrink_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar lambd) {
+    const at::Scalar& lambd) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(self);
 
   softshrink_backward_out_nocheck(

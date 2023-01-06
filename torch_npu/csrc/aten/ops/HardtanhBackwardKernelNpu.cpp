@@ -23,8 +23,8 @@ namespace native {
 at::Tensor& NPUNativeFunctions::hardtanh_backward_out(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar min_val,
-    at::Scalar max_val,
+    const at::Scalar& min_val,
+    const at::Scalar& max_val,
     at::Tensor& grad_input) {
   OpPreparation::CheckMemory({grad_output, self}, {grad_input});
   OpCommand cmd;
@@ -41,8 +41,8 @@ at::Tensor& NPUNativeFunctions::hardtanh_backward_out(
 at::Tensor NPUNativeFunctions::hardtanh_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar min_val,
-    at::Scalar max_val) {
+    const at::Scalar& min_val,
+    const at::Scalar& max_val) {
   at::Tensor grad_input = OpPreparation::ApplyTensor(self);
   hardtanh_backward_out(grad_output, self, min_val, max_val, grad_input);
   return grad_input;

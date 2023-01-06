@@ -17,7 +17,6 @@
 #pragma once
 
 #include <ATen/ATen.h>
-#include <TH/THTensor.hpp>
 #include "torch_npu/csrc/core/npu/NPUStream.h"
 #include "torch_npu/csrc/core/npu/interface/AsyncTaskQueueInterface.h"
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
@@ -77,12 +76,11 @@ static inline void maybe_resize_storage_npu(
     c10::IntArrayRef size,
     bool is_empty_tensor) {
   if (new_size > 0) {
-    if (!THTensor_getStoragePtr(self)) {
+    if (!self->storage().unsafeGetStorageImpl()) {
       AT_ERROR("Try to resize a tensor with null storage");
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * self->dtype().itemsize();
-
     int64_t old_size_bytes;
     if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
       old_size_bytes = GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl());
@@ -92,7 +90,7 @@ static inline void maybe_resize_storage_npu(
 
     if (new_size_bytes > old_size_bytes) {
       storage_resize_npu(
-          *torch_npu::NPUBridge::GetNpuStorageImpl((THTensor_getStoragePtr(self))),
+          *torch_npu::NPUBridge::GetNpuStorageImpl(self->storage().unsafeGetStorageImpl()),
           new_size_bytes,
           size);
     }
@@ -106,7 +104,7 @@ inline at::TensorImpl* resize_impl_npu_(
   if (self->sizes() == size && (!stride || self->strides() == stride)) {
     return self;
   }
-  
+
   // In graph mode, we cannot justify whether 
   // a tensor is empty only using storage.
   bool is_empty_tensor = false;

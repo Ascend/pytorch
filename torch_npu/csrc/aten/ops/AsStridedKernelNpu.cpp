@@ -50,7 +50,7 @@ at::Tensor& stride_copy_out_npu_nocheck(
     return result;
   }
 
-  // When the last dimension of the input tensor stride is greater than 32, we use 
+  // When the last dimension of the input tensor stride is greater than 32, we use
   // AsStrided + Transpose instead of AsStrided to get better performance.
   if (stride.back() >= 256) {
     std::set<std::pair<int, std::pair<int, int>>> stride_perm_shape_set;
@@ -103,7 +103,7 @@ at::Tensor& NPUNativeFunctions::npu_stride_copy_out(
     const at::Tensor& self,
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
-    c10::Scalar storage_offset,
+    const c10::Scalar& storage_offset,
     at::Tensor& result) {
   stride_copy_out_npu_nocheck(result, self, shape, stride, storage_offset);
   return result;
@@ -113,7 +113,7 @@ at::Tensor NPUNativeFunctions::npu_stride_copy(
     const at::Tensor& self,
     c10::IntArrayRef shape,
     c10::IntArrayRef stride,
-    c10::Scalar storage_offset) {
+    const c10::Scalar& storage_offset) {
   // AsStrided OP only supports ND input
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(
       shape, self.options(), ACL_FORMAT_ND);

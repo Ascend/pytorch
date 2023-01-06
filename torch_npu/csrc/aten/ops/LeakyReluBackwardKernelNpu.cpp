@@ -39,7 +39,7 @@ at::Tensor leaky_relu_backward_out_npu(
 at::Tensor NPUNativeFunctions::leaky_relu_backward(
     const at::Tensor& grad_output,
     const at::Tensor& self,
-    at::Scalar negval,
+    const at::Scalar& negval,
     bool is_result) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   leaky_relu_backward_out_npu(result, grad_output, self, negval, is_result);

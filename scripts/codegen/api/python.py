@@ -641,7 +641,7 @@ def argument_type_str(t: Type, *, simple_type: bool = False) -> str:
             BaseTy.Tensor: 'Tensor',
             BaseTy.int: 'int64_t',
             BaseTy.float: 'double',
-            BaseTy.str: 'std::string'
+            BaseTy.str: 'c10::string_view'
         }
         if t.name in base_dict:
             return base_dict[t.name]
@@ -1048,7 +1048,7 @@ def arg_parser_unpack_method(t: Type, has_default: bool) -> str:
             BaseTy.int: 'toInt64',
             BaseTy.bool: 'toBool',
             BaseTy.float: 'toDouble',
-            BaseTy.str: 'string'
+            BaseTy.str: 'stringView'
         }
         if t.name in [BaseTy.Tensor, BaseTy.Stream, BaseTy.Storage,
                       BaseTy.Scalar, BaseTy.Dimname]:

@@ -19,8 +19,8 @@
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-
-#include <c10d/frontend.hpp>
+#include <c10d/ProcessGroup.hpp>
+#include <c10d/Store.hpp>
 #include <c10d/Utils.hpp>
 
 #include "third_party/hccl/inc/hccl/hccl.h"
@@ -32,6 +32,7 @@ namespace c10d_npu {
 // Environment variable which controls whether or not wait() is blocking or
 // non-blocking.
 constexpr const char* HCCL_BLOCKING_WAIT = "HCCL_BLOCKING_WAIT";
+constexpr const char* HCCL_BACKEND_NAME = "hccl";
 
 // ProcessGroupHCCL implements HCCL bindings for c10d.
 //
@@ -108,6 +109,17 @@ public:
     // The HCCL communicators used for this work item.
     std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
 
+    // // The HCCL communicators used for this work item.
+    // std::vector<std::shared_ptr<HCCLComm>> hcclComms_;
+    // The HCCL communicators used for this work item. on
+    // multiple runtime devices. These start npu events are needed by desync
+    // debugging if enabled.
+    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclStartEvents_;
+
+    // The end npu events of HCCL operator tracking this work item on
+    // multiple npu devices.
+    std::shared_ptr<std::vector<c10_npu::NPUEvent>> hcclEndEvents_;
+
     // Tensors used for barrier op
     std::vector<at::Tensor> barrierTensors_;
 
@@ -119,6 +131,9 @@ public:
 
     // Time point representing when the work started.
     std::chrono::time_point<std::chrono::steady_clock> workStartTime_;
+
+    // Record the collective sequential number.
+    uint64_t seq_;
 
     // Temporarily not implemented
     // virtual std::exception_ptr checkForHCCLErrors(const
@@ -142,15 +157,18 @@ public:
   };
 
   struct Options : torch::CustomClassHolder {
-    explicit Options();
+    explicit Options(bool is_high_priority_stream = false);
 
     // return intrusive_ptr of the object
     static c10::intrusive_ptr<Options> create(
+        bool is_high_priority_stream = false,
         std::chrono::milliseconds timeout = kNoTimeout) {
-      return c10::make_intrusive<Options>();
+      return c10::make_intrusive<Options>(is_high_priority_stream);
     }
 
     std::chrono::milliseconds opTimeout;
+    // Schedule NCCL operations on high priority CUDA streams
+    bool is_high_priority_stream;
   };
 
   // If you wish to create multiple process groups, each with a potentially
@@ -185,6 +203,13 @@ public:
 
   virtual ~ProcessGroupHCCL();
 
+  c10::intrusive_ptr<Options> getOptions() {
+    return options_;
+  }
+
+  const std::string getBackendName() const {
+      return "undefined";
+  }
   c10::intrusive_ptr<c10d::ProcessGroup::Work> broadcast(
       std::vector<at::Tensor>& tensors,
       const c10d::BroadcastOptions& opts = c10d::BroadcastOptions()) override;
@@ -213,7 +238,7 @@ public:
       std::vector<at::Tensor>& inputTensors,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> allgather_base(
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> _allgather_base(
       at::Tensor& outputbuffer,
       at::Tensor& inputbuffer,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
@@ -252,14 +277,16 @@ public:
       std::vector<at::Tensor>& tensors,
       int tag) override;
 
-  c10::intrusive_ptr<c10d::ProcessGroup::Work> alltoall_base(
-      at::Tensor& outputTensor,
-      at::Tensor& inputTensor,
-      std::vector<int64_t>& outputSplitSizes,
-      std::vector<int64_t>& inputSplitSizes,
-      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
-      
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
+
+  // Agrees on an initial sequence number for the whole group by having rank 0
+  // create it and broadcast it to other ranks using the store.
+  void setSequenceNumberForGroup() override;
+
+  // Retrieves the current sequence number for the whole group, which should be
+  // in sync. If the returned number is not consistent across the group, it
+  // may indicate that there is some sort of collective desynchronization.
+  uint64_t getSequenceNumberForGroup() override;
 
 protected:
   // Helper that broadcasts HCCL Master ID to all ranks through the store
@@ -282,6 +309,7 @@ protected:
 
   // The store is used to broadcast the HCCL Master ID of rank 0.
   c10::intrusive_ptr<c10d::Store> store_;
+  const c10::intrusive_ptr<Options> options_;
 
   // The number of HCCL communicators that have been created during
   // the lifetime of this process group. This sequence number is
@@ -371,6 +399,14 @@ protected:
   std::chrono::milliseconds opTimeout_;
 
   // Temporarily not implemented: std::unordered_set<std::string> abortedComms_;
+
+  // The number of active ncclGroupStart() calls. This counter will be increased
+  // by 1 when ncclGroupStart() is called and decreased by 1 when ncclGroupEnd()
+  // is called.
+  static thread_local uint64_t hcclActiveGroupCounter_;
+
+  // Counting for the sequential number of NCCL collective call.
+  uint64_t seq_{0};
 
 private:
   // Helper that encapsulates work shared across all collective communication

@@ -37,6 +37,54 @@
 
 #include "third_party/acl/inc/acl/acl_base.h"
 
+namespace {
+// Named type instead of a pair/tuple so that we can be sure to
+// construct the vectors in place and get NRVO.
+struct InferUnsqueezeGeometryResult {
+  at::DimVector sizes;
+  at::DimVector strides;
+  InferUnsqueezeGeometryResult(c10::IntArrayRef tensor_sizes, c10::IntArrayRef tensor_strides)
+      : sizes(tensor_sizes.begin(), tensor_sizes.end())
+      , strides(tensor_strides.begin(), tensor_strides.end()) {}
+};
+}
+
+InferUnsqueezeGeometryResult inferUnsqueezeGeometry(const at::Tensor& tensor, int64_t dim) {
+  InferUnsqueezeGeometryResult result(tensor.sizes(), tensor.strides());
+  int64_t new_stride = dim >= tensor.dim() ? 1 : result.sizes[dim] * result.strides[dim];
+  result.sizes.insert(result.sizes.begin() + dim, 1);
+  result.strides.insert(result.strides.begin() + dim, new_stride);
+
+  return result;
+}
+
+std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor &tensor) {
+  at::DimVector sizes;
+  at::DimVector strides;
+
+  for(const auto d : c10::irange(tensor.dim())) {
+    if(tensor.sizes()[d] != 1) {
+      sizes.push_back(tensor.sizes()[d]);
+      strides.push_back(tensor.strides()[d]);
+    }
+  }
+
+  return std::make_tuple(std::move(sizes), std::move(strides));
+}
+
+std::tuple<at::DimVector, at::DimVector> inferSqueezeGeometry(const at::Tensor& tensor, int64_t dim) {
+  at::DimVector sizes;
+  at::DimVector strides;
+
+  for(const auto d : c10::irange(tensor.dim())) {
+    if(d != dim || tensor.sizes()[dim] != 1) {
+      sizes.push_back(tensor.sizes()[d]);
+      strides.push_back(tensor.strides()[d]);
+    }
+  }
+  return std::make_tuple(std::move(sizes), std::move(strides));
+}
+
 namespace at_npu {
 namespace native {
 
@@ -78,9 +126,6 @@ at::Tensor NPUNativeFunctions::view(const at::Tensor& self, c10::IntArrayRef siz
       " spans across two contiguous subspaces). Use .reshape(...) instead.");
   auto stride_value = *stride;
   auto dst = self;
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(dst, size)) {
-    dst = FormatCastHelper::ApplyBaseFormatTensorBy(dst);
-  }
   return alias_with_sizes_and_strides_npu(dst, inferred_size, stride_value);
 }
 
@@ -102,17 +147,44 @@ at::Tensor NPUNativeFunctions::as_strided(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::as_strided_(
-    at::Tensor& self,
+const at::Tensor& NPUNativeFunctions::as_strided_(
+    const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
     c10::optional<int64_t> storage_offset_) {
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, size)) {
-    self = FormatCastHelper::CovertSelfToBaseFormat(self);
+  at::Tensor result = self;
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, size)) {
+    result = FormatCastHelper::CovertSelfToBaseFormat(result);
   }
-  auto storage_offset = storage_offset_.value_or(self.storage_offset());
-  at::native::setStrided(self, size, stride, storage_offset);
-  return self;
+  auto storage_offset = storage_offset_.value_or(result.storage_offset());
+  at::native::setStrided(result, size, stride, storage_offset);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
+    dim = at::maybe_wrap_dim(dim, self.dim() + 1);
+    auto g = inferUnsqueezeGeometry(self, dim);
+    return self.as_strided(g.sizes, g.strides);
+}
+
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self) {
+  auto g = inferSqueezeGeometry(self);
+  at::Tensor result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  auto maybe_outnames = at::namedinference::compute_squeeze_outnames(self);
+  at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
+  int64_t dims = self.dim();
+  dim = at::maybe_wrap_dim(dim, dims);
+  if (dims == 0 || self.sizes()[dim] != 1) {
+    return self.as_strided(self.sizes(), self.strides());
+  }
+  auto g = inferSqueezeGeometry(self, dim);
+  auto result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  at::namedinference::propagate_names_except(result, self, {dim});
+  return result;
 }
 
 } // namespace native

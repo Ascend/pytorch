@@ -54,7 +54,7 @@ at::Tensor NPUNativeFunctions::__lshift__(const at::Tensor& self, const at::Tens
   return result;
 }
 
-at::Tensor NPUNativeFunctions::__lshift__(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::__lshift__(const at::Tensor& self, const at::Scalar& other) {
   at::Tensor result = OpPreparation::ApplyTensor(self);
   lshift_out_npu_nocheck(self, other, result);
   return result;

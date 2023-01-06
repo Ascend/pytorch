@@ -46,19 +46,19 @@ at::Tensor& NPUNativeFunctions::copy_memory_(at::Tensor& self, const at::Tensor&
 
   if (FormatHelper::IsPadded(&self)) {
     AT_ASSERT(self.storage_offset() == 0);
-    dst_size = at::prod_intlist(dst_desc.storage_sizes_);
+    dst_size = c10::multiply_integers(dst_desc.storage_sizes_);
   } else {
-    auto dst_element = at::prod_intlist(self.sizes());
-    auto dst_storage = at::prod_intlist(dst_desc.storage_sizes_);
+    auto dst_element = c10::multiply_integers(self.sizes());
+    auto dst_storage = c10::multiply_integers(dst_desc.storage_sizes_);
     dst_size = (dst_element > dst_storage) ? dst_storage : dst_element;
   }
 
   if (FormatHelper::IsPadded(&src)) {
     AT_ASSERT(src.storage_offset() == 0);
-    src_size = at::prod_intlist(src_desc.storage_sizes_);
+    src_size = c10::multiply_integers(src_desc.storage_sizes_);
   } else {
-    auto src_element = at::prod_intlist(src.sizes());
-    auto src_storage = at::prod_intlist(src_desc.storage_sizes_);
+    auto src_element = c10::multiply_integers(src.sizes());
+    auto src_storage = c10::multiply_integers(src_desc.storage_sizes_);
     src_size = (src_element > src_storage) ? src_storage : src_element;
   }
 

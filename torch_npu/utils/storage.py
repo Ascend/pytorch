@@ -34,10 +34,19 @@ def _rebuild_npu_tensor(storage, storage_offset, size, stride, requires_grad, ba
     return tensor
 
 
+def normalize_storage_type(storage):
+    if isinstance(storage, torch.storage._TypedStorage):
+        npu_flag = storage._storage.is_npu
+    else:
+        npu_flag = storage.is_npu
+    return npu_flag
+
+
 def _rebuild_tensor(storage, storage_offset, size, stride):
     tensor = torch.tensor([], dtype=storage.dtype, device=storage.device)
     tensor.set_(storage, storage_offset, size, stride)
-    if storage.is_npu:
+    npu_flag = normalize_storage_type(storage)
+    if npu_flag:
         tensor = tensor.npu()
     return tensor
 
@@ -71,6 +80,7 @@ def _reduce_ex(self, proto):
 
 def add_storage_methods():
     torch._utils._rebuild_tensor = _rebuild_tensor
+    torch._UntypedStorage.is_npu = False
     for storage in iter(_storage_classes):
         if isinstance(storage, _CudaBase):
             continue

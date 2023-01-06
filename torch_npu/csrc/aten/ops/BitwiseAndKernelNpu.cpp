@@ -36,7 +36,7 @@ at::Tensor& bitwise_and_out_npu_nocheck(
   return result;
 }
 
-at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, at::Scalar other, at::Tensor & result) {
+at::Tensor & NPUNativeFunctions::bitwise_and_out(const at::Tensor & self, const at::Scalar& other, at::Tensor & result) {
   OpPreparation::CheckOut(
       {self},
       result,
@@ -123,7 +123,7 @@ at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Ten
   return result;
 }
 
-at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, at::Scalar other) {
+at::Tensor NPUNativeFunctions::bitwise_and(const at::Tensor& self, const at::Scalar& other) {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
 
@@ -153,7 +153,7 @@ at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, const at::Tensor&
   return self;
 }
 
-at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, at::Scalar other) {
+at::Tensor& NPUNativeFunctions::bitwise_and_(at::Tensor& self, const at::Scalar& other) {
   if (!NpuUtils::check_match(&self)) {
     at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
     at::Tensor result = bitwise_and_out_npu_nocheck(contiguousSelf, contiguousSelf, other);

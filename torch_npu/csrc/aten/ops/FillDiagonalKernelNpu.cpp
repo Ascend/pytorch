@@ -24,7 +24,7 @@ namespace native {
 at::Tensor& fill_diagonal_out_npu(
     at::Tensor& result,
     const at::Tensor& self,
-    at::Scalar& value,
+    const at::Scalar& value,
     bool wrap) {
   float fill_value = CalcuOpUtil::get_scalar_float_value(value);
   OpCommand cmd;
@@ -38,7 +38,7 @@ at::Tensor& fill_diagonal_out_npu(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::fill_diagonal_(at::Tensor& self, at::Scalar value, bool wrap) {
+at::Tensor& NPUNativeFunctions::fill_diagonal_(at::Tensor& self, const at::Scalar& value, bool wrap) {
   OpPreparation::CastBackToOriFormat(self);
 
   if (!NpuUtils::check_match(&self)) {

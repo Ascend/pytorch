@@ -170,7 +170,7 @@ namespace at_npu
       }
     }
 
-    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Tensor &other, const at::Scalar& alpha)
     {
       alpha_check_npu(self.scalar_type(), alpha);
       if ((!(self.is_contiguous() && other.is_contiguous())) &&
@@ -206,11 +206,10 @@ namespace at_npu
 
       // calculate the output result of the NPU
       add_out_npu_nocheck(result, selfCopy, otherCopy, alpha);
-
       return result;
     }
 
-    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, at::Scalar other, at::Scalar alpha)
+    at::Tensor NPUNativeFunctions::add(const at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       alpha_check_npu(self.scalar_type(), alpha);
       // calculate the output size
@@ -225,7 +224,7 @@ namespace at_npu
       return result;
     }
 
-    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, at::Scalar alpha)
+    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Tensor &other, const at::Scalar& alpha)
     {
       c10::SmallVector<at::Tensor, N> inputs = {self, other};
       c10::SmallVector<at::Tensor, N> outputs = {self};
@@ -245,7 +244,7 @@ namespace at_npu
       return self;
     }
 
-    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, at::Scalar other, at::Scalar alpha)
+    at::Tensor &NPUNativeFunctions::add_(at::Tensor &self, const at::Scalar &other, const at::Scalar &alpha)
     {
       if (!NpuUtils::check_match(&self))
       {
@@ -264,7 +263,7 @@ namespace at_npu
     at::Tensor &NPUNativeFunctions::add_out(
         const at::Tensor &self,
         const at::Tensor &other,
-        at::Scalar alpha,
+        const at::Scalar &alpha,
         at::Tensor &result)
     {
       bool isSelfWrapped = CalcuOpUtil::is_scalar_wrapped_to_tensor(self);

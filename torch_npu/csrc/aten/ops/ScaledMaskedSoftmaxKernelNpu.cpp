@@ -91,7 +91,7 @@ public:
 at::Tensor NPUNativeFunctions::npu_scaled_masked_softmax(
     const at::Tensor& self,
     const at::Tensor& mask,
-    at::Scalar scale,
+    const at::Scalar& scale,
     bool fixed_triu_mask){
   auto result = NPUscalemsFunction::apply(self, mask, scale, fixed_triu_mask);
   return result;

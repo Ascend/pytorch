@@ -64,10 +64,10 @@ at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);
   if (isIntegralType(high_type, true)) {
-    high_type = at::ScalarType::Float;
+      high_type = at::ScalarType::Float;
   }
   if (isFloatingType(result.scalar_type())) {
-    high_type = result.scalar_type();
+      high_type = result.scalar_type();
   }
   OpPreparation::CheckOut(
       {self},
@@ -87,22 +87,22 @@ at::Tensor &NPUNativeFunctions::div_out(const at::Tensor &self, const at::Tensor
 at::Tensor &NPUNativeFunctions::div_out(
     const at::Tensor &self,
     const at::Tensor &other,
-    std::string rounding_mode,
-    at::Tensor &result) {
-  TORCH_CHECK((rounding_mode == "true" || rounding_mode == "trunc" || rounding_mode == "floor"),
-      "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
-      "but found '", rounding_mode, "'");
-
-  if (rounding_mode == "floor") {
+    c10::optional<c10::string_view> rounding_mode, at::Tensor &result)
+{
+  if (*rounding_mode == "floor") {
     NPUNativeFunctions::floor_divide_out(self, other, result);
     return result;
   }
   NPUNativeFunctions::div_out(self, other, result);
-  if (rounding_mode == "trunc") {
+  if (!rounding_mode.has_value()) {
+    return result;
+  } else if (*rounding_mode == "trunc") {
     NPUNativeFunctions::trunc_(result);
+    return result;
   }
-
-  return result;
+  TORCH_CHECK(false,
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &other)
@@ -132,7 +132,7 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Tensor &oth
   return result;
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor &self, at::Scalar other)
+at::Tensor NPUNativeFunctions::div(const at::Tensor &self, const at::Scalar& other)
 {
   // calculate the output size
   auto outputSize = input_same_output_size(self);
@@ -149,40 +149,41 @@ at::Tensor NPUNativeFunctions::div(const at::Tensor &self, at::Scalar other)
   return result;
 }
 
-at::Tensor NPUNativeFunctions::div(const at::Tensor &self, at::Scalar other,
-    std::string rounding_mode) {
-  TORCH_CHECK((rounding_mode == "true" || rounding_mode == "trunc" || rounding_mode == "floor"),
-      "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
-      "but found '", rounding_mode, "'");
-
-  if (rounding_mode == "floor") {
+at::Tensor NPUNativeFunctions::div(
+    const at::Tensor& self,
+    const at::Scalar& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  if (*rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
   at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
-  if (rounding_mode == "true") {
+  if (!rounding_mode.has_value()) {
     return true_div_res;
-  } else if (rounding_mode == "trunc") {
+  } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc(true_div_res);
   }
+  TORCH_CHECK(false,
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor NPUNativeFunctions::div(
     const at::Tensor& self,
     const at::Tensor& other,
-    std::string rounding_mode) {
-  if (rounding_mode == "floor") {
+    c10::optional<c10::string_view> rounding_mode) {
+  if (*rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide(self, other);
   }
   at::Tensor true_div_res = NPUNativeFunctions::div(self, other);
-  if (rounding_mode == "true") {
+  if (!rounding_mode.has_value()) {
     return true_div_res;
-  } else if (rounding_mode == "trunc") {
+  } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc(true_div_res);
   }
 
   TORCH_CHECK(false,
-      "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
-      "but found '", rounding_mode, "'");
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Tensor &other)
@@ -199,12 +200,12 @@ at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Tensor &other)
   }
   else
   {
-    NPUNativeFunctions::div_out(self, other, self);
+    div_out_npu_nocheck(self, other, self);
   }
   return self;
 }
 
-at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, at::Scalar other)
+at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, const at::Scalar& other)
 {
   if (!NpuUtils::check_match(&self))
   {
@@ -223,38 +224,38 @@ at::Tensor &NPUNativeFunctions::div_(at::Tensor &self, at::Scalar other)
 
 at::Tensor &NPUNativeFunctions::div_(
     at::Tensor &self,
-    at::Scalar other,
-    std::string rounding_mode) {
-  if (rounding_mode == "floor") {
+    const at::Scalar& other,
+    c10::optional<c10::string_view> rounding_mode) {
+  if (*rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide_(self, other);
   }
   NPUNativeFunctions::div_(self, other);
-  if (rounding_mode == "true") {
+  if (!rounding_mode.has_value()) {
     return self;
-  } else if (rounding_mode == "trunc") {
+  } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc_(self);
   }
   TORCH_CHECK(false,
-      "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
-      "but found '", rounding_mode, "'");
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 at::Tensor &NPUNativeFunctions::div_(
     at::Tensor &self,
     const at::Tensor &other,
-    std::string rounding_mode) {
-  if (rounding_mode == "floor") {
+    c10::optional<c10::string_view> rounding_mode) {
+  if (*rounding_mode == "floor") {
     return NPUNativeFunctions::floor_divide_(self, other);
   }
   NPUNativeFunctions::div_(self, other);
-  if (rounding_mode == "true") {
+  if (!rounding_mode.has_value()) {
     return self;
-  } else if (rounding_mode == "trunc") {
+  } else if (*rounding_mode == "trunc") {
     return NPUNativeFunctions::trunc_(self);
   }
   TORCH_CHECK(false,
-      "div expected rounding_mode to be one of 'true', 'trunc', or 'floor' "
-      "but found '", rounding_mode, "'");
+      "div expected rounding_mode to be one of None, 'trunc', or 'floor' "
+      "but found '", *rounding_mode, "'");
 }
 
 } // namespace native

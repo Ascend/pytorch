@@ -17,17 +17,14 @@
 
 CDIR="$(cd "$(dirname "$0")" ; pwd -P)"
 NDIR="$CDIR/.."
-TOCPU=$1
 
 cd $NDIR/scripts
 
 
 cp -f codegen/native_functions.yaml codegen/native_functions.yaml_bk
 
-sed -i '/ _foreach/a\  device_check: NoCheck' codegen/native_functions.yaml   # Only for pytorch 1.8.1
 
 python3 -m codegen.gen_backend_stubs  \
-  --to_cpu=${TOCPU}                   \
   --output_dir="$NDIR/torch_npu/csrc/aten/" \
   --source_yaml="$NDIR/torch_npu/csrc/aten/npu_native_functions.yaml" \
   --impl_path="$NDIR/torch_npu/csrc/aten"  # Used to double-check the yaml file definitions.
