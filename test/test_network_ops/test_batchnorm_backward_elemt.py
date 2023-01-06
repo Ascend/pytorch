@@ -29,9 +29,10 @@ class TestBatchNormBackwardElemt(TestCase):
         weight = torch.tensor([1., 1., 4.]).npu()
         mean_dy = torch.tensor([2., 2., 6.]).npu()
         mean_dy_xmn = torch.tensor([2., 3., 11.]).npu()
+        count_tensor = torch.tensor([5, 5, 5], dtype=torch.int32).npu()
 
         grad_input = torch.batch_norm_backward_elemt(grad_output, input1, mean, invstd,
-                                                     weight, mean_dy, mean_dy_xmn)
+                                                     weight, mean_dy, mean_dy_xmn, count_tensor)
         cuda_expect_out = torch.tensor([[[[110., 110., 110., 110.]],
                                          [[11, 11, 11, 11]],
                                          [[2776., 2776., 2776, 2776.]]],
@@ -49,9 +50,10 @@ class TestBatchNormBackwardElemt(TestCase):
         weight = torch.tensor([1., 1., 4.]).npu()
         mean_dy = torch.tensor([2., 2., 6.]).npu()
         mean_dy_xmn = torch.tensor([2., 3., 11.]).npu()
+        count_tensor = torch.tensor([5, 5, 5], dtype=torch.int32).npu()
 
         grad_input = torch.batch_norm_backward_elemt(grad_output, input1, mean, invstd,
-                                                     weight, mean_dy, mean_dy_xmn)
+                                                     weight, mean_dy, mean_dy_xmn, count_tensor)
         cuda_expect_out = torch.tensor([[110., 11., 2776.],
                                         [110., 11., 2776.]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
@@ -65,9 +67,10 @@ class TestBatchNormBackwardElemt(TestCase):
         weight = torch.tensor([1.36987, 1.36944, 4.25774]).npu()
         mean_dy = torch.tensor([2., 2., 6.]).npu()
         mean_dy_xmn = torch.tensor([2., 3., 11.]).npu()
+        count_tensor = torch.tensor([5, 5, 5], dtype=torch.int32).npu()
 
         grad_input = torch.batch_norm_backward_elemt(grad_output, input1, mean, invstd,
-                                                     weight, mean_dy, mean_dy_xmn)
+                                                     weight, mean_dy, mean_dy_xmn, count_tensor)
         cuda_expect_out = torch.tensor([[361.5542, 41.5013, 4467.4121],
                                         [361.5542, 41.5013, 4467.4121]])
         self.assertRtolEqual(grad_input.cpu(), cuda_expect_out)
