@@ -11,7 +11,7 @@ struct CopyParas {
   size_t dstLen = 0;
   void *src = nullptr;
   size_t srcLen = 0;
-  aclrtMemcpyKind kind = RESERVED;
+  aclrtMemcpyKind kind = ACL_MEMCPY_HOST_TO_HOST;
   void Copy(CopyParas& other);
 };
 
