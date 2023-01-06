@@ -272,7 +272,11 @@ bool Repository::ReadQueue() {
     return false;
   }
 
+  __sync_synchronize();
   uint32_t queueLen = (write_idx.idx - read_idx.idx + kQueueCapacity) % kQueueCapacity;
+  if (queueLen == 1) {
+    usleep(2);
+  }
   auto ret = manager().Call(datas, read_idx.idx, queueLen);
 
   if (ret != 0) {
