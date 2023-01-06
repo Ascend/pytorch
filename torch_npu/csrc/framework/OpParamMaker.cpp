@@ -314,8 +314,8 @@ namespace at_npu
       aclError ret = aclrtMemcpyAsync(cur_paras->dst, cur_paras->dstLen, cur_paras->src,
         cur_paras->srcLen, cur_paras->kind, stream);
       if (ret != ACL_ERROR_NONE) {
-        ASCEND_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
-                    ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind);
+        NPU_LOGE("aclrtMemcpyAsync error! ret = %d, dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d, paramCopyFinished = %d",
+                 ret, cur_paras->dst, cur_paras->dstLen, cur_paras->src, cur_paras->srcLen, cur_paras->kind, in->paramCopyFinished);
         C10_NPU_SHOW_ERR_MSG();
       }
       return ret;
@@ -376,11 +376,20 @@ namespace at_npu
         new(dstPtr->paramVal) CopyParas();
         (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::CopyParas* >(srcPtr->paramVal)));
+        auto tmp = (static_cast<c10_npu::queue::CopyParas* >(dstPtr->paramVal));
+        if (tmp->srcLen == 0 || tmp->dstLen == 0 || tmp->src == nullptr || tmp->kind == 0) {
+          NPU_LOGE("dst = %p, dstLen = %zu, src = %p, srcLen = %zu, kind = %d",
+                   tmp->dst, tmp->dstLen, tmp->src, tmp->srcLen, tmp->kind);
+          std::stringstream msg;
+          msg << __func__ << ":" << __FILE__ << ":" << __LINE__;
+          TORCH_CHECK(0, msg.str());
+        }
       } else {
         new(dstPtr->paramVal) EventParas();
         (static_cast<c10_npu::queue::EventParas* >(dstPtr->paramVal))->
             Copy(*(static_cast<c10_npu::queue::EventParas* >(srcPtr->paramVal)));
       }
+      __sync_synchronize();
       dstPtr->paramCopyFinished = 1;
     }
 
