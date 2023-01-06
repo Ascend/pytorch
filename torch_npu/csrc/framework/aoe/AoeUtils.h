@@ -35,13 +35,13 @@ public:
 
   void EnableAoe();
   bool IsAoeEnabled() const;
-  bool IsInWhiltelist(const std::string &opName) const;
+  bool IsInWhitelist(const std::string &opName) const;
 
   bool aoe_enable=false;
   // to save graph for autotune, default path is ./
   std::string autotune_graphdumppath="./";
   aclGraphDumpOption* AclGraphDumpOption=NULL;
-  std::unordered_set<std::string> whilte_list_ = {
+  std::unordered_set<std::string> white_list_ = {
       "Abs",
       "AccumulateNV2",
       "Add",
@@ -145,7 +145,12 @@ public:
       "Pooling",
       "Conv2DTranspose",
       "Conv3DTranspose",
-      "ReluGradV2"};
+      "ReluGradV2",
+      "AvgPoolV2",
+      "Conv1D",
+      "DeformableConv2D",
+      "AvgPool3D"
+      };
 
 };
 
