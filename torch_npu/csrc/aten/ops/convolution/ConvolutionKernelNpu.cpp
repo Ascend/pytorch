@@ -376,8 +376,8 @@ at::Tensor NPUNativeFunctions::_convolution(
   at::Tensor input = input_;
   at::Tensor weight = weight_;
 
-  const at::Tensor& bias_ = c10::value_or_else(bias_opt_, [] {return at::Tensor();});
-  at::Tensor bias = bias_;
+  const at::Tensor& bias_opt_ = c10::value_or_else(bias_, [] {return at::Tensor();});
+  at::Tensor bias = bias_opt_;
 
   int64_t k = weight.ndimension();
   int64_t dim = k - 2;
@@ -401,10 +401,10 @@ at::Tensor NPUNativeFunctions::_convolution(
   auto kernel_size = weight.sizes().slice(2);
   if (!transposed) {
     output = NPUNativeFunctions::npu_convolution(
-        input, weight, bias_opt_, stride, padding, dilation, groups);
+        input, weight, bias_, stride, padding, dilation, groups);
   } else {
     output = NPUNativeFunctions::npu_convolution_transpose(
-        input, weight, bias_opt_, padding, output_padding, stride, dilation, groups);
+        input, weight, bias_, padding, output_padding, stride, dilation, groups);
   }
 
   if (k == 3) {
@@ -480,7 +480,7 @@ public:
     at::Tensor output;
     if (dim == 4) {
       output =
-          NPUNativeFunctions::npu_conv2d(input, weight, bias_opt, stride, padding, dilation, groups);
+          NPUNativeFunctions::npu_conv2d(input, weight, bias, stride, padding, dilation, groups);
     }
 
     if (dim == 5) {
@@ -490,10 +490,10 @@ public:
       }
       if (groups == 1 && !is_dilated) {
       output = at::slow_conv3d(
-          input, weight, kernel_size, bias_opt, stride, padding);
+          input, weight, kernel_size, bias, stride, padding);
       } else {
       output = NPUNativeFunctions::npu_conv3d(
-          input, weight, bias_opt, stride, padding, dilation, groups);
+          input, weight, bias, stride, padding, dilation, groups);
       }
     }
 

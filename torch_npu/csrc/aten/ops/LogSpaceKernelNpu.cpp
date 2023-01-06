@@ -78,9 +78,9 @@ at::Tensor& NPUNativeFunctions::logspace_out(
 }
 
 at::Tensor NPUNativeFunctions::logspace(
-    at::Scalar start,
-    at::Scalar end,
-    c10::optional<int64_t> steps_opt,
+    const at::Scalar& start,
+    const at::Scalar& end,
+    int64_t steps,
     double base,
     c10::optional<at::ScalarType> dtype_opt,
     c10::optional<at::Layout> layout_opt,
