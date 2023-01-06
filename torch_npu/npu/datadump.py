@@ -18,9 +18,10 @@ import threading
 from typing import List
 
 import numpy
-import torch_npu
 from torch import Tensor
 from torch.autograd.function import Function
+
+import torch_npu
 
 
 class DatadumpBeginOp(Function):
