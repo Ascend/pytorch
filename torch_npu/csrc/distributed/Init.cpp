@@ -290,6 +290,14 @@ PyObject* c10d_init(PyObject* _unused, PyObject* noargs) {
            py::arg("size"),
            py::arg("timeout") = std::chrono::milliseconds(
                ::c10d_npu::ProcessGroupHCCL::kProcessGroupHCCLOpTimeoutMillis))
+      .def("allgather_togather",
+           [](const c10::intrusive_ptr<::c10d_npu::ProcessGroupHCCL>& self,
+              std::vector<at::Tensor>& output_tensors,
+              std::vector<at::Tensor>& input_tensor) -> c10::intrusive_ptr<c10d::ProcessGroup::Work> {
+              return self->allgather_togather(
+                  output_tensors, input_tensor);
+           },
+           py::call_guard<py::gil_scoped_release>())
       .def("allreduce_out",
            [](
                ::c10d_npu::ProcessGroupHCCL& pg,
