@@ -43,7 +43,7 @@ at::Tensor& linalg_cross_out_npu_nocheck(
 at::Tensor& NPUNativeFunctions::linalg_cross_out(
     const at::Tensor& self,
     const at::Tensor& other,
-    c10::optional<int64_t> dim,
+    const int64_t dim,
     at::Tensor& result){
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor outputTensor = linalg_cross_dest_output(self, other);
@@ -60,7 +60,7 @@ at::Tensor& NPUNativeFunctions::linalg_cross_out(
 at::Tensor NPUNativeFunctions::linalg_cross(
     const at::Tensor& self,
     const at::Tensor& other,
-    c10::optional<int64_t> dim) {
+    const int64_t dim) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::Tensor outputTensor = linalg_cross_dest_output(self, other);
   at::Tensor result = OpPreparation::ApplyTensor(outputSize, self.options(), outputTensor);

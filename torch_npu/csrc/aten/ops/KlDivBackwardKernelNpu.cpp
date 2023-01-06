@@ -47,7 +47,7 @@ at::Tensor NPUNativeFunctions::kl_div_backward(
       .Run();
   if (reduction == at::Reduction::Mean) {
     auto inputShape = self.sizes();
-    int batchSquareSize = at::prod_intlist(inputShape) / inputShape[0];
+    int batchSquareSize = c10::multiply_integers(inputShape) / inputShape[0];
     grad_input.div_(batchSquareSize);
   }
   return grad_input;

@@ -68,7 +68,7 @@ private:
 
     // After permute or reshape+permute, the total amount of data remains
     // unchanged.
-    if (at::prod_intlist(view_sizes) != at::prod_intlist(base_sizes)) {
+    if (c10::multiply_integers(view_sizes) != c10::multiply_integers(base_sizes)) {
       return false;
     }
 

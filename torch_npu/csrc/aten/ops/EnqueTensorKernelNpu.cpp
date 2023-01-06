@@ -29,21 +29,21 @@ at_npu::native::DynamicInputRegFunc outfeedenque_func =
 }
 namespace at_npu {
 namespace native {
-void NPUNativeFunctions::npu_enque_tensor(at::TensorList tensors,
-                                          string tensor_name) {
+void NPUNativeFunctions::npu_enque_tensor(at::TensorList tensors, c10::string_view tensor_name) {
   OpCommand cmd;
   cmd.Name("OutfeedEnqueueOpV2");
   size_t input_num = tensors.size();
+  std::string tmp_tensor_name = std::string(tensor_name).data();
   for (size_t i = 0UL; i < input_num; i++) {
     string input_name = "x" + std::to_string(i);
-    cmd.InputWithMetaInfo(tensors[i], input_name, tensor_name);
+    cmd.InputWithMetaInfo(tensors[i], input_name, tmp_tensor_name);
   }
 
   std::string channel_name =
       at_npu::native::TdtChannelForPrint::GetInstance().GetChannelName();
   TORCH_CHECK(!channel_name.empty(), "Get channel for npu enque tensor failed");
   cmd.DynamicInputReg(outfeedenque_func, {{input_num, 0}})
-      .Input(tensor_name)
+      .Input(tmp_tensor_name)
       .Attr("channel_name", channel_name)
       .Run();
 }

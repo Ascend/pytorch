@@ -25,7 +25,7 @@ at::Tensor &crop_and_resize_out(
     at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
-    std::string method,
+    c10::string_view method,
     at::Tensor &result)
 {
   TORCH_CHECK(boxes.has_value(),
@@ -39,7 +39,7 @@ at::Tensor &crop_and_resize_out(
       .Input(crop_size, at::kInt)
       .Output(result)
       .Attr<float>("extrapolation_value", extrapolation_value)
-      .Attr("method", method)
+      .Attr<std::string>("method", std::string(method).data())
       .Attr("dtype", result.scalar_type())
       .Run();
 
@@ -52,7 +52,7 @@ at::Tensor NPUNativeFunctions::crop_and_resize(
     at::IntArrayRef box_index,
     at::IntArrayRef crop_size,
     double extrapolation_value,
-    std::string method)
+    c10::string_view method)
 {
   // calculate the output size
   auto outputSize = crop_and_resize_npu_output_size(self, box_index, crop_size);

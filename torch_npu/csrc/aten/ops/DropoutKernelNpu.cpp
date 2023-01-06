@@ -67,7 +67,7 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   bool isNotJitCompile = env::CheckJitDisable();
   int64_t numels;
   auto desc_ = torch_npu::NPUBridge::GetNpuStorageImpl(self)->get_npu_desc();
-  numels = isNotJitCompile ? at::prod_intlist(desc_.storage_sizes_) : self.numel();
+  numels = isNotJitCompile ? c10::multiply_integers(desc_.storage_sizes_) : self.numel();
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(
@@ -117,7 +117,7 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
                                           .pinned_memory(pin_memory_opt);
 
   at::Scalar prob = at::Scalar(1. - p);
-  int64_t numels = at::prod_intlist(size);
+  int64_t numels = c10::multiply_integers(size);
 
   uint32_t length = (numels + 128 - 1) / 128 * 128;
   at::Tensor mask = OpPreparation::ApplyTensorWithFormat(at::IntArrayRef{length / 8}, options.dtype(at::kByte),

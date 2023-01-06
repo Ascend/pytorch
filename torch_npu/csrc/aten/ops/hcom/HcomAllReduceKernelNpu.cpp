@@ -23,8 +23,8 @@ namespace native{
 using namespace at_npu::native;
 
 at::Tensor NPUNativeFunctions::npu_hcom_allreduce(const at::Tensor& self,
-    std::string reduction,
-    std::string group,
+    c10::string_view reduction,
+    c10::string_view group,
     int64_t fusion,
     int64_t fusion_id,
     double alpha,
@@ -34,8 +34,8 @@ at::Tensor NPUNativeFunctions::npu_hcom_allreduce(const at::Tensor& self,
 }
 
 at::Tensor& NPUNativeFunctions::npu_hcom_allreduce_out(const at::Tensor& self,
-    std::string reduction,
-    std::string group,
+    c10::string_view reduction,
+    c10::string_view group,
     int64_t fusion,
     int64_t fusion_id,
     double alpha,
@@ -45,8 +45,8 @@ at::Tensor& NPUNativeFunctions::npu_hcom_allreduce_out(const at::Tensor& self,
     OpCommand cmd;
     cmd.Name("HcomAllReduce")
         .Input(self)
-        .Attr("reduction", reduction)
-        .Attr("group", group)
+        .Attr<std::string>("reduction", std::string(reduction).data())
+        .Attr<std::string>("group", std::string(group).data())
         .Attr("fusion", fusion)
         .Attr("fusion_id", fusion_id)
         .Attr("alpha", static_cast<float>(alpha))

@@ -32,7 +32,7 @@ hash_t GraphUtils::GetTensorIrValueHash(const at::Tensor& tensor) {
 
 size_t GraphUtils::GetTensorCapacity(c10::StorageImpl* storage) {
   auto npu_desc = torch_npu::NPUBridge::GetNpuStorageImpl(storage)->get_npu_desc();
-  size_t nbytes = at::prod_intlist(npu_desc.storage_sizes_) * npu_desc.data_type_.itemsize();
+  size_t nbytes = c10::multiply_integers(npu_desc.storage_sizes_) * npu_desc.data_type_.itemsize();
   return nbytes;
 }
 

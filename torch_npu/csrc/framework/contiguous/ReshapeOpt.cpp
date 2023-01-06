@@ -54,8 +54,8 @@ bool can_use_memcpy_for_other_format(const ContiguousTensorDesc &tensor_desc) {
       return false;
     }
     // Make sure no pandding happens
-    if (at::prod_intlist(tensor_desc.sizes_) !=
-        at::prod_intlist(tensor_desc.storage_sizes_)) {
+    if (c10::multiply_integers(tensor_desc.sizes_) !=
+        c10::multiply_integers(tensor_desc.storage_sizes_)) {
       return false;
     }
     return true;
@@ -76,7 +76,7 @@ bool check_reshape_match(const ContiguousTensorDesc &self_desc,
       // In single op mode, this opt will be used for reshape/slice/select
       // scenes. In graph mode, reshape opt is only used for reshape scenes,
       // npu-reshape is used to calculae and get contiguous tensor.
-      if (at::prod_intlist(src_desc.base_sizes_) != at::prod_intlist(src_desc.sizes_)) {
+      if (c10::multiply_integers(src_desc.base_sizes_) != c10::multiply_integers(src_desc.sizes_)) {
         return false;
       }
     );

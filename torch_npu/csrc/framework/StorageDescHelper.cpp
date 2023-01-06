@@ -165,7 +165,7 @@ namespace at_npu
     int64_t StorageDescHelper::GetMemorySize(const torch_npu::NPUStorageDesc &desc)
     {
       const auto &physical_size = FormatHelper::GetStorageSizes(desc);
-      return at::prod_intlist(physical_size);
+      return c10::multiply_integers(physical_size);
     }
 
     int64_t StorageDescHelper::GetMemorySize(const at::Tensor &dst)
@@ -177,7 +177,7 @@ namespace at_npu
     int64_t StorageDescHelper::GetMemorySize(const c10::IntArrayRef& size, aclFormat format)
     {
       const auto &physical_size = FormatHelper::GetStorageSizes(format, size);
-      return at::prod_intlist(physical_size);
+      return c10::multiply_integers(physical_size);
     }
 
     int64_t StorageDescHelper::GetValidMemorySize(const at::Tensor &tensor)
