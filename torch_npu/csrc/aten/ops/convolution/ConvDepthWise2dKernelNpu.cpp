@@ -24,15 +24,15 @@ namespace at_npu {
 namespace native {
 
 
-at::Tensor& NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
+const at::Tensor& NPUNativeFunctions::_conv_depthwise2d_out(
     const at::Tensor& self,
     const at::Tensor& weight,
-    at::IntArrayRef kernel_size,
+    c10::IntArrayRef kernel_size,
     const c10::optional<at::Tensor>& bias_opt,
-    at::IntArrayRef stride,
-    at::IntArrayRef padding,
-    at::IntArrayRef dilation,
-    at::Tensor& out) {
+    c10::IntArrayRef stride,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef dilation,
+    const at::Tensor& out) {
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   const at::Tensor& weightModify = weight.permute({1, 0, 2, 3});
 
@@ -40,7 +40,7 @@ at::Tensor& NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1]};
   c10::SmallVector<int64_t, N> paddings = {padding[0], padding[0], padding[1], padding[1]};
   c10::SmallVector<int64_t, N> dilations = {1, 1, dilation[0], dilation[1]};
-
+  at::Tensor temp_out = out;
   OpCommand cmd;
   cmd.Name("DepthwiseConv2D")
       .Input(self, "x", ACL_FORMAT_NCHW)
@@ -48,7 +48,7 @@ at::Tensor& NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
   if (bias.defined()) {
       cmd.Input(bias);
   }
-  cmd.Output(out, "y", ACL_FORMAT_NCHW)
+  cmd.Output(temp_out, "y", ACL_FORMAT_NCHW)
       .Attr("strides", stridesSize)
       .Attr("pads", paddings)
       .Attr("dilations", dilations)
@@ -57,14 +57,14 @@ at::Tensor& NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
   return out;
 }
 
-at::Tensor NPUNativeFunctions::thnn_conv_depthwise2d_forward(
+at::Tensor NPUNativeFunctions::_conv_depthwise2d(
     const at::Tensor& self,
     const at::Tensor& weight,
-    at::IntArrayRef kernel_size,
+    c10::IntArrayRef kernel_size,
     const c10::optional<at::Tensor>& bias_opt,
-    at::IntArrayRef stride,
-    at::IntArrayRef padding,
-    at::IntArrayRef dilation) {
+    c10::IntArrayRef stride,
+    c10::IntArrayRef padding,
+    c10::IntArrayRef dilation) {
   // calculate the output size
   int64_t N = self.size(0);
   int64_t Co = weight.size(0);
@@ -77,7 +77,7 @@ at::Tensor NPUNativeFunctions::thnn_conv_depthwise2d_forward(
   c10::SmallVector<int64_t, SIZE> outputSize = {N, Co, Ho, Wo};
   at::Tensor result = OpPreparation::ApplyTensorWithFormat(self, outputSize, ACL_FORMAT_NC1HWC0);
 
-  NPUNativeFunctions::thnn_conv_depthwise2d_forward_out(
+  NPUNativeFunctions::_conv_depthwise2d_out(
       self, weight, kernel_size, bias_opt, stride, padding, dilation, result);
   return result;
 }

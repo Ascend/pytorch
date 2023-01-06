@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Huawei Technologies Co., Ltd
+// Copyright (c) 2020 Huawei Technologies Co., Ltd
 // Copyright (c) 2019, Facebook CORPORATION.
 // All rights reserved.
 //
@@ -20,7 +20,7 @@
 
 namespace at_npu {
 namespace native {
-std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_triangular_solve_helper(
+std::tuple<at::Tensor, at::Tensor> npu_triangular_solve_helper(
     const at::Tensor& self,
     const at::Tensor& A,
     bool upper,
@@ -48,6 +48,16 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::_triangular_solve_helper(
     .Run();
 
   return std::tuple<at::Tensor, at::Tensor>(self_working_copy, A_working_copy);
+}
+
+std::tuple<at::Tensor&, at::Tensor&> NPUNativeFunctions::triangular_solve_out(const at::Tensor& self, const at::Tensor& A, bool upper,
+                                                                              bool transpose, bool unitriangular, at::Tensor& result,
+                                                                              at::Tensor& clone_A) {
+  at::Tensor result_tmp, clone_A_tmp;
+  std::tie(result_tmp, clone_A_tmp) = npu_triangular_solve_helper(self, A, upper, transpose, unitriangular);
+  result.resize_as_(result_tmp).copy_(result_tmp);
+  clone_A.resize_as_(clone_A_tmp).copy_(clone_A_tmp);
+  return std::tuple<at::Tensor&, at::Tensor&>(result, clone_A);
 }
 } // namespace native
 } // namespace at_npu

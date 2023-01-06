@@ -81,7 +81,6 @@ static inline void maybe_resize_storage_npu(
     }
     int64_t new_size_bytes =
         (new_size + self->storage_offset()) * self->dtype().itemsize();
-
     int64_t old_size_bytes;
     if ((c10_npu::NpuRunMode::IsGraphMode()) && (!is_empty_tensor)) {
       old_size_bytes = GraphUtils::GetTensorCapacity(self->storage().unsafeGetStorageImpl());

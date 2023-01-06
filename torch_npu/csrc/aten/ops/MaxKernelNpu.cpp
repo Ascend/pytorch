@@ -165,8 +165,18 @@ at::Tensor& NPUNativeFunctions::max_out(
   return result;
 }
 
+at::Tensor& NPUNativeFunctions::maximum_out(
+    const at::Tensor& self,
+    const at::Tensor& other,
+    at::Tensor& result) {
+  auto outputSize = broadcast_ops_npu_output_size(self, other);
+  OpPreparation::CheckOut({self, other}, result, self, outputSize);
+  max_out_npu_nocheck(self, other, result);
+  return result;
+}
+
 at::Tensor NPUNativeFunctions::maximum(
-    const at::Tensor& self, 
+    const at::Tensor& self,
     const at::Tensor& other) {
   auto outputSize = broadcast_ops_npu_output_size(self, other);
   at::ScalarType high_type = at::native::result_type(self, other);

@@ -24,14 +24,15 @@
 namespace at_npu {
 namespace native {
 
-at::Tensor& NPUNativeFunctions::resize_(
-    at::Tensor& self,
+const at::Tensor& NPUNativeFunctions::resize_(
+    const at::Tensor& self,
     c10::IntArrayRef size,
     c10::optional<c10::MemoryFormat> format) {
   // because of resize _impl_npu_ only support at base format, so
   // no need to reflush NpuStorageDesc here.
+  at::Tensor temp_self = self;
   if (!FormatHelper::IsBaseFormatType(self)) {
-    NPUNativeFunctions::npu_format_cast_(self, FormatHelper::GetBaseFormat(self));
+    NPUNativeFunctions::npu_format_cast_(temp_self, FormatHelper::GetBaseFormat(self));
   }
   auto* self_ = self.unsafeGetTensorImpl();
   resize_impl_npu_(self_, size, c10::nullopt);

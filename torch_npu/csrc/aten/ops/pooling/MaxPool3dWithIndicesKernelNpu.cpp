@@ -147,7 +147,8 @@ namespace at_npu
           pT, pH, pW,
           dilationT, dilationH, dilationW,
           itime, iheight, iwidth,
-          otime, oheight, owidth);
+          otime, oheight, owidth,
+          "max_pool3d_with_indices()");
       at::Tensor selfCp = self.ndimension() == 4 ? self.unsqueeze(0) : self;
       c10::SmallVector<int64_t, SIZE> outputSize = {selfCp.size(0), selfCp.size(1), otime, oheight, owidth};
       at::Tensor result = OpPreparation::ApplyTensorWithFormat(

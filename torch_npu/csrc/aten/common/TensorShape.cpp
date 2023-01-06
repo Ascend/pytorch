@@ -147,17 +147,44 @@ at::Tensor NPUNativeFunctions::as_strided(
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::as_strided_(
-    at::Tensor& self,
+const at::Tensor& NPUNativeFunctions::as_strided_(
+    const at::Tensor& self,
     c10::IntArrayRef size,
     c10::IntArrayRef stride,
     c10::optional<int64_t> storage_offset_) {
-  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(self, size)) {
-    self = FormatCastHelper::CovertSelfToBaseFormat(self);
+  at::Tensor result = self;
+  if (InferFormat::IsDefiniteTensorWhenMetaDataChanges(result, size)) {
+    result = FormatCastHelper::CovertSelfToBaseFormat(result);
   }
-  auto storage_offset = storage_offset_.value_or(self.storage_offset());
-  at::native::setStrided(self, size, stride, storage_offset);
-  return self;
+  auto storage_offset = storage_offset_.value_or(result.storage_offset());
+  at::native::setStrided(result, size, stride, storage_offset);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::unsqueeze(const at::Tensor& self, int64_t dim) {
+    dim = at::maybe_wrap_dim(dim, self.dim() + 1);
+    auto g = inferUnsqueezeGeometry(self, dim);
+    return self.as_strided(g.sizes, g.strides);
+}
+
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self) {
+  auto g = inferSqueezeGeometry(self);
+  at::Tensor result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  auto maybe_outnames = at::namedinference::compute_squeeze_outnames(self);
+  at::namedinference::propagate_names_if_nonempty(result, maybe_outnames);
+  return result;
+}
+
+at::Tensor NPUNativeFunctions::squeeze(const at::Tensor& self, int64_t dim) {
+  int64_t dims = self.dim();
+  dim = at::maybe_wrap_dim(dim, dims);
+  if (dims == 0 || self.sizes()[dim] != 1) {
+    return self.as_strided(self.sizes(), self.strides());
+  }
+  auto g = inferSqueezeGeometry(self, dim);
+  auto result = self.as_strided(std::get<0>(g), std::get<1>(g));
+  at::namedinference::propagate_names_except(result, self, {dim});
+  return result;
 }
 
 } // namespace native

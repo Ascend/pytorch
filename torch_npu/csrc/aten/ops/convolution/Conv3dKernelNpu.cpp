@@ -143,16 +143,14 @@ tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>> slow_con
   return tuple<c10::SmallVector<int64_t, SIZE>, c10::SmallVector<int64_t, SIZE>>(outputSize, finputSize);
 }
 
-std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv3d_forward_npu_nocheck(
+at::Tensor& slow_conv3d_forward_npu_nocheck(
     const at::Tensor& input,
     const at::Tensor& weight,
     at::IntArrayRef kernel_size,
     const c10::optional<at::Tensor> & bias_opt,
     at::IntArrayRef stride,
     at::IntArrayRef padding,
-    at::Tensor& output,
-    at::Tensor& finput,
-    at::Tensor& fgrad_input) {
+    at::Tensor& output) {
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   at::Tensor filter = weight.to(input.dtype());
   c10::SmallVector<int64_t, N> stridesSize = {1, 1, stride[0], stride[1], stride[2]};
@@ -174,19 +172,17 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> slow_conv3d_forward_npu_nochec
   cmd.Attr("data_format", (string) "NCDHW");
   cmd.Run();
 
-  return std::tuple<at::Tensor&, at::Tensor&, at::Tensor&>(output, finput, fgrad_input);
+  return output;
 }
 
-std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::slow_conv3d_forward_out(
+at::Tensor& NPUNativeFunctions::slow_conv3d_forward_out(
     const at::Tensor& input,
     const at::Tensor& weight,
     at::IntArrayRef kernel_size,
     const c10::optional<at::Tensor> & bias_opt,
     at::IntArrayRef stride,
     at::IntArrayRef padding,
-    at::Tensor& output,
-    at::Tensor& finput,
-    at::Tensor& fgrad_input) {
+    at::Tensor& output) {
   const at::Tensor& bias = c10::value_or_else(bias_opt, [] {return at::Tensor();});
   auto outputSize = slow_conv3d_npu_output_size(
       input, weight, bias, stride, padding);
@@ -202,10 +198,8 @@ std::tuple<at::Tensor&, at::Tensor&, at::Tensor&> NPUNativeFunctions::slow_conv3
       bias_opt,
       stride,
       padding,
-      output,
-      finput,
-      fgrad_input);
-  return std::tuple<at::Tensor&, at::Tensor&, at::Tensor&>(output, finput, fgrad_input);
+      output);
+  return output;
 }
 
 at::Tensor& NPUNativeFunctions::slow_conv3d_out(
@@ -222,19 +216,17 @@ at::Tensor& NPUNativeFunctions::slow_conv3d_out(
   at::Tensor finput = OpPreparation::ApplyTensor(self, std::get<1>(outputSize));
   at::Tensor fgrad_input = at::empty({0}, self.options());
 
-  return std::get<0>(slow_conv3d_forward_npu_nocheck(
+  return slow_conv3d_forward_npu_nocheck(
       self,
       weight,
       kernel_size,
       bias,
       stride,
       padding,
-      output,
-      finput,
-      fgrad_input));
+      output);
 }
 
-std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv3d_forward(
+at::Tensor NPUNativeFunctions::slow_conv3d_forward(
     const at::Tensor& self,
     const at::Tensor& weight,
     at::IntArrayRef kernel_size,
@@ -255,11 +247,9 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::slow_conv3d_f
       bias_opt,
       stride,
       padding,
-      output,
-      finput,
-      fgrad_input);
+      output);
 
-  return std::tuple<at::Tensor&, at::Tensor&, at::Tensor&>(output, finput, fgrad_input);
+  return output;
 }
 
 at::Tensor NPUNativeFunctions::slow_conv3d(
@@ -269,8 +259,8 @@ at::Tensor NPUNativeFunctions::slow_conv3d(
     const c10::optional<at::Tensor> & bias,
     at::IntArrayRef stride,
     at::IntArrayRef padding) {
-  return std::get<0>(NPUNativeFunctions::slow_conv3d_forward(
-      self, weight, kernel_size, bias, stride, padding));
+  return NPUNativeFunctions::slow_conv3d_forward(
+      self, weight, kernel_size, bias, stride, padding);
 }
 
 } // namespace native

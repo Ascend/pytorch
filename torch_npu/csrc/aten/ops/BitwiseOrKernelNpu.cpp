@@ -132,29 +132,5 @@ at::Tensor NPUNativeFunctions::bitwise_or(const at::Tensor& self, const at::Scal
   return result;
 }
 
-at::Tensor& NPUNativeFunctions::bitwise_or_(at::Tensor& self, const at::Tensor& other) {
-  OpPreparation::CheckMemory({self, other}, {self});
-
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = bitwise_or_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    bitwise_or_out_npu_nocheck(self, self, other);
-  }
-  return self;
-}
-
-at::Tensor& NPUNativeFunctions::bitwise_or_(at::Tensor& self, at::Scalar other) {
-  if (!NpuUtils::check_match(&self)) {
-    at::Tensor contiguousSelf = NpuUtils::format_contiguous(self);
-    at::Tensor result = bitwise_or_out_npu_nocheck(contiguousSelf, contiguousSelf, other);
-    NpuUtils::format_fresh_view(self, result);
-  } else {
-    bitwise_or_out_npu_nocheck(self, self, other);
-  }
-  return self;
-}
-
 } // namespace native
 } // namespace at_npu
