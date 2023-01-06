@@ -238,6 +238,11 @@ public:
       std::vector<at::Tensor>& inputTensors,
       const c10d::AllgatherOptions& opts = c10d::AllgatherOptions()) override;
 
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> allgather_togather(
+      std::vector<at::Tensor>& outputTensors,
+      std::vector<at::Tensor>& inputTensors,
+      const c10d::AllgatherOptions& opts = c10d::AllgatherOptions());
+
   c10::intrusive_ptr<c10d::ProcessGroup::Work> _allgather_base(
       at::Tensor& outputbuffer,
       at::Tensor& inputbuffer,
