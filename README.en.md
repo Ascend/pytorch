@@ -14,13 +14,13 @@ This project develops the PyTorch Adapter plugin to adapt Ascend to the PyTorch 
 
 yum install -y patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
 
-yum install -y gcc==7.3.0 cmake==3.12.0
+yum install -y gcc==7.5.0 cmake==3.12.0
 
 ## Ubuntu
 
 apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
 
-apt-get install -y gcc==7.3.0 cmake==3.12.0
+apt-get install -y gcc==7.5.0 cmake==3.12.0
 
 >![](figures/icon-note.gif) **NOTE:** 
 >If an error occurs during the installation of the GCC and CMake dependency commands, use the source code for installation. For details, see the FAQ.  
@@ -52,7 +52,7 @@ Install the official torch package, and then compile and install the plugin.
 
 ```sh
 #x86_64
-pip3 install torch==1.8.1+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
+pip3 install torch==1.11.0+cpu # If an error is reported when you run the pip command to install PyTorch of the CPU version, manually download the .whl package from https://download.pytorch.org/whl/torch.
 
 #AArch64
 #The community does not provide the CPU installation package of the ARM architecture. For details, see the first FAQ to compile and install PyTorch using the source code.
@@ -62,7 +62,7 @@ Compile and generate the binary installation package of the PyTorch plugin.
 Download code of the corresponding branch and go to the root directory of the plugin.
 ```
 # 
-git clone -b v1.8.1-3.0.rc2 https://gitee.com/ascend/pytorch.git 
+git clone -b master https://gitee.com/ascend/pytorch.git 
 cd pytorch    
 # Specify the Python version packaging mode:
 bash ci/build.sh --python=3.7
@@ -75,11 +75,11 @@ bash ci/build.sh --python=3.9
 Install the **torch_npu** package generated in the **pytorch/dist** directory. *{arch}* indicates the architecture name.
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.11.0-cp37-cp37m-linux_{arch}.whl
 ```
 Download TorchVision.
 ```
-pip3 install torchvision==0.9.1
+pip3 install torchvision==0.12.0
 ```
 
 
@@ -137,7 +137,7 @@ python3 test_div.py
 
 # (Optional) Installing the Mixed Precision Module
 
-AscendPyTorch 1.8.1 integrates the AMP module and can be used for training with mixed precision. The differences between the AMP module and the Apex module are as follows. You can select a desired module. For details about how to compile and install the Apex module, see the related [**README.en**](https://gitee.com/ascend/apex) file.
+AscendPyTorch 1.11.0 integrates the AMP module and can be used for training with mixed precision. The differences between the AMP module and the Apex module are as follows. You can select a desired module. For details about how to compile and install the Apex module, see the related [**README.en**](https://gitee.com/ascend/apex) file.
 
 - AMP
   - Dynamic loss scale: The loss scale value is dynamically calculated to determine whether overflow occurs.
@@ -184,23 +184,23 @@ The version branches of AscendPyTorch have the following maintenance phases:
 | **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |  
 # FAQs
 
-## When the CPU architecture is ARM, PyTorch 1.8.1 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.8.1.
+## When the CPU architecture is ARM, PyTorch 1.11.0 cannot be installed using the PIP3 command because the community does not provide the torch package for the ARM CPU architecture. In this case, use the source code to compile and install PyTorch 1.11.0.
 
-Download the PyTorch 1.8.1 source package.
+Download the PyTorch 1.11.0 source package.
 
 ```
-git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.8.1
+git clone -b v1.11.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.11.0
 ```
 
 Access the source package to obtain the passive dependency code.
 
 ```
-cd pytorch_v1.8.1
+cd pytorch_v1.11.0
 git submodule sync
 git submodule update --init --recursive 
 ```
 
-Compile and install PyTorch 1.8.1.
+Compile and install PyTorch 1.11.0.
 
 ```
 python3 setup.py install
@@ -316,7 +316,7 @@ When downloading GCC from some sources, you may be prompted by an error message 
 
 Perform the following steps as the **root** user.
 
-1. Download **gcc-7.3.0.tar.gz** from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz).
+1. Download **gcc-7.5.0.tar.gz** from [https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.5.0/gcc-7.5.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.5.0/gcc-7.5.0.tar.gz).
 
 2. GCC installation requires adequate temporary space. Run the following command to clear the **/tmp** directory in advance:
 
@@ -340,20 +340,20 @@ Perform the following steps as the **root** user.
 
 4. Compile and install GCC.
 
-   1. Go to the directory where the source package **gcc-7.3.0.tar.gz** is located and run the following command to decompress it:
+   1. Go to the directory where the source package **gcc-7.5.0.tar.gz** is located and run the following command to decompress it:
 
       ```
-      tar -zxvf gcc-7.3.0.tar.gz
+      tar -zxvf gcc-7.5.0.tar.gz
       ```
 
    2. Go to the extracted directory and download the GCC dependency packages:
 
       ```
-      cd gcc-7.3.0
+      cd gcc-7.5.0
       ./contrib/download_prerequisites
       ```
 
-      If an error is reported during the command execution, run the following commands in the **gcc-7.3.0/** directory to download the dependency packages:
+      If an error is reported during the command execution, run the following commands in the **gcc-7.5.0/** directory to download the dependency packages:
 
       ```
       wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
@@ -373,13 +373,13 @@ Perform the following steps as the **root** user.
    3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>Run the configuration, compilation, and installation commands.
 
       ```
-      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.5.0
       make -j15    # Check the number of CPUs by running **grep -w processor /proc/cpuinfo|wc -l**. In this example, the number is 15. You can set the parameters as required.
       make install    
       ```
 
       >![](https://gitee.com/ascend/pytorch/raw/v1.8.1-3.0.rc2/docs/en/PyTorch%20Network%20Model%20Porting%20and%20Training%20Guide/public_sys-resources/icon-notice.gif) **NOTICE:** 
-      >The **--prefix** option is used to specify the **linux\_gcc7.3.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr,** which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux\_gcc7.3.0**.
+      >The **--prefix** option is used to specify the **linux\_gcc7.5.0** installation path, which is configurable. Do not set it to **/usr/local** or **/usr,** which is the default installation path for the GCC installed by using the software source. Otherwise, a conflict occurs and the original GCC compilation environment of the system is damaged. In this example, the installation path is set to **/usr/local/linux\_gcc7.5.0**.
    4. Change the soft links.
 
          ```
@@ -398,14 +398,14 @@ Perform the following steps as the **root** user.
    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
    ```
 
-   **${install_path}** indicates the GCC 7.3.0 installation path configured in [3](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.3.0 installation path is **/usr/local/gcc7.3.0/**.
+   **${install_path}** indicates the GCC 7.5.0 installation path configured in [3](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310). In this example, the GCC 7.5.0 installation path is **/usr/local/gcc7.5.0/**.
 
    >![](figures/icon-note.gif) **NOTE:** 
    >Skip this step if you do not need to use the compilation environment with GCC upgraded.
 
 If the PyTorch compilation fails, check whether the soft link library is correct.
 
-libstdc++->libstdc++.so.6.0.24(7.3.0)
+libstdc++->libstdc++.so.6.0.24(7.5.0)
 
 ## libblas.so cannot be found.
 

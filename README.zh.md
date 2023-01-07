@@ -14,13 +14,13 @@
 
 yum install -y  patch zlib-devel libffi-devel openssl-devel libjpeg-turbo-devel gcc-c++ sqlite-devel dos2unix openblas git dos2unix
 
-yum install -y gcc==7.3.0 cmake==3.12.0
+yum install -y gcc==7.5.0 cmake==3.12.0
 
 ## Ubuntu
 
 apt-get install -y patch g++ make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev m4 dos2unix libopenblas-dev git dos2unix
 
-apt-get install -y gcc==7.3.0 cmake==3.12.0
+apt-get install -y gcc==7.5.0 cmake==3.12.0
 
 
 
@@ -60,7 +60,7 @@ pip3 install wheel
 
 ```sh
 #x86_64
-pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
+pip3 install torch==1.11.0+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
 #aarch64（推荐使用镜像）
 可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
@@ -85,12 +85,12 @@ bash ci/build.sh --python=3.9
 然后安装pytorch/dist下生成的插件torch_npu包，{arch}为架构名称。
 
 ```
-pip3 install --upgrade dist/torch_npu-1.8.1rc2-cp37-cp37m-linux_{arch}.whl
+pip3 install --upgrade dist/torch_npu-1.11.0-cp37-cp37m-linux_{arch}.whl
 ```
 
 下载torchvision。
 ```
-pip3 install torchvision==0.9.1
+pip3 install torchvision==0.12.0
 ```
 
 # 运行
@@ -146,7 +146,7 @@ python3 test_div.py
 
 # 安装混合精度模块（可选）
 
-AscendPyTorch1.8.1集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex)进行编译安装Apex模块。
+AscendPyTorch1.11.0集成了AMP模块，也可用于混合精度训练等应用场景，与Apex模块的区别如下，请用户根据功能需要选择使用，若需安装Apex模块请参考相关[README文档](https://gitee.com/ascend/apex)进行编译安装Apex模块。
 
 - AMP
   - 动态loss scale：动态计算loss scale的值并判断是否溢出。
@@ -195,18 +195,18 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 # FAQ
 
-## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch1.8.1，需要使用源码编译安装。
+## CPU架构为ARM架构时，由于社区未提供ARM架构CPU版本的torch包，无法使用PIP3命令安装PyTorch，需要使用源码编译安装。
 
-下载PyTorch v1.8.1源码包。
+下载PyTorch v1.11.0源码包。
 
 ```
-git clone -b v1.8.1 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.8.1
+git clone -b v1.11.0 https://github.com/pytorch/pytorch.git --depth=1 pytorch_v1.11.0
 ```
 
 进入源码包获取被动依赖代码。
 
 ```
-cd pytorch_v1.8.1
+cd pytorch_v1.11.0
 git submodule sync
 git submodule update --init --recursive 
 ```
@@ -336,7 +336,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 以下步骤请在root用户下执行。
 
-1. 下载gcc-7.3.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.3.0/gcc-7.3.0.tar.gz)。
+1. 下载gcc-7.5.0.tar.gz，下载地址为[https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.5.0/gcc-7.5.0.tar.gz](https://mirrors.tuna.tsinghua.edu.cn/gnu/gcc/gcc-7.5.0/gcc-7.5.0.tar.gz)。
 
 2. 安装gcc时候会占用大量临时空间，所以先执行下面的命令清空/tmp目录：
 
@@ -360,20 +360,20 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 
 4. 编译安装gcc。
 
-   1. 进入gcc-7.3.0.tar.gz源码包所在目录，解压源码包，命令为：
+   1. 进入gcc-7.5.0.tar.gz源码包所在目录，解压源码包，命令为：
 
       ```
-      tar -zxvf gcc-7.3.0.tar.gz
+      tar -zxvf gcc-7.5.0.tar.gz
       ```
 
    2. 进入解压后的文件夹，执行如下命令下载gcc依赖包：
 
       ```
-      cd gcc-7.3.0
+      cd gcc-7.5.0
       ./contrib/download_prerequisites
       ```
 
-      如果执行上述命令报错，需要执行如下命令在“gcc-7.3.0/“文件夹下下载依赖包：
+      如果执行上述命令报错，需要执行如下命令在“gcc-7.5.0/“文件夹下下载依赖包：
 
       ```
       wget http://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2
@@ -393,20 +393,20 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    3. <a name="zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310"></a>执行配置、编译和安装命令：
 
       ```
-      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.3.0
+      ./configure --enable-languages=c,c++ --disable-multilib --with-system-zlib --prefix=/usr/local/linux_gcc7.5.0
       make -j15    # 通过grep -w processor /proc/cpuinfo|wc -l查看cpu数，示例为15，用户可自行设置相应参数。
       make install    
       ```
 
       >![](figures/icon-notice.gif) **须知：** 
-      >其中“--prefix“参数用于指定linux\_gcc7.3.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.3.0“。
+      >其中“--prefix“参数用于指定linux\_gcc7.5.0安装路径，用户可自行配置，但注意不要配置为“/usr/local“及“/usr“，因为会与系统使用软件源默认安装的gcc相冲突，导致系统原始gcc编译环境被破坏。示例指定为“/usr/local/linux\_gcc7.5.0“。
 
    4. 修改软连接。
 
          ```
-      ln -s ${install_path}/gcc-7.3.0/bin/gcc /usr/bin/gcc
-      ln -s ${install_path}/gcc-7.3.0/bin/g++ /usr/bin/g++
-      ln -s ${install_path}/gcc-7.3.0/bin/c++ /usr/bin/c++
+      ln -s ${install_path}/gcc-7.5.0/bin/gcc /usr/bin/gcc
+      ln -s ${install_path}/gcc-7.5.0/bin/g++ /usr/bin/g++
+      ln -s ${install_path}/gcc-7.5.0/bin/c++ /usr/bin/c++
       ```
 
    5.配置环境变量。
@@ -417,7 +417,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
    export LD_LIBRARY_PATH=${install_path}/lib64:${LD_LIBRARY_PATH}
    ```
 
-   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.3.0安装路径，本示例为“/usr/local/gcc7.3.0/“。
+   其中$\{install\_path\}为[3.](#zh-cn_topic_0000001135347812_zh-cn_topic_0000001173199577_zh-cn_topic_0000001172534867_zh-cn_topic_0276688294_li1649343041310)中配置的gcc7.5.0安装路径，本示例为“/usr/local/gcc7.5.0/“。
 
    >![](figures/icon-note.gif) **说明：** 
    >本步骤为用户在需要用到gcc升级后的编译环境时才配置环境变量。
@@ -425,7 +425,7 @@ pip3 install --upgrade te-0.4.0-py3-none-any.whl
 若存在pytorch编译不过，请检查软连接的库是否正确。
 
 
-libstdc++->libstdc++.so.6.0.24(7.3.0)
+libstdc++->libstdc++.so.6.0.24(7.5.0)
 
 ## 找不到libblas.so问题
 
