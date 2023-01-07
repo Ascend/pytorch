@@ -32,9 +32,9 @@ c10::SmallVector<int64_t, N> giou_output_size(
     bool is_cross){
   c10::SmallVector<int64_t, N> output_size;
   if(is_cross){
-      output_size = {gtboxes.size(0), self.size(0)};
+      output_size = {gtboxes.size(1), self.size(1)};
   } else {
-      output_size = {1, self.size(0)};
+      output_size = {1, self.size(1)};
   }
   return output_size;
 }
@@ -73,20 +73,20 @@ at::Tensor giou_npu(
       "mode==0('iou') current version ",
       "if you need to back propagation, ",
       "please ensure your parameter is correct!");
-  // Op need form of [n, 4], but pass should be [4, n];
-  // Note: temp avoid! it'll be removed while op deal with fp16 issue!
-  at::Tensor selfCp = self.permute({1, 0});
-  if (selfCp.scalar_type() == at::kHalf) {
-    selfCp = NPUNativeFunctions::npu_dtype_cast(selfCp, at::kFloat);
+  
+  at::Tensor self_cp = self;
+  if (self_cp.scalar_type() == at::kHalf) {
+    self_cp = NPUNativeFunctions::npu_dtype_cast(self_cp, at::kFloat);
   }
-  at::Tensor gtboxesCp = gtboxes.permute({1, 0});
-  if (gtboxesCp.scalar_type() == at::kHalf) {
-    gtboxesCp = NPUNativeFunctions::npu_dtype_cast(gtboxesCp, at::kFloat);
+  at::Tensor gtboxes_cp = gtboxes;
+  if (gtboxes_cp.scalar_type() == at::kHalf) {
+    gtboxes_cp = NPUNativeFunctions::npu_dtype_cast(gtboxes_cp, at::kFloat);
   }
-  auto output_size = giou_output_size(selfCp, gtboxesCp, is_cross);
-  at::Tensor result = OpPreparation::ApplyTensor(selfCp, output_size);
+  auto output_size = giou_output_size(self_cp, gtboxes_cp, is_cross);
+  at::Tensor result = OpPreparation::ApplyTensor(self_cp, output_size);
 
-  giou_inner_out_npu(result, selfCp, gtboxesCp, trans, is_cross, mode);
+  giou_inner_out_npu(result, self_cp, gtboxes_cp, trans, is_cross, mode);
+  //op's output is [1, n], same with CPU output, but pass need [n, 1].
   result = result.permute({1, 0});
   if (self.scalar_type() == at::kHalf || gtboxes.scalar_type() == at::kHalf) {
     result = NPUNativeFunctions::npu_dtype_cast(result, at::kHalf);
@@ -134,22 +134,22 @@ std::tuple<at::Tensor, at::Tensor> NPUNativeFunctions::npu_giou_backward(
       "please ensure your parameter is correct!");
   // Op need form of [n] grad
   // Note: temp avoid! it'll be remove while op deal with fp16 issue!
-  at::Tensor gradCp = at::squeeze(grad, 0);
-  if (gradCp.scalar_type() == at::kHalf) {
-    gradCp = NPUNativeFunctions::npu_dtype_cast(gradCp, at::kFloat);
+  at::Tensor grad_cp = at::squeeze(grad, 0);
+  if (grad_cp.scalar_type() == at::kHalf) {
+    grad_cp = NPUNativeFunctions::npu_dtype_cast(grad_cp, at::kFloat);
   }
-  at::Tensor bboxesCp = bboxes;
-  if (bboxesCp.scalar_type() == at::kHalf) {
-    bboxesCp = NPUNativeFunctions::npu_dtype_cast(bboxesCp, at::kFloat);
+  at::Tensor bboxes_cp = bboxes;
+  if (bboxes_cp.scalar_type() == at::kHalf) {
+    bboxes_cp = NPUNativeFunctions::npu_dtype_cast(bboxes_cp, at::kFloat);
   }
-  at::Tensor gtboxesCp = gtboxes;
-  if (gtboxesCp.scalar_type() == at::kHalf) {
-    gtboxesCp = NPUNativeFunctions::npu_dtype_cast(gtboxesCp, at::kFloat);
+  at::Tensor gtboxes_cp = gtboxes;
+  if (gtboxes_cp.scalar_type() == at::kHalf) {
+    gtboxes_cp = NPUNativeFunctions::npu_dtype_cast(gtboxes_cp, at::kFloat);
   }
-  at::Tensor dbboxes = OpPreparation::ApplyTensor(bboxesCp);
-  at::Tensor dgtboxes = OpPreparation::ApplyTensor(gtboxesCp);
+  at::Tensor dbboxes = OpPreparation::ApplyTensor(bboxes_cp);
+  at::Tensor dgtboxes = OpPreparation::ApplyTensor(gtboxes_cp);
 
-  giou_backward_inner_out_npu(dbboxes, dgtboxes, gradCp, bboxesCp, gtboxesCp, trans, is_cross, mode);
+  giou_backward_inner_out_npu(dbboxes, dgtboxes, grad_cp, bboxes_cp, gtboxes_cp, trans, is_cross, mode);
   if (bboxes.scalar_type() == at::kHalf || gtboxes.scalar_type() == at::kHalf) {
     dbboxes = NPUNativeFunctions::npu_dtype_cast(dbboxes, at::kHalf);
     dgtboxes = NPUNativeFunctions::npu_dtype_cast(dgtboxes, at::kHalf);
