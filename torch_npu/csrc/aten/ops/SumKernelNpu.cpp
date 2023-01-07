@@ -15,6 +15,7 @@
 // limitations under the License.
 
 #include <ATen/WrapDimUtilsMulti.h>
+
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
@@ -55,6 +56,15 @@ at::Tensor &NPUNativeFunctions::sum_out(
       ACL_FORMAT_ND,
       res_type,
       outputSize);
+
+  auto selfSize = self.sizes();
+  for (int64_t i = 0; i < selfSize.size(); i++) {
+    if (selfSize[i] == 0) {
+      at::Tensor result_cast = at::empty(outputSize);
+      result.copy_(result_cast);
+      return result;
+    }
+  }
 
   at::Tensor self_cp = isIntegralType(self.scalar_type(), true) ?
       NPUNativeFunctions::npu_dtype_cast(self, at::kFloat) : self;
