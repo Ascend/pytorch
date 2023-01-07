@@ -94,7 +94,7 @@ at::Tensor NPUNativeFunctions::sum(
   if (dtype.has_value()) {
     out_type = dtype.value();
   } else if (isIntegralType(out_type, true)) {
-    out_type = at::kLong;
+    out_type = at::kInt;
   }
 
   for (int64_t i = 0; i < selfSize.size(); i++) {
