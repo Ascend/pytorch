@@ -85,7 +85,9 @@ at::Tensor dropout_gen_mask(const at::Tensor& self, at::Scalar prob) {
   // used by the operator DropOutGenMask
   const auto gen = at_npu::detail::getDefaultNPUGenerator();
   auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
-  const int64_t seed = pair.first;
+  // At present, the default value of random number may be very large,
+  // which will cause overflow in graph mode, so we set seed = 0 to avoid it.
+  const int64_t seed = c10_npu::NpuRunMode::IsGraphMode() ? 0 : pair.first;
   const int64_t offset = pair.second;
   at::SmallVector<int64_t, N> offsetList;
   if (c10_npu::NpuRunMode::IsGraphMode()) {
@@ -128,7 +130,9 @@ at::Tensor NPUNativeFunctions::npu_dropout_gen_mask(
   // is seeded by the given seed. Otherwise, it is seeded by a random seed.
   const auto gen = at_npu::detail::getDefaultNPUGenerator();
   auto pair = at::check_generator<NPUGeneratorImpl>(gen)->philox_engine_inputs(10);
-  const int64_t seed = pair.first;
+  // At present, the default value of random number may be very large,
+  // which will cause overflow in graph mode, so we set seed = 0 to avoid it.
+  const int64_t seed = c10_npu::NpuRunMode::IsGraphMode() ? 0 : pair.first;
   const int64_t offset = pair.second;
   at::SmallVector<int64_t, N> offsetList;
   if (c10_npu::NpuRunMode::IsGraphMode()) {

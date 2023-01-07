@@ -158,15 +158,35 @@ void copy_d2d_by_memcpy(at::Tensor& dst, const at::Tensor& src, int64_t exceptSi
   if (c10_npu::NpuRunMode::IsGraphMode()) {
     if (dst_mem_size != size ||
         dst_mem_size != StorageDescHelper::GetMemorySize(src)) {
-      // In graph mode, using PTcopy to copy part data of src.
+      // In graph mode, using Viewcopy to copy part data of src.
       copy_kernel_npu(dst, src, true);
       return;
     }
 
-    // In graph mode, using identity to copy whole data of src.
+    /*
+    In single op mode, the current interface may copy tensors between different
+    shapes. So in the graph mode, only Reshape can be used to complete the copy
+    of the complete memory block, not Identity.
+
+    Refer to the following case:
+    a [3,4,5,6] [3,4,30]
+    b [3,4,5,6] [3,4,5,6]
+    a.copy_(b)
+
+    We should ensure that after copying, the shape of a is still [3,4,5,6] [3,4,30].
+
+    In single op mode, it is always satisfied. But in graph mode, it is
+    only satisfied when doing Reshape operations based on base_sizes_ of dst.
+    */
+
+    // In graph mode, using Reshape to copy whole data of src.
+    c10::SmallVector<int64_t, 5> self_base_sizes_5 =
+        torch_npu::NPUBridge::GetNpuStorageImpl(dst.storage().unsafeGetStorageImpl())->get_npu_desc().base_sizes_;
+    c10::SmallVector<int64_t, 32> self_base_sizes_32(self_base_sizes_5.begin(), self_base_sizes_5.end());
     OpCommand cmd;
-    cmd.Name("Identity")
+    cmd.Name("Reshape")
         .InputWithoutContiguous(src)
+        .Input(self_base_sizes_32)
         .Output(dst)
         .Run();
     return;
