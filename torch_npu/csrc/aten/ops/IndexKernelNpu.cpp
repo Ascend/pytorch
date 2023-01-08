@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Huawei Technologies.All rights reserved.
+// Copyright (c) 2023, Huawei Technologies.All rights reserved.
 //
 // Licensed under the BSD 3-Clause License  (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,13 +32,19 @@ DynamicInputRegFunc index_func =
 }
 
 // Limitations of the aicore branch
-bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, const at::IntArrayRef masks) {
+bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, const at::IntArrayRef masks, const at::Tensor& result) {
   // The bool index only supports the input of 2D and 3D.
   // The Int64 index only supports the input of 1D and 2D.
   if ((self.dim() == 1 && indices[0].scalar_type() == at::kBool) ||
       (self.dim() > 2 && indices[0].scalar_type() == at::kLong) ||
       (self.dim() > 3 && indices[0].scalar_type() == at::kBool)) {
     return false;
+  }
+  // Relax the scene : the dtype of indices is bool, x'shape is (n, m) and indices's shape is (m,).
+  // When the dtype of indices is bool, if the number of outputs exceeds 5000, go to AICPU.
+  if (self.dim() == 2 && indices[0].scalar_type() == at::kBool && masks.size() == 2 && indices.size() == 1 &&
+      result.numel() < 5000) {
+    return true;
   }
 
   // The input of the aicore does not support float64.
@@ -52,30 +58,27 @@ bool check_index_aicore(const at::Tensor& self, const at::TensorList& indices, c
     if (indices[0].scalar_type() != at::kLong || indices[1].scalar_type() != at::kLong) {
       return false;
     }
-    // In this scenario, x'shape must be 2D, and indices's shape should be 1D,
-    // and the shapes of two indices should be the same.
+    // Relax the scene : the dtype of two indices is int64, and x'shape is (n, n), and both indices's shape is (n,).
     if (self.dim() == 2 && indices[0].dim() == 1 && indices[1].dim() == 1 && 
         indices[0].sizes() == indices[1].sizes()) {
       return true;
     }
   }
-
   if (indices.size() < 2) {
     // The dtype of indices can only be int64 or bool.
     if (indices[0].scalar_type() != at::kLong && indices[0].scalar_type() != at::kBool) {
       return false;
     }
-    /**
-     * When the dtype of indices is int64, the shape of the indices should be 1d.
-     * When the dtype of indices is bool, support indices'shape is the same as x'shape.
-     * When the dtype of indices is bool, support indices'shape is 1D but x'shape should not be (n, 1).
-     */
-    if (indices[0].scalar_type() == at::kBool) {
+    // When the dtype of indices is bool, if the number of outputs exceeds 5000, go to AICPU.
+    if (indices[0].scalar_type() == at::kBool && result.numel() < 5000) {
+      // Relax the scene : the dtype of indices is bool, and x'shape is equal to indices's shape.
+      // Relax the scene : the dtype of indices is bool, and x'shape is (n, m) and indices's shape is (n,) and m > 1.
       if (indices[0].sizes() == self.sizes() ||
-          (indices[0].size(0) == self.size(0) && indices[0].dim() == 1 && self.size(1) > 1)) {
+          (self.dim() == 2 && indices[0].size(0) == self.size(0) && indices[0].dim() == 1 && self.size(1) > 1)) {
         return true;
       }
-    } else if (indices[0].dim() == 1) {
+    } else if (indices[0].scalar_type() == at::kLong && indices[0].dim() == 1) {
+      // Relax the scene : the dtype of indices is int64, the shape of the indices is 1d.
       return true;
     }
   }
@@ -87,7 +90,7 @@ at::Tensor& index_out_nocheck_npu(
     const at::IntArrayRef masks,
     const at::TensorList& indices,
     at::Tensor& result) {
-  bool is_aicore = check_index_aicore(self, indices, masks);
+  bool is_aicore = check_index_aicore(self, indices, masks, result);
   OpCommand cmd;
   if (!is_aicore) { 
     cmd.Name("Index")
@@ -120,10 +123,27 @@ at::Tensor& index_out_nocheck_npu(
       cmd.Name("Index")
           .Input(self)
           .Input(masks, at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-          .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT)
-          .Input(indices[0], "indices0")
-          .Output(result)
-          .Run();
+          .Input(result.sizes(), at::kLong, CompileType::MEMORY_HOST_COMPILE_INDEPENDENT);
+
+      if (indices[0].scalar_type() == at::kBool && masks.size() == 2 && indices.size() == 1) {
+        // For the scene : x'shape is (n, m) and indices's shape is (m,),
+        // and turn indices's shape to be (n, m).
+        at::Tensor tmp_tensor = indices[0].unsqueeze(0);
+        c10::SmallVector<int64_t, N> self_size = array_to_small_vector(self.sizes());
+        at::Tensor full_indices = NPUNativeFunctions::npu_broadcast(tmp_tensor, self_size);
+        cmd.Input(full_indices, "indices0");
+      } else if (indices[0].scalar_type() == at::kBool && indices[0].sizes() != self.sizes()) {
+        // For the scene : x'shape is (n, m) and indices's shape is (n,),
+        // and turn indices's shape to be (n, m).
+        at::Tensor tmp_tensor = indices[0].unsqueeze(1);
+        c10::SmallVector<int64_t, N> self_size = array_to_small_vector(self.sizes());
+        at::Tensor full_indices = NPUNativeFunctions::npu_broadcast(tmp_tensor, self_size);
+        cmd.Input(full_indices, "indices0");
+      } else {
+        cmd.Input(indices[0], "indices0");
+      }
+      cmd.Output(result)
+         .Run();
     }
   }
   return result;
