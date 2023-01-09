@@ -153,7 +153,7 @@ namespace at_npu
       do
       {
         if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-            at_npu::native::aoe::aoe_manager().IsInWhiltelist(name)) {
+            at_npu::native::aoe::aoe_manager().IsInWhitelist(name)) {
           ret = at_npu::native::AclGenGraphAndDumpForOp(
               name.c_str(),
               inputSize,
@@ -263,7 +263,7 @@ namespace at_npu
         reset_flag = true;
       }
       if (at_npu::native::aoe::aoe_manager().IsAoeEnabled() &&
-          at_npu::native::aoe::aoe_manager().IsInWhiltelist(cur_paras->opType)) {
+          at_npu::native::aoe::aoe_manager().IsInWhitelist(cur_paras->opType)) {
         ret = at_npu::native::AclGenGraphAndDumpForOp(
             cur_paras->opType,
             cur_paras->paras.input_num,
