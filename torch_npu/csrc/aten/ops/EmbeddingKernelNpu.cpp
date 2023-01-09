@@ -26,13 +26,15 @@ at::Tensor& embedding_out_npu_nocheck(
     const at::Tensor& weight,
     const at::Tensor& indices) {
   c10::SmallVector<int64_t, N> dimVec = {0};
+  int64_t batch_dims = 0;
 
   OpCommand cmd;
   cmd.Name("GatherV2")
      .Input(weight)
      .Input(indices)
      .Input(dimVec)
-     .Output(result)    
+     .Output(result)
+     .Attr("batch_dims", batch_dims)
      .Run();
 
 return result;
