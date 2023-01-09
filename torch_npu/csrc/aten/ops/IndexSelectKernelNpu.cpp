@@ -31,12 +31,14 @@ at::Tensor& index_select_out_npu_nocheck(
       "Please Do Some Cast at Python Functions with 32-bit for Better Performance!");
   }
   c10::SmallVector<int64_t, N> dimVec = {dim};
+  int64_t batch_dims = 0;
   OpCommand cmd;
   cmd.Name("GatherV2")
       .Input(self)
       .Input(index)
       .Input(dimVec)
       .Output(result)
+     .Attr("batch_dims", batch_dims)
       .Run();
   return result;
 }
