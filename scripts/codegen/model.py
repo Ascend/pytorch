@@ -929,7 +929,8 @@ class Annotation:
         if becomes_wildcard_index != -1:
             after_set = "*"
             # TODO: im not good enough with regexes to ignore -> *
-            m = re.match(r'^([a-z])(!?)(!?)$', ann[:becomes_wildcard_index] + ann[becomes_wildcard_index + len(" -> *"):])
+            m = re.match(r'^([a-z])(!?)(!?)$',
+                         ann[:becomes_wildcard_index] + ann[becomes_wildcard_index + len(" -> *"):])
         else:
             after_set = ""
             m = re.match(r'^([a-z])(!?)(!?)$', ann)
