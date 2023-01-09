@@ -1094,6 +1094,28 @@ ACL_FUNC_VISIBILITY aclError aclrtSetOpWaitTimeout(uint32_t timeout);
  */
 ACL_FUNC_VISIBILITY aclError aclrtSetDeviceSatMode(aclrtFloatOverflowMode mode);
 
+/**
+ * @ingroup AscendCL
+ * @brief enable or disable overflow switch on some stream
+ * @param stream [IN]   set overflow switch on this stream
+ * @param flag [IN]  0 : disable 1 : enable
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag);
+
+/**
+ * @ingroup AscendCL
+ * @brief get overflow switch on some stream
+ * @param stream [IN]   get overflow switch on this stream
+ * @param flag [OUT]  current overflow switch, 0 : disable others : enable
+ *
+ * @retval ACL_SUCCESS The function is successfully executed.
+ * @retval OtherValues Failure
+ */
+ACL_FUNC_VISIBILITY aclError aclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag);
+
 #ifdef __cplusplus
 }
 #endif

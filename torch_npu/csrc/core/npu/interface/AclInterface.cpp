@@ -31,6 +31,8 @@ LOAD_FUNCTION(aclrtGetSocName)
 LOAD_FUNCTION(aclrtCreateStream)
 LOAD_FUNCTION(aclrtCreateStreamWithConfig)
 LOAD_FUNCTION(aclrtSetDeviceSatMode)
+LOAD_FUNCTION(aclrtSetStreamOverflowSwitch)
+LOAD_FUNCTION(aclrtGetStreamOverflowSwitch)
 
 aclprofStepInfoPtr init_stepinfo(){
   typedef aclprofStepInfoPtr(*npdInitFunc)();
@@ -244,5 +246,26 @@ aclError AclrtSetDeviceSatMode(aclrtFloatOverflowMode mode) {
   TORCH_CHECK(func, "Failed to find function ", "aclrtSetDeviceSatMode");
   return func(mode);
 }
+
+aclError AclrtSetStreamOverflowSwitch(aclrtStream stream, uint32_t flag) {
+  typedef aclError (*AclrtSetStreamOverflowSwitch)(aclrtStream, uint32_t);
+  static AclrtSetStreamOverflowSwitch func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtSetStreamOverflowSwitch)GET_FUNC(aclrtSetStreamOverflowSwitch);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtSetStreamOverflowSwitch");
+  return func(stream, flag);
+}
+
+aclError AclrtGetStreamOverflowSwitch(aclrtStream stream, uint32_t *flag) {
+  typedef aclError (*AclrtGetStreamOverflowSwitch)(aclrtStream, uint32_t*);
+  static AclrtGetStreamOverflowSwitch func = nullptr;
+  if (func == nullptr) {
+    func = (AclrtGetStreamOverflowSwitch)GET_FUNC(aclrtGetStreamOverflowSwitch);
+  }
+  TORCH_CHECK(func, "Failed to find function ", "aclrtGetStreamOverflowSwitch");
+  return func(stream, flag);
+}
+
 } // namespace acl
 } // namespace c10
