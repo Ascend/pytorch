@@ -341,7 +341,7 @@ at::Tensor convolution_kernel_npu(
   return output;
 }
 
-tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_convolution_backward(
+tuple<at::Tensor, at::Tensor, at::Tensor> npu_convolution_backward_impl(
     const at::Tensor& input,
     const at::Tensor& grad,
     const at::Tensor& weight,
@@ -419,6 +419,141 @@ at::Tensor NPUNativeFunctions::_convolution_nogroup(
   }
 
   return output;
+}
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::_convolution_double_backward(
+    const c10::optional<at::Tensor>& ggI, const c10::optional<at::Tensor>& ggW, const c10::optional<at::Tensor>& ggb,
+    const at::Tensor& gO_r, const at::Tensor& weight_r, const at::Tensor& input,
+    at::IntArrayRef stride_, at::IntArrayRef padding_, at::IntArrayRef dilation_,
+    bool transposed_, at::IntArrayRef output_padding_, int64_t groups_,
+    bool benchmark, bool deterministic, bool cudnn_enabled, bool allow_tf32,
+    std::array<bool, 3> output_mask) {
+  auto result = at::native::_convolution_double_backward(
+      (ggI.has_value() ? *ggI : at::Tensor()),
+      (ggW.has_value() ? *ggW : at::Tensor()),
+      (ggb.has_value() ? *ggb : at::Tensor()),
+      gO_r, weight_r, input, stride_, padding_, dilation_,
+      transposed_, output_padding_, groups_, benchmark,
+      deterministic, false, allow_tf32, output_mask);
+  return result;
+}
+
+class NPUConvlutionBackwardFunction : public torch::autograd::Function<NPUConvlutionBackwardFunction> {
+public:
+  static tensor_list forward(AutogradContext *ctx,
+      const at::Tensor& input,
+      const at::Tensor& grad,
+      const at::Tensor& weight,
+      at::IntArrayRef stride,
+      at::IntArrayRef padding,
+      at::IntArrayRef dilation,
+      int64_t groups,
+      std::array<bool, 3> grad_input_mask) {
+    at::AutoNonVariableTypeMode g;
+    ctx->saved_data["padding"] = padding;
+    ctx->saved_data["stride"] = stride;
+    ctx->saved_data["dilation"] = dilation;
+    ctx->saved_data["groups"] = groups;
+    ctx->saved_data["grad_input_mask0"] = grad_input_mask[0];
+    ctx->saved_data["grad_input_mask1"] = grad_input_mask[1];
+    ctx->saved_data["grad_input_mask2"] = grad_input_mask[2];
+    ctx->save_for_backward({input, grad, weight});
+
+    auto result = npu_convolution_backward_impl(
+        input, grad, weight, stride, padding, dilation, groups, grad_input_mask);
+
+    tensor_list output;
+    if (grad_input_mask[0]) {
+      output.emplace_back(std::get<0>(result));
+    }
+
+    if (grad_input_mask[1]) {
+      output.emplace_back(std::get<1>(result));
+    }
+
+    if (grad_input_mask[2]) {
+      output.emplace_back(std::get<2>(result));
+    }
+
+    return output;
+  }
+
+  static tensor_list backward(AutogradContext *ctx, tensor_list grad_outputs) {
+    auto saved = ctx->get_saved_variables();
+    auto input = saved[0];
+    auto grad = saved[1];
+    auto weight = saved[2];
+
+    auto padding = ctx->saved_data["padding"].toIntVector();
+    auto stride = ctx->saved_data["stride"].toIntVector();
+    auto dilation = ctx->saved_data["dilation"].toIntVector();
+    auto groups = ctx->saved_data["groups"].toInt();
+
+    std::array<bool, 3> grad_input_mask = {
+        ctx->saved_data["grad_input_mask0"].toBool(),
+        ctx->saved_data["grad_input_mask1"].toBool(),
+        ctx->saved_data["grad_input_mask2"].toBool()};
+
+    auto grad0 = at::Tensor();
+    auto grad1 = at::Tensor();
+    int idx = 0;
+    if (grad_input_mask[0]) {
+      grad0 = grad_outputs[idx];
+      idx++;
+    }
+    if (grad_input_mask[1]) {
+      grad1 = grad_outputs[idx];
+    }
+
+    auto result = NPUNativeFunctions::_convolution_double_backward(
+        grad0, grad1, at::Tensor(),
+        grad, weight, input, stride, padding, dilation,
+        false, std::vector<int64_t>(padding.size(), 0), groups,
+        false, false, false, false, grad_input_mask);
+
+    tensor_list outputs = {
+        std::get<1>(result),
+        std::get<0>(result),
+        std::get<2>(result),
+        at::Tensor(),
+        at::Tensor(),
+        at::Tensor(),
+        at::Tensor(),
+        at::Tensor()};
+    return outputs;
+  }
+};
+
+std::tuple<at::Tensor, at::Tensor, at::Tensor> NPUNativeFunctions::npu_convolution_backward(
+    const at::Tensor& input,
+    const at::Tensor& grad,
+    const at::Tensor& weight,
+    at::IntArrayRef stride,
+    at::IntArrayRef padding,
+    at::IntArrayRef dilation,
+    int64_t groups,
+    std::array<bool, 3> grad_input_mask) {
+  auto result = NPUConvlutionBackwardFunction::apply(
+      input, grad, weight, stride, padding, dilation, groups, grad_input_mask);
+  tensor_list outputs;
+
+  at::Tensor result0, result1, result2;
+  int idx = 0;
+  if (grad_input_mask[0]) {
+    result0 = result[idx];
+    idx++;
+  }
+
+  if (grad_input_mask[1]) {
+    result1 = result[idx];
+    idx++;
+  }
+
+  if (grad_input_mask[2]) {
+    result2 = result[idx];
+  }
+
+  return std::tie(result0, result1, result2);
 }
 
 at::Tensor NPUNativeFunctions::thnn_conv2d(
