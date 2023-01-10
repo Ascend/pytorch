@@ -241,16 +241,10 @@ def error_on_missing_kernels(
         expected_backend_kernel_name_counts[dispatcher.name(native_f.func)].append(native_f)
 
     missing_kernels_err_msg = ""
-    unsupported_ops_list = ""
     for expected_name, funcs in expected_backend_kernel_name_counts.items():
         expected_overload_count = len(funcs)
         actual_overload_count = actual_backend_kernel_name_counts[expected_name]
-        if actual_overload_count == 0:
-            for func in funcs:
-                backend_indices[backend_key].index.pop(func.func.name, None)
-                backend_indices[autograd_key].index.pop(func.func.name, None)
-                unsupported_ops_list += f"{func.func.name}\n"
-        elif expected_overload_count != actual_overload_count:
+        if expected_overload_count != actual_overload_count:
             def create_decl(f: NativeFunction) -> str:
                 with native_function_manager(f):
                     return DispatcherSignature.from_schema(f.func).decl()
@@ -261,8 +255,6 @@ but expected {expected_overload_count} kernel(s). The expected function schemas 
 {expected_schemas_str}
 """
     assert missing_kernels_err_msg == "", missing_kernels_err_msg
-    if unsupported_ops_list != "":
-        print(f"Unsupported Ops List:\n{unsupported_ops_list}")
 
 
 def main() -> None:
