@@ -47,12 +47,8 @@ bool AoeDumpGraphManager::IsAoeEnabled() const {
     return aoe_enable;
 }
 
-bool AoeDumpGraphManager::IsInWhiltelist(const std::string &opName) const {
-    if (whilte_list_.find(opName) != whilte_list_.end())
-    {
-        return true;
-    }
-    return false;
+bool AoeDumpGraphManager::IsInWhitelist(const std::string &opName) const {
+    return white_list_.find(opName) != white_list_.end();
 }
 
 AoeDumpGraphManager& aoe_manager() {
