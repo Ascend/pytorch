@@ -24,28 +24,6 @@ namespace at_npu
   namespace native
   {
 
-    at::Tensor &mv_out_npu_nocheck(const at::Tensor &self, const at::Tensor &vec, at::Tensor &result)
-    {
-      bool isSelfT = CalcuOpUtil::is_transpose_last_two_dims(self);
-      at::Tensor contiguousSelf;
-      contiguousSelf = isSelfT ? self : NpuUtils::format_contiguous(self);
-      at::Tensor vecT = at::unsqueeze(vec, 1);
-
-      OpCommand cmd;
-      cmd.Name("MatMul")
-          .InputWithoutContiguous(contiguousSelf)
-          .Input(vecT)
-          .Attr("transpose_x1", isSelfT)
-          .Attr("transpose_x2", false)
-          .Attr("_allow_hf32", true, at_npu::native::env::allowHF32Matmul())
-          .Output(result)
-          .Run();
-
-      result = at::squeeze(result, 1);
-      npu_fast_reshape_(result);
-      return result;
-    }
-
     at::Tensor &NPUNativeFunctions::mv_out(const at::Tensor &self, const at::Tensor &vec, at::Tensor &result)
     {
       OpPreparation::CheckOut(
@@ -55,21 +33,18 @@ namespace at_npu
           self.scalar_type(),
           {self.size(0)});
 
-      result = at::unsqueeze(result, 1);
-      OpPipeWithDefinedOut pipe;
-      return pipe.CheckMemory({self, vec}, {result})
-          .Func([&self, &vec](at::Tensor &result)
-                { mv_out_npu_nocheck(self, vec, result); })
-          .Call(result);
+      at::Tensor vec_2d = at::unsqueeze(vec, 1);
+      at::Tensor mm_out = NPUNativeFunctions::mm(self, vec_2d);
+      mm_out = at::squeeze(mm_out, 1);
+      result.copy_(mm_out);
+      return result;
     }
 
     at::Tensor NPUNativeFunctions::mv(const at::Tensor &self, const at::Tensor &vec)
     {
-
-      at::Tensor result = OpPreparation::ApplyTensor(self, {self.size(0), 1});
-
-      mv_out_npu_nocheck(self, vec, result);
-
+      at::Tensor vec_2d = at::unsqueeze(vec, 1);
+      at::Tensor result = NPUNativeFunctions::mm(self, vec_2d);
+      result = at::squeeze(result, 1);
       return result;
     }
 

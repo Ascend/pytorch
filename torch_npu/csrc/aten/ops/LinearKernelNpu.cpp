@@ -137,7 +137,16 @@ public:
 at::Tensor NPUNativeFunctions::npu_linear(const at::Tensor& input,
     const at::Tensor& weight,
     const c10::optional<at::Tensor>& bias_opt) {
-  return NPULinearFunction::apply(input, weight, bias_opt);
+  auto isAligin = [&]() {
+    return (!(static_cast<uint64_t>(input.size(0)) & 0x0000000F)) &&
+           (!(static_cast<uint64_t>(input.size(1)) & 0x0000000F)) &&
+           (!(static_cast<uint64_t>(weight.size(0)) & 0x0000000F)) &&
+           (!(static_cast<uint64_t>(weight.size(1)) & 0x0000000F));
+  };
+  static auto mm_bmm_nd = !env::CheckMmBmmNDDisable();
+  at::Tensor input_cast = (FormatHelper::IsBaseFormatType(input) && mm_bmm_nd && isAligin()) ?
+      input : NPUNativeFunctions::npu_format_cast(input, ACL_FORMAT_FRACTAL_NZ);
+  return NPULinearFunction::apply(input_cast, weight, bias_opt);
 }
 
 } // namespace native
