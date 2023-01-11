@@ -17,6 +17,13 @@
 #include "torch_npu/csrc/framework/utils/OpAdapter.h"
 #include "torch_npu/csrc/framework/utils/CalcuOpUtil.h"
 #include "torch_npu/csrc/aten/NPUNativeFunctions.h"
+#include <c10/util/accumulate.h>
+
+namespace {
+  const int64_t kMaxTopkSize = 32768;
+  const int64_t kMaxK = 8;
+  const int64_t kMinK = 0;
+}
 
 namespace at_npu {
 namespace native {
@@ -31,7 +38,9 @@ tuple<at::Tensor&, at::Tensor&> topk_out_npu_no_transpose(
     bool sorted) {
   c10::SmallVector<int64_t, N> kVec = {k};
   OpCommand cmd;
-  cmd.Name("TopKV2")
+  std::string op_type = ((c10::multiply_integers(self.sizes()) > kMaxTopkSize) && (k > kMinK) && (k < kMaxK)) ?
+          "TopK" : "TopKV2";
+  cmd.Name(op_type)
     .Input(self)
     .Input(kVec, at::kInt) 
     .Output(values)
