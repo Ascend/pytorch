@@ -46,7 +46,7 @@
 #include "torch_npu/csrc/utils/LazyInit.h"
 #include "torch_npu/csrc/npu/Module.h"
 #include "torch_npu/csrc/framework/graph/util/TdtChannelForPrint.h"
-#include "torch_npu/csrc/utils/OverflowUtil.h"
+#include "torch_npu/csrc/utils/OverflowUtils.h"
 
 
 struct NPUDeviceProp {
