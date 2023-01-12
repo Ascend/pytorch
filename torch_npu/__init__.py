@@ -69,6 +69,8 @@ def _isinstance(obj, class_or_tuple):
             if f"npu.{tensor_type}" in type_str and tensor_type in NPU_TENSOR:
                 return eval(type_str) in class_tuple
         if eval("torch.device") == class_or_tuple:
+            if isinstance(obj, tuple) and "type='npu'" in str(obj):
+                obj = torch_npu.new_device(type=torch_npu.npu.native_device, index=obj.index)
             return builtin_isinstance(obj, torch._C.device)
         raise e
 
