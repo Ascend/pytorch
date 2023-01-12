@@ -28,6 +28,7 @@
 
 #include "torch_npu/csrc/framework/utils/NpuUtils.h"
 #include "torch_npu/csrc/framework/NPUDefine.h"
+#include "torch_npu/csrc/aten/mirror/NPUMemoryOverlap.h"
 #include "third_party/acl/inc/acl/acl.h"
 #include "third_party/acl/inc/acl/acl_base.h"
 
@@ -264,8 +265,8 @@ namespace at_npu
           aclrtMemcpyKind kind);
 
       static void check_memory_over_laps(
-          c10::SmallVector<at::Tensor, N> &inputs,
-          c10::SmallVector<at::Tensor, N> &outputs);
+          c10::ArrayRef<at::Tensor> inputs,
+          c10::ArrayRef<at::Tensor> outputs);
       static int64_t make_wrap_dim(int64_t dim, int64_t dim_post_expr);
       static bool is_transpose_last_two_dims(const at::Tensor &tensor);
       static bool is_scalar_wrapped_to_tensor(const at::Tensor &tensor);

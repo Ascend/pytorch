@@ -402,13 +402,13 @@ namespace at_npu
       }
 
     void CalcuOpUtil::check_memory_over_laps(
-        c10::SmallVector<at::Tensor, N> &inputs,
-        c10::SmallVector<at::Tensor, N> &outputs)
-    {
+        c10::ArrayRef<at::Tensor> inputs,
+        c10::ArrayRef<at::Tensor> outputs) {
       for (int i = 0; i < outputs.size(); i++)
       {
-        if (!outputs[i].defined())
+        if (!outputs[i].defined()) {
           continue;
+        }
 
         assert_no_internal_overlap(outputs[i]);
 
