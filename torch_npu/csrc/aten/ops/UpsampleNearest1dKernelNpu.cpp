@@ -41,21 +41,26 @@ at::Tensor& upsample_nearest1d_out_nocheck(
       "Non-empty 3D data tensor expected but got a tensor with sizes ",
       self.sizes());
 
-  at::Tensor selfOp = self.unsqueeze(2);
+  at::Tensor self_cp = self.unsqueeze(2);
   OpCommand cmd;
-  cmd.Name("Resize")
-      .Input(selfOp)
-      .Input(output_size, at::kFloat)
-      .Input(output_size, at::kFloat)
-      .Input(result.sizes(), at::kLong)
-      .Output(result)
-      .Attr("mode", (string)"nearest");
   if (self.scalar_type() == at::kFloat || self.scalar_type() == at::kHalf) {
-    cmd.Attr("nearest_mode", (string)"round_prefer_floor")
-        .Attr("coordinate_transformation_mode", (string)"half_pixel")
+    c10::SmallVector<int64_t, SIZE> result_size = {1, output_size[0]};
+    cmd.Name("ResizeNearestNeighborV2")
+        .Input(self_cp)
+        .Input(result_size, at::kInt)
+        .Output(result)
+        .Attr("align_corners", false)
+        .Attr("half_pixel_centers", false)
         .Run();
   } else {
-    cmd.Attr("nearest_mode", (string)"floor")
+    cmd.Name("Resize")
+        .Input(self_cp)
+        .Input(output_size, at::kFloat)
+        .Input(output_size, at::kFloat)
+        .Input(result.sizes(), at::kLong)
+        .Output(result)
+        .Attr("mode", (string)"nearest")
+        .Attr("nearest_mode", (string)"floor")
         .Attr("coordinate_transformation_mode", (string)"pytorch_half_pixel")
         .Run();
   }
