@@ -75,6 +75,8 @@ class TestSerialization(TestCase):
             x_loaded = torch.load(path, map_location="npu:0")
             x_loaded = x_loaded.npu()
             self.assertRtolEqual(x.cpu(), x_loaded.cpu())
+            y_loaded = torch.load(path, map_location="npu")
+            self.assertRtolEqual(x.cpu(), y_loaded.cpu())
     
     def test_load_maplocation(self):
         x = torch.randn(2, 3)
