@@ -993,6 +993,9 @@ custom:
   - func: npu_fused_attention_qkv_grad(Tensor grad_output_query, Tensor grad_output_key, Tensor grad_output_value, Tensor query_kernel, Tensor key_kernel, Tensor value_kernel, Tensor hidden_states, Tensor grad_output_ln) -> Tensor[]
   - func: npu_fused_attention_layernorm_qkv_fwd(Tensor x, Tensor kernel_query, Tensor kernel_key, Tensor kernel_value, Tensor gamma, Tensor beta, Tensor bias_query=None, Tensor bias_key=None, Tensor bias_value=None, int seq_len, int num_heads, float eps=1e-05) -> Tensor[]
   - func: npu_layernorm_grad(Tensor grad_out, Tensor input, int[] normalized_shape, Tensor mean, Tensor rstd, Tensor? weight, Tensor? bias) -> (Tensor, Tensor, Tensor)
+  - func: format_contiguous(Tensor self) -> Tensor
+  - func: check_match(Tensor self) -> bool
+  - func: check_memory_overlaps(Tensor[] inputs, Tensor[] outputs) -> ()
 
 custom_autograd:
   - func: npu_convolution(Tensor input, Tensor weight, Tensor? bias, int[] stride, int[] padding, int[] dilation, int groups) -> Tensor
