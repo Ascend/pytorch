@@ -32,7 +32,7 @@ def _npu_tag(obj):
 
 def validate_npu_device(location):
     device = torch.device(location)
-    index = device.index
+    index = device.index if device.index else 0
     if not torch_npu.npu.is_available():
         raise RuntimeError('Attempting to deserialize object on a NPU '
                            'device but torch_npu.npu.is_available() is False. '
