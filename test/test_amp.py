@@ -122,7 +122,7 @@ class TestAmp(TestCase):
         def run(data, model, optimizer, scaler, loss_fn, skip_iter, try_scaling_api):
             for i, (input_data, target) in enumerate(data):
                 optimizer.zero_grad()
-                with autocast(enabled=try_scaling_api):
+                with torch.autocast('npu', enabled=try_scaling_api):
                     output = model(input_data)
                     loss = loss_fn(output, target)
                 if try_scaling_api:
@@ -297,6 +297,73 @@ class TestAmp(TestCase):
                 c = c.cpu().to(torch.float).detach().numpy()
                 s = s.cpu().to(torch.float).detach().numpy()
                 self.assertRtolEqual(c, s, 1e-7)
+
+    def test_autocast_custom_enabled(self):
+        class MyMM(torch.autograd.Function):
+            @staticmethod
+            @torch.npu.amp.custom_fwd
+            def forward(ctx, a, b):
+                self.assertTrue(a.dtype is torch.float32)
+                self.assertTrue(b.dtype is torch.float32)
+                self.assertTrue(torch.is_autocast_enabled())
+                ctx.save_for_backward(a, b)
+                return a.mm(b)
+
+            @staticmethod
+            @torch.npu.amp.custom_bwd
+            def backward(ctx, grad):
+                self.assertTrue(torch.is_autocast_enabled())
+                a, b = ctx.saved_tensors
+                return grad.mm(b.t()), a.t().mm(grad)
+
+        mymm = MyMM.apply
+
+        x = torch.randn((8, 8), device="npu", dtype=torch.float32, requires_grad=True)
+        y = torch.randn((8, 8), device="npu", dtype=torch.float32, requires_grad=True)
+
+        with torch.npu.amp.autocast():
+            output = mymm(x, y)
+            self.assertTrue(output.dtype is torch.float16)
+            loss = output.sum()
+        loss.backward()
+
+    def test_autocast_custom_cast_inputs(self):
+        class MyMM(torch.autograd.Function):
+            @staticmethod
+            @torch.npu.amp.custom_fwd(cast_inputs=torch.float32)
+            def forward(ctx, a, container, expect_type):
+                b = container[1][0]
+                self.assertTrue(a.dtype is expect_type)
+                self.assertTrue(b.dtype is expect_type)
+                self.assertFalse(torch.is_autocast_enabled())
+                ctx.save_for_backward(a, b)
+                return a.mm(b)
+
+            @staticmethod
+            @torch.npu.amp.custom_bwd
+            def backward(ctx, grad):
+                a, b = ctx.saved_tensors
+                return grad.mm(b.t()), None, None
+
+        mymm = MyMM.apply
+
+        x = torch.randn((8, 8), device="npu", dtype=torch.float16, requires_grad=True)
+        # Puts one input tensor in a nested container.  y's contained Tensor won't receive a gradient,
+        # because torch.autograd.Function can't hand gradients back to non-Tensor forward arguments.
+        # Sets requires_grad=False explicitly so we don't lie about expecting a gradient.
+        y = (0, {0: torch.randn((8, 8), device="npu", dtype=torch.float16, requires_grad=False)})
+
+        with torch.autocast('npu', ):
+            output = mymm(x, y, torch.float32)
+            self.assertTrue(output.dtype is torch.float32)
+            loss = output.sum()
+        loss.backward()
+
+        # Tests if custom_fwd becomes a no-op when mymm runs outside an autocast-enabled region.
+        output = mymm(x, y, torch.float16)
+        self.assertTrue(output.dtype is torch.float16)
+        loss = output.sum()
+        loss.backward()
 
 
 if __name__ == "__main__":
