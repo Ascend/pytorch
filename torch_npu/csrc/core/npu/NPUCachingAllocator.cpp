@@ -826,78 +826,6 @@ struct THNCachingAllocator {
       npu_events.pop_front();
     }
   }
-
-  void allocate_adjacent_ptr(
-      size_t size1,
-      size_t size2,
-      void** ptr_pre,
-      void** ptr_next,
-      aclrtStream stream) {
-    size_t round_size_pre = (size1 + 32 + 511) / 512 * 512;
-    size_t round_size = round_size_pre + size2;
-    malloc(ptr_pre, round_size, stream);
-
-    Block* temp_block = allocated_blocks.find(*ptr_pre)->second;
-    DeviceStats_& stats_ = get_stats_for_device_(temp_block->device);
-    StatTypes stat_types;
-    stat_types[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types[static_cast<size_t>(get_stat_type_for_pool(*(temp_block->pool)))] = true;
-    update_stat_array(stats_.allocation, -1, {stat_types});
-    update_stat_array(stats_.allocated_bytes, -temp_block->size, {stat_types});
-    update_stat_array(stats_.active, -1, {stat_types});
-    update_stat_array(stats_.active_bytes, -temp_block->size, {stat_types});
-
-    Block* next_block = nullptr;
-    Block* pre_block = allocated_blocks.find(*ptr_pre)->second;
-    next_block = pre_block;
-    auto& pool = get_pool(round_size);
-    pre_block = new Block(
-        next_block->device,
-        next_block->stream,
-        round_size_pre,
-        &pool,
-        pre_block->ptr);
-
-    pre_block->prev = next_block->prev;
-    if (pre_block->prev) {
-      pre_block->prev->next = pre_block;
-    }
-    pre_block->next = next_block;
-    next_block->prev = pre_block;
-    next_block->ptr = static_cast<char*>(next_block->ptr) + round_size_pre;
-    pre_block->size = round_size_pre;
-    next_block->size -= round_size_pre;
-
-    pre_block->allocated = true;
-    next_block->allocated = true;
-    allocated_blocks[pre_block->ptr] = pre_block;
-    allocated_blocks[next_block->ptr] = next_block;
-
-    *ptr_next = next_block->ptr;
-
-    DeviceStats_& stats_pre = get_stats_for_device_(pre_block->device);
-    StatTypes stat_types_pre;
-    stat_types_pre[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types_pre[static_cast<size_t>(
-        get_stat_type_for_pool(*(pre_block->pool)))] = true;
-    update_stat_array(stats_pre.allocation, 1, stat_types_pre);
-    update_stat_array(
-        stats_pre.allocated_bytes, pre_block->size, stat_types_pre);
-    update_stat_array(stats_pre.active, 1, stat_types_pre);
-    update_stat_array(stats_pre.active_bytes, pre_block->size, stat_types_pre);
-
-    DeviceStats_& stats_next = get_stats_for_device_(next_block->device);
-    StatTypes stat_types_next;
-    stat_types_next[static_cast<size_t>(StatType::AGGREGATE)] = true;
-    stat_types_next[static_cast<size_t>(
-        get_stat_type_for_pool(*(next_block->pool)))] = true;
-    update_stat_array(stats_next.allocation, 1, stat_types_next);
-    update_stat_array(
-        stats_next.allocated_bytes, next_block->size, stat_types_next);
-    update_stat_array(stats_next.active, 1, stat_types_next);
-    update_stat_array(
-        stats_next.active_bytes, next_block->size, stat_types_next);
-  }
 };
 
 void THNCachingAllocator::malloc(void** devPtr, size_t size, aclrtStream stream, int device) {
@@ -1070,28 +998,6 @@ struct NPUCachingAllocator : public c10::Allocator {
     return &NPUCachingDeleter;
   }
 };
-
-std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2) {
-  int device = 0;
-  C10_NPU_CHECK(aclrtGetDevice(&device));
-  void* ptr_pre = nullptr;
-  void* ptr_next = nullptr;
-  caching_allocator.allocate_adjacent_ptr(
-      size1,
-      size2,
-      &ptr_pre,
-      &ptr_next,
-      c10_npu::getCurrentNPUStreamNoWait(device));
-
-  c10::DataPtr data_pre = {
-      ptr_pre, ptr_pre, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
-  c10::DataPtr data_next = {
-      ptr_next, ptr_next, &NPUCachingDeleter, c10::Device(at_npu::key::NativeDeviceType, device)};
-  std::tuple<c10::DataPtr, c10::DataPtr> adjacent_dataptr =
-      std::make_tuple(std::move(data_pre), std::move(data_next));
-
-  return adjacent_dataptr;
-}
 
 NPUCachingAllocator device_allocator;
 
