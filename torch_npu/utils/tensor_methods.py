@@ -64,12 +64,6 @@ def npu_confusion_transpose(self, perm, shape, transpose_first):
 
 @torch_device_guard
 def _npu(self, *args, **kwargs):
-    if args and isinstance(args[0], str) and 'npu' in args[0]:
-        args = tuple([list(args)[0].replace('npu', torch_npu.npu.native_device)])
-    if kwargs:
-        device = kwargs.get("device", "")
-        if device and 'npu' in device:
-            kwargs['device'] = kwargs['device'].replace("npu", torch_npu.npu.native_device)
     return torch_npu._C.npu(self, *args, **kwargs)
 
 
@@ -141,33 +135,11 @@ def _new_full(self, *args, **kwargs):
 
 @torch_device_guard
 def _new_ones(self, *args, **kwargs):
-    dst_device = kwargs.get("device", None)
-    if dst_device is not None and "npu" in str(dst_device):
-        kwargs["device"] = None
-        return torch._C._TensorBase.new_ones(self, *args, **kwargs).to(dst_device)
-
     return torch._C._TensorBase.new_ones(self, *args, **kwargs)
 
 
 @torch_device_guard
 def _new_tensor(self, *args, **kwargs):
-    if kwargs and "device" in kwargs:
-        dst_device = kwargs.get("device")
-        if "npu" in str(dst_device):
-            args_requires_grad = kwargs.get("requires_grad", False)
-            dtype = kwargs.get("dtype", self.dtype)
-            if isinstance(args[0], torch.Tensor):
-                res_tensor = args[0].clone().to(dtype=dtype, device=dst_device)
-            elif isinstance(args[0], numpy.ndarray):
-                res_tensor = torch.from_numpy(args[0]).to(dtype=dtype, device=dst_device)
-            else:
-                res_tensor = torch.from_numpy(numpy.array(args[0])).to(dtype=dtype, device=dst_device)
-
-            if args_requires_grad:
-                return res_tensor.detach().requires_grad_(args_requires_grad)
-            else:
-                return res_tensor.detach()
-
     return torch._C._TensorBase.new_tensor(self, *args, **kwargs)
 
 
