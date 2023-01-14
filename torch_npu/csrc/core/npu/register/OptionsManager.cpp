@@ -25,7 +25,7 @@ using namespace std;
 
 bool OptionsManager::CheckQueueEnable() {
   const static bool checkQueueEnable = []() -> bool {
-    int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE", 1);
+    int32_t queue_enable = OptionsManager::GetBoolTypeOption("TASK_QUEUE_ENABLE");
     return (queue_enable != 0) ? true : false;
   }();
   return checkQueueEnable;
