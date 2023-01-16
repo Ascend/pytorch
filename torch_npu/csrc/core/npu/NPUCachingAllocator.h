@@ -119,8 +119,6 @@ void* raw_alloc(size_t nbytes);
 void* raw_alloc_with_stream(size_t nbytes, aclrtStream stream);
 void raw_delete(void* ptr);
 
-std::tuple<c10::DataPtr, c10::DataPtr> allocate_adjacent(size_t size1, size_t size2);
-
 c10::Allocator* get();
 void emptyCache();
 void cacheInfo(int dev_id, size_t* cachedAndFree, size_t* largestBlock);
