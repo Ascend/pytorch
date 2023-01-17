@@ -277,6 +277,13 @@ public:
       std::vector<at::Tensor>& tensors,
       int tag) override;
 
+  c10::intrusive_ptr<c10d::ProcessGroup::Work> alltoall_base(
+      at::Tensor& outputTensor,
+      at::Tensor& inputTensor,
+      std::vector<int64_t>& outputSplitSizes,
+      std::vector<int64_t>& inputSplitSizes,
+      const c10d::AllToAllOptions& opts = c10d::AllToAllOptions()) override;
+
   static const int64_t kProcessGroupHCCLOpTimeoutMillis;
 
   // Agrees on an initial sequence number for the whole group by having rank 0
