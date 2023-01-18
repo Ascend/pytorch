@@ -1053,38 +1053,6 @@ void NpuAllocatorInsertRecordedEvent(aclrtEvent event) {
   return caching_allocator.insertRecordedEvent(event);
 }
 
-uint64_t currentMemoryAllocated(int device) {
-  assertValidDevice(device);
-  return caching_allocator.get_stats_for_device(device).amount_allocated;
-}
-
-uint64_t maxMemoryAllocated(int device) {
-  assertValidDevice(device);
-  return caching_allocator.get_stats_for_device(device).max_amount_allocated;
-}
-
-void resetMaxMemoryAllocated(int device) {
-  assertValidDevice(device);
-  DeviceStats& stats = caching_allocator.get_stats_for_device(device);
-  stats.max_amount_allocated = stats.amount_allocated;
-}
-
-uint64_t currentMemoryCached(int device) {
-  assertValidDevice(device);
-  return caching_allocator.get_stats_for_device(device).amount_cached;
-}
-
-uint64_t maxMemoryCached(int device) {
-  assertValidDevice(device);
-  return caching_allocator.get_stats_for_device(device).max_amount_cached;
-}
-
-void resetMaxMemoryCached(int device) {
-  assertValidDevice(device);
-  DeviceStats& stats = caching_allocator.get_stats_for_device(device);
-  stats.max_amount_cached = stats.amount_cached;
-}
-
 //
 // In NPU IPC, sender sends a tensor to receiver, getIpcDevPtr
 // is called by the receiving process to map the NPU memory from the sending

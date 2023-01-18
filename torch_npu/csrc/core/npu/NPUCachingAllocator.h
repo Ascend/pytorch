@@ -129,13 +129,6 @@ void resetAccumulatedStats(int device);
 void resetPeakStats(int device);
 std::vector<SegmentInfo> snapshot();
 
-uint64_t currentMemoryAllocated(int device);
-uint64_t maxMemoryAllocated(int device);
-void resetMaxMemoryAllocated(int device);
-uint64_t currentMemoryCached(int device);
-uint64_t maxMemoryCached(int device);
-void resetMaxMemoryCached(int device);
-
 std::mutex* getFreeMutex();
 
 void FreeDeviceCachedMemory(int device);
