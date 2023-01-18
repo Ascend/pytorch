@@ -22,19 +22,17 @@ namespace at_npu {
 namespace native {
 using torch::autograd::AutogradContext;
 using tensor_list = std::vector<at::Tensor>;
-namespace {
-at::Tensor fast_gelu_npu_nocheck(at::Tensor& result, const at::Tensor& self) {
 
-    OpCommand cmd;
-    cmd.Name("FastGelu")
-        .Input(self)
-        .Output(result)
-        .Run();
+at::Tensor NPUNativeFunctions::npu_fast_gelu(const at::Tensor& self) {
+  at::Tensor result = OpPreparation::ApplyTensor(self);
+  OpCommand cmd;
+  cmd.Name("FastGelu")
+      .Input(self)
+      .Output(result)
+      .Run();
 
-    return result;
+  return result;
 }
-
-} // namespace
 
 namespace {
 at::Tensor& fast_gelu_backward_npu_nocheck(
@@ -59,8 +57,7 @@ public:
     const at::Tensor& self) {
     at::AutoNonVariableTypeMode g;
     ctx->save_for_backward({self});
-    at::Tensor result = OpPreparation::ApplyTensor(self);
-    return fast_gelu_npu_nocheck(result, self);
+    return NPUNativeFunctions::npu_fast_gelu(self);
   }
 
   static tensor_list backward(AutogradContext *ctx,
@@ -68,13 +65,13 @@ public:
     auto saved = ctx->get_saved_variables();
     auto input = saved[0];
 
-    at::Tensor result = NPUNativeFunctions::fast_gelu_backward(grad_outputs[0], input);
+    at::Tensor result = NPUNativeFunctions::npu_fast_gelu_backward(grad_outputs[0], input);
     tensor_list output = {result};
     return output;
   }
 };
 
-at::Tensor NPUNativeFunctions::fast_gelu_backward(
+at::Tensor NPUNativeFunctions::npu_fast_gelu_backward(
     const at::Tensor& grad, 
     const at::Tensor& self) {
   // construct the output tensor of the NPU
