@@ -41,7 +41,10 @@ apt-get install -y gcc==7.3.0 cmake==3.12.0
 | 3.0.rc2 | CANN 5.1.RC2 | 1.8.1.rc2 | v1.8.1-3.0.rc2 | 22.0.RC2-1.8.1 |
 | 3.0.rc3 | CANN 6.0.RC1 | 1.5.0.post7 | v1.5.0-3.0.rc3 | \ |
 | 3.0.rc3 | CANN 6.0.RC1 | 1.8.1.rc3 | v1.8.1-3.0.rc3 | 22.0.RC3-1.8.1 |
-| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1 | v1.11.0-3.0.rc3 | \ |
+| 3.0.rc3 | CANN 6.0.RC1 | 1.11.0.rc1（beta） | v1.11.0-3.0.rc3 | \ |
+| 3.0.0 | CANN 6.0.0 | 1.5.0.post8 | v1.5.0-3.0.0 | \ |
+| 3.0.0 | CANN 6.0.0 | 1.8.1 | v1.8.1-3.0.0 | \ |
+| 3.0.0 | CANN 6.0.0 | 1.11.0.rc2（beta） | v1.11.0-3.0.0 | \ |
 
 # 安装方式
 
@@ -72,7 +75,7 @@ pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，
 
 ```
 # 下载master分支代码，进入插件根目录
-git clone -b master https://gitee.com/ascend/pytorch.git 
+git clone -b v1.8.1 https://gitee.com/ascend/pytorch.git 
 cd pytorch    
 # 指定python版本编包方式：
 bash ci/build.sh --python=3.7
@@ -186,12 +189,13 @@ Ascend PyTorch的版本分支有以下几种维护阶段：
 
 | **分支名** | **当前状态**  | **上线时间**          | **后续状态**                           | **EOL 日期**|
 |------------|--------------|----------------------|----------------------------------------|------------|
-| **v2.0.2**   | Maintained   | 2021-07-29           | Unmaintained <br> 2022-07-29 estimated |            |
-| **v2.0.3**   | Maintained   | 2021-10-15           | Unmaintained <br> 2022-10-15 estimated |            |
-| **v2.0.4**   | Maintained   | 2022-01-15           | Unmaintained <br> 2023-01-15 estimated |            |
+| **v2.0.2**   | EOL   | 2021-07-29           | N/A |            |
+| **v2.0.3**   | EOL  | 2021-10-15           | N/A |            |
+| **v2.0.4**   | Unmaintained   | 2022-01-15           | EOL <br> 2023-04-15 estimated |            |
 | **v3.0.rc1**   | Maintained   | 2022-04-10           | Unmaintained <br> 2023-04-10 estimated |            |
 | **v3.0.rc2**   | Maintained   | 2022-07-15           | Unmaintained <br> 2023-07-15 estimated |            |
 | **v3.0.rc3**   | Maintained   | 2022-10-20           | Unmaintained <br> 2023-10-20 estimated |            |
+| **v3.0.0**   | Maintained   | 2023-1-20           | Unmaintained <br> 2024-1-20 estimated |            |
 
 # FAQ
 
