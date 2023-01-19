@@ -68,7 +68,9 @@ pip3 install torch==1.8.1+cpu #若使用pip命令安装cpu版本PyTorch报错，
 #aarch64（推荐使用镜像）
 可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
 #镜像仓库地址：（https://ascendhub.huawei.com/#/detail/pytorch-modelzoo）
-#社区未提供arm架构cpu安装包，如需尝试编译安装PyTorch框架，可参见FAQ第一条，使用源码编译安装pytorch。
+2.鲲鹏arm服务器可在鲲鹏开源软件文件共享中心获取编译好的PyTorch二进制安装包。
+#鲲鹏文件共享中心地址：（https://mirrors.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/）
+3.社区未提供的arm架构cpu安装包，可参见FAQ第一条，使用源码编译安装pytorch。
 ```
 
 编译生成pytorch插件的二进制安装包。
