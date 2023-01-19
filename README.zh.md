@@ -66,7 +66,7 @@ pip3 install wheel
 pip3 install torch==1.11.0+cpu #若使用pip命令安装cpu版本PyTorch报错，请手动下载whl包安装，下载地址：（https://download.pytorch.org/whl/torch）
 
 #aarch64（推荐使用镜像）
-可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
+1.可在docker中使用AscendHub镜像仓库提供的基于PyTorch版本制作的基础镜像，包含训练、转换和推理等功能。
 #镜像仓库地址：（https://ascendhub.huawei.com/#/detail/pytorch-modelzoo）
 2.鲲鹏arm服务器可在鲲鹏开源软件文件共享中心获取编译好的PyTorch二进制安装包。
 #鲲鹏文件共享中心地址：（https://mirrors.huaweicloud.com/kunpeng/archive/Ascend/PyTorch/）
